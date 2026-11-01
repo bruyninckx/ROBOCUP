@@ -170,33 +170,75 @@ html, body {
 }
 
 /* ============================================================================
- * HEARTHSTONE-STYLE ARCHED CARD HAND
+ * HEARTHSTONE-STYLE ARCHED CARD HAND (TUCKED WHEN IDLE, HOVER EXPAND)
  * ============================================================================ */
 .hand-stage {
   position: fixed;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 760px;
-  height: 210px;
-  z-index: 15;
+  width: 740px;
+  height: 200px;
+  z-index: 25;
   pointer-events: none;
+}
+.hand-tab {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid var(--ink);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 3px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  transition: all .2s ease;
+  user-select: none;
+}
+.hand-stage:hover .hand-tab,
+.hand-tab:hover {
+  background: var(--ink);
+  color: #fff;
+  top: 4px;
+}
+.hand-tray {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Idle state: tucked down so only top ~68px peeks up, leaving the South garage completely clear! */
+  transform: translateY(122px);
+  transition: transform 0.28s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+.hand-stage:hover .hand-tray,
+.hand-tray.pinned,
+.hand-stage.dragging-active .hand-tray {
+  transform: translateY(0);
 }
 .hs-card {
   position: absolute;
   bottom: 12px;
   left: 50%;
-  width: 148px;
-  height: 204px;
-  margin-left: -74px;
+  width: 138px;
+  height: 186px;
+  margin-left: -69px;
   background: #ffffff;
-  border: 2.5px solid var(--ink);
-  border-radius: 12px;
-  padding: 9px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 11px;
+  padding: 7px 9px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
   pointer-events: auto;
   cursor: grab;
   transform-origin: 50% 140%;
@@ -207,27 +249,27 @@ html, body {
 }
 .hs-card.playable {
   border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.35), 0 10px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.4), 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 .hs-card.combat-card.playable {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(217, 144, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 0 0 2.5px rgba(217, 144, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 .hs-card.unplayable {
-  opacity: 0.72;
-  filter: grayscale(0.25);
+  opacity: 0.65;
+  filter: grayscale(0.3);
 }
 .hs-card:hover {
   z-index: 50 !important;
-  transform: translate(var(--hx, 0px), -48px) rotate(0deg) scale(1.26) !important;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+  transform: translate(var(--hx, 0px), -36px) rotate(0deg) scale(1.22) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
 }
 .hs-card.dragging {
   z-index: 100 !important;
   cursor: grabbing;
   transition: none !important;
   pointer-events: none;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
 }
 
 /* Card Internal Layout */
@@ -235,14 +277,14 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 .hs-badge {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 2px 6px;
+  letter-spacing: 0.05em;
+  padding: 2px 5px;
   border-radius: 999px;
   background: var(--ink);
   color: #fff;
@@ -256,39 +298,39 @@ html, body {
   color: #fff;
 }
 .hs-need {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
   color: var(--muted);
 }
 .hs-art {
-  height: 58px;
-  border: 1.5px solid var(--line);
-  border-radius: 7px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   background: #faf9f5;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 22px;
 }
 .hs-title {
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   line-height: 1.15;
 }
 .hs-desc {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
   text-align: center;
-  line-height: 1.28;
+  line-height: 1.25;
 }
 .hs-footer {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   text-align: center;
   color: var(--muted);
   border-top: 1px solid var(--line);
-  padding-top: 3px;
+  padding-top: 2px;
 }
 </style>
 </head>
@@ -316,7 +358,10 @@ html, body {
 <div class="ticker" id="ticker"></div>
 
 <!-- Hearthstone-Style Arched Hand -->
-<div class="hand-stage" id="handStage"></div>
+<div class="hand-stage" id="handStage">
+  <div class="hand-tab" id="handTab">▲ HAND (0)</div>
+  <div class="hand-tray" id="handTray"></div>
+</div>
 
 <!-- Unified 2D Architectural Compound & Arena Canvas -->
 <canvas id="worldCv"></canvas>
@@ -892,7 +937,7 @@ html, body {
    * - Pos 2 (North):          centered at (0, -425), size 620 x 170
    * - Pos 3 (East):           centered at (+615, 0), size 220 x 480
    */
-  const cam = { x: 0, y: 35, zoom: 0.68, tx: 0, ty: 35, tzoom: 0.68, manualZoom: false };
+  const cam = { x: 0, y: -40, zoom: 0.58, tx: 0, ty: -40, tzoom: 0.58, manualZoom: false };
   const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false };
   let dragCard = null; // { idx, id, card, sx, sy, curX, curY }
   let hitRegions = []; // Interactive canvas regions rebuilt each frame
@@ -1036,17 +1081,21 @@ html, body {
 
   function renderHand() {
     const stage = $('#handStage');
+    const tray = $('#handTray');
+    const tab = $('#handTab');
     const hand = me().hand;
-    stage.innerHTML = '';
+    tray.innerHTML = '';
     const n = hand.length;
+    if (tab && !tray.classList.contains('pinned')) tab.textContent = `▲ HAND (${n})`;
+
     hand.forEach((id, i) => {
       const c = CARDS[id];
       const playable = isCardPlayable(id);
       const mid = (n - 1) / 2;
       const off = i - mid;
-      const angle = off * 6.5;
-      const hx = off * 108;
-      const hy = Math.abs(off) * Math.abs(off) * 5;
+      const angle = off * 5.8;
+      const hx = off * 100;
+      const hy = Math.abs(off) * Math.abs(off) * 4.5;
 
       const el = document.createElement('div');
       el.className = 'hs-card ' +
@@ -1056,7 +1105,7 @@ html, body {
       el.style.transform = `translate(${hx}px, ${hy}px) rotate(${angle}deg)`;
       el.style.zIndex = String(10 + i);
 
-      const typeLbl = c.phase === 'fight' ? '⚡ Live Combat' : c.phase === 'reaction' ? '🛡️ Reaction' : '🕵️ Intrigue';
+      const typeLbl = c.phase === 'fight' ? '⚡ Combat' : c.phase === 'reaction' ? '🛡️ Reaction' : '🕵️ Scheme';
       const targetHint = c.target === 'garage' ? 'Drag to Rival Garage' :
                          c.target === 'self'   ? 'Drag to Your Garage' :
                          c.target === 'bot'    ? 'Drag to Arena Robot' :
@@ -1082,10 +1131,35 @@ html, body {
           curY: e.clientY
         };
         el.classList.add('dragging');
+        stage.classList.add('dragging-active');
       });
 
-      stage.appendChild(el);
+      tray.appendChild(el);
     });
+  }
+
+  /* Dynamic Auto-Fit Camera System */
+  function getCompoundZoom() {
+    const sw = window.innerWidth, sh = window.innerHeight;
+    const fitW = (sw - 80) / 1400;
+    const fitH = (sh - 190) / 920;
+    return Math.max(0.40, Math.min(0.70, Math.min(fitW, fitH)));
+  }
+
+  function getArenaZoom() {
+    const sw = window.innerWidth, sh = window.innerHeight;
+    const fitW = (sw - 80) / 950;
+    const fitH = (sh - 160) / 600;
+    return Math.max(0.75, Math.min(1.15, Math.min(fitW, fitH)));
+  }
+
+  function setCameraGoal(mode) {
+    if (cam.manualZoom) return;
+    if (mode === 'arena') {
+      cam.tx = 0; cam.ty = 0; cam.tzoom = getArenaZoom();
+    } else {
+      cam.tx = 0; cam.ty = -40; cam.tzoom = getCompoundZoom();
+    }
   }
 
   /* ---------- Game Flow & Phases ---------- */
@@ -1108,15 +1182,6 @@ html, body {
     }
     notify('<b>Scrapyard Compound Online.</b> First house to 12 Fame wins!', '#111');
     startRound();
-  }
-
-  function setCameraGoal(mode) {
-    if (cam.manualZoom) return;
-    if (mode === 'arena') {
-      cam.tx = 0; cam.ty = 25; cam.tzoom = 1.02;
-    } else {
-      cam.tx = 0; cam.ty = 35; cam.tzoom = 0.68;
-    }
   }
 
   function startRound() {
@@ -1503,10 +1568,10 @@ html, body {
 
   // Garage layout relative to viewerSeat (0=South, 1=West, 2=North, 3=East)
   const GARAGE_SLOTS = [
-    { pos: 0, dir: 'S', gx: 0,    gy: 410,  gw: 620, gh: 165, doorX: 0,    doorY: 280 },
-    { pos: 1, dir: 'W', gx: -600, gy: 0,    gw: 215, gh: 480, doorX: -450, doorY: 0   },
-    { pos: 2, dir: 'N', gx: 0,    gy: -410, gw: 620, gh: 165, doorX: 0,    doorY: -280},
-    { pos: 3, dir: 'E', gx: 600,  gy: 0,    gw: 215, gh: 480, doorX: 450,  doorY: 0   },
+    { pos: 0, dir: 'S', gx: 0,    gy: 380,  gw: 570, gh: 144, doorX: 0,    doorY: 280 },
+    { pos: 1, dir: 'W', gx: -580, gy: 0,    gw: 200, gh: 430, doorX: -450, doorY: 0   },
+    { pos: 2, dir: 'N', gx: 0,    gy: -380, gw: 570, gh: 144, doorX: 0,    doorY: -280},
+    { pos: 3, dir: 'E', gx: 580,  gy: 0,    gw: 200, gh: 430, doorX: 450,  doorY: 0   },
   ];
 
   function teamAtPos(pos) { return (viewerSeat + pos) % 4; }
@@ -1607,19 +1672,21 @@ html, body {
 
       ctx.fillStyle = '#ebe7de';
       if (slot.dir === 'S' || slot.dir === 'N') {
-        const cy = slot.dir === 'S' ? 280 : -328;
-        ctx.fillRect(-48, cy, 96, 48);
+        const cy = slot.dir === 'S' ? 280 : (slot.gy + slot.gh / 2);
+        const ch = slot.dir === 'S' ? (slot.gy - slot.gh / 2 - 280) : (-280 - (slot.gy + slot.gh / 2));
+        ctx.fillRect(-48, cy, 96, ch);
         ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-        ctx.strokeRect(-48, cy, 96, 48);
+        ctx.strokeRect(-48, cy, 96, ch);
         // Blast door leaves
         ctx.fillStyle = '#111';
         ctx.fillRect(-46 - openAmt, slot.doorY - 4, 45, 8);
         ctx.fillRect(1 + openAmt, slot.doorY - 4, 45, 8);
       } else {
-        const cx = slot.dir === 'E' ? 450 : -498;
-        ctx.fillRect(cx, -48, 48, 96);
+        const cx = slot.dir === 'E' ? 450 : (slot.gx + slot.gw / 2);
+        const cw = slot.dir === 'E' ? (slot.gx - slot.gw / 2 - 450) : (-450 - (slot.gx + slot.gw / 2));
+        ctx.fillRect(cx, -48, cw, 96);
         ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-        ctx.strokeRect(cx, -48, 48, 96);
+        ctx.strokeRect(cx, -48, cw, 96);
         ctx.fillStyle = '#111';
         ctx.fillRect(slot.doorX - 4, -46 - openAmt, 8, 45);
         ctx.fillRect(slot.doorX - 4, 1 + openAmt, 8, 45);
@@ -1672,29 +1739,29 @@ html, body {
 
       // Garage Header: Name, Host Crown, Tampered Icon, Fame Track, Credits, Mechanics
       ctx.fillStyle = t.col;
-      ctx.font = '800 14px system-ui, sans-serif';
+      ctx.font = '800 13.5px system-ui, sans-serif';
       ctx.textAlign = 'left';
       const title = t.name + (ti === viewerSeat ? ' (YOU)' : '') + (G.host === ti ? ' 👑' : '') + (Object.keys(t.tamper).length ? ' 🕵️' : '');
-      ctx.fillText(title, x0 + 12, y0 + 24);
+      ctx.fillText(title, x0 + 12, y0 + 22);
 
       ctx.fillStyle = '#111';
-      ctx.font = '700 12px system-ui, sans-serif';
+      ctx.font = '700 11.5px system-ui, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(`★ ${t.fame}/${WIN_FAME}   🪙 ${t.credits} Cr   🔧 ${t.mechs}`, x0 + slot.gw - 12, y0 + 24);
+      ctx.fillText(`★ ${t.fame}/${WIN_FAME}   🪙 ${t.credits} Cr   🔧 ${t.mechs}`, x0 + slot.gw - 12, y0 + 22);
 
       // Fame bar
       ctx.fillStyle = '#ece9e0';
-      ctx.fillRect(x0 + 12, y0 + 31, slot.gw - 24, 5);
+      ctx.fillRect(x0 + 12, y0 + 28, slot.gw - 24, 4.5);
       ctx.fillStyle = t.col;
-      ctx.fillRect(x0 + 12, y0 + 31, (slot.gw - 24) * Math.min(1, t.fame / WIN_FAME), 5);
+      ctx.fillRect(x0 + 12, y0 + 28, (slot.gw - 24) * Math.min(1, t.fame / WIN_FAME), 4.5);
 
       // 3 Physical Robot Bays inside the Garage
       const horiz = slot.dir === 'S' || slot.dir === 'N';
       for (let bIdx = 0; bIdx < 3; bIdx++) {
-        const bx = horiz ? (x0 + 14 + bIdx * 200) : (x0 + 12);
-        const by = horiz ? (y0 + 44) : (y0 + 46 + bIdx * 140);
-        const bw = horiz ? 190 : (slot.gw - 24);
-        const bh = horiz ? 108 : 130;
+        const bw = horiz ? 174 : 176;
+        const bh = horiz ? 92 : 114;
+        const bx = horiz ? (x0 + 16 + bIdx * 182) : (x0 + 12);
+        const by = horiz ? (y0 + 36) : (y0 + 36 + bIdx * 122);
 
         const r = t.robots[bIdx];
         const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
@@ -1706,8 +1773,13 @@ html, body {
         ctx.strokeRect(bx, by, bw, bh);
 
         if (!r) {
-          ctx.fillStyle = '#bbb'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText('EMPTY BAY', bx + bw / 2, by + bh / 2 + 4);
+          ctx.save();
+          ctx.strokeStyle = '#d4cfc4'; ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(bx, by, bw, bh);
+          ctx.fillStyle = '#bbb'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('+ EMPTY BAY', bx + bw / 2, by + bh / 2 + 4);
+          ctx.restore();
           continue;
         }
 
@@ -1722,46 +1794,46 @@ html, body {
 
         const curHp = Math.max(0, maxHp(r) - r.dmg);
         const face = slot.dir === 'S' ? -Math.PI / 2 : slot.dir === 'N' ? Math.PI / 2 : slot.dir === 'W' ? 0 : Math.PI;
-        drawRobotSprite(ctx, bx + 34, by + bh / 2 + 4, face, face, t.col, r.b, curHp / maxHp(r), null, null, false, false, now);
+        drawRobotSprite(ctx, bx + 28, by + (horiz ? bh / 2 + 2 : 40), face, face, t.col, r.b, curHp / maxHp(r), null, null, false, false, now);
 
-        ctx.fillStyle = '#111'; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(r.name + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : ''), bx + 64, by + 22);
+        ctx.fillStyle = '#111'; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(r.name + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : ''), bx + 54, by + 19);
 
-        ctx.fillStyle = '#666'; ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillText(`${curHp}/${maxHp(r)} HP · ${buildText(r)}`, bx + 64, by + 38);
+        ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
+        ctx.fillText(`${curHp}/${maxHp(r)} HP · ${buildText(r)}`, bx + 54, by + 34);
 
         const modText = ti === viewerSeat ? ('⚙️ ' + (Sim.MODS[r.b.mod]?.name || 'Module')) : '⚙️ ? Secret Module';
         ctx.fillStyle = ti === viewerSeat ? '#333' : '#6d28d9';
-        ctx.fillText(modText, bx + 64, by + 54);
+        ctx.fillText(modText, bx + 54, by + 48);
 
         // Contextual Action Prompts directly on Viewer's Robot Bays!
         if (ti === viewerSeat) {
           const repCost = Math.ceil(r.dmg / 20);
           if (G.phase === 'upkeep' && repCost > 0) {
             ctx.fillStyle = t.credits >= repCost ? '#111' : '#aaa';
-            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillRect(bx + 54, by + 58, 108, 24);
             ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(`🔧 Repair (${repCost} Cr)`, bx + 64 + 57, by + 80);
+            ctx.fillText(`🔧 Repair (${repCost} Cr)`, bx + 54 + 54, by + 74);
           } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
             ctx.fillStyle = '#1f6feb';
-            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillRect(bx + 54, by + 58, 108, 24);
             ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('🔩 Fit Part Here', bx + 64 + 57, by + 80);
+            ctx.fillText('🔩 Fit Part Here', bx + 54 + 54, by + 74);
           } else if (G.phase === 'arena' && G.chooseMyBot) {
             ctx.fillStyle = '#2a9d3a';
-            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillRect(bx + 54, by + 58, 108, 24);
             ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('⚔️ Send to Arena', bx + 64 + 57, by + 80);
+            ctx.fillText('⚔️ Send to Arena', bx + 54 + 54, by + 74);
           }
         }
       }
 
       // Draw Mechanic Dots moving inside the garage
       for (let m = 0; m < t.mechs; m++) {
-        const mx = x0 + 24 + ((m * 57 + Math.sin(now / 900 + m * 2 + ti) * 18) % (slot.gw - 48));
-        const my = y0 + slot.gh - 10;
+        const mx = x0 + 20 + ((m * 57 + Math.sin(now / 900 + m * 2 + ti) * 18) % (slot.gw - 40));
+        const my = y0 + slot.gh - 8;
         ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(mx, my, 3.5, 0, Math.PI * 2); ctx.fill();
       }
     });
 
@@ -2032,10 +2104,11 @@ html, body {
     if (!dragCard) return;
     const dc = dragCard;
     dragCard = null;
+    $('#handStage').classList.remove('dragging-active');
     const w = screenToWorld(e.clientX, e.clientY);
 
     // Check if dropped above the hand tray into the world
-    if (e.clientY < window.innerHeight - 165) {
+    if (e.clientY < window.innerHeight - 145) {
       if (tryPlayDraggedCard(dc, w.x, w.y)) {
         updateHud();
         return;
@@ -2192,16 +2265,27 @@ html, body {
     renderWorld(now);
   }
 
-  /* ---------- Top Pill Controls ---------- */
+  /* ---------- Top Pill & Hand Controls ---------- */
   $('#seatSel').onchange = e => {
     viewerSeat = +e.target.value;
     updateHud();
   };
+  $('#handTab').onclick = () => {
+    const tray = $('#handTray');
+    tray.classList.toggle('pinned');
+    const pinned = tray.classList.contains('pinned');
+    $('#handTab').textContent = pinned ? `▼ PINNED (${me().hand.length})` : `▲ HAND (${me().hand.length})`;
+  };
+  window.addEventListener('resize', () => {
+    if (!cam.manualZoom) {
+      setCameraGoal(G?.phase === 'fight' ? 'arena' : 'compound');
+    }
+  });
   $('#camToggleBtn').onclick = () => {
     cam.manualZoom = !cam.manualZoom;
     if (cam.manualZoom) {
       const zoomedIn = cam.tzoom > 0.85;
-      cam.tx = 0; cam.ty = zoomedIn ? 35 : 25; cam.tzoom = zoomedIn ? 0.68 : 1.02;
+      cam.tx = 0; cam.ty = zoomedIn ? -40 : 0; cam.tzoom = zoomedIn ? getCompoundZoom() : getArenaZoom();
     } else {
       setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound');
     }
