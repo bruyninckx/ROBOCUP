@@ -36,16 +36,18 @@ Kev's stance: balance mostly comes from the economy, and some really strong buil
 Duel watchdog before → after (before spinner/flamethrower): 90/10+ matchups 49% → 39%, upset rate 15% → 18–20%, rapid calibre 0.3× → 0.5–0.6×, 5 builds now beat the strongest build. Team battles stay more lopsided (snowball: losing one robot makes it 3v4).
 After adding spinner + flamethrower (watchdog, full runs): duels 44% of matchups 90/10+, upset 16%, strongest build beaten 60%+ by 15 other builds; 4v4: 42% lopsided, upset 18%. Flamethrower healthy in duels (1.0×) but weaker in 4v4 (0.6×, fire spreads to its own teammates). Energy Shield and medium guns are the safest picks in 4v4. Reports: `docs/watchdog-report.md`, `docs/watchdog-report-team.md`.
 
-## Named builds and head-to-head (200 fights each, row beats column, %)
-| | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw |
-|---|---|---|---|---|---|---|---|
-| **Bulwark** | – | 10 | 100 | 16 | 3 | 2 | 14 |
-| **Marksman** | 90 | – | 4 | 66 | 100 | 24 | 67 |
-| **Hornet** | 0 | 96 | – | 42 | 100 | 71 | 71 |
-| **Dasher** | 84 | 34 | 58 | – | 15 | 58 | 36 |
-| **Burner** | 97 | 0 | 0 | 85 | – | 13 | 78 |
-| **Lobber** | 98 | 76 | 29 | 42 | 87 | – | 50 |
-| **Buzzsaw** | 86 | 33 | 29 | 64 | 22 | 50 | – |
+## Named builds and head-to-head (200 fights each, row beats column, %; after the balance pass, with crits and malfunctions)
+| | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw | Whirlwind | Torch |
+|---|---|---|---|---|---|---|---|---|---|
+| **Bulwark** | – | 12 | 82 | 16 | 12 | 0 | 51 | 1 | 10 |
+| **Marksman** | 88 | – | 6 | 60 | 100 | 25 | 85 | 16 | 98 |
+| **Hornet** | 18 | 94 | – | 51 | 100 | 64 | 98 | 0 | 54 |
+| **Dasher** | 84 | 40 | 49 | – | 37 | 55 | 69 | 90 | 32 |
+| **Burner** | 88 | 0 | 0 | 63 | – | 5 | 86 | 56 | 62 |
+| **Lobber** | 100 | 75 | 36 | 45 | 95 | – | 74 | 27 | 68 |
+| **Buzzsaw** | 49 | 15 | 3 | 31 | 14 | 26 | – | 74 | 82 |
+| **Whirlwind** | 99 | 84 | 100 | 10 | 44 | 73 | 26 | – | 78 |
+| **Torch** | 90 | 2 | 46 | 68 | 38 | 31 | 18 | 21 | – |
 
 Every build beats at least one and loses to at least one.
 
