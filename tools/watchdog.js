@@ -1,0 +1,256 @@
+#!/usr/bin/env node
+/*
+  ROBOCUS combo watchdog
+  ----------------------
+  Simulates thousands of random, complete robots (stats + weapon + module + helpers) against each
+  other with the CURRENT battle simulator from prototypes/arena-sandbox.html, and reports:
+    1. Too strong   - builds or single options that beat nearly everything
+    2. Dead options - choices that are almost never worth taking
+    3. Too lopsided - how many matchups are 90/10 or worse (decided at build time)
+    4. Upset rate   - how often the favourite of a matchup loses (target 25-35%)
+    5. Stacking     - how much helpers / modules add on top of a robot
+    6. Synergies    - pairs of choices that are much stronger together than apart (the fun surprises)
+
+  Usage:  node tools/watchdog.js [--quick] [--builds 300] [--opponents 30] [--seed 1]
+                                 [--helpers 1|0|2|3|random] [--module yes|no|random] [--out docs/watchdog-report.md]
+  Default loadout is equal for everyone (1 module + 1 helper), because helpers and modules are still free;
+  use --helpers random --module random to see how much stacking them adds.
+  Full run takes a few minutes on a normal PC (--quick about 1-2 min). Deterministic for a given seed.
+*/
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const os = require('os');
+const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+
+const ROOT = path.resolve(__dirname, '..');
+const SANDBOX = path.join(ROOT, 'prototypes', 'arena-sandbox.html');
+
+// ---- load Sim straight out of the sandbox HTML, so we always test what Kev plays ----
+function loadSim(file) {
+  const html = fs.readFileSync(file, 'utf8');
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  const code = scripts.find(s => s.includes('Robot auto-battle core'));
+  if (!code) throw new Error('Could not find the Sim script in ' + file);
+  const ctx = { Math, JSON, Object, Array, Set, Map, Number, String, Infinity, NaN, console };
+  vm.createContext(ctx);
+  vm.runInContext(code, ctx);
+  if (!ctx.Sim) throw new Error('Sim did not load');
+  return { Sim: ctx.Sim, hash: require('crypto').createHash('sha1').update(code).digest('hex').slice(0, 8) };
+}
+
+function fightScore(Sim, a, b, seed, dt) {
+  // returns score for a: 1 win, 0.5 draw, 0 loss
+  const B = Sim.fight(a, b, seed, dt);
+  return B.winner === 0 ? 1 : B.winner === -1 ? 0.5 : 0;
+}
+
+// ---------------- worker ----------------
+if (!isMainThread) {
+  const { Sim } = loadSim(workerData.file);
+  parentPort.on('message', ({ jobs, id }) => {
+    const out = jobs.map(([a, b, seed, n]) => {
+      let s = 0;
+      for (let k = 0; k < n; k++) {
+        // alternate sides so spawn position doesn't matter
+        s += k % 2 ? 1 - fightScore(Sim, b, a, seed + k * 977, 1 / 30) : fightScore(Sim, a, b, seed + k * 977, 1 / 30);
+      }
+      return s / n;
+    });
+    parentPort.postMessage({ id, out });
+  });
+  return;
+}
+
+// ---------------- main ----------------
+const args = process.argv.slice(2);
+const arg = (name, def) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : def; };
+const QUICK = args.includes('--quick');
+const NB = +arg('builds', QUICK ? 120 : 300);
+const NOPP = +arg('opponents', QUICK ? 16 : 30);
+const SEED = +arg('seed', 1);
+const OUT = path.resolve(ROOT, arg('out', 'docs/watchdog-report.md'));
+const HELPERS_N = arg('helpers', '1');
+const MODULE_MODE = arg('module', 'yes');
+
+const { Sim, hash } = loadSim(SANDBOX);
+const STATS = Sim.STATS, MODS = Object.keys(Sim.MODS || {}), HELP = Object.keys(Sim.HELPERS || {});
+const WEAPONS = ['gun', 'laser', 'mortar', 'saw'];
+const CALS = Object.keys(Sim.CAL || { medium: 1 });
+const RANGES = Object.keys(Sim.RANGES || { mid: 1 });
+const BUDGET = 14;
+const rng = Sim.mkRng(SEED * 7919 + 13);
+const pick = a => a[Math.floor(rng() * a.length)];
+
+function randomBuild() {
+  const lv = {}; STATS.forEach(k => lv[k] = 0);
+  let left = BUDGET;
+  while (left > 0) { const k = pick(STATS); if (lv[k] < 4) { lv[k]++; left--; } }
+  const weapon = pick(WEAPONS);
+  const nh = HELPERS_N === 'random' ? Math.floor(rng() * 4) : Math.max(0, Math.min(3, +HELPERS_N || 0));
+  return {
+    lv, weapon, cal: weapon === 'gun' ? pick(CALS) : 'medium', range: pick(RANGES),
+    mod: MODULE_MODE === 'no' ? null : MODULE_MODE === 'random' ? (rng() < 0.5 ? null : pick(MODS)) : pick(MODS),
+    helpers: [...Array(nh)].map(() => pick(HELP)),
+    focus: pick(['main', 'medics', 'helpers']),
+  };
+}
+const label = b => (b.weapon === 'gun' ? b.cal + ' gun' : b.weapon) + ', ' + b.range + ' range, ' +
+  STATS.map(k => k.slice(0, 2).toUpperCase() + b.lv[k]).join(' ') +
+  (b.mod ? ', module ' + Sim.MODS[b.mod].name : '') + (b.helpers.length ? ', helpers ' + b.helpers.map(h => Sim.HELPERS[h].name).join('+') : '');
+
+// worker pool
+const NW = Math.max(1, Math.min(8, os.cpus().length));
+const workers = [...Array(NW)].map(() => new Worker(__filename, { workerData: { file: SANDBOX } }));
+let jid = 0;
+function run(jobs) {
+  const chunks = workers.map(() => []);
+  jobs.forEach((j, k) => chunks[k % NW].push(j));
+  return Promise.all(workers.map((w, wi) => new Promise(res => {
+    const id = jid++;
+    const h = m => { if (m.id === id) { w.off('message', h); res(m.out); } };
+    w.on('message', h); w.postMessage({ jobs: chunks[wi], id });
+  }))).then(parts => { const out = new Array(jobs.length); parts.forEach((p, wi) => p.forEach((v, k) => out[k * NW + wi] = v)); return out; });
+}
+const pct = x => Math.round(x * 100) + '%';
+const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+
+(async () => {
+  const t0 = Date.now();
+  process.stdout.write('ROBOCUS watchdog: sim ' + hash + ', ' + NB + ' random builds x ' + NOPP + ' opponents, ' + NW + ' worker(s)\n');
+
+  // 1. every build vs random opponents (2 fights each, sides swapped)
+  const builds = [...Array(NB)].map(randomBuild);
+  const jobs = [], who = [];
+  builds.forEach((b, i) => {
+    for (let k = 0; k < NOPP; k++) {
+      let j = Math.floor(rng() * NB); if (j === i) j = (j + 1) % NB;
+      jobs.push([b, builds[j], 1000 + i * 131 + k * 17, 2]); who.push(i);
+    }
+  });
+  const res = await run(jobs);
+  const score = new Array(NB).fill(0), cnt = new Array(NB).fill(0);
+  res.forEach((v, k) => { score[who[k]] += v; cnt[who[k]]++; });
+  const wr = score.map((s, i) => s / cnt[i]);
+  const overall = mean(wr);
+  process.stdout.write('  field done (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)\n');
+
+  // 2. option strength (average win rate of builds that have the option)
+  const groups = [];
+  const compSet = new Set([...Array(NB).keys()].sort((a, b) => wr[b] - wr[a]).slice(0, Math.round(NB * 0.4)));
+  const addGroup = (name, opts, has) => groups.push({ name, rows: opts.map(o => {
+    const idx = builds.map((b, i) => has(b, o) ? i : -1).filter(i => i >= 0);
+    const inComp = idx.filter(i => compSet.has(i)).length;
+    // meta: share of this option among competitive builds divided by its share overall (1.0 = normal)
+    return { o, n: idx.length, w: mean(idx.map(i => wr[i])), meta: idx.length ? (inComp / compSet.size) / (idx.length / NB) : 0 };
+  }) });
+  addGroup('Weapon', WEAPONS, (b, o) => b.weapon === o);
+  addGroup('Gun calibre (gun builds only)', CALS, (b, o) => b.weapon === 'gun' && b.cal === o);
+  addGroup('Preferred range', RANGES, (b, o) => b.range === o);
+  addGroup('Module', ['(none)'].concat(MODS), (b, o) => o === '(none)' ? !b.mod : b.mod === o);
+  addGroup('Helper', HELP, (b, o) => b.helpers.includes(o));
+  if (HELPERS_N === 'random') addGroup('Number of helpers', [0, 1, 2, 3], (b, o) => b.helpers.length === o);
+  addGroup('Targeting order', ['main', 'medics', 'helpers'], (b, o) => b.focus === o);
+  for (const k of STATS) addGroup('Stat: ' + k + ' level', [0, 1, 2, 3, 4], (b, o) => b.lv[k] === o);
+  const optName = (g, o) => g.name === 'Module' && o !== '(none)' ? Sim.MODS[o].name : g.name === 'Helper' ? Sim.HELPERS[o].name : String(o);
+
+  // 3. competitive pool: players don't build junk, so balance is judged among the best 40% of random builds
+  const order = [...Array(NB).keys()].sort((a, b) => wr[b] - wr[a]);
+  const comp = order.slice(0, Math.round(NB * 0.4));
+  const top = order.slice(0, 8);
+  const fresh = comp.filter(i => !top.includes(i)).map(i => builds[i]);
+  const tjobs = [];
+  top.forEach((i, ti) => fresh.forEach((f, k) => tjobs.push([builds[i], f, 50000 + ti * 1000 + k, 4])));
+  const tres = await run(tjobs);
+  const topInfo = top.map((i, ti) => ({ i, field: mean(tres.slice(ti * fresh.length, (ti + 1) * fresh.length)) }));
+  // counter search for the strongest: best of ALL builds against it (6 fights each)
+  const champ = topInfo.slice().sort((a, b) => b.field - a.field)[0];
+  const cjobs = builds.map((b, j) => [b, builds[champ.i], 90000 + j, 6]);
+  const cres = await run(cjobs);
+  let ci = -1, cv = -1; cres.forEach((v, j) => { if (j !== champ.i && v > cv) { cv = v; ci = j; } });
+  const beaters = cres.filter((v, j) => j !== champ.i && v >= 0.6).length;
+  process.stdout.write('  top builds + counter search done (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)\n');
+
+  // 4. matchup hardness + upset rate: 70 builds, all pairs, 8 fights each
+  const NS = QUICK ? 36 : 50;
+  const S = comp.filter((_, k) => k % Math.max(1, Math.floor(comp.length / NS)) === 0).slice(0, NS);
+  const pjobs = [];
+  for (let a = 0; a < S.length; a++) for (let b = a + 1; b < S.length; b++) pjobs.push([builds[S[a]], builds[S[b]], 70000 + a * 97 + b, 6]);
+  const pres = await run(pjobs);
+  // with 6 fights, 6-0 or 0-6 is our "90/10 or worse"
+  const hard = pres.filter(p => p >= 0.9 || p <= 0.1).length / pres.length;
+  const soft = pres.filter(p => p >= 0.35 && p <= 0.65).length / pres.length;
+  const upset = mean(pres.map(p => Math.min(p, 1 - p)));
+  process.stdout.write('  matchups done (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)\n');
+
+  // 5. synergies: pairs of choices that do better together than you'd expect from each alone
+  const feats = b => {
+    const f = ['weapon:' + b.weapon, 'range:' + b.range];
+    if (b.mod) f.push('module:' + b.mod);
+    for (const h of new Set(b.helpers)) f.push('helper:' + h);
+    if (b.weapon === 'gun') f.push('calibre:' + b.cal);
+    return f;
+  };
+  const F = builds.map(feats);
+  const single = {};
+  F.forEach((fs_, i) => fs_.forEach(f => { (single[f] = single[f] || []).push(wr[i]); }));
+  const pairs = {};
+  F.forEach((fs_, i) => { for (let a = 0; a < fs_.length; a++) for (let b = a + 1; b < fs_.length; b++) { const k = [fs_[a], fs_[b]].sort().join(' + '); (pairs[k] = pairs[k] || []).push(wr[i]); } });
+  const syn = Object.entries(pairs).filter(([k, v]) => v.length >= 6 && !k.startsWith('range') && !(k.includes('weapon:') && k.includes('calibre:'))).map(([k, v]) => {
+    const [a, b] = k.split(' + ');
+    return { k, n: v.length, w: mean(v), lift: mean(v) - mean(single[a]) - mean(single[b]) + overall };
+  });
+  syn.sort((a, b) => b.lift - a.lift);
+  const pretty = f => { const [t, v] = f.split(':'); return t === 'module' ? Sim.MODS[v].name : t === 'helper' ? Sim.HELPERS[v].name : t === 'weapon' ? (v === 'saw' ? 'saw blades' : v) : t === 'calibre' ? v + ' calibre' : v + ' range'; };
+
+  // ---------------- report ----------------
+  const flags = [];
+  const L = [];
+  L.push('# ROBOCUS watchdog report', '');
+  L.push('Generated ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC by `node tools/watchdog.js` (seed ' + SEED + ', sim ' + hash + ', ' + NB + ' random builds, ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s).');
+  const loadout = (MODULE_MODE === 'yes' ? '1 random module' : MODULE_MODE === 'no' ? 'no module' : '50% chance of a module') + ', ' + (HELPERS_N === 'random' ? '0–3 random helpers' : HELPERS_N + ' random helper(s)');
+  L.push('Every robot: 14 random stat points, random weapon / calibre / range / targeting order, ' + loadout + '. Duels only.', '');
+
+  L.push('## Health check', '');
+  const champLine = champ.field;
+  if (champLine >= 0.8) flags.push('A single build wins ' + pct(champLine) + ' against the other competitive builds (limit 80%).');
+  if (cv < 0.6) flags.push('No build found that reliably beats the strongest build (best counter only ' + pct(cv) + ').');
+  if (hard > 0.35) flags.push(pct(hard) + ' of matchups are 90/10 or worse (target under 35%).');
+  if (upset < 0.2) flags.push('Upset rate is ' + pct(upset) + ' (target 25–35%): fights are too predictable.');
+  for (const g of groups) for (const r of g.rows) {
+    if (r.n < 8 || g.name.startsWith('Number of helpers') || g.name.startsWith('Stat')) continue;
+    if (r.meta >= 1.6) flags.push('Too strong? ' + g.name + ' = ' + optName(g, r.o) + ' shows up ' + r.meta.toFixed(1) + '× as often among competitive builds (win rate ' + pct(r.w) + ').');
+    if (r.meta <= 0.4) flags.push('Dead option? ' + g.name + ' = ' + optName(g, r.o) + ' shows up only ' + r.meta.toFixed(1) + '× as often among competitive builds (win rate ' + pct(r.w) + ').');
+  }
+  L.push('| Check | Result | Target |', '|---|---|---|');
+  L.push('| Strongest build vs other competitive builds | ' + pct(champ.field) + ' | under 80% |');
+  L.push('| Best counter to it | ' + pct(cv) + ' (' + beaters + ' builds beat it 60%+) | at least 60% |');
+  L.push('| Matchups 90/10 or worse (competitive builds) | ' + pct(hard) + ' | under 35% |');
+  L.push('| Matchups between 35/65 and 65/35 | ' + pct(soft) + ' | the more the better |');
+  L.push('| Upset rate (favourite loses, competitive builds) | ' + pct(upset) + ' | 25–35% |', '');
+  L.push('"Competitive builds" = the best 40% of ' + NB + ' random robots (players don\'t build junk).', '');
+  L.push(flags.length ? '**Flags**\n\n' + flags.map(f => '- ' + f).join('\n') : '**No flags.** Nothing dominant, no dead options.', '');
+
+  L.push('## Strongest builds (re-tested against ' + fresh.length + ' other competitive robots, 4 fights each)', '');
+  topInfo.sort((a, b) => b.field - a.field).forEach(t => L.push('- ' + pct(t.field) + ': ' + label(builds[t.i])));
+  L.push('', 'Best counter to the strongest (' + pct(cv) + ' against it): ' + label(builds[ci]), '');
+
+  L.push('## Option strength', '');
+  L.push('Per option: average win rate of random builds that have it, and in brackets how often it shows up among competitive builds compared to normal (1.0 = normal, 2.0 = twice as often, 0.3 = rarely good).', '');
+  for (const g of groups) {
+    L.push('**' + g.name + ':** ' + g.rows.filter(r => r.n > 0).map(r => optName(g, r.o) + ' ' + pct(r.w) + ' (' + r.meta.toFixed(1) + '×' + (r.n < 8 ? ', few samples' : '') + ')').join(' · '), '');
+  }
+
+  L.push('## Synergies (combos that do better together than apart)', '');
+  L.push('Lift = how much better the pair does than you would expect from each part on its own. These are the surprise combos worth showing off; check them if one gets out of hand.', '');
+  syn.slice(0, 10).forEach(s => L.push('- ' + s.k.split(' + ').map(pretty).join(' + ') + ': ' + pct(s.w) + ' win rate, lift +' + Math.round(s.lift * 100) + ' (' + s.n + ' builds)'));
+  L.push('', 'Worst pairings (anti-synergy):', '');
+  syn.slice(-5).reverse().forEach(s => L.push('- ' + s.k.split(' + ').map(pretty).join(' + ') + ': ' + pct(s.w) + ', lift ' + Math.round(s.lift * 100) + ' (' + s.n + ' builds)'));
+  L.push('');
+
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
+  fs.writeFileSync(OUT, L.join('\n'));
+  process.stdout.write('\n' + L.slice(0, 20).join('\n') + '\n\nFull report: ' + path.relative(ROOT, OUT) + '\n');
+  workers.forEach(w => w.terminate());
+})();
