@@ -1,0 +1,862 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Scrapyard Dominus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Rough mock-up: plain white, black text, team colours only. */
+:root { --bg: #ffffff; --ink: #111111; --muted: #6f6f6f; --line: #dddddd; --soft: #f5f5f5; --blue: #1f6feb; --red: #d62828; --green: #2a9d3a; --orange: #e07b00; color-scheme: light; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 32px; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 14px; }
+h1 { font-size: 20px; margin: 0; } h2 { font-size: 17px; margin: 0; } h3 { font-size: 14px; margin: 0; }
+button, select, input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--ink); border-radius: 6px; padding: 4px 10px; }
+button { cursor: pointer; } button.primary { background: var(--ink); color: var(--bg); }
+button:disabled { opacity: .35; cursor: default; }
+input[type=number] { width: 64px; padding: 3px 6px; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.top { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.phases { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.phases span { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.phases span.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.teams { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.team { border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; min-width: 0; }
+.team h3 { color: var(--c); display: flex; gap: 6px; }
+.team h3 .you { color: var(--muted); font-weight: 400; }
+.nums { display: flex; gap: 12px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.nums b { font-size: 16px; }
+.fame { height: 6px; background: var(--soft); border-radius: 3px; overflow: hidden; }
+.fame i { display: block; height: 100%; background: var(--c); }
+.bot { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.bot b { color: var(--ink); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+.panel { border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.panel p { margin: 0; }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cards { display: flex; gap: 10px; flex-wrap: wrap; }
+.card { width: 190px; border: 1px solid var(--ink); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; text-align: left; background: var(--bg); }
+.card .k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.card.sel { outline: 3px solid var(--ink); }
+.card:disabled { opacity: .4; }
+.log { border: 1px solid var(--line); border-radius: 6px; padding: 10px; max-height: 560px; overflow-y: auto; font-size: 13px; display: grid; gap: 3px; }
+.log .r { font-weight: 700; margin-top: 6px; }
+.log .me { font-weight: 600; }
+canvas { display: block; width: 100%; height: auto; border: 1px solid var(--ink); }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+th { background: var(--soft); font-weight: 600; }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: start; }
+.vs .mid { align-self: center; font-weight: 700; }
+.fighter { border: 2px solid var(--c); border-radius: 6px; padding: 8px 10px; display: grid; gap: 3px; }
+.fighter h3 { color: var(--c); }
+.odds { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+.big { font-size: 22px; font-weight: 700; }
+@media (max-width: 860px) { .teams { grid-template-columns: repeat(2, minmax(0, 1fr)); } .main { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .vs { grid-template-columns: 1fr; } .vs .mid { justify-self: center; } }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Scrapyard Dominus</h1><span class="muted" id="roundLbl"></span>
+    <div class="phases" id="phases"></div>
+  </div>
+  <div class="teams" id="teams"></div>
+  <div class="main">
+    <div class="panel" id="panel"></div>
+    <div class="log" id="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+/* Robot auto-battle core. Deterministic with a seed. Browser (window.Sim) + Node. */
+(function (root) {
+  'use strict';
+  const W = 900, H = 560, SIZE = 30;
+  const STATS = ['hp', 'armor', 'speed', 'turret', 'fp', 'acc', 'bullet'];
+  const LV = {
+    hp: [60, 85, 110, 135, 160],
+    armor: [0, 1.5, 3, 4.5, 6],        // flat damage removed from every hit; also adds weight
+    speed: [60, 95, 130, 165, 200],
+    turret: [30, 60, 100, 150, 220],
+    fp: [7, 10, 13.5, 17.5, 22],       // firepower: damage per second if every shot hits
+    acc: [45, 60, 75, 87, 97],
+    bullet: [250, 350, 470, 600, 800],
+  };
+  // calibre trades fire rate for hit size at the same firepower
+  const CAL = {
+    rapid:  { rate: 4,   shell: 1.3, turret: 1.25, tol: 7 },
+    medium: { rate: 1.4, shell: 1.0, turret: 1.0,  tol: 5 },
+    heavy:  { rate: 0.5, shell: 0.6, turret: 0.55, tol: 3 },
+  };
+  const RANGES = { short: 140, mid: 250, long: 380 };
+
+  function mkRng(seed) {
+    let s = seed >>> 0;
+    return () => { s = (s + 0x6D2B79F5) >>> 0; let t = Math.imul(s ^ (s >>> 15), s | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const rad = d => d * Math.PI / 180;
+  const wrapA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const turnToward = (a, target, maxStep) => { const d = wrapA(target - a); return a + Math.max(-maxStep, Math.min(maxStep, d)); };
+
+  // build: {lv:{hp:0..4,...}, range:'short'|'mid'|'long', weapon:'gun'|'mortar'|'laser'|'shotgun'}
+  function statsOf(b) {
+    const s = {};
+    for (const k of STATS) s[k] = LV[k][b.lv[k]];
+    s.range = RANGES[b.range] || 250;
+    s.weapon = b.weapon || 'gun';
+    s.cal = b.cal || 'medium';
+    const c = CAL[s.cal];
+    s.fire = s.weapon === 'mortar' ? 0.45 : c.rate;
+    s.dmg = s.fp / s.fire;
+    if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
+    // weight: armour and health slow you down
+    s.speed *= 1 - 0.09 * b.lv.armor - 0.04 * b.lv.hp;
+    s.turnBody = 180;
+    return s;
+  }
+  function cost(b) { return STATS.reduce((a, k) => a + b.lv[k], 0); }
+
+  // spawn spots per bot count (team mode puts teammates on the same side)
+  function spawns(n, teamMode) {
+    if (n === 2) return [[120, H / 2 - 80], [W - 120, H / 2 + 80]];
+    if (n === 3) return [[120, 110], [W - 120, 110], [W / 2, H - 80]];
+    if (teamMode) return [[110, 140], [110, H - 140], [W - 110, 140], [W - 110, H - 140]];
+    return [[110, 100], [W - 110, H - 100], [W - 110, 100], [110, H - 100]];
+  }
+  // opts.teams: array of team ids per bot (default: everyone for themselves)
+  function newBattle(builds, seed, opts) {
+    const rng = mkRng(seed);
+    const n = builds.length;
+    const teams = (opts && opts.teams) || builds.map((_, i) => i);
+    const sp = spawns(n, !!(opts && opts.teams));
+    const bots = builds.map((b, i) => {
+      const s = statsOf(b);
+      const x = sp[i][0], y = sp[i][1] + (n === 2 ? (rng() - 0.5) * 220 : (rng() - 0.5) * 60);
+      const face = Math.atan2(H / 2 - y, W / 2 - x);
+      return { i, team: teams[i], s, hp: s.hp, x, y, body: face, turret: face, target: -1,
+        vx: 0, vy: 0, cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1 };
+    });
+    return { bots, bullets: [], shells: [], fx: [], t: 0, over: false, winner: null, rng, n };
+  }
+  // is a teammate standing in the line of fire (before the target)?
+  function allyInLine(B, b, a, len) {
+    for (const p of B.bots) {
+      if (p === b || p.hp <= 0 || p.team !== b.team) continue;
+      const ex = p.x - b.x, ey = p.y - b.y;
+      const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
+      if (along > 0 && along < len && perp < SIZE / 2 + 6) return true;
+    }
+    return false;
+  }
+  const enemies = (B, b) => B.bots.filter(o => o.hp > 0 && o.team !== b.team);
+  function pickTarget(B, b) {
+    const es = enemies(B, b);
+    if (!es.length) return null;
+    let best = null, bd = Infinity;
+    for (const o of es) { const d = Math.hypot(o.x - b.x, o.y - b.y); if (d < bd) { bd = d; best = o; } }
+    const cur = b.target >= 0 ? B.bots[b.target] : null;
+    // sticky: only switch if the new one is clearly closer
+    if (cur && cur.hp > 0 && cur.team !== b.team && Math.hypot(cur.x - b.x, cur.y - b.y) < bd * 1.35) return cur;
+    b.target = best.i;
+    return best;
+  }
+
+  function hitBot(B, tgt, dmg, src, pierce) {
+    if (tgt.hp <= 0) return;
+    if (!pierce) dmg = Math.max(dmg * 0.15, dmg - tgt.s.armor);
+    tgt.hp -= dmg; tgt.hitT = 0.08; tgt.lastBy = src.i;
+    const friendly = tgt.team === src.team;
+    if (friendly) src.ff += dmg; else src.dealt += dmg;
+    if (tgt.hp <= 0) { if (friendly) { if (tgt !== src) src.teamKills++; } else src.kills++; B.fx.push({ k: 'boom', x: tgt.x, y: tgt.y, life: 0.25 }); }
+  }
+
+  function step(B, dt) {
+    if (B.over) return;
+    const rng = B.rng;
+    B.t += dt;
+    for (const b of B.bots) {
+      if (b.hp <= 0) continue;
+      const o = pickTarget(B, b);
+      if (!o) continue;
+      const dx = o.x - b.x, dy = o.y - b.y, dist = Math.hypot(dx, dy), toO = Math.atan2(dy, dx);
+      b.strafeT -= dt;
+      if (b.strafeT <= 0) { b.strafe *= -1; b.strafeT = 0.8 + rng() * 1.7; }
+      const radial = Math.max(-1, Math.min(1, (dist - b.s.range) / 80));
+      let mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
+      let my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
+      for (const p of B.bots) {
+        if (p === b || p.hp <= 0) continue;
+        const sx = b.x - p.x, sy = b.y - p.y, sd = Math.hypot(sx, sy);
+        if (sd < 60 && sd > 0.01) { mx += sx / sd * (60 - sd) / 30; my += sy / sd * (60 - sd) / 30; }
+      }
+      const m = 70;
+      if (b.x < m) mx += (m - b.x) / m * 2; if (b.x > W - m) mx -= (b.x - (W - m)) / m * 2;
+      if (b.y < m) my += (m - b.y) / m * 2; if (b.y > H - m) my -= (b.y - (H - m)) / m * 2;
+      const want = Math.atan2(my, mx);
+      b.body = turnToward(b.body, want, rad(b.s.turnBody) * dt);
+      const align = Math.max(0, Math.cos(wrapA(want - b.body)));
+      const sp = b.s.speed * align * Math.min(1, Math.hypot(mx, my));
+      b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + Math.cos(b.body) * sp * dt));
+      b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + Math.sin(b.body) * sp * dt));
+      b.vx = Math.cos(b.body) * sp; b.vy = Math.sin(b.body) * sp;
+
+      const w = b.s.weapon;
+      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : b.s.bullet;
+      const tt = w === 'laser' ? 0 : dist / Math.max(50, pspeed);
+      const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
+      b.turret = turnToward(b.turret, aim, rad(b.s.turret) * dt);
+      b.cd -= dt;
+      b.beam = 0;
+      const err = Math.abs(wrapA(aim - b.turret));
+      if (w === 'gun' || w === 'shotgun') {
+        if (b.cd <= 0 && err < rad(b.s.tol) && !allyInLine(B, b, b.turret, dist)) {
+          const pellets = w === 'shotgun' ? 5 : 1;
+          b.cd = 1 / b.s.fire * (w === 'shotgun' ? 1.6 : 1) * (0.9 + rng() * 0.2);
+          const spread = rad(25) * (1 - b.s.acc / 100) + (w === 'shotgun' ? rad(9) : 0);
+          for (let k = 0; k < pellets; k++) {
+            const a = b.turret + (rng() * 2 - 1) * spread;
+            const sx = b.x + Math.cos(b.turret) * 26, sy = b.y + Math.sin(b.turret) * 26;
+            B.bullets.push({ x: sx, y: sy, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i,
+              dmg: w === 'shotgun' ? b.s.dmg * 0.42 : b.s.dmg, life: w === 'shotgun' ? 260 / pspeed : 3 });
+          }
+          B.fx.push({ k: 'flash', x: b.x + Math.cos(b.turret) * 26, y: b.y + Math.sin(b.turret) * 26, life: 0.06 });
+          b.shots += pellets;
+        }
+      } else if (w === 'mortar') {
+        if (b.cd <= 0 && err < rad(8) && dist > 110) {
+          b.cd = 1 / b.s.fire;
+          const flight = dist / pspeed;
+          const scatter = 90 * (1 - b.s.acc / 100);
+          const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * scatter;
+          const tx = o.x + o.vx * flight + Math.cos(a) * r, ty = o.y + o.vy * flight + Math.sin(a) * r;
+          // hold fire if a teammate is near the planned impact
+          if (B.bots.some(p => p !== b && p.hp > 0 && p.team === b.team && Math.hypot(p.x - o.x, p.y - o.y) < 60)) { b.cd = 0.2; continue; }
+          B.shells.push({ sx: b.x, sy: b.y, tx, ty, t: 0, T: flight, owner: b.i, dmg: b.s.dmg });
+          b.shots++;
+        }
+      } else if (w === 'laser') {
+        if (dist < 280 && !allyInLine(B, b, b.turret, dist)) {
+          const wob = rad(14) * (1 - b.s.acc / 100) * Math.sin(B.t * 9 + b.i * 2);
+          const a = b.turret + wob;
+          // perpendicular distance from target centre to the beam
+          b.beam = 1; b.beamA = a;
+          // the beam goes through everything in its path, friend or foe
+          for (const e of B.bots) {
+            if (e === b || e.hp <= 0) continue;
+            const ex = e.x - b.x, ey = e.y - b.y;
+            const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
+            if (along > 0 && along < 280 && perp < SIZE / 2) { hitBot(B, e, b.s.fp * 0.6 * dt, b, true); b.hits += dt; }
+          }
+          b.shots += dt;
+        }
+      }
+      b.hitT = Math.max(0, b.hitT - dt);
+    }
+    for (let k = B.bullets.length - 1; k >= 0; k--) {
+      const q = B.bullets[k];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      const own = B.bots[q.owner];
+      let tgt = null;
+      for (const e of B.bots) if (e.hp > 0 && e !== own && Math.abs(q.x - e.x) < SIZE / 2 + 2 && Math.abs(q.y - e.y) < SIZE / 2 + 2) { tgt = e; break; }
+      if (tgt) {
+        hitBot(B, tgt, q.dmg, own); own.hits++;
+        B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
+        B.bullets.splice(k, 1); continue;
+      }
+      if (q.life <= 0 || q.x < 0 || q.y < 0 || q.x > W || q.y > H) B.bullets.splice(k, 1);
+    }
+    for (let k = B.shells.length - 1; k >= 0; k--) {
+      const q = B.shells[k];
+      q.t += dt;
+      if (q.t >= q.T) {
+        const own = B.bots[q.owner];
+        for (const e of B.bots) {
+          if (e.hp <= 0) continue;   // splash hits everyone, the shooter included
+          const d = Math.hypot(e.x - q.tx, e.y - q.ty);
+          if (d < 45) { hitBot(B, e, q.dmg * (d < 22 ? 1 : 0.5), own); own.hits++; }
+        }
+        B.fx.push({ k: 'boom', x: q.tx, y: q.ty, life: 0.25 });
+        B.shells.splice(k, 1);
+      }
+    }
+    for (let k = B.fx.length - 1; k >= 0; k--) { B.fx[k].life -= dt; if (B.fx[k].life <= 0) B.fx.splice(k, 1); }
+    const alive = [...new Set(B.bots.filter(b => b.hp > 0).map(b => b.team))];
+    if (alive.length <= 1) {
+      B.over = true;
+      B.winner = alive.length ? alive[0] : -1;
+    } else if (B.t >= 60 + (B.n - 2) * 30) {
+      B.over = true; B.timeout = true;
+      const score = {};
+      for (const b of B.bots) score[b.team] = (score[b.team] || 0) + Math.max(0, b.hp) / b.s.hp;
+      let best = -1, bv = -1, tie = false;
+      for (const t in score) { if (score[t] > bv) { bv = score[t]; best = +t; tie = false; } else if (score[t] === bv) tie = true; }
+      B.winner = tie ? -1 : best;
+    }
+  }
+
+  function fight(a, b, seed, dt) {
+    const B = newBattle([a, b], seed);
+    dt = dt || 1 / 60;
+    while (!B.over) step(B, dt);
+    return B;
+  }
+
+  const Sim = { CAL, W, H, SIZE, STATS, LV, RANGES, newBattle, step, fight, statsOf, cost, mkRng };
+  if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
+})(this);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rnd = Math.random, pick = a => a[Math.floor(rnd() * a.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const WIN_FAME = 12;
+
+  const L = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
+  const PRESETS = {
+    Bulwark:  { lv: L(4, 3, 1, 0, 4, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium' },
+    Marksman: { lv: L(3, 0, 0, 1, 4, 3, 3), range: 'long', weapon: 'gun', cal: 'medium' },
+    Hornet:   { lv: L(4, 0, 1, 0, 4, 3, 2), range: 'mid', weapon: 'gun', cal: 'rapid' },
+    Dasher:   { lv: L(3, 0, 4, 1, 4, 1, 1), range: 'short', weapon: 'gun', cal: 'medium' },
+    Burner:   { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium' },
+    Lobber:   { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium' },
+  };
+  const SCRAP = { lv: L(1, 0, 1, 1, 1, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium' };
+  const STATNAME = { hp: 'Health', armor: 'Armour', speed: 'Speed', turret: 'Turret', fp: 'Firepower', acc: 'Accuracy', bullet: 'Bullet speed' };
+  const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
+
+  // ---- intrigue cards ----
+  // need: fame required to play. tamper: hidden effect on the target's robots at their next fight.
+  const SCHEMES = {
+    bolts:   { name: 'Loose Bolts', need: 0, target: 'team', text: 'Sabotage: their robots fight with 2 less Armour next fight.', tamper: { armor: -2 } },
+    sugar:   { name: 'Sugar in the Tank', need: 0, target: 'team', text: 'Sabotage: their robots fight with 2 less Speed next fight.', tamper: { speed: -2 } },
+    gears:   { name: 'Stripped Gears', need: 0, target: 'team', text: 'Sabotage: their turrets turn 2 levels slower next fight.', tamper: { turret: -2 } },
+    lens:    { name: 'Smudged Lens', need: 3, target: 'team', text: 'Sabotage: their robots fight with 2 less Accuracy next fight.', tamper: { acc: -2 } },
+    pocket:  { name: 'Pickpocket', need: 0, target: 'team', text: 'Steal 3 credits from the target.' },
+    night:   { name: 'Night Shift', need: 0, target: 'self', text: 'Your mechanics work overtime: gain 4 credits.' },
+    press:   { name: 'Bribe the Press', need: 5, target: 'self', text: 'Pay 3 credits: gain 1 fame.' },
+    smear:   { name: 'Smear Campaign', need: 7, target: 'team', text: 'The target loses 1 fame.' },
+    overtime:{ name: 'Secret Upgrade', need: 4, target: 'self', text: 'Hidden: your robots fight with +1 Firepower and +1 Armour next fight.', tamper: { fp: 1, armor: 1 } },
+    guard:   { name: 'Guard Dog', need: 0, target: 'none', text: 'Keep in hand. The next scheme against you has a 50% chance to fail (card is used up).' },
+  };
+  const SCHEME_DECK = ['bolts', 'bolts', 'sugar', 'sugar', 'gears', 'gears', 'lens', 'pocket', 'pocket', 'night', 'night', 'press', 'press', 'smear', 'overtime', 'overtime', 'guard', 'guard', 'guard'];
+
+  // ---- market lots ----
+  const LOTS = {
+    plate:  { name: 'Armour Plate', text: '+1 Armour on one robot.', stat: 'armor' },
+    engine: { name: 'Tuned Engine', text: '+1 Speed on one robot.', stat: 'speed' },
+    motor:  { name: 'Turret Motor', text: '+1 Turret turn on one robot.', stat: 'turret' },
+    chip:   { name: 'Targeting Chip', text: '+1 Accuracy on one robot.', stat: 'acc' },
+    hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
+    barrel: { name: 'Long Barrel', text: '+1 Bullet speed on one robot.', stat: 'bullet' },
+    laser:  { name: 'Laser Retrofit', text: 'Turn one robot\'s weapon into a laser (ignores armour, short range).', weapon: 'laser' },
+    mortar: { name: 'Mortar Retrofit', text: 'Turn one robot\'s weapon into a mortar (splash, long range).', weapon: 'mortar' },
+    rapid:  { name: 'Rapid-fire Kit', text: 'Gun becomes rapid calibre: many small bullets, quick turret.', cal: 'rapid' },
+    heavy:  { name: 'Heavy Cannon', text: 'Gun becomes heavy calibre: huge slow shells, ignores most armour.', cal: 'heavy' },
+    robot:  { name: 'New Robot', text: 'A fresh robot joins your garage (max 3).', robot: true },
+    mech:   { name: 'Mechanic', text: '+1 credit income every round.', mech: true },
+  };
+
+  const TEAMS = [
+    { name: 'Blue Bolts', col: '#1f6feb', human: true },
+    { name: 'Red Rivets', col: '#d62828' },
+    { name: 'Green Gears', col: '#2a9d3a' },
+    { name: 'Orange Ohms', col: '#e07b00' },
+  ];
+  let G;
+  let botId = 0;
+  function mkRobot(name, b) { return { id: ++botId, name, b: clone(b), dmg: 0, wins: 0 }; }
+  function newGame() {
+    const names = shuffle(Object.keys(PRESETS).concat(Object.keys(PRESETS)));
+    G = {
+      round: 1, phase: 'upkeep', host: -1, lastHost: -1,
+      teams: TEAMS.map((t, i) => ({ ...t, i, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
+      deck: shuffle(SCHEME_DECK.slice()), lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
+      fight: null, over: false,
+    };
+    for (const t of G.teams) for (let k = 0; k < 2; k++) { let n = names.pop(); t.robots.push(mkRobot(n, PRESETS[n])); }
+    $('#log').innerHTML = '';
+    log('Each team starts with 2 robots, 8 credits, 3 mechanics and 4 fame. First to ' + WIN_FAME + ' fame wins.');
+    startRound();
+  }
+  const me = () => G.teams[0];
+  const tname = i => '<b style="color:' + G.teams[i].col + '">' + esc(G.teams[i].name) + '</b>';
+  function log(html, cls) { const d = document.createElement('div'); if (cls) d.className = cls; d.innerHTML = html; $('#log').appendChild(d); $('#log').scrollTop = 1e6; }
+  function draw1() { if (!G.deck.length) G.deck = shuffle(SCHEME_DECK.slice()); return G.deck.pop(); }
+
+  // effective build for a fight (visible build + hidden tampering), clamped 0..4
+  function fightBuild(t, r) {
+    const b = clone(r.b);
+    const tm = G.teams[t].tamper;
+    for (const k in tm) b.lv[k] = Math.max(0, Math.min(4, b.lv[k] + tm[k]));
+    return b;
+  }
+  function maxHp(r) { return Sim.LV.hp[r.b.lv.hp]; }
+  function power(r) { return Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) - r.dmg / 20; }
+  function buildText(r) {
+    const w = r.b.weapon === 'gun' ? r.b.cal + ' gun' : r.b.weapon;
+    return w + ', ' + r.b.range + ' range · ' + Sim.STATS.map(k => SHORT[k] + r.b.lv[k]).join(' ');
+  }
+
+  // ---------- render ----------
+  const PHASES = [['upkeep', 'Upkeep'], ['intrigue', 'Intrigue'], ['market', 'Market'], ['arena', 'Arena'], ['bets', 'Bets'], ['fight', 'Fight'], ['after', 'Aftermath']];
+  function renderTop() {
+    $('#roundLbl').textContent = 'Round ' + G.round;
+    $('#phases').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
+    $('#teams').innerHTML = G.teams.map(t => {
+      return '<div class="team" style="--c:' + t.col + '"><h3>' + esc(t.name) + (t.human ? ' <span class="you">(you)</span>' : '') + (G.host === t.i ? ' <span class="tag">host</span>' : '') + '</h3>' +
+        '<div class="nums"><span><b>' + t.fame + '</b> fame</span><span><b>' + t.credits + '</b> credits</span><span>' + t.mechs + ' mechanics</span>' + (t.human ? '<span>' + t.hand.length + ' cards</span>' : '<span class="muted">' + t.hand.length + ' cards</span>') + '</div>' +
+        '<div class="fame"><i style="width:' + Math.min(100, t.fame / WIN_FAME * 100) + '%"></i></div>' +
+        t.robots.map(r => '<div class="bot"><b>' + esc(r.name) + '</b>' + (r.wins ? '<span>' + '★'.repeat(Math.min(3, r.wins)) + '</span>' : '') +
+          '<span>' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' hp</span><span>' + esc(buildText(r)) + '</span></div>').join('') +
+        '</div>';
+    }).join('');
+  }
+  function panel(html) { $('#panel').innerHTML = html; renderTop(); }
+  function checkWin() {
+    const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
+    if (!w.length) return false;
+    G.over = true;
+    log(tname(w[0].i) + ' reaches ' + w[0].fame + ' fame and wins the game!', 'r');
+    panel('<p class="big" style="color:' + w[0].col + '">' + esc(w[0].name) + ' wins!</p><p class="muted">Reached ' + w[0].fame + ' fame in round ' + G.round + '.</p><div class="row"><button class="primary" id="again">New game</button></div>');
+    $('#again').onclick = newGame;
+    return true;
+  }
+
+  // ---------- 1. upkeep ----------
+  function startRound() {
+    G.phase = 'upkeep';
+    log('Round ' + G.round, 'r');
+    for (const t of G.teams) {
+      const inc = t.mechs, cost = t.robots.length;
+      t.credits += inc - cost;
+      if (t.credits < 0) { t.credits = 0; }
+      t.hand.push(draw1(), draw1());
+      while (t.hand.length > 4) t.hand.shift();
+      if (!t.human) { // AI repairs its best robot
+        for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) { const c = Math.ceil(r.dmg / 20); if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; } }
+      }
+    }
+    log('Upkeep: everyone earns 1 credit per mechanic and pays 1 per robot, and draws 2 intrigue cards.');
+    renderUpkeep();
+  }
+  function renderUpkeep() {
+    const t = me();
+    let h = '<h2>Upkeep</h2><p>You earned ' + t.mechs + ' credits from mechanics and paid ' + t.robots.length + ' for your robots. Damage stays on a robot until you repair it (1 credit per 20 damage).</p>';
+    h += '<table><tr><th>Robot</th><th>Health</th><th>Repair</th></tr>';
+    t.robots.forEach((r, k) => {
+      const c = Math.ceil(r.dmg / 20);
+      h += '<tr><td>' + esc(r.name) + '</td><td>' + Math.max(0, maxHp(r) - r.dmg) + ' / ' + maxHp(r) + '</td><td>' + (c ? '<button data-rep="' + k + '"' + (c > t.credits ? ' disabled' : '') + '>Repair for ' + c + '</button>' : '<span class="muted">fine</span>') + '</td></tr>';
+    });
+    h += '</table><div class="row"><button class="primary" id="go">Go to intrigue</button></div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-rep]').forEach(b => b.onclick = () => { const r = t.robots[+b.dataset.rep]; t.credits -= Math.ceil(r.dmg / 20); r.dmg = 0; renderUpkeep(); });
+    $('#go').onclick = startIntrigue;
+  }
+
+  // ---------- 2. intrigue ----------
+  function playable(t, id) { const s = SCHEMES[id]; return s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3); }
+  function startIntrigue() {
+    G.phase = 'intrigue'; G.selCard = null; G.selTarget = null;
+    renderIntrigue();
+  }
+  function renderIntrigue() {
+    const t = me();
+    let h = '<h2>Intrigue</h2><p>Play one scheme, or pass. Sabotage is secret: the target only finds out when their robot fights badly, and nobody learns who did it. Some schemes need a minimum fame.</p><div class="cards">';
+    t.hand.forEach((id, k) => {
+      const s = SCHEMES[id], ok = playable(t, id);
+      h += '<button class="card' + (G.selCard === k ? ' sel' : '') + '" data-card="' + k + '"' + (ok ? '' : ' disabled') + '><span class="k">' + (s.need ? 'Needs ' + s.need + ' fame' : 'Scheme') + '</span><b>' + esc(s.name) + '</b><span class="muted">' + esc(s.text) + '</span></button>';
+    });
+    h += '</div>';
+    if (G.selCard != null && SCHEMES[t.hand[G.selCard]].target === 'team') {
+      h += '<div class="row"><span>Target:</span>' + G.teams.filter(x => !x.human).map(x => '<button data-tgt="' + x.i + '" style="color:' + x.col + ';border-color:' + x.col + (G.selTarget === x.i ? ';outline:3px solid ' + x.col : '') + '">' + esc(x.name) + '</button>').join('') + '</div>';
+    }
+    const ready = G.selCard != null && (SCHEMES[t.hand[G.selCard]].target === 'self' || G.selTarget != null);
+    h += '<div class="row"><button class="primary" id="play"' + (ready ? '' : ' disabled') + '>Play scheme</button><button id="pass">Pass</button></div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-card]').forEach(b => b.onclick = () => { G.selCard = +b.dataset.card; G.selTarget = null; renderIntrigue(); });
+    $('#panel').querySelectorAll('[data-tgt]').forEach(b => b.onclick = () => { G.selTarget = +b.dataset.tgt; renderIntrigue(); });
+    $('#play').onclick = () => { const id = t.hand[G.selCard]; t.hand.splice(G.selCard, 1); resolveScheme(0, id, SCHEMES[id].target === 'self' ? 0 : G.selTarget); finishIntrigue(); };
+    $('#pass').onclick = () => { log('You pass.', 'me'); finishIntrigue(); };
+  }
+  function resolveScheme(from, id, to) {
+    const s = SCHEMES[id], F = G.teams[from], T = G.teams[to];
+    const seen = from === 0 || to === 0;
+    if (to !== from) {
+      const g = T.hand.indexOf('guard');
+      if (g >= 0) {
+        T.hand.splice(g, 1);
+        if (rnd() < 0.5) {
+          log((to === 0 ? 'Your Guard Dog' : tname(to) + '\'s Guard Dog') + ' caught ' + (from === 0 ? 'your ' + s.name : 'a schemer') + '. Foiled!', from === 0 || to === 0 ? 'me' : '');
+          return;
+        }
+        if (to === 0) log('Your Guard Dog fell asleep.', 'me');
+      }
+    }
+    switch (id) {
+      case 'pocket': { const n = Math.min(3, T.credits); T.credits -= n; F.credits += n; log(from === 0 ? 'You pickpocket ' + n + ' credits from ' + tname(to) + '.' : to === 0 ? 'Someone stole ' + n + ' of your credits!' : tname(to) + ' lost ' + n + ' credits to a pickpocket.', seen ? 'me' : ''); break; }
+      case 'night': F.credits += 4; log(from === 0 ? 'Night shift: +4 credits.' : tname(from) + ' ran a night shift (+4 credits).', from === 0 ? 'me' : ''); break;
+      case 'press': F.credits -= 3; F.fame += 1; log((from === 0 ? 'You bribe' : tname(from) + ' bribes') + ' the press: +1 fame.', from === 0 ? 'me' : ''); break;
+      case 'smear': T.fame = Math.max(0, T.fame - 1); log(from === 0 ? 'Your smear campaign costs ' + tname(to) + ' 1 fame.' : (to === 0 ? 'A smear campaign costs you 1 fame. Who did this?' : tname(to) + ' loses 1 fame to a smear campaign.'), seen ? 'me' : ''); break;
+      default: {
+        for (const k in s.tamper) T.tamper[k] = (T.tamper[k] || 0) + s.tamper[k];
+        T.schemeLog.push({ from, id });
+        if (from === 0 && to === 0) log('Your mechanics fit a secret upgrade. Nobody else knows.', 'me');
+        else if (from === 0) log('You play ' + s.name + ' on ' + tname(to) + '. They don\'t know yet.', 'me');
+        else if (to === from) log(tname(from) + ' is up to something in their own garage.');
+        else log('Somebody snuck into ' + (to === 0 ? 'your' : tname(to) + '\'s') + ' garage last night…', to === 0 ? 'me' : '');
+      }
+    }
+  }
+  function aiIntrigue(t) {
+    const opts = t.hand.map((id, k) => ({ id, k })).filter(o => playable(t, o.id));
+    if (!opts.length || rnd() < 0.25) return;
+    const o = pick(opts);
+    t.hand.splice(o.k, 1);
+    let to = t.i;
+    if (SCHEMES[o.id].target === 'team') {
+      const others = G.teams.filter(x => x.i !== t.i);
+      const leader = others.slice().sort((a, b) => b.fame - a.fame)[0];
+      to = rnd() < 0.55 ? leader.i : pick(others).i;
+    }
+    resolveScheme(t.i, o.id, to);
+  }
+  function finishIntrigue() {
+    for (const t of G.teams) if (!t.human) aiIntrigue(t);
+    if (checkWin()) return;
+    startMarket();
+  }
+
+  // ---------- 3. market ----------
+  function startMarket() {
+    G.phase = 'market';
+    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot']));
+    G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
+    renderMarket();
+  }
+  function renderMarket() {
+    const t = me();
+    let h = '<h2>Market: sealed bids</h2><p>Bid secretly on each lot and on the right to host this round\'s fight. Highest bid wins and pays; ties go to whoever has less fame. Your bids together can\'t exceed your ' + t.credits + ' credits.</p>';
+    h += '<table><tr><th>Lot</th><th>What it does</th><th>Your bid</th></tr>';
+    G.market.forEach((id, k) => h += '<tr><td><b>' + LOTS[id].name + '</b></td><td class="muted">' + LOTS[id].text + '</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bid' + k + '" aria-label="Bid on ' + LOTS[id].name + '"></td></tr>');
+    h += '<tr><td><b>Host the fight</b></td><td class="muted">Host gains 1 fame, picks which two teams fight, and decides if the loser is spared or scrapped.</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bidH" aria-label="Bid to host"></td></tr></table>';
+    h += '<div class="row"><button class="primary" id="sub">Submit bids</button><span class="muted" id="bidMsg"></span></div>';
+    panel(h);
+    $('#sub').onclick = () => {
+      const bids = [0, 1, 2].map(k => Math.max(0, Math.floor(+$('#bid' + k).value || 0))).concat([Math.max(0, Math.floor(+$('#bidH').value || 0))]);
+      if (bids.reduce((a, b) => a + b, 0) > t.credits) { $('#bidMsg').textContent = 'That adds up to more than your ' + t.credits + ' credits.'; return; }
+      resolveMarket(bids);
+    };
+  }
+  function aiBids(t) {
+    let budget = t.credits;
+    const out = [];
+    for (let k = 0; k < 4; k++) {
+      const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'mech' ? 3 : 2.5);
+      let b = Math.round(want * (0.4 + rnd() * 1.1));
+      b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
+      budget -= b; out.push(b);
+    }
+    return out;
+  }
+  function resolveMarket(myBids) {
+    const all = G.teams.map(t => t.human ? myBids : aiBids(t));
+    let h = '<h2>Market results</h2><table><tr><th>Lot</th>' + G.teams.map(t => '<th style="color:' + t.col + '">' + esc(t.name) + '</th>').join('') + '<th>Winner</th></tr>';
+    const wins = [];
+    for (let k = 0; k < 4; k++) {
+      const col = all.map(b => b[k]);
+      const mx = Math.max(...col);
+      let w = -1;
+      if (mx > 0) { const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => a.fame - b.fame); w = cand[0].i; G.teams[w].credits -= mx; }
+      const label = k < 3 ? LOTS[G.market[k]].name : 'Host the fight';
+      h += '<tr><td>' + label + '</td>' + col.map((b, i) => '<td' + (i === w ? ' style="font-weight:700;color:' + G.teams[i].col + '"' : '') + '>' + b + '</td>').join('') + '<td>' + (w >= 0 ? tname(w) : '<span class="muted">nobody</span>') + '</td></tr>';
+      if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
+      if (k === 3) { G.host = w >= 0 ? w : Math.floor(rnd() * 4); if (w < 0) log('Nobody bid to host; ' + tname(G.host) + ' is drafted as host.'); }
+    }
+    h += '</table>';
+    for (const x of wins) log(tname(x.team) + ' buys ' + LOTS[x.lot].name + ' for ' + x.price + '.', x.team === 0 ? 'me' : '');
+    log(tname(G.host) + ' will host the fight (+1 fame).', G.host === 0 ? 'me' : '');
+    G.teams[G.host].fame += 1;
+    G.pendingInstall = wins.filter(x => x.team === 0 && needsRobot(x.lot));
+    for (const x of wins) {
+      if (x.team !== 0 || !needsRobot(x.lot)) applyLot(x.team, x.lot, x.team === 0 ? null : aiPickRobot(G.teams[x.team], x.lot));
+    }
+    G.marketTable = h;
+    renderInstall();
+  }
+  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech;
+  function aiPickRobot(t, lot) {
+    const L = LOTS[lot];
+    let cands = t.robots;
+    if (L.cal) cands = cands.filter(r => r.b.weapon === 'gun');
+    if (L.stat) cands = cands.filter(r => r.b.lv[L.stat] < 4);
+    if (!cands.length) return null;
+    return cands.slice().sort((a, b) => power(b) - power(a))[0];
+  }
+  function applyLot(ti, lot, r) {
+    const t = G.teams[ti], L = LOTS[lot];
+    if (L.mech) { t.mechs++; return; }
+    if (L.robot) {
+      if (t.robots.length >= 3) { t.credits += 2; log(tname(ti) + '\'s garage is full; they sell the robot on for 2.'); return; }
+      const n = pick(Object.keys(PRESETS)); t.robots.push(mkRobot(n, PRESETS[n])); return;
+    }
+    if (!r) return;
+    if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
+    if (L.weapon) r.b.weapon = L.weapon;
+    if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
+    if (L.weapon === 'laser') r.b.range = 'mid';
+    if (L.weapon === 'mortar') r.b.range = 'long';
+  }
+  function renderInstall() {
+    if (checkWin()) return;
+    const t = me();
+    let h = G.marketTable;
+    if (G.pendingInstall.length) {
+      const x = G.pendingInstall[0];
+      h += '<p><b>Install ' + LOTS[x.lot].name + '</b> on which robot?</p><div class="row">' + t.robots.map((r, k) => '<button data-inst="' + k + '">' + esc(r.name) + '</button>').join('') + '</div>';
+      panel(h);
+      $('#panel').querySelectorAll('[data-inst]').forEach(b => b.onclick = () => { applyLot(0, x.lot, t.robots[+b.dataset.inst]); log('Installed ' + LOTS[x.lot].name + ' on ' + esc(t.robots[+b.dataset.inst].name) + '.', 'me'); G.pendingInstall.shift(); renderInstall(); });
+    } else {
+      h += '<div class="row"><button class="primary" id="go">To the arena</button></div>';
+      panel(h); $('#go').onclick = startArena;
+    }
+  }
+
+  // ---------- 4. arena: host picks ----------
+  function startArena() {
+    G.phase = 'arena';
+    const H = G.host;
+    if (H === 0) { G.pickTeams = []; renderHostPick(); return; }
+    // AI host: often puts itself in when it has a healthy robot, likes to pit the leader against someone
+    const host = G.teams[H];
+    const others = G.teams.filter(t => t.i !== H);
+    let a, b;
+    const best = host.robots.slice().sort((x, y) => power(y) - power(x))[0];
+    if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) { a = H; b = others.slice().sort((x, y) => y.fame - x.fame)[0].i; }
+    else { const s = shuffle(others.slice()); a = s[0].i; b = s[1].i; }
+    log(tname(H) + ' invites ' + tname(a) + ' and ' + tname(b) + ' to fight.');
+    invite([a, b]);
+  }
+  function renderHostPick() {
+    let h = '<h2>You host the fight</h2><p>Pick two teams to fight (you may pick yourself). Invited teams get 2 credits appearance money. A team that declines loses 1 fame.</p><div class="row">' +
+      G.teams.map(t => '<button data-pt="' + t.i + '" style="color:' + t.col + ';border-color:' + t.col + (G.pickTeams.includes(t.i) ? ';outline:3px solid ' + t.col : '') + '">' + esc(t.name) + '</button>').join('') + '</div>' +
+      '<div class="row"><button class="primary" id="go"' + (G.pickTeams.length === 2 ? '' : ' disabled') + '>Invite them</button></div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.pt; const k = G.pickTeams.indexOf(i);
+      if (k >= 0) G.pickTeams.splice(k, 1); else if (G.pickTeams.length < 2) G.pickTeams.push(i);
+      renderHostPick();
+    });
+    $('#go').onclick = () => { log('You invite ' + tname(G.pickTeams[0]) + ' and ' + tname(G.pickTeams[1]) + '.', 'me'); invite(G.pickTeams.slice()); };
+  }
+  function invite(pair) {
+    G.fight = { teams: pair, robots: [null, null] };
+    pair.forEach((ti, s) => {
+      const t = G.teams[ti];
+      if (!t.human) {
+        const r = t.robots.filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+        G.fight.robots[s] = r;
+      }
+    });
+    if (pair.includes(0)) renderChooseRobot(); else afterChoose();
+  }
+  function renderChooseRobot() {
+    const t = me(), s = G.fight.teams.indexOf(0), opp = G.fight.teams[1 - s], oppR = G.fight.robots[1 - s];
+    let h = '<h2>You\'re invited to fight ' + tname(opp) + '</h2><p>They send <b>' + esc(oppR.name) + '</b> (' + esc(buildText(oppR)) + ', ' + Math.max(0, maxHp(oppR) - oppR.dmg) + ' hp). Choose your robot, or decline for −1 fame.</p><div class="cards">';
+    t.robots.forEach((r, k) => h += '<button class="card" data-rb="' + k + '"><span class="k">' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' hp' + (r.wins ? ' · ' + r.wins + ' wins' : '') + '</span><b>' + esc(r.name) + '</b><span class="muted">' + esc(buildText(r)) + '</span></button>');
+    h += '</div><div class="row"><button id="decl">Decline (−1 fame)</button></div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-rb]').forEach(b => b.onclick = () => { G.fight.robots[s] = t.robots[+b.dataset.rb]; afterChoose(); });
+    $('#decl').onclick = () => {
+      t.fame = Math.max(0, t.fame - 1); log('You decline the invitation (−1 fame).', 'me');
+      // host replaces you with another team
+      const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== 0)[0];
+      G.fight.teams[s] = repl.i;
+      G.fight.robots[s] = repl.robots.slice().sort((a, b) => power(b) - power(a))[0];
+      log(tname(repl.i) + ' steps in instead.');
+      afterChoose();
+    };
+  }
+  function afterChoose() {
+    for (const ti of G.fight.teams) G.teams[ti].credits += 2;
+    // odds from the VISIBLE builds and current damage only (sabotage is hidden)
+    const [ra, rb] = G.fight.robots;
+    let w = 0; const N = 60;
+    for (let k = 0; k < N; k++) {
+      const sw = k % 2;
+      const B = Sim.newBattle(sw ? [rb.b, ra.b] : [ra.b, rb.b], 7000 + k * 13);
+      B.bots[sw ? 1 : 0].hp -= ra.dmg; B.bots[sw ? 0 : 1].hp -= rb.dmg;
+      while (!B.over) Sim.step(B, 1 / 30);
+      w += B.winner === (sw ? 1 : 0) ? 1 : B.winner === -1 ? 0.5 : 0;
+    }
+    const p = Math.max(0.03, Math.min(0.97, w / N));
+    G.fight.p = [p, 1 - p];
+    G.fight.pay = G.fight.p.map(x => Math.max(1.1, Math.min(6, Math.round(0.92 / x * 10) / 10)));
+    startBets();
+  }
+
+  // ---------- 5. bets ----------
+  function startBets() {
+    G.phase = 'bets';
+    const F = G.fight, t = me();
+    const mine = F.teams.indexOf(0);
+    let h = '<h2>Place your bet</h2><p>The bookmaker\'s odds come from simulating the robots as everyone can see them. Hidden sabotage and secret upgrades are not in these odds. Bet up to 3 credits. You can\'t bet against your own robot.</p><div class="vs">';
+    F.teams.forEach((ti, s) => {
+      const r = F.robots[s], T = G.teams[ti];
+      h += (s === 1 ? '<div class="mid">vs</div>' : '') + '<div class="fighter" style="--c:' + T.col + '"><h3>' + esc(T.name) + ': ' + esc(r.name) + '</h3><span class="muted">' + esc(buildText(r)) + '</span><span>' + Math.max(0, maxHp(r) - r.dmg) + ' / ' + maxHp(r) + ' hp' + (r.wins ? ' · ' + r.wins + ' wins' : '') + '</span>' +
+        '<span class="odds">' + Math.round(F.p[s] * 100) + '%</span><span class="muted">pays ' + F.pay[s] + '× your stake</span>' +
+        '<label class="row">Bet <input type="number" min="0" max="3" value="0" id="bet' + s + '"' + (mine >= 0 && mine !== s ? ' disabled' : '') + '> credits</label></div>';
+    });
+    h += '</div><div class="row"><button class="primary" id="go">Lock bets and fight</button><span class="muted" id="betMsg"></span></div>';
+    panel(h);
+    $('#go').onclick = () => {
+      const b = [0, 1].map(s => Math.max(0, Math.min(3, Math.floor(+$('#bet' + s).value || 0))));
+      if (b[0] && b[1]) { $('#betMsg').textContent = 'Bet on one robot only.'; return; }
+      if (b[0] + b[1] > t.credits) { $('#betMsg').textContent = 'Not enough credits.'; return; }
+      F.bets = [];
+      if (b[0] || b[1]) { const s = b[0] ? 0 : 1; F.bets.push({ team: 0, side: s, amt: b[s] }); t.credits -= b[s]; log('You bet ' + b[s] + ' on ' + esc(F.robots[s].name) + '.', 'me'); }
+      for (const T of G.teams) {
+        if (T.human || T.credits < 2 || rnd() < 0.3) continue;
+        const own = F.teams.indexOf(T.i);
+        const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
+        const amt = Math.min(T.credits, 1 + Math.floor(rnd() * 3));
+        T.credits -= amt; F.bets.push({ team: T.i, side, amt });
+        log(tname(T.i) + ' bets ' + amt + ' on ' + esc(F.robots[side].name) + '.');
+      }
+      startFight();
+    };
+  }
+
+  // ---------- 6. fight ----------
+  let anim = null;
+  function startFight() {
+    G.phase = 'fight';
+    const F = G.fight;
+    const builds = F.teams.map((ti, s) => fightBuild(ti, F.robots[s]));
+    F.B = Sim.newBattle(builds, (rnd() * 4294967296) >>> 0);
+    F.B.bots.forEach((b, s) => b.hp -= F.robots[s].dmg);
+    F.reveal = [];
+    F.teams.forEach((ti, s) => {
+      const T = G.teams[ti];
+      for (const e of T.schemeLog) F.reveal.push({ ti, s, e });
+    });
+    let h = '<h2>' + tname(F.teams[0]) + ' ' + esc(F.robots[0].name) + ' vs ' + tname(F.teams[1]) + ' ' + esc(F.robots[1].name) + '</h2>';
+    if (F.reveal.length) h += '<p>' + F.reveal.map(x => (x.e.from === x.ti ? tname(x.ti) + ' reveals a secret upgrade!' : esc(F.robots[x.s].name) + ' rolls out with ' + esc(SCHEMES[x.e.id].name.toLowerCase()) + '!')).join(' ') + '</p>';
+    h += '<canvas id="cv" width="900" height="560"></canvas><div class="row"><button id="spd">Speed 1×</button><button id="skip">Skip to result</button></div>';
+    panel(h);
+    for (const x of F.reveal) log(x.e.from === x.ti ? tname(x.ti) + ' had a secret upgrade fitted.' : tname(x.ti) + '\'s robot was sabotaged (' + SCHEMES[x.e.id].name + ').', x.ti === 0 ? 'me' : '');
+    let mult = 1;
+    $('#spd').onclick = e => { mult = mult === 1 ? 2 : mult === 2 ? 4 : 1; e.target.textContent = 'Speed ' + mult + '×'; };
+    $('#skip').onclick = () => { while (!F.B.over) Sim.step(F.B, 1 / 60); };
+    const cv = $('#cv'), ctx = cv.getContext('2d');
+    let last = performance.now(), acc = 0, doneT = 0;
+    const loop = now => {
+      if (G.phase !== 'fight') return;
+      anim = requestAnimationFrame(loop);
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      acc += dt * mult; while (acc >= 1 / 60 && !F.B.over) { Sim.step(F.B, 1 / 60); acc -= 1 / 60; }
+      drawFight(ctx, F);
+      if (F.B.over) { doneT += dt; if (doneT > 1.2) { cancelAnimationFrame(anim); aftermath(); } }
+    };
+    anim = requestAnimationFrame(loop);
+  }
+  function drawFight(ctx, F) {
+    const B = F.B, W = Sim.W, H = Sim.H, SIZE = Sim.SIZE;
+    const col = s => G.teams[F.teams[s]].col;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    for (const q of B.bullets) { ctx.fillStyle = col(q.owner); ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.6 + Math.sqrt(q.dmg) * 0.6), 0, 7); ctx.fill(); }
+    for (const q of B.shells) {
+      const u = q.t / q.T;
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(q.tx, q.ty, 45, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col(q.owner); ctx.beginPath(); ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, 7); ctx.fill();
+    }
+    for (const b of B.bots) if (b.beam && b.hp > 0) { ctx.strokeStyle = col(b.i); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20); ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280); ctx.stroke(); }
+    for (const b of B.bots) {
+      ctx.save(); ctx.translate(b.x, b.y);
+      if (b.hp <= 0) {
+        ctx.rotate(b.body); ctx.strokeStyle = col(b.i); ctx.lineWidth = 2; ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+        ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, 15); ctx.moveTo(15, -15); ctx.lineTo(-15, 15); ctx.stroke(); ctx.restore(); continue;
+      }
+      ctx.save(); ctx.rotate(b.body); ctx.fillStyle = col(b.i); ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1; ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE); ctx.globalAlpha = 1;
+      const ar = Sim.LV.armor.indexOf(b.s.armor);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; for (let k = 0; k < ar; k++) ctx.strokeRect(-12 + k * 3, -12 + k * 3, 24 - k * 6, 24 - k * 6);
+      ctx.restore();
+      ctx.rotate(b.turret); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, 7); ctx.fill();
+      const w = b.s.weapon, cal = b.s.cal;
+      if (w === 'mortar') ctx.fillRect(0, -5, 16, 10); else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
+      else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
+      ctx.restore();
+      ctx.fillStyle = col(b.i); ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(F.robots[b.i].name, b.x, b.y - 31);
+      const frac = Math.max(0, b.hp / b.s.hp); ctx.strokeStyle = col(b.i); ctx.lineWidth = 1; ctx.strokeRect(b.x - 22, b.y - 26, 44, 5); ctx.fillRect(b.x - 22, b.y - 26, 44 * frac, 5);
+    }
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+    for (const f of B.fx) { ctx.globalAlpha = f.k === 'boom' ? f.life / 0.25 : 1; ctx.beginPath(); ctx.arc(f.x, f.y, f.k === 'boom' ? 45 * (1 - f.life / 0.25) : f.k === 'hit' ? 10 : 6, 0, 7); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#6f6f6f'; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(B.t.toFixed(1) + ' s', 10, H - 10);
+    if (B.over) { ctx.fillStyle = B.winner >= 0 ? col(B.winner) : '#111'; ctx.font = '700 24px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(B.winner >= 0 ? F.robots[B.winner].name + ' wins' : 'Draw', W / 2, 44); }
+  }
+
+  // ---------- 7. aftermath ----------
+  function aftermath() {
+    G.phase = 'after';
+    const F = G.fight, B = F.B, w = B.winner;
+    // damage carries over
+    B.bots.forEach((b, s) => { const r = F.robots[s]; r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp)); });
+    for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
+    if (w < 0) { log('The fight ends in a draw. Bets are returned.'); for (const x of F.bets) G.teams[x.team].credits += x.amt; nextRoundButton('<p>A draw. Nobody gains fame; bets are returned.</p>'); return; }
+    const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
+    G.teams[W].fame += 1; G.teams[W].credits += 3; wr.wins++;
+    let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins: +1 fame, +3 credits.';
+    if (wr.wins === 3) { G.teams[W].fame += 1; msg += ' Third win: <b>' + esc(wr.name) + '</b> becomes a fan favourite (+1 fame).'; }
+    msg += '</p>';
+    log(tname(W) + '\'s ' + esc(wr.name) + ' beats ' + tname(Lt) + '\'s ' + esc(lr.name) + ' (+1 fame).', W === 0 || Lt === 0 ? 'me' : '');
+    for (const x of F.bets) {
+      if (x.side === w) { const p = Math.round(x.amt * F.pay[w]); G.teams[x.team].credits += p; log(tname(x.team) + ' collects ' + p + ' from the bookmaker.', x.team === 0 ? 'me' : ''); }
+    }
+    G.fight.loser = { team: Lt, robot: lr };
+    if (G.host === 0) {
+      let h = msg + '<p><b>You are the host.</b> ' + tname(Lt) + '\'s ' + esc(lr.name) + ' lies in pieces. Spare it, or have it scrapped?' + (lr.wins >= 3 ? ' Scrapping a fan favourite costs you 1 fame.' : '') + '</p>' +
+        '<div class="row"><button id="spare">Spare it</button><button id="scrap">Scrap it</button></div>';
+      panel(h);
+      $('#spare').onclick = () => fate(false, msg); $('#scrap').onclick = () => fate(true, msg);
+    } else {
+      const H = G.teams[G.host];
+      const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
+      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < 3;
+      fate(scrap, msg);
+    }
+  }
+  function fate(scrap, msg) {
+    const { team, robot } = G.fight.loser, T = G.teams[team];
+    if (scrap) {
+      if (robot.wins >= 3) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
+      T.robots.splice(T.robots.indexOf(robot), 1);
+      log((G.host === 0 ? 'You give' : tname(G.host) + ' gives') + ' the thumbs down: ' + tname(team) + '\'s ' + esc(robot.name) + ' is scrapped.', team === 0 || G.host === 0 ? 'me' : '');
+      msg += '<p>Thumbs down. <b>' + esc(robot.name) + '</b> is scrapped.</p>';
+      if (!T.robots.length) { T.robots.push(mkRobot('Scrapbot', SCRAP)); log(tname(team) + ' is left with nothing but a Scrapbot.'); }
+    } else {
+      log((G.host === 0 ? 'You spare ' : tname(G.host) + ' spares ') + tname(team) + '\'s ' + esc(robot.name) + '.', team === 0 || G.host === 0 ? 'me' : '');
+      msg += '<p>Thumbs up. <b>' + esc(robot.name) + '</b> goes back to the garage, badly dented.</p>';
+    }
+    nextRoundButton(msg);
+  }
+  function nextRoundButton(msg) {
+    renderTop();
+    if (checkWin()) return;
+    panel('<h2>Aftermath</h2>' + msg + '<div class="row"><button class="primary" id="go">Next round</button></div>');
+    $('#go').onclick = () => { G.round++; G.host = -1; G.fight = null; startRound(); };
+  }
+
+  newGame();
+})();
+</script>
+
+</body></html>

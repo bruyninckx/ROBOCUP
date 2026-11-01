@@ -1,0 +1,33 @@
+# ROBOCUS progress
+
+## Who owns what
+
+Kev: fill in or change this split. Each assistant only edits its own areas.
+
+| Area | Files | Owner |
+|---|---|---|
+| Battle simulator, balance, modules | `prototypes/arena-sandbox.html` (the `Sim` part), later `src/sim.js` | _unassigned_ |
+| Strategy layer (rounds, intrigue, market, bets) | `prototypes/scrapyard-dominus.html` | _unassigned_ |
+| Visuals / UI polish | _tbd_ | _unassigned_ |
+| Design docs | `docs/` | shared (anyone may add, note it in the log) |
+
+## Requests / handoffs
+
+_Write here when you need the other assistant (or Kev) to do something in an area you don't own._
+
+- (none yet)
+
+## Open questions / next steps
+
+From the design docs:
+- Firepower is always maxed (a tax): make weapons parts with their own firepower and cost.
+- Counters are too hard (often 0/100); aim for ~65/35.
+- Add fame-gated cards, contested cards and team-up cards (see `docs/robot-card-ideas.md`).
+- Online play: deterministic sim, only inputs shared.
+- Move `Sim` into a shared `src/sim.js`.
+
+## Log
+
+Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
+
+- 2026-11-01, Claude: set up the shared folder: README, AGENTS.md, GEMINI.md, this file, design docs in `docs/`, the two prototypes in `prototypes/`, git repo.
