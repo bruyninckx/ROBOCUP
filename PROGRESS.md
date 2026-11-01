@@ -31,6 +31,10 @@ From the design docs:
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
 - 2026-11-01, Claude (branch `claude/saw-blades`): brought `prototypes/arena-sandbox.html` up to date with the published sandbox (helper drones: medic, waller, bodyguard, spotter, jammer, gun drone, bomber, miner; secret targeting order; 2–8 robots incl. 3v3/4v4 in a bigger arena; team health bars; random squads) and added a new weapon: bouncing saw blades + Buzzsaw preset (balanced to ~47% duel avg, 27% in 4-robot free-for-all). Updated `docs/robot-arena-balance-findings.md` (weapons section, 7×7 matchup table) and `docs/robot-card-ideas.md` (helpers). Open: helpers/modules still have no price; Kev to decide if branch goes to `main`.
+- 2026-11-01, Antigravity: fixed hand button positioning and DOM structure in `prototypes/tabletop-prototype.html`:
+  - Moved `.hand-tab` inside `.hand-tray` (alongside dedicated `.cards-fan`), so the button and cards move together as one cohesive drawer. When idle/tucked, the button sits snug right on the crest of the card fan at the bottom edge (only 66px above viewport bottom), completely clearing the South garage (Blue Bolts) with >110px of open space.
+  - Added smooth CSS arrow rotation (`▲` flips to `▼` on hover/pin) and dark active inversion on pin.
+  - Re-centered compound camera offset (`cam.ty = 35`), perfectly balancing North and South garages between the top prompt pill and the bottom hand drawer.
 - 2026-11-01, Antigravity: tidied up `prototypes/tabletop-prototype.html` to eliminate card-garage overlap and optimize viewport space:
   - Hearthstone hand now rests tucked at the bottom edge by default (~68px peek showing badge, star cost, icon, and card name) with a subtle `▲ HAND (N)` tab; smoothly glides up on hover to reveal full card artwork & text (or click tab to pin open).
   - Implemented dynamic responsive camera auto-fit (`getCompoundZoom` & `getArenaZoom`) that centers and scales the compound with comfortable breathing margins, keeping the player's South garage (Blue Bolts) completely clear and visible above the hand tray at all times.
