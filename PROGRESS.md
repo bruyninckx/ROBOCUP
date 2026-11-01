@@ -31,6 +31,11 @@ From the design docs:
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
 - 2026-11-01, Claude (branch `claude/saw-blades`): brought `prototypes/arena-sandbox.html` up to date with the published sandbox (helper drones: medic, waller, bodyguard, spotter, jammer, gun drone, bomber, miner; secret targeting order; 2–8 robots incl. 3v3/4v4 in a bigger arena; team health bars; random squads) and added a new weapon: bouncing saw blades + Buzzsaw preset (balanced to ~47% duel avg, 27% in 4-robot free-for-all). Updated `docs/robot-arena-balance-findings.md` (weapons section, 7×7 matchup table) and `docs/robot-card-ideas.md` (helpers). Open: helpers/modules still have no price; Kev to decide if branch goes to `main`.
+- 2026-11-01, Antigravity: fixed canvas sharpness, high-DPI blur, and garage text layout in `prototypes/tabletop-prototype.html`:
+  - Resolved pixelation/fuzziness caused by non-integer `sw * dpr` backing store comparisons resetting canvas width every frame on Windows high-DPI displays; now uses integer-rounded buffers (`Math.round(sw * dpr)`) and clean hardware-resolution resets.
+  - Added subpixel camera snap thresholds to eliminate anti-aliasing shimmering.
+  - Fixed text collision in vertical garages (West Red Rivets, East Orange Ohms) by splitting header into distinct team and stats lines, and widened vertical garages to 216px for comfortable 3-line robot bay layouts.
+  - Elevated visual crispness across the entire compound: 2px bold robot outlines with front tread notches, 16-toothed spinning saw blades, multi-lobe smoke puffs, dual-core laser beams, high-contrast text (`#111`/`#222` instead of faint `#666`), and solid 2.5px–3.5px architectural border lines.
 - 2026-11-01, Antigravity: fixed hand button positioning and DOM structure in `prototypes/tabletop-prototype.html`:
   - Moved `.hand-tab` inside `.hand-tray` (alongside dedicated `.cards-fan`), so the button and cards move together as one cohesive drawer. When idle/tucked, the button sits snug right on the crest of the card fan at the bottom edge (only 66px above viewport bottom), completely clearing the South garage (Blue Bolts) with >110px of open space.
   - Added smooth CSS arrow rotation (`▲` flips to `▼` on hover/pin) and dark active inversion on pin.
