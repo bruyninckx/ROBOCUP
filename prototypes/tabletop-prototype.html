@@ -1,0 +1,2320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ROBOCUs — 2D Tabletop & Live Arena Prototype</title>
+<style>
+:root {
+  --bg: #f3f1ec;
+  --surface: #ffffff;
+  --surface-2: #ece9e1;
+  --ink: #151515;
+  --muted: #66635b;
+  --line: #d4cfc4;
+  --line-strong: #222222;
+  --blue: #1f6feb;
+  --red: #d62828;
+  --green: #2a9d3a;
+  --orange: #e07b00;
+  --gold: #c98a00;
+  --purple: #7c3aed;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13.5px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+/* App Shell */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 8px 12px 12px;
+  gap: 8px;
+}
+
+/* Top Bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 7px 12px;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+}
+.brand {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.round-pill {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.phases {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.phases span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all .18s ease;
+}
+.phases span.on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+.top-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Buttons & Inputs */
+button, select, input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 4px 10px;
+  transition: transform .1s ease, background .12s ease, box-shadow .12s ease;
+}
+button {
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+}
+button:hover:not(:disabled) {
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+button.primary {
+  background: var(--ink);
+  color: #fff;
+}
+button.primary:hover:not(:disabled) {
+  background: #333;
+}
+button.accent {
+  background: #fff8e6;
+  border-color: var(--gold);
+  color: #7a5200;
+}
+button:disabled {
+  opacity: 0.38;
+  cursor: default;
+  box-shadow: none;
+}
+input[type=number] {
+  width: 62px;
+  padding: 3px 6px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Tabletop Grid Layouts */
+.tabletop {
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+  min-height: 0;
+}
+/* Layout Mode 1: Around the Table (North, West, Center Arena, East, South + Log) */
+.tabletop.layout-around {
+  grid-template-columns: 265px minmax(520px, 1fr) 265px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "west north east"
+    "west center east"
+    "south south south";
+}
+/* Layout Mode 2: 3 Rivals Top + Center Arena + South Player Dock */
+.tabletop.layout-dock {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "west north east"
+    "center center center"
+    "south south south";
+}
+@media (max-width: 1120px) {
+  .tabletop.layout-around {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "west north east"
+      "center center center"
+      "south south south";
+  }
+}
+@media (max-width: 780px) {
+  .tabletop.layout-around, .tabletop.layout-dock {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "north"
+      "west"
+      "east"
+      "center"
+      "south";
+  }
+}
+
+.seat-north { grid-area: north; }
+.seat-west  { grid-area: west; }
+.seat-east  { grid-area: east; }
+.seat-south { grid-area: south; }
+.center-stage { grid-area: center; position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+/* Player Station Mats */
+.station {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-top: 5px solid var(--c);
+  border-radius: 10px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: border-color .2s ease, box-shadow .2s ease;
+  min-width: 0;
+}
+.station.active-turn {
+  border-color: var(--c);
+  box-shadow: 0 0 0 2px var(--c), var(--shadow);
+}
+.station-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.station-head h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--c);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.badge.host {
+  background: #fff3cd;
+  border-color: #d99b00;
+  color: #704b00;
+}
+.badge.secret {
+  background: #f0e7ff;
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.tokens {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.token {
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.token b {
+  font-size: 14px;
+}
+.fame-track {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  height: 7px;
+}
+.fame-pip {
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.fame-pip.on {
+  background: var(--c);
+}
+
+/* Robot Bays inside Stations */
+.bays {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+.bay {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: #faf9f6;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  position: relative;
+}
+.bay.fighting {
+  border-color: var(--c);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--c);
+}
+.bay-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+.bay-top b {
+  font-size: 13px;
+}
+.hp-mini {
+  height: 5px;
+  background: #e2dfd7;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hp-mini > i {
+  display: block;
+  height: 100%;
+  background: var(--c);
+  transition: width .2s ease;
+}
+.bay-specs {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mod-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee;
+  color: #333;
+  width: fit-content;
+}
+.mod-chip.hidden-mod {
+  background: #222;
+  color: #fff;
+}
+
+/* South Station (Active Player Dashboard + Hand + Log) */
+.south-grid {
+  display: grid;
+  grid-template-columns: 310px 1fr 310px;
+  gap: 10px;
+  align-items: stretch;
+}
+@media (max-width: 1080px) {
+  .south-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.hand-zone {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hand-zone-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hand-cards {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.playing-card {
+  flex: 0 0 165px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f6f0 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  position: relative;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.playing-card:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+.playing-card.sel {
+  outline: 3px solid var(--blue);
+  transform: translateY(-5px);
+}
+.playing-card .ckind {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.playing-card .cname {
+  font-size: 13px;
+  font-weight: 800;
+}
+.playing-card .ctext {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* Center Stage: Arena Canvas + Live Controls + Floating Tabletop Overlay */
+.arena-shell {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid var(--line-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.arena-hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #181818;
+  color: #fff;
+  font-size: 12.5px;
+}
+.arena-hud-top .hud-vs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+.canvas-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 900 / 500;
+  background: #ffffff;
+}
+canvas#arenaCv {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* Live Battle Action Dock (Bottom of Arena) */
+.battle-dock {
+  background: #181818;
+  color: #fff;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid #333;
+}
+.dock-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dock-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #aaa;
+  margin-right: 2px;
+  font-weight: 700;
+}
+.act-btn {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1.5px solid #555;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: none;
+}
+.act-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+  border-color: #888;
+}
+.act-btn.active-tool {
+  background: var(--gold);
+  color: #111;
+  border-color: #fff;
+}
+.act-btn.stance-on {
+  background: var(--blue);
+  border-color: #9ec5fe;
+}
+.act-btn .key {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.15);
+  font-family: monospace;
+}
+
+/* Floating Phase Overlay inside the Arena when not in active combat */
+.phase-overlay {
+  position: absolute;
+  inset: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(5px);
+  border: 2px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  transition: opacity .22s ease, transform .22s ease;
+  z-index: 5;
+}
+.phase-overlay.minimized {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.96);
+}
+.phase-overlay h2 {
+  margin: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.phase-overlay p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Tables & Matchup Cards inside Overlay */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+th, td {
+  border: 1px solid var(--line);
+  padding: 6px 9px;
+  text-align: left;
+}
+th {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+.lot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 8px;
+}
+.lot-card {
+  border: 1.5px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #faf9f5;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vs-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+@media (max-width: 640px) {
+  .vs-grid { grid-template-columns: 1fr; }
+}
+.fighter-card {
+  border: 2px solid var(--c);
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fff;
+  display: grid;
+  gap: 5px;
+}
+.odds-big {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--c);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Event Feed / Chronicle Log */
+.log-box {
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 210px;
+  overflow-y: auto;
+  font-size: 12.5px;
+}
+.log-box .r {
+  font-weight: 800;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.log-box .me {
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.muted { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="brand">
+      <span>ROBOCUs</span>
+      <span class="round-pill" id="roundLbl">Round 1</span>
+    </div>
+    <div class="phases" id="phases"></div>
+    <div class="top-controls">
+      <label class="muted" style="font-size:12px">Seat:
+        <select id="seatSel" title="Switch which house you control (or open 2+ tabs to play multi-seat)">
+          <option value="0">Blue Bolts (P1)</option>
+          <option value="1">Red Rivets (P2)</option>
+          <option value="2">Green Gears (P3)</option>
+          <option value="3">Orange Ohms (P4)</option>
+        </select>
+      </label>
+      <label class="muted" style="font-size:12px">Layout:
+        <select id="layoutSel">
+          <option value="around">Around Table (4 Sides)</option>
+          <option value="dock">3 Top + Bottom Dock</option>
+        </select>
+      </label>
+      <button class="accent" id="quickBrawlBtn" title="Jump straight into a live interactive fight to test battle actions">⚡ Test Live Battle</button>
+      <button id="toggleOverlayBtn" title="Peek at the arena beneath the board overlay">Peek Arena</button>
+    </div>
+  </header>
+
+  <!-- Main 2D Tabletop -->
+  <main class="tabletop layout-around" id="tabletop">
+    <!-- Rival Seats -->
+    <section class="station seat-west" id="seat-1"></section>
+    <section class="station seat-north" id="seat-2"></section>
+    <section class="station seat-east" id="seat-3"></section>
+
+    <!-- Center Stage: Always-Present 60FPS Arena + Board Overlay + Battle Action Bar -->
+    <section class="center-stage">
+      <div class="arena-shell">
+        <div class="arena-hud-top">
+          <div class="hud-vs" id="hudVs">Arena Standby · Robots warming up</div>
+          <div class="row">
+            <span id="syncBadge" class="badge" style="background:#222;color:#9ef0a0;border-color:#3b7a3e">Multi-Tab Ready</span>
+            <button id="spdBtn" class="act-btn" style="padding:2px 8px;font-size:11.5px">Speed 1×</button>
+            <button id="skipBtn" class="act-btn" style="padding:2px 8px;font-size:11.5px" hidden>Skip Fight</button>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="arenaCv" width="900" height="500"></canvas>
+          <!-- Phase Board Overlay (slides away during Fight) -->
+          <div class="phase-overlay" id="phaseOverlay"></div>
+        </div>
+
+        <!-- Live Interactive Battle Controls (Active during fights!) -->
+        <div class="battle-dock" id="battleDock">
+          <div class="dock-group" id="fighterControls">
+            <span class="dock-label">Fighter Actions:</span>
+            <button class="act-btn" id="btnOverdrive" disabled title="Burst of +45% speed, +50% fire rate & faster turret for 3s (1× per fight)">
+              ⚡ Overdrive <span class="key">Q</span>
+            </button>
+            <button class="act-btn" id="btnPulse" disabled title="Manually trigger module / emergency shield pulse (1× per fight)">
+              🛡️ Surge Module <span class="key">W</span>
+            </button>
+            <span class="dock-label" style="margin-left:6px">Stance:</span>
+            <button class="act-btn stance-on" data-stance="auto" disabled>Auto <span class="key">1</span></button>
+            <button class="act-btn" data-stance="charge" disabled title="Close in aggressively to 75px">Charge <span class="key">2</span></button>
+            <button class="act-btn" data-stance="kite" disabled title="Keep maximum distance & weave">Kite <span class="key">3</span></button>
+          </div>
+
+          <div class="dock-group" id="crowdControls">
+            <span class="dock-label">Crowd Toss (click Arena):</span>
+            <button class="act-btn" data-hazard="oil" disabled title="Click arena floor to splash oil: slows & spins robots for 5s">
+              🛢️ Oil Slick
+            </button>
+            <button class="act-btn" data-hazard="emp" disabled title="Click arena floor to lob an EMP bomb (0.9s fuse, stuns 1.2s)">
+              🧲 EMP Bomb
+            </button>
+            <button class="act-btn" data-hazard="heal" disabled title="Click arena floor to drop a +12 HP/s repair field">
+              🔧 Repair Patch
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- South Area: Active Player Station + Hand of Cards + Chronicle Log -->
+    <section class="seat-south">
+      <div class="south-grid">
+        <div class="station" id="seat-0"></div>
+        <div class="hand-zone" id="handZone"></div>
+        <div class="log-box" id="log" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ============================================================================
+ * 1. DETERMINISTIC BATTLE SIMULATOR (Sim) + TICK-STAMPED LIVE COMMANDS
+ *    Uses ONLY seeded rng (mkRng) inside Sim. Never Math.random().
+ * ============================================================================ */
+(function (root) {
+  'use strict';
+  const W = 900, H = 500, SIZE = 30;
+  const STATS = ['hp', 'armor', 'speed', 'turret', 'fp', 'acc', 'bullet'];
+  const LV = {
+    hp:     [60, 85, 110, 135, 160],
+    armor:  [0, 1.5, 3, 4.5, 6],
+    speed:  [60, 95, 130, 165, 200],
+    turret: [30, 60, 100, 150, 220],
+    fp:     [7, 10, 13.5, 17.5, 22],
+    acc:    [45, 60, 75, 87, 97],
+    bullet: [250, 350, 470, 600, 800],
+  };
+  const CAL = {
+    rapid:  { rate: 4,   shell: 1.3, turret: 1.25, tol: 7 },
+    medium: { rate: 1.4, shell: 1.0, turret: 1.0,  tol: 5 },
+    heavy:  { rate: 0.5, shell: 0.6, turret: 0.55, tol: 3 },
+  };
+  const RANGES = { short: 140, mid: 250, long: 380 };
+  const MODS = {
+    shield:  { name: 'Energy Shield', text: 'Soaks 25 dmg; recharges 10/s after 3s unhit.' },
+    flipper: { name: 'Flipper', text: 'Charges in; 10 dmg + throw + 1s stun (wall slam +8).' },
+    decoy:   { name: 'Decoy Hologram', text: 'At 60% HP, spawns a decoy that fools attackers 2.5s.' },
+    mines:   { name: 'Mine Layer', text: 'Drops proximity mines (22 dmg) while driving.' },
+    repair:  { name: 'Repair Drone', text: 'Heals 6 HP/s after 1.2s without taking hits.' },
+    emp:     { name: 'EMP Burst', text: 'Enemy within 130px triggers a 150px 1.8s stun pulse.' },
+    boom:    { name: 'Self-Destruct', text: 'Below 30% HP rams enemy; explodes for 45 dmg on death.' },
+    smoke:   { name: 'Smoke Screen', text: 'At 50% HP pops a 4s smoke cloud that scatters enemy aim.' },
+  };
+
+  function mkRng(seed) {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(s ^ (s >>> 15), s | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const rad = d => d * Math.PI / 180;
+  const wrapA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  const turnToward = (a, target, maxStep) => { const d = wrapA(target - a); return a + Math.max(-maxStep, Math.min(maxStep, d)); };
+
+  function statsOf(b) {
+    const s = {};
+    for (const k of STATS) s[k] = LV[k][b.lv[k]];
+    s.range = RANGES[b.range] || 250;
+    s.weapon = b.weapon || 'gun';
+    s.cal = b.cal || 'medium';
+    const c = CAL[s.cal];
+    s.fire = s.weapon === 'mortar' ? 0.45 : c.rate;
+    s.dmg = s.fp / s.fire;
+    if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
+    s.speed *= 1 - 0.09 * b.lv.armor - 0.04 * b.lv.hp;
+    s.turnBody = 180;
+    s.mod = b.mod && MODS[b.mod] ? b.mod : null;
+    return s;
+  }
+
+  function newBattle(builds, seed) {
+    const rng = mkRng(seed);
+    const sp = [[135, H / 2 - 60], [W - 135, H / 2 + 60]];
+    const bots = builds.map((b, i) => {
+      const s = statsOf(b);
+      const x = sp[i][0], y = Math.max(60, Math.min(H - 60, sp[i][1] + (rng() - 0.5) * 160));
+      const face = Math.atan2(H / 2 - y, W / 2 - x);
+      return {
+        i, squad: i, team: i, size: SIZE, s, hp: s.hp, x, y, body: face, turret: face, target: 1 - i,
+        vx: 0, vy: 0, cd: 0.3 + rng() * 0.35, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 1.8,
+        hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, lastBy: -1,
+        mod: s.mod, shield: s.mod === 'shield' ? 25 : 0, lastHit: -9, stun: 0, kx: 0, ky: 0,
+        modCd: 0, modUsed: false, revealed: false, healed: 0,
+        // Live interactive battle states
+        stance: 'auto', overdriveT: 0, overdriveUsed: false, surgeUsed: false, oilSlip: 0
+      };
+    });
+    return {
+      W, H, bots, bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [],
+      zones: [], // oil slicks, repair patches, emp bombs from crowd/players
+      banners: [], // floating callouts in arena
+      cmdQueue: [], // tick-stamped deterministic commands
+      tick: 0, t: 0, over: false, winner: null, rng, n: builds.length
+    };
+  }
+
+  // Queue a deterministic live command to execute on or after targetTick
+  function queueCmd(B, cmd) {
+    B.cmdQueue.push({ ...cmd, execTick: cmd.tick != null ? cmd.tick : B.tick + 1 });
+  }
+
+  function applyCmd(B, c) {
+    if (c.kind === 'overdrive') {
+      const b = B.bots[c.bot];
+      if (!b || b.hp <= 0 || b.overdriveUsed) return;
+      b.overdriveUsed = true;
+      b.overdriveT = 3.0;
+      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 55, life: 0.3, col: '#f59e0b' });
+      B.banners.push({ x: b.x, y: b.y - 42, text: '⚡ OVERDRIVE!', col: '#d97706', life: 1.3 });
+    } else if (c.kind === 'surge') {
+      const b = B.bots[c.bot];
+      if (!b || b.hp <= 0 || b.surgeUsed) return;
+      b.surgeUsed = true;
+      b.revealed = true;
+      // Trigger module on demand or emergency shield + shockwave
+      if (b.mod === 'smoke') {
+        B.smokes.push({ x: b.x, y: b.y, r: 95, life: 4.2 });
+        B.banners.push({ x: b.x, y: b.y - 42, text: '💨 SMOKE POP!', col: '#555', life: 1.3 });
+      } else if (b.mod === 'decoy') {
+        const a = b.body + (B.rng() < 0.5 ? 1 : -1) * Math.PI / 2;
+        B.decoys.push({ owner: b.i, x: b.x, y: b.y, vx: Math.cos(a) * 145, vy: Math.sin(a) * 145, life: 2.8, fooled: [1 - b.i], body: b.body });
+        B.banners.push({ x: b.x, y: b.y - 42, text: '👥 DECOY OUT!', col: '#7c3aed', life: 1.3 });
+      } else if (b.mod === 'emp') {
+        for (const e of B.bots) if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 170) e.stun = Math.max(e.stun, 1.8);
+        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 170, life: 0.4, col: '#2563eb' });
+        B.banners.push({ x: b.x, y: b.y - 42, text: '⚡ EMP BLAST!', col: '#2563eb', life: 1.3 });
+      } else {
+        b.shield = Math.min(35, b.shield + 20);
+        for (const e of B.bots) {
+          if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 120) {
+            const a = Math.atan2(e.y - b.y, e.x - b.x);
+            e.kx += Math.cos(a) * 320; e.ky += Math.sin(a) * 320;
+          }
+        }
+        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 90, life: 0.35, col: '#0ea5e9' });
+        B.banners.push({ x: b.x, y: b.y - 42, text: '🛡️ SHIELD SURGE!', col: '#0284c7', life: 1.3 });
+      }
+    } else if (c.kind === 'stance') {
+      const b = B.bots[c.bot];
+      if (!b || b.hp <= 0) return;
+      b.stance = c.stance;
+      B.banners.push({ x: b.x, y: b.y - 40, text: '🎯 ' + c.stance.toUpperCase(), col: '#111', life: 0.9 });
+    } else if (c.kind === 'hazard') {
+      const x = Math.max(50, Math.min(W - 50, c.x));
+      const y = Math.max(50, Math.min(H - 50, c.y));
+      if (c.hazard === 'oil') {
+        B.zones.push({ kind: 'oil', x, y, r: 72, life: 5.0, maxLife: 5.0, by: c.by });
+        B.banners.push({ x, y: y - 24, text: '🛢️ OIL SLICK!', col: '#444', life: 1.2 });
+      } else if (c.hazard === 'emp') {
+        B.zones.push({ kind: 'emp_bomb', x, y, r: 95, fuse: 0.85, maxFuse: 0.85, by: c.by });
+        B.banners.push({ x, y: y - 24, text: '🧲 INCOMING EMP!', col: '#2563eb', life: 1.0 });
+      } else if (c.hazard === 'heal') {
+        B.zones.push({ kind: 'heal', x, y, r: 65, life: 3.5, maxLife: 3.5, by: c.by });
+        B.banners.push({ x, y: y - 24, text: '🔧 REPAIR ZONE!', col: '#16a34a', life: 1.2 });
+      }
+    }
+  }
+
+  function hitBot(B, tgt, dmg, src, pierce) {
+    if (tgt.hp <= 0) return;
+    tgt.lastHit = B.t;
+    if (tgt.shield > 0) {
+      const a = Math.min(tgt.shield, dmg);
+      tgt.shield -= a; dmg -= a; tgt.revealed = true;
+      if (dmg <= 0.0001) { tgt.hitT = 0.05; return; }
+    }
+    if (!pierce) dmg = Math.max(dmg * 0.15, dmg - tgt.s.armor);
+    tgt.hp -= dmg; tgt.hitT = 0.08;
+    if (src) { tgt.lastBy = src.i; src.dealt += dmg; }
+    if (tgt.hp <= 0) {
+      if (src) src.kills++;
+      B.fx.push({ k: 'boom', x: tgt.x, y: tgt.y, life: 0.3 });
+      if (tgt.mod === 'boom') {
+        tgt.revealed = true;
+        B.fx.push({ k: 'bigboom', x: tgt.x, y: tgt.y, r: 90, life: 0.4 });
+        for (const e of B.bots) {
+          if (e.hp > 0 && e !== tgt) {
+            const d = Math.hypot(e.x - tgt.x, e.y - tgt.y);
+            if (d < 90) hitBot(B, e, 45 * (1 - 0.5 * d / 90), tgt, true);
+          }
+        }
+      }
+    }
+  }
+
+  function runModule(B, b, dt) {
+    const m = b.mod; if (!m) return;
+    b.modCd -= dt;
+    const e = B.bots[1 - b.i];
+    const d = e && e.hp > 0 ? Math.hypot(e.x - b.x, e.y - b.y) : Infinity;
+    if (m === 'shield') {
+      if (B.t - b.lastHit > 3) b.shield = Math.min(25, b.shield + 10 * dt);
+    } else if (m === 'repair') {
+      if (B.t - b.lastHit > 1.2 && b.hp < b.s.hp) {
+        const h = Math.min(b.s.hp - b.hp, 6 * dt);
+        b.hp += h; b.healed += h; b.revealed = true;
+      }
+    } else if (m === 'flipper') {
+      if (b.stun <= 0 && b.modCd <= 0 && e && e.hp > 0 && d < 48) {
+        const a = Math.atan2(e.y - b.y, e.x - b.x);
+        hitBot(B, e, 10, b, true);
+        e.kx = Math.cos(a) * 480; e.ky = Math.sin(a) * 480; e.stun = Math.max(e.stun, 1.0);
+        b.modCd = 4; b.revealed = true;
+        B.fx.push({ k: 'flip', x: (b.x + e.x) / 2, y: (b.y + e.y) / 2, life: 0.25 });
+      }
+    } else if (m === 'emp') {
+      if (b.stun <= 0 && b.modCd <= 0 && e && e.hp > 0 && d < 130) {
+        e.stun = Math.max(e.stun, 1.8);
+        b.modCd = 12; b.revealed = true;
+        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 150, life: 0.4, col: '#2563eb' });
+      }
+    } else if (m === 'mines') {
+      if (b.modCd <= 0 && Math.hypot(b.vx, b.vy) > 30) {
+        const own = B.mines.filter(x => x.owner === b.i);
+        if (own.length >= 5) B.mines.splice(B.mines.indexOf(own[0]), 1);
+        B.mines.push({ x: b.x - Math.cos(b.body) * 22, y: b.y - Math.sin(b.body) * 22, owner: b.i, age: 0 });
+        b.modCd = 1.6;
+      }
+    } else if (m === 'decoy') {
+      if (!b.modUsed && b.hp < b.s.hp * 0.6) {
+        b.modUsed = true; b.revealed = true;
+        const a = b.body + (B.rng() < 0.5 ? 1 : -1) * Math.PI / 2;
+        B.decoys.push({ owner: b.i, x: b.x, y: b.y, vx: Math.cos(a) * 140, vy: Math.sin(a) * 140, life: 2.5, fooled: [1 - b.i], body: b.body });
+      }
+    } else if (m === 'smoke') {
+      if (!b.modUsed && b.hp < b.s.hp * 0.5) {
+        b.modUsed = true; b.revealed = true;
+        B.smokes.push({ x: b.x, y: b.y, r: 90, life: 4 });
+      }
+    }
+  }
+
+  function step(B, dt) {
+    if (B.over) return;
+    B.tick++;
+    B.t += dt;
+    const rng = B.rng;
+
+    // 1. Process any queued live commands scheduled for this tick
+    for (let i = B.cmdQueue.length - 1; i >= 0; i--) {
+      if (B.cmdQueue[i].execTick <= B.tick) {
+        const cmd = B.cmdQueue.splice(i, 1)[0];
+        applyCmd(B, cmd);
+      }
+    }
+
+    // 2. Update arena zones (oil slicks, EMP bombs, repair patches)
+    for (let k = B.zones.length - 1; k >= 0; k--) {
+      const z = B.zones[k];
+      if (z.kind === 'emp_bomb') {
+        z.fuse -= dt;
+        if (z.fuse <= 0) {
+          B.fx.push({ k: 'emp', x: z.x, y: z.y, r: z.r, life: 0.4, col: '#2563eb' });
+          for (const b of B.bots) {
+            if (b.hp > 0 && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
+              b.stun = Math.max(b.stun, 1.25);
+              hitBot(B, b, 8, null, true);
+            }
+          }
+          B.zones.splice(k, 1);
+        }
+        continue;
+      }
+      z.life -= dt;
+      if (z.kind === 'heal') {
+        for (const b of B.bots) {
+          if (b.hp > 0 && b.hp < b.s.hp && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
+            b.hp = Math.min(b.s.hp, b.hp + 12 * dt);
+          }
+        }
+      }
+      if (z.life <= 0) B.zones.splice(k, 1);
+    }
+
+    // 3. Step robots
+    for (const b of B.bots) {
+      if (b.hp <= 0) continue;
+      if (b.overdriveT > 0) b.overdriveT = Math.max(0, b.overdriveT - dt);
+
+      // Knockback physics
+      if (b.kx || b.ky) {
+        const nx = b.x + b.kx * dt, ny = b.y + b.ky * dt;
+        const cx = Math.max(SIZE / 2, Math.min(W - SIZE / 2, nx));
+        const cy = Math.max(SIZE / 2, Math.min(H - SIZE / 2, ny));
+        if ((cx !== nx || cy !== ny) && Math.hypot(b.kx, b.ky) > 150) {
+          hitBot(B, b, 8, B.bots[1 - b.i], true);
+          B.fx.push({ k: 'hit', x: cx, y: cy, life: 0.15 });
+          b.kx = b.ky = 0;
+        }
+        b.x = cx; b.y = cy;
+        const f = Math.exp(-6 * dt); b.kx *= f; b.ky *= f;
+        if (Math.hypot(b.kx, b.ky) < 10) b.kx = b.ky = 0;
+      }
+      if (b.hp <= 0) continue;
+
+      runModule(B, b, dt);
+      if (b.stun > 0) { b.stun -= dt; b.vx = b.vy = 0; b.beam = 0; continue; }
+
+      const real = B.bots[1 - b.i];
+      if (!real || real.hp <= 0) continue;
+      const dec = B.decoys.find(d => d.owner === real.i && d.fooled.includes(b.i));
+      const o = dec || real;
+
+      const inOil = B.zones.some(z => z.kind === 'oil' && Math.hypot(b.x - z.x, b.y - z.y) < z.r);
+      const odMult = b.overdriveT > 0 ? 1.45 : 1.0;
+      const oilMult = inOil ? 0.48 : 1.0;
+
+      const fog = B.smokes.some(sm => Math.hypot(o.x - sm.x, o.y - sm.y) < sm.r) ? 1 : 0;
+      const dx = o.x - b.x, dy = o.y - b.y, dist = Math.hypot(dx, dy), toO = Math.atan2(dy, dx);
+
+      b.strafeT -= dt;
+      if (b.strafeT <= 0) { b.strafe *= -1; b.strafeT = 0.8 + rng() * 1.7; }
+
+      let want_r = b.s.range;
+      if (b.stance === 'charge') want_r = 70;
+      else if (b.stance === 'kite') want_r = 390;
+      if (b.mod === 'flipper' && b.modCd <= 0) want_r = 25;
+      if (b.mod === 'boom' && b.hp < b.s.hp * 0.3) { want_r = 0; b.revealed = true; }
+
+      const radial = Math.max(-1, Math.min(1, (dist - want_r) / 80));
+      const strafeWeight = b.stance === 'kite' ? 1.15 : 0.8;
+      let mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * strafeWeight;
+      let my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * strafeWeight;
+
+      const sx = b.x - real.x, sy = b.y - real.y, sd = Math.hypot(sx, sy);
+      if (sd < 60 && sd > 0.01) { mx += sx / sd * (60 - sd) / 30; my += sy / sd * (60 - sd) / 30; }
+
+      const m = 65;
+      if (b.x < m) mx += (m - b.x) / m * 2; if (b.x > W - m) mx -= (b.x - (W - m)) / m * 2;
+      if (b.y < m) my += (m - b.y) / m * 2; if (b.y > H - m) my -= (b.y - (H - m)) / m * 2;
+
+      const want = Math.atan2(my, mx) + (inOil ? Math.sin(B.t * 14 + b.i) * 0.65 : 0);
+      b.body = turnToward(b.body, want, rad(b.s.turnBody * odMult) * dt);
+      const align = Math.max(0, Math.cos(wrapA(want - b.body)));
+      const sp = b.s.speed * odMult * oilMult * align * Math.min(1, Math.hypot(mx, my));
+      b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + Math.cos(b.body) * sp * dt));
+      b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + Math.sin(b.body) * sp * dt));
+      b.vx = Math.cos(b.body) * sp; b.vy = Math.sin(b.body) * sp;
+
+      const w = b.s.weapon;
+      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : b.s.bullet;
+      const tt = w === 'laser' ? 0 : dist / Math.max(50, pspeed);
+      const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
+      b.turret = turnToward(b.turret, aim, rad(b.s.turret * (b.overdriveT > 0 ? 1.3 : 1)) * dt);
+      b.cd -= dt * (b.overdriveT > 0 ? 1.5 : 1);
+      b.beam = 0;
+
+      const err = Math.abs(wrapA(aim - b.turret));
+      if (w === 'gun') {
+        if (b.cd <= 0 && err < rad(b.s.tol)) {
+          b.cd = (1 / b.s.fire) * (0.9 + rng() * 0.2);
+          const spread = rad(25) * (1 - b.s.acc / 100) + fog * rad(22);
+          const a = b.turret + (rng() * 2 - 1) * spread;
+          const sx2 = b.x + Math.cos(b.turret) * 26, sy2 = b.y + Math.sin(b.turret) * 26;
+          B.bullets.push({ x: sx2, y: sy2, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i, dmg: b.s.dmg, life: 3 });
+          B.fx.push({ k: 'flash', x: sx2, y: sy2, life: 0.06 });
+          b.shots++;
+        }
+      } else if (w === 'mortar') {
+        if (b.cd <= 0 && err < rad(8) && dist > 110) {
+          b.cd = 1 / b.s.fire;
+          const flight = dist / pspeed;
+          const scatter = 90 * (1 - b.s.acc / 100) + fog * 70;
+          const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * scatter;
+          const tx = o.x + o.vx * flight + Math.cos(a) * r, ty = o.y + o.vy * flight + Math.sin(a) * r;
+          B.shells.push({ sx: b.x, sy: b.y, tx, ty, t: 0, T: flight, owner: b.i, dmg: b.s.dmg });
+          b.shots++;
+        }
+      } else if (w === 'laser') {
+        if (dist < 280) {
+          const wob = (rad(14) * (1 - b.s.acc / 100) + fog * rad(18)) * Math.sin(B.t * 9 + b.i * 2);
+          const a = b.turret + wob;
+          b.beam = 1; b.beamA = a; b.beamLen = 280;
+          const ex = real.x - b.x, ey = real.y - b.y;
+          const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
+          if (along > 0 && along < 280 && perp < SIZE / 2) {
+            hitBot(B, real, b.s.fp * 0.6 * (b.overdriveT > 0 ? 1.35 : 1) * dt, b, true);
+            b.hits += dt;
+          }
+          b.shots += dt;
+        }
+      }
+      b.hitT = Math.max(0, b.hitT - dt);
+    }
+
+    // 4. Projectiles, mines, decoys, fx
+    for (let k = B.bullets.length - 1; k >= 0; k--) {
+      const q = B.bullets[k];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      const own = B.bots[q.owner], tgt = B.bots[1 - q.owner];
+      if (tgt && tgt.hp > 0 && Math.abs(q.x - tgt.x) < SIZE / 2 + 2 && Math.abs(q.y - tgt.y) < SIZE / 2 + 2) {
+        hitBot(B, tgt, q.dmg, own); own.hits++;
+        B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
+        B.bullets.splice(k, 1); continue;
+      }
+      if (q.life <= 0 || q.x < 0 || q.y < 0 || q.x > W || q.y > H) B.bullets.splice(k, 1);
+    }
+    for (let k = B.shells.length - 1; k >= 0; k--) {
+      const q = B.shells[k];
+      q.t += dt;
+      if (q.t >= q.T) {
+        const own = B.bots[q.owner];
+        for (const e of B.bots) {
+          if (e.hp <= 0) continue;
+          const d = Math.hypot(e.x - q.tx, e.y - q.ty);
+          if (d < 45) { hitBot(B, e, q.dmg * (d < 22 ? 1 : 0.5), own); own.hits++; }
+        }
+        B.fx.push({ k: 'boom', x: q.tx, y: q.ty, life: 0.25 });
+        B.shells.splice(k, 1);
+      }
+    }
+    for (let k = B.mines.length - 1; k >= 0; k--) {
+      const m = B.mines[k]; m.age += dt;
+      if (m.age < 0.6) continue;
+      const hit = B.bots.find(e => e.hp > 0 && e.i !== m.owner && Math.hypot(e.x - m.x, e.y - m.y) < 20);
+      if (hit) {
+        B.mines.splice(k, 1);
+        B.bots[m.owner].revealed = true;
+        B.fx.push({ k: 'boom', x: m.x, y: m.y, life: 0.3 });
+        hitBot(B, hit, 22, B.bots[m.owner], true);
+      }
+    }
+    for (let k = B.decoys.length - 1; k >= 0; k--) {
+      const d = B.decoys[k]; d.life -= dt;
+      d.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, d.x + d.vx * dt));
+      d.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, d.y + d.vy * dt));
+      if (d.x <= SIZE / 2 || d.x >= W - SIZE / 2) d.vx *= -1;
+      if (d.y <= SIZE / 2 || d.y >= H - SIZE / 2) d.vy *= -1;
+      if (d.life <= 0 || B.bots[d.owner].hp <= 0) B.decoys.splice(k, 1);
+    }
+    for (let k = B.smokes.length - 1; k >= 0; k--) { B.smokes[k].life -= dt; if (B.smokes[k].life <= 0) B.smokes.splice(k, 1); }
+    for (let k = B.fx.length - 1; k >= 0; k--) { B.fx[k].life -= dt; if (B.fx[k].life <= 0) B.fx.splice(k, 1); }
+    for (let k = B.banners.length - 1; k >= 0; k--) { B.banners[k].life -= dt; B.banners[k].y -= 18 * dt; if (B.banners[k].life <= 0) B.banners.splice(k, 1); }
+
+    const alive = B.bots.filter(b => b.hp > 0);
+    if (alive.length <= 1) {
+      B.over = true;
+      B.winner = alive.length ? alive[0].i : -1;
+    } else if (B.t >= 60) {
+      B.over = true; B.timeout = true;
+      const f0 = B.bots[0].hp / B.bots[0].s.hp, f1 = B.bots[1].hp / B.bots[1].s.hp;
+      B.winner = f0 > f1 ? 0 : f1 > f0 ? 1 : -1;
+    }
+  }
+
+  root.Sim = { W, H, SIZE, STATS, LV, CAL, RANGES, MODS, newBattle, step, queueCmd, statsOf, mkRng };
+})(window);
+
+/* ============================================================================
+ * 2. TABLETOP GAME LOOP, LIVE ARENA INTERACTIVITY & MULTI-TAB SYNC
+ * ============================================================================ */
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const rnd = Math.random, pick = a => a[Math.floor(rnd() * a.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const WIN_FAME = 12;
+
+  const L = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
+  const PRESETS = {
+    Bulwark:  { lv: L(4, 3, 1, 0, 4, 1, 1), range: 'mid',   weapon: 'gun',    cal: 'medium', mod: 'shield' },
+    Marksman: { lv: L(3, 0, 0, 1, 4, 3, 3), range: 'long',  weapon: 'gun',    cal: 'medium', mod: 'decoy'  },
+    Hornet:   { lv: L(4, 0, 1, 0, 4, 3, 2), range: 'mid',   weapon: 'gun',    cal: 'rapid',  mod: 'smoke'  },
+    Dasher:   { lv: L(3, 0, 4, 1, 4, 1, 1), range: 'short', weapon: 'gun',    cal: 'medium', mod: 'flipper'},
+    Burner:   { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid',   weapon: 'laser',  cal: 'medium', mod: 'emp'    },
+    Lobber:   { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long',  weapon: 'mortar', cal: 'medium', mod: 'mines'  },
+  };
+  const SCRAP = { lv: L(1, 0, 1, 1, 1, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium', mod: 'boom' };
+  const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
+
+  const SCHEMES = {
+    bolts:    { name: 'Loose Bolts',      need: 0, target: 'team', text: 'Sabotage: target fights with −2 Armour next fight.', tamper: { armor: -2 } },
+    sugar:    { name: 'Sugar in Tank',    need: 0, target: 'team', text: 'Sabotage: target fights with −2 Speed next fight.', tamper: { speed: -2 } },
+    gears:    { name: 'Stripped Gears',   need: 0, target: 'team', text: 'Sabotage: target turret turns −2 levels slower.', tamper: { turret: -2 } },
+    lens:     { name: 'Smudged Lens',     need: 3, target: 'team', text: 'Sabotage: target fights with −2 Accuracy next fight.', tamper: { acc: -2 } },
+    pocket:   { name: 'Pickpocket',       need: 0, target: 'team', text: 'Steal up to 3 credits from a rival house.' },
+    night:    { name: 'Night Shift',      need: 0, target: 'self', text: 'Your mechanics work overtime: gain +4 credits.' },
+    press:    { name: 'Bribe the Press',  need: 5, target: 'self', text: 'Pay 3 credits to gain +1 Fame immediately.' },
+    smear:    { name: 'Smear Campaign',   need: 7, target: 'team', text: 'Rival house loses −1 Fame.' },
+    overtime: { name: 'Secret Upgrade',   need: 4, target: 'self', text: 'Hidden: your robots gain +1 FP and +1 Armour next fight.', tamper: { fp: 1, armor: 1 } },
+    guard:    { name: 'Guard Dog',        need: 0, target: 'none', text: 'Reaction: 50% chance to foil the next scheme against you.' },
+  };
+  const SCHEME_DECK = ['bolts','bolts','sugar','sugar','gears','gears','lens','pocket','pocket','night','night','press','press','smear','overtime','overtime','guard','guard','guard'];
+
+  const LOTS = {
+    plate:  { name: 'Armour Plate',    text: '+1 Armour on one robot.', stat: 'armor' },
+    engine: { name: 'Tuned Engine',    text: '+1 Speed on one robot.', stat: 'speed' },
+    motor:  { name: 'Turret Motor',    text: '+1 Turret turn on one robot.', stat: 'turret' },
+    chip:   { name: 'Targeting Chip',  text: '+1 Accuracy on one robot.', stat: 'acc' },
+    hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
+    laser:  { name: 'Laser Retrofit',  text: 'Weapon becomes a Laser (ignores armour).', weapon: 'laser' },
+    mortar: { name: 'Mortar Retrofit', text: 'Weapon becomes a Mortar (lobbed splash).', weapon: 'mortar' },
+    rapid:  { name: 'Rapid-fire Kit',  text: 'Gun becomes rapid calibre.', cal: 'rapid' },
+    heavy:  { name: 'Heavy Cannon',    text: 'Gun becomes heavy calibre.', cal: 'heavy' },
+    robot:  { name: 'New Robot',       text: 'Add a fresh robot to your garage (max 3).', robot: true },
+    mech:   { name: 'Hire Mechanic',   text: '+1 credit income every Upkeep.', mech: true },
+  };
+
+  const TEAMS = [
+    { name: 'Blue Bolts',  col: '#1f6feb' },
+    { name: 'Red Rivets',  col: '#d62828' },
+    { name: 'Green Gears', col: '#2a9d3a' },
+    { name: 'Orange Ohms', col: '#e07b00' },
+  ];
+  const PHASES = [
+    ['upkeep', '1. Upkeep'],
+    ['intrigue', '2. Intrigue'],
+    ['market', '3. Market'],
+    ['arena', '4. Arena Host'],
+    ['bets', '5. Betting'],
+    ['fight', '6. Live Fight'],
+    ['after', '7. Aftermath'],
+  ];
+
+  let G = null;
+  let viewerSeat = 0; // Which house this browser tab is viewing/controlling
+  let selectedHazard = null; // 'oil' | 'emp' | 'heal'
+  let speedMult = 1;
+  let botSeq = 0;
+
+  // Multi-tab BroadcastChannel so opening multiple tabs syncs live arena commands!
+  const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('robocus_table_v1') : null;
+  if (bc) {
+    bc.onmessage = ev => {
+      const msg = ev.data;
+      if (!msg) return;
+      if (msg.type === 'LIVE_CMD' && G && G.fight && G.fight.B && !G.fight.B.over) {
+        Sim.queueCmd(G.fight.B, msg.cmd);
+        log(tname(msg.seat) + ' triggered <b>' + esc(msg.label) + '</b>!', msg.seat === viewerSeat ? 'me' : '');
+      }
+    };
+  }
+
+  function mkRobot(name, b) {
+    const mods = Object.keys(Sim.MODS);
+    const copy = clone(b);
+    if (!copy.mod) copy.mod = pick(mods);
+    return { id: ++botSeq, name, b: copy, dmg: 0, wins: 0 };
+  }
+  const me = () => G.teams[viewerSeat];
+  const tname = i => '<b style="color:' + G.teams[i].col + '">' + esc(G.teams[i].name) + '</b>';
+  const maxHp = r => Sim.LV.hp[r.b.lv.hp];
+  const power = r => Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) - r.dmg / 20;
+  function buildText(r) {
+    const w = r.b.weapon === 'gun' ? r.b.cal + ' gun' : r.b.weapon;
+    return w + ' · ' + r.b.range + ' · ' + Sim.STATS.map(k => SHORT[k] + r.b.lv[k]).join(' ');
+  }
+  function log(html, cls) {
+    const d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.innerHTML = html;
+    const box = $('#log');
+    box.appendChild(d);
+    box.scrollTop = 1e6;
+  }
+  function drawCard() {
+    if (!G.deck.length) G.deck = shuffle(SCHEME_DECK.slice());
+    return G.deck.pop();
+  }
+  function fightBuild(ti, r) {
+    const b = clone(r.b);
+    const tm = G.teams[ti].tamper;
+    for (const k in tm) b.lv[k] = Math.max(0, Math.min(4, b.lv[k] + tm[k]));
+    return b;
+  }
+
+  /* ---------- Render Tabletop Stations & Hand ---------- */
+  function renderBoard() {
+    $('#roundLbl').textContent = 'Round ' + G.round;
+    $('#phases').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
+
+    // Map viewerSeat to the bottom station (#seat-0), and the other 3 seats around the table
+    const order = [viewerSeat, (viewerSeat + 1) % 4, (viewerSeat + 2) % 4, (viewerSeat + 3) % 4];
+    order.forEach((ti, posIdx) => {
+      const t = G.teams[ti];
+      const el = $('#seat-' + posIdx);
+      const isMe = ti === viewerSeat;
+      const isFighting = G.fight && G.fight.teams && G.fight.teams.includes(ti);
+      el.style.setProperty('--c', t.col);
+      el.classList.toggle('active-turn', G.host === ti || isFighting);
+
+      const pips = Array.from({ length: WIN_FAME }, (_, k) => '<div class="fame-pip' + (k < t.fame ? ' on' : '') + '"></div>').join('');
+      const secretCount = Object.keys(t.tamper).length;
+
+      let baysHtml = '<div class="bays">';
+      t.robots.forEach(r => {
+        const curHp = Math.max(0, maxHp(r) - r.dmg);
+        const pct = Math.round(curHp / maxHp(r) * 100);
+        const inRing = G.fight && G.fight.robots && G.fight.robots.includes(r);
+        const modLabel = isMe ? (Sim.MODS[r.b.mod]?.name || 'Module') : '? Secret Module';
+        baysHtml += '<div class="bay' + (inRing ? ' fighting' : '') + '">' +
+          '<div class="bay-top"><b>' + esc(r.name) + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : '') + '</b><span>' + curHp + '/' + maxHp(r) + ' HP</span></div>' +
+          '<div class="hp-mini"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="bay-specs">' + esc(buildText(r)) + '</div>' +
+          '<span class="mod-chip' + (isMe ? '' : ' hidden-mod') + '">⚙️ ' + esc(modLabel) + '</span>' +
+          '</div>';
+      });
+      baysHtml += '</div>';
+
+      el.innerHTML =
+        '<div class="station-head">' +
+          '<h3>' + esc(t.name) + (isMe ? ' <span class="muted" style="font-weight:400">(Your Seat)</span>' : '') + '</h3>' +
+          (G.host === ti ? '<span class="badge host">👑 Host</span>' : '') +
+          (secretCount ? '<span class="badge secret">🕵️ Tampered</span>' : '') +
+        '</div>' +
+        '<div class="fame-track" title="' + t.fame + ' / ' + WIN_FAME + ' Fame">' + pips + '</div>' +
+        '<div class="tokens">' +
+          '<span class="token">⭐ <b>' + t.fame + '</b> Fame</span>' +
+          '<span class="token">🪙 <b>' + t.credits + '</b> Cr</span>' +
+          '<span class="token">🔧 <b>' + t.mechs + '</b> Mechs</span>' +
+          '<span class="token">🃏 <b>' + t.hand.length + '</b> Cards</span>' +
+        '</div>' +
+        baysHtml;
+    });
+
+    renderHandZone();
+    updateBattleDockUI();
+  }
+
+  function renderHandZone() {
+    const t = me();
+    const hz = $('#handZone');
+    let h = '<div class="hand-zone-head"><b>Your Hand (' + esc(t.name) + ')</b><span class="muted" style="font-size:12px">' +
+      (G.phase === 'intrigue' ? 'Click a scheme card below to prepare it' : 'Cards can be played in the Intrigue phase') + '</span></div>';
+    h += '<div class="hand-cards">';
+    if (!t.hand.length) {
+      h += '<span class="muted">No cards in hand. Draw 2 at Upkeep.</span>';
+    } else {
+      t.hand.forEach((id, k) => {
+        const s = SCHEMES[id];
+        const canPlay = G.phase === 'intrigue' && s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3);
+        const sel = G.phase === 'intrigue' && G.selCard === k;
+        h += '<button class="playing-card' + (sel ? ' sel' : '') + '" data-hcard="' + k + '"' + (canPlay ? '' : ' disabled') + '>' +
+          '<span class="ckind">' + (s.need ? 'Needs ' + s.need + ' Fame' : s.target === 'none' ? 'Reaction' : 'Scheme') + '</span>' +
+          '<span class="cname">' + esc(s.name) + '</span>' +
+          '<span class="ctext">' + esc(s.text) + '</span>' +
+        '</button>';
+      });
+    }
+    h += '</div>';
+    hz.innerHTML = h;
+    hz.querySelectorAll('[data-hcard]').forEach(btn => {
+      btn.onclick = () => {
+        G.selCard = +btn.dataset.hcard;
+        G.selTarget = null;
+        renderIntrigue();
+        renderHandZone();
+      };
+    });
+  }
+
+  function showOverlay(html) {
+    const ov = $('#phaseOverlay');
+    ov.classList.remove('minimized');
+    ov.innerHTML = html;
+    $('#skipBtn').hidden = true;
+    renderBoard();
+  }
+
+  /* ---------- Phase 1: Upkeep ---------- */
+  function newGame() {
+    const names = shuffle(Object.keys(PRESETS).concat(Object.keys(PRESETS)));
+    G = {
+      round: 1, phase: 'upkeep', host: -1,
+      teams: TEAMS.map((t, i) => ({ ...t, i, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
+      deck: shuffle(SCHEME_DECK.slice()),
+      lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
+      fight: null, over: false
+    };
+    for (const t of G.teams) {
+      for (let k = 0; k < 2; k++) {
+        const n = names.pop();
+        t.robots.push(mkRobot(n, PRESETS[n]));
+      }
+    }
+    $('#log').innerHTML = '';
+    log('<b>Welcome to ROBOCUs Tabletop!</b> First house to ' + WIN_FAME + ' Fame wins.', 'r');
+    startRound();
+  }
+
+  function startRound() {
+    G.phase = 'upkeep';
+    log('Round ' + G.round + ' begins', 'r');
+    for (const t of G.teams) {
+      t.credits = Math.max(0, t.credits + t.mechs - t.robots.length);
+      t.hand.push(drawCard(), drawCard());
+      while (t.hand.length > 4) t.hand.shift();
+      if (t.i !== viewerSeat) {
+        for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
+          const c = Math.ceil(r.dmg / 20);
+          if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; }
+        }
+      }
+    }
+    log('Upkeep: +1 Cr per mechanic, −1 Cr per robot, and 2 Intrigue cards drawn.');
+    renderUpkeep();
+  }
+
+  function renderUpkeep() {
+    const t = me();
+    let h = '<h2><span>1. Upkeep & Garage Repairs</span><span class="badge">Income: +' + t.mechs + ' Cr · Upkeep: −' + t.robots.length + ' Cr</span></h2>';
+    h += '<p>Damage stays on your robots between rounds unless repaired (1 credit per 20 damage). You can also swap a robot\'s secret module for 1 credit.</p>';
+    h += '<table><tr><th>Robot</th><th>Build</th><th>Secret Module</th><th>Condition</th><th>Action</th></tr>';
+    t.robots.forEach((r, k) => {
+      const c = Math.ceil(r.dmg / 20);
+      const cur = Math.max(0, maxHp(r) - r.dmg);
+      h += '<tr><td><b>' + esc(r.name) + '</b></td><td class="muted">' + esc(buildText(r)) + '</td>' +
+        '<td><select data-mod="' + k + '">' + Object.keys(Sim.MODS).map(m => '<option value="' + m + '"' + (r.b.mod === m ? ' selected' : '') + '>' + Sim.MODS[m].name + '</option>').join('') + '</select></td>' +
+        '<td>' + cur + ' / ' + maxHp(r) + ' HP</td>' +
+        '<td>' + (c ? '<button data-rep="' + k + '"' + (c > t.credits ? ' disabled' : '') + '>Repair (' + c + ' Cr)</button>' : '<span class="muted">Ready</span>') + '</td></tr>';
+    });
+    h += '</table><div class="row"><button class="primary" id="toIntrigueBtn">Continue to Intrigue →</button></div>';
+    showOverlay(h);
+
+    $('#phaseOverlay').querySelectorAll('[data-rep]').forEach(b => b.onclick = () => {
+      const r = t.robots[+b.dataset.rep];
+      t.credits -= Math.ceil(r.dmg / 20);
+      r.dmg = 0;
+      renderUpkeep();
+    });
+    $('#phaseOverlay').querySelectorAll('[data-mod]').forEach(sel => sel.onchange = () => {
+      const r = t.robots[+sel.dataset.mod];
+      r.b.mod = sel.value;
+      renderBoard();
+    });
+    $('#toIntrigueBtn').onclick = startIntrigue;
+  }
+
+  /* ---------- Phase 2: Intrigue ---------- */
+  function playable(t, id) {
+    const s = SCHEMES[id];
+    return s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3);
+  }
+  function startIntrigue() {
+    G.phase = 'intrigue';
+    G.selCard = null;
+    G.selTarget = null;
+    renderIntrigue();
+  }
+  function renderIntrigue() {
+    const t = me();
+    let h = '<h2><span>2. Intrigue & Sabotage</span><span class="badge">Secret Schemes</span></h2>';
+    h += '<p>Pick a card from your hand (below or here) to play, or pass. Sabotage stays face-down until the target\'s robot enters the arena!</p>';
+    h += '<div class="row">';
+    t.hand.forEach((id, k) => {
+      const s = SCHEMES[id], ok = playable(t, id);
+      h += '<button class="playing-card' + (G.selCard === k ? ' sel' : '') + '" data-oc="' + k + '"' + (ok ? '' : ' disabled') + '>' +
+        '<span class="ckind">' + (s.need ? 'Needs ' + s.need + ' Fame' : 'Scheme') + '</span>' +
+        '<span class="cname">' + esc(s.name) + '</span>' +
+        '<span class="ctext">' + esc(s.text) + '</span></button>';
+    });
+    h += '</div>';
+
+    if (G.selCard != null && SCHEMES[t.hand[G.selCard]].target === 'team') {
+      h += '<div class="row"><b>Target House:</b> ' +
+        G.teams.filter(x => x.i !== viewerSeat).map(x =>
+          '<button data-tgt="' + x.i + '" style="color:' + x.col + ';border-color:' + x.col + (G.selTarget === x.i ? ';outline:3px solid ' + x.col : '') + '">' + esc(x.name) + '</button>'
+        ).join('') + '</div>';
+    }
+    const ready = G.selCard != null && (SCHEMES[t.hand[G.selCard]].target === 'self' || G.selTarget != null);
+    h += '<div class="row"><button class="primary" id="playSchemeBtn"' + (ready ? '' : ' disabled') + '>Play Scheme</button><button id="passSchemeBtn">Pass</button></div>';
+    showOverlay(h);
+
+    $('#phaseOverlay').querySelectorAll('[data-oc]').forEach(b => b.onclick = () => { G.selCard = +b.dataset.oc; G.selTarget = null; renderIntrigue(); });
+    $('#phaseOverlay').querySelectorAll('[data-tgt]').forEach(b => b.onclick = () => { G.selTarget = +b.dataset.tgt; renderIntrigue(); });
+    $('#playSchemeBtn').onclick = () => {
+      const id = t.hand[G.selCard];
+      t.hand.splice(G.selCard, 1);
+      resolveScheme(viewerSeat, id, SCHEMES[id].target === 'self' ? viewerSeat : G.selTarget);
+      finishIntrigue();
+    };
+    $('#passSchemeBtn').onclick = () => { log(tname(viewerSeat) + ' passes on Intrigue.', 'me'); finishIntrigue(); };
+  }
+
+  function resolveScheme(from, id, to) {
+    const s = SCHEMES[id], F = G.teams[from], T = G.teams[to];
+    if (to !== from) {
+      const g = T.hand.indexOf('guard');
+      if (g >= 0) {
+        T.hand.splice(g, 1);
+        if (rnd() < 0.5) {
+          log(tname(to) + '\'s <b>Guard Dog</b> caught a saboteur in the garage! Scheme foiled!', 'me');
+          return;
+        }
+      }
+    }
+    switch (id) {
+      case 'pocket': {
+        const n = Math.min(3, T.credits);
+        T.credits -= n; F.credits += n;
+        log(tname(from) + ' pickpockets ' + n + ' Cr from ' + tname(to) + '.');
+        break;
+      }
+      case 'night': F.credits += 4; log(tname(from) + ' runs a Night Shift (+4 Cr).'); break;
+      case 'press': F.credits -= 3; F.fame += 1; log(tname(from) + ' bribes the press (+1 Fame).'); break;
+      case 'smear': T.fame = Math.max(0, T.fame - 1); log(tname(to) + ' loses 1 Fame to a Smear Campaign!'); break;
+      default: {
+        for (const k in s.tamper) T.tamper[k] = (T.tamper[k] || 0) + s.tamper[k];
+        T.schemeLog.push({ from, id });
+        if (from === to) log(tname(from) + ' installs a secret modification behind closed doors.');
+        else log('Someone snuck into ' + tname(to) + '\'s garage last night…');
+      }
+    }
+  }
+  function finishIntrigue() {
+    for (const t of G.teams) {
+      if (t.i === viewerSeat) continue;
+      const opts = t.hand.map((id, k) => ({ id, k })).filter(o => playable(t, o.id));
+      if (!opts.length || rnd() < 0.25) continue;
+      const o = pick(opts);
+      t.hand.splice(o.k, 1);
+      let to = t.i;
+      if (SCHEMES[o.id].target === 'team') {
+        const others = G.teams.filter(x => x.i !== t.i);
+        const lead = others.slice().sort((a, b) => b.fame - a.fame)[0];
+        to = rnd() < 0.55 ? lead.i : pick(others).i;
+      }
+      resolveScheme(t.i, o.id, to);
+    }
+    if (checkWin()) return;
+    startMarket();
+  }
+
+  /* ---------- Phase 3: Sealed-Bid Market ---------- */
+  function startMarket() {
+    G.phase = 'market';
+    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot']));
+    G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
+    renderMarket();
+  }
+  function renderMarket() {
+    const t = me();
+    let h = '<h2><span>3. Scrapyard Market — Sealed Bids</span><span class="badge">Your Budget: ' + t.credits + ' Cr</span></h2>';
+    h += '<p>Place secret bids on parts and the right to Host. Highest bid wins; ties go to lower Fame.</p>';
+    h += '<div class="lot-grid">';
+    G.market.forEach((id, k) => {
+      h += '<div class="lot-card"><div><b>📦 ' + esc(LOTS[id].name) + '</b><p style="font-size:12px;margin-top:3px">' + esc(LOTS[id].text) + '</p></div>' +
+        '<label class="row">Bid: <input type="number" min="0" max="' + t.credits + '" value="0" id="bid' + k + '"> Cr</label></div>';
+    });
+    h += '<div class="lot-card" style="background:#fffbeb;border-color:#d99b00"><div><b>👑 Host the Fight</b><p style="font-size:12px;margin-top:3px">+1 Fame immediately, pick the 2 houses that fight, and judge the loser.</p></div>' +
+      '<label class="row">Bid: <input type="number" min="0" max="' + t.credits + '" value="0" id="bidH"> Cr</label></div>';
+    h += '</div><div class="row"><button class="primary" id="subBidsBtn">Reveal All Sealed Bids →</button><span class="muted" id="bidMsg"></span></div>';
+    showOverlay(h);
+
+    $('#subBidsBtn').onclick = () => {
+      const bids = [0, 1, 2].map(k => Math.max(0, Math.floor(+$('#bid' + k).value || 0))).concat([Math.max(0, Math.floor(+$('#bidH').value || 0))]);
+      if (bids.reduce((a, b) => a + b, 0) > t.credits) {
+        $('#bidMsg').textContent = 'Total bids exceed your ' + t.credits + ' credits!';
+        return;
+      }
+      resolveMarket(bids);
+    };
+  }
+  function aiBids(t) {
+    let budget = t.credits;
+    return [0, 1, 2, 3].map(k => {
+      const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : 2.2);
+      let b = Math.round(want * (0.4 + rnd() * 1.1));
+      b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
+      budget -= b;
+      return b;
+    });
+  }
+  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech;
+  function aiPickRobot(t, lot) {
+    const L = LOTS[lot];
+    let cands = t.robots;
+    if (L.cal) cands = cands.filter(r => r.b.weapon === 'gun');
+    if (L.stat) cands = cands.filter(r => r.b.lv[L.stat] < 4);
+    return cands.slice().sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+  }
+  function applyLot(ti, lot, r) {
+    const t = G.teams[ti], L = LOTS[lot];
+    if (L.mech) { t.mechs++; return; }
+    if (L.robot) {
+      if (t.robots.length >= 3) { t.credits += 2; return; }
+      const n = pick(Object.keys(PRESETS));
+      t.robots.push(mkRobot(n, PRESETS[n]));
+      return;
+    }
+    if (!r) return;
+    if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
+    if (L.weapon) r.b.weapon = L.weapon;
+    if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
+    if (L.weapon === 'laser') r.b.range = 'mid';
+    if (L.weapon === 'mortar') r.b.range = 'long';
+  }
+  function resolveMarket(myBids) {
+    const all = G.teams.map(t => t.i === viewerSeat ? myBids : aiBids(t));
+    let h = '<h2>3. Auction Results</h2><table><tr><th>Lot</th>' + G.teams.map(t => '<th style="color:' + t.col + '">' + esc(t.name) + '</th>').join('') + '<th>Winner</th></tr>';
+    const wins = [];
+    for (let k = 0; k < 4; k++) {
+      const col = all.map(b => b[k]);
+      const mx = Math.max(...col);
+      let w = -1;
+      if (mx > 0) {
+        const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => a.fame - b.fame);
+        w = cand[0].i;
+        G.teams[w].credits -= mx;
+      }
+      const label = k < 3 ? LOTS[G.market[k]].name : '👑 Host the Fight';
+      h += '<tr><td><b>' + label + '</b></td>' + col.map((b, i) => '<td' + (i === w ? ' style="font-weight:800;color:' + G.teams[i].col + '"' : '') + '>' + b + '</td>').join('') + '<td>' + (w >= 0 ? tname(w) : '<span class="muted">No bids</span>') + '</td></tr>';
+      if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
+      if (k === 3) G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+    }
+    h += '</table>';
+    for (const x of wins) log(tname(x.team) + ' wins <b>' + LOTS[x.lot].name + '</b> for ' + x.price + ' Cr.');
+    log(tname(G.host) + ' is the Arena Host (+1 Fame).');
+    G.teams[G.host].fame += 1;
+    G.pendingInstall = wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
+    for (const x of wins) {
+      if (x.team !== viewerSeat || !needsRobot(x.lot)) applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+    }
+    G.marketTable = h;
+    renderInstall();
+  }
+  function renderInstall() {
+    if (checkWin()) return;
+    const t = me();
+    let h = G.marketTable;
+    if (G.pendingInstall.length) {
+      const x = G.pendingInstall[0];
+      h += '<div class="row"><b>Install ' + esc(LOTS[x.lot].name) + ' on:</b> ' +
+        t.robots.map((r, k) => '<button data-inst="' + k + '">' + esc(r.name) + '</button>').join('') + '</div>';
+      showOverlay(h);
+      $('#phaseOverlay').querySelectorAll('[data-inst]').forEach(b => b.onclick = () => {
+        applyLot(viewerSeat, x.lot, t.robots[+b.dataset.inst]);
+        G.pendingInstall.shift();
+        renderInstall();
+      });
+    } else {
+      h += '<div class="row"><button class="primary" id="toArenaBtn">Proceed to Arena Invitations →</button></div>';
+      showOverlay(h);
+      $('#toArenaBtn').onclick = startArena;
+    }
+  }
+
+  /* ---------- Phase 4: Arena Host Invites ---------- */
+  function startArena() {
+    G.phase = 'arena';
+    const H = G.host;
+    if (H === viewerSeat) {
+      G.pickTeams = [];
+      renderHostPick();
+      return;
+    }
+    const host = G.teams[H];
+    const others = G.teams.filter(t => t.i !== H);
+    let a, b;
+    const best = host.robots.slice().sort((x, y) => power(y) - power(x))[0];
+    if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) {
+      a = H;
+      b = others.slice().sort((x, y) => y.fame - x.fame)[0].i;
+    } else {
+      const s = shuffle(others.slice());
+      a = s[0].i; b = s[1].i;
+    }
+    log(tname(H) + ' invites ' + tname(a) + ' and ' + tname(b) + ' into the Arena!');
+    invite([a, b]);
+  }
+  function renderHostPick() {
+    let h = '<h2><span>4. You Are the Arena Host</span><span class="badge host">👑 Host Privilege</span></h2>';
+    h += '<p>Choose two houses to battle in the Arena (you may include yourself). Invited houses receive +2 Cr appearance fee; declining costs −1 Fame.</p><div class="row">' +
+      G.teams.map(t => '<button data-pt="' + t.i + '" style="color:' + t.col + ';border-color:' + t.col + (G.pickTeams.includes(t.i) ? ';outline:3px solid ' + t.col : '') + '">' + esc(t.name) + '</button>').join('') +
+      '</div><div class="row"><button class="primary" id="sendInviteBtn"' + (G.pickTeams.length === 2 ? '' : ' disabled') + '>Send Arena Invitations →</button></div>';
+    showOverlay(h);
+    $('#phaseOverlay').querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
+      const i = +b.dataset.pt, k = G.pickTeams.indexOf(i);
+      if (k >= 0) G.pickTeams.splice(k, 1);
+      else if (G.pickTeams.length < 2) G.pickTeams.push(i);
+      renderHostPick();
+    });
+    $('#sendInviteBtn').onclick = () => invite(G.pickTeams.slice());
+  }
+  function invite(pair) {
+    G.fight = { teams: pair, robots: [null, null] };
+    pair.forEach((ti, s) => {
+      if (ti !== viewerSeat) {
+        const t = G.teams[ti];
+        G.fight.robots[s] = t.robots.filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+      }
+    });
+    if (pair.includes(viewerSeat)) renderChooseRobot();
+    else afterChoose();
+  }
+  function renderChooseRobot() {
+    const t = me(), s = G.fight.teams.indexOf(viewerSeat), opp = G.fight.teams[1 - s], oppR = G.fight.robots[1 - s];
+    let h = '<h2>4. Arena Invitation: Fight ' + tname(opp) + '!</h2>';
+    h += '<p>They field <b>' + esc(oppR.name) + '</b> (' + esc(buildText(oppR)) + '). Select which robot to roll into the Arena, or decline (−1 Fame).</p><div class="row">';
+    t.robots.forEach((r, k) => {
+      h += '<button class="playing-card" data-rb="' + k + '"><span class="ckind">' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' HP</span>' +
+        '<span class="cname">' + esc(r.name) + '</span><span class="ctext">' + esc(buildText(r)) + '<br>⚙️ ' + esc(Sim.MODS[r.b.mod]?.name || '') + '</span></button>';
+    });
+    h += '</div><div class="row"><button id="declBtn">Decline (−1 Fame)</button></div>';
+    showOverlay(h);
+    $('#phaseOverlay').querySelectorAll('[data-rb]').forEach(b => b.onclick = () => {
+      G.fight.robots[s] = t.robots[+b.dataset.rb];
+      afterChoose();
+    });
+    $('#declBtn').onclick = () => {
+      t.fame = Math.max(0, t.fame - 1);
+      const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
+      G.fight.teams[s] = repl.i;
+      G.fight.robots[s] = repl.robots.slice().sort((a, b) => power(b) - power(a))[0];
+      log(tname(viewerSeat) + ' declines (−1 Fame); ' + tname(repl.i) + ' steps in.');
+      afterChoose();
+    };
+  }
+  function afterChoose() {
+    for (const ti of G.fight.teams) G.teams[ti].credits += 2;
+    const [ra, rb] = G.fight.robots;
+    let w = 0; const N = 40;
+    for (let k = 0; k < N; k++) {
+      const sw = k % 2;
+      const B = Sim.newBattle(sw ? [rb.b, ra.b] : [ra.b, rb.b], 7000 + k * 13);
+      B.bots[sw ? 1 : 0].hp -= ra.dmg;
+      B.bots[sw ? 0 : 1].hp -= rb.dmg;
+      while (!B.over) Sim.step(B, 1 / 30);
+      w += B.winner === (sw ? 1 : 0) ? 1 : B.winner === -1 ? 0.5 : 0;
+    }
+    const p = Math.max(0.05, Math.min(0.95, w / N));
+    G.fight.p = [p, 1 - p];
+    G.fight.pay = G.fight.p.map(x => Math.max(1.1, Math.min(6, Math.round(0.92 / x * 10) / 10)));
+    startBets();
+  }
+
+  /* ---------- Phase 5: Bookmaker Bets ---------- */
+  function startBets() {
+    G.phase = 'bets';
+    const F = G.fight, t = me(), mine = F.teams.indexOf(viewerSeat);
+    let h = '<h2><span>5. Bookmaker Odds & Wagers</span><span class="badge">Simulated on Visible Stats</span></h2>';
+    h += '<p>Odds ignore secret sabotage, hidden modules, and live battle actions! Bet up to 3 Cr.</p><div class="vs-grid">';
+    F.teams.forEach((ti, s) => {
+      const r = F.robots[s], T = G.teams[ti];
+      h += (s === 1 ? '<div style="align-self:center;font-weight:900;font-size:18px">VS</div>' : '') +
+        '<div class="fighter-card" style="--c:' + T.col + '">' +
+          '<b style="color:' + T.col + ';font-size:15px">' + esc(T.name) + ' — ' + esc(r.name) + '</b>' +
+          '<span class="muted">' + esc(buildText(r)) + ' · ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' HP</span>' +
+          '<div class="odds-big">' + Math.round(F.p[s] * 100) + '% <span style="font-size:13px;font-weight:600;color:var(--muted)">(pays ' + F.pay[s] + '×)</span></div>' +
+          '<label class="row">Bet <input type="number" min="0" max="3" value="0" id="bet' + s + '"' + (mine >= 0 && mine !== s ? ' disabled' : '') + '> Cr</label>' +
+        '</div>';
+    });
+    h += '</div><div class="row"><button class="primary" id="lockBetsBtn">⚔️ Lock Bets & Start Live Fight!</button><span class="muted" id="betMsg"></span></div>';
+    showOverlay(h);
+
+    $('#lockBetsBtn').onclick = () => {
+      const b = [0, 1].map(s => Math.max(0, Math.min(3, Math.floor(+$('#bet' + s).value || 0))));
+      if (b[0] && b[1]) { $('#betMsg').textContent = 'Bet on one fighter only.'; return; }
+      if (b[0] + b[1] > t.credits) { $('#betMsg').textContent = 'Not enough credits.'; return; }
+      F.bets = [];
+      if (b[0] || b[1]) {
+        const s = b[0] ? 0 : 1;
+        F.bets.push({ team: viewerSeat, side: s, amt: b[s] });
+        t.credits -= b[s];
+        log(tname(viewerSeat) + ' bets ' + b[s] + ' Cr on <b>' + esc(F.robots[s].name) + '</b>.', 'me');
+      }
+      for (const T of G.teams) {
+        if (T.i === viewerSeat || T.credits < 2 || rnd() < 0.3) continue;
+        const own = F.teams.indexOf(T.i);
+        const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
+        const amt = Math.min(T.credits, 1 + Math.floor(rnd() * 3));
+        T.credits -= amt;
+        F.bets.push({ team: T.i, side, amt });
+        log(tname(T.i) + ' bets ' + amt + ' Cr on <b>' + esc(F.robots[side].name) + '</b>.');
+      }
+      startFight();
+    };
+  }
+
+  /* ---------- Phase 6: LIVE INTERACTIVE BATTLE ---------- */
+  function startFight() {
+    G.phase = 'fight';
+    const F = G.fight;
+    const builds = F.teams.map((ti, s) => fightBuild(ti, F.robots[s]));
+    F.B = Sim.newBattle(builds, (rnd() * 4294967296) >>> 0);
+    F.B.bots.forEach((b, s) => { b.hp = Math.max(10, b.hp - F.robots[s].dmg); });
+    F.crowdUsed = {}; // per-seat crowd action tracker
+    selectedHazard = null;
+
+    // Announce revealed sabotage / secret upgrades
+    F.teams.forEach((ti, s) => {
+      const T = G.teams[ti];
+      for (const e of T.schemeLog) {
+        const txt = e.from === ti ? '⚡ SECRET UPGRADE!' : '🔧 SABOTAGED: ' + SCHEMES[e.id].name.toUpperCase() + '!';
+        F.B.banners.push({ x: F.B.bots[s].x, y: F.B.bots[s].y - 36, text: txt, col: e.from === ti ? '#16a34a' : '#dc2626', life: 2.2 });
+        log(e.from === ti ? tname(ti) + ' reveals a Secret Upgrade!' : tname(ti) + '\'s ' + esc(F.robots[s].name) + ' suffers from <b>' + esc(SCHEMES[e.id].name) + '</b>!');
+      }
+    });
+
+    // Slide away the tabletop overlay so the 60fps Arena is front and center
+    $('#phaseOverlay').classList.add('minimized');
+    $('#skipBtn').hidden = false;
+    renderBoard();
+  }
+
+  // Determine which fighter slot (0 or 1) the current viewer controls during a fight
+  function myFighterSlot() {
+    if (!G || !G.fight || G.phase !== 'fight') return -1;
+    const idx = G.fight.teams.indexOf(viewerSeat);
+    // If viewerSeat is in the fight, control that robot; in quick test mode, allow controlling slot 0
+    return idx >= 0 ? idx : (G.fight.sandbox ? 0 : -1);
+  }
+
+  function sendLiveCommand(cmd, label) {
+    if (!G || !G.fight || !G.fight.B || G.fight.B.over) return;
+    Sim.queueCmd(G.fight.B, cmd);
+    if (bc) bc.postMessage({ type: 'LIVE_CMD', seat: viewerSeat, cmd, label });
+    log(tname(viewerSeat) + ' uses <b>' + esc(label) + '</b>!', 'me');
+    updateBattleDockUI();
+  }
+
+  function updateBattleDockUI() {
+    const inFight = G && G.phase === 'fight' && G.fight && G.fight.B && !G.fight.B.over;
+    const slot = myFighterSlot();
+    const bot = inFight && slot >= 0 ? G.fight.B.bots[slot] : null;
+
+    $('#btnOverdrive').disabled = !bot || bot.hp <= 0 || bot.overdriveUsed;
+    $('#btnPulse').disabled = !bot || bot.hp <= 0 || bot.surgeUsed;
+    $$('[data-stance]').forEach(btn => {
+      btn.disabled = !bot || bot.hp <= 0;
+      btn.classList.toggle('stance-on', !!bot && bot.stance === btn.dataset.stance);
+    });
+
+    const crowdDone = !inFight || !!(G.fight && G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat]);
+    $$('[data-hazard]').forEach(btn => {
+      btn.disabled = crowdDone;
+      btn.classList.toggle('active-tool', !crowdDone && selectedHazard === btn.dataset.hazard);
+    });
+
+    if (inFight && G.fight) {
+      const F = G.fight, b0 = F.B.bots[0], b1 = F.B.bots[1];
+      $('#hudVs').innerHTML =
+        '<span style="color:' + G.teams[F.teams[0]].col + '">◼ ' + esc(F.robots[0].name) + ' (' + Math.ceil(Math.max(0, b0.hp)) + ' HP)</span>' +
+        '<span class="muted">vs</span>' +
+        '<span style="color:' + G.teams[F.teams[1]].col + '">◼ ' + esc(F.robots[1].name) + ' (' + Math.ceil(Math.max(0, b1.hp)) + ' HP)</span>' +
+        (slot >= 0 ? '<span class="badge" style="background:#2563eb;color:#fff;border:none">You control ' + esc(F.robots[slot].name) + '</span>' : '<span class="badge">Spectating — use Crowd Toss!</span>');
+    } else {
+      $('#hudVs').textContent = 'Arena Standby · Use "Peek Arena" or "⚡ Test Live Battle" anytime';
+    }
+  }
+
+  // Wire up Fighter buttons & keyboard shortcuts
+  $('#btnOverdrive').onclick = () => {
+    const slot = myFighterSlot();
+    if (slot >= 0) sendLiveCommand({ kind: 'overdrive', bot: slot }, 'Overdrive');
+  };
+  $('#btnPulse').onclick = () => {
+    const slot = myFighterSlot();
+    if (slot >= 0) sendLiveCommand({ kind: 'surge', bot: slot }, 'Module Surge');
+  };
+  $$('[data-stance]').forEach(btn => {
+    btn.onclick = () => {
+      const slot = myFighterSlot();
+      if (slot >= 0) sendLiveCommand({ kind: 'stance', bot: slot, stance: btn.dataset.stance }, 'Stance: ' + btn.dataset.stance);
+    };
+  });
+  $$('[data-hazard]').forEach(btn => {
+    btn.onclick = () => {
+      selectedHazard = selectedHazard === btn.dataset.hazard ? null : btn.dataset.hazard;
+      updateBattleDockUI();
+    };
+  });
+
+  window.addEventListener('keydown', e => {
+    if (G?.phase !== 'fight' || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+    if (e.key === 'q' || e.key === 'Q') $('#btnOverdrive').click();
+    if (e.key === 'w' || e.key === 'W') $('#btnPulse').click();
+    if (e.key === '1') document.querySelector('[data-stance="auto"]')?.click();
+    if (e.key === '2') document.querySelector('[data-stance="charge"]')?.click();
+    if (e.key === '3') document.querySelector('[data-stance="kite"]')?.click();
+  });
+
+  // Click on Arena Canvas to toss selected Crowd Hazard (or trigger quick ripple)
+  const cv = $('#arenaCv'), ctx = cv.getContext('2d');
+  cv.addEventListener('click', e => {
+    if (!G || G.phase !== 'fight' || !G.fight || !G.fight.B || G.fight.B.over) return;
+    const rect = cv.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (Sim.W / rect.width);
+    const y = (e.clientY - rect.top) * (Sim.H / rect.height);
+    if (!selectedHazard && !(G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat])) {
+      selectedHazard = 'oil'; // default quick-toss if clicking arena directly
+    }
+    if (selectedHazard && !(G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat])) {
+      G.fight.crowdUsed[viewerSeat] = true;
+      const hName = selectedHazard === 'oil' ? 'Oil Slick' : selectedHazard === 'emp' ? 'EMP Bomb' : 'Repair Patch';
+      sendLiveCommand({ kind: 'hazard', hazard: selectedHazard, x, y, by: viewerSeat }, 'Crowd ' + hName);
+      selectedHazard = null;
+      updateBattleDockUI();
+    }
+  });
+
+  // AI Live Battle Decisions (deterministic via B.rng)
+  function stepAiLiveActions(F) {
+    const B = F.B;
+    if (B.over || B.tick % 45 !== 0) return;
+    F.teams.forEach((ti, s) => {
+      if (ti === viewerSeat) return;
+      const b = B.bots[s];
+      if (b.hp <= 0) return;
+      if (!b.overdriveUsed && b.hp < b.s.hp * 0.72 && B.rng() < 0.35) {
+        Sim.queueCmd(B, { kind: 'overdrive', bot: s });
+      } else if (!b.surgeUsed && b.hp < b.s.hp * 0.5 && B.rng() < 0.4) {
+        Sim.queueCmd(B, { kind: 'surge', bot: s });
+      }
+    });
+    // Spectator AI with a bet might toss a hazard once
+    for (const bet of (F.bets || [])) {
+      if (bet.team === viewerSeat || F.crowdUsed[bet.team]) continue;
+      if (B.t > 4 && B.rng() < 0.12) {
+        F.crowdUsed[bet.team] = true;
+        const foe = B.bots[1 - bet.side];
+        if (foe && foe.hp > 0) {
+          Sim.queueCmd(B, { kind: 'hazard', hazard: B.rng() < 0.5 ? 'oil' : 'emp', x: foe.x, y: foe.y, by: bet.team });
+          log(tname(bet.team) + ' throws a hazard from the stands to protect their bet!');
+        }
+      }
+    }
+  }
+
+  /* ---------- 60 FPS Arena Renderer ---------- */
+  let lastT = performance.now(), accT = 0, finishDelay = 0;
+  function frameLoop(now) {
+    requestAnimationFrame(frameLoop);
+    const dt = Math.min(0.1, (now - lastT) / 1000);
+    lastT = now;
+
+    if (G && G.phase === 'fight' && G.fight && G.fight.B) {
+      const F = G.fight, B = F.B;
+      accT += dt * speedMult;
+      while (accT >= 1 / 60 && !B.over) {
+        stepAiLiveActions(F);
+        Sim.step(B, 1 / 60);
+        accT -= 1 / 60;
+      }
+      drawArena(ctx, F, now);
+      if (B.tick % 12 === 0) updateBattleDockUI();
+      if (B.over) {
+        finishDelay += dt;
+        if (finishDelay > 1.35) {
+          finishDelay = 0;
+          aftermath();
+        }
+      }
+    } else {
+      drawStandbyArena(ctx, now);
+    }
+  }
+
+  function drawArenaFloor(ctx) {
+    const W = Sim.W, H = Sim.H;
+    ctx.fillStyle = '#faf9f5';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#ece8df';
+    ctx.lineWidth = 1;
+    for (let x = 60; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 60; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    // Center ring
+    ctx.strokeStyle = '#e0dbd0';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, 110, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawStandbyArena(ctx, now) {
+    drawArenaFloor(ctx);
+    if (!G) return;
+    const W = Sim.W, H = Sim.H;
+    // Show the 4 houses' lead robots idling in the 4 corners of the arena
+    const corners = [[130, 110], [W - 130, 110], [W - 130, H - 110], [130, H - 110]];
+    G.teams.forEach((t, i) => {
+      const r = t.robots[0];
+      if (!r) return;
+      const [cx, cy] = corners[i];
+      const a = Math.atan2(H / 2 - cy, W / 2 - cx) + Math.sin(now / 700 + i) * 0.25;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.strokeStyle = t.col;
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath(); ctx.arc(0, 0, 38, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.rotate(a);
+      ctx.fillStyle = t.col;
+      ctx.fillRect(-15, -15, 30, 30);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(0, -2.5, 22, 5);
+      ctx.restore();
+      ctx.fillStyle = t.col;
+      ctx.font = '700 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(t.name + ': ' + r.name, cx, cy - 26);
+    });
+  }
+
+  function drawArena(ctx, F, now) {
+    const B = F.B, W = Sim.W, H = Sim.H, SIZE = Sim.SIZE;
+    const col = s => G.teams[F.teams[s]].col;
+    drawArenaFloor(ctx);
+
+    // 1. Zones (Oil, Repair, EMP bomb)
+    for (const z of B.zones) {
+      ctx.save();
+      if (z.kind === 'oil') {
+        ctx.fillStyle = 'rgba(30, 30, 30, 0.22)';
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (z.kind === 'heal') {
+        ctx.fillStyle = 'rgba(22, 163, 74, 0.16)';
+        ctx.strokeStyle = '#16a34a';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (z.kind === 'emp_bomb') {
+        const u = 1 - z.fuse / z.maxFuse;
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.22)';
+        ctx.beginPath(); ctx.arc(z.x, z.y, z.r * u, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 2. Smoke clouds & mines & decoys
+    for (const sm of B.smokes) {
+      ctx.fillStyle = 'rgba(120, 120, 120, 0.28)';
+      ctx.beginPath(); ctx.arc(sm.x, sm.y, sm.r, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const m of B.mines) {
+      ctx.fillStyle = col(m.owner);
+      ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#111'; ctx.stroke();
+    }
+    for (const d of B.decoys) {
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.body);
+      ctx.strokeStyle = col(d.owner);
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+      ctx.restore();
+    }
+
+    // 3. Projectiles & beams
+    for (const q of B.bullets) {
+      ctx.fillStyle = col(q.owner);
+      ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.8 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill();
+    }
+    for (const q of B.shells) {
+      const u = q.t / q.T;
+      ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.arc(q.tx, q.ty, 45, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col(q.owner);
+      ctx.beginPath();
+      ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (const b of B.bots) {
+      if (b.beam && b.hp > 0) {
+        ctx.strokeStyle = col(b.i);
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
+        ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
+        ctx.stroke();
+      }
+    }
+
+    // 4. Robots
+    for (const b of B.bots) {
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      if (b.hp <= 0) {
+        ctx.rotate(b.body);
+        ctx.strokeStyle = col(b.i); ctx.lineWidth = 2;
+        ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+        ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, 15); ctx.moveTo(15, -15); ctx.lineTo(-15, 15); ctx.stroke();
+        ctx.restore();
+        continue;
+      }
+      // Overdrive aura
+      if (b.overdriveT > 0) {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(now / 60) * 3, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Energy shield bubble
+      if (b.shield > 0) {
+        ctx.strokeStyle = '#0ea5e9';
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.save();
+      ctx.rotate(b.body);
+      ctx.fillStyle = col(b.i);
+      ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1;
+      ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+      ctx.globalAlpha = 1;
+      const ar = Sim.LV.armor.indexOf(b.s.armor);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+      for (let k = 0; k < ar; k++) ctx.strokeRect(-12 + k * 3, -12 + k * 3, 24 - k * 6, 24 - k * 6);
+      ctx.restore();
+
+      ctx.rotate(b.turret);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+      const w = b.s.weapon, cal = b.s.cal;
+      if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
+      else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
+      else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
+      ctx.restore();
+
+      // Name, Stance & HP Bar
+      ctx.fillStyle = col(b.i);
+      ctx.font = '700 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      const modTag = b.revealed && b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : (b.mod ? ' [?]' : '');
+      ctx.fillText(F.robots[b.i].name + modTag, b.x, b.y - 31);
+      const frac = Math.max(0, b.hp / b.s.hp);
+      ctx.fillStyle = '#eee'; ctx.fillRect(b.x - 24, b.y - 26, 48, 6);
+      ctx.fillStyle = col(b.i); ctx.fillRect(b.x - 24, b.y - 26, 48 * frac, 6);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(b.x - 24, b.y - 26, 48, 6);
+      if (b.stun > 0) {
+        ctx.fillStyle = '#2563eb'; ctx.font = '700 11px system-ui, sans-serif';
+        ctx.fillText('⚡ STUNNED', b.x, b.y + 30);
+      }
+    }
+
+    // 5. FX & Callout Banners
+    for (const f of B.fx) {
+      ctx.strokeStyle = f.col || '#111';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = Math.min(1, f.life * 3);
+      const r = f.k === 'boom' ? 45 * (1 - f.life / 0.3) : f.k === 'bigboom' ? 90 * (1 - f.life / 0.4) : f.k === 'emp' ? f.r : 10;
+      ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(2, r), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (const bn of B.banners) {
+      ctx.save();
+      ctx.font = '800 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = bn.col || '#111';
+      ctx.fillText(bn.text, bn.x, bn.y);
+      ctx.restore();
+    }
+
+    if (B.over) {
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillRect(W / 2 - 190, 18, 380, 48);
+      ctx.strokeStyle = '#111'; ctx.strokeRect(W / 2 - 190, 18, 380, 48);
+      ctx.fillStyle = B.winner >= 0 ? col(B.winner) : '#111';
+      ctx.font = '800 22px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(B.winner >= 0 ? F.robots[B.winner].name + ' Wins the Arena!' : 'Arena Draw!', W / 2, 50);
+    }
+  }
+
+  /* ---------- Phase 7: Aftermath ---------- */
+  function aftermath() {
+    G.phase = 'after';
+    const F = G.fight, B = F.B, w = B.winner;
+    if (F.sandbox) {
+      showOverlay('<h2>Quick Live Battle Finished!</h2><p>Winner: <b>' + (w >= 0 ? esc(F.robots[w].name) : 'Draw') + '</b>. Want to run another live battle or return to the round?</p>' +
+        '<div class="row"><button class="accent" id="reBrawlBtn">⚡ Fight Again</button><button class="primary" id="backRoundBtn">Return to Tabletop Round</button></div>');
+      $('#reBrawlBtn').onclick = startQuickBrawl;
+      $('#backRoundBtn').onclick = () => { G.phase = F.prevPhase || 'upkeep'; renderUpkeep(); };
+      return;
+    }
+    B.bots.forEach((b, s) => {
+      const r = F.robots[s];
+      r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp));
+    });
+    for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
+
+    if (w < 0) {
+      for (const x of F.bets) G.teams[x.team].credits += x.amt;
+      nextRoundModal('<p>The fight ends in a draw! All bets are refunded.</p>');
+      return;
+    }
+    const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
+    G.teams[W].fame += 1; G.teams[W].credits += 3; wr.wins++;
+    let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins the battle (+1 Fame, +3 Cr)!';
+    if (wr.wins === 3) { G.teams[W].fame += 1; msg += ' ★★★ Fan Favourite (+1 bonus Fame)!'; }
+    msg += '</p>';
+    for (const x of F.bets) {
+      if (x.side === w) {
+        const pay = Math.round(x.amt * F.pay[w]);
+        G.teams[x.team].credits += pay;
+        log(tname(x.team) + ' collects <b>' + pay + ' Cr</b> from the bookmaker!');
+      }
+    }
+    G.fight.loser = { team: Lt, robot: lr };
+    if (G.host === viewerSeat) {
+      let h = '<h2>7. Host\'s Judgment: Thumbs Up or Thumbs Down?</h2>' + msg +
+        '<p>As Host, decide the fate of ' + tname(Lt) + '\'s defeated <b>' + esc(lr.name) + '</b>:' +
+        (lr.wins >= 3 ? ' (Scrapping a Fan Favourite costs −1 Fame!)' : '') + '</p>' +
+        '<div class="row"><button class="primary" id="spareBtn">👍 Spare It</button><button id="scrapBtn" style="color:var(--red);border-color:var(--red)">👎 Scrap It!</button></div>';
+      showOverlay(h);
+      $('#spareBtn').onclick = () => resolveFate(false, msg);
+      $('#scrapBtn').onclick = () => resolveFate(true, msg);
+    } else {
+      const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
+      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < 3;
+      resolveFate(scrap, msg);
+    }
+  }
+  function resolveFate(scrap, msg) {
+    const { team, robot } = G.fight.loser, T = G.teams[team];
+    if (scrap) {
+      if (robot.wins >= 3) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
+      T.robots.splice(T.robots.indexOf(robot), 1);
+      log(tname(G.host) + ' gives 👎 Thumbs Down: <b>' + esc(robot.name) + '</b> is scrapped!');
+      msg += '<p>👎 Thumbs Down! <b>' + esc(robot.name) + '</b> is scrapped.</p>';
+      if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
+    } else {
+      log(tname(G.host) + ' gives 👍 Thumbs Up: <b>' + esc(robot.name) + '</b> is spared.');
+      msg += '<p>👍 Thumbs Up! <b>' + esc(robot.name) + '</b> returns to the garage.</p>';
+    }
+    nextRoundModal(msg);
+  }
+  function nextRoundModal(msg) {
+    if (checkWin()) return;
+    showOverlay('<h2>7. Aftermath</h2>' + msg + '<div class="row"><button class="primary" id="nextRoundBtn">Start Round ' + (G.round + 1) + ' →</button></div>');
+    $('#nextRoundBtn').onclick = () => { G.round++; G.host = -1; G.fight = null; startRound(); };
+  }
+  function checkWin() {
+    const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
+    if (!w.length) return false;
+    G.over = true;
+    showOverlay('<h2>🏆 ' + esc(w[0].name) + ' Wins the Championship!</h2><p>Reached ' + w[0].fame + ' Fame in Round ' + G.round + '.</p><div class="row"><button class="primary" id="againBtn">Play Again</button></div>');
+    $('#againBtn').onclick = newGame;
+    return true;
+  }
+
+  /* ---------- Top Bar Controls & Quick Live Fight Launcher ---------- */
+  function startQuickBrawl() {
+    const prevPhase = G.phase === 'fight' ? 'upkeep' : G.phase;
+    const foeSeat = (viewerSeat + 1 + Math.floor(rnd() * 3)) % 4;
+    const r0 = G.teams[viewerSeat].robots[0], r1 = G.teams[foeSeat].robots[0];
+    G.fight = {
+      sandbox: true,
+      prevPhase,
+      teams: [viewerSeat, foeSeat],
+      robots: [r0, r1],
+      bets: [{ team: (viewerSeat + 2) % 4, side: 0, amt: 2 }]
+    };
+    log('⚡ Launched instant Live Battle: <b>' + esc(r0.name) + '</b> vs <b>' + esc(r1.name) + '</b>! Try Overdrive (Q), Module Surge (W), Stances (1/2/3), or click the Arena to toss hazards!', 'me');
+    startFight();
+  }
+
+  $('#quickBrawlBtn').onclick = startQuickBrawl;
+  $('#toggleOverlayBtn').onclick = () => {
+    $('#phaseOverlay').classList.toggle('minimized');
+  };
+  $('#spdBtn').onclick = e => {
+    speedMult = speedMult === 1 ? 2 : speedMult === 2 ? 4 : 1;
+    e.target.textContent = 'Speed ' + speedMult + '×';
+  };
+  $('#skipBtn').onclick = () => {
+    if (G?.fight?.B) { while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); }
+  };
+  $('#seatSel').onchange = e => {
+    viewerSeat = +e.target.value;
+    renderBoard();
+    if (G.phase === 'upkeep') renderUpkeep();
+    else if (G.phase === 'intrigue') renderIntrigue();
+    else if (G.phase === 'market') renderMarket();
+  };
+  $('#layoutSel').onchange = e => {
+    const tb = $('#tabletop');
+    tb.classList.toggle('layout-around', e.target.value === 'around');
+    tb.classList.toggle('layout-dock', e.target.value === 'dock');
+  };
+
+  newGame();
+  requestAnimationFrame(frameLoop);
+})();
+</script>
+</body>
+</html>
