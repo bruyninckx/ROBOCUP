@@ -1,6 +1,6 @@
 # Robot arena: balance findings (auto-battle sandbox)
 
-Sandbox: https://claude.ai/artifact/11WxDiQY4F8WCBBdEFQLda (v2: stat budget, presets, matchup table). Plain white arena, black square robots, 60 Hz deterministic sim (seeded), fights ~10–15 s.
+Sandbox: https://claude.ai/artifact/11WxDiQY4F8WCBBdEFQLda (repo copy: `prototypes/arena-sandbox.html`). Plain white arena, square robots in team colours, 60 Hz deterministic sim (seeded), duels ~13 s, 4v4 ~25 s.
 
 ## Method
 - Every robot spends 14 points over 7 stats (levels 0–4), plus free choices: calibre, preferred range, weapon.
@@ -17,16 +17,28 @@ Not interesting. Fire rate × damage multiply, so "max both" wins; the equilibri
 (+ robots switch strafe direction more often, so speed dodges more.)
 Counter search then finds rock-paper-scissors triangles with hard counters.
 
-## Extra cannon test
-- Laser (ignores armour, 280 px range, continuous beam needing tracking, 60% of firepower): most diverse equilibrium (~4 builds incl. fast brawler, sniper, armoured rapid, laser).
-- Mortar (lobbed, splash, slow flight, min range 110): ~3 builds, mortar-heavy.
-- Shotgun: no change.
+## Weapons
+- Gun (rapid / medium / heavy calibre), see above.
+- Laser (ignores armour, 280 px range, continuous beam needing tracking, 60% of firepower; pierces every robot in its path; stopped by enemy energy walls): most diverse equilibrium.
+- Mortar (lobbed, splash, slow flight, min range 110): strong, tends to take over the equilibrium.
+- Shotgun: tested, no change, not in the sandbox.
+- Saw blades (added 2026-11-01, Kev's idea): 1.1 blades/s at 95% of bullet speed; each blade ricochets off the arena edge, enemy energy walls and robots, hits up to 3 times, lives 4 s, never hits its own squad. Damage per hit = firepower / 1.1 × 0.9; armour applies. Buzzsaw preset (HP3 AR1 SP2 TU2 FP4 AC1 BU1, mid): duel average ~47%, 4-robot free-for-all 27% (fair share 25%), so it is a crowd weapon. First version (slower, weaker blades) won almost nothing.
 
-## Named builds and head-to-head (200 fights each, row beats column)
-Bulwark (armour tank) / Marksman (long sniper) / Hornet (rapid) / Dasher (fast short) / Burner (laser) / Lobber (mortar).
-Every build beats at least one and loses to at least one. Examples: Bulwark beats Hornet 100% but loses to Marksman, Burner, Lobber; Hornet beats Marksman 95%; Burner beats Bulwark 97%, loses to Marksman/Hornet 0–100.
+## Named builds and head-to-head (200 fights each, row beats column, %)
+| | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw |
+|---|---|---|---|---|---|---|---|
+| **Bulwark** | – | 10 | 100 | 16 | 3 | 2 | 14 |
+| **Marksman** | 90 | – | 4 | 66 | 100 | 24 | 67 |
+| **Hornet** | 0 | 96 | – | 42 | 100 | 71 | 71 |
+| **Dasher** | 84 | 34 | 58 | – | 15 | 58 | 36 |
+| **Burner** | 97 | 0 | 0 | 85 | – | 13 | 78 |
+| **Lobber** | 98 | 76 | 29 | 42 | 87 | – | 50 |
+| **Buzzsaw** | 86 | 33 | 29 | 64 | 22 | 50 | – |
+
+Every build beats at least one and loses to at least one.
 
 ## Known issues / next
 - Firepower is always maxed (a tax). Solve by making weapons parts with their own firepower/cost.
 - Counters are very hard (often 0/100). Want ~65/35 so luck and banter stay; soften via accuracy variance, mixed loadouts, or 2 weapons.
 - One AI behaviour for all robots; orders (charge/kite/flank) would add another layer.
+- Helpers and modules are free power in the sandbox; price them in the economy.

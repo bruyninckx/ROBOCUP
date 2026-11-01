@@ -30,4 +30,5 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-01, Claude (branch `claude/saw-blades`): brought `prototypes/arena-sandbox.html` up to date with the published sandbox (helper drones: medic, waller, bodyguard, spotter, jammer, gun drone, bomber, miner; secret targeting order; 2–8 robots incl. 3v3/4v4 in a bigger arena; team health bars; random squads) and added a new weapon: bouncing saw blades + Buzzsaw preset (balanced to ~47% duel avg, 27% in 4-robot free-for-all). Updated `docs/robot-arena-balance-findings.md` (weapons section, 7×7 matchup table) and `docs/robot-card-ideas.md` (helpers). Open: helpers/modules still have no price; Kev to decide if branch goes to `main`.
 - 2026-11-01, Claude: set up the shared folder: README, AGENTS.md, GEMINI.md, this file, design docs in `docs/`, the two prototypes in `prototypes/`, git repo.
