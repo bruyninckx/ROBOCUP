@@ -2,6 +2,21 @@
 
 Sandbox: https://claude.ai/artifact/11WxDiQY4F8WCBBdEFQLda (repo copy: `prototypes/arena-sandbox.html`; modules + helpers per robot; 2–8 robots, free-for-all up to 4 or teams 2v2 / 3v3 / 4v4 in a bigger 1200×750 arena; "Random squads" button; "Hide modules until they trigger" shows a ? badge like an opponent would see). Weapons: gun (3 calibres), laser, mortar, saw blades (see `robot-arena-balance-findings.md`).
 
+## Squadron leader cards (Kev's idea, built in the sandbox 2026-11-01)
+Each side plays a squadron leader card that sets how many robots it fields and how big they are. Fewer robots = more points each and higher stat caps (levels 5–8 continue the normal steps), plus a bigger body.
+
+| Card | Robots | Points each | Stat cap | Size |
+|---|---|---|---|---|
+| Lone Wolf | 1 | 28 | 8 | 40 |
+| Duo | 2 | 18 | 6 | 34 |
+| Trio | 3 | 14 | 4 | 30 |
+| Swarm | 5 | 9 | 3 | 22 |
+
+Why the budgets look "unfair": in ranged fights numbers count roughly squared, but one robot with high stats is also faster, more accurate and harder-hitting at once, so concentration is very strong. A single robot with the squad's full 42 points won 98%; at ~2× a normal robot (28) a well-built titan beats a Trio about 4 in 10 (random titans almost never), which is the "epic but possible" zone. Titans that win use area weapons (mortar, saw blades), speed and big firepower.
+Tuned with `tools/watchdog.js --mode squad` (see `docs/watchdog-report-squad.md`): card averages Lone Wolf 42%, Duo 46%, Trio 55%, Swarm 58% (±10% between seeds). Results are very sensitive: 1 point per robot can swing a matchup 20–30%.
+Payoff ideas: bookmaker odds make the outnumbered side a big underdog (big payout), a Giant Slayer fame bonus when the smaller squad wins (the sandbox already shouts "GIANT SLAYER!"), optional leader bonus per card (e.g. faster turrets nearby).
+Not yet tested with modules and helpers on top.
+
 ## 0. Helper robots (Kev's idea, built in the sandbox)
 Each team max 3 main robots; each main robot brings 0–3 helper drones. Helpers are OPEN info (visible), modules stay hidden. When the main robot dies its helpers shut down. Own shots pass through own drones; other teams' drones (also allies in team fights) can be hit. Economics (price, slots, upkeep) to be decided later.
 

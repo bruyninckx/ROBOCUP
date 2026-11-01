@@ -13,7 +13,9 @@
 
   Usage:  node tools/watchdog.js [--quick] [--builds 300] [--opponents 30] [--seed 1]
                                  [--helpers 1|0|2|3|random] [--module yes|no|random] [--out docs/watchdog-report.md]
-                                 [--mode duel|team] [--size 4]   (team = random robots thrown into size-vs-size battles)
+                                 [--mode duel|team|squad] [--size 4]
+     team  = random robots thrown into size-vs-size battles
+     squad = squadron leader cards (Lone Wolf / Duo / Trio / Swarm) against each other
   Default loadout is equal for everyone (1 module + 1 helper), because helpers and modules are still free;
   use --helpers random --module random to see how much stacking them adds.
   Full run takes a few minutes on a normal PC (--quick about 1-2 min). Deterministic for a given seed.
@@ -115,7 +117,7 @@ function randomBuild() {
 }
 const label = b => (b.weapon === 'gun' ? b.cal + ' gun' : b.weapon) + ', ' + b.range + ' range, ' +
   STATS.map(k => k.slice(0, 2).toUpperCase() + b.lv[k]).join(' ') +
-  (b.mod ? ', module ' + Sim.MODS[b.mod].name : '') + (b.helpers.length ? ', helpers ' + b.helpers.map(h => Sim.HELPERS[h].name).join('+') : '');
+  (b.mod ? ', module ' + Sim.MODS[b.mod].name : '') + ((b.helpers || []).length ? ', helpers ' + b.helpers.map(h => Sim.HELPERS[h].name).join('+') : '');
 
 // worker pool
 const NW = Math.max(1, Math.min(8, os.cpus().length));
@@ -132,6 +134,45 @@ function run(jobs) {
 }
 const pct = x => Math.round(x * 100) + '%';
 const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+
+// ---------------- squadron cards ----------------
+async function squadMode(t0) {
+  const SQ = Sim.SQUADS; if (!SQ) throw new Error('This Sim has no squadron cards');
+  const ids = Object.keys(SQ), NPC = QUICK ? 50 : 90;
+  const robot = c => { const lv = {}; STATS.forEach(k => lv[k] = 0); let l = c.points; while (l > 0) { const k = pick(STATS); if (lv[k] < c.cap) { lv[k]++; l--; } } const weapon = pick(WEAPONS); return { lv, weapon, cal: weapon === 'gun' ? pick(CALS) : 'medium', range: pick(RANGES), size: c.size }; };
+  const all = ids.flatMap(id => [...Array(NPC)].map(() => ({ id, q: [...Array(SQ[id].slots)].map(() => robot(SQ[id])) })));
+  const jobs = [], who = [];
+  all.forEach((x, i) => { for (let k = 0; k < 8; k++) { const o = all[Math.floor(rng() * all.length)]; jobs.push({ team: [x.q, o.q], seed: 100 + i * 37 + k, n: 2 }); who.push(i); } });
+  const r = await run(jobs);
+  const sc = new Array(all.length).fill(0); r.forEach((v, k) => sc[who[k]] += v / 8);
+  const comp = {};
+  ids.forEach(id => { const idx = all.map((x, i) => x.id === id ? i : -1).filter(i => i >= 0).sort((a, b) => sc[b] - sc[a]); comp[id] = idx.slice(0, Math.max(5, Math.round(idx.length * 0.35))).map(i => all[i].q); });
+  const pairs = []; ids.forEach(a => ids.forEach(b => { if (a < b) pairs.push([a, b]); }));
+  const mj = [], mw = [];
+  pairs.forEach(([a, b]) => { for (let k = 0; k < (QUICK ? 24 : 40); k++) { mj.push({ team: [pick(comp[a]), pick(comp[b])], seed: 9000 + mj.length * 3, n: 2 }); mw.push(a + '|' + b); } });
+  const mr = await run(mj);
+  const M = {}; ids.forEach(a => M[a] = {});
+  pairs.forEach(([a, b]) => { const v = mr.filter((_, k) => mw[k] === a + '|' + b); const m = mean(v); M[a][b] = m; M[b][a] = 1 - m; });
+  const avg = id => mean(ids.filter(b => b !== id).map(b => M[id][b]));
+  const flags = [];
+  ids.forEach(id => { const a = avg(id); if (a > 0.6) flags.push(SQ[id].name + ' looks too strong overall (' + pct(a) + ').'); if (a < (id === 'lone' ? 0.33 : 0.4)) flags.push(SQ[id].name + ' looks too weak overall (' + pct(a) + ').'); });
+  ids.forEach(a => ids.forEach(b => { if (a !== b && M[a][b] >= 0.8) flags.push(SQ[a].name + ' beats ' + SQ[b].name + ' ' + pct(M[a][b]) + ' of the time.'); }));
+  const L = [];
+  L.push('# ROBOCUS watchdog report: squadron cards', '');
+  L.push('Generated ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC by `node tools/watchdog.js --mode squad` (seed ' + SEED + ', sim ' + hash + ', ' + NPC + ' random squads per card, best 35% kept as "competitive", ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s). Stats and weapons only (no modules or helpers). Results move about ±10% between seeds; re-run with another --seed before acting on a single number.', '');
+  L.push('Cards: ' + ids.map(id => SQ[id].name + ' = ' + SQ[id].slots + ' × ' + SQ[id].points + ' points, stats up to ' + SQ[id].cap).join('; ') + '.', '');
+  L.push('## Card against card (row beats column)', '', '| | ' + ids.map(i => SQ[i].name).join(' | ') + ' | average |', '|---|' + ids.map(() => '---|').join('') + '---|');
+  ids.forEach(a => L.push('| **' + SQ[a].name + '** | ' + ids.map(b => a === b ? '–' : pct(M[a][b])).join(' | ') + ' | ' + pct(avg(a)) + ' |'));
+  L.push('', 'Target: every card averages 40–60%; the Lone Wolf may sit lower (it is meant to be the underdog, roughly 1 win in 3 against bigger squads).', '');
+  L.push(flags.length ? '**Flags**\n\n' + flags.map(f => '- ' + f).join('\n') : '**No flags.**', '');
+  L.push('## Example competitive squads', '');
+  ids.forEach(id => L.push('- ' + SQ[id].name + ': ' + comp[id][0].map(label).join(' | ')));
+  L.push('');
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
+  fs.writeFileSync(OUT, L.join('\n'));
+  process.stdout.write('\n' + L.slice(0, 16).join('\n') + '\n\nFull report: ' + path.relative(ROOT, OUT) + '\n');
+  workers.forEach(w => w.terminate());
+}
 
 // ---------------- team battles ----------------
 async function teamMode(builds, t0) {
@@ -195,10 +236,11 @@ async function teamMode(builds, t0) {
 
 (async () => {
   const t0 = Date.now();
-  process.stdout.write('ROBOCUS watchdog: sim ' + hash + ', mode ' + MODE + (MODE === 'team' ? ' ' + SIZE + 'v' + SIZE : '') + ', ' + NB + ' random builds, ' + NW + ' worker(s)\n');
+  process.stdout.write('ROBOCUS watchdog: sim ' + hash + ', mode ' + MODE + (MODE === 'team' ? ' ' + SIZE + 'v' + SIZE : '') + (MODE === 'squad' ? '' : ', ' + NB + ' random builds') + ', ' + NW + ' worker(s)\n');
 
   const builds = [...Array(NB)].map(randomBuild);
   if (MODE === 'team') return teamMode(builds, t0);
+  if (MODE === 'squad') return squadMode(t0);
   // 1. every build vs random opponents (2 fights each, sides swapped)
   const jobs = [], who = [];
   builds.forEach((b, i) => {
