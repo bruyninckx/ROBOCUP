@@ -24,6 +24,18 @@ Counter search then finds rock-paper-scissors triangles with hard counters.
 - Shotgun: tested, no change, not in the sandbox.
 - Saw blades (added 2026-11-01, Kev's idea): 1.1 blades/s at 95% of bullet speed; each blade ricochets off the arena edge, enemy energy walls and robots, hits up to 3 times, lives 4 s, never hits its own squad. Damage per hit = firepower / 1.1 × 0.9; armour applies. Buzzsaw preset (HP3 AR1 SP2 TU2 FP4 AC1 BU1, mid): duel average ~47%, 4-robot free-for-all 27% (fair share 25%), so it is a crowd weapon. First version (slower, weaker blades) won almost nothing.
 
+- Spinner blade (added 2026-11-01, Kev's idea): the whole robot spins; charges in when ready, on contact a hit of 0.75 × firepower every 0.5 s with knockback + 0.35 s stun, recoils itself; 25% of bullets and saw blades glance off (and fly back as the spinner's). Turret and accuracy don't matter. Spinners get +15% speed while charging. Whirlwind preset (HP3 AR2 SP4 TU1 FP4) is the strongest preset (~65% average: Bulwark 100%, Hornet 100%, Marksman 86%) but has clear counters (Dasher wins 92%, Buzzsaw 75%); random spinner builds without speed are weak (watchdog 0.2–0.4×), so it is a build to discover, not a default.
+- Flamethrower (added 2026-11-01, Kev's idea): 140 px cone (±22°), direct damage 0.5 × firepower/s ignoring armour, sets targets on fire (up to 4 s, 5 dmg/s, ignores armour); burning robots set fire to any robot they touch, teammates included; enemy energy walls block it. Torch preset (HP4 AR1 SP3 TU2 FP4): beats armour (Bulwark 88%), loses to snipers (Marksman 3%).
+
+## Balance pass 2026-11-01 (after the first watchdog report)
+Kev's stance: balance mostly comes from the economy, and some really strong builds are fine to discover. So only the extremes were pulled back:
+- Saw blades lose 25% damage per bounce (wall or robot); hit area slightly smaller; damage factor 0.8 (was 0.9). Still the most forgiving weapon for random builds (1.5×): price it higher in the economy.
+- Rapid calibre +8% firepower; armour now keeps at least 25% of each hit (was 15%) so it counters rapid fire without erasing it.
+- Flipper: 14 dmg, 1.3 s stun, 3 s cooldown. Bomber: 24 dmg (was 30). Medic heals 4/s (was 5).
+- Luck for upsets and banter: 10% critical hits (double damage) on bullets, saw blades and mortar shells; 40% of robots suffer one malfunction per fight (engine stall or jammed turret, 2.5 s, shown on screen).
+Duel watchdog before → after (before spinner/flamethrower): 90/10+ matchups 49% → 39%, upset rate 15% → 18–20%, rapid calibre 0.3× → 0.5–0.6×, 5 builds now beat the strongest build. Team battles stay more lopsided (snowball: losing one robot makes it 3v4).
+After adding spinner + flamethrower (watchdog, full runs): duels 44% of matchups 90/10+, upset 16%, strongest build beaten 60%+ by 15 other builds; 4v4: 42% lopsided, upset 18%. Flamethrower healthy in duels (1.0×) but weaker in 4v4 (0.6×, fire spreads to its own teammates). Energy Shield and medium guns are the safest picks in 4v4. Reports: `docs/watchdog-report.md`, `docs/watchdog-report-team.md`.
+
 ## Named builds and head-to-head (200 fights each, row beats column, %)
 | | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw |
 |---|---|---|---|---|---|---|---|

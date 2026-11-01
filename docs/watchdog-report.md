@@ -1,90 +1,90 @@
 # ROBOCUS watchdog report
 
-Generated 2026-11-01 20:17 UTC by `node tools/watchdog.js` (seed 1, sim 82e07525, 300 random builds, 112 s).
+Generated 2026-11-01 20:59 UTC by `node tools/watchdog.js` (seed 1, sim 877cc95b, 300 random builds, 116 s).
 Every robot: 14 random stat points, random weapon / calibre / range / targeting order, 1 random module, 1 random helper(s). Duels only.
 
 ## Health check
 
 | Check | Result | Target |
 |---|---|---|
-| Strongest build vs other competitive builds | 97% | under 80% |
-| Best counter to it | 67% (1 builds beat it 60%+) | at least 60% |
-| Matchups 90/10 or worse (competitive builds) | 49% | under 35% |
-| Matchups between 35/65 and 65/35 | 10% | the more the better |
-| Upset rate (favourite loses, competitive builds) | 15% | 25–35% |
+| Strongest build vs other competitive builds | 84% | under 80% |
+| Best counter to it | 100% (15 builds beat it 60%+) | at least 60% |
+| Matchups 90/10 or worse (competitive builds) | 44% | under 35% |
+| Matchups between 35/65 and 65/35 | 12% | the more the better |
+| Upset rate (favourite loses, competitive builds) | 16% | 25–35% |
 
 "Competitive builds" = the best 40% of 300 random robots (players don't build junk).
 
 **Flags**
 
-- A single build wins 97% against the other competitive builds (limit 80%).
-- 49% of matchups are 90/10 or worse (target under 35%).
-- Upset rate is 15% (target 25–35%): fights are too predictable.
-- Too strong? Weapon = saw shows up 1.7× as often among competitive builds (win rate 64%).
-- Dead option? Gun calibre (gun builds only) = rapid shows up only 0.3× as often among competitive builds (win rate 28%).
+- A single build wins 84% against the other competitive builds (limit 80%).
+- 44% of matchups are 90/10 or worse (target under 35%).
+- Upset rate is 16% (target 25–35%): fights are too predictable.
+- Dead option? Weapon = spinner shows up only 0.4× as often among competitive builds (win rate 33%).
+- Too strong? Gun calibre (gun builds only) = medium shows up 2.1× as often among competitive builds (win rate 72%).
 
 ## Strongest builds (re-tested against 112 other competitive robots, 4 fights each)
 
-- 97%: saw, long range, HP3 AR2 SP1 TU0 FP4 AC0 BU4, module Self-Destruct, helpers Medic
-- 90%: mortar, mid range, HP1 AR1 SP2 TU1 FP3 AC2 BU4, module Energy Shield, helpers Waller
-- 89%: saw, short range, HP1 AR2 SP1 TU3 FP4 AC1 BU2, module Decoy Hologram, helpers Gun Drone
-- 84%: saw, mid range, HP2 AR2 SP4 TU1 FP3 AC0 BU2, module Energy Shield, helpers Bodyguard
-- 84%: saw, short range, HP2 AR1 SP3 TU1 FP4 AC2 BU1, module Smoke Screen, helpers Waller
-- 83%: saw, long range, HP0 AR0 SP3 TU2 FP3 AC2 BU4, module Smoke Screen, helpers Waller
-- 78%: saw, mid range, HP2 AR3 SP1 TU1 FP3 AC3 BU1, module Energy Shield, helpers Bomber
-- 78%: saw, long range, HP3 AR1 SP0 TU2 FP3 AC3 BU2, module Mine Layer, helpers Gun Drone
+- 84%: mortar, mid range, HP2 AR1 SP3 TU0 FP3 AC1 BU4, module Energy Shield, helpers Gun Drone
+- 81%: saw, long range, HP2 AR2 SP4 TU1 FP3 AC0 BU2, module EMP Burst, helpers Medic
+- 78%: saw, long range, HP4 AR0 SP1 TU3 FP3 AC1 BU2, module EMP Burst, helpers Bodyguard
+- 72%: saw, mid range, HP3 AR1 SP2 TU0 FP4 AC2 BU2, module Flipper, helpers Waller
+- 71%: saw, mid range, HP3 AR0 SP3 TU4 FP4 AC0 BU0, module Repair Drone, helpers Waller
+- 65%: saw, long range, HP2 AR0 SP2 TU3 FP3 AC3 BU1, module Repair Drone, helpers Gun Drone
+- 64%: saw, long range, HP2 AR4 SP1 TU3 FP4 AC0 BU0, module Flipper, helpers Gun Drone
+- 54%: flame, short range, HP4 AR3 SP2 TU2 FP1 AC1 BU1, module Decoy Hologram, helpers Gun Drone
 
-Best counter to the strongest (67% against it): saw, mid range, HP2 AR3 SP1 TU1 FP3 AC3 BU1, module Energy Shield, helpers Bomber
+Best counter to the strongest (100% against it): spinner, long range, HP0 AR1 SP4 TU2 FP4 AC2 BU1, module Smoke Screen, helpers Spotter
 
 ## Option strength
 
 Per option: average win rate of random builds that have it, and in brackets how often it shows up among competitive builds compared to normal (1.0 = normal, 2.0 = twice as often, 0.3 = rarely good).
 
-**Weapon:** gun 42% (0.7×) · laser 50% (1.0×) · mortar 42% (0.5×) · saw 64% (1.7×)
+**Weapon:** gun 57% (1.4×) · laser 49% (0.8×) · mortar 48% (0.8×) · saw 62% (1.5×) · spinner 33% (0.4×) · flame 54% (1.0×)
 
-**Gun calibre (gun builds only):** rapid 28% (0.3×) · medium 53% (1.3×) · heavy 45% (0.5×)
+**Gun calibre (gun builds only):** rapid 48% (1.1×) · medium 72% (2.1×) · heavy 55% (1.1×)
 
-**Preferred range:** short 45% (0.8×) · mid 54% (1.2×) · long 50% (0.9×)
+**Preferred range:** short 48% (0.8×) · mid 53% (1.1×) · long 51% (1.0×)
 
-**Module:** Energy Shield 53% (1.0×) · Flipper 34% (0.4×) · Decoy Hologram 54% (1.2×) · Mine Layer 58% (1.3×) · Repair Drone 53% (1.1×) · EMP Burst 49% (0.9×) · Self-Destruct 44% (0.7×) · Smoke Screen 51% (1.1×)
+**Module:** Energy Shield 55% (1.5×) · Flipper 60% (1.2×) · Decoy Hologram 49% (0.9×) · Mine Layer 55% (1.2×) · Repair Drone 55% (1.1×) · EMP Burst 47% (0.8×) · Self-Destruct 47% (0.9×) · Smoke Screen 40% (0.5×)
 
-**Helper:** Medic 59% (1.3×) · Waller 50% (1.0×) · Bodyguard 49% (0.9×) · Spotter 46% (0.9×) · Jammer 41% (0.5×) · Gun Drone 49% (1.0×) · Bomber 49% (1.1×) · Miner 54% (1.3×)
+**Helper:** Medic 46% (0.5×) · Waller 53% (1.1×) · Bodyguard 49% (1.0×) · Spotter 52% (1.1×) · Jammer 44% (0.8×) · Gun Drone 59% (1.5×) · Bomber 49% (1.0×) · Miner 57% (1.2×)
 
-**Targeting order:** main 50% (1.1×) · medics 51% (1.0×) · helpers 48% (0.9×)
+**Targeting order:** main 49% (0.9×) · medics 54% (1.2×) · helpers 49% (0.9×)
 
-**Stat: hp level:** 0 48% (0.9×) · 1 51% (1.1×) · 2 49% (0.9×) · 3 53% (1.1×) · 4 46% (0.9×)
+**Stat: hp level:** 0 44% (0.6×) · 1 49% (0.9×) · 2 54% (1.1×) · 3 57% (1.2×) · 4 47% (1.1×)
 
-**Stat: armor level:** 0 54% (1.2×) · 1 53% (1.2×) · 2 51% (1.1×) · 3 45% (0.7×) · 4 47% (0.9×)
+**Stat: armor level:** 0 62% (1.4×) · 1 58% (1.2×) · 2 47% (0.8×) · 3 44% (0.8×) · 4 46% (0.8×)
 
-**Stat: speed level:** 0 55% (1.2×) · 1 51% (1.1×) · 2 51% (1.0×) · 3 51% (1.2×) · 4 41% (0.6×)
+**Stat: speed level:** 0 50% (0.9×) · 1 49% (1.0×) · 2 50% (1.0×) · 3 53% (1.1×) · 4 55% (0.9×)
 
-**Stat: turret level:** 0 57% (1.4×) · 1 57% (1.3×) · 2 52% (1.1×) · 3 43% (0.6×) · 4 38% (0.6×)
+**Stat: turret level:** 0 47% (0.8×) · 1 56% (1.3×) · 2 51% (1.0×) · 3 49% (0.8×) · 4 45% (0.7×)
 
-**Stat: fp level:** 0 24% (0.1×) · 1 42% (0.6×) · 2 50% (1.0×) · 3 61% (1.5×) · 4 63% (1.6×)
+**Stat: fp level:** 0 32% (0.1×) · 1 43% (0.6×) · 2 51% (1.0×) · 3 62% (1.5×) · 4 60% (1.4×)
 
-**Stat: acc level:** 0 49% (1.1×) · 1 49% (0.8×) · 2 51% (1.0×) · 3 52% (1.1×) · 4 45% (0.8×)
+**Stat: acc level:** 0 56% (1.2×) · 1 53% (1.1×) · 2 52% (1.1×) · 3 46% (0.8×) · 4 48% (0.7×)
 
-**Stat: bullet level:** 0 39% (0.6×) · 1 51% (1.1×) · 2 51% (0.9×) · 3 51% (1.1×) · 4 51% (1.1×)
+**Stat: bullet level:** 0 49% (1.0×) · 1 53% (1.1×) · 2 51% (1.0×) · 3 51% (1.0×) · 4 49% (0.8×)
 
 ## Synergies (combos that do better together than apart)
 
 Lift = how much better the pair does than you would expect from each part on its own. These are the surprise combos worth showing off; check them if one gets out of hand.
 
-- Decoy Hologram + mortar: 62% win rate, lift +17 (6 builds)
-- rapid calibre + Flipper: 28% win rate, lift +16 (6 builds)
-- Bomber + long range: 63% win rate, lift +14 (8 builds)
-- Miner + gun: 60% win rate, lift +13 (9 builds)
-- rapid calibre + long range: 41% win rate, lift +13 (7 builds)
-- Flipper + gun: 37% win rate, lift +11 (11 builds)
-- Waller + Flipper: 44% win rate, lift +10 (8 builds)
-- Miner + EMP Burst: 63% win rate, lift +10 (6 builds)
-- Bomber + Smoke Screen: 60% win rate, lift +10 (6 builds)
-- Gun Drone + laser: 58% win rate, lift +9 (8 builds)
+- Decoy Hologram + flamethrower: 67% win rate, lift +16 (7 builds)
+- Energy Shield + mortar: 67% win rate, lift +14 (6 builds)
+- Jammer + laser: 55% win rate, lift +13 (7 builds)
+- Jammer + Decoy Hologram: 54% win rate, lift +12 (7 builds)
+- Bomber + Mine Layer: 65% win rate, lift +12 (6 builds)
+- Repair Drone + mid range: 69% win rate, lift +12 (6 builds)
+- EMP Burst + laser: 55% win rate, lift +11 (8 builds)
+- Waller + Flipper: 73% win rate, lift +11 (12 builds)
+- Jammer + Smoke Screen: 42% win rate, lift +9 (11 builds)
+- rapid calibre + Bomber: 55% win rate, lift +9 (6 builds)
 
 Worst pairings (anti-synergy):
 
-- Smoke Screen + mortar: 25%, lift -18 (6 builds)
-- Gun Drone + mortar: 27%, lift -15 (7 builds)
-- medium calibre + Decoy Hologram: 44%, lift -13 (6 builds)
-- Energy Shield + long range: 41%, lift -12 (8 builds)
-- Miner + laser: 42%, lift -12 (7 builds)
+- Miner + saw blades: 49%, lift -18 (6 builds)
+- Spotter + flamethrower: 38%, lift -17 (6 builds)
+- Flipper + mortar: 41%, lift -16 (6 builds)
+- Waller + long range: 37%, lift -16 (9 builds)
+- Waller + mortar: 37%, lift -13 (7 builds)

@@ -13,6 +13,7 @@
 
   Usage:  node tools/watchdog.js [--quick] [--builds 300] [--opponents 30] [--seed 1]
                                  [--helpers 1|0|2|3|random] [--module yes|no|random] [--out docs/watchdog-report.md]
+                                 [--mode duel|team] [--size 4]   (team = random robots thrown into size-vs-size battles)
   Default loadout is equal for everyone (1 module + 1 helper), because helpers and modules are still free;
   use --helpers random --module random to see how much stacking them adds.
   Full run takes a few minutes on a normal PC (--quick about 1-2 min). Deterministic for a given seed.
@@ -50,7 +51,21 @@ function fightScore(Sim, a, b, seed, dt) {
 if (!isMainThread) {
   const { Sim } = loadSim(workerData.file);
   parentPort.on('message', ({ jobs, id }) => {
-    const out = jobs.map(([a, b, seed, n]) => {
+    const out = jobs.map(job => {
+      if (job.team) {
+        // job.team = [teamA builds, teamB builds]; returns team A's score over n fights (sides swapped every other fight)
+        let s = 0;
+        for (let k = 0; k < job.n; k++) {
+          const sw = k % 2, A = sw ? job.team[1] : job.team[0], Bt = sw ? job.team[0] : job.team[1];
+          const all = A.concat(Bt);
+          const Bt_ = Sim.newBattle(all, job.seed + k * 977, { teams: all.map((_, i) => i < A.length ? 0 : 1) });
+          while (!Bt_.over) Sim.step(Bt_, 1 / 30);
+          const w = Bt_.winner === -1 ? 0.5 : Bt_.winner === 0 ? 1 : 0;
+          s += sw ? 1 - w : w;
+        }
+        return s / job.n;
+      }
+      const [a, b, seed, n] = job;
       let s = 0;
       for (let k = 0; k < n; k++) {
         // alternate sides so spawn position doesn't matter
@@ -73,10 +88,12 @@ const SEED = +arg('seed', 1);
 const OUT = path.resolve(ROOT, arg('out', 'docs/watchdog-report.md'));
 const HELPERS_N = arg('helpers', '1');
 const MODULE_MODE = arg('module', 'yes');
+const MODE = arg('mode', 'duel');
+const SIZE = Math.max(2, Math.min(4, +arg('size', 4)));
 
 const { Sim, hash } = loadSim(SANDBOX);
 const STATS = Sim.STATS, MODS = Object.keys(Sim.MODS || {}), HELP = Object.keys(Sim.HELPERS || {});
-const WEAPONS = ['gun', 'laser', 'mortar', 'saw'];
+const WEAPONS = Sim.WEAPONS || ['gun', 'laser', 'mortar', 'saw'];
 const CALS = Object.keys(Sim.CAL || { medium: 1 });
 const RANGES = Object.keys(Sim.RANGES || { mid: 1 });
 const BUDGET = 14;
@@ -116,12 +133,73 @@ function run(jobs) {
 const pct = x => Math.round(x * 100) + '%';
 const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
 
+// ---------------- team battles ----------------
+async function teamMode(builds, t0) {
+  const NM = QUICK ? 160 : 420, RUNS = 6;
+  const matches = [];
+  for (let m = 0; m < NM; m++) {
+    const idx = [];
+    while (idx.length < SIZE * 2) { const i = Math.floor(rng() * builds.length); if (!idx.includes(i)) idx.push(i); }
+    matches.push({ A: idx.slice(0, SIZE), B: idx.slice(SIZE) });
+  }
+  const res = await run(matches.map((m, k) => ({ team: [m.A.map(i => builds[i]), m.B.map(i => builds[i])], seed: 3000 + k * 53, n: RUNS })));
+  const score = new Array(builds.length).fill(0), cnt = new Array(builds.length).fill(0);
+  res.forEach((p, k) => { for (const i of matches[k].A) { score[i] += p; cnt[i]++; } for (const i of matches[k].B) { score[i] += 1 - p; cnt[i]++; } });
+  const used = builds.map((_, i) => i).filter(i => cnt[i] > 0);
+  const wr = builds.map((_, i) => cnt[i] ? score[i] / cnt[i] : 0.5);
+  const overall = mean(used.map(i => wr[i]));
+  const hard = res.filter(p => p >= 0.9 || p <= 0.1).length / res.length;
+  const soft = res.filter(p => p >= 0.35 && p <= 0.65).length / res.length;
+  const upset = mean(res.map(p => Math.min(p, 1 - p)));
+  const order = used.slice().sort((a, b) => wr[b] - wr[a]);
+  const compSet = new Set(order.slice(0, Math.round(used.length * 0.4)));
+  const rows = (opts, has) => opts.map(o => {
+    const idx = used.filter(i => has(builds[i], o));
+    const inC = idx.filter(i => compSet.has(i)).length;
+    return { o, n: idx.length, w: mean(idx.map(i => wr[i])), meta: idx.length ? (inC / compSet.size) / (idx.length / used.length) : 0 };
+  });
+  const G = [
+    ['Weapon', rows(WEAPONS, (b, o) => b.weapon === o), o => ({ saw: 'saw blades', spinner: 'spinner blade', flame: 'flamethrower' })[o] || o],
+    ['Gun calibre (gun builds only)', rows(CALS, (b, o) => b.weapon === 'gun' && b.cal === o), o => o],
+    ['Preferred range', rows(RANGES, (b, o) => b.range === o), o => o],
+    ['Module', rows(MODS, (b, o) => b.mod === o), o => Sim.MODS[o].name],
+    ['Helper', rows(HELP, (b, o) => b.helpers.includes(o)), o => Sim.HELPERS[o].name],
+  ];
+  for (const k of STATS) G.push(['Stat: ' + k + ' level', rows([0, 1, 2, 3, 4], (b, o) => b.lv[k] === o), o => String(o)]);
+  const flags = [];
+  if (hard > 0.35) flags.push(pct(hard) + ' of team battles are 90/10 or worse (target under 35%).');
+  if (upset < 0.2) flags.push('Upset rate is ' + pct(upset) + ' (target 25–35%).');
+  for (const [name, rs, nm] of G) for (const r of rs) {
+    if (r.n < 10 || name.startsWith('Stat')) continue;
+    if (r.meta >= 1.6) flags.push('Too strong? ' + name + ' = ' + nm(r.o) + ' shows up ' + r.meta.toFixed(1) + '× as often in winning robots (win rate ' + pct(r.w) + ').');
+    if (r.meta <= 0.4) flags.push('Dead option? ' + name + ' = ' + nm(r.o) + ' shows up only ' + r.meta.toFixed(1) + '× as often in winning robots (win rate ' + pct(r.w) + ').');
+  }
+  const L = [];
+  L.push('# ROBOCUS watchdog report: ' + SIZE + ' vs ' + SIZE + ' team battles', '');
+  L.push('Generated ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC by `node tools/watchdog.js --mode team` (seed ' + SEED + ', sim ' + hash + ', ' + NM + ' battles of ' + SIZE + 'v' + SIZE + ' with random robots, ' + RUNS + ' runs each, ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s).');
+  L.push('A robot\'s win rate = how often the team it was in won. Same loadout rule as the duel report.', '');
+  L.push('## Health check', '', '| Check | Result | Target |', '|---|---|---|');
+  L.push('| Battles 90/10 or worse | ' + pct(hard) + ' | under 35% |');
+  L.push('| Battles between 35/65 and 65/35 | ' + pct(soft) + ' | the more the better |');
+  L.push('| Upset rate (favourite team loses) | ' + pct(upset) + ' | 25–35% |', '');
+  L.push(flags.length ? '**Flags**\n\n' + flags.map(f => '- ' + f).join('\n') : '**No flags.**', '');
+  L.push('## Strongest robots in team battles', '');
+  order.slice(0, 6).forEach(i => L.push('- ' + pct(wr[i]) + ' (' + cnt[i] + ' battles): ' + label(builds[i])));
+  L.push('', '## Option strength (team win rate of robots that have it; in brackets how often it shows up among the best 40%)', '');
+  for (const [name, rs, nm] of G) L.push('**' + name + ':** ' + rs.filter(r => r.n > 0).map(r => nm(r.o) + ' ' + pct(r.w) + ' (' + r.meta.toFixed(1) + '×)').join(' · '), '');
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
+  fs.writeFileSync(OUT, L.join('\n'));
+  process.stdout.write('\n' + L.slice(0, 18).join('\n') + '\n\nFull report: ' + path.relative(ROOT, OUT) + '\n');
+  workers.forEach(w => w.terminate());
+}
+
 (async () => {
   const t0 = Date.now();
-  process.stdout.write('ROBOCUS watchdog: sim ' + hash + ', ' + NB + ' random builds x ' + NOPP + ' opponents, ' + NW + ' worker(s)\n');
+  process.stdout.write('ROBOCUS watchdog: sim ' + hash + ', mode ' + MODE + (MODE === 'team' ? ' ' + SIZE + 'v' + SIZE : '') + ', ' + NB + ' random builds, ' + NW + ' worker(s)\n');
 
-  // 1. every build vs random opponents (2 fights each, sides swapped)
   const builds = [...Array(NB)].map(randomBuild);
+  if (MODE === 'team') return teamMode(builds, t0);
+  // 1. every build vs random opponents (2 fights each, sides swapped)
   const jobs = [], who = [];
   builds.forEach((b, i) => {
     for (let k = 0; k < NOPP; k++) {
@@ -202,7 +280,8 @@ const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
     return { k, n: v.length, w: mean(v), lift: mean(v) - mean(single[a]) - mean(single[b]) + overall };
   });
   syn.sort((a, b) => b.lift - a.lift);
-  const pretty = f => { const [t, v] = f.split(':'); return t === 'module' ? Sim.MODS[v].name : t === 'helper' ? Sim.HELPERS[v].name : t === 'weapon' ? (v === 'saw' ? 'saw blades' : v) : t === 'calibre' ? v + ' calibre' : v + ' range'; };
+  const WNAME = { saw: 'saw blades', spinner: 'spinner blade', flame: 'flamethrower' };
+  const pretty = f => { const [t, v] = f.split(':'); return t === 'module' ? Sim.MODS[v].name : t === 'helper' ? Sim.HELPERS[v].name : t === 'weapon' ? (WNAME[v] || v) : t === 'calibre' ? v + ' calibre' : v + ' range'; };
 
   // ---------------- report ----------------
   const flags = [];

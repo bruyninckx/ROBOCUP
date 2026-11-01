@@ -9,7 +9,7 @@ Goal: first team to 12 fame. About 2 hours per game, strategy + luck + banter.
 | Path | What it is |
 |---|---|
 | `prototypes/scrapyard-dominus.html` | Main game prototype: you vs 3 AI teams, full round loop (upkeep, intrigue, market, arena, bets, fight, aftermath). |
-| `prototypes/arena-sandbox.html` | Arena sandbox: build robots (14 stat points, weapon, calibre, range, module, up to 3 helpers), 2–8 robot fights incl. 4v4, matchup table. |
+| `prototypes/arena-sandbox.html` | Arena sandbox: build robots (14 stat points, weapon, calibre, range, module, up to 3 helpers; weapons gun, laser, mortar, saw blades, spinner, flamethrower), 2–8 robot fights incl. 4v4, crits and malfunctions, matchup table. |
 | `tools/watchdog.js` | Combo watchdog: simulates thousands of random robots with the sandbox's `Sim` and reports dominant builds, dead options, lopsided matchups, upset rate and synergies. Writes `docs/watchdog-report.md`. |
 | `docs/` | Design docs: game concept, balance findings, card ideas. Read these before changing rules. |
 | `docs/archive/` | Older or rejected directions, kept for reference. |
@@ -26,7 +26,8 @@ Run after every new weapon, module, helper or stat change (needs Node.js):
 
 ```
 node tools/watchdog.js --quick     # about 2 minutes, rough
-node tools/watchdog.js             # about 5 minutes, writes docs/watchdog-report.md
+node tools/watchdog.js             # about 2-5 minutes, writes docs/watchdog-report.md
+node tools/watchdog.js --mode team # 4v4 battles with random robots, writes to --out (e.g. docs/watchdog-report-team.md)
 node tools/watchdog.js --helpers random --module random   # see how much stacking helpers/modules adds
 ```
 
