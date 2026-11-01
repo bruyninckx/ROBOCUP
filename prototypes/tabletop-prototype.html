@@ -3,750 +3,335 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ROBOCUs — 2D Tabletop & Live Arena Prototype</title>
+<title>ROBOCUs — Compound & Hearthstone Hand Prototype</title>
 <style>
 :root {
-  --bg: #f3f1ec;
-  --surface: #ffffff;
-  --surface-2: #ece9e1;
-  --ink: #151515;
-  --muted: #66635b;
-  --line: #d4cfc4;
-  --line-strong: #222222;
+  --bg: #f4f2ed;
+  --ink: #111111;
+  --muted: #6e6a61;
+  --line: #d6d1c5;
   --blue: #1f6feb;
   --red: #d62828;
   --green: #2a9d3a;
   --orange: #e07b00;
-  --gold: #c98a00;
-  --purple: #7c3aed;
-  --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --gold: #d99000;
+  --purple: #6d28d9;
   color-scheme: light;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 [hidden] { display: none !important; }
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
+  margin: 0; padding: 0;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--ink);
-  font: 13.5px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  user-select: none;
+  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* App Shell */
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-height: 100vh;
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 8px 12px 12px;
-  gap: 8px;
+/* Full-Viewport World Canvas */
+#worldCv {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 1;
 }
 
-/* Top Bar */
-.topbar {
+/* Minimalist Floating Top Pill */
+.top-pill {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.94);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 5px 14px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: var(--surface);
-  border: 1.5px solid var(--line-strong);
-  border-radius: 10px;
-  padding: 7px 12px;
-  box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  backdrop-filter: blur(4px);
 }
-.brand {
-  font-weight: 800;
-  font-size: 16px;
+.top-pill .brand {
+  font-weight: 900;
+  font-size: 14px;
   letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
-.round-pill {
-  background: var(--ink);
-  color: #fff;
+.phase-steps {
+  display: flex;
+  gap: 4px;
+}
+.phase-steps span {
+  font-size: 11.5px;
   font-weight: 700;
-  font-size: 12px;
   padding: 2px 8px;
   border-radius: 999px;
-}
-.phases {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.phases span {
-  padding: 2px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  transition: all .18s ease;
+  transition: all .2s ease;
 }
-.phases span.on {
+.phase-steps span.on {
   background: var(--ink);
   color: #fff;
-  border-color: var(--ink);
-  transform: translateY(-1px);
 }
-.top-controls {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-/* Buttons & Inputs */
-button, select, input {
+.pill-btn {
   font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #fff;
   color: var(--ink);
-  background: var(--surface);
-  border: 1.5px solid var(--line-strong);
-  border-radius: 7px;
-  padding: 4px 10px;
-  transition: transform .1s ease, background .12s ease, box-shadow .12s ease;
-}
-button {
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
   cursor: pointer;
+  transition: transform .1s ease, background .12s ease;
+}
+.pill-btn:hover { background: #eee; transform: translateY(-1px); }
+.pill-btn.primary { background: var(--ink); color: #fff; }
+.pill-btn.primary:hover { background: #333; }
+.seat-select {
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Center Action Banner / Prompt Pill (Minimalist, non-blocking) */
+.prompt-bar {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(17, 17, 17, 0.92);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+  pointer-events: auto;
+  transition: transform .2s ease, opacity .2s ease;
 }
-button:hover:not(:disabled) {
-  background: var(--surface-2);
-  transform: translateY(-1px);
+.prompt-bar .act {
+  background: #fff;
+  color: #111;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .1s ease;
 }
-button:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: none;
+.prompt-bar .act:hover:not(:disabled) { transform: scale(1.04); }
+.prompt-bar .act:disabled { opacity: 0.4; cursor: default; }
+.prompt-bar .act.secondary {
+  background: transparent;
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.45);
 }
-button.primary {
+
+/* Subtle Event Ticker (Top-Left, Minimalist) */
+.ticker {
+  position: fixed;
+  top: 60px;
+  left: 16px;
+  z-index: 8;
+  width: 260px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tick-msg {
+  background: rgba(255, 255, 255, 0.88);
+  border-left: 3px solid var(--ink);
+  padding: 4px 8px;
+  border-radius: 0 6px 6px 0;
+  font-size: 11.5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  animation: slideIn .18s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================================
+ * HEARTHSTONE-STYLE ARCHED CARD HAND
+ * ============================================================================ */
+.hand-stage {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 760px;
+  height: 210px;
+  z-index: 15;
+  pointer-events: none;
+}
+.hs-card {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 148px;
+  height: 204px;
+  margin-left: -74px;
+  background: #ffffff;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  cursor: grab;
+  transform-origin: 50% 140%;
+  transition: transform 0.22s cubic-bezier(0.2, 0.85, 0.25, 1),
+              box-shadow 0.2s ease,
+              border-color 0.2s ease,
+              opacity 0.2s ease;
+}
+.hs-card.playable {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.35), 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+.hs-card.combat-card.playable {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(217, 144, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+.hs-card.unplayable {
+  opacity: 0.72;
+  filter: grayscale(0.25);
+}
+.hs-card:hover {
+  z-index: 50 !important;
+  transform: translate(var(--hx, 0px), -48px) rotate(0deg) scale(1.26) !important;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+}
+.hs-card.dragging {
+  z-index: 100 !important;
+  cursor: grabbing;
+  transition: none !important;
+  pointer-events: none;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.32);
+}
+
+/* Card Internal Layout */
+.hs-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+.hs-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 999px;
   background: var(--ink);
   color: #fff;
 }
-button.primary:hover:not(:disabled) {
-  background: #333;
-}
-button.accent {
-  background: #fff8e6;
-  border-color: var(--gold);
-  color: #7a5200;
-}
-button:disabled {
-  opacity: 0.38;
-  cursor: default;
-  box-shadow: none;
-}
-input[type=number] {
-  width: 62px;
-  padding: 3px 6px;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* Tabletop Grid Layouts */
-.tabletop {
-  display: grid;
-  gap: 10px;
-  align-items: stretch;
-  min-height: 0;
-}
-/* Layout Mode 1: Around the Table (North, West, Center Arena, East, South + Log) */
-.tabletop.layout-around {
-  grid-template-columns: 265px minmax(520px, 1fr) 265px;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "west north east"
-    "west center east"
-    "south south south";
-}
-/* Layout Mode 2: 3 Rivals Top + Center Arena + South Player Dock */
-.tabletop.layout-dock {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "west north east"
-    "center center center"
-    "south south south";
-}
-@media (max-width: 1120px) {
-  .tabletop.layout-around {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-areas:
-      "west north east"
-      "center center center"
-      "south south south";
-  }
-}
-@media (max-width: 780px) {
-  .tabletop.layout-around, .tabletop.layout-dock {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "north"
-      "west"
-      "east"
-      "center"
-      "south";
-  }
-}
-
-.seat-north { grid-area: north; }
-.seat-west  { grid-area: west; }
-.seat-east  { grid-area: east; }
-.seat-south { grid-area: south; }
-.center-stage { grid-area: center; position: relative; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-
-/* Player Station Mats */
-.station {
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-top: 5px solid var(--c);
-  border-radius: 10px;
-  padding: 9px 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-  transition: border-color .2s ease, box-shadow .2s ease;
-  min-width: 0;
-}
-.station.active-turn {
-  border-color: var(--c);
-  box-shadow: 0 0 0 2px var(--c), var(--shadow);
-}
-.station-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.station-head h3 {
-  margin: 0;
-  font-size: 14px;
-  color: var(--c);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface-2);
-  color: var(--ink);
-}
-.badge.host {
-  background: #fff3cd;
-  border-color: #d99b00;
-  color: #704b00;
-}
-.badge.secret {
-  background: #f0e7ff;
-  border-color: var(--purple);
-  color: var(--purple);
-}
-.tokens {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-variant-numeric: tabular-nums;
-}
-.token {
-  background: var(--surface-2);
-  border-radius: 6px;
-  padding: 2px 7px;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.token b {
-  font-size: 14px;
-}
-.fame-track {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 2px;
-  height: 7px;
-}
-.fame-pip {
-  background: var(--surface-2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.fame-pip.on {
-  background: var(--c);
-}
-
-/* Robot Bays inside Stations */
-.bays {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 6px;
-}
-.bay {
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 6px 8px;
-  background: #faf9f6;
-  display: grid;
-  gap: 3px;
-  font-size: 12px;
-  position: relative;
-}
-.bay.fighting {
-  border-color: var(--c);
-  background: #fff;
-  box-shadow: inset 0 0 0 1px var(--c);
-}
-.bay-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 4px;
-}
-.bay-top b {
-  font-size: 13px;
-}
-.hp-mini {
-  height: 5px;
-  background: #e2dfd7;
-  border-radius: 3px;
-  overflow: hidden;
-}
-.hp-mini > i {
-  display: block;
-  height: 100%;
-  background: var(--c);
-  transition: width .2s ease;
-}
-.bay-specs {
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mod-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: #eee;
-  color: #333;
-  width: fit-content;
-}
-.mod-chip.hidden-mod {
-  background: #222;
-  color: #fff;
-}
-
-/* South Station (Active Player Dashboard + Hand + Log) */
-.south-grid {
-  display: grid;
-  grid-template-columns: 310px 1fr 310px;
-  gap: 10px;
-  align-items: stretch;
-}
-@media (max-width: 1080px) {
-  .south-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.hand-zone {
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.hand-zone-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.hand-cards {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-.playing-card {
-  flex: 0 0 165px;
-  border: 1.5px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 7px 9px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f6f0 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
-  position: relative;
-  transition: transform .15s ease, box-shadow .15s ease;
-}
-.playing-card:hover:not(:disabled) {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-}
-.playing-card.sel {
-  outline: 3px solid var(--blue);
-  transform: translateY(-5px);
-}
-.playing-card .ckind {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-.playing-card .cname {
-  font-size: 13px;
-  font-weight: 800;
-}
-.playing-card .ctext {
-  font-size: 11.5px;
-  color: var(--muted);
-  line-height: 1.3;
-}
-
-/* Center Stage: Arena Canvas + Live Controls + Floating Tabletop Overlay */
-.arena-shell {
-  position: relative;
-  background: #ffffff;
-  border: 2px solid var(--line-strong);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-}
-.arena-hud-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 12px;
-  background: #181818;
-  color: #fff;
-  font-size: 12.5px;
-}
-.arena-hud-top .hud-vs {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  flex-wrap: wrap;
-}
-.canvas-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 900 / 500;
-  background: #ffffff;
-}
-canvas#arenaCv {
-  display: block;
-  width: 100%;
-  height: 100%;
-  cursor: crosshair;
-}
-
-/* Live Battle Action Dock (Bottom of Arena) */
-.battle-dock {
-  background: #181818;
-  color: #fff;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  border-top: 1px solid #333;
-}
-.dock-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.dock-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #aaa;
-  margin-right: 2px;
-  font-weight: 700;
-}
-.act-btn {
-  background: #2a2a2a;
-  color: #fff;
-  border: 1.5px solid #555;
-  border-radius: 7px;
-  padding: 5px 10px;
-  font-size: 12.5px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  box-shadow: none;
-}
-.act-btn:hover:not(:disabled) {
-  background: #3a3a3a;
-  border-color: #888;
-}
-.act-btn.active-tool {
+.hs-card.combat-card .hs-badge {
   background: var(--gold);
   color: #111;
-  border-color: #fff;
 }
-.act-btn.stance-on {
-  background: var(--blue);
-  border-color: #9ec5fe;
+.hs-card.reaction-card .hs-badge {
+  background: var(--purple);
+  color: #fff;
 }
-.act-btn .key {
+.hs-need {
   font-size: 10px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.15);
-  font-family: monospace;
-}
-
-/* Floating Phase Overlay inside the Arena when not in active combat */
-.phase-overlay {
-  position: absolute;
-  inset: 14px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(5px);
-  border: 2px solid var(--line-strong);
-  border-radius: 10px;
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
-  transition: opacity .22s ease, transform .22s ease;
-  z-index: 5;
-}
-.phase-overlay.minimized {
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.96);
-}
-.phase-overlay h2 {
-  margin: 0;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.phase-overlay p {
-  margin: 0;
+  font-weight: 800;
   color: var(--muted);
 }
-
-/* Tables & Matchup Cards inside Overlay */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-}
-th, td {
-  border: 1px solid var(--line);
-  padding: 6px 9px;
-  text-align: left;
-}
-th {
-  background: var(--surface-2);
-  font-weight: 700;
-}
-.lot-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 8px;
-}
-.lot-card {
-  border: 1.5px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 9px 10px;
+.hs-art {
+  height: 58px;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
   background: #faf9f5;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 8px;
-}
-.vs-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 12px;
-  align-items: stretch;
-}
-@media (max-width: 640px) {
-  .vs-grid { grid-template-columns: 1fr; }
-}
-.fighter-card {
-  border: 2px solid var(--c);
-  border-radius: 9px;
-  padding: 10px 12px;
-  background: #fff;
-  display: grid;
-  gap: 5px;
-}
-.odds-big {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--c);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Event Feed / Chronicle Log */
-.log-box {
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 210px;
-  overflow-y: auto;
-  font-size: 12.5px;
-}
-.log-box .r {
-  font-weight: 800;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px dashed var(--line);
-}
-.log-box .me {
-  font-weight: 600;
-}
-.row {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 26px;
 }
-.muted { color: var(--muted); }
+.hs-title {
+  font-weight: 800;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.15;
+}
+.hs-desc {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.28;
+}
+.hs-footer {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 3px;
+}
 </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- Top Bar -->
-  <header class="topbar">
-    <div class="brand">
-      <span>ROBOCUs</span>
-      <span class="round-pill" id="roundLbl">Round 1</span>
-    </div>
-    <div class="phases" id="phases"></div>
-    <div class="top-controls">
-      <label class="muted" style="font-size:12px">Seat:
-        <select id="seatSel" title="Switch which house you control (or open 2+ tabs to play multi-seat)">
-          <option value="0">Blue Bolts (P1)</option>
-          <option value="1">Red Rivets (P2)</option>
-          <option value="2">Green Gears (P3)</option>
-          <option value="3">Orange Ohms (P4)</option>
-        </select>
-      </label>
-      <label class="muted" style="font-size:12px">Layout:
-        <select id="layoutSel">
-          <option value="around">Around Table (4 Sides)</option>
-          <option value="dock">3 Top + Bottom Dock</option>
-        </select>
-      </label>
-      <button class="accent" id="quickBrawlBtn" title="Jump straight into a live interactive fight to test battle actions">⚡ Test Live Battle</button>
-      <button id="toggleOverlayBtn" title="Peek at the arena beneath the board overlay">Peek Arena</button>
-    </div>
-  </header>
-
-  <!-- Main 2D Tabletop -->
-  <main class="tabletop layout-around" id="tabletop">
-    <!-- Rival Seats -->
-    <section class="station seat-west" id="seat-1"></section>
-    <section class="station seat-north" id="seat-2"></section>
-    <section class="station seat-east" id="seat-3"></section>
-
-    <!-- Center Stage: Always-Present 60FPS Arena + Board Overlay + Battle Action Bar -->
-    <section class="center-stage">
-      <div class="arena-shell">
-        <div class="arena-hud-top">
-          <div class="hud-vs" id="hudVs">Arena Standby · Robots warming up</div>
-          <div class="row">
-            <span id="syncBadge" class="badge" style="background:#222;color:#9ef0a0;border-color:#3b7a3e">Multi-Tab Ready</span>
-            <button id="spdBtn" class="act-btn" style="padding:2px 8px;font-size:11.5px">Speed 1×</button>
-            <button id="skipBtn" class="act-btn" style="padding:2px 8px;font-size:11.5px" hidden>Skip Fight</button>
-          </div>
-        </div>
-
-        <div class="canvas-wrap">
-          <canvas id="arenaCv" width="900" height="500"></canvas>
-          <!-- Phase Board Overlay (slides away during Fight) -->
-          <div class="phase-overlay" id="phaseOverlay"></div>
-        </div>
-
-        <!-- Live Interactive Battle Controls (Active during fights!) -->
-        <div class="battle-dock" id="battleDock">
-          <div class="dock-group" id="fighterControls">
-            <span class="dock-label">Fighter Actions:</span>
-            <button class="act-btn" id="btnOverdrive" disabled title="Burst of +45% speed, +50% fire rate & faster turret for 3s (1× per fight)">
-              ⚡ Overdrive <span class="key">Q</span>
-            </button>
-            <button class="act-btn" id="btnPulse" disabled title="Manually trigger module / emergency shield pulse (1× per fight)">
-              🛡️ Surge Module <span class="key">W</span>
-            </button>
-            <span class="dock-label" style="margin-left:6px">Stance:</span>
-            <button class="act-btn stance-on" data-stance="auto" disabled>Auto <span class="key">1</span></button>
-            <button class="act-btn" data-stance="charge" disabled title="Close in aggressively to 75px">Charge <span class="key">2</span></button>
-            <button class="act-btn" data-stance="kite" disabled title="Keep maximum distance & weave">Kite <span class="key">3</span></button>
-          </div>
-
-          <div class="dock-group" id="crowdControls">
-            <span class="dock-label">Crowd Toss (click Arena):</span>
-            <button class="act-btn" data-hazard="oil" disabled title="Click arena floor to splash oil: slows & spins robots for 5s">
-              🛢️ Oil Slick
-            </button>
-            <button class="act-btn" data-hazard="emp" disabled title="Click arena floor to lob an EMP bomb (0.9s fuse, stuns 1.2s)">
-              🧲 EMP Bomb
-            </button>
-            <button class="act-btn" data-hazard="heal" disabled title="Click arena floor to drop a +12 HP/s repair field">
-              🔧 Repair Patch
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- South Area: Active Player Station + Hand of Cards + Chronicle Log -->
-    <section class="seat-south">
-      <div class="south-grid">
-        <div class="station" id="seat-0"></div>
-        <div class="hand-zone" id="handZone"></div>
-        <div class="log-box" id="log" aria-live="polite"></div>
-      </div>
-    </section>
-  </main>
+<!-- Top Minimalist Status & Controls Pill -->
+<div class="top-pill">
+  <span class="brand">ROBOCUs</span>
+  <span id="roundBadge" style="font-weight:800;font-size:12px">R1</span>
+  <div class="phase-steps" id="phaseSteps"></div>
+  <select class="seat-select" id="seatSel" title="Switch perspective (or open multiple tabs)">
+    <option value="0">Seat: Blue Bolts</option>
+    <option value="1">Seat: Red Rivets</option>
+    <option value="2">Seat: Green Gears</option>
+    <option value="3">Seat: Orange Ohms</option>
+  </select>
+  <button class="pill-btn" id="quickFightBtn" title="Test a live fight with Combat Cards right now">⚡ Instant Fight</button>
+  <button class="pill-btn" id="camToggleBtn" title="Toggle camera between Full Compound and Arena Zoom">🔍 View</button>
 </div>
+
+<!-- Dynamic Prompt Pill -->
+<div class="prompt-bar" id="promptBar"></div>
+
+<!-- Minimalist Event Ticker -->
+<div class="ticker" id="ticker"></div>
+
+<!-- Hearthstone-Style Arched Hand -->
+<div class="hand-stage" id="handStage"></div>
+
+<!-- Unified 2D Architectural Compound & Arena Canvas -->
+<canvas id="worldCv"></canvas>
 
 <script>
 /* ============================================================================
- * 1. DETERMINISTIC BATTLE SIMULATOR (Sim) + TICK-STAMPED LIVE COMMANDS
- *    Uses ONLY seeded rng (mkRng) inside Sim. Never Math.random().
+ * 1. DETERMINISTIC AUTO-BATTLE SIMULATOR (Sim)
+ *    - Pure auto-battle by default.
+ *    - Live interventions ONLY happen when a player plays a COMBAT CARD
+ *      (queued as a deterministic tick-stamped command in B.cmdQueue).
+ *    - Strictly uses seeded mkRng(seed), never Math.random().
  * ============================================================================ */
 (function (root) {
   'use strict';
-  const W = 900, H = 500, SIZE = 30;
+  const W = 900, H = 560, SIZE = 30;
   const STATS = ['hp', 'armor', 'speed', 'turret', 'fp', 'acc', 'bullet'];
   const LV = {
     hp:     [60, 85, 110, 135, 160],
@@ -765,13 +350,13 @@ th {
   const RANGES = { short: 140, mid: 250, long: 380 };
   const MODS = {
     shield:  { name: 'Energy Shield', text: 'Soaks 25 dmg; recharges 10/s after 3s unhit.' },
-    flipper: { name: 'Flipper', text: 'Charges in; 10 dmg + throw + 1s stun (wall slam +8).' },
-    decoy:   { name: 'Decoy Hologram', text: 'At 60% HP, spawns a decoy that fools attackers 2.5s.' },
-    mines:   { name: 'Mine Layer', text: 'Drops proximity mines (22 dmg) while driving.' },
-    repair:  { name: 'Repair Drone', text: 'Heals 6 HP/s after 1.2s without taking hits.' },
-    emp:     { name: 'EMP Burst', text: 'Enemy within 130px triggers a 150px 1.8s stun pulse.' },
-    boom:    { name: 'Self-Destruct', text: 'Below 30% HP rams enemy; explodes for 45 dmg on death.' },
-    smoke:   { name: 'Smoke Screen', text: 'At 50% HP pops a 4s smoke cloud that scatters enemy aim.' },
+    flipper: { name: 'Flipper',       text: 'Charges in; 10 dmg + throw + 1s stun.' },
+    decoy:   { name: 'Decoy',         text: 'At 60% HP spawns a hologram decoy for 2.5s.' },
+    mines:   { name: 'Mine Layer',    text: 'Drops proximity mines (22 dmg) while driving.' },
+    repair:  { name: 'Repair Drone',  text: 'Heals 6 HP/s after 1.2s unhit.' },
+    emp:     { name: 'EMP Burst',     text: 'Stuns enemies within 150px for 1.8s.' },
+    boom:    { name: 'Self-Destruct', text: 'Below 30% HP rams enemy; 45 dmg death blast.' },
+    smoke:   { name: 'Smoke Screen',  text: 'At 50% HP pops a 4s smoke cloud.' },
   };
 
   function mkRng(seed) {
@@ -794,8 +379,9 @@ th {
     s.weapon = b.weapon || 'gun';
     s.cal = b.cal || 'medium';
     const c = CAL[s.cal];
-    s.fire = s.weapon === 'mortar' ? 0.45 : c.rate;
+    s.fire = s.weapon === 'mortar' ? 0.45 : s.weapon === 'saw' ? 1.1 : c.rate;
     s.dmg = s.fp / s.fire;
+    if (s.weapon === 'saw') s.dmg *= 0.9;
     if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
     s.speed *= 1 - 0.09 * b.lv.armor - 0.04 * b.lv.hp;
     s.turnBody = 180;
@@ -805,89 +391,102 @@ th {
 
   function newBattle(builds, seed) {
     const rng = mkRng(seed);
-    const sp = [[135, H / 2 - 60], [W - 135, H / 2 + 60]];
+    const sp = [[140, H / 2 - 60], [W - 140, H / 2 + 60]];
     const bots = builds.map((b, i) => {
       const s = statsOf(b);
       const x = sp[i][0], y = Math.max(60, Math.min(H - 60, sp[i][1] + (rng() - 0.5) * 160));
       const face = Math.atan2(H / 2 - y, W / 2 - x);
       return {
-        i, squad: i, team: i, size: SIZE, s, hp: s.hp, x, y, body: face, turret: face, target: 1 - i,
+        i, squad: i, team: i, size: SIZE, s, hp: s.hp, x, y, body: face, turret: face,
         vx: 0, vy: 0, cd: 0.3 + rng() * 0.35, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 1.8,
         hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, lastBy: -1,
         mod: s.mod, shield: s.mod === 'shield' ? 25 : 0, lastHit: -9, stun: 0, kx: 0, ky: 0,
         modCd: 0, modUsed: false, revealed: false, healed: 0,
-        // Live interactive battle states
-        stance: 'auto', overdriveT: 0, overdriveUsed: false, surgeUsed: false, oilSlip: 0
+        // Card-triggered overrides (only active when a Combat Card is played!)
+        wpX: null, wpY: null, wpT: 0,
+        overclockT: 0
       };
     });
     return {
-      W, H, bots, bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [],
-      zones: [], // oil slicks, repair patches, emp bombs from crowd/players
-      banners: [], // floating callouts in arena
-      cmdQueue: [], // tick-stamped deterministic commands
+      W, H, bots, bullets: [], saws: [], shells: [], fx: [], mines: [], decoys: [], smokes: [],
+      zones: [], banners: [], cmdQueue: [],
       tick: 0, t: 0, over: false, winner: null, rng, n: builds.length
     };
   }
 
-  // Queue a deterministic live command to execute on or after targetTick
   function queueCmd(B, cmd) {
     B.cmdQueue.push({ ...cmd, execTick: cmd.tick != null ? cmd.tick : B.tick + 1 });
   }
 
-  function applyCmd(B, c) {
-    if (c.kind === 'overdrive') {
-      const b = B.bots[c.bot];
-      if (!b || b.hp <= 0 || b.overdriveUsed) return;
-      b.overdriveUsed = true;
-      b.overdriveT = 3.0;
-      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 55, life: 0.3, col: '#f59e0b' });
-      B.banners.push({ x: b.x, y: b.y - 42, text: '⚡ OVERDRIVE!', col: '#d97706', life: 1.3 });
-    } else if (c.kind === 'surge') {
-      const b = B.bots[c.bot];
-      if (!b || b.hp <= 0 || b.surgeUsed) return;
-      b.surgeUsed = true;
-      b.revealed = true;
-      // Trigger module on demand or emergency shield + shockwave
-      if (b.mod === 'smoke') {
-        B.smokes.push({ x: b.x, y: b.y, r: 95, life: 4.2 });
-        B.banners.push({ x: b.x, y: b.y - 42, text: '💨 SMOKE POP!', col: '#555', life: 1.3 });
-      } else if (b.mod === 'decoy') {
-        const a = b.body + (B.rng() < 0.5 ? 1 : -1) * Math.PI / 2;
-        B.decoys.push({ owner: b.i, x: b.x, y: b.y, vx: Math.cos(a) * 145, vy: Math.sin(a) * 145, life: 2.8, fooled: [1 - b.i], body: b.body });
-        B.banners.push({ x: b.x, y: b.y - 42, text: '👥 DECOY OUT!', col: '#7c3aed', life: 1.3 });
-      } else if (b.mod === 'emp') {
-        for (const e of B.bots) if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 170) e.stun = Math.max(e.stun, 1.8);
-        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 170, life: 0.4, col: '#2563eb' });
-        B.banners.push({ x: b.x, y: b.y - 42, text: '⚡ EMP BLAST!', col: '#2563eb', life: 1.3 });
-      } else {
-        b.shield = Math.min(35, b.shield + 20);
-        for (const e of B.bots) {
-          if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 120) {
-            const a = Math.atan2(e.y - b.y, e.x - b.x);
-            e.kx += Math.cos(a) * 320; e.ky += Math.sin(a) * 320;
-          }
-        }
-        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 90, life: 0.35, col: '#0ea5e9' });
-        B.banners.push({ x: b.x, y: b.y - 42, text: '🛡️ SHIELD SURGE!', col: '#0284c7', life: 1.3 });
+  // Trigger a robot's module immediately (via 'Remote Trigger' combat card)
+  function triggerModuleNow(B, b) {
+    b.revealed = true;
+    const e = B.bots[1 - b.i];
+    const m = b.mod;
+    if (m === 'smoke') {
+      B.smokes.push({ x: b.x, y: b.y, r: 100, life: 4.5 });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '💨 SMOKE TRIGGERED!', col: '#444', life: 1.4 });
+    } else if (m === 'decoy') {
+      const a = b.body + (B.rng() < 0.5 ? 1 : -1) * Math.PI / 2;
+      B.decoys.push({ owner: b.i, x: b.x, y: b.y, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, life: 3.0, fooled: [1 - b.i], body: b.body });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '👥 DECOY DEPLOYED!', col: '#6d28d9', life: 1.4 });
+    } else if (m === 'emp') {
+      if (e && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 210) e.stun = Math.max(e.stun, 2.0);
+      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 200, life: 0.45, col: '#1f6feb' });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '⚡ EMP DETONATED!', col: '#1f6feb', life: 1.4 });
+    } else if (m === 'mines') {
+      for (let k = -1; k <= 1; k++) {
+        const a = b.body + Math.PI + k * 0.55;
+        B.mines.push({ x: Math.max(25, Math.min(W - 25, b.x + Math.cos(a) * 32)), y: Math.max(25, Math.min(H - 25, b.y + Math.sin(a) * 32)), owner: b.i, age: 0.4 });
       }
-    } else if (c.kind === 'stance') {
+      B.banners.push({ x: b.x, y: b.y - 38, text: '💣 MINE CLUSTER!', col: '#d62828', life: 1.4 });
+    } else if (m === 'repair') {
+      b.hp = Math.min(b.s.hp, b.hp + 28);
+      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 60, life: 0.35, col: '#2a9d3a' });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '🔧 +28 HP BURST!', col: '#2a9d3a', life: 1.4 });
+    } else if (m === 'flipper') {
+      b.modCd = 0;
+      if (e && e.hp > 0) {
+        const a = Math.atan2(e.y - b.y, e.x - b.x);
+        b.kx += Math.cos(a) * 380; b.ky += Math.sin(a) * 380;
+      }
+      B.banners.push({ x: b.x, y: b.y - 38, text: '🚀 FLIPPER LUNGE!', col: '#e07b00', life: 1.4 });
+    } else {
+      // shield or boom
+      b.shield = Math.min(40, b.shield + 25);
+      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 75, life: 0.35, col: '#0284c7' });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '🛡️ SHIELD SURGE!', col: '#0284c7', life: 1.4 });
+    }
+  }
+
+  function applyCardCmd(B, c) {
+    if (c.card === 'waypoint') {
       const b = B.bots[c.bot];
       if (!b || b.hp <= 0) return;
-      b.stance = c.stance;
-      B.banners.push({ x: b.x, y: b.y - 40, text: '🎯 ' + c.stance.toUpperCase(), col: '#111', life: 0.9 });
-    } else if (c.kind === 'hazard') {
+      b.wpX = Math.max(40, Math.min(W - 40, c.x));
+      b.wpY = Math.max(40, Math.min(H - 40, c.y));
+      b.wpT = 3.8;
+      B.banners.push({ x: b.wpX, y: b.wpY - 18, text: '📍 WAYPOINT ORDER', col: '#1f6feb', life: 1.4 });
+    } else if (c.card === 'trigger') {
+      const b = B.bots[c.bot];
+      if (!b || b.hp <= 0) return;
+      triggerModuleNow(B, b);
+    } else if (c.card === 'overclock') {
+      const b = B.bots[c.bot];
+      if (!b || b.hp <= 0) return;
+      b.overclockT = 3.5;
+      B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 65, life: 0.35, col: '#d99000' });
+      B.banners.push({ x: b.x, y: b.y - 38, text: '🎯 OVERCLOCK +50%!', col: '#d99000', life: 1.4 });
+    } else if (c.card === 'oil_card') {
       const x = Math.max(50, Math.min(W - 50, c.x));
       const y = Math.max(50, Math.min(H - 50, c.y));
-      if (c.hazard === 'oil') {
-        B.zones.push({ kind: 'oil', x, y, r: 72, life: 5.0, maxLife: 5.0, by: c.by });
-        B.banners.push({ x, y: y - 24, text: '🛢️ OIL SLICK!', col: '#444', life: 1.2 });
-      } else if (c.hazard === 'emp') {
-        B.zones.push({ kind: 'emp_bomb', x, y, r: 95, fuse: 0.85, maxFuse: 0.85, by: c.by });
-        B.banners.push({ x, y: y - 24, text: '🧲 INCOMING EMP!', col: '#2563eb', life: 1.0 });
-      } else if (c.hazard === 'heal') {
-        B.zones.push({ kind: 'heal', x, y, r: 65, life: 3.5, maxLife: 3.5, by: c.by });
-        B.banners.push({ x, y: y - 24, text: '🔧 REPAIR ZONE!', col: '#16a34a', life: 1.2 });
-      }
+      B.zones.push({ kind: 'oil', x, y, r: 80, life: 5.5 });
+      B.banners.push({ x, y: y - 24, text: '🛢️ OIL SLICK!', col: '#111', life: 1.3 });
+    } else if (c.card === 'emp_card') {
+      const x = Math.max(50, Math.min(W - 50, c.x));
+      const y = Math.max(50, Math.min(H - 50, c.y));
+      B.zones.push({ kind: 'emp_bomb', x, y, r: 105, fuse: 0.75, maxFuse: 0.75 });
+      B.banners.push({ x, y: y - 24, text: '🧲 EMP DROP!', col: '#1f6feb', life: 1.1 });
     }
   }
 
@@ -942,7 +541,7 @@ th {
       if (b.stun <= 0 && b.modCd <= 0 && e && e.hp > 0 && d < 130) {
         e.stun = Math.max(e.stun, 1.8);
         b.modCd = 12; b.revealed = true;
-        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 150, life: 0.4, col: '#2563eb' });
+        B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 150, life: 0.4, col: '#1f6feb' });
       }
     } else if (m === 'mines') {
       if (b.modCd <= 0 && Math.hypot(b.vx, b.vy) > 30) {
@@ -971,25 +570,22 @@ th {
     B.t += dt;
     const rng = B.rng;
 
-    // 1. Process any queued live commands scheduled for this tick
     for (let i = B.cmdQueue.length - 1; i >= 0; i--) {
       if (B.cmdQueue[i].execTick <= B.tick) {
-        const cmd = B.cmdQueue.splice(i, 1)[0];
-        applyCmd(B, cmd);
+        applyCardCmd(B, B.cmdQueue.splice(i, 1)[0]);
       }
     }
 
-    // 2. Update arena zones (oil slicks, EMP bombs, repair patches)
     for (let k = B.zones.length - 1; k >= 0; k--) {
       const z = B.zones[k];
       if (z.kind === 'emp_bomb') {
         z.fuse -= dt;
         if (z.fuse <= 0) {
-          B.fx.push({ k: 'emp', x: z.x, y: z.y, r: z.r, life: 0.4, col: '#2563eb' });
+          B.fx.push({ k: 'emp', x: z.x, y: z.y, r: z.r, life: 0.4, col: '#1f6feb' });
           for (const b of B.bots) {
             if (b.hp > 0 && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
-              b.stun = Math.max(b.stun, 1.25);
-              hitBot(B, b, 8, null, true);
+              b.stun = Math.max(b.stun, 1.35);
+              hitBot(B, b, 10, null, true);
             }
           }
           B.zones.splice(k, 1);
@@ -997,22 +593,17 @@ th {
         continue;
       }
       z.life -= dt;
-      if (z.kind === 'heal') {
-        for (const b of B.bots) {
-          if (b.hp > 0 && b.hp < b.s.hp && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
-            b.hp = Math.min(b.s.hp, b.hp + 12 * dt);
-          }
-        }
-      }
       if (z.life <= 0) B.zones.splice(k, 1);
     }
 
-    // 3. Step robots
     for (const b of B.bots) {
       if (b.hp <= 0) continue;
-      if (b.overdriveT > 0) b.overdriveT = Math.max(0, b.overdriveT - dt);
+      if (b.overclockT > 0) b.overclockT = Math.max(0, b.overclockT - dt);
+      if (b.wpT > 0) {
+        b.wpT = Math.max(0, b.wpT - dt);
+        if (b.wpT <= 0 || Math.hypot(b.wpX - b.x, b.wpY - b.y) < 22) { b.wpT = 0; b.wpX = b.wpY = null; }
+      }
 
-      // Knockback physics
       if (b.kx || b.ky) {
         const nx = b.x + b.kx * dt, ny = b.y + b.ky * dt;
         const cx = Math.max(SIZE / 2, Math.min(W - SIZE / 2, nx));
@@ -1037,47 +628,48 @@ th {
       const o = dec || real;
 
       const inOil = B.zones.some(z => z.kind === 'oil' && Math.hypot(b.x - z.x, b.y - z.y) < z.r);
-      const odMult = b.overdriveT > 0 ? 1.45 : 1.0;
-      const oilMult = inOil ? 0.48 : 1.0;
+      const ocMult = b.overclockT > 0 ? 1.45 : 1.0;
+      const oilMult = inOil ? 0.45 : 1.0;
 
       const fog = B.smokes.some(sm => Math.hypot(o.x - sm.x, o.y - sm.y) < sm.r) ? 1 : 0;
       const dx = o.x - b.x, dy = o.y - b.y, dist = Math.hypot(dx, dy), toO = Math.atan2(dy, dx);
 
-      b.strafeT -= dt;
-      if (b.strafeT <= 0) { b.strafe *= -1; b.strafeT = 0.8 + rng() * 1.7; }
-
-      let want_r = b.s.range;
-      if (b.stance === 'charge') want_r = 70;
-      else if (b.stance === 'kite') want_r = 390;
-      if (b.mod === 'flipper' && b.modCd <= 0) want_r = 25;
-      if (b.mod === 'boom' && b.hp < b.s.hp * 0.3) { want_r = 0; b.revealed = true; }
-
-      const radial = Math.max(-1, Math.min(1, (dist - want_r) / 80));
-      const strafeWeight = b.stance === 'kite' ? 1.15 : 0.8;
-      let mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * strafeWeight;
-      let my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * strafeWeight;
-
-      const sx = b.x - real.x, sy = b.y - real.y, sd = Math.hypot(sx, sy);
-      if (sd < 60 && sd > 0.01) { mx += sx / sd * (60 - sd) / 30; my += sy / sd * (60 - sd) / 30; }
-
-      const m = 65;
-      if (b.x < m) mx += (m - b.x) / m * 2; if (b.x > W - m) mx -= (b.x - (W - m)) / m * 2;
-      if (b.y < m) my += (m - b.y) / m * 2; if (b.y > H - m) my -= (b.y - (H - m)) / m * 2;
+      let mx, my;
+      if (b.wpT > 0 && b.wpX != null) {
+        // Card-ordered Waypoint navigation!
+        const wdx = b.wpX - b.x, wdy = b.wpY - b.y, wd = Math.hypot(wdx, wdy) || 1;
+        mx = (wdx / wd) * 1.4;
+        my = (wdy / wd) * 1.4;
+      } else {
+        b.strafeT -= dt;
+        if (b.strafeT <= 0) { b.strafe *= -1; b.strafeT = 0.8 + rng() * 1.7; }
+        let want_r = b.s.range;
+        if (b.mod === 'flipper' && b.modCd <= 0) want_r = 25;
+        if (b.mod === 'boom' && b.hp < b.s.hp * 0.3) { want_r = 0; b.revealed = true; }
+        const radial = Math.max(-1, Math.min(1, (dist - want_r) / 80));
+        mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
+        my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
+        const sx = b.x - real.x, sy = b.y - real.y, sd = Math.hypot(sx, sy);
+        if (sd < 60 && sd > 0.01) { mx += sx / sd * (60 - sd) / 30; my += sy / sd * (60 - sd) / 30; }
+        const m = 65;
+        if (b.x < m) mx += (m - b.x) / m * 2; if (b.x > W - m) mx -= (b.x - (W - m)) / m * 2;
+        if (b.y < m) my += (m - b.y) / m * 2; if (b.y > H - m) my -= (b.y - (H - m)) / m * 2;
+      }
 
       const want = Math.atan2(my, mx) + (inOil ? Math.sin(B.t * 14 + b.i) * 0.65 : 0);
-      b.body = turnToward(b.body, want, rad(b.s.turnBody * odMult) * dt);
+      b.body = turnToward(b.body, want, rad(b.s.turnBody * ocMult) * dt);
       const align = Math.max(0, Math.cos(wrapA(want - b.body)));
-      const sp = b.s.speed * odMult * oilMult * align * Math.min(1, Math.hypot(mx, my));
+      const sp = b.s.speed * ocMult * oilMult * align * Math.min(1, Math.hypot(mx, my));
       b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + Math.cos(b.body) * sp * dt));
       b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + Math.sin(b.body) * sp * dt));
       b.vx = Math.cos(b.body) * sp; b.vy = Math.sin(b.body) * sp;
 
       const w = b.s.weapon;
-      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : b.s.bullet;
+      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : w === 'saw' ? b.s.bullet * 0.95 : b.s.bullet;
       const tt = w === 'laser' ? 0 : dist / Math.max(50, pspeed);
       const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
-      b.turret = turnToward(b.turret, aim, rad(b.s.turret * (b.overdriveT > 0 ? 1.3 : 1)) * dt);
-      b.cd -= dt * (b.overdriveT > 0 ? 1.5 : 1);
+      b.turret = turnToward(b.turret, aim, rad(b.s.turret * ocMult) * dt);
+      b.cd -= dt * ocMult;
       b.beam = 0;
 
       const err = Math.abs(wrapA(aim - b.turret));
@@ -1089,6 +681,14 @@ th {
           const sx2 = b.x + Math.cos(b.turret) * 26, sy2 = b.y + Math.sin(b.turret) * 26;
           B.bullets.push({ x: sx2, y: sy2, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i, dmg: b.s.dmg, life: 3 });
           B.fx.push({ k: 'flash', x: sx2, y: sy2, life: 0.06 });
+          b.shots++;
+        }
+      } else if (w === 'saw') {
+        if (b.cd <= 0 && err < rad(6)) {
+          b.cd = (1 / b.s.fire) * (0.9 + rng() * 0.2);
+          const spread = rad(18) * (1 - b.s.acc / 100) + fog * rad(22);
+          const a = b.turret + (rng() * 2 - 1) * spread;
+          B.saws.push({ x: b.x + Math.cos(b.turret) * 24, y: b.y + Math.sin(b.turret) * 24, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i, dmg: b.s.dmg, life: 4, hits: 0, last: -1, lastT: -9 });
           b.shots++;
         }
       } else if (w === 'mortar') {
@@ -1105,11 +705,11 @@ th {
         if (dist < 280) {
           const wob = (rad(14) * (1 - b.s.acc / 100) + fog * rad(18)) * Math.sin(B.t * 9 + b.i * 2);
           const a = b.turret + wob;
-          b.beam = 1; b.beamA = a; b.beamLen = 280;
+          b.beam = 1; b.beamA = a;
           const ex = real.x - b.x, ey = real.y - b.y;
           const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
           if (along > 0 && along < 280 && perp < SIZE / 2) {
-            hitBot(B, real, b.s.fp * 0.6 * (b.overdriveT > 0 ? 1.35 : 1) * dt, b, true);
+            hitBot(B, real, b.s.fp * 0.6 * ocMult * dt, b, true);
             b.hits += dt;
           }
           b.shots += dt;
@@ -1118,7 +718,6 @@ th {
       b.hitT = Math.max(0, b.hitT - dt);
     }
 
-    // 4. Projectiles, mines, decoys, fx
     for (let k = B.bullets.length - 1; k >= 0; k--) {
       const q = B.bullets[k];
       q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
@@ -1129,6 +728,24 @@ th {
         B.bullets.splice(k, 1); continue;
       }
       if (q.life <= 0 || q.x < 0 || q.y < 0 || q.x > W || q.y > H) B.bullets.splice(k, 1);
+    }
+    for (let k = B.saws.length - 1; k >= 0; k--) {
+      const q = B.saws[k];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      if (q.x < 7 || q.x > W - 7) { q.vx *= -0.9; q.vy *= 0.9; q.x = Math.max(7, Math.min(W - 7, q.x)); B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
+      if (q.y < 7 || q.y > H - 7) { q.vy *= -0.9; q.vx *= 0.9; q.y = Math.max(7, Math.min(H - 7, q.y)); B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
+      const own = B.bots[q.owner], e = B.bots[1 - q.owner];
+      if (e && e.hp > 0 && !(q.last === e.i && B.t - q.lastT < 0.4)) {
+        const dx = q.x - e.x, dy = q.y - e.y, d = Math.hypot(dx, dy);
+        if (d <= SIZE / 2 + 9) {
+          hitBot(B, e, q.dmg, own); own.hits++;
+          B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
+          const nx = dx / (d || 1), ny = dy / (d || 1), dot = q.vx * nx + q.vy * ny;
+          if (dot < 0) { q.vx -= 2 * dot * nx; q.vy -= 2 * dot * ny; }
+          q.vx *= 0.85; q.vy *= 0.85; q.hits++; q.last = e.i; q.lastT = B.t;
+        }
+      }
+      if (q.life <= 0 || q.hits >= 3 || Math.hypot(q.vx, q.vy) < 110) B.saws.splice(k, 1);
     }
     for (let k = B.shells.length - 1; k >= 0; k--) {
       const q = B.shells[k];
@@ -1182,12 +799,11 @@ th {
 })(window);
 
 /* ============================================================================
- * 2. TABLETOP GAME LOOP, LIVE ARENA INTERACTIVITY & MULTI-TAB SYNC
+ * 2. MINIMALIST SCRAPYARD COMPOUND + HEARTHSTONE CARD ENGINE
  * ============================================================================ */
 (function () {
   'use strict';
   const $ = s => document.querySelector(s);
-  const $$ = s => document.querySelectorAll(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const rnd = Math.random, pick = a => a[Math.floor(rnd() * a.length)];
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1202,36 +818,50 @@ th {
     Dasher:   { lv: L(3, 0, 4, 1, 4, 1, 1), range: 'short', weapon: 'gun',    cal: 'medium', mod: 'flipper'},
     Burner:   { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid',   weapon: 'laser',  cal: 'medium', mod: 'emp'    },
     Lobber:   { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long',  weapon: 'mortar', cal: 'medium', mod: 'mines'  },
+    Buzzsaw:  { lv: L(3, 1, 3, 1, 4, 1, 1), range: 'mid',   weapon: 'saw',    cal: 'medium', mod: 'repair' },
   };
   const SCRAP = { lv: L(1, 0, 1, 1, 1, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium', mod: 'boom' };
   const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
 
-  const SCHEMES = {
-    bolts:    { name: 'Loose Bolts',      need: 0, target: 'team', text: 'Sabotage: target fights with −2 Armour next fight.', tamper: { armor: -2 } },
-    sugar:    { name: 'Sugar in Tank',    need: 0, target: 'team', text: 'Sabotage: target fights with −2 Speed next fight.', tamper: { speed: -2 } },
-    gears:    { name: 'Stripped Gears',   need: 0, target: 'team', text: 'Sabotage: target turret turns −2 levels slower.', tamper: { turret: -2 } },
-    lens:     { name: 'Smudged Lens',     need: 3, target: 'team', text: 'Sabotage: target fights with −2 Accuracy next fight.', tamper: { acc: -2 } },
-    pocket:   { name: 'Pickpocket',       need: 0, target: 'team', text: 'Steal up to 3 credits from a rival house.' },
-    night:    { name: 'Night Shift',      need: 0, target: 'self', text: 'Your mechanics work overtime: gain +4 credits.' },
-    press:    { name: 'Bribe the Press',  need: 5, target: 'self', text: 'Pay 3 credits to gain +1 Fame immediately.' },
-    smear:    { name: 'Smear Campaign',   need: 7, target: 'team', text: 'Rival house loses −1 Fame.' },
-    overtime: { name: 'Secret Upgrade',   need: 4, target: 'self', text: 'Hidden: your robots gain +1 FP and +1 Armour next fight.', tamper: { fp: 1, armor: 1 } },
-    guard:    { name: 'Guard Dog',        need: 0, target: 'none', text: 'Reaction: 50% chance to foil the next scheme against you.' },
+  /* Unified Card Deck: Garage Schemes (Intrigue) + Live Combat Trigger Cards (Fight) */
+  const CARDS = {
+    // --- Garage Intrigue Schemes (Played in Intrigue phase) ---
+    bolts:     { name: 'Loose Bolts',      phase: 'intrigue', target: 'garage', need: 0, icon: '🔩', text: 'Sabotage a Garage: −2 Armour next fight.', tamper: { armor: -2 } },
+    sugar:     { name: 'Sugar in Tank',    phase: 'intrigue', target: 'garage', need: 0, icon: '🧪', text: 'Sabotage a Garage: −2 Speed next fight.', tamper: { speed: -2 } },
+    gears:     { name: 'Stripped Gears',   phase: 'intrigue', target: 'garage', need: 0, icon: '⚙️', text: 'Sabotage a Garage: −2 Turret turn next fight.', tamper: { turret: -2 } },
+    lens:      { name: 'Smudged Lens',     phase: 'intrigue', target: 'garage', need: 3, icon: '👁️', text: 'Sabotage a Garage: −2 Accuracy next fight.', tamper: { acc: -2 } },
+    pocket:    { name: 'Pickpocket',       phase: 'intrigue', target: 'garage', need: 0, icon: '🤏', text: 'Steal up to 3 Credits from target Garage.' },
+    night:     { name: 'Night Shift',      phase: 'intrigue', target: 'self',   need: 0, icon: '🛠️', text: 'Your mechanics work late: gain +4 Credits.' },
+    press:     { name: 'Bribe Press',      phase: 'intrigue', target: 'self',   need: 5, icon: '📰', text: 'Pay 3 Credits: gain +1 Fame immediately.' },
+    overtime:  { name: 'Secret Upgrade',   phase: 'intrigue', target: 'self',   need: 4, icon: '⚡', text: 'Hidden: your robots get +1 FP & +1 AR next fight.', tamper: { fp: 1, armor: 1 } },
+    guard:     { name: 'Guard Dog',        phase: 'reaction', target: 'none',   need: 0, icon: '🐕', text: 'Keep in hand: 50% chance to foil sabotage on your Garage.' },
+
+    // --- Live Arena Combat Cards (Played DURING the Fight by dragging into the Arena!) ---
+    trigger:   { name: 'Remote Trigger',   phase: 'fight',    target: 'bot',    need: 0, icon: '🎛️', text: 'Live Fight: Trigger target robot\'s Surprise Module right now!' },
+    waypoint:  { name: 'Pilot Waypoint',   phase: 'fight',    target: 'arena',  need: 0, icon: '📍', text: 'Live Fight: Order your fighter to drive to this exact Arena spot.' },
+    overclock: { name: 'Target Overclock', phase: 'fight',    target: 'bot',    need: 0, icon: '🎯', text: 'Live Fight: Target robot gets +45% speed & fire rate for 3.5s.' },
+    oil_card:  { name: 'Oil Canister',     phase: 'fight',    target: 'arena',  need: 0, icon: '🛢️', text: 'Live Fight: Splash oil on the Arena floor (spins & slows bots).' },
+    emp_card:  { name: 'EMP Grenade',      phase: 'fight',    target: 'arena',  need: 2, icon: '🧲', text: 'Live Fight: Lob a 0.75s fuse EMP pulse onto the Arena floor.' },
   };
-  const SCHEME_DECK = ['bolts','bolts','sugar','sugar','gears','gears','lens','pocket','pocket','night','night','press','press','smear','overtime','overtime','guard','guard','guard'];
+
+  const DECK_TEMPLATE = [
+    'bolts', 'sugar', 'gears', 'lens', 'pocket', 'night', 'press', 'overtime', 'guard', 'guard',
+    'trigger', 'trigger', 'trigger', 'waypoint', 'waypoint', 'overclock', 'overclock', 'oil_card', 'emp_card'
+  ];
 
   const LOTS = {
-    plate:  { name: 'Armour Plate',    text: '+1 Armour on one robot.', stat: 'armor' },
-    engine: { name: 'Tuned Engine',    text: '+1 Speed on one robot.', stat: 'speed' },
-    motor:  { name: 'Turret Motor',    text: '+1 Turret turn on one robot.', stat: 'turret' },
-    chip:   { name: 'Targeting Chip',  text: '+1 Accuracy on one robot.', stat: 'acc' },
-    hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
-    laser:  { name: 'Laser Retrofit',  text: 'Weapon becomes a Laser (ignores armour).', weapon: 'laser' },
-    mortar: { name: 'Mortar Retrofit', text: 'Weapon becomes a Mortar (lobbed splash).', weapon: 'mortar' },
-    rapid:  { name: 'Rapid-fire Kit',  text: 'Gun becomes rapid calibre.', cal: 'rapid' },
-    heavy:  { name: 'Heavy Cannon',    text: 'Gun becomes heavy calibre.', cal: 'heavy' },
-    robot:  { name: 'New Robot',       text: 'Add a fresh robot to your garage (max 3).', robot: true },
-    mech:   { name: 'Hire Mechanic',   text: '+1 credit income every Upkeep.', mech: true },
+    plate:  { name: 'Armour Plate',    icon: '🛡️', text: '+1 Armour',   stat: 'armor' },
+    engine: { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed',    stat: 'speed' },
+    motor:  { name: 'Turret Motor',    icon: '🔄', text: '+1 Turret',   stat: 'turret' },
+    chip:   { name: 'Targeting Chip',  icon: '🎯', text: '+1 Accuracy', stat: 'acc' },
+    hull:   { name: 'Reinforced Hull', icon: '🧱', text: '+1 Health',   stat: 'hp' },
+    laser:  { name: 'Laser Retrofit',  icon: '🔦', text: 'Laser Beam',  weapon: 'laser' },
+    mortar: { name: 'Mortar Retrofit', icon: '💣', text: 'Lob Mortar',  weapon: 'mortar' },
+    saw:    { name: 'Buzzsaw Launcher',icon: '⚙️', text: 'Bouncing Saw',weapon: 'saw' },
+    rapid:  { name: 'Rapid-fire Kit',  icon: '🔫', text: 'Rapid Gun',   cal: 'rapid' },
+    heavy:  { name: 'Heavy Cannon',    icon: '💥', text: 'Heavy Shells',cal: 'heavy' },
+    robot:  { name: 'New Robot',       icon: '🤖', text: '+1 Robot',    robot: true },
+    mech:   { name: 'Hire Mechanic',   icon: '🔧', text: '+1 Mechanic', mech: true },
   };
 
   const TEAMS = [
@@ -1244,55 +874,71 @@ th {
     ['upkeep', '1. Upkeep'],
     ['intrigue', '2. Intrigue'],
     ['market', '3. Market'],
-    ['arena', '4. Arena Host'],
-    ['bets', '5. Betting'],
-    ['fight', '6. Live Fight'],
-    ['after', '7. Aftermath'],
+    ['arena', '4. Host'],
+    ['bets', '5. Bets'],
+    ['fight', '6. Fight'],
+    ['after', '7. Fate'],
   ];
 
   let G = null;
-  let viewerSeat = 0; // Which house this browser tab is viewing/controlling
-  let selectedHazard = null; // 'oil' | 'emp' | 'heal'
-  let speedMult = 1;
+  let viewerSeat = 0;
   let botSeq = 0;
 
-  // Multi-tab BroadcastChannel so opening multiple tabs syncs live arena commands!
-  const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('robocus_table_v1') : null;
+  /* World Coordinate System:
+   * Arena Pit is centered at (0, 0) with size 900 x 560: x in [-450, 450], y in [-280, 280].
+   * 4 Garages sit around the Arena Pit:
+   * - Pos 0 (South - Viewer): centered at (0, +425), size 620 x 170
+   * - Pos 1 (West):           centered at (-615, 0), size 220 x 480
+   * - Pos 2 (North):          centered at (0, -425), size 620 x 170
+   * - Pos 3 (East):           centered at (+615, 0), size 220 x 480
+   */
+  const cam = { x: 0, y: 35, zoom: 0.68, tx: 0, ty: 35, tzoom: 0.68, manualZoom: false };
+  const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false };
+  let dragCard = null; // { idx, id, card, sx, sy, curX, curY }
+  let hitRegions = []; // Interactive canvas regions rebuilt each frame
+  let weldSparks = []; // Visual sparks when repairing/upgrading in garage
+
+  // Multi-tab BroadcastChannel sync
+  const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('robocus_compound_v2') : null;
   if (bc) {
     bc.onmessage = ev => {
       const msg = ev.data;
-      if (!msg) return;
-      if (msg.type === 'LIVE_CMD' && G && G.fight && G.fight.B && !G.fight.B.over) {
+      if (msg && msg.type === 'CARD_CMD' && G?.fight?.B && !G.fight.B.over) {
         Sim.queueCmd(G.fight.B, msg.cmd);
-        log(tname(msg.seat) + ' triggered <b>' + esc(msg.label) + '</b>!', msg.seat === viewerSeat ? 'me' : '');
+        notify(G.teams[msg.seat].name + ' played ' + msg.name + '!', G.teams[msg.seat].col);
       }
     };
   }
 
+  function notify(html, borderCol) {
+    const t = $('#ticker');
+    const d = document.createElement('div');
+    d.className = 'tick-msg';
+    if (borderCol) d.style.borderLeftColor = borderCol;
+    d.innerHTML = html;
+    t.appendChild(d);
+    while (t.children.length > 5) t.removeChild(t.firstChild);
+    setTimeout(() => { if (d.parentNode) d.remove(); }, 6500);
+  }
+
   function mkRobot(name, b) {
-    const mods = Object.keys(Sim.MODS);
     const copy = clone(b);
-    if (!copy.mod) copy.mod = pick(mods);
+    if (!copy.mod) copy.mod = pick(Object.keys(Sim.MODS));
     return { id: ++botSeq, name, b: copy, dmg: 0, wins: 0 };
   }
   const me = () => G.teams[viewerSeat];
-  const tname = i => '<b style="color:' + G.teams[i].col + '">' + esc(G.teams[i].name) + '</b>';
   const maxHp = r => Sim.LV.hp[r.b.lv.hp];
   const power = r => Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) - r.dmg / 20;
   function buildText(r) {
     const w = r.b.weapon === 'gun' ? r.b.cal + ' gun' : r.b.weapon;
-    return w + ' · ' + r.b.range + ' · ' + Sim.STATS.map(k => SHORT[k] + r.b.lv[k]).join(' ');
+    return w + ' · ' + r.b.range;
   }
-  function log(html, cls) {
-    const d = document.createElement('div');
-    if (cls) d.className = cls;
-    d.innerHTML = html;
-    const box = $('#log');
-    box.appendChild(d);
-    box.scrollTop = 1e6;
-  }
-  function drawCard() {
-    if (!G.deck.length) G.deck = shuffle(SCHEME_DECK.slice());
+  function draw1(preferPhase) {
+    if (!G.deck.length) G.deck = shuffle(DECK_TEMPLATE.slice());
+    if (preferPhase) {
+      const idx = G.deck.findIndex(k => CARDS[k].phase === preferPhase);
+      if (idx >= 0) return G.deck.splice(idx, 1)[0];
+    }
     return G.deck.pop();
   }
   function fightBuild(ti, r) {
@@ -1302,106 +948,153 @@ th {
     return b;
   }
 
-  /* ---------- Render Tabletop Stations & Hand ---------- */
-  function renderBoard() {
-    $('#roundLbl').textContent = 'Round ' + G.round;
-    $('#phases').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
+  /* ---------- Top Bar & Prompt Bar ---------- */
+  function updateHud() {
+    $('#roundBadge').textContent = 'R' + G.round;
+    $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
+    renderPromptBar();
+    renderHand();
+  }
 
-    // Map viewerSeat to the bottom station (#seat-0), and the other 3 seats around the table
-    const order = [viewerSeat, (viewerSeat + 1) % 4, (viewerSeat + 2) % 4, (viewerSeat + 3) % 4];
-    order.forEach((ti, posIdx) => {
-      const t = G.teams[ti];
-      const el = $('#seat-' + posIdx);
-      const isMe = ti === viewerSeat;
-      const isFighting = G.fight && G.fight.teams && G.fight.teams.includes(ti);
-      el.style.setProperty('--c', t.col);
-      el.classList.toggle('active-turn', G.host === ti || isFighting);
+  function renderPromptBar() {
+    const pb = $('#promptBar');
+    const t = me();
+    if (G.over) {
+      const w = G.teams.slice().sort((a, b) => b.fame - a.fame)[0];
+      pb.innerHTML = '<span>🏆 <b>' + esc(w.name) + '</b> wins the Championship (' + w.fame + ' Fame)!</span><button class="act" id="pAct1">New Game</button>';
+      $('#pAct1').onclick = newGame;
+      return;
+    }
+    if (G.phase === 'upkeep') {
+      pb.innerHTML = '<span>🔧 <b>Upkeep:</b> Click any damaged robot bay in your South Garage to repair (1 Cr / 20 HP).</span>' +
+        '<button class="act" id="pAct1">Done → Intrigue</button>';
+      $('#pAct1').onclick = startIntrigue;
+    } else if (G.phase === 'intrigue') {
+      pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> Drag a dark Scheme card from your hand onto a Garage, or Pass.</span>' +
+        '<button class="act secondary" id="pAct1">Pass Intrigue →</button>';
+      $('#pAct1').onclick = () => { notify('You pass on Intrigue.'); finishIntrigue(); };
+    } else if (G.phase === 'market') {
+      if (G.pendingInstall && G.pendingInstall.length) {
+        const lot = LOTS[G.pendingInstall[0].lot];
+        pb.innerHTML = '<span>🔩 <b>Install Part:</b> Click one of your Robot Bays in the South Garage to fit <b>' + esc(lot.name) + '</b>.</span>';
+      } else {
+        const spent = (G.myBids || [0, 0, 0, 0]).reduce((a, b) => a + b, 0);
+        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click the Blueprint Tiles in the Arena to stack Credit Chips (' + spent + '/' + t.credits + ' Cr).</span>' +
+          '<button class="act" id="pAct1">Lock Bids →</button>';
+        $('#pAct1').onclick = () => resolveMarket(G.myBids);
+      }
+    } else if (G.phase === 'arena') {
+      if (G.chooseMyBot) {
+        pb.innerHTML = '<span>⚔️ <b>Invited to Fight!</b> Click one of your Robot Bays in the South Garage to send it in.</span>' +
+          '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>';
+        $('#pAct1').onclick = declineInvite;
+      } else if (G.host === viewerSeat) {
+        const n = (G.pickTeams || []).length;
+        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the map to invite them (' + n + '/2 picked).</span>' +
+          '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
+        $('#pAct1').onclick = () => invite(G.pickTeams.slice());
+      }
+    } else if (G.phase === 'bets') {
+      const b0 = G.myBet[0], b1 = G.myBet[1];
+      pb.innerHTML = '<span>🎲 <b>Bookmaker Bets:</b> Click either Fighter Card in the Arena to wager up to 3 Cr (' + (b0 + b1) + ' Cr staked).</span>' +
+        '<button class="act" id="pAct1">Open Blast Doors & Fight! →</button>';
+      $('#pAct1').onclick = lockBetsAndRollout;
+    } else if (G.phase === 'fight') {
+      pb.innerHTML = '<span>⚔️ <b>Live Auto-Battle:</b> Drag gold <b>Combat Cards</b> from your hand into the Arena to trigger modules or waypoints!</span>' +
+        '<button class="act secondary" id="pAct1">Skip</button>';
+      $('#pAct1').onclick = () => { if (G.fight?.B) while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); };
+    } else if (G.phase === 'after') {
+      if (G.awaitingJudgment && G.host === viewerSeat) {
+        const lr = G.fight.loser.robot;
+        pb.innerHTML = '<span>👑 <b>Host Judgment:</b> Decide the fate of defeated <b>' + esc(lr.name) + '</b>:</span>' +
+          '<button class="act" id="pAct1">👍 Spare</button><button class="act secondary" id="pAct2" style="border-color:#ff6b6b;color:#ff9b9b">👎 Scrap</button>';
+        $('#pAct1').onclick = () => resolveFate(false);
+        $('#pAct2').onclick = () => resolveFate(true);
+      } else {
+        pb.innerHTML = '<span>🏁 <b>Aftermath:</b> Survivors return to their garages.</span>' +
+          '<button class="act" id="pAct1">Next Round →</button>';
+        $('#pAct1').onclick = () => { G.round++; G.host = -1; G.fight = null; startRound(); };
+      }
+    }
+  }
 
-      const pips = Array.from({ length: WIN_FAME }, (_, k) => '<div class="fame-pip' + (k < t.fame ? ' on' : '') + '"></div>').join('');
-      const secretCount = Object.keys(t.tamper).length;
+  /* ---------- Hearthstone Arched Hand Rendering & Drag Physics ---------- */
+  function isCardPlayable(id) {
+    const c = CARDS[id], t = me();
+    if (!c) return false;
+    if (G.phase === 'intrigue' && c.phase === 'intrigue') {
+      if (t.fame < c.need) return false;
+      if (id === 'press' && t.credits < 3) return false;
+      return true;
+    }
+    if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
+      if (t.fame < c.need) return false;
+      return true;
+    }
+    return false;
+  }
 
-      let baysHtml = '<div class="bays">';
-      t.robots.forEach(r => {
-        const curHp = Math.max(0, maxHp(r) - r.dmg);
-        const pct = Math.round(curHp / maxHp(r) * 100);
-        const inRing = G.fight && G.fight.robots && G.fight.robots.includes(r);
-        const modLabel = isMe ? (Sim.MODS[r.b.mod]?.name || 'Module') : '? Secret Module';
-        baysHtml += '<div class="bay' + (inRing ? ' fighting' : '') + '">' +
-          '<div class="bay-top"><b>' + esc(r.name) + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : '') + '</b><span>' + curHp + '/' + maxHp(r) + ' HP</span></div>' +
-          '<div class="hp-mini"><i style="width:' + pct + '%"></i></div>' +
-          '<div class="bay-specs">' + esc(buildText(r)) + '</div>' +
-          '<span class="mod-chip' + (isMe ? '' : ' hidden-mod') + '">⚙️ ' + esc(modLabel) + '</span>' +
-          '</div>';
-      });
-      baysHtml += '</div>';
+  function renderHand() {
+    const stage = $('#handStage');
+    const hand = me().hand;
+    stage.innerHTML = '';
+    const n = hand.length;
+    hand.forEach((id, i) => {
+      const c = CARDS[id];
+      const playable = isCardPlayable(id);
+      const mid = (n - 1) / 2;
+      const off = i - mid;
+      const angle = off * 6.5;
+      const hx = off * 108;
+      const hy = Math.abs(off) * Math.abs(off) * 5;
+
+      const el = document.createElement('div');
+      el.className = 'hs-card ' +
+        (c.phase === 'fight' ? 'combat-card ' : c.phase === 'reaction' ? 'reaction-card ' : '') +
+        (playable ? 'playable' : 'unplayable');
+      el.style.setProperty('--hx', hx + 'px');
+      el.style.transform = `translate(${hx}px, ${hy}px) rotate(${angle}deg)`;
+      el.style.zIndex = String(10 + i);
+
+      const typeLbl = c.phase === 'fight' ? '⚡ Live Combat' : c.phase === 'reaction' ? '🛡️ Reaction' : '🕵️ Intrigue';
+      const targetHint = c.target === 'garage' ? 'Drag to Rival Garage' :
+                         c.target === 'self'   ? 'Drag to Your Garage' :
+                         c.target === 'bot'    ? 'Drag to Arena Robot' :
+                         c.target === 'arena'  ? 'Drag to Arena Floor' : 'Passive in Hand';
 
       el.innerHTML =
-        '<div class="station-head">' +
-          '<h3>' + esc(t.name) + (isMe ? ' <span class="muted" style="font-weight:400">(Your Seat)</span>' : '') + '</h3>' +
-          (G.host === ti ? '<span class="badge host">👑 Host</span>' : '') +
-          (secretCount ? '<span class="badge secret">🕵️ Tampered</span>' : '') +
-        '</div>' +
-        '<div class="fame-track" title="' + t.fame + ' / ' + WIN_FAME + ' Fame">' + pips + '</div>' +
-        '<div class="tokens">' +
-          '<span class="token">⭐ <b>' + t.fame + '</b> Fame</span>' +
-          '<span class="token">🪙 <b>' + t.credits + '</b> Cr</span>' +
-          '<span class="token">🔧 <b>' + t.mechs + '</b> Mechs</span>' +
-          '<span class="token">🃏 <b>' + t.hand.length + '</b> Cards</span>' +
-        '</div>' +
-        baysHtml;
-    });
+        '<div class="hs-top"><span class="hs-badge">' + typeLbl + '</span>' +
+          (c.need ? '<span class="hs-need">★' + c.need + '</span>' : '') + '</div>' +
+        '<div class="hs-art">' + c.icon + '</div>' +
+        '<div class="hs-title">' + esc(c.name) + '</div>' +
+        '<div class="hs-desc">' + esc(c.text) + '</div>' +
+        '<div class="hs-footer">' + targetHint + '</div>';
 
-    renderHandZone();
-    updateBattleDockUI();
-  }
-
-  function renderHandZone() {
-    const t = me();
-    const hz = $('#handZone');
-    let h = '<div class="hand-zone-head"><b>Your Hand (' + esc(t.name) + ')</b><span class="muted" style="font-size:12px">' +
-      (G.phase === 'intrigue' ? 'Click a scheme card below to prepare it' : 'Cards can be played in the Intrigue phase') + '</span></div>';
-    h += '<div class="hand-cards">';
-    if (!t.hand.length) {
-      h += '<span class="muted">No cards in hand. Draw 2 at Upkeep.</span>';
-    } else {
-      t.hand.forEach((id, k) => {
-        const s = SCHEMES[id];
-        const canPlay = G.phase === 'intrigue' && s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3);
-        const sel = G.phase === 'intrigue' && G.selCard === k;
-        h += '<button class="playing-card' + (sel ? ' sel' : '') + '" data-hcard="' + k + '"' + (canPlay ? '' : ' disabled') + '>' +
-          '<span class="ckind">' + (s.need ? 'Needs ' + s.need + ' Fame' : s.target === 'none' ? 'Reaction' : 'Scheme') + '</span>' +
-          '<span class="cname">' + esc(s.name) + '</span>' +
-          '<span class="ctext">' + esc(s.text) + '</span>' +
-        '</button>';
+      el.addEventListener('pointerdown', e => {
+        if (!isCardPlayable(id)) return;
+        e.preventDefault();
+        const rect = el.getBoundingClientRect();
+        dragCard = {
+          idx: i, id, card: c, el,
+          startX: rect.left + rect.width / 2,
+          startY: rect.top + rect.height / 2,
+          curX: e.clientX,
+          curY: e.clientY
+        };
+        el.classList.add('dragging');
       });
-    }
-    h += '</div>';
-    hz.innerHTML = h;
-    hz.querySelectorAll('[data-hcard]').forEach(btn => {
-      btn.onclick = () => {
-        G.selCard = +btn.dataset.hcard;
-        G.selTarget = null;
-        renderIntrigue();
-        renderHandZone();
-      };
+
+      stage.appendChild(el);
     });
   }
 
-  function showOverlay(html) {
-    const ov = $('#phaseOverlay');
-    ov.classList.remove('minimized');
-    ov.innerHTML = html;
-    $('#skipBtn').hidden = true;
-    renderBoard();
-  }
-
-  /* ---------- Phase 1: Upkeep ---------- */
+  /* ---------- Game Flow & Phases ---------- */
   function newGame() {
     const names = shuffle(Object.keys(PRESETS).concat(Object.keys(PRESETS)));
     G = {
       round: 1, phase: 'upkeep', host: -1,
       teams: TEAMS.map((t, i) => ({ ...t, i, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
-      deck: shuffle(SCHEME_DECK.slice()),
+      deck: shuffle(DECK_TEMPLATE.slice()),
       lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
       fight: null, over: false
     };
@@ -1410,19 +1103,30 @@ th {
         const n = names.pop();
         t.robots.push(mkRobot(n, PRESETS[n]));
       }
+      // Start everyone with 1 Intrigue card and 1 Live Combat card
+      t.hand.push(draw1('intrigue'), draw1('fight'));
     }
-    $('#log').innerHTML = '';
-    log('<b>Welcome to ROBOCUs Tabletop!</b> First house to ' + WIN_FAME + ' Fame wins.', 'r');
+    notify('<b>Scrapyard Compound Online.</b> First house to 12 Fame wins!', '#111');
     startRound();
+  }
+
+  function setCameraGoal(mode) {
+    if (cam.manualZoom) return;
+    if (mode === 'arena') {
+      cam.tx = 0; cam.ty = 25; cam.tzoom = 1.02;
+    } else {
+      cam.tx = 0; cam.ty = 35; cam.tzoom = 0.68;
+    }
   }
 
   function startRound() {
     G.phase = 'upkeep';
-    log('Round ' + G.round + ' begins', 'r');
+    setCameraGoal('compound');
     for (const t of G.teams) {
       t.credits = Math.max(0, t.credits + t.mechs - t.robots.length);
-      t.hand.push(drawCard(), drawCard());
-      while (t.hand.length > 4) t.hand.shift();
+      // Draw 1 intrigue card + 1 combat card so player always has both schemes and battle triggers!
+      t.hand.push(draw1('intrigue'), draw1('fight'));
+      while (t.hand.length > 5) t.hand.shift();
       if (t.i !== viewerSeat) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
           const c = Math.ceil(r.dmg / 20);
@@ -1430,165 +1134,74 @@ th {
         }
       }
     }
-    log('Upkeep: +1 Cr per mechanic, −1 Cr per robot, and 2 Intrigue cards drawn.');
-    renderUpkeep();
+    notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics paid out; cards drawn.', '#111');
+    updateHud();
   }
 
-  function renderUpkeep() {
-    const t = me();
-    let h = '<h2><span>1. Upkeep & Garage Repairs</span><span class="badge">Income: +' + t.mechs + ' Cr · Upkeep: −' + t.robots.length + ' Cr</span></h2>';
-    h += '<p>Damage stays on your robots between rounds unless repaired (1 credit per 20 damage). You can also swap a robot\'s secret module for 1 credit.</p>';
-    h += '<table><tr><th>Robot</th><th>Build</th><th>Secret Module</th><th>Condition</th><th>Action</th></tr>';
-    t.robots.forEach((r, k) => {
-      const c = Math.ceil(r.dmg / 20);
-      const cur = Math.max(0, maxHp(r) - r.dmg);
-      h += '<tr><td><b>' + esc(r.name) + '</b></td><td class="muted">' + esc(buildText(r)) + '</td>' +
-        '<td><select data-mod="' + k + '">' + Object.keys(Sim.MODS).map(m => '<option value="' + m + '"' + (r.b.mod === m ? ' selected' : '') + '>' + Sim.MODS[m].name + '</option>').join('') + '</select></td>' +
-        '<td>' + cur + ' / ' + maxHp(r) + ' HP</td>' +
-        '<td>' + (c ? '<button data-rep="' + k + '"' + (c > t.credits ? ' disabled' : '') + '>Repair (' + c + ' Cr)</button>' : '<span class="muted">Ready</span>') + '</td></tr>';
-    });
-    h += '</table><div class="row"><button class="primary" id="toIntrigueBtn">Continue to Intrigue →</button></div>';
-    showOverlay(h);
-
-    $('#phaseOverlay').querySelectorAll('[data-rep]').forEach(b => b.onclick = () => {
-      const r = t.robots[+b.dataset.rep];
-      t.credits -= Math.ceil(r.dmg / 20);
-      r.dmg = 0;
-      renderUpkeep();
-    });
-    $('#phaseOverlay').querySelectorAll('[data-mod]').forEach(sel => sel.onchange = () => {
-      const r = t.robots[+sel.dataset.mod];
-      r.b.mod = sel.value;
-      renderBoard();
-    });
-    $('#toIntrigueBtn').onclick = startIntrigue;
-  }
-
-  /* ---------- Phase 2: Intrigue ---------- */
-  function playable(t, id) {
-    const s = SCHEMES[id];
-    return s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3);
-  }
   function startIntrigue() {
     G.phase = 'intrigue';
-    G.selCard = null;
-    G.selTarget = null;
-    renderIntrigue();
-  }
-  function renderIntrigue() {
-    const t = me();
-    let h = '<h2><span>2. Intrigue & Sabotage</span><span class="badge">Secret Schemes</span></h2>';
-    h += '<p>Pick a card from your hand (below or here) to play, or pass. Sabotage stays face-down until the target\'s robot enters the arena!</p>';
-    h += '<div class="row">';
-    t.hand.forEach((id, k) => {
-      const s = SCHEMES[id], ok = playable(t, id);
-      h += '<button class="playing-card' + (G.selCard === k ? ' sel' : '') + '" data-oc="' + k + '"' + (ok ? '' : ' disabled') + '>' +
-        '<span class="ckind">' + (s.need ? 'Needs ' + s.need + ' Fame' : 'Scheme') + '</span>' +
-        '<span class="cname">' + esc(s.name) + '</span>' +
-        '<span class="ctext">' + esc(s.text) + '</span></button>';
-    });
-    h += '</div>';
-
-    if (G.selCard != null && SCHEMES[t.hand[G.selCard]].target === 'team') {
-      h += '<div class="row"><b>Target House:</b> ' +
-        G.teams.filter(x => x.i !== viewerSeat).map(x =>
-          '<button data-tgt="' + x.i + '" style="color:' + x.col + ';border-color:' + x.col + (G.selTarget === x.i ? ';outline:3px solid ' + x.col : '') + '">' + esc(x.name) + '</button>'
-        ).join('') + '</div>';
-    }
-    const ready = G.selCard != null && (SCHEMES[t.hand[G.selCard]].target === 'self' || G.selTarget != null);
-    h += '<div class="row"><button class="primary" id="playSchemeBtn"' + (ready ? '' : ' disabled') + '>Play Scheme</button><button id="passSchemeBtn">Pass</button></div>';
-    showOverlay(h);
-
-    $('#phaseOverlay').querySelectorAll('[data-oc]').forEach(b => b.onclick = () => { G.selCard = +b.dataset.oc; G.selTarget = null; renderIntrigue(); });
-    $('#phaseOverlay').querySelectorAll('[data-tgt]').forEach(b => b.onclick = () => { G.selTarget = +b.dataset.tgt; renderIntrigue(); });
-    $('#playSchemeBtn').onclick = () => {
-      const id = t.hand[G.selCard];
-      t.hand.splice(G.selCard, 1);
-      resolveScheme(viewerSeat, id, SCHEMES[id].target === 'self' ? viewerSeat : G.selTarget);
-      finishIntrigue();
-    };
-    $('#passSchemeBtn').onclick = () => { log(tname(viewerSeat) + ' passes on Intrigue.', 'me'); finishIntrigue(); };
+    setCameraGoal('compound');
+    updateHud();
   }
 
-  function resolveScheme(from, id, to) {
-    const s = SCHEMES[id], F = G.teams[from], T = G.teams[to];
+  function executeSchemeCard(from, id, to) {
+    const s = CARDS[id], F = G.teams[from], T = G.teams[to];
     if (to !== from) {
       const g = T.hand.indexOf('guard');
       if (g >= 0) {
         T.hand.splice(g, 1);
         if (rnd() < 0.5) {
-          log(tname(to) + '\'s <b>Guard Dog</b> caught a saboteur in the garage! Scheme foiled!', 'me');
+          notify('🐕 <b>' + esc(T.name) + '\'s Guard Dog</b> foiled a sabotage attempt!', T.col);
           return;
         }
       }
     }
-    switch (id) {
-      case 'pocket': {
-        const n = Math.min(3, T.credits);
-        T.credits -= n; F.credits += n;
-        log(tname(from) + ' pickpockets ' + n + ' Cr from ' + tname(to) + '.');
-        break;
-      }
-      case 'night': F.credits += 4; log(tname(from) + ' runs a Night Shift (+4 Cr).'); break;
-      case 'press': F.credits -= 3; F.fame += 1; log(tname(from) + ' bribes the press (+1 Fame).'); break;
-      case 'smear': T.fame = Math.max(0, T.fame - 1); log(tname(to) + ' loses 1 Fame to a Smear Campaign!'); break;
-      default: {
-        for (const k in s.tamper) T.tamper[k] = (T.tamper[k] || 0) + s.tamper[k];
-        T.schemeLog.push({ from, id });
-        if (from === to) log(tname(from) + ' installs a secret modification behind closed doors.');
-        else log('Someone snuck into ' + tname(to) + '\'s garage last night…');
-      }
+    if (id === 'pocket') {
+      const n = Math.min(3, T.credits);
+      T.credits -= n; F.credits += n;
+      notify('🤏 <b>' + esc(F.name) + '</b> pickpocketed ' + n + ' Cr from ' + esc(T.name) + '!', F.col);
+    } else if (id === 'night') {
+      F.credits += 4;
+      notify('🛠️ <b>' + esc(F.name) + '</b> ran a Night Shift (+4 Cr).', F.col);
+    } else if (id === 'press') {
+      F.credits -= 3; F.fame += 1;
+      notify('📰 <b>' + esc(F.name) + '</b> bribed the press (+1 Fame).', F.col);
+    } else if (s.tamper) {
+      for (const k in s.tamper) T.tamper[k] = (T.tamper[k] || 0) + s.tamper[k];
+      T.schemeLog.push({ from, id });
+      if (from === to) notify('⚡ <b>' + esc(F.name) + '</b> fitted a secret garage upgrade.', F.col);
+      else notify('🕵️ Saboteur snuck into <b>' + esc(T.name) + '</b>\'s garage!', T.col);
     }
   }
+
   function finishIntrigue() {
     for (const t of G.teams) {
       if (t.i === viewerSeat) continue;
-      const opts = t.hand.map((id, k) => ({ id, k })).filter(o => playable(t, o.id));
-      if (!opts.length || rnd() < 0.25) continue;
-      const o = pick(opts);
-      t.hand.splice(o.k, 1);
+      const idx = t.hand.findIndex(id => CARDS[id].phase === 'intrigue' && t.fame >= CARDS[id].need && !(id === 'press' && t.credits < 3));
+      if (idx < 0 || rnd() < 0.3) continue;
+      const id = t.hand.splice(idx, 1)[0];
       let to = t.i;
-      if (SCHEMES[o.id].target === 'team') {
+      if (CARDS[id].target === 'garage') {
         const others = G.teams.filter(x => x.i !== t.i);
-        const lead = others.slice().sort((a, b) => b.fame - a.fame)[0];
-        to = rnd() < 0.55 ? lead.i : pick(others).i;
+        to = others.sort((a, b) => b.fame - a.fame)[0].i;
       }
-      resolveScheme(t.i, o.id, to);
+      executeSchemeCard(t.i, id, to);
     }
     if (checkWin()) return;
     startMarket();
   }
 
-  /* ---------- Phase 3: Sealed-Bid Market ---------- */
+  /* ---------- Phase 3: Spatial Market on Arena Floor ---------- */
   function startMarket() {
     G.phase = 'market';
+    setCameraGoal('compound');
     if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot']));
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
-    renderMarket();
+    G.myBids = [0, 0, 0, 0];
+    G.pendingInstall = [];
+    updateHud();
   }
-  function renderMarket() {
-    const t = me();
-    let h = '<h2><span>3. Scrapyard Market — Sealed Bids</span><span class="badge">Your Budget: ' + t.credits + ' Cr</span></h2>';
-    h += '<p>Place secret bids on parts and the right to Host. Highest bid wins; ties go to lower Fame.</p>';
-    h += '<div class="lot-grid">';
-    G.market.forEach((id, k) => {
-      h += '<div class="lot-card"><div><b>📦 ' + esc(LOTS[id].name) + '</b><p style="font-size:12px;margin-top:3px">' + esc(LOTS[id].text) + '</p></div>' +
-        '<label class="row">Bid: <input type="number" min="0" max="' + t.credits + '" value="0" id="bid' + k + '"> Cr</label></div>';
-    });
-    h += '<div class="lot-card" style="background:#fffbeb;border-color:#d99b00"><div><b>👑 Host the Fight</b><p style="font-size:12px;margin-top:3px">+1 Fame immediately, pick the 2 houses that fight, and judge the loser.</p></div>' +
-      '<label class="row">Bid: <input type="number" min="0" max="' + t.credits + '" value="0" id="bidH"> Cr</label></div>';
-    h += '</div><div class="row"><button class="primary" id="subBidsBtn">Reveal All Sealed Bids →</button><span class="muted" id="bidMsg"></span></div>';
-    showOverlay(h);
 
-    $('#subBidsBtn').onclick = () => {
-      const bids = [0, 1, 2].map(k => Math.max(0, Math.floor(+$('#bid' + k).value || 0))).concat([Math.max(0, Math.floor(+$('#bidH').value || 0))]);
-      if (bids.reduce((a, b) => a + b, 0) > t.credits) {
-        $('#bidMsg').textContent = 'Total bids exceed your ' + t.credits + ' credits!';
-        return;
-      }
-      resolveMarket(bids);
-    };
-  }
   function aiBids(t) {
     let budget = t.credits;
     return [0, 1, 2, 3].map(k => {
@@ -1620,12 +1233,12 @@ th {
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.weapon) r.b.weapon = L.weapon;
     if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
-    if (L.weapon === 'laser') r.b.range = 'mid';
+    if (L.weapon === 'laser' || L.weapon === 'saw') r.b.range = 'mid';
     if (L.weapon === 'mortar') r.b.range = 'long';
   }
+
   function resolveMarket(myBids) {
     const all = G.teams.map(t => t.i === viewerSeat ? myBids : aiBids(t));
-    let h = '<h2>3. Auction Results</h2><table><tr><th>Lot</th>' + G.teams.map(t => '<th style="color:' + t.col + '">' + esc(t.name) + '</th>').join('') + '<th>Winner</th></tr>';
     const wins = [];
     for (let k = 0; k < 4; k++) {
       const col = all.map(b => b[k]);
@@ -1636,50 +1249,33 @@ th {
         w = cand[0].i;
         G.teams[w].credits -= mx;
       }
-      const label = k < 3 ? LOTS[G.market[k]].name : '👑 Host the Fight';
-      h += '<tr><td><b>' + label + '</b></td>' + col.map((b, i) => '<td' + (i === w ? ' style="font-weight:800;color:' + G.teams[i].col + '"' : '') + '>' + b + '</td>').join('') + '<td>' + (w >= 0 ? tname(w) : '<span class="muted">No bids</span>') + '</td></tr>';
       if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
       if (k === 3) G.host = w >= 0 ? w : Math.floor(rnd() * 4);
     }
-    h += '</table>';
-    for (const x of wins) log(tname(x.team) + ' wins <b>' + LOTS[x.lot].name + '</b> for ' + x.price + ' Cr.');
-    log(tname(G.host) + ' is the Arena Host (+1 Fame).');
+    for (const x of wins) notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + esc(LOTS[x.lot].name) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
     G.teams[G.host].fame += 1;
+    notify('👑 <b>' + esc(G.teams[G.host].name) + '</b> is Arena Host (+1 Fame).', G.teams[G.host].col);
+
     G.pendingInstall = wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
     for (const x of wins) {
-      if (x.team !== viewerSeat || !needsRobot(x.lot)) applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+      if (x.team !== viewerSeat || !needsRobot(x.lot)) {
+        applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+      }
     }
-    G.marketTable = h;
-    renderInstall();
-  }
-  function renderInstall() {
     if (checkWin()) return;
-    const t = me();
-    let h = G.marketTable;
-    if (G.pendingInstall.length) {
-      const x = G.pendingInstall[0];
-      h += '<div class="row"><b>Install ' + esc(LOTS[x.lot].name) + ' on:</b> ' +
-        t.robots.map((r, k) => '<button data-inst="' + k + '">' + esc(r.name) + '</button>').join('') + '</div>';
-      showOverlay(h);
-      $('#phaseOverlay').querySelectorAll('[data-inst]').forEach(b => b.onclick = () => {
-        applyLot(viewerSeat, x.lot, t.robots[+b.dataset.inst]);
-        G.pendingInstall.shift();
-        renderInstall();
-      });
-    } else {
-      h += '<div class="row"><button class="primary" id="toArenaBtn">Proceed to Arena Invitations →</button></div>';
-      showOverlay(h);
-      $('#toArenaBtn').onclick = startArena;
-    }
+    if (!G.pendingInstall.length) startArena();
+    else updateHud();
   }
 
-  /* ---------- Phase 4: Arena Host Invites ---------- */
+  /* ---------- Phase 4: Host Invites ---------- */
   function startArena() {
     G.phase = 'arena';
+    G.chooseMyBot = false;
+    setCameraGoal('compound');
     const H = G.host;
     if (H === viewerSeat) {
       G.pickTeams = [];
-      renderHostPick();
+      updateHud();
       return;
     }
     const host = G.teams[H];
@@ -1687,29 +1283,15 @@ th {
     let a, b;
     const best = host.robots.slice().sort((x, y) => power(y) - power(x))[0];
     if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) {
-      a = H;
-      b = others.slice().sort((x, y) => y.fame - x.fame)[0].i;
+      a = H; b = others.slice().sort((x, y) => y.fame - x.fame)[0].i;
     } else {
       const s = shuffle(others.slice());
       a = s[0].i; b = s[1].i;
     }
-    log(tname(H) + ' invites ' + tname(a) + ' and ' + tname(b) + ' into the Arena!');
+    notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + '!', host.col);
     invite([a, b]);
   }
-  function renderHostPick() {
-    let h = '<h2><span>4. You Are the Arena Host</span><span class="badge host">👑 Host Privilege</span></h2>';
-    h += '<p>Choose two houses to battle in the Arena (you may include yourself). Invited houses receive +2 Cr appearance fee; declining costs −1 Fame.</p><div class="row">' +
-      G.teams.map(t => '<button data-pt="' + t.i + '" style="color:' + t.col + ';border-color:' + t.col + (G.pickTeams.includes(t.i) ? ';outline:3px solid ' + t.col : '') + '">' + esc(t.name) + '</button>').join('') +
-      '</div><div class="row"><button class="primary" id="sendInviteBtn"' + (G.pickTeams.length === 2 ? '' : ' disabled') + '>Send Arena Invitations →</button></div>';
-    showOverlay(h);
-    $('#phaseOverlay').querySelectorAll('[data-pt]').forEach(b => b.onclick = () => {
-      const i = +b.dataset.pt, k = G.pickTeams.indexOf(i);
-      if (k >= 0) G.pickTeams.splice(k, 1);
-      else if (G.pickTeams.length < 2) G.pickTeams.push(i);
-      renderHostPick();
-    });
-    $('#sendInviteBtn').onclick = () => invite(G.pickTeams.slice());
-  }
+
   function invite(pair) {
     G.fight = { teams: pair, robots: [null, null] };
     pair.forEach((ti, s) => {
@@ -1718,33 +1300,27 @@ th {
         G.fight.robots[s] = t.robots.filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
       }
     });
-    if (pair.includes(viewerSeat)) renderChooseRobot();
-    else afterChoose();
-  }
-  function renderChooseRobot() {
-    const t = me(), s = G.fight.teams.indexOf(viewerSeat), opp = G.fight.teams[1 - s], oppR = G.fight.robots[1 - s];
-    let h = '<h2>4. Arena Invitation: Fight ' + tname(opp) + '!</h2>';
-    h += '<p>They field <b>' + esc(oppR.name) + '</b> (' + esc(buildText(oppR)) + '). Select which robot to roll into the Arena, or decline (−1 Fame).</p><div class="row">';
-    t.robots.forEach((r, k) => {
-      h += '<button class="playing-card" data-rb="' + k + '"><span class="ckind">' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' HP</span>' +
-        '<span class="cname">' + esc(r.name) + '</span><span class="ctext">' + esc(buildText(r)) + '<br>⚙️ ' + esc(Sim.MODS[r.b.mod]?.name || '') + '</span></button>';
-    });
-    h += '</div><div class="row"><button id="declBtn">Decline (−1 Fame)</button></div>';
-    showOverlay(h);
-    $('#phaseOverlay').querySelectorAll('[data-rb]').forEach(b => b.onclick = () => {
-      G.fight.robots[s] = t.robots[+b.dataset.rb];
+    if (pair.includes(viewerSeat)) {
+      G.chooseMyBot = true;
+      updateHud();
+    } else {
       afterChoose();
-    });
-    $('#declBtn').onclick = () => {
-      t.fame = Math.max(0, t.fame - 1);
-      const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
-      G.fight.teams[s] = repl.i;
-      G.fight.robots[s] = repl.robots.slice().sort((a, b) => power(b) - power(a))[0];
-      log(tname(viewerSeat) + ' declines (−1 Fame); ' + tname(repl.i) + ' steps in.');
-      afterChoose();
-    };
+    }
   }
+
+  function declineInvite() {
+    const t = me(), s = G.fight.teams.indexOf(viewerSeat);
+    t.fame = Math.max(0, t.fame - 1);
+    const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
+    G.fight.teams[s] = repl.i;
+    G.fight.robots[s] = repl.robots.slice().sort((a, b) => power(b) - power(a))[0];
+    G.chooseMyBot = false;
+    notify('You declined (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
+    afterChoose();
+  }
+
   function afterChoose() {
+    G.chooseMyBot = false;
     for (const ti of G.fight.teams) G.teams[ti].credits += 2;
     const [ra, rb] = G.fight.robots;
     let w = 0; const N = 40;
@@ -1762,304 +1338,575 @@ th {
     startBets();
   }
 
-  /* ---------- Phase 5: Bookmaker Bets ---------- */
+  /* ---------- Phase 5: Bets on Arena Floor ---------- */
   function startBets() {
     G.phase = 'bets';
-    const F = G.fight, t = me(), mine = F.teams.indexOf(viewerSeat);
-    let h = '<h2><span>5. Bookmaker Odds & Wagers</span><span class="badge">Simulated on Visible Stats</span></h2>';
-    h += '<p>Odds ignore secret sabotage, hidden modules, and live battle actions! Bet up to 3 Cr.</p><div class="vs-grid">';
-    F.teams.forEach((ti, s) => {
-      const r = F.robots[s], T = G.teams[ti];
-      h += (s === 1 ? '<div style="align-self:center;font-weight:900;font-size:18px">VS</div>' : '') +
-        '<div class="fighter-card" style="--c:' + T.col + '">' +
-          '<b style="color:' + T.col + ';font-size:15px">' + esc(T.name) + ' — ' + esc(r.name) + '</b>' +
-          '<span class="muted">' + esc(buildText(r)) + ' · ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r) + ' HP</span>' +
-          '<div class="odds-big">' + Math.round(F.p[s] * 100) + '% <span style="font-size:13px;font-weight:600;color:var(--muted)">(pays ' + F.pay[s] + '×)</span></div>' +
-          '<label class="row">Bet <input type="number" min="0" max="3" value="0" id="bet' + s + '"' + (mine >= 0 && mine !== s ? ' disabled' : '') + '> Cr</label>' +
-        '</div>';
-    });
-    h += '</div><div class="row"><button class="primary" id="lockBetsBtn">⚔️ Lock Bets & Start Live Fight!</button><span class="muted" id="betMsg"></span></div>';
-    showOverlay(h);
-
-    $('#lockBetsBtn').onclick = () => {
-      const b = [0, 1].map(s => Math.max(0, Math.min(3, Math.floor(+$('#bet' + s).value || 0))));
-      if (b[0] && b[1]) { $('#betMsg').textContent = 'Bet on one fighter only.'; return; }
-      if (b[0] + b[1] > t.credits) { $('#betMsg').textContent = 'Not enough credits.'; return; }
-      F.bets = [];
-      if (b[0] || b[1]) {
-        const s = b[0] ? 0 : 1;
-        F.bets.push({ team: viewerSeat, side: s, amt: b[s] });
-        t.credits -= b[s];
-        log(tname(viewerSeat) + ' bets ' + b[s] + ' Cr on <b>' + esc(F.robots[s].name) + '</b>.', 'me');
-      }
-      for (const T of G.teams) {
-        if (T.i === viewerSeat || T.credits < 2 || rnd() < 0.3) continue;
-        const own = F.teams.indexOf(T.i);
-        const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
-        const amt = Math.min(T.credits, 1 + Math.floor(rnd() * 3));
-        T.credits -= amt;
-        F.bets.push({ team: T.i, side, amt });
-        log(tname(T.i) + ' bets ' + amt + ' Cr on <b>' + esc(F.robots[side].name) + '</b>.');
-      }
-      startFight();
-    };
+    G.myBet = [0, 0];
+    setCameraGoal('compound');
+    updateHud();
   }
 
-  /* ---------- Phase 6: LIVE INTERACTIVE BATTLE ---------- */
+  function lockBetsAndRollout() {
+    const F = G.fight, t = me();
+    F.bets = [];
+    if (G.myBet[0] || G.myBet[1]) {
+      const s = G.myBet[0] ? 0 : 1;
+      F.bets.push({ team: viewerSeat, side: s, amt: G.myBet[s] });
+      t.credits -= G.myBet[s];
+      notify('🎲 You bet ' + G.myBet[s] + ' Cr on <b>' + esc(F.robots[s].name) + '</b>.', t.col);
+    }
+    for (const T of G.teams) {
+      if (T.i === viewerSeat || T.credits < 2 || rnd() < 0.3) continue;
+      const own = F.teams.indexOf(T.i);
+      const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
+      const amt = Math.min(T.credits, 1 + Math.floor(rnd() * 3));
+      T.credits -= amt;
+      F.bets.push({ team: T.i, side, amt });
+    }
+    startFight();
+  }
+
+  /* ---------- Phase 6: Garage Door Rollout + Auto-Zoom Fight ---------- */
   function startFight() {
     G.phase = 'fight';
     const F = G.fight;
     const builds = F.teams.map((ti, s) => fightBuild(ti, F.robots[s]));
     F.B = Sim.newBattle(builds, (rnd() * 4294967296) >>> 0);
     F.B.bots.forEach((b, s) => { b.hp = Math.max(10, b.hp - F.robots[s].dmg); });
-    F.crowdUsed = {}; // per-seat crowd action tracker
-    selectedHazard = null;
 
-    // Announce revealed sabotage / secret upgrades
+    // Rollout animation: robots start at their Garage Blast Door and drive into their Arena spawn point!
+    F.rollout = 0; // 0..1 over 1.25s
+    F.rolloutDone = false;
+
     F.teams.forEach((ti, s) => {
       const T = G.teams[ti];
       for (const e of T.schemeLog) {
-        const txt = e.from === ti ? '⚡ SECRET UPGRADE!' : '🔧 SABOTAGED: ' + SCHEMES[e.id].name.toUpperCase() + '!';
-        F.B.banners.push({ x: F.B.bots[s].x, y: F.B.bots[s].y - 36, text: txt, col: e.from === ti ? '#16a34a' : '#dc2626', life: 2.2 });
-        log(e.from === ti ? tname(ti) + ' reveals a Secret Upgrade!' : tname(ti) + '\'s ' + esc(F.robots[s].name) + ' suffers from <b>' + esc(SCHEMES[e.id].name) + '</b>!');
+        const txt = e.from === ti ? '⚡ SECRET UPGRADE!' : '🔧 SABOTAGED: ' + CARDS[e.id].name.toUpperCase() + '!';
+        F.B.banners.push({ x: F.B.bots[s].x, y: F.B.bots[s].y - 36, text: txt, col: e.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
       }
     });
 
-    // Slide away the tabletop overlay so the 60fps Arena is front and center
-    $('#phaseOverlay').classList.add('minimized');
-    $('#skipBtn').hidden = false;
-    renderBoard();
+    setCameraGoal('arena');
+    updateHud();
   }
 
-  // Determine which fighter slot (0 or 1) the current viewer controls during a fight
-  function myFighterSlot() {
-    if (!G || !G.fight || G.phase !== 'fight') return -1;
-    const idx = G.fight.teams.indexOf(viewerSeat);
-    // If viewerSeat is in the fight, control that robot; in quick test mode, allow controlling slot 0
-    return idx >= 0 ? idx : (G.fight.sandbox ? 0 : -1);
-  }
-
-  function sendLiveCommand(cmd, label) {
-    if (!G || !G.fight || !G.fight.B || G.fight.B.over) return;
-    Sim.queueCmd(G.fight.B, cmd);
-    if (bc) bc.postMessage({ type: 'LIVE_CMD', seat: viewerSeat, cmd, label });
-    log(tname(viewerSeat) + ' uses <b>' + esc(label) + '</b>!', 'me');
-    updateBattleDockUI();
-  }
-
-  function updateBattleDockUI() {
-    const inFight = G && G.phase === 'fight' && G.fight && G.fight.B && !G.fight.B.over;
-    const slot = myFighterSlot();
-    const bot = inFight && slot >= 0 ? G.fight.B.bots[slot] : null;
-
-    $('#btnOverdrive').disabled = !bot || bot.hp <= 0 || bot.overdriveUsed;
-    $('#btnPulse').disabled = !bot || bot.hp <= 0 || bot.surgeUsed;
-    $$('[data-stance]').forEach(btn => {
-      btn.disabled = !bot || bot.hp <= 0;
-      btn.classList.toggle('stance-on', !!bot && bot.stance === btn.dataset.stance);
-    });
-
-    const crowdDone = !inFight || !!(G.fight && G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat]);
-    $$('[data-hazard]').forEach(btn => {
-      btn.disabled = crowdDone;
-      btn.classList.toggle('active-tool', !crowdDone && selectedHazard === btn.dataset.hazard);
-    });
-
-    if (inFight && G.fight) {
-      const F = G.fight, b0 = F.B.bots[0], b1 = F.B.bots[1];
-      $('#hudVs').innerHTML =
-        '<span style="color:' + G.teams[F.teams[0]].col + '">◼ ' + esc(F.robots[0].name) + ' (' + Math.ceil(Math.max(0, b0.hp)) + ' HP)</span>' +
-        '<span class="muted">vs</span>' +
-        '<span style="color:' + G.teams[F.teams[1]].col + '">◼ ' + esc(F.robots[1].name) + ' (' + Math.ceil(Math.max(0, b1.hp)) + ' HP)</span>' +
-        (slot >= 0 ? '<span class="badge" style="background:#2563eb;color:#fff;border:none">You control ' + esc(F.robots[slot].name) + '</span>' : '<span class="badge">Spectating — use Crowd Toss!</span>');
-    } else {
-      $('#hudVs').textContent = 'Arena Standby · Use "Peek Arena" or "⚡ Test Live Battle" anytime';
-    }
-  }
-
-  // Wire up Fighter buttons & keyboard shortcuts
-  $('#btnOverdrive').onclick = () => {
-    const slot = myFighterSlot();
-    if (slot >= 0) sendLiveCommand({ kind: 'overdrive', bot: slot }, 'Overdrive');
-  };
-  $('#btnPulse').onclick = () => {
-    const slot = myFighterSlot();
-    if (slot >= 0) sendLiveCommand({ kind: 'surge', bot: slot }, 'Module Surge');
-  };
-  $$('[data-stance]').forEach(btn => {
-    btn.onclick = () => {
-      const slot = myFighterSlot();
-      if (slot >= 0) sendLiveCommand({ kind: 'stance', bot: slot, stance: btn.dataset.stance }, 'Stance: ' + btn.dataset.stance);
-    };
-  });
-  $$('[data-hazard]').forEach(btn => {
-    btn.onclick = () => {
-      selectedHazard = selectedHazard === btn.dataset.hazard ? null : btn.dataset.hazard;
-      updateBattleDockUI();
-    };
-  });
-
-  window.addEventListener('keydown', e => {
-    if (G?.phase !== 'fight' || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-    if (e.key === 'q' || e.key === 'Q') $('#btnOverdrive').click();
-    if (e.key === 'w' || e.key === 'W') $('#btnPulse').click();
-    if (e.key === '1') document.querySelector('[data-stance="auto"]')?.click();
-    if (e.key === '2') document.querySelector('[data-stance="charge"]')?.click();
-    if (e.key === '3') document.querySelector('[data-stance="kite"]')?.click();
-  });
-
-  // Click on Arena Canvas to toss selected Crowd Hazard (or trigger quick ripple)
-  const cv = $('#arenaCv'), ctx = cv.getContext('2d');
-  cv.addEventListener('click', e => {
-    if (!G || G.phase !== 'fight' || !G.fight || !G.fight.B || G.fight.B.over) return;
-    const rect = cv.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (Sim.W / rect.width);
-    const y = (e.clientY - rect.top) * (Sim.H / rect.height);
-    if (!selectedHazard && !(G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat])) {
-      selectedHazard = 'oil'; // default quick-toss if clicking arena directly
-    }
-    if (selectedHazard && !(G.fight.crowdUsed && G.fight.crowdUsed[viewerSeat])) {
-      G.fight.crowdUsed[viewerSeat] = true;
-      const hName = selectedHazard === 'oil' ? 'Oil Slick' : selectedHazard === 'emp' ? 'EMP Bomb' : 'Repair Patch';
-      sendLiveCommand({ kind: 'hazard', hazard: selectedHazard, x, y, by: viewerSeat }, 'Crowd ' + hName);
-      selectedHazard = null;
-      updateBattleDockUI();
-    }
-  });
-
-  // AI Live Battle Decisions (deterministic via B.rng)
-  function stepAiLiveActions(F) {
+  // AI plays a Combat Card from its hand during the fight (deterministic via B.rng)
+  function stepAiCombatCards(F) {
     const B = F.B;
-    if (B.over || B.tick % 45 !== 0) return;
+    if (B.over || B.tick % 60 !== 0) return;
     F.teams.forEach((ti, s) => {
       if (ti === viewerSeat) return;
-      const b = B.bots[s];
+      const T = G.teams[ti], b = B.bots[s];
       if (b.hp <= 0) return;
-      if (!b.overdriveUsed && b.hp < b.s.hp * 0.72 && B.rng() < 0.35) {
-        Sim.queueCmd(B, { kind: 'overdrive', bot: s });
-      } else if (!b.surgeUsed && b.hp < b.s.hp * 0.5 && B.rng() < 0.4) {
-        Sim.queueCmd(B, { kind: 'surge', bot: s });
+      const cIdx = T.hand.findIndex(id => CARDS[id].phase === 'fight' && T.fame >= CARDS[id].need);
+      if (cIdx < 0 || B.rng() > 0.35) return;
+      const id = T.hand.splice(cIdx, 1)[0];
+      if (id === 'trigger' || id === 'overclock') {
+        Sim.queueCmd(B, { card: id, bot: s });
+        notify('🃏 <b>' + esc(T.name) + '</b> played <b>' + esc(CARDS[id].name) + '</b>!', T.col);
+      } else if (id === 'oil_card' || id === 'emp_card') {
+        const foe = B.bots[1 - s];
+        Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y });
+        notify('🃏 <b>' + esc(T.name) + '</b> played <b>' + esc(CARDS[id].name) + '</b>!', T.col);
       }
     });
-    // Spectator AI with a bet might toss a hazard once
-    for (const bet of (F.bets || [])) {
-      if (bet.team === viewerSeat || F.crowdUsed[bet.team]) continue;
-      if (B.t > 4 && B.rng() < 0.12) {
-        F.crowdUsed[bet.team] = true;
-        const foe = B.bots[1 - bet.side];
-        if (foe && foe.hp > 0) {
-          Sim.queueCmd(B, { kind: 'hazard', hazard: B.rng() < 0.5 ? 'oil' : 'emp', x: foe.x, y: foe.y, by: bet.team });
-          log(tname(bet.team) + ' throws a hazard from the stands to protect their bet!');
-        }
-      }
-    }
   }
 
-  /* ---------- 60 FPS Arena Renderer ---------- */
-  let lastT = performance.now(), accT = 0, finishDelay = 0;
-  function frameLoop(now) {
-    requestAnimationFrame(frameLoop);
-    const dt = Math.min(0.1, (now - lastT) / 1000);
-    lastT = now;
+  /* ---------- Phase 7: Aftermath ---------- */
+  function aftermath() {
+    G.phase = 'after';
+    setCameraGoal('compound');
+    const F = G.fight, B = F.B, w = B.winner;
+    if (F.sandbox) {
+      G.awaitingJudgment = false;
+      updateHud();
+      return;
+    }
+    B.bots.forEach((b, s) => {
+      const r = F.robots[s];
+      r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp));
+    });
+    for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
 
-    if (G && G.phase === 'fight' && G.fight && G.fight.B) {
-      const F = G.fight, B = F.B;
-      accT += dt * speedMult;
-      while (accT >= 1 / 60 && !B.over) {
-        stepAiLiveActions(F);
-        Sim.step(B, 1 / 60);
-        accT -= 1 / 60;
+    if (w < 0) {
+      for (const x of F.bets) G.teams[x.team].credits += x.amt;
+      notify('Arena Draw! Bets refunded.', '#111');
+      G.awaitingJudgment = false;
+      updateHud();
+      return;
+    }
+    const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
+    G.teams[W].fame += 1; G.teams[W].credits += 3; wr.wins++;
+    if (wr.wins === 3) G.teams[W].fame += 1;
+    notify('🏆 <b>' + esc(wr.name) + '</b> (' + esc(W.name) + ') wins! +1 Fame, +3 Cr.', W.col);
+
+    for (const x of F.bets) {
+      if (x.side === w) {
+        const pay = Math.round(x.amt * F.pay[w]);
+        G.teams[x.team].credits += pay;
+        notify('🪙 <b>' + esc(G.teams[x.team].name) + '</b> won ' + pay + ' Cr on their bet!', G.teams[x.team].col);
       }
-      drawArena(ctx, F, now);
-      if (B.tick % 12 === 0) updateBattleDockUI();
-      if (B.over) {
-        finishDelay += dt;
-        if (finishDelay > 1.35) {
-          finishDelay = 0;
-          aftermath();
-        }
-      }
+    }
+    F.loser = { team: Lt, robot: lr };
+    if (G.host === viewerSeat) {
+      G.awaitingJudgment = true;
+      updateHud();
     } else {
-      drawStandbyArena(ctx, now);
+      const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
+      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < 3;
+      resolveFate(scrap);
     }
   }
 
-  function drawArenaFloor(ctx) {
-    const W = Sim.W, H = Sim.H;
-    ctx.fillStyle = '#faf9f5';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#ece8df';
-    ctx.lineWidth = 1;
-    for (let x = 60; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-    for (let y = 60; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    // Center ring
-    ctx.strokeStyle = '#e0dbd0';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(W / 2, H / 2, 110, 0, Math.PI * 2); ctx.stroke();
+  function resolveFate(scrap) {
+    G.awaitingJudgment = false;
+    const { team, robot } = G.fight.loser, T = G.teams[team];
+    if (scrap) {
+      if (robot.wins >= 3) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
+      T.robots.splice(T.robots.indexOf(robot), 1);
+      notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
+      if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
+    } else {
+      notify('👍 Host spared <b>' + esc(robot.name) + '</b>.', '#2a9d3a');
+    }
+    checkWin();
+    updateHud();
   }
 
-  function drawStandbyArena(ctx, now) {
-    drawArenaFloor(ctx);
-    if (!G) return;
-    const W = Sim.W, H = Sim.H;
-    // Show the 4 houses' lead robots idling in the 4 corners of the arena
-    const corners = [[130, 110], [W - 130, 110], [W - 130, H - 110], [130, H - 110]];
-    G.teams.forEach((t, i) => {
-      const r = t.robots[0];
-      if (!r) return;
-      const [cx, cy] = corners[i];
-      const a = Math.atan2(H / 2 - cy, W / 2 - cx) + Math.sin(now / 700 + i) * 0.25;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.strokeStyle = t.col;
-      ctx.globalAlpha = 0.25;
-      ctx.beginPath(); ctx.arc(0, 0, 38, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.rotate(a);
-      ctx.fillStyle = t.col;
-      ctx.fillRect(-15, -15, 30, 30);
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillRect(0, -2.5, 22, 5);
+  function checkWin() {
+    const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
+    if (!w.length) return false;
+    G.over = true;
+    updateHud();
+    return true;
+  }
+
+  /* ============================================================================
+   * 3. ARCHITECTURAL COMPOUND & ARENA RENDERER + SPATIAL HIT-TESTING
+   * ============================================================================ */
+  const cv = $('#worldCv'), ctx = cv.getContext('2d');
+
+  function screenToWorld(sx, sy) {
+    const W = window.innerWidth, H = window.innerHeight;
+    return {
+      x: (sx - W / 2) / cam.zoom + cam.x,
+      y: (sy - H / 2) / cam.zoom + cam.y
+    };
+  }
+  function worldToScreen(wx, wy) {
+    const W = window.innerWidth, H = window.innerHeight;
+    return {
+      x: (wx - cam.x) * cam.zoom + W / 2,
+      y: (wy - cam.y) * cam.zoom + H / 2
+    };
+  }
+
+  // Garage layout relative to viewerSeat (0=South, 1=West, 2=North, 3=East)
+  const GARAGE_SLOTS = [
+    { pos: 0, dir: 'S', gx: 0,    gy: 410,  gw: 620, gh: 165, doorX: 0,    doorY: 280 },
+    { pos: 1, dir: 'W', gx: -600, gy: 0,    gw: 215, gh: 480, doorX: -450, doorY: 0   },
+    { pos: 2, dir: 'N', gx: 0,    gy: -410, gw: 620, gh: 165, doorX: 0,    doorY: -280},
+    { pos: 3, dir: 'E', gx: 600,  gy: 0,    gw: 215, gh: 480, doorX: 450,  doorY: 0   },
+  ];
+
+  function teamAtPos(pos) { return (viewerSeat + pos) % 4; }
+  function posOfTeam(ti) { return (ti - viewerSeat + 4) % 4; }
+
+  function drawRobotSprite(ctx, x, y, bodyA, turretA, col, b, hpFrac, name, modTag, stunned, overclocked, now) {
+    const SIZE = 30;
+    ctx.save();
+    ctx.translate(x, y);
+
+    if (hpFrac <= 0) {
+      ctx.rotate(bodyA);
+      ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+      ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(14, 14); ctx.moveTo(14, -14); ctx.lineTo(-14, 14); ctx.stroke();
       ctx.restore();
-      ctx.fillStyle = t.col;
+      return;
+    }
+
+    if (overclocked) {
+      ctx.strokeStyle = '#d99000'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, 0, 23 + Math.sin(now / 60) * 2.5, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.rotate(bodyA);
+    ctx.fillStyle = col;
+    ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
+    const ar = b.lv ? b.lv.armor : 0;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+    for (let k = 0; k < ar; k++) ctx.strokeRect(-12 + k * 3, -12 + k * 3, 24 - k * 6, 24 - k * 6);
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(turretA);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
+    const w = b.weapon || 'gun', cal = b.cal || 'medium';
+    if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
+    else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
+    else if (w === 'saw') { ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(16, 0, 7, 0, Math.PI * 2); ctx.stroke(); }
+    else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 28 : cal === 'rapid' ? 21 : 25, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
+    ctx.restore();
+    ctx.restore();
+
+    if (name) {
+      ctx.fillStyle = col;
       ctx.font = '700 12px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(t.name + ': ' + r.name, cx, cy - 26);
+      ctx.fillText(name + (modTag || ''), x, y - 28);
+      ctx.fillStyle = '#e5e2da'; ctx.fillRect(x - 22, y - 24, 44, 5);
+      ctx.fillStyle = col; ctx.fillRect(x - 22, y - 24, 44 * Math.max(0, hpFrac), 5);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(x - 22, y - 24, 44, 5);
+    }
+    if (stunned) {
+      ctx.fillStyle = '#1f6feb'; ctx.font = '800 10px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText('⚡ STUN', x, y + 28);
+    }
+  }
+
+  function renderWorld(now) {
+    const dpr = window.devicePixelRatio || 1;
+    const sw = window.innerWidth, sh = window.innerHeight;
+    if (cv.width !== sw * dpr || cv.height !== sh * dpr) {
+      cv.width = sw * dpr; cv.height = sh * dpr;
+    }
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    // Smooth camera interpolation
+    cam.x += (cam.tx - cam.x) * 0.09;
+    cam.y += (cam.ty - cam.y) * 0.09;
+    cam.zoom += (cam.tzoom - cam.zoom) * 0.09;
+
+    // Background architectural grid
+    ctx.fillStyle = '#f4f2ed';
+    ctx.fillRect(0, 0, sw, sh);
+
+    ctx.save();
+    ctx.translate(sw / 2, sh / 2);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.x, -cam.y);
+
+    hitRegions = [];
+
+    // Subtle compound floor grid
+    ctx.strokeStyle = '#e8e4da';
+    ctx.lineWidth = 1;
+    for (let x = -900; x <= 900; x += 60) { ctx.beginPath(); ctx.moveTo(x, -660); ctx.lineTo(x, 660); ctx.stroke(); }
+    for (let y = -660; y <= 660; y += 60) { ctx.beginPath(); ctx.moveTo(-900, y); ctx.lineTo(900, y); ctx.stroke(); }
+
+    // 1. Draw Corridors & Blast Doors connecting the 4 Garages to the Central Arena
+    const doorOpen = G.phase === 'fight' && G.fight && G.fight.rollout < 0.85;
+    GARAGE_SLOTS.forEach(slot => {
+      const ti = teamAtPos(slot.pos);
+      const isFighter = G.fight && G.fight.teams && G.fight.teams.includes(ti);
+      const openAmt = (doorOpen && isFighter) ? Math.sin(Math.min(1, G.fight.rollout * 1.8) * Math.PI) * 38 : 0;
+
+      ctx.fillStyle = '#ebe7de';
+      if (slot.dir === 'S' || slot.dir === 'N') {
+        const cy = slot.dir === 'S' ? 280 : -328;
+        ctx.fillRect(-48, cy, 96, 48);
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+        ctx.strokeRect(-48, cy, 96, 48);
+        // Blast door leaves
+        ctx.fillStyle = '#111';
+        ctx.fillRect(-46 - openAmt, slot.doorY - 4, 45, 8);
+        ctx.fillRect(1 + openAmt, slot.doorY - 4, 45, 8);
+      } else {
+        const cx = slot.dir === 'E' ? 450 : -498;
+        ctx.fillRect(cx, -48, 48, 96);
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+        ctx.strokeRect(cx, -48, 48, 96);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(slot.doorX - 4, -46 - openAmt, 8, 45);
+        ctx.fillRect(slot.doorX - 4, 1 + openAmt, 8, 45);
+      }
+    });
+
+    // 2. Draw Central Arena Pit (-450..450, -280..280)
+    const AW = Sim.W, AH = Sim.H, ax0 = -AW / 2, ay0 = -AH / 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(ax0, ay0, AW, AH);
+    ctx.strokeStyle = '#f0ede6'; ctx.lineWidth = 1;
+    for (let x = ax0 + 60; x < ax0 + AW; x += 60) { ctx.beginPath(); ctx.moveTo(x, ay0); ctx.lineTo(x, ay0 + AH); ctx.stroke(); }
+    for (let y = ay0 + 60; y < ay0 + AH; y += 60) { ctx.beginPath(); ctx.moveTo(ax0, y); ctx.lineTo(ax0 + AW, y); ctx.stroke(); }
+
+    // Center Arena Circle
+    ctx.strokeStyle = '#e5e1d8'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, 115, 0, Math.PI * 2); ctx.stroke();
+
+    // Arena Outer Wall
+    ctx.strokeStyle = '#111111'; ctx.lineWidth = 3.5;
+    ctx.strokeRect(ax0, ay0, AW, AH);
+
+    hitRegions.push({ kind: 'arena', x: ax0, y: ay0, w: AW, h: AH });
+
+    // 3. Draw the 4 Team Garages around the Arena
+    GARAGE_SLOTS.forEach(slot => {
+      const ti = teamAtPos(slot.pos);
+      const t = G.teams[ti];
+      const x0 = slot.gx - slot.gw / 2, y0 = slot.gy - slot.gh / 2;
+
+      // Highlight garage if valid drop target for dragged Intrigue card or Host Pick
+      const isDragTarget = dragCard && (
+        (dragCard.card.target === 'garage' && ti !== viewerSeat) ||
+        (dragCard.card.target === 'self' && ti === viewerSeat)
+      );
+      const isHostPicked = G.phase === 'arena' && G.host === viewerSeat && (G.pickTeams || []).includes(ti);
+      const hovered = mouse.wx >= x0 && mouse.wx <= x0 + slot.gw && mouse.wy >= y0 && mouse.wy <= y0 + slot.gh;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x0, y0, slot.gw, slot.gh);
+      ctx.strokeStyle = (isDragTarget && hovered) || isHostPicked ? t.col : '#111111';
+      ctx.lineWidth = (isDragTarget && hovered) || isHostPicked ? 4 : 2;
+      ctx.strokeRect(x0, y0, slot.gw, slot.gh);
+
+      // Team Color Banner Strip
+      ctx.fillStyle = t.col;
+      ctx.fillRect(x0, y0, slot.gw, 6);
+
+      hitRegions.push({ kind: 'garage', team: ti, x: x0, y: y0, w: slot.gw, h: slot.gh });
+
+      // Garage Header: Name, Host Crown, Tampered Icon, Fame Track, Credits, Mechanics
+      ctx.fillStyle = t.col;
+      ctx.font = '800 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      const title = t.name + (ti === viewerSeat ? ' (YOU)' : '') + (G.host === ti ? ' 👑' : '') + (Object.keys(t.tamper).length ? ' 🕵️' : '');
+      ctx.fillText(title, x0 + 12, y0 + 24);
+
+      ctx.fillStyle = '#111';
+      ctx.font = '700 12px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`★ ${t.fame}/${WIN_FAME}   🪙 ${t.credits} Cr   🔧 ${t.mechs}`, x0 + slot.gw - 12, y0 + 24);
+
+      // Fame bar
+      ctx.fillStyle = '#ece9e0';
+      ctx.fillRect(x0 + 12, y0 + 31, slot.gw - 24, 5);
+      ctx.fillStyle = t.col;
+      ctx.fillRect(x0 + 12, y0 + 31, (slot.gw - 24) * Math.min(1, t.fame / WIN_FAME), 5);
+
+      // 3 Physical Robot Bays inside the Garage
+      const horiz = slot.dir === 'S' || slot.dir === 'N';
+      for (let bIdx = 0; bIdx < 3; bIdx++) {
+        const bx = horiz ? (x0 + 14 + bIdx * 200) : (x0 + 12);
+        const by = horiz ? (y0 + 44) : (y0 + 46 + bIdx * 140);
+        const bw = horiz ? 190 : (slot.gw - 24);
+        const bh = horiz ? 108 : 130;
+
+        const r = t.robots[bIdx];
+        const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
+
+        ctx.fillStyle = r ? '#faf9f5' : '#f3f1ec';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = '#d4cfc4';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        if (!r) {
+          ctx.fillStyle = '#bbb'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('EMPTY BAY', bx + bw / 2, by + bh / 2 + 4);
+          continue;
+        }
+
+        hitRegions.push({ kind: 'bay', team: ti, bayIdx: bIdx, robot: r, x: bx, y: by, w: bw, h: bh });
+
+        // If robot is currently fighting in the Arena Pit, show "IN ARENA" on its lift
+        if (inArenaNow) {
+          ctx.fillStyle = t.col; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('⚔️ IN ARENA PIT', bx + bw / 2, by + bh / 2 + 4);
+          continue;
+        }
+
+        const curHp = Math.max(0, maxHp(r) - r.dmg);
+        const face = slot.dir === 'S' ? -Math.PI / 2 : slot.dir === 'N' ? Math.PI / 2 : slot.dir === 'W' ? 0 : Math.PI;
+        drawRobotSprite(ctx, bx + 34, by + bh / 2 + 4, face, face, t.col, r.b, curHp / maxHp(r), null, null, false, false, now);
+
+        ctx.fillStyle = '#111'; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(r.name + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : ''), bx + 64, by + 22);
+
+        ctx.fillStyle = '#666'; ctx.font = '600 11px system-ui, sans-serif';
+        ctx.fillText(`${curHp}/${maxHp(r)} HP · ${buildText(r)}`, bx + 64, by + 38);
+
+        const modText = ti === viewerSeat ? ('⚙️ ' + (Sim.MODS[r.b.mod]?.name || 'Module')) : '⚙️ ? Secret Module';
+        ctx.fillStyle = ti === viewerSeat ? '#333' : '#6d28d9';
+        ctx.fillText(modText, bx + 64, by + 54);
+
+        // Contextual Action Prompts directly on Viewer's Robot Bays!
+        if (ti === viewerSeat) {
+          const repCost = Math.ceil(r.dmg / 20);
+          if (G.phase === 'upkeep' && repCost > 0) {
+            ctx.fillStyle = t.credits >= repCost ? '#111' : '#aaa';
+            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(`🔧 Repair (${repCost} Cr)`, bx + 64 + 57, by + 80);
+          } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
+            ctx.fillStyle = '#1f6feb';
+            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('🔩 Fit Part Here', bx + 64 + 57, by + 80);
+          } else if (G.phase === 'arena' && G.chooseMyBot) {
+            ctx.fillStyle = '#2a9d3a';
+            ctx.fillRect(bx + 64, by + 64, 114, 24);
+            ctx.fillStyle = '#fff'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('⚔️ Send to Arena', bx + 64 + 57, by + 80);
+          }
+        }
+      }
+
+      // Draw Mechanic Dots moving inside the garage
+      for (let m = 0; m < t.mechs; m++) {
+        const mx = x0 + 24 + ((m * 57 + Math.sin(now / 900 + m * 2 + ti) * 18) % (slot.gw - 48));
+        const my = y0 + slot.gh - 10;
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+
+    // 4. Draw Spatial Phase Objects on the Arena Floor (Market Tiles, Betting Cards, or Live Fight!)
+    if (G.phase === 'market' && (!G.pendingInstall || !G.pendingInstall.length)) {
+      drawMarketOnArena(ctx);
+    } else if (G.phase === 'bets' && G.fight) {
+      drawBettingOnArena(ctx);
+    } else if ((G.phase === 'fight' || G.phase === 'after') && G.fight && G.fight.B) {
+      drawLiveBattleInArena(ctx, now);
+    } else {
+      // Subtle Arena Center Watermark during Upkeep / Intrigue / Host Pick
+      ctx.fillStyle = '#d8d3c8';
+      ctx.font = '900 22px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        G.phase === 'intrigue' ? 'DRAG A SCHEME CARD TO A GARAGE' :
+        G.phase === 'arena' && G.host === viewerSeat ? 'CLICK 2 GARAGES TO INVITE TO THE PIT' :
+        'ARENA PIT STANDBY', 0, 6
+      );
+    }
+
+    // Welding sparks FX in garages
+    for (let i = weldSparks.length - 1; i >= 0; i--) {
+      const sp = weldSparks[i];
+      sp.x += sp.vx * 0.016; sp.y += sp.vy * 0.016; sp.life -= 0.016;
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(sp.x - 2, sp.y - 2, 4, 4);
+      if (sp.life <= 0) weldSparks.splice(i, 1);
+    }
+
+    ctx.restore();
+
+    // 5. Screen-Space Hearthstone Targeting Arrow when dragging a card!
+    if (dragCard) {
+      drawTargetingArrow(ctx, dragCard.startX, dragCard.startY, dragCard.curX, dragCard.curY, dragCard.card.phase === 'fight' ? '#d99000' : '#1f6feb');
+    }
+
+    ctx.restore();
+  }
+
+  function drawMarketOnArena(ctx) {
+    const items = G.market.map(id => ({ id, ...LOTS[id] })).concat([{ id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }]);
+    const startX = -350, y = -95, w = 160, h = 190, gap = 20;
+    items.forEach((it, k) => {
+      const x = startX + k * (w + gap);
+      const bid = G.myBids[k] || 0;
+
+      ctx.fillStyle = k === 3 ? '#fffbeb' : '#faf9f5';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#111';
+      ctx.lineWidth = bid > 0 ? 3 : 2;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.font = '32px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(it.icon, x + w / 2, y + 46);
+
+      ctx.fillStyle = '#111'; ctx.font = '800 13.5px system-ui, sans-serif';
+      ctx.fillText(it.name, x + w / 2, y + 74);
+
+      ctx.fillStyle = '#666'; ctx.font = '600 11.5px system-ui, sans-serif';
+      ctx.fillText(it.text, x + w / 2, y + 94);
+
+      // Minus / Bid Chip / Plus controls right on the Blueprint Tile
+      ctx.fillStyle = '#eee'; ctx.fillRect(x + 18, y + 125, 32, 32);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.strokeRect(x + 18, y + 125, 32, 32);
+      ctx.fillStyle = '#111'; ctx.font = '800 16px system-ui, sans-serif';
+      ctx.fillText('−', x + 34, y + 147);
+
+      ctx.fillStyle = bid > 0 ? '#1f6feb' : '#111';
+      ctx.font = '900 18px system-ui, sans-serif';
+      ctx.fillText(bid + ' Cr', x + w / 2, y + 147);
+
+      ctx.fillStyle = '#eee'; ctx.fillRect(x + w - 50, y + 125, 32, 32);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.strokeRect(x + w - 50, y + 125, 32, 32);
+      ctx.fillStyle = '#111'; ctx.font = '800 16px system-ui, sans-serif';
+      ctx.fillText('+', x + w - 34, y + 147);
+
+      hitRegions.push({ kind: 'market_minus', idx: k, x: x + 18, y: y + 125, w: 32, h: 32 });
+      hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 50, y: y + 125, w: 32, h: 32 });
+      hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
     });
   }
 
-  function drawArena(ctx, F, now) {
-    const B = F.B, W = Sim.W, H = Sim.H, SIZE = Sim.SIZE;
-    const col = s => G.teams[F.teams[s]].col;
-    drawArenaFloor(ctx);
+  function drawBettingOnArena(ctx) {
+    const F = G.fight, mine = F.teams.indexOf(viewerSeat);
+    [-1, 1].forEach((dir, s) => {
+      const ti = F.teams[s], T = G.teams[ti], r = F.robots[s];
+      const x = dir * 175 - 125, y = -95, w = 250, h = 190;
+      const stake = G.myBet[s] || 0;
+      const lockedOut = mine >= 0 && mine !== s;
 
-    // 1. Zones (Oil, Repair, EMP bomb)
+      ctx.fillStyle = '#faf9f5';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = stake > 0 ? T.col : '#111';
+      ctx.lineWidth = stake > 0 ? 3.5 : 2;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.fillStyle = T.col; ctx.font = '800 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${T.name}: ${r.name}`, x + w / 2, y + 28);
+
+      ctx.fillStyle = '#666'; ctx.font = '600 11.5px system-ui, sans-serif';
+      ctx.fillText(`${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP · ${buildText(r)}`, x + w / 2, y + 48);
+
+      ctx.fillStyle = T.col; ctx.font = '900 28px system-ui, sans-serif';
+      ctx.fillText(`${Math.round(F.p[s] * 100)}%`, x + w / 2, y + 88);
+      ctx.fillStyle = '#666'; ctx.font = '700 12px system-ui, sans-serif';
+      ctx.fillText(`Bookie Pays ${F.pay[s]}×`, x + w / 2, y + 108);
+
+      if (lockedOut) {
+        ctx.fillStyle = '#999'; ctx.font = '700 11.5px system-ui, sans-serif';
+        ctx.fillText('(Cannot bet against your own robot)', x + w / 2, y + 150);
+      } else {
+        ctx.fillStyle = stake > 0 ? T.col : '#111';
+        ctx.fillRect(x + 45, y + 130, 160, 34);
+        ctx.fillStyle = '#fff'; ctx.font = '800 13px system-ui, sans-serif';
+        ctx.fillText(stake > 0 ? `🪙 Wager: ${stake} Cr (Click +1)` : 'Click to Bet (0–3 Cr)', x + w / 2, y + 152);
+        hitRegions.push({ kind: 'bet_card', side: s, x, y, w, h });
+      }
+    });
+  }
+
+  function drawLiveBattleInArena(ctx, now) {
+    const F = G.fight, B = F.B, ax0 = -Sim.W / 2, ay0 = -Sim.H / 2;
+    const col = s => G.teams[F.teams[s]].col;
+
+    ctx.save();
+    ctx.translate(ax0, ay0);
+
+    // Zones (Oil Slicks, EMP Bombs)
     for (const z of B.zones) {
-      ctx.save();
       if (z.kind === 'oil') {
-        ctx.fillStyle = 'rgba(30, 30, 30, 0.22)';
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      } else if (z.kind === 'heal') {
-        ctx.fillStyle = 'rgba(22, 163, 74, 0.16)';
-        ctx.strokeStyle = '#16a34a';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 4]);
+        ctx.fillStyle = 'rgba(20, 20, 20, 0.22)';
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       } else if (z.kind === 'emp_bomb') {
         const u = 1 - z.fuse / z.maxFuse;
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#1f6feb'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = 'rgba(37, 99, 235, 0.22)';
+        ctx.fillStyle = 'rgba(31, 111, 235, 0.22)';
         ctx.beginPath(); ctx.arc(z.x, z.y, z.r * u, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.restore();
     }
 
-    // 2. Smoke clouds & mines & decoys
     for (const sm of B.smokes) {
       ctx.fillStyle = 'rgba(120, 120, 120, 0.28)';
       ctx.beginPath(); ctx.arc(sm.x, sm.y, sm.r, 0, Math.PI * 2); ctx.fill();
@@ -2067,23 +1914,32 @@ th {
     for (const m of B.mines) {
       ctx.fillStyle = col(m.owner);
       ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#111'; ctx.stroke();
     }
     for (const d of B.decoys) {
-      ctx.save();
-      ctx.translate(d.x, d.y);
-      ctx.rotate(d.body);
-      ctx.strokeStyle = col(d.owner);
-      ctx.setLineDash([4, 3]);
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-      ctx.restore();
+      ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.body);
+      ctx.strokeStyle = col(d.owner); ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
+      ctx.strokeRect(-15, -15, 30, 30); ctx.restore();
     }
 
-    // 3. Projectiles & beams
+    // Waypoint lines if ordered via Pilot Waypoint card
+    for (const b of B.bots) {
+      if (b.hp > 0 && b.wpT > 0 && b.wpX != null) {
+        ctx.save();
+        ctx.strokeStyle = col(b.i); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.wpX, b.wpY); ctx.stroke();
+        ctx.beginPath(); ctx.arc(b.wpX, b.wpY, 10, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Projectiles
     for (const q of B.bullets) {
       ctx.fillStyle = col(q.owner);
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.8 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill();
+    }
+    for (const q of B.saws) {
+      ctx.strokeStyle = col(q.owner); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(q.x, q.y, 8, 0, Math.PI * 2); ctx.stroke();
     }
     for (const q of B.shells) {
       const u = q.t / q.T;
@@ -2096,8 +1952,7 @@ th {
     }
     for (const b of B.bots) {
       if (b.beam && b.hp > 0) {
-        ctx.strokeStyle = col(b.i);
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = col(b.i); ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
         ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
@@ -2105,215 +1960,270 @@ th {
       }
     }
 
-    // 4. Robots
+    // Robots (with rollout interpolation from their Garage Blast Door!)
     for (const b of B.bots) {
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      if (b.hp <= 0) {
-        ctx.rotate(b.body);
-        ctx.strokeStyle = col(b.i); ctx.lineWidth = 2;
-        ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-        ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, 15); ctx.moveTo(15, -15); ctx.lineTo(-15, 15); ctx.stroke();
-        ctx.restore();
-        continue;
-      }
-      // Overdrive aura
-      if (b.overdriveT > 0) {
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(now / 60) * 3, 0, Math.PI * 2); ctx.stroke();
-      }
-      // Energy shield bubble
-      if (b.shield > 0) {
-        ctx.strokeStyle = '#0ea5e9';
-        ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      }
-      ctx.save();
-      ctx.rotate(b.body);
-      ctx.fillStyle = col(b.i);
-      ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1;
-      ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-      ctx.globalAlpha = 1;
-      const ar = Sim.LV.armor.indexOf(b.s.armor);
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
-      for (let k = 0; k < ar; k++) ctx.strokeRect(-12 + k * 3, -12 + k * 3, 24 - k * 6, 24 - k * 6);
-      ctx.restore();
+      const ti = F.teams[b.i], slot = GARAGE_SLOTS[posOfTeam(ti)];
+      const doorLocalX = slot.doorX - ax0, doorLocalY = slot.doorY - ay0;
+      const u = F.rolloutDone ? 1 : Math.min(1, F.rollout);
+      const rx = doorLocalX + (b.x - doorLocalX) * u;
+      const ry = doorLocalY + (b.y - doorLocalY) * u;
 
-      ctx.rotate(b.turret);
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
-      const w = b.s.weapon, cal = b.s.cal;
-      if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
-      else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
-      else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
-      ctx.restore();
+      if (b.shield > 0 && b.hp > 0) {
+        ctx.strokeStyle = '#0284c7'; ctx.fillStyle = 'rgba(2, 132, 199, 0.12)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(rx, ry, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
 
-      // Name, Stance & HP Bar
-      ctx.fillStyle = col(b.i);
-      ctx.font = '700 13px system-ui, sans-serif';
-      ctx.textAlign = 'center';
       const modTag = b.revealed && b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : (b.mod ? ' [?]' : '');
-      ctx.fillText(F.robots[b.i].name + modTag, b.x, b.y - 31);
-      const frac = Math.max(0, b.hp / b.s.hp);
-      ctx.fillStyle = '#eee'; ctx.fillRect(b.x - 24, b.y - 26, 48, 6);
-      ctx.fillStyle = col(b.i); ctx.fillRect(b.x - 24, b.y - 26, 48 * frac, 6);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(b.x - 24, b.y - 26, 48, 6);
-      if (b.stun > 0) {
-        ctx.fillStyle = '#2563eb'; ctx.font = '700 11px system-ui, sans-serif';
-        ctx.fillText('⚡ STUNNED', b.x, b.y + 30);
-      }
+      drawRobotSprite(ctx, rx, ry, b.body, b.turret, col(b.i), F.robots[b.i].b, b.hp / b.s.hp, F.robots[b.i].name, modTag, b.stun > 0, b.overclockT > 0, now);
+
+      hitRegions.push({ kind: 'arena_bot', slot: b.i, x: ax0 + rx - 32, y: ay0 + ry - 32, w: 64, h: 64 });
     }
 
-    // 5. FX & Callout Banners
     for (const f of B.fx) {
-      ctx.strokeStyle = f.col || '#111';
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = Math.min(1, f.life * 3);
+      ctx.strokeStyle = f.col || '#111'; ctx.lineWidth = 2;
       const r = f.k === 'boom' ? 45 * (1 - f.life / 0.3) : f.k === 'bigboom' ? 90 * (1 - f.life / 0.4) : f.k === 'emp' ? f.r : 10;
       ctx.beginPath(); ctx.arc(f.x, f.y, Math.max(2, r), 0, Math.PI * 2); ctx.stroke();
     }
-    ctx.globalAlpha = 1;
     for (const bn of B.banners) {
-      ctx.save();
-      ctx.font = '800 13px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = bn.col || '#111';
+      ctx.fillStyle = bn.col || '#111'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(bn.text, bn.x, bn.y);
-      ctx.restore();
     }
 
-    if (B.over) {
-      ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.fillRect(W / 2 - 190, 18, 380, 48);
-      ctx.strokeStyle = '#111'; ctx.strokeRect(W / 2 - 190, 18, 380, 48);
-      ctx.fillStyle = B.winner >= 0 ? col(B.winner) : '#111';
-      ctx.font = '800 22px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(B.winner >= 0 ? F.robots[B.winner].name + ' Wins the Arena!' : 'Arena Draw!', W / 2, 50);
-    }
+    ctx.restore();
   }
 
-  /* ---------- Phase 7: Aftermath ---------- */
-  function aftermath() {
-    G.phase = 'after';
-    const F = G.fight, B = F.B, w = B.winner;
-    if (F.sandbox) {
-      showOverlay('<h2>Quick Live Battle Finished!</h2><p>Winner: <b>' + (w >= 0 ? esc(F.robots[w].name) : 'Draw') + '</b>. Want to run another live battle or return to the round?</p>' +
-        '<div class="row"><button class="accent" id="reBrawlBtn">⚡ Fight Again</button><button class="primary" id="backRoundBtn">Return to Tabletop Round</button></div>');
-      $('#reBrawlBtn').onclick = startQuickBrawl;
-      $('#backRoundBtn').onclick = () => { G.phase = F.prevPhase || 'upkeep'; renderUpkeep(); };
-      return;
-    }
-    B.bots.forEach((b, s) => {
-      const r = F.robots[s];
-      r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp));
-    });
-    for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
+  function drawTargetingArrow(ctx, x1, y1, x2, y2, col) {
+    ctx.save();
+    const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - 90;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([10, 6]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.quadraticCurveTo(cx, cy, x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-    if (w < 0) {
-      for (const x of F.bets) G.teams[x.team].credits += x.amt;
-      nextRoundModal('<p>The fight ends in a draw! All bets are refunded.</p>');
-      return;
+    // Target Reticle at cursor
+    ctx.beginPath();
+    ctx.arc(x2, y2, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x2, y2, 4, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ---------- Pointer & Card Drop Interactions ---------- */
+  window.addEventListener('pointermove', e => {
+    mouse.sx = e.clientX; mouse.sy = e.clientY;
+    const w = screenToWorld(e.clientX, e.clientY);
+    mouse.wx = w.x; mouse.wy = w.y;
+    if (dragCard) {
+      dragCard.curX = e.clientX;
+      dragCard.curY = e.clientY;
+      const dx = e.clientX - dragCard.startX, dy = e.clientY - dragCard.startY;
+      dragCard.el.style.transform = `translate(calc(var(--hx, 0px) + ${dx}px), ${dy}px) rotate(${dx * 0.04}deg) scale(1.08)`;
     }
-    const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
-    G.teams[W].fame += 1; G.teams[W].credits += 3; wr.wins++;
-    let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins the battle (+1 Fame, +3 Cr)!';
-    if (wr.wins === 3) { G.teams[W].fame += 1; msg += ' ★★★ Fan Favourite (+1 bonus Fame)!'; }
-    msg += '</p>';
-    for (const x of F.bets) {
-      if (x.side === w) {
-        const pay = Math.round(x.amt * F.pay[w]);
-        G.teams[x.team].credits += pay;
-        log(tname(x.team) + ' collects <b>' + pay + ' Cr</b> from the bookmaker!');
+  });
+
+  window.addEventListener('pointerup', e => {
+    if (!dragCard) return;
+    const dc = dragCard;
+    dragCard = null;
+    const w = screenToWorld(e.clientX, e.clientY);
+
+    // Check if dropped above the hand tray into the world
+    if (e.clientY < window.innerHeight - 165) {
+      if (tryPlayDraggedCard(dc, w.x, w.y)) {
+        updateHud();
+        return;
       }
     }
-    G.fight.loser = { team: Lt, robot: lr };
-    if (G.host === viewerSeat) {
-      let h = '<h2>7. Host\'s Judgment: Thumbs Up or Thumbs Down?</h2>' + msg +
-        '<p>As Host, decide the fate of ' + tname(Lt) + '\'s defeated <b>' + esc(lr.name) + '</b>:' +
-        (lr.wins >= 3 ? ' (Scrapping a Fan Favourite costs −1 Fame!)' : '') + '</p>' +
-        '<div class="row"><button class="primary" id="spareBtn">👍 Spare It</button><button id="scrapBtn" style="color:var(--red);border-color:var(--red)">👎 Scrap It!</button></div>';
-      showOverlay(h);
-      $('#spareBtn').onclick = () => resolveFate(false, msg);
-      $('#scrapBtn').onclick = () => resolveFate(true, msg);
-    } else {
-      const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
-      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < 3;
-      resolveFate(scrap, msg);
+    renderHand();
+  });
+
+  function tryPlayDraggedCard(dc, wx, wy) {
+    const c = dc.card, t = me();
+    if (G.phase === 'intrigue' && c.phase === 'intrigue') {
+      const gHit = hitRegions.find(r => r.kind === 'garage' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
+      if (c.target === 'self') {
+        t.hand.splice(dc.idx, 1);
+        executeSchemeCard(viewerSeat, dc.id, viewerSeat);
+        finishIntrigue();
+        return true;
+      } else if (c.target === 'garage' && gHit && gHit.team !== viewerSeat) {
+        t.hand.splice(dc.idx, 1);
+        executeSchemeCard(viewerSeat, dc.id, gHit.team);
+        finishIntrigue();
+        return true;
+      }
+    } else if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
+      const inArena = wx >= -Sim.W / 2 && wx <= Sim.W / 2 && wy >= -Sim.H / 2 && wy <= Sim.H / 2;
+      if (!inArena) return false;
+      const localX = wx + Sim.W / 2, localY = wy + Sim.H / 2;
+
+      // Find nearest robot in the arena to the drop point
+      const B = G.fight.B;
+      let nearSlot = 0, bestD = Infinity;
+      B.bots.forEach((b, s) => {
+        const d = Math.hypot(b.x - localX, b.y - localY);
+        if (d < bestD) { bestD = d; nearSlot = s; }
+      });
+      const mySlot = G.fight.teams.indexOf(viewerSeat);
+
+      t.hand.splice(dc.idx, 1);
+      const cmd = {
+        card: dc.id,
+        bot: c.target === 'arena' ? (mySlot >= 0 ? mySlot : nearSlot) : nearSlot,
+        x: localX,
+        y: localY
+      };
+      Sim.queueCmd(B, cmd);
+      if (bc) bc.postMessage({ type: 'CARD_CMD', seat: viewerSeat, cmd, name: c.name });
+      notify('🃏 You played <b>' + esc(c.name) + '</b>!', t.col);
+      return true;
     }
-  }
-  function resolveFate(scrap, msg) {
-    const { team, robot } = G.fight.loser, T = G.teams[team];
-    if (scrap) {
-      if (robot.wins >= 3) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
-      T.robots.splice(T.robots.indexOf(robot), 1);
-      log(tname(G.host) + ' gives 👎 Thumbs Down: <b>' + esc(robot.name) + '</b> is scrapped!');
-      msg += '<p>👎 Thumbs Down! <b>' + esc(robot.name) + '</b> is scrapped.</p>';
-      if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
-    } else {
-      log(tname(G.host) + ' gives 👍 Thumbs Up: <b>' + esc(robot.name) + '</b> is spared.');
-      msg += '<p>👍 Thumbs Up! <b>' + esc(robot.name) + '</b> returns to the garage.</p>';
-    }
-    nextRoundModal(msg);
-  }
-  function nextRoundModal(msg) {
-    if (checkWin()) return;
-    showOverlay('<h2>7. Aftermath</h2>' + msg + '<div class="row"><button class="primary" id="nextRoundBtn">Start Round ' + (G.round + 1) + ' →</button></div>');
-    $('#nextRoundBtn').onclick = () => { G.round++; G.host = -1; G.fight = null; startRound(); };
-  }
-  function checkWin() {
-    const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
-    if (!w.length) return false;
-    G.over = true;
-    showOverlay('<h2>🏆 ' + esc(w[0].name) + ' Wins the Championship!</h2><p>Reached ' + w[0].fame + ' Fame in Round ' + G.round + '.</p><div class="row"><button class="primary" id="againBtn">Play Again</button></div>');
-    $('#againBtn').onclick = newGame;
-    return true;
+    return false;
   }
 
-  /* ---------- Top Bar Controls & Quick Live Fight Launcher ---------- */
-  function startQuickBrawl() {
-    const prevPhase = G.phase === 'fight' ? 'upkeep' : G.phase;
-    const foeSeat = (viewerSeat + 1 + Math.floor(rnd() * 3)) % 4;
-    const r0 = G.teams[viewerSeat].robots[0], r1 = G.teams[foeSeat].robots[0];
-    G.fight = {
-      sandbox: true,
-      prevPhase,
-      teams: [viewerSeat, foeSeat],
-      robots: [r0, r1],
-      bets: [{ team: (viewerSeat + 2) % 4, side: 0, amt: 2 }]
-    };
-    log('⚡ Launched instant Live Battle: <b>' + esc(r0.name) + '</b> vs <b>' + esc(r1.name) + '</b>! Try Overdrive (Q), Module Surge (W), Stances (1/2/3), or click the Arena to toss hazards!', 'me');
-    startFight();
+  cv.addEventListener('click', e => {
+    if (dragCard) return;
+    const w = screenToWorld(e.clientX, e.clientY);
+    const wx = w.x, wy = w.y;
+
+    for (let i = hitRegions.length - 1; i >= 0; i--) {
+      const r = hitRegions[i];
+      if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
+
+      if (r.kind === 'bay' && r.team === viewerSeat) {
+        const t = me(), bot = r.robot;
+        if (G.phase === 'upkeep') {
+          const cost = Math.ceil(bot.dmg / 20);
+          if (cost > 0 && t.credits >= cost) {
+            t.credits -= cost; bot.dmg = 0;
+            spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
+            notify('🔧 Repaired <b>' + esc(bot.name) + '</b> to full HP.', t.col);
+            updateHud();
+          }
+        } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
+          const item = G.pendingInstall.shift();
+          applyLot(viewerSeat, item.lot, bot);
+          spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
+          notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
+          if (!G.pendingInstall.length) startArena();
+          else updateHud();
+        } else if (G.phase === 'arena' && G.chooseMyBot) {
+          const s = G.fight.teams.indexOf(viewerSeat);
+          G.fight.robots[s] = bot;
+          afterChoose();
+        }
+        return;
+      }
+
+      if (r.kind === 'market_minus') {
+        G.myBids[r.idx] = Math.max(0, (G.myBids[r.idx] || 0) - 1);
+        updateHud(); return;
+      }
+      if (r.kind === 'market_plus' || r.kind === 'market_tile') {
+        const spent = G.myBids.reduce((a, b) => a + b, 0);
+        if (spent < me().credits) G.myBids[r.idx] = (G.myBids[r.idx] || 0) + 1;
+        else if (r.kind === 'market_tile') G.myBids[r.idx] = 0;
+        updateHud(); return;
+      }
+
+      if (r.kind === 'garage' && G.phase === 'arena' && G.host === viewerSeat && !G.chooseMyBot) {
+        const k = G.pickTeams.indexOf(r.team);
+        if (k >= 0) G.pickTeams.splice(k, 1);
+        else if (G.pickTeams.length < 2) G.pickTeams.push(r.team);
+        updateHud(); return;
+      }
+
+      if (r.kind === 'bet_card') {
+        const other = 1 - r.side;
+        G.myBet[other] = 0;
+        const next = (G.myBet[r.side] + 1) % 4;
+        G.myBet[r.side] = next <= me().credits ? next : 0;
+        updateHud(); return;
+      }
+    }
+  });
+
+  function spawnWeldSparks(wx, wy) {
+    for (let k = 0; k < 18; k++) {
+      const a = rnd() * Math.PI * 2, sp = 40 + rnd() * 90;
+      weldSparks.push({ x: wx, y: wy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.35 + rnd() * 0.25 });
+    }
   }
 
-  $('#quickBrawlBtn').onclick = startQuickBrawl;
-  $('#toggleOverlayBtn').onclick = () => {
-    $('#phaseOverlay').classList.toggle('minimized');
-  };
-  $('#spdBtn').onclick = e => {
-    speedMult = speedMult === 1 ? 2 : speedMult === 2 ? 4 : 1;
-    e.target.textContent = 'Speed ' + speedMult + '×';
-  };
-  $('#skipBtn').onclick = () => {
-    if (G?.fight?.B) { while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); }
-  };
+  /* ---------- Main 60 FPS Loop ---------- */
+  let lastT = performance.now(), accT = 0, finishWait = 0;
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = Math.min(0.1, (now - lastT) / 1000);
+    lastT = now;
+
+    if (G && G.phase === 'fight' && G.fight && G.fight.B) {
+      const F = G.fight, B = F.B;
+      if (!F.rolloutDone) {
+        F.rollout += dt * 0.85;
+        if (F.rollout >= 1) {
+          F.rollout = 1;
+          F.rolloutDone = true;
+          updateHud();
+        }
+      } else {
+        accT += dt;
+        while (accT >= 1 / 60 && !B.over) {
+          stepAiCombatCards(F);
+          Sim.step(B, 1 / 60);
+          accT -= 1 / 60;
+        }
+        if (B.over) {
+          finishWait += dt;
+          if (finishWait > 1.4) {
+            finishWait = 0;
+            aftermath();
+          }
+        }
+      }
+    }
+    renderWorld(now);
+  }
+
+  /* ---------- Top Pill Controls ---------- */
   $('#seatSel').onchange = e => {
     viewerSeat = +e.target.value;
-    renderBoard();
-    if (G.phase === 'upkeep') renderUpkeep();
-    else if (G.phase === 'intrigue') renderIntrigue();
-    else if (G.phase === 'market') renderMarket();
+    updateHud();
   };
-  $('#layoutSel').onchange = e => {
-    const tb = $('#tabletop');
-    tb.classList.toggle('layout-around', e.target.value === 'around');
-    tb.classList.toggle('layout-dock', e.target.value === 'dock');
+  $('#camToggleBtn').onclick = () => {
+    cam.manualZoom = !cam.manualZoom;
+    if (cam.manualZoom) {
+      const zoomedIn = cam.tzoom > 0.85;
+      cam.tx = 0; cam.ty = zoomedIn ? 35 : 25; cam.tzoom = zoomedIn ? 0.68 : 1.02;
+    } else {
+      setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound');
+    }
+  };
+  $('#quickFightBtn').onclick = () => {
+    const t = me();
+    // Ensure the player has several Live Combat Cards in hand to test!
+    ['trigger', 'waypoint', 'overclock', 'oil_card'].forEach(cid => {
+      if (t.hand.length < 5 && !t.hand.includes(cid)) t.hand.push(cid);
+    });
+    const foe = (viewerSeat + 1 + Math.floor(rnd() * 3)) % 4;
+    G.fight = {
+      sandbox: true,
+      teams: [viewerSeat, foe],
+      robots: [t.robots[0], G.teams[foe].robots[0]],
+      bets: []
+    };
+    startFight();
   };
 
   newGame();
-  requestAnimationFrame(frameLoop);
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
