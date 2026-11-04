@@ -33,21 +33,22 @@ Kev's stance: balance mostly comes from the economy, and some really strong buil
 - Rapid calibre +8% firepower; armour now keeps at least 25% of each hit (was 15%) so it counters rapid fire without erasing it.
 - Flipper: 14 dmg, 1.3 s stun, 3 s cooldown. Bomber: 24 dmg (was 30). Medic heals 4/s (was 5).
 - Luck for upsets and banter: 10% critical hits (double damage) on bullets, saw blades and mortar shells; 40% of robots suffer one malfunction per fight (engine stall or jammed turret, 2.5 s, shown on screen).
+  - 2026-11-04: the flat 40% malfunction is replaced by strain and engineers (see `robot-card-ideas.md`): simple builds glitch less (~10%), loaded builds more, and parts can now break for the rest of the fight. Duel watchdog (full run, everyone 1 engineer) before → after: 90/10+ matchups 44% → 44%, upset rate 16% → 17%, spinner 0.4× → 0.5×; strongest build is now a flamethrower + flipper + bodyguard robot (90% vs competitive builds, 4 builds beat it 60%+). So strain is not a balance lever yet at 1 engineer each; it becomes one once engineers cost something in the economy.
 Duel watchdog before → after (before spinner/flamethrower): 90/10+ matchups 49% → 39%, upset rate 15% → 18–20%, rapid calibre 0.3× → 0.5–0.6×, 5 builds now beat the strongest build. Team battles stay more lopsided (snowball: losing one robot makes it 3v4).
 After adding spinner + flamethrower (watchdog, full runs): duels 44% of matchups 90/10+, upset 16%, strongest build beaten 60%+ by 15 other builds; 4v4: 42% lopsided, upset 18%. Flamethrower healthy in duels (1.0×) but weaker in 4v4 (0.6×, fire spreads to its own teammates). Energy Shield and medium guns are the safest picks in 4v4. Reports: `docs/watchdog-report.md`, `docs/watchdog-report-team.md`.
 
-## Named builds and head-to-head (200 fights each, row beats column, %; after the balance pass, with crits and malfunctions)
+## Named builds and head-to-head (200 fights each, row beats column, %; 2026-11-04, with crits, strain and engineers at 1 each)
 | | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw | Whirlwind | Torch |
 |---|---|---|---|---|---|---|---|---|---|
-| **Bulwark** | – | 12 | 82 | 16 | 12 | 0 | 51 | 1 | 10 |
-| **Marksman** | 88 | – | 6 | 60 | 100 | 25 | 85 | 16 | 98 |
-| **Hornet** | 18 | 94 | – | 51 | 100 | 64 | 98 | 0 | 54 |
-| **Dasher** | 84 | 40 | 49 | – | 37 | 55 | 69 | 90 | 32 |
-| **Burner** | 88 | 0 | 0 | 63 | – | 5 | 86 | 56 | 62 |
-| **Lobber** | 100 | 75 | 36 | 45 | 95 | – | 74 | 27 | 68 |
-| **Buzzsaw** | 49 | 15 | 3 | 31 | 14 | 26 | – | 74 | 82 |
-| **Whirlwind** | 99 | 84 | 100 | 10 | 44 | 73 | 26 | – | 78 |
-| **Torch** | 90 | 2 | 46 | 68 | 38 | 31 | 18 | 21 | – |
+| **Bulwark** | – | 8 | 80 | 12 | 11 | 1 | 40 | 4 | 4 |
+| **Marksman** | 92 | – | 2 | 64 | 100 | 22 | 84 | 8 | 99 |
+| **Hornet** | 20 | 98 | – | 54 | 100 | 68 | 97 | 0 | 47 |
+| **Dasher** | 88 | 36 | 46 | – | 33 | 64 | 62 | 91 | 33 |
+| **Burner** | 89 | 0 | 0 | 67 | – | 13 | 90 | 56 | 66 |
+| **Lobber** | 99 | 78 | 32 | 36 | 87 | – | 66 | 21 | 66 |
+| **Buzzsaw** | 60 | 16 | 3 | 38 | 10 | 34 | – | 74 | 82 |
+| **Whirlwind** | 96 | 92 | 100 | 9 | 44 | 79 | 26 | – | 74 |
+| **Torch** | 96 | 1 | 53 | 67 | 34 | 34 | 18 | 26 | – |
 
 Every build beats at least one and loses to at least one.
 

@@ -20,7 +20,7 @@ Working title of the rough prototype: "Scrapyard Dominus" (https://claude.ai/art
 | Schemes / reactions / guards, support with influence | Sabotage cards (hidden effects until the fight), Guard Dog; support/backing still to add |
 | Blind fist auction + host auction | Sealed bids on parts/robots/mechanics + host right |
 | Host picks combatants, decline costs influence | Same; host also could pick format/arena rules later |
-| Bets on victory / injury / death | Bookmaker odds from simulating the VISIBLE builds; hidden sabotage makes odds wrong |
+| Bets on victory / injury / death | Bookmaker odds from simulating the VISIBLE builds; hidden sabotage makes odds wrong. Shown as fuzzy bands (Heavy favourite / Favourite / Even / Underdog / Long shot, pays 1.1× / 1.3× / 1.8× / 2.6× / 5×), not exact %; sims cached per matchup (built in the sandbox 2026-11-04) |
 | Thumbs up/down | Spare or scrap the loser |
 | Favor tokens → champion | Wins → fan favourite at 3 wins (+fame, costly to scrap) |
 
@@ -31,6 +31,9 @@ Working title of the rough prototype: "Scrapyard Dominus" (https://claude.ai/art
 - Market: 3 lots (stat parts, weapon retrofits, calibre kits, new robot, mechanic) + host right, all sealed bids; ties go to lower fame.
 - Arena: host +1 fame, invites 2 teams (can include itself), 2 credits appearance money, decline = −1 fame. Bets up to 3 at simulated odds (pays ~0.92/p). Winner +1 fame +3 credits. Host spares or scraps the loser.
 - First to 12 fame. A scripted run ended in round 9.
+
+## Fight recap (sandbox 2026-11-04)
+After every fight a short recap: knockouts (who, by what), broken parts, malfunctions, big crits and finishing crits, flanks (damage taken on the blind side, away from where the turret points), module moments (EMP, decoy, smoke, first flip), drones shot down, the turning point (when the winner took the health lead for good), comebacks, and an UPSET! flag when the bookie had the winner as Underdog or Long shot. `Sim.recap(B, nameOf, teamName)` returns it as data so the main game can reuse it (aftermath, banter, fame bonuses).
 
 ## Ideas parked
 - Kev's "challenge" idea: a card like "my robot can beat 5 of yours"; others bet on it and it's tested in a dream/simulation arena. To be designed (see chat notes): proposition bets / challenges simulated instantly, possibly with handicaps chosen by opponents.
