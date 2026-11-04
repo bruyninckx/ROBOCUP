@@ -98,6 +98,7 @@ const STATS = Sim.STATS, MODS = Object.keys(Sim.MODS || {}), HELP = Object.keys(
 const WEAPONS = Sim.WEAPONS || ['gun', 'laser', 'mortar', 'saw'];
 const CALS = Object.keys(Sim.CAL || { medium: 1 });
 const RANGES = Object.keys(Sim.RANGES || { mid: 1 });
+const DRIVES = Object.keys(Sim.DRIVES || { wheels: 1 }), PROCS = Object.keys(Sim.PROCS || { standard: 1 });
 const BUDGET = 14;
 const rng = Sim.mkRng(SEED * 7919 + 13);
 const pick = a => a[Math.floor(rng() * a.length)];
@@ -113,11 +114,13 @@ function randomBuild() {
     mod: MODULE_MODE === 'no' ? null : MODULE_MODE === 'random' ? (rng() < 0.5 ? null : pick(MODS)) : pick(MODS),
     helpers: [...Array(nh)].map(() => pick(HELP)),
     focus: pick(['main', 'medics', 'helpers']),
+    drive: pick(DRIVES), proc: pick(PROCS),
   };
 }
 const label = b => (b.weapon === 'gun' ? b.cal + ' gun' : b.weapon) + ', ' + b.range + ' range, ' +
   STATS.map(k => k.slice(0, 2).toUpperCase() + b.lv[k]).join(' ') +
-  (b.mod ? ', module ' + Sim.MODS[b.mod].name : '') + ((b.helpers || []).length ? ', helpers ' + b.helpers.map(h => Sim.HELPERS[h].name).join('+') : '');
+  (b.mod ? ', module ' + Sim.MODS[b.mod].name : '') + ((b.helpers || []).length ? ', helpers ' + b.helpers.map(h => Sim.HELPERS[h].name).join('+') : '') +
+  (b.drive && b.drive !== 'wheels' ? ', ' + Sim.DRIVES[b.drive].name : '') + (b.proc && b.proc !== 'standard' ? ', ' + Sim.PROCS[b.proc].name : '');
 
 // worker pool
 const NW = Math.max(1, Math.min(8, os.cpus().length));
@@ -205,6 +208,8 @@ async function teamMode(builds, t0) {
     ['Preferred range', rows(RANGES, (b, o) => b.range === o), o => o],
     ['Module', rows(MODS, (b, o) => b.mod === o), o => Sim.MODS[o].name],
     ['Helper', rows(HELP, (b, o) => b.helpers.includes(o)), o => Sim.HELPERS[o].name],
+    ['Drive', rows(DRIVES, (b, o) => (b.drive || 'wheels') === o), o => Sim.DRIVES ? Sim.DRIVES[o].name : o],
+    ['Processor', rows(PROCS, (b, o) => (b.proc || 'standard') === o), o => Sim.PROCS ? Sim.PROCS[o].name : o],
   ];
   for (const k of STATS) G.push(['Stat: ' + k + ' level', rows([0, 1, 2, 3, 4], (b, o) => b.lv[k] === o), o => String(o)]);
   const flags = [];
@@ -272,8 +277,10 @@ async function teamMode(builds, t0) {
   addGroup('Helper', HELP, (b, o) => b.helpers.includes(o));
   if (HELPERS_N === 'random') addGroup('Number of helpers', [0, 1, 2, 3], (b, o) => b.helpers.length === o);
   addGroup('Targeting order', ['main', 'medics', 'helpers'], (b, o) => b.focus === o);
+  addGroup('Drive', DRIVES, (b, o) => (b.drive || 'wheels') === o);
+  addGroup('Processor', PROCS, (b, o) => (b.proc || 'standard') === o);
   for (const k of STATS) addGroup('Stat: ' + k + ' level', [0, 1, 2, 3, 4], (b, o) => b.lv[k] === o);
-  const optName = (g, o) => g.name === 'Module' && o !== '(none)' ? Sim.MODS[o].name : g.name === 'Helper' ? Sim.HELPERS[o].name : String(o);
+  const optName = (g, o) => g.name === 'Module' && o !== '(none)' ? Sim.MODS[o].name : g.name === 'Helper' ? Sim.HELPERS[o].name : g.name === 'Drive' ? Sim.DRIVES[o].name : g.name === 'Processor' ? Sim.PROCS[o].name : String(o);
 
   // 3. competitive pool: players don't build junk, so balance is judged among the best 40% of random builds
   const order = [...Array(NB).keys()].sort((a, b) => wr[b] - wr[a]);
@@ -310,6 +317,8 @@ async function teamMode(builds, t0) {
     if (b.mod) f.push('module:' + b.mod);
     for (const h of new Set(b.helpers)) f.push('helper:' + h);
     if (b.weapon === 'gun') f.push('calibre:' + b.cal);
+    if (b.drive) f.push('drive:' + b.drive);
+    if (b.proc) f.push('processor:' + b.proc);
     return f;
   };
   const F = builds.map(feats);
@@ -323,7 +332,7 @@ async function teamMode(builds, t0) {
   });
   syn.sort((a, b) => b.lift - a.lift);
   const WNAME = { saw: 'saw blades', spinner: 'spinner blade', flame: 'flamethrower' };
-  const pretty = f => { const [t, v] = f.split(':'); return t === 'module' ? Sim.MODS[v].name : t === 'helper' ? Sim.HELPERS[v].name : t === 'weapon' ? (WNAME[v] || v) : t === 'calibre' ? v + ' calibre' : v + ' range'; };
+  const pretty = f => { const [t, v] = f.split(':'); return t === 'module' ? Sim.MODS[v].name : t === 'helper' ? Sim.HELPERS[v].name : t === 'weapon' ? (WNAME[v] || v) : t === 'calibre' ? v + ' calibre' : t === 'drive' ? Sim.DRIVES[v].name : t === 'processor' ? Sim.PROCS[v].name : v + ' range'; };
 
   // ---------------- report ----------------
   const flags = [];
@@ -331,7 +340,7 @@ async function teamMode(builds, t0) {
   L.push('# ROBOCUS watchdog report', '');
   L.push('Generated ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC by `node tools/watchdog.js` (seed ' + SEED + ', sim ' + hash + ', ' + NB + ' random builds, ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s).');
   const loadout = (MODULE_MODE === 'yes' ? '1 random module' : MODULE_MODE === 'no' ? 'no module' : '50% chance of a module') + ', ' + (HELPERS_N === 'random' ? '0–3 random helpers' : HELPERS_N + ' random helper(s)');
-  L.push('Every robot: 14 random stat points, random weapon / calibre / range / targeting order, ' + loadout + '. Duels only.', '');
+  L.push('Every robot: 14 random stat points, random weapon / calibre / range / targeting order / drive / processor, 1 engineer, ' + loadout + '. Duels only.', '');
 
   L.push('## Health check', '');
   const champLine = champ.field;

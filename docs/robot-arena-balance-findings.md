@@ -37,6 +37,31 @@ Kev's stance: balance mostly comes from the economy, and some really strong buil
 Duel watchdog before → after (before spinner/flamethrower): 90/10+ matchups 49% → 39%, upset rate 15% → 18–20%, rapid calibre 0.3× → 0.5–0.6×, 5 builds now beat the strongest build. Team battles stay more lopsided (snowball: losing one robot makes it 3v4).
 After adding spinner + flamethrower (watchdog, full runs): duels 44% of matchups 90/10+, upset 16%, strongest build beaten 60%+ by 15 other builds; 4v4: 42% lopsided, upset 18%. Flamethrower healthy in duels (1.0×) but weaker in 4v4 (0.6×, fire spreads to its own teammates). Energy Shield and medium guns are the safest picks in 4v4. Reports: `docs/watchdog-report.md`, `docs/watchdog-report-team.md`.
 
+## Phase 2: drives, processors, new modules, railgun (2026-11-04)
+Built from Antigravity's `docs/processors-and-drives.md` and `docs/upgrade-cards.md`. Builds without the new parts fight exactly as before.
+
+Each upgrade added to every named build, against the 9 plain named builds (8 fights per pairing, % = average win rate; plain builds average ~52%):
+| Upgrade | Effect on win rate | Notes |
+|---|---|---|
+| Tank Tracks | 59% (Bulwark 25 → 42, Whirlwind 63 → 85, Torch 42 → 64) | strain 0: must be priced |
+| Overboost Thrusters | 59% | |
+| Omni-Drive | ~61% (quick test) | |
+| Zigzag Chip | 45% | helps Hornet and Bulwark (+9–11), wrecks brawlers (Whirlwind 19%, Torch 21%) |
+| Kiter Chip | 52% | ranged builds +6–25 (Dasher 54 → 79), brawlers collapse (Whirlwind 1%, Torch 11%) |
+| Rammer Chip | 36% | only for spinners: Whirlwind 94%; flamethrowers catch their own fire (Torch 17%) |
+| Reflective Plating / Grappling Hook | 60% / 66% (quick test) | |
+| Jump Jets / Oil Slick | 50% / 49% | situational |
+| Railgun (long range) | 51% on named-build stats | in random builds 67% win rate, 1.7× in competitive builds |
+
+Full watchdog (random drive + processor for every robot): strongest build spinner + flipper + Overboost + Rammer (93%, 8 builds beat it 60%+); railgun 1.7×, saw blades 1.6×; mortar 0.3× and spinner 0.4× (the right processor matters a lot for them). 90/10+ matchups 44% → 54% and upset rate 17% → 13%: random drive/processor picks create many bad combos (Kiter + spinner 16%), so these numbers are partly the method.
+
+Deviations from the spec (sim is the source of truth):
+- Wheels keep the original movement exactly (spec: 0.15 sideways drift and acceleration smoothing). No drive has acceleration/braking smoothing, so drives compare fairly. Boost's 0.1 sideways drift is left out.
+- Railgun: 0.55× damage per slug, 120 px/s push, spread 18° × (1 − accuracy), no lead aim (first version without the cut won 97% against the named builds). "25 knockback" read as a push.
+- Rammer blunt impact is skipped on spinners (the blade already hits); Jump Jets don't jump away from enemies on brawlers (spinner, flamethrower, rammer, flipper), only from mortar shells.
+- Grappling Hook pulls with a 840 px/s knockback impulse (about 140 px). Reflective Plating halves how fast flames ignite but not the flame's direct damage. Oil Slick: the owner doesn't slide; burning oil hurts everyone, owner included.
+- Existing values in `upgrade-cards.md` that differ from the sim (unchanged here): smoke radius 75 (sim 90), repair cap 35% per fight (sim no cap), flipper throw 380 (sim 480), gun drone bullets 380 px/s (sim 500), miner orbit 48 px (sim 85), wheels drift 0.25 vs 0.15 in the drives doc.
+
 ## Named builds and head-to-head (200 fights each, row beats column, %; 2026-11-04, with crits, strain and engineers at 1 each)
 | | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw | Whirlwind | Torch |
 |---|---|---|---|---|---|---|---|---|---|
