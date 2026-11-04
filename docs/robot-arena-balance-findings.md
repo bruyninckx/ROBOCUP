@@ -62,6 +62,27 @@ Deviations from the spec (sim is the source of truth):
 - Grappling Hook pulls with a 840 px/s knockback impulse (about 140 px). Reflective Plating halves how fast flames ignite but not the flame's direct damage. Oil Slick: the owner doesn't slide; burning oil hurts everyone, owner included.
 - Existing values in `upgrade-cards.md` that differ from the sim (unchanged here): smoke radius 75 (sim 90), repair cap 35% per fight (sim no cap), flipper throw 380 (sim 480), gun drone bullets 380 px/s (sim 500), miner orbit 48 px (sim 85), wheels drift 0.25 vs 0.15 in the drives doc.
 
+## Archetype presets (2026-11-04)
+Ten presets in the sandbox that use drives, processors and the newer modules (200 duels per pairing, row beats column, %):
+
+| | Juggernaut | Sniper | Railgunner | Wasp | Hookshot | Slick | Artillery | Fortress | Ricochet | Brawler | avg vs all 18 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Juggernaut** | – | 94 | 36 | 100 | 96 | 84 | 98 | 96 | 27 | 100 | 89 |
+| **Sniper** | 6 | – | 15 | 0 | 99 | 88 | 88 | 100 | 71 | 48 | 64 |
+| **Railgunner** | 64 | 85 | – | 60 | 90 | 92 | 91 | 100 | 98 | 39 | 79 |
+| **Wasp** | 0 | 100 | 40 | – | 90 | 100 | 100 | 100 | 100 | 4 | 81 |
+| **Hookshot** | 4 | 1 | 10 | 10 | – | 84 | 44 | 68 | 17 | 46 | 43 |
+| **Slick** | 16 | 12 | 8 | 0 | 16 | – | 43 | 47 | 10 | 40 | 32 |
+| **Artillery** | 2 | 12 | 9 | 0 | 56 | 57 | – | 92 | 48 | 4 | 45 |
+| **Fortress** | 4 | 0 | 0 | 0 | 32 | 53 | 8 | – | 0 | 96 | 17 |
+| **Ricochet** | 73 | 29 | 2 | 0 | 83 | 90 | 52 | 100 | – | 93 | 60 |
+| **Brawler** | 0 | 52 | 61 | 96 | 54 | 60 | 96 | 4 | 7 | – | 59 |
+
+Builds: Juggernaut = spinner, Overboost, Rammer, Flipper · Sniper = long medium gun, Kiter, Jump Jets · Railgunner = railgun, Tracks, Reflective Plating · Wasp = rapid gun, Omni-Drive, Zigzag, Shield · Hookshot = flamethrower, Tracks, Grappling Hook · Slick = flamethrower, Oil Slick · Artillery = mortar, Overboost, Zigzag, Jump Jets · Fortress = heavy gun, armour 4, Tracks, Repair Drone · Ricochet = saw blades, Kiter, Mines · Brawler = short gun, armour 3, Tracks, Rammer, EMP.
+
+What makes good gameplay here: the loop Wasp → Sniper → Ricochet → Brawler → Wasp (each beats the next 71–100%), Fortress as the hard answer to the Brawler, and close fights Brawler vs Sniper (52/48), Brawler vs Hookshot (54/46), Ricochet vs Artillery (52/48). Problems: counters are still too hard (often 90–100), Juggernaut and Railgunner are too strong (counters: Railgunner vs Juggernaut 64%, Ricochet vs Juggernaut 73%; Brawler vs Railgunner 61%), Slick and Fortress are too weak.
+Rammer fix: on a spinner the Rammer Chip now only adds wounded-target hunting; with full pursuit, a boosted spinner never broke contact and won 100% of its fights against these presets.
+
 ## Named builds and head-to-head (200 fights each, row beats column, %; 2026-11-04, with crits, strain and engineers at 1 each)
 | | Bulwark | Marksman | Hornet | Dasher | Burner | Lobber | Buzzsaw | Whirlwind | Torch |
 |---|---|---|---|---|---|---|---|---|---|
