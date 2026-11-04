@@ -6,10 +6,10 @@ Kev: fill in or change this split. Each assistant only edits its own areas.
 
 | Area | Files | Owner |
 |---|---|---|
-| Battle simulator, balance, modules | `prototypes/arena-sandbox.html` (the `Sim` part), later `src/sim.js` | _unassigned_ |
-| Strategy layer (rounds, intrigue, market, bets) | `prototypes/scrapyard-dominus.html` | _unassigned_ |
-| Visuals / UI polish & tabletop multiplayer layout | `prototypes/tabletop-prototype.html` | Antigravity |
-| Design docs | `docs/` | shared (anyone may add, note it in the log) |
+| Battle simulator, balance, modules, watchdog | `prototypes/arena-sandbox.html` (the `Sim` part), `tools/watchdog.js`, later `src/sim.js` | Claude (Agent 1) |
+| Strategy layer (rounds, intrigue, market, bets, crates, sponsors) | `prototypes/scrapyard-dominus.html` | Antigravity (Agent 2) |
+| Visuals / UI polish & tabletop multiplayer layout | `prototypes/tabletop-prototype.html` | Antigravity (Agent 2) |
+| Design docs & specs | `docs/upgrade-cards.md`, `docs/processors-and-drives.md`, `docs/sponsors.md`, `docs/playtest-kit.md` (`docs/` shared) | Antigravity (Agent 2) / shared |
 
 ## Requests / handoffs
 
