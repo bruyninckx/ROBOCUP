@@ -25,11 +25,12 @@ Working title of the rough prototype: "Scrapyard Dominus" (https://claude.ai/art
 | Favor tokens → champion | Wins → fan favourite at 3 wins (+fame, costly to scrap) |
 
 ## Prototype v1 rules (Scrapyard Dominus)
-- You vs 3 AI teams. Start: 4 fame, 8 credits, 3 mechanics, 2 random robots from the sandbox presets.
-- Upkeep: +1 credit per mechanic, −1 per robot, draw 2 intrigue cards (hand max 4), repairs 1 credit per 20 damage.
+- You vs 3 AI teams. Start: pick 1 of 6 **Team Sponsors** (each with one house rule, see `docs/sponsors.md`), 4 fame, 8 credits, 3 mechanics (4 for Sovereign Foundry), 2 random robots from the sandbox presets.
+- Upkeep: +1 credit per mechanic, −1 per robot, draw 2 intrigue cards (hand max 4; 3 drawn / max 5 for Blackwire Syndicate), repairs 1 credit per 20 damage (Aegis Heavy repairs 25 damage per robot for free).
 - Intrigue: play 1 scheme. Loose Bolts / Sugar in the Tank / Stripped Gears / Smudged Lens (−2 to a stat next fight, secret), Secret Upgrade (+1 FP +1 AR, secret), Pickpocket, Night Shift, Bribe the Press, Smear Campaign, Guard Dog (50% block).
-- Market: 3 lots (stat parts, weapon retrofits, calibre kits, new robot, mechanic) + host right, all sealed bids; ties go to lower fame.
-- Arena: host +1 fame, invites 2 teams (can include itself), 2 credits appearance money, decline = −1 fame. Bets up to 3 at simulated odds (pays ~0.92/p). Winner +1 fame +3 credits. Host spares or scraps the loser.
+- Market: 3 lots (stat parts, weapon retrofits, calibre kits, new robot, mechanic) + host right, all sealed bids; ties go to lower fame (unless Sovereign Foundry is tied).
+- Arena: host +1 fame (+2 credits for Apex Media), invites 2 teams (can include itself), 2 credits appearance money, decline = −1 fame. Bets up to 3 (up to 5 for Lucky Seven, with 1-credit loss refund) at simulated odds (pays ~0.92/p). Winner +1 fame +3 credits (fan favourite at 3 wins, or 2 wins for Apex Media). Host spares or scraps the loser (+2 credits salvage bounty for Vulture Salvage when any robot is scrapped).
+- Aftermath Crates: Winner picks **1 of 3** rewards from the **Winner's Crate** (parts, retrofits, or a mechanic); Loser receives a consolation **Scrap Crate** (2 Scrap Crates for Vulture Salvage) containing field repairs, salvaged stat parts, or intrigue/credits.
 - First to 12 fame. A scripted run ended in round 9.
 
 ## Fight recap (sandbox 2026-11-04)
