@@ -2,6 +2,39 @@
 
 Sandbox: https://claude.ai/artifact/11WxDiQY4F8WCBBdEFQLda (repo copy: `prototypes/arena-sandbox.html`; modules + helpers per robot; 2–8 robots, free-for-all up to 4 or teams 2v2 / 3v3 / 4v4 in a bigger 1200×750 arena; "Random squads" button; "Hide modules until they trigger" shows a ? badge like an opponent would see). Weapons: gun (3 calibres), laser, mortar, saw blades (see `robot-arena-balance-findings.md`).
 
+## Squadron leader cards (Kev's idea, built in the sandbox 2026-11-01)
+Each side plays a squadron leader card that sets how many robots it fields and how big they are. Fewer robots = more points each and higher stat caps (levels 5–8 continue the normal steps), plus a bigger body.
+
+| Card | Robots | Points each | Stat cap | Size |
+|---|---|---|---|---|
+| Lone Wolf | 1 | 28 | 8 | 40 |
+| Duo | 2 | 18 | 6 | 34 |
+| Trio | 3 | 14 | 4 | 30 |
+| Swarm | 5 | 9 | 3 | 22 |
+
+Why the budgets look "unfair": in ranged fights numbers count roughly squared, but one robot with high stats is also faster, more accurate and harder-hitting at once, so concentration is very strong. A single robot with the squad's full 42 points won 98%; at ~2× a normal robot (28) a well-built titan beats a Trio about 4 in 10 (random titans almost never), which is the "epic but possible" zone. Titans that win use area weapons (mortar, saw blades), speed and big firepower.
+Tuned with `tools/watchdog.js --mode squad` (see `docs/watchdog-report-squad.md`): card averages Lone Wolf 42%, Duo 46%, Trio 55%, Swarm 58% (±10% between seeds). Results are very sensitive: 1 point per robot can swing a matchup 20–30%.
+Payoff ideas: bookmaker odds make the outnumbered side a big underdog (big payout; the sandbox's bookie's board shows the Lone Wolf as Underdog vs a Trio), a Giant Slayer fame bonus when the smaller squad wins (the sandbox already shouts "GIANT SLAYER!"), optional leader bonus per card (e.g. faster turrets nearby).
+Not yet tested with modules and helpers on top.
+
+## Strain and engineers (Kev's idea, built in the sandbox 2026-11-04)
+Powerful parts can break in a fight; engineers keep a robot running. This replaces the flat "40% of robots get one malfunction".
+
+Strain per part:
+| Part | Strain |
+|---|---|
+| Weapon | gun 1, laser 2, mortar 2, saw blades 2, flamethrower 2, spinner blade 3 |
+| Calibre | heavy +1 (rapid, medium 0) |
+| Module | flipper 2, EMP 2, shield / decoy / mines / repair / self-destruct 1, smoke 0 |
+| Helper drone | 1 each |
+| Overdrive | +1 for each of speed, turret, firepower at level 4+ (+2 at level 7+, titans) |
+
+Per fight, from total strain S and engineers E (0–3, default 1):
+- Malfunction (one short engine stall or jammed turret): 8% × S × 0.6^E (max 90%). Lasts 2.5 s / (1 + 0.4E).
+- Each part can break for the rest of the fight: 3.5% × part strain × (1 + 0.15 × strain above 4) × 0.5^E. Weapon damaged (half damage; spinner: blade cracked), barrel warped (−25 accuracy), module fried (gone), drone failure (that helper shuts down), engine blown (−40% speed), turret motor burnt (half turn speed), overheated (−30% damage).
+Examples with 1 engineer: Marksman (strain 2) malfunction 10%, some part breaks 3%; Whirlwind (5) 24% / 10%; Bulwark + EMP + medic + waller (6) 29% / 13%. A strain-11 monster (spinner, EMP, 3 helpers, three overdrives): 88% / 57% with 0 engineers, 53% / 33% with 1, 19% / 9% with 3.
+Design hooks: engineers come from the team's mechanics in the strategy layer (hire, poach, bribe away); "second weapon" and other very strong future parts get high strain; cards like Overtime (+1 engineer for one fight) or Cut Corners (sabotage: +3 strain on a rival robot, secret).
+
 ## 0. Helper robots (Kev's idea, built in the sandbox)
 Each team max 3 main robots; each main robot brings 0–3 helper drones. Helpers are OPEN info (visible), modules stay hidden. When the main robot dies its helpers shut down. Own shots pass through own drones; other teams' drones (also allies in team fights) can be hit. Economics (price, slots, upkeep) to be decided later.
 

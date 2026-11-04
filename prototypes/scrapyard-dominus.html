@@ -347,7 +347,7 @@ th { background: var(--soft); font-weight: 600; }
   };
   const SCHEME_DECK = ['bolts', 'bolts', 'sugar', 'sugar', 'gears', 'gears', 'lens', 'pocket', 'pocket', 'night', 'night', 'press', 'press', 'smear', 'overtime', 'overtime', 'guard', 'guard', 'guard'];
 
-  // ---- market lots ----
+  // ---- market lots & crate rewards ----
   const LOTS = {
     plate:  { name: 'Armour Plate', text: '+1 Armour on one robot.', stat: 'armor' },
     engine: { name: 'Tuned Engine', text: '+1 Speed on one robot.', stat: 'speed' },
@@ -355,6 +355,7 @@ th { background: var(--soft); font-weight: 600; }
     chip:   { name: 'Targeting Chip', text: '+1 Accuracy on one robot.', stat: 'acc' },
     hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
     barrel: { name: 'Long Barrel', text: '+1 Bullet speed on one robot.', stat: 'bullet' },
+    core:   { name: 'High-Output Core', text: '+1 Firepower on one robot.', stat: 'fp' },
     laser:  { name: 'Laser Retrofit', text: 'Turn one robot\'s weapon into a laser (ignores armour, short range).', weapon: 'laser' },
     mortar: { name: 'Mortar Retrofit', text: 'Turn one robot\'s weapon into a mortar (splash, long range).', weapon: 'mortar' },
     rapid:  { name: 'Rapid-fire Kit', text: 'Gun becomes rapid calibre: many small bullets, quick turret.', cal: 'rapid' },
@@ -362,6 +363,28 @@ th { background: var(--soft); font-weight: 600; }
     robot:  { name: 'New Robot', text: 'A fresh robot joins your garage (max 3).', robot: true },
     mech:   { name: 'Mechanic', text: '+1 credit income every round.', mech: true },
   };
+  const WINNER_CRATE_POOL = ['plate', 'engine', 'motor', 'chip', 'hull', 'barrel', 'core', 'laser', 'mortar', 'rapid', 'heavy', 'mech'];
+  const SCRAP_CRATES = [
+    { id: 'patch', name: 'Scrap Patch Kit', text: 'Free field repair (−30 damage, or +2 credits if no robot needs repair).', patch: 30 },
+    { id: 's_plate', name: 'Salvaged Plate', text: '+1 Armour on a robot (or +2 credits if maxed).', stat: 'armor' },
+    { id: 's_hull', name: 'Salvaged Hull', text: '+1 Health on a robot (or +2 credits if maxed).', stat: 'hp' },
+    { id: 's_engine', name: 'Salvaged Servo', text: '+1 Speed on a robot (or +2 credits if maxed).', stat: 'speed' },
+    { id: 's_motor', name: 'Salvaged Gear', text: '+1 Turret turn on a robot (or +2 credits if maxed).', stat: 'turret' },
+    { id: 's_chip', name: 'Salvaged Sights', text: '+1 Accuracy on a robot (or +2 credits if maxed).', stat: 'acc' },
+    { id: 's_scheme', name: 'Black-Box Tape', text: 'Draw 1 intrigue card and gain +1 credit.', scheme: true },
+  ];
+
+  // ---- team sponsors (one rule each) ----
+  const SPONSORS = {
+    aegis:     { name: 'Aegis Heavy', tag: 'Built to Last', text: 'In Upkeep, each of your robots repairs 25 damage for free.' },
+    blackwire: { name: 'Blackwire Syndicate', tag: 'Dirty Tricks', text: 'Draw +1 intrigue card in Upkeep (hand max 5); schemes need 2 less fame.' },
+    sovereign: { name: 'Sovereign Foundry', tag: 'Deep Pockets', text: 'Start with 4 mechanics (instead of 3) and win all Market tie-breaks.' },
+    apex:      { name: 'Apex Media', tag: 'Prime Time', text: 'Gain +2 credits when you Host; robots become Fan Favourites at 2 wins (not 3).' },
+    lucky:     { name: 'Lucky Seven', tag: 'House Edge', text: 'Bet up to 5 credits (instead of 3); losing bets refund 1 credit.' },
+    vulture:   { name: 'Vulture Salvage', tag: 'Nothing Wasted', text: '+2 credits whenever any robot is scrapped; get 2 Scrap Crates when you lose.' },
+  };
+  const favWins = t => t.sponsor === 'apex' ? 2 : 3;
+  const maxBet = t => t.sponsor === 'lucky' ? 5 : 3;
 
   const TEAMS = [
     { name: 'Blue Bolts', col: '#1f6feb', human: true },
@@ -375,15 +398,36 @@ th { background: var(--soft); font-weight: 600; }
   function newGame() {
     const names = shuffle(Object.keys(PRESETS).concat(Object.keys(PRESETS)));
     G = {
-      round: 1, phase: 'upkeep', host: -1, lastHost: -1,
-      teams: TEAMS.map((t, i) => ({ ...t, i, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
+      round: 1, phase: 'sponsor', host: -1, lastHost: -1,
+      teams: TEAMS.map((t, i) => ({ ...t, i, sponsor: null, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
       deck: shuffle(SCHEME_DECK.slice()), lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
       fight: null, over: false,
     };
     for (const t of G.teams) for (let k = 0; k < 2; k++) { let n = names.pop(); t.robots.push(mkRobot(n, PRESETS[n])); }
     $('#log').innerHTML = '';
     log('Each team starts with 2 robots, 8 credits, 3 mechanics and 4 fame. First to ' + WIN_FAME + ' fame wins.');
-    startRound();
+    renderPickSponsor();
+  }
+  function renderPickSponsor() {
+    let h = '<h2>Choose your Team Sponsor</h2><p>Each sponsor backs your garage with one special rule for the whole game. The 3 AI teams will draft from the remaining sponsors.</p><div class="cards">';
+    for (const id in SPONSORS) {
+      const sp = SPONSORS[id];
+      h += '<button class="card" data-sp="' + id + '" style="width:230px"><span class="k">' + esc(sp.tag) + '</span><b>' + esc(sp.name) + '</b><span class="muted">' + esc(sp.text) + '</span></button>';
+    }
+    h += '</div><div class="row"><button id="randSp">Random sponsor</button></div>';
+    panel(h);
+    const choose = mySp => {
+      const rest = shuffle(Object.keys(SPONSORS).filter(k => k !== mySp));
+      G.teams.forEach((t, i) => {
+        t.sponsor = i === 0 ? mySp : rest[i - 1];
+        if (t.sponsor === 'sovereign') t.mechs = 4;
+      });
+      log('You sign with <b>' + esc(SPONSORS[mySp].name) + '</b> (' + esc(SPONSORS[mySp].text) + ').', 'me');
+      for (const t of G.teams) if (!t.human) log(tname(t.i) + ' is backed by <b>' + esc(SPONSORS[t.sponsor].name) + '</b>.');
+      startRound();
+    };
+    $('#panel').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => choose(b.dataset.sp));
+    $('#randSp').onclick = () => choose(pick(Object.keys(SPONSORS)));
   }
   const me = () => G.teams[0];
   const tname = i => '<b style="color:' + G.teams[i].col + '">' + esc(G.teams[i].name) + '</b>';
@@ -407,10 +451,12 @@ th { background: var(--soft); font-weight: 600; }
   // ---------- render ----------
   const PHASES = [['upkeep', 'Upkeep'], ['intrigue', 'Intrigue'], ['market', 'Market'], ['arena', 'Arena'], ['bets', 'Bets'], ['fight', 'Fight'], ['after', 'Aftermath']];
   function renderTop() {
-    $('#roundLbl').textContent = 'Round ' + G.round;
+    $('#roundLbl').textContent = G.phase === 'sponsor' ? 'Setup' : 'Round ' + G.round;
     $('#phases').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
     $('#teams').innerHTML = G.teams.map(t => {
+      const sp = t.sponsor && SPONSORS[t.sponsor];
       return '<div class="team" style="--c:' + t.col + '"><h3>' + esc(t.name) + (t.human ? ' <span class="you">(you)</span>' : '') + (G.host === t.i ? ' <span class="tag">host</span>' : '') + '</h3>' +
+        (sp ? '<div class="muted" style="font-size:12px" title="' + esc(sp.text) + '">Sponsor: <b>' + esc(sp.name) + '</b> · ' + esc(sp.tag) + '</div>' : '') +
         '<div class="nums"><span><b>' + t.fame + '</b> fame</span><span><b>' + t.credits + '</b> credits</span><span>' + t.mechs + ' mechanics</span>' + (t.human ? '<span>' + t.hand.length + ' cards</span>' : '<span class="muted">' + t.hand.length + ' cards</span>') + '</div>' +
         '<div class="fame"><i style="width:' + Math.min(100, t.fame / WIN_FAME * 100) + '%"></i></div>' +
         t.robots.map(r => '<div class="bot"><b>' + esc(r.name) + '</b>' + (r.wins ? '<span>' + '★'.repeat(Math.min(3, r.wins)) + '</span>' : '') +
@@ -437,18 +483,23 @@ th { background: var(--soft); font-weight: 600; }
       const inc = t.mechs, cost = t.robots.length;
       t.credits += inc - cost;
       if (t.credits < 0) { t.credits = 0; }
-      t.hand.push(draw1(), draw1());
-      while (t.hand.length > 4) t.hand.shift();
+      const draws = t.sponsor === 'blackwire' ? 3 : 2, cap = t.sponsor === 'blackwire' ? 5 : 4;
+      for (let d = 0; d < draws; d++) t.hand.push(draw1());
+      while (t.hand.length > cap) t.hand.shift();
+      if (t.sponsor === 'aegis') {
+        for (const r of t.robots) if (r.dmg > 0) r.dmg = Math.max(0, r.dmg - 25);
+      }
       if (!t.human) { // AI repairs its best robot
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) { const c = Math.ceil(r.dmg / 20); if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; } }
       }
     }
-    log('Upkeep: everyone earns 1 credit per mechanic and pays 1 per robot, and draws 2 intrigue cards.');
+    log('Upkeep: everyone earns 1 credit per mechanic and pays 1 per robot, and draws intrigue cards.');
     renderUpkeep();
   }
   function renderUpkeep() {
     const t = me();
-    let h = '<h2>Upkeep</h2><p>You earned ' + t.mechs + ' credits from mechanics and paid ' + t.robots.length + ' for your robots. Damage stays on a robot until you repair it (1 credit per 20 damage).</p>';
+    let h = '<h2>Upkeep</h2><p>You earned ' + t.mechs + ' credits from mechanics and paid ' + t.robots.length + ' for your robots. Damage stays on a robot until you repair it (1 credit per 20 damage).' +
+      (t.sponsor === 'aegis' ? ' <b>Aegis Heavy</b> repaired up to 25 damage on each of your robots for free.' : '') + '</p>';
     h += '<table><tr><th>Robot</th><th>Health</th><th>Repair</th></tr>';
     t.robots.forEach((r, k) => {
       const c = Math.ceil(r.dmg / 20);
@@ -461,7 +512,8 @@ th { background: var(--soft); font-weight: 600; }
   }
 
   // ---------- 2. intrigue ----------
-  function playable(t, id) { const s = SCHEMES[id]; return s.target !== 'none' && t.fame >= s.need && !(id === 'press' && t.credits < 3); }
+  function schemeNeed(t, id) { const s = SCHEMES[id]; return Math.max(0, s.need - (t.sponsor === 'blackwire' ? 2 : 0)); }
+  function playable(t, id) { const s = SCHEMES[id]; return s.target !== 'none' && t.fame >= schemeNeed(t, id) && !(id === 'press' && t.credits < 3); }
   function startIntrigue() {
     G.phase = 'intrigue'; G.selCard = null; G.selTarget = null;
     renderIntrigue();
@@ -470,8 +522,8 @@ th { background: var(--soft); font-weight: 600; }
     const t = me();
     let h = '<h2>Intrigue</h2><p>Play one scheme, or pass. Sabotage is secret: the target only finds out when their robot fights badly, and nobody learns who did it. Some schemes need a minimum fame.</p><div class="cards">';
     t.hand.forEach((id, k) => {
-      const s = SCHEMES[id], ok = playable(t, id);
-      h += '<button class="card' + (G.selCard === k ? ' sel' : '') + '" data-card="' + k + '"' + (ok ? '' : ' disabled') + '><span class="k">' + (s.need ? 'Needs ' + s.need + ' fame' : 'Scheme') + '</span><b>' + esc(s.name) + '</b><span class="muted">' + esc(s.text) + '</span></button>';
+      const s = SCHEMES[id], ok = playable(t, id), need = schemeNeed(t, id);
+      h += '<button class="card' + (G.selCard === k ? ' sel' : '') + '" data-card="' + k + '"' + (ok ? '' : ' disabled') + '><span class="k">' + (need ? 'Needs ' + need + ' fame' : 'Scheme') + '</span><b>' + esc(s.name) + '</b><span class="muted">' + esc(s.text) + '</span></button>';
     });
     h += '</div>';
     if (G.selCard != null && SCHEMES[t.hand[G.selCard]].target === 'team') {
@@ -516,7 +568,7 @@ th { background: var(--soft); font-weight: 600; }
   }
   function aiIntrigue(t) {
     const opts = t.hand.map((id, k) => ({ id, k })).filter(o => playable(t, o.id));
-    if (!opts.length || rnd() < 0.25) return;
+    if (!opts.length || rnd() < (t.sponsor === 'blackwire' ? 0.12 : 0.25)) return;
     const o = pick(opts);
     t.hand.splice(o.k, 1);
     let to = t.i;
@@ -542,10 +594,10 @@ th { background: var(--soft); font-weight: 600; }
   }
   function renderMarket() {
     const t = me();
-    let h = '<h2>Market: sealed bids</h2><p>Bid secretly on each lot and on the right to host this round\'s fight. Highest bid wins and pays; ties go to whoever has less fame. Your bids together can\'t exceed your ' + t.credits + ' credits.</p>';
+    let h = '<h2>Market: sealed bids</h2><p>Bid secretly on each lot and on the right to host this round\'s fight. Highest bid wins and pays; ties go to whoever has less fame (unless Sovereign Foundry is tied). Your bids together can\'t exceed your ' + t.credits + ' credits.</p>';
     h += '<table><tr><th>Lot</th><th>What it does</th><th>Your bid</th></tr>';
     G.market.forEach((id, k) => h += '<tr><td><b>' + LOTS[id].name + '</b></td><td class="muted">' + LOTS[id].text + '</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bid' + k + '" aria-label="Bid on ' + LOTS[id].name + '"></td></tr>');
-    h += '<tr><td><b>Host the fight</b></td><td class="muted">Host gains 1 fame, picks which two teams fight, and decides if the loser is spared or scrapped.</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bidH" aria-label="Bid to host"></td></tr></table>';
+    h += '<tr><td><b>Host the fight</b></td><td class="muted">Host gains 1 fame' + (t.sponsor === 'apex' ? ' (+2 credits from Apex Media)' : '') + ', picks which two teams fight, and decides if the loser is spared or scrapped.</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bidH" aria-label="Bid to host"></td></tr></table>';
     h += '<div class="row"><button class="primary" id="sub">Submit bids</button><span class="muted" id="bidMsg"></span></div>';
     panel(h);
     $('#sub').onclick = () => {
@@ -558,7 +610,8 @@ th { background: var(--soft); font-weight: 600; }
     let budget = t.credits;
     const out = [];
     for (let k = 0; k < 4; k++) {
-      const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'mech' ? 3 : 2.5);
+      const hostBonus = t.sponsor === 'apex' ? 1.2 : 0;
+      const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) + hostBonus : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'mech' ? 3 : 2.5);
       let b = Math.round(want * (0.4 + rnd() * 1.1));
       b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
       budget -= b; out.push(b);
@@ -573,7 +626,10 @@ th { background: var(--soft); font-weight: 600; }
       const col = all.map(b => b[k]);
       const mx = Math.max(...col);
       let w = -1;
-      if (mx > 0) { const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => a.fame - b.fame); w = cand[0].i; G.teams[w].credits -= mx; }
+      if (mx > 0) {
+        const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => (b.sponsor === 'sovereign' ? 1 : 0) - (a.sponsor === 'sovereign' ? 1 : 0) || a.fame - b.fame);
+        w = cand[0].i; G.teams[w].credits -= mx;
+      }
       const label = k < 3 ? LOTS[G.market[k]].name : 'Host the fight';
       h += '<tr><td>' + label + '</td>' + col.map((b, i) => '<td' + (i === w ? ' style="font-weight:700;color:' + G.teams[i].col + '"' : '') + '>' + b + '</td>').join('') + '<td>' + (w >= 0 ? tname(w) : '<span class="muted">nobody</span>') + '</td></tr>';
       if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
@@ -581,8 +637,10 @@ th { background: var(--soft); font-weight: 600; }
     }
     h += '</table>';
     for (const x of wins) log(tname(x.team) + ' buys ' + LOTS[x.lot].name + ' for ' + x.price + '.', x.team === 0 ? 'me' : '');
-    log(tname(G.host) + ' will host the fight (+1 fame).', G.host === 0 ? 'me' : '');
-    G.teams[G.host].fame += 1;
+    const hostT = G.teams[G.host];
+    hostT.fame += 1;
+    if (hostT.sponsor === 'apex') { hostT.credits += 2; log(tname(G.host) + ' will host the fight (+1 fame, +2 credits from Apex Media).', G.host === 0 ? 'me' : ''); }
+    else log(tname(G.host) + ' will host the fight (+1 fame).', G.host === 0 ? 'me' : '');
     G.pendingInstall = wins.filter(x => x.team === 0 && needsRobot(x.lot));
     for (const x of wins) {
       if (x.team !== 0 || !needsRobot(x.lot)) applyLot(x.team, x.lot, x.team === 0 ? null : aiPickRobot(G.teams[x.team], x.lot));
@@ -704,19 +762,19 @@ th { background: var(--soft); font-weight: 600; }
   // ---------- 5. bets ----------
   function startBets() {
     G.phase = 'bets';
-    const F = G.fight, t = me();
+    const F = G.fight, t = me(), lim = maxBet(t);
     const mine = F.teams.indexOf(0);
-    let h = '<h2>Place your bet</h2><p>The bookmaker\'s odds come from simulating the robots as everyone can see them. Hidden sabotage and secret upgrades are not in these odds. Bet up to 3 credits. You can\'t bet against your own robot.</p><div class="vs">';
+    let h = '<h2>Place your bet</h2><p>The bookmaker\'s odds come from simulating the robots as everyone can see them. Hidden sabotage and secret upgrades are not in these odds. Bet up to ' + lim + ' credits' + (t.sponsor === 'lucky' ? ' (Lucky Seven limit; losing bets refund 1 credit)' : '') + '. You can\'t bet against your own robot.</p><div class="vs">';
     F.teams.forEach((ti, s) => {
       const r = F.robots[s], T = G.teams[ti];
       h += (s === 1 ? '<div class="mid">vs</div>' : '') + '<div class="fighter" style="--c:' + T.col + '"><h3>' + esc(T.name) + ': ' + esc(r.name) + '</h3><span class="muted">' + esc(buildText(r)) + '</span><span>' + Math.max(0, maxHp(r) - r.dmg) + ' / ' + maxHp(r) + ' hp' + (r.wins ? ' · ' + r.wins + ' wins' : '') + '</span>' +
         '<span class="odds">' + Math.round(F.p[s] * 100) + '%</span><span class="muted">pays ' + F.pay[s] + '× your stake</span>' +
-        '<label class="row">Bet <input type="number" min="0" max="3" value="0" id="bet' + s + '"' + (mine >= 0 && mine !== s ? ' disabled' : '') + '> credits</label></div>';
+        '<label class="row">Bet <input type="number" min="0" max="' + lim + '" value="0" id="bet' + s + '"' + (mine >= 0 && mine !== s ? ' disabled' : '') + '> credits</label></div>';
     });
     h += '</div><div class="row"><button class="primary" id="go">Lock bets and fight</button><span class="muted" id="betMsg"></span></div>';
     panel(h);
     $('#go').onclick = () => {
-      const b = [0, 1].map(s => Math.max(0, Math.min(3, Math.floor(+$('#bet' + s).value || 0))));
+      const b = [0, 1].map(s => Math.max(0, Math.min(lim, Math.floor(+$('#bet' + s).value || 0))));
       if (b[0] && b[1]) { $('#betMsg').textContent = 'Bet on one robot only.'; return; }
       if (b[0] + b[1] > t.credits) { $('#betMsg').textContent = 'Not enough credits.'; return; }
       F.bets = [];
@@ -725,7 +783,8 @@ th { background: var(--soft); font-weight: 600; }
         if (T.human || T.credits < 2 || rnd() < 0.3) continue;
         const own = F.teams.indexOf(T.i);
         const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
-        const amt = Math.min(T.credits, 1 + Math.floor(rnd() * 3));
+        const cap = maxBet(T);
+        const amt = Math.min(T.credits, 1 + Math.floor(rnd() * cap));
         T.credits -= amt; F.bets.push({ team: T.i, side, amt });
         log(tname(T.i) + ' bets ' + amt + ' on ' + esc(F.robots[side].name) + '.');
       }
@@ -813,40 +872,109 @@ th { background: var(--soft); font-weight: 600; }
     for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
     if (w < 0) { log('The fight ends in a draw. Bets are returned.'); for (const x of F.bets) G.teams[x.team].credits += x.amt; nextRoundButton('<p>A draw. Nobody gains fame; bets are returned.</p>'); return; }
     const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
-    G.teams[W].fame += 1; G.teams[W].credits += 3; wr.wins++;
+    const wTeam = G.teams[W], lTeam = G.teams[Lt];
+    wTeam.fame += 1; wTeam.credits += 3; wr.wins++;
     let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins: +1 fame, +3 credits.';
-    if (wr.wins === 3) { G.teams[W].fame += 1; msg += ' Third win: <b>' + esc(wr.name) + '</b> becomes a fan favourite (+1 fame).'; }
+    if (wr.wins === favWins(wTeam)) { wTeam.fame += 1; msg += ' Win #' + wr.wins + ': <b>' + esc(wr.name) + '</b> becomes a fan favourite (+1 fame).'; }
     msg += '</p>';
     log(tname(W) + '\'s ' + esc(wr.name) + ' beats ' + tname(Lt) + '\'s ' + esc(lr.name) + ' (+1 fame).', W === 0 || Lt === 0 ? 'me' : '');
     for (const x of F.bets) {
       if (x.side === w) { const p = Math.round(x.amt * F.pay[w]); G.teams[x.team].credits += p; log(tname(x.team) + ' collects ' + p + ' from the bookmaker.', x.team === 0 ? 'me' : ''); }
+      else if (G.teams[x.team].sponsor === 'lucky') { G.teams[x.team].credits += 1; log(tname(x.team) + ' gets 1 credit back from Lucky Seven insurance.', x.team === 0 ? 'me' : ''); }
     }
+    G.fight.winner = { team: W, robot: wr };
     G.fight.loser = { team: Lt, robot: lr };
+    const favNeed = favWins(lTeam);
     if (G.host === 0) {
-      let h = msg + '<p><b>You are the host.</b> ' + tname(Lt) + '\'s ' + esc(lr.name) + ' lies in pieces. Spare it, or have it scrapped?' + (lr.wins >= 3 ? ' Scrapping a fan favourite costs you 1 fame.' : '') + '</p>' +
+      let h = msg + '<p><b>You are the host.</b> ' + tname(Lt) + '\'s ' + esc(lr.name) + ' lies in pieces. Spare it, or have it scrapped?' + (lr.wins >= favNeed ? ' Scrapping a fan favourite costs you 1 fame.' : '') + '</p>' +
         '<div class="row"><button id="spare">Spare it</button><button id="scrap">Scrap it</button></div>';
       panel(h);
       $('#spare').onclick = () => fate(false, msg); $('#scrap').onclick = () => fate(true, msg);
     } else {
       const H = G.teams[G.host];
       const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
-      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < 3;
+      const baseChance = (Lt === lead ? 0.7 : 0.3) + (H.sponsor === 'vulture' ? 0.25 : 0);
+      const scrap = G.host !== Lt && rnd() < baseChance && lr.wins < favNeed;
       fate(scrap, msg);
     }
   }
   function fate(scrap, msg) {
     const { team, robot } = G.fight.loser, T = G.teams[team];
     if (scrap) {
-      if (robot.wins >= 3) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
+      if (robot.wins >= favWins(T)) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
       T.robots.splice(T.robots.indexOf(robot), 1);
       log((G.host === 0 ? 'You give' : tname(G.host) + ' gives') + ' the thumbs down: ' + tname(team) + '\'s ' + esc(robot.name) + ' is scrapped.', team === 0 || G.host === 0 ? 'me' : '');
       msg += '<p>Thumbs down. <b>' + esc(robot.name) + '</b> is scrapped.</p>';
+      for (const v of G.teams) if (v.sponsor === 'vulture') { v.credits += 2; log(tname(v.i) + ' salvages +2 credits from the scrap heap (Vulture Salvage).', v.i === 0 ? 'me' : ''); }
       if (!T.robots.length) { T.robots.push(mkRobot('Scrapbot', SCRAP)); log(tname(team) + ' is left with nothing but a Scrapbot.'); }
     } else {
       log((G.host === 0 ? 'You spare ' : tname(G.host) + ' spares ') + tname(team) + '\'s ' + esc(robot.name) + '.', team === 0 || G.host === 0 ? 'me' : '');
       msg += '<p>Thumbs up. <b>' + esc(robot.name) + '</b> goes back to the garage, badly dented.</p>';
     }
-    nextRoundButton(msg);
+    resolveCrates(msg);
+  }
+  function giveScrapCrate(ti, preferredRobot) {
+    const T = G.teams[ti], sc = pick(SCRAP_CRATES);
+    if (sc.patch) {
+      const dmgBot = (preferredRobot && T.robots.includes(preferredRobot) && preferredRobot.dmg > 0) ? preferredRobot : T.robots.filter(r => r.dmg > 0).sort((a, b) => b.dmg - a.dmg)[0];
+      if (dmgBot) { const healed = Math.min(dmgBot.dmg, sc.patch); dmgBot.dmg -= healed; return sc.name + ' (−' + healed + ' dmg on ' + esc(dmgBot.name) + ')'; }
+      T.credits += 2; return sc.name + ' (sold for +2 credits)';
+    }
+    if (sc.scheme) {
+      const cap = T.sponsor === 'blackwire' ? 5 : 4;
+      T.hand.push(draw1()); while (T.hand.length > cap) T.hand.shift();
+      T.credits += 1;
+      return sc.name + ' (+1 intrigue card, +1 credit)';
+    }
+    if (sc.stat) {
+      const cands = T.robots.filter(r => r.b.lv[sc.stat] < 4);
+      const tgt = (preferredRobot && cands.includes(preferredRobot)) ? preferredRobot : cands.sort((a, b) => power(b) - power(a))[0];
+      if (tgt) { tgt.b.lv[sc.stat]++; return sc.name + ' (+1 ' + STATNAME[sc.stat] + ' on ' + esc(tgt.name) + ')'; }
+      T.credits += 2; return sc.name + ' (maxed, sold for +2 credits)';
+    }
+    return sc.name;
+  }
+  function resolveCrates(msg) {
+    const { team: Lt, robot: lr } = G.fight.loser, { team: W, robot: wr } = G.fight.winner;
+    const lTeam = G.teams[Lt], wTeam = G.teams[W];
+    const scrapCount = lTeam.sponsor === 'vulture' ? 2 : 1;
+    const scrapGot = [];
+    for (let k = 0; k < scrapCount; k++) scrapGot.push(giveScrapCrate(Lt, lr));
+    const scrapSummary = scrapGot.join(' and ');
+    log(tname(Lt) + ' opens ' + (scrapCount > 1 ? '2 Scrap Crates' : 'a Scrap Crate') + ': ' + scrapSummary + '.', Lt === 0 ? 'me' : '');
+    msg += '<p><b>Scrap Crate (' + tname(Lt) + '):</b> ' + scrapSummary + '.</p>';
+
+    const choices = shuffle(WINNER_CRATE_POOL.slice()).slice(0, 3);
+    if (W === 0) {
+      G.crateChoices = choices;
+      G.crateBot = Math.max(0, wTeam.robots.indexOf(wr));
+      renderWinnerCrate(msg);
+    } else {
+      const pickLot = choices.find(id => LOTS[id].mech || aiPickRobot(wTeam, id)) || choices[0];
+      const tgt = needsRobot(pickLot) ? (aiPickRobot(wTeam, pickLot) || wr) : null;
+      applyLot(W, pickLot, tgt);
+      const detail = LOTS[pickLot].mech ? '+1 Mechanic' : (tgt ? 'on ' + esc(tgt.name) : '');
+      log(tname(W) + ' picks <b>' + LOTS[pickLot].name + '</b> from the Winner\'s Crate ' + detail + '.');
+      msg += '<p><b>Winner\'s Crate (' + tname(W) + '):</b> picked <b>' + LOTS[pickLot].name + '</b> ' + detail + '.</p>';
+      nextRoundButton(msg);
+    }
+  }
+  function renderWinnerCrate(msg) {
+    const t = me(), choices = G.crateChoices;
+    let h = '<h2>Aftermath</h2>' + msg + '<h3>Winner\'s Crate: pick 1 of 3</h3><p>Choose your prize from the arena crate.</p>';
+    if (t.robots.length > 1) {
+      h += '<div class="row"><span>Install part on:</span>' + t.robots.map((r, k) => '<button data-cb="' + k + '"' + (G.crateBot === k ? ' class="primary"' : '') + '>' + esc(r.name) + ' (' + esc(buildText(r)) + ')</button>').join('') + '</div>';
+    }
+    h += '<div class="cards">' + choices.map(id => '<button class="card" data-wc="' + id + '"><span class="k">Winner\'s Crate</span><b>' + esc(LOTS[id].name) + '</b><span class="muted">' + esc(LOTS[id].text) + '</span></button>').join('') + '</div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-cb]').forEach(b => b.onclick = () => { G.crateBot = +b.dataset.cb; renderWinnerCrate(msg); });
+    $('#panel').querySelectorAll('[data-wc]').forEach(b => b.onclick = () => {
+      const id = b.dataset.wc, r = t.robots[G.crateBot] || t.robots[0];
+      applyLot(0, id, r);
+      const detail = LOTS[id].mech ? '(+1 Mechanic)' : 'on ' + esc(r.name);
+      log('Winner\'s Crate: you pick <b>' + LOTS[id].name + '</b> ' + detail + '.', 'me');
+      nextRoundButton(msg + '<p><b>Winner\'s Crate:</b> you picked <b>' + esc(LOTS[id].name) + '</b> ' + detail + '.</p>');
+    });
   }
   function nextRoundButton(msg) {
     renderTop();

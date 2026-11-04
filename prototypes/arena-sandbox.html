@@ -49,6 +49,29 @@ td.w { font-weight: 700; } td.l { color: var(--muted); }
 .note { color: var(--muted); margin: 0; }
 ul.note { padding-left: 18px; display: grid; gap: 3px; }
 @media (max-width: 680px) { .robots { grid-template-columns: 1fr; } }
+.strain { display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: center; }
+.strain select { font-size: 12.5px; }
+.risk { font-weight: 600; color: var(--ink); }
+.risk.high { color: var(--bad); }
+.panel { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; display: grid; gap: 6px; }
+.panel .head { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: baseline; }
+.panel .head b { font-size: 15px; }
+.panel .head .note { font-size: 12.5px; }
+.panel .head label { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.orows { display: flex; gap: 8px; flex-wrap: wrap; }
+.orow { display: grid; gap: 1px; border: 1.5px solid; border-radius: 6px; padding: 4px 10px; min-width: 130px; }
+.orow .who { font-size: 12.5px; font-weight: 600; }
+.orow .band { font-size: 15px; font-weight: 700; }
+.orow .pay { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rlist { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.rlist li { display: grid; grid-template-columns: 48px 92px 1fr; gap: 8px; align-items: baseline; }
+.rlist .rt { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.rlist .tag { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.rlist li.turn { background: var(--soft); border-radius: 4px; }
+.rlist li.turn .tx::after { content: '  ← turning point'; font-weight: 700; }
+.upset { color: var(--bad); font-weight: 800; }
+.rlist .rt { white-space: nowrap; }
+@media (max-width: 480px) { .rlist li { display: block; } .rlist .rt, .rlist .tag { margin-right: 6px; } }
 </style>
 
 <div class="wrap">
@@ -56,14 +79,20 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     <button id="restart">Fight</button>
     <button id="pause">Pause</button>
     <button id="speed">Speed 1×</button>
-    <label for="count">Robots</label><select id="count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="6">6 (3 vs 3)</option><option value="8">8 (4 vs 4)</option></select>
+    <span id="countWrap"><label for="count">Robots</label> <select id="count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="6">6 (3 vs 3)</option><option value="8">8 (4 vs 4)</option></select></span>
     <button id="rand">Random squads</button>
     <label><input type="checkbox" id="hideMods"> Hide modules until they trigger</label>
-    <select id="mode" aria-label="Mode"><option value="ffa" selected>Free-for-all</option><option value="team">Teams (blue vs red)</option></select>
+    <select id="mode" aria-label="Mode"><option value="squad" selected>Squadron battle</option><option value="ffa">Free-for-all</option><option value="team">Teams (blue vs red)</option></select>
+    <span id="cards"><label for="cardA" style="color:#1f6feb;font-weight:600">Blue</label> <select id="cardA"></select> <label for="cardB" style="color:#d62828;font-weight:600">Red</label> <select id="cardB"></select></span>
     <span class="msg" id="msg"></span>
+  </div>
+  <div class="panel" id="odds">
+    <div class="head"><b>Bookie's board</b><span class="note" id="oddsNote"></span><label><input type="checkbox" id="exactOdds"> show exact %</label></div>
+    <div class="orows" id="oddsRows"></div>
   </div>
   <div class="status" id="status" aria-live="off"></div>
   <canvas id="cv" width="900" height="560" aria-label="Arena"></canvas>
+  <div class="panel" id="recap" hidden aria-live="polite"></div>
   <div class="robots" id="robots"></div>
 
   <h3>Who beats whom (1 vs 1)</h3>
@@ -71,11 +100,17 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   <div class="tbl"><table id="tbl"></table></div>
   <ul class="note">
     <li>With 3 or 4 robots each one shoots its nearest enemy and switches when another gets clearly closer. Friendly fire is on: stray bullets, mortar splash (the shooter's own too) and the laser hurt teammates. Robots hold fire when a teammate is right in the line of fire, but spread and movement still cause accidents. The laser beam goes through every robot in its path.</li>
-    <li>Every robot spends 14 points over 7 stats (0–4 each), then picks a gun calibre, a preferred range, and a weapon.</li>
+    <li>Luck: every hit has a 10% chance to be a critical (double damage).</li>
+    <li>Strain and engineers: every part puts strain on a robot (weapon 1–3, heavy calibre 1, module 0–2, each helper 1, each stat at level 4+ 1). More strain means a bigger chance of a short malfunction (engine stall or jammed turret) and of a part breaking for the rest of the fight (weapon damaged, engine blown, module fried, drone failure...). Each engineer (0–3 per robot) cuts the malfunction chance by 40%, halves the break chance and shortens malfunctions.</li>
+    <li>Bookie's board: before each fight the bookie simulates 40 fights of what everyone can see (hidden modules are left out when "Hide modules" is ticked) and posts fuzzy bands instead of exact odds: Heavy favourite, Favourite, Even, Underdog, Long shot. Results are cached, so a matchup you have seen before shows up instantly.</li>
+    <li>Fight recap: after each fight, the key moments (knockouts, broken parts, malfunctions, big crits, flanks, module moments) and the turning point, the moment the winner took the lead for good.</li>
+    <li>Squadron battle: each side plays a squadron leader card. Lone Wolf = 1 titan (28 points, stats up to 8, bigger), Duo = 2 × 18 points (up to 6), Trio = 3 × 14 (up to 4), Swarm = 5 × 9 (up to 3, small). Budgets were tuned with simulations so the cards are roughly even; the Lone Wolf is the underdog and beats a Trio about 4 times in 10.</li>
+    <li>Every robot spends its points over 7 stats, then picks a gun calibre, a preferred range, and a weapon (14 points, levels 0–4 outside squadron battles).</li>
     <li>Rapid guns: many small bullets, quick turret. Armour removes a flat amount from every hit, so it shrugs off rapid fire.</li>
     <li>Heavy guns: big slow shells and a slow turret that needs precise aim. Armour and health add weight, which costs speed.</li>
     <li>Helpers (up to 3 per robot) are open information: Medic (heals, fragile), Waller (energy walls), Bodyguard (soaks bullets), Spotter (aim + reveals modules), Jammer (slows enemy turrets), Gun Drone (small gun), Bomber (one-shot dive bomb), Miner (mines). 6 or 8 robots means 3 vs 3 or 4 vs 4 in a bigger arena. If the main robot dies, its helpers shut down. "Shoots at" is the secret targeting order.</li>
     <li>Modules (one per robot) are the surprise cards: Shield, Flipper, Decoy, Mines, Repair Drone, EMP, Self-Destruct, Smoke. Tick "Hide modules" to see them the way an opponent would: just a ? until the module reveals itself.</li>
+    <li>Spinner blade: the whole robot spins and rams; on contact a big hit that throws the enemy back; a quarter of bullets and saw blades glance off. Flamethrower: short cone of fire that sets robots alight; burning ignores armour (5 per second) and spreads to any robot they touch, teammates included.</li>
     <li>Laser: ignores armour, short range, has to keep its beam on the target. Mortar: lobbed shell with splash, can't fire up close. Saw blades: bounce off the arena edge, energy walls and robots, up to 3 hits per blade, and never hurt their own squad.</li>
   </ul>
 </div>
@@ -102,10 +137,20 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     heavy:  { rate: 0.5, shell: 0.6, turret: 0.55, tol: 3 },
   };
   const RANGES = { short: 140, mid: 250, long: 380 };
+  // stat levels 5-8 exist only for bigger robots (Lone Wolf, Duo squadron cards); they continue the same steps
+  for (const k in LV) { const a = LV[k], d = a[4] - a[3]; while (a.length < 9) a.push(a[a.length - 1] + d); }
+  LV.acc = [45, 60, 75, 87, 97, 98, 99, 99, 99];
+  // squadron leader cards: how many robots a side fields, points per robot, highest stat level, robot size
+  const SQUADS = {
+    lone:  { name: 'Lone Wolf', slots: 1, points: 28, cap: 8, size: 40, text: 'One titan. Big, tough and outnumbered.' },
+    duo:   { name: 'Duo', slots: 2, points: 18, cap: 6, size: 34, text: 'Two heavy robots.' },
+    trio:  { name: 'Trio', slots: 3, points: 14, cap: 4, size: 30, text: 'The standard: three normal robots.' },
+    swarm: { name: 'Swarm', slots: 5, points: 9, cap: 3, size: 22, text: 'Five small robots. Splash and armour are their nightmare.' },
+  };
   // surprise modules (one per robot)
   const MODS = {
     shield:  { name: 'Energy Shield', text: 'Bubble soaks 25 damage before anything else; recharges 10/s after 3 s without being hit. Great against chip damage.' },
-    flipper: { name: 'Flipper', text: 'Charges in whenever the flipper is ready. On contact: 10 damage, throws the enemy back and stuns it 1 s; slamming into a wall hurts extra. Every 4 s.' },
+    flipper: { name: 'Flipper', text: 'Charges in whenever the flipper is ready. On contact: 14 damage, throws the enemy back and stuns it 1.3 s; slamming into a wall hurts extra. Every 3 s.' },
     decoy:   { name: 'Decoy Hologram', text: 'At 60% health, a hologram copy runs off. Enemies aiming at this robot chase the decoy for 2.5 s. Once per fight.' },
     mines:   { name: 'Mine Layer', text: 'Drops a mine every 1.6 s while driving (max 5). 22 damage to anyone but the owner, teammates included.' },
     repair:  { name: 'Repair Drone', text: 'Little drone heals 6 health per second once the robot has not been hit for 1.2 s. Strong if you can break line of fire.' },
@@ -113,6 +158,57 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     boom:    { name: 'Self-Destruct', text: 'Below 30% health it rams the nearest enemy. When destroyed it explodes: up to 45 damage within 90 px, friend or foe.' },
     smoke:   { name: 'Smoke Screen', text: 'At 50% health, pops a smoke cloud for 4 s. Shots aimed into smoke spread wildly. Once per fight.' },
   };
+
+  // strain: how hard each part pushes the robot. More strain = more malfunctions and broken parts.
+  // Engineers (0-3 per robot) keep it running: each one cuts the malfunction chance by 40% and the break chance in half.
+  const STRAIN = {
+    weapon: { gun: 1, laser: 2, mortar: 2, saw: 2, flame: 2, spinner: 3 },
+    cal: { rapid: 0, medium: 0, heavy: 1 },
+    mod: { shield: 1, flipper: 2, decoy: 1, mines: 1, repair: 1, emp: 2, boom: 1, smoke: 0 },
+    helper: 1,
+  };
+  const WNAME = { gun: 'Gun', laser: 'Laser', mortar: 'Mortar', saw: 'Saw blades', spinner: 'Spinner blade', flame: 'Flamethrower' };
+  const OVER = { speed: 'Speed', turret: 'Turret', fp: 'Firepower' };
+  const ENG_MAX = 3;
+  const engOf = b => Math.max(0, Math.min(ENG_MAX, b.eng == null ? 1 : +b.eng || 0));
+  // overdrive: a stat at level 4+ strains the robot (+1), at level 7+ even more (+2)
+  function strainOf(b) {
+    const parts = [], w = b.weapon || 'gun';
+    parts.push({ part: 'weapon', name: WNAME[w] || w, strain: STRAIN.weapon[w] || 1 });
+    if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: 'Heavy calibre', strain: STRAIN.cal[b.cal] });
+    if (b.mod && MODS[b.mod] && STRAIN.mod[b.mod]) parts.push({ part: 'mod', name: MODS[b.mod].name, strain: STRAIN.mod[b.mod] });
+    (b.helpers || []).filter(h => HELPERS[h]).slice(0, 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: STRAIN.helper }));
+    for (const k in OVER) { const v = (b.lv || {})[k] || 0; if (v >= 4) parts.push({ part: 'over', stat: k, name: OVER[k] + ' overdrive', strain: v >= 7 ? 2 : 1 }); }
+    return { total: parts.reduce((a, p) => a + p.strain, 0), parts };
+  }
+  // chance per fight: one short malfunction (stall or jam), and per part a chance to break for the rest of the fight
+  function riskOf(b) {
+    const st = strainOf(b), E = engOf(b);
+    const overload = 1 + 0.15 * Math.max(0, st.total - 4);
+    const glitch = Math.min(0.9, 0.08 * st.total * Math.pow(0.6, E));
+    const breaks = st.parts.map(p => Object.assign({}, p, { p: Math.min(0.5, 0.035 * p.strain * overload * Math.pow(0.5, E)) }));
+    const anyBreak = 1 - breaks.reduce((a, p) => a * (1 - p.p), 1);
+    return { strain: st.total, parts: st.parts, eng: E, glitch, breaks, anyBreak };
+  }
+  // what a broken part does for the rest of the fight
+  const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED' };
+  function breakPart(B, b, p) {
+    const key = p.part === 'over' ? p.stat : p.part;
+    let label = BREAK_TEXT[key];
+    if (key === 'weapon') { b.s.dmg *= 0.5; b.s.fp *= 0.5; if (b.s.weapon === 'spinner') label = 'BLADE CRACKED'; }
+    else if (key === 'cal') b.s.acc = Math.max(20, b.s.acc - 25);
+    else if (key === 'mod') { if (!b.mod) return false; b.modBroken = b.mod; b.mod = null; b.shield = 0; b.revealed = true; }
+    else if (key === 'helper') { const h = B.bots.filter(x => x.helper && x.owner === b.i)[p.k]; if (!h || h.hp <= 0) return false; h.hp = 0; B.fx.push({ k: 'hit', x: h.x, y: h.y, life: 0.2 }); }
+    else if (key === 'speed') b.s.speed *= 0.6;
+    else if (key === 'turret') b.s.turret *= 0.5;
+    else if (key === 'fp') { b.s.dmg *= 0.7; b.s.fp *= 0.7; }
+    (b.broken = b.broken || []).push(p.name);
+    B.fx.push({ k: 'break', x: b.x, y: b.y - 34, text: label, life: 1.8 });
+    logE(B, { k: 'break', who: b.i, part: p.name, text: label });
+    return true;
+  }
+  // fight log: key moments for the recap (crits are counted, only the big ones are logged)
+  function logE(B, ev) { ev.t = Math.round(B.t * 10) / 10; if (B.log.length < 300) B.log.push(ev); }
 
   function mkRng(seed) {
     let s = seed >>> 0;
@@ -130,38 +226,41 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     s.weapon = b.weapon || 'gun';
     s.cal = b.cal || 'medium';
     const c = CAL[s.cal];
-    s.fire = s.weapon === 'mortar' ? 0.45 : s.weapon === 'saw' ? 1.1 : c.rate;
+    s.fire = s.weapon === 'mortar' ? 0.45 : s.weapon === 'saw' ? 1.1 : s.weapon === 'spinner' ? 2 : s.weapon === 'flame' ? 1 : c.rate;
     s.dmg = s.fp / s.fire;
+    // rapid fire gets extra firepower to make up for bouncing off armour
+    if (s.weapon === 'gun' && s.cal === 'rapid') s.dmg *= 1.08;
     // saw blades can hit up to 3 times, so each hit is weaker
-    if (s.weapon === 'saw') s.dmg *= 0.9;
+    if (s.weapon === 'saw') s.dmg *= 0.8;
     if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
     // weight: armour and health slow you down
-    s.speed *= 1 - 0.09 * b.lv.armor - 0.04 * b.lv.hp;
+    s.speed *= Math.max(0.3, 1 - 0.09 * Math.min(4, b.lv.armor) - 0.04 * Math.min(4, b.lv.hp) - 0.04 * Math.max(0, b.lv.armor - 4) - 0.02 * Math.max(0, b.lv.hp - 4));
     s.turnBody = 180;
     s.mod = b.mod && MODS[b.mod] ? b.mod : null;
     return s;
   }
   // helper drones that roll in with a main robot (max 3)
   const HELPERS = {
-    medic:  { name: 'Medic', hp: 18, speed: 150, text: 'Stays behind its robot and heals it 5 health/s with a beam (range 130). Fragile. Two medics heal 8/s at most.' },
+    medic:  { name: 'Medic', hp: 18, speed: 150, text: 'Stays behind its robot and heals it 4 health/s with a beam (range 130). Fragile. Two medics heal 8/s at most.' },
     waller: { name: 'Waller', hp: 40, speed: 130, text: 'Rides in front and drops an energy wall every 5 s (lasts 6 s, 40 health). Walls stop enemy bullets and lasers; your own shots pass through. Mortars lob over.' },
     bodyguard: { name: 'Bodyguard', hp: 60, armor: 2, size: 26, speed: 140, text: 'Big armoured drone that parks between its robot and the enemy and soaks bullets. Lasers go straight through.' },
     spotter: { name: 'Spotter', hp: 25, speed: 160, text: 'Hovers behind. Its robot gets +15% accuracy and sees through smoke; reveals hidden modules of enemies within 220 px.' },
     jammer:  { name: 'Jammer', hp: 25, speed: 150, text: 'Flies toward the enemy. Enemy robots within 160 px turn their turrets at half speed.' },
     gunner:  { name: 'Gun Drone', hp: 30, speed: 160, text: 'Circles its robot and plinks at the same target: 2 shots/s of 3 damage. Useless against armour.' },
-    bomber:  { name: 'Bomber', hp: 20, speed: 190, text: 'Waits 2 s, then dives at its robot\'s target and explodes: 30 damage within 50 px. One use.' },
+    bomber:  { name: 'Bomber', hp: 20, speed: 190, text: 'Waits 2 s, then dives at its robot\'s target and explodes: 24 damage within 50 px. One use.' },
     miner:  { name: 'Miner', hp: 30, speed: 160, text: 'Circles its robot dropping a mine every 1.6 s (max 5). 24 damage to anyone outside its own squad, teammates included.' },
   };
   function cost(b) { return STATS.reduce((a, k) => a + b.lv[k], 0); }
 
   // spawn spots per bot count (team mode puts teammates on the same side)
-  function spawns(n, teamMode, W, H) {
-    if (teamMode && n > 4) {
-      // two columns facing each other
-      const per = n / 2, out = [];
-      for (let t = 0; t < 2; t++) for (let k = 0; k < per; k++) out.push([t ? W - 110 : 110, H * (k + 1) / (per + 1)]);
+  function spawns(n, teams, W, H) {
+    if (teams && (n > 4 || teams.some((t, i) => t !== [0, 0, 1, 1][i]))) {
+      // team fights: team 0 in a column on the left, team 1 on the right, each spread evenly (sides may be uneven)
+      const out = [], cnt = [0, 0], tot = [teams.filter(t => t === 0).length, teams.filter(t => t !== 0).length];
+      teams.forEach(t => { const s = t === 0 ? 0 : 1; out.push([s ? W - 110 : 110, H * (++cnt[s]) / (tot[s] + 1)]); });
       return out;
     }
+    const teamMode = !!teams;
     if (n === 2) return [[120, H / 2 - 80], [W - 120, H / 2 + 80]];
     if (n === 3) return [[120, 110], [W - 120, 110], [W / 2, H - 80]];
     if (teamMode) return [[110, 140], [110, H - 140], [W - 110, 140], [W - 110, H - 140]];
@@ -174,15 +273,24 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const teams = (opts && opts.teams) || builds.map((_, i) => i);
     // bigger battles get a bigger arena
     const W = n > 4 ? 1200 : 900, H = n > 4 ? 750 : 560, H_ = H;
-    const sp = spawns(n, !!(opts && opts.teams), W, H);
+    const sp = spawns(n, opts && opts.teams, W, H);
     const bots = builds.map((b, i) => {
       const s = statsOf(b);
       const x = sp[i][0], y = sp[i][1] + (n === 2 ? (rng() - 0.5) * 220 : (rng() - 0.5) * (n > 4 ? 30 : 60));
       const face = Math.atan2(H / 2 - y, W / 2 - x);
-      return { i, squad: i, size: SIZE, focus: ['helpers', 'medics'].includes(b.focus) ? b.focus : 'main', team: teams[i], s, hp: s.hp, x, y, body: face, turret: face, target: -1,
+      return { i, squad: i, size: b.size || SIZE, focus: ['helpers', 'medics'].includes(b.focus) ? b.focus : 'main', team: teams[i], s, hp: s.hp, x, y, body: face, turret: face, target: -1,
         vx: 0, vy: 0, cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1,
         mod: s.mod, shield: s.mod === 'shield' ? 25 : 0, lastHit: -9, stun: 0, kx: 0, ky: 0, modCd: 0, modUsed: false, revealed: false, healed: 0 };
     });
+    // malfunctions and broken parts come from strain; engineers make them rarer and shorter
+    for (const b of bots) {
+      const R = riskOf(builds[b.i]);
+      b.eng = R.eng; b.strain = R.strain;
+      if (rng() < R.glitch) b.glitch = { t: 3 + rng() * 12, kind: rng() < 0.5 ? 'stall' : 'jam', done: false };
+      b.breaks = [];
+      for (const p of R.breaks) if (rng() < p.p) b.breaks.push({ t: 5 + rng() * 20, p, done: false });
+      b.crits = 0; b.critDmg = 0; b.rear = {};
+    }
     // helpers join after the main robots
     builds.forEach((b, i) => {
       (b.helpers || []).filter(h => HELPERS[h]).slice(0, 3).forEach((h, k) => {
@@ -192,7 +300,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
           hitT: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1, mod: null, shield: 0, lastHit: -9, stun: 0, kx: 0, ky: 0, cd: 1 + k * 0.7, phase: k * 2.1, beam: 0 });
       });
     });
-    return { W, H, bots, saws: [], bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [], walls: [], t: 0, over: false, winner: null, rng, n };
+    return { W, H, bots, saws: [], bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [], walls: [], t: 0, over: false, winner: null, rng, n, log: [], trace: [], how: null };
   }
   // is a teammate standing in the line of fire (before the target)?
   function allyInLine(B, b, a, len) {
@@ -226,7 +334,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     for (const e of B.bots) {
       if (e.hp <= 0 || e === src || (sparesSquad && e.squad === src.squad)) continue;
       const d = Math.hypot(e.x - x, e.y - y);
-      if (d < r) hitBot(B, e, dmg * (1 - 0.5 * d / r), src, true);
+      if (d < r) { const was = B.how; B.how = B.how || (kind === 'bigboom' ? 'self-destruct' : src.helper === 'bomber' ? 'bomber' : 'mine'); hitBot(B, e, dmg * (1 - 0.5 * d / r), src, true); B.how = was; }
     }
   }
   function hitBot(B, tgt, dmg, src, pierce) {
@@ -236,16 +344,40 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const a = Math.min(tgt.shield, dmg); tgt.shield -= a; dmg -= a; tgt.revealed = true;
       if (dmg <= 0.0001) { tgt.hitT = 0.05; return; }
     }
-    if (!pierce) dmg = Math.max(dmg * 0.15, dmg - tgt.s.armor);
+    if (!pierce) dmg = Math.max(dmg * 0.25, dmg - tgt.s.armor);
     tgt.hp -= dmg; tgt.hitT = 0.08; tgt.lastBy = src.i;
     const friendly = tgt.team === src.team;
     if (friendly) src.ff += dmg; else src.dealt += dmg;
+    // flank: hit from the blind side, more than 110 degrees away from where this robot's turret points
+    if (!friendly && !src.helper && !tgt.helper && tgt.rear) {
+      const off = Math.abs(wrapA(Math.atan2(src.y - tgt.y, src.x - tgt.x) - tgt.turret));
+      if (off > rad(110)) {
+        const r0 = tgt.rear[src.i] || 0; tgt.rear[src.i] = r0 + dmg;
+        if (r0 < 20 && r0 + dmg >= 20) logE(B, { k: 'flank', who: src.i, tgt: tgt.i });
+      }
+    }
     if (tgt.hp <= 0) {
       if (friendly) { if (tgt !== src) src.teamKills++; } else src.kills++;
+      const how = B.how || (src.helper ? HELPERS[src.helper].name.toLowerCase() : WNAME[src.s.weapon] ? WNAME[src.s.weapon].toLowerCase() : 'hit');
+      if (tgt.helper) logE(B, { k: 'drone', who: tgt.i, owner: tgt.owner, by: src.i, how });
+      else logE(B, { k: 'ko', who: tgt.i, by: src.i, how, friendly: friendly && tgt !== src, self: tgt === src });
       B.fx.push({ k: 'boom', x: tgt.x, y: tgt.y, life: 0.25 });
       if (tgt.mod === 'boom') { tgt.revealed = true; explode(B, tgt.x, tgt.y, 90, 45, tgt, 'bigboom'); }
       if (!tgt.helper) for (const h of B.bots) if (h.helper && h.owner === tgt.i && h.hp > 0) { h.hp = 0; B.fx.push({ k: 'hit', x: h.x, y: h.y, life: 0.2 }); }
     }
+    return dmg;
+  }
+  // a hit that can crit (10%: double damage). Crits are counted; big ones and finishing blows go in the log.
+  function critHit(B, tgt, dmg, src, pierce) {
+    const crit = B.rng() < 0.1, alive = tgt.hp > 0;
+    const d = hitBot(B, tgt, dmg * (crit ? 2 : 1), src, pierce) || 0;
+    if (crit) {
+      B.fx.push({ k: 'crit', x: tgt.x, y: tgt.y - 20, life: 0.6 });
+      if (src.crits != null) { src.crits++; src.critDmg += d / 2; }
+      if (alive && tgt.hp <= 0 && !tgt.helper && tgt.team !== src.team) logE(B, { k: 'critko', who: src.i, tgt: tgt.i, dmg: Math.round(d) });
+      else if (d >= 15 && !tgt.helper && tgt.team !== src.team) logE(B, { k: 'bigcrit', who: src.i, tgt: tgt.i, dmg: Math.round(d) });
+    }
+    return crit;
   }
 
   function step(B, dt) {
@@ -268,12 +400,28 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       if (b.kx || b.ky) {
         const nx = b.x + b.kx * dt, ny = b.y + b.ky * dt;
         const cx = Math.max(SIZE / 2, Math.min(W - SIZE / 2, nx)), cy = Math.max(SIZE / 2, Math.min(H - SIZE / 2, ny));
-        if ((cx !== nx || cy !== ny) && Math.hypot(b.kx, b.ky) > 150) { hitBot(B, b, 8, B.bots[b.lastBy >= 0 ? b.lastBy : b.i], true); B.fx.push({ k: 'hit', x: cx, y: cy, life: 0.15 }); b.kx = b.ky = 0; }
+        if ((cx !== nx || cy !== ny) && Math.hypot(b.kx, b.ky) > 150) { B.how = 'wall slam'; hitBot(B, b, 8, B.bots[b.lastBy >= 0 ? b.lastBy : b.i], true); B.how = null; B.fx.push({ k: 'hit', x: cx, y: cy, life: 0.15 }); b.kx = b.ky = 0; }
         b.x = cx; b.y = cy;
         const f = Math.exp(-6 * dt); b.kx *= f; b.ky *= f; if (Math.hypot(b.kx, b.ky) < 10) b.kx = b.ky = 0;
       }
       if (b.hp <= 0) continue;
+      if (b.burn > 0) {
+        // burning ignores armour; touching another robot spreads the fire (friend or foe)
+        b.burn -= dt; B.how = 'fire'; hitBot(B, b, 5 * dt, B.bots[b.burnBy] || b, true); B.how = null;
+        if (Math.floor(B.t * 4) !== Math.floor((B.t - dt) * 4)) B.fx.push({ k: 'ember', x: b.x + (B.rng() - 0.5) * 14, y: b.y - 6, life: 0.4 });
+        for (const o of B.bots) if (o !== b && o.hp > 0 && (o.burn || 0) < 0.8 && Math.hypot(o.x - b.x, o.y - b.y) < (o.size + b.size) / 2 + 6) { o.burn = 2; o.burnBy = b.burnBy; }
+        if (b.hp <= 0) continue;
+      }
       if (b.helper) { runHelper(B, b, dt); continue; }
+      if (b.glitch && !b.glitch.done && B.t >= b.glitch.t) {
+        b.glitch.done = true; b.glitchT = 2.5 / (1 + 0.4 * (b.eng || 0)); b.glitchKind = b.glitch.kind;
+        const text = b.glitch.kind === 'stall' ? 'ENGINE STALL' : 'TURRET JAMMED';
+        B.fx.push({ k: 'glitch', x: b.x, y: b.y - 34, text, life: 1.6 });
+        logE(B, { k: 'glitch', who: b.i, text, dur: Math.round(b.glitchT * 10) / 10 });
+      }
+      if (b.breaks) for (const br of b.breaks) if (!br.done && B.t >= br.t) { br.done = true; breakPart(B, b, br.p); }
+      if (b.glitchT > 0) b.glitchT -= dt;
+      const stalled = b.glitchT > 0 && b.glitchKind === 'stall', jammed = b.glitchT > 0 && b.glitchKind === 'jam';
       runModule(B, b, dt);
       if (b.stun > 0) { b.stun -= dt; b.vx = b.vy = 0; b.beam = 0; continue; }
       const real = pickTarget(B, b);
@@ -291,12 +439,16 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       // flipper robots charge in when their flipper is ready; self-destruct robots go kamikaze when nearly dead
       let want_r = b.s.range;
       if (b.mod === 'flipper' && b.modCd <= 0) want_r = 25;
+      if (b.s.weapon === 'spinner') want_r = b.cd <= 0.15 ? 0 : 55;   // charge in, bounce off, charge again
+      if (b.s.weapon === 'flame') want_r = Math.min(want_r, 85);
       if (b.mod === 'boom' && b.hp < b.s.hp * 0.3) { want_r = 0; b.revealed = true; }
       const radial = Math.max(-1, Math.min(1, (adist - want_r) / 80));
       let mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
       let my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
       for (const p of B.bots) {
         if (p === b || p.hp <= 0 || (p.helper && p.squad === b.squad)) continue;
+        // robots that want contact (spinner, ready flipper) don't keep their distance from enemies
+        if (p.team !== b.team && (b.s.weapon === 'spinner' || (b.mod === 'flipper' && b.modCd <= 0))) continue;
         const sx = b.x - p.x, sy = b.y - p.y, sd = Math.hypot(sx, sy), RR = p.helper ? 32 : 60;
         if (sd < RR && sd > 0.01) { mx += sx / sd * (RR - sd) / 30; my += sy / sd * (RR - sd) / 30; }
       }
@@ -306,7 +458,8 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const want = Math.atan2(my, mx);
       b.body = turnToward(b.body, want, rad(b.s.turnBody) * dt);
       const align = Math.max(0, Math.cos(wrapA(want - b.body)));
-      const sp = b.s.speed * align * Math.min(1, Math.hypot(mx, my));
+      // spinners get a burst of speed while charging in
+      const sp = stalled ? 0 : b.s.speed * (b.s.weapon === 'spinner' && want_r === 0 ? 1.15 : 1) * align * Math.min(1, Math.hypot(mx, my));
       b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + Math.cos(b.body) * sp * dt));
       b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + Math.sin(b.body) * sp * dt));
       b.vx = Math.cos(b.body) * sp; b.vy = Math.sin(b.body) * sp;
@@ -315,8 +468,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : w === 'saw' ? b.s.bullet * 0.95 : b.s.bullet;
       const tt = w === 'laser' ? 0 : dist / Math.max(50, pspeed);
       const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
-      b.turret = turnToward(b.turret, aim, rad(b.s.turret) * b.jam * dt);
+      if (!jammed) b.turret = turnToward(b.turret, aim, rad(b.s.turret) * b.jam * dt);
       b.cd -= dt;
+      if (jammed) b.cd = Math.max(b.cd, 0.05);
       b.beam = 0;
       const err = Math.abs(wrapA(aim - b.turret));
       if (w === 'gun' || w === 'shotgun') {
@@ -332,6 +486,39 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
           }
           B.fx.push({ k: 'flash', x: b.x + Math.cos(b.turret) * 26, y: b.y + Math.sin(b.turret) * 26, life: 0.06 });
           b.shots += pellets;
+        }
+      } else if (w === 'spinner') {
+        b.spin = (b.spin || 0) + dt * 18;
+        if (b.cd <= 0) {
+          let hit = null, hd = Infinity;
+          for (const e of B.bots) {
+            if (e.hp <= 0 || e.squad === b.squad) continue;
+            const d = Math.hypot(e.x - b.x, e.y - b.y);
+            if (d < (b.size + e.size) / 2 + 8 && d < hd) { hd = d; hit = e; }
+          }
+          if (hit && !jammed) {
+            const a = Math.atan2(hit.y - b.y, hit.x - b.x);
+            critHit(B, hit, b.s.fp * 0.75, b);
+            hit.kx = Math.cos(a) * 340; hit.ky = Math.sin(a) * 340; hit.stun = Math.max(hit.stun, 0.35); hit.lastBy = b.i;
+            b.kx = -Math.cos(a) * 200; b.ky = -Math.sin(a) * 200;
+            b.cd = 1 / b.s.fire; b.hits++; b.shots++;
+            B.fx.push({ k: 'spark', x: (b.x + hit.x) / 2, y: (b.y + hit.y) / 2, life: 0.2 });
+          }
+        }
+      } else if (w === 'flame') {
+        b.flame = 0;
+        if (dist < 140 && err < rad(25) && !jammed && !allyInLine(B, b, b.turret, dist)) {
+          b.flame = 1;
+          for (const e of B.bots) {
+            if (e.hp <= 0 || e.squad === b.squad) continue;
+            const ex = e.x - b.x, ey = e.y - b.y, d = Math.hypot(ex, ey);
+            if (d > 140 + e.size / 2 || Math.abs(wrapA(Math.atan2(ey, ex) - b.turret)) > rad(22)) continue;
+            if (B.walls.some(wl => wl.team !== b.team && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) != null && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) < d)) continue;
+            hitBot(B, e, b.s.fp * 0.5 * dt, b, true);
+            e.burn = Math.min(4, (e.burn || 0) + dt * 2); e.burnBy = b.i;
+            b.hits += dt;
+          }
+          b.shots += dt;
         }
       } else if (w === 'saw') {
         if (b.cd <= 0 && err < rad(6) && !allyInLine(B, b, b.turret, dist)) {
@@ -355,7 +542,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
           b.shots++;
         }
       } else if (w === 'laser') {
-        if (dist < 280 && !allyInLine(B, b, b.turret, dist)) {
+        if (dist < 280 && !jammed && !allyInLine(B, b, b.turret, dist)) {
           const wob = (rad(14) * (1 - accE / 100) + fog * rad(18)) * Math.sin(B.t * 9 + b.i * 2);
           const a = b.turret + wob;
           // perpendicular distance from target centre to the beam
@@ -389,8 +576,14 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       if (wl) { wl.hp -= q.dmg; B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.08 }); B.bullets.splice(k, 1); continue; }
       let tgt = null;
       for (const e of B.bots) if (e.hp > 0 && e.squad !== own.squad && Math.abs(q.x - e.x) < e.size / 2 + 2 && Math.abs(q.y - e.y) < e.size / 2 + 2) { tgt = e; break; }
+      if (tgt && tgt.s.weapon === 'spinner' && B.rng() < 0.25) {
+        // glances off the spinning disc
+        const nx = q.x - tgt.x, ny = q.y - tgt.y, nl = Math.hypot(nx, ny) || 1, dot = (q.vx * nx + q.vy * ny) / nl;
+        q.vx -= 2 * dot * nx / nl; q.vy -= 2 * dot * ny / nl; q.owner = tgt.i;
+        B.fx.push({ k: 'spark', x: q.x, y: q.y, life: 0.15 }); continue;
+      }
       if (tgt) {
-        hitBot(B, tgt, q.dmg, own); own.hits++;
+        critHit(B, tgt, q.dmg, own); own.hits++;
         B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
         B.bullets.splice(k, 1); continue;
       }
@@ -400,8 +593,8 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     for (let k = B.saws.length - 1; k >= 0; k--) {
       const q = B.saws[k];
       q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
-      if (q.x < 7 || q.x > W - 7) { q.vx *= -0.9; q.vy *= 0.9; q.x = Math.max(7, Math.min(W - 7, q.x)); q.bounces++; B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
-      if (q.y < 7 || q.y > H - 7) { q.vy *= -0.9; q.vx *= 0.9; q.y = Math.max(7, Math.min(H - 7, q.y)); q.bounces++; B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
+      if (q.x < 7 || q.x > W - 7) { q.vx *= -0.9; q.vy *= 0.9; q.x = Math.max(7, Math.min(W - 7, q.x)); q.bounces++; q.dmg *= 0.75; B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
+      if (q.y < 7 || q.y > H - 7) { q.vy *= -0.9; q.vx *= 0.9; q.y = Math.max(7, Math.min(H - 7, q.y)); q.bounces++; q.dmg *= 0.75; B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.06 }); }
       const own = B.bots[q.owner];
       for (const wl of B.walls) {
         if (wl.team === own.team || segDist(q.x, q.y, wl) > 8) continue;
@@ -412,13 +605,14 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       for (const e of B.bots) {
         if (e.hp <= 0 || e.squad === q.squad || (q.last === e.i && B.t - q.lastT < 0.4)) continue;
         const dx = q.x - e.x, dy = q.y - e.y, d = Math.hypot(dx, dy);
-        if (d > e.size / 2 + 9) continue;
-        hitBot(B, e, q.dmg, own); own.hits++;
+        if (d > e.size / 2 + 7) continue;
+        if (e.s.weapon === 'spinner' && B.rng() < 0.25) { const nx = dx / (d || 1), ny = dy / (d || 1), dot = q.vx * nx + q.vy * ny; if (dot < 0) { q.vx -= 2 * dot * nx; q.vy -= 2 * dot * ny; } q.last = e.i; q.lastT = B.t; B.fx.push({ k: 'spark', x: q.x, y: q.y, life: 0.15 }); break; }
+        critHit(B, e, q.dmg, own); own.hits++;
         B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
         // ricochet away from the robot it hit
         const nx = dx / (d || 1), ny = dy / (d || 1), dot = q.vx * nx + q.vy * ny;
         if (dot < 0) { q.vx -= 2 * dot * nx; q.vy -= 2 * dot * ny; }
-        q.vx *= 0.85; q.vy *= 0.85; q.hits++; q.last = e.i; q.lastT = B.t;
+        q.vx *= 0.85; q.vy *= 0.85; q.hits++; q.dmg *= 0.75; q.last = e.i; q.lastT = B.t;
         break;
       }
       if (q.life <= 0 || q.hits >= 3 || Math.hypot(q.vx, q.vy) < 110) B.saws.splice(k, 1);
@@ -431,7 +625,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
         for (const e of B.bots) {
           if (e.hp <= 0 || (e.squad === own.squad && e !== own)) continue;   // splash hits everyone except your own helpers, the shooter included
           const d = Math.hypot(e.x - q.tx, e.y - q.ty);
-          if (d < 45) { hitBot(B, e, q.dmg * (d < 22 ? 1 : 0.5), own); own.hits++; }
+          if (d < 45) { critHit(B, e, q.dmg * (d < 22 ? 1 : 0.5), own); own.hits++; }
         }
         B.fx.push({ k: 'boom', x: q.tx, y: q.ty, life: 0.25 });
         B.shells.splice(k, 1);
@@ -452,6 +646,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     for (let k = B.walls.length - 1; k >= 0; k--) { const wl = B.walls[k]; wl.life -= dt; if (wl.life <= 0 || wl.hp <= 0) { if (wl.hp <= 0) B.fx.push({ k: 'hit', x: (wl.x1 + wl.x2) / 2, y: (wl.y1 + wl.y2) / 2, life: 0.2 }); B.walls.splice(k, 1); } }
     for (let k = B.smokes.length - 1; k >= 0; k--) { B.smokes[k].life -= dt; if (B.smokes[k].life <= 0) B.smokes.splice(k, 1); }
     for (let k = B.fx.length - 1; k >= 0; k--) { B.fx[k].life -= dt; if (B.fx[k].life <= 0) B.fx.splice(k, 1); }
+    if (Math.floor(B.t * 4) !== Math.floor((B.t - dt) * 4)) B.trace.push({ t: B.t, sh: teamShares(B) });
     const alive = [...new Set(B.bots.filter(b => b.hp > 0 && !b.helper).map(b => b.team))];
     if (alive.length <= 1) {
       B.over = true;
@@ -466,6 +661,13 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     }
   }
 
+  // share of each team's starting health that is left (main robots only)
+  function teamShares(B) {
+    const hp = {}, max = {};
+    for (const b of B.bots) if (!b.helper) { hp[b.team] = (hp[b.team] || 0) + Math.max(0, b.hp); max[b.team] = (max[b.team] || 0) + b.s.hp; }
+    const out = {}; for (const t in hp) out[t] = Math.round(hp[t] / max[t] * 1000) / 1000;
+    return out;
+  }
   function segDist(px, py, w) {
     const vx = w.x2 - w.x1, vy = w.y2 - w.y1, L2 = vx * vx + vy * vy;
     const t = Math.max(0, Math.min(1, ((px - w.x1) * vx + (py - w.y1) * vy) / L2));
@@ -506,7 +708,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     h.cd -= dt;
     if (h.helper === 'medic') {
       // several medics don't stack fully: the robot can take at most 6 health/s of healing in total
-      if (m.hp < m.s.hp && Math.hypot(m.x - h.x, m.y - h.y) < 130 && (m.healT || 0) < B.t) { const room = 8 - (m.healAcc || 0); const amt = Math.min(5, Math.max(0, room)); if (amt > 0) { m.hp = Math.min(m.s.hp, m.hp + amt * dt); m.healAcc = (m.healAcc || 0) + amt; h.beam = 1; } }
+      if (m.hp < m.s.hp && Math.hypot(m.x - h.x, m.y - h.y) < 130 && (m.healT || 0) < B.t) { const room = 8 - (m.healAcc || 0); const amt = Math.min(4, Math.max(0, room)); if (amt > 0) { m.hp = Math.min(m.s.hp, m.hp + amt * dt); m.healAcc = (m.healAcc || 0) + amt; h.beam = 1; } }
     } else if (h.helper === 'waller') {
       if (h.cd <= 0 && tgt && al < 480) {
         const own = B.walls.filter(w => w.owner === h.i);
@@ -523,7 +725,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
         h.cd = 0.5;
       }
     } else if (h.helper === 'bomber') {
-      if (h.diving && tgt && Math.hypot(tgt.x - h.x, tgt.y - h.y) < 24) { h.hp = 0; explode(B, h.x, h.y, 50, 30, h, 'boom', true); }
+      if (h.diving && tgt && Math.hypot(tgt.x - h.x, tgt.y - h.y) < 24) { h.hp = 0; explode(B, h.x, h.y, 50, 24, h, 'boom', true); }
     } else if (h.helper === 'miner') {
       if (h.cd <= 0) {
         const own = B.mines.filter(x => x.owner === h.i);
@@ -544,13 +746,16 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     else if (m === 'flipper') {
       if (b.stun <= 0 && b.modCd <= 0 && near.e && near.d < 48) {
         const e = near.e, a = Math.atan2(e.y - b.y, e.x - b.x);
-        hitBot(B, e, 10, b, true); e.kx = Math.cos(a) * 480; e.ky = Math.sin(a) * 480; e.stun = Math.max(e.stun, 1.0); e.lastBy = b.i;
-        b.modCd = 4; b.revealed = true; B.fx.push({ k: 'flip', x: (b.x + e.x) / 2, y: (b.y + e.y) / 2, life: 0.25 });
+        hitBot(B, e, 14, b, true); e.kx = Math.cos(a) * 480; e.ky = Math.sin(a) * 480; e.stun = Math.max(e.stun, 1.3); e.lastBy = b.i;
+        if (!b.revealed) logE(B, { k: 'mod', who: b.i, text: 'first flip on', tgt: e.i });
+        b.modCd = 3; b.revealed = true; B.fx.push({ k: 'flip', x: (b.x + e.x) / 2, y: (b.y + e.y) / 2, life: 0.25 });
       }
     }
     else if (m === 'emp') {
       if (b.stun <= 0 && b.modCd <= 0 && near.e && near.d < 130) {
-        for (const e of B.bots) if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 150) e.stun = Math.max(e.stun, 1.8);
+        let nStun = 0;
+        for (const e of B.bots) if (e !== b && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < 150) { e.stun = Math.max(e.stun, 1.8); if (e.team !== b.team && !e.helper) nStun++; }
+        if (nStun) logE(B, { k: 'mod', who: b.i, text: 'EMP stunned ' + nStun + ' enem' + (nStun > 1 ? 'ies' : 'y') });
         b.modCd = 12; b.revealed = true; B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 150, life: 0.4 });
       }
     }
@@ -565,6 +770,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     else if (m === 'decoy') {
       if (!b.modUsed && b.hp < b.s.hp * 0.6) {
         b.modUsed = true; b.revealed = true;
+        logE(B, { k: 'mod', who: b.i, text: 'decoy hologram' });
         const a = b.body + (B.rng() < 0.5 ? 1 : -1) * Math.PI / 2;
         // every enemy currently aiming at this robot gets fooled
         const fooled = B.bots.filter(e => e.team !== b.team && e.target === b.i).map(e => e.i);
@@ -572,7 +778,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       }
     }
     else if (m === 'smoke') {
-      if (!b.modUsed && b.hp < b.s.hp * 0.5) { b.modUsed = true; b.revealed = true; B.smokes.push({ x: b.x, y: b.y, r: 90, life: 4 }); }
+      if (!b.modUsed && b.hp < b.s.hp * 0.5) { b.modUsed = true; b.revealed = true; B.smokes.push({ x: b.x, y: b.y, r: 90, life: 4 }); logE(B, { k: 'mod', who: b.i, text: 'smoke screen' }); }
     }
   }
 
@@ -583,7 +789,66 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     return B;
   }
 
-  const Sim = { HELPERS, MODS, CAL, W, H, SIZE, STATS, LV, RANGES, newBattle, step, fight, statsOf, cost, mkRng };
+  // recap: the key moments of a finished fight in plain English.
+  // nameOf(i) names main robot i; teamName(t) names team t (team fights). Returns { headline, turning, lines, summary }.
+  function recap(B, nameOf, teamName) {
+    nameOf = nameOf || (i => 'Robot ' + (i + 1));
+    const bots = B.bots, mains = bots.filter(b => !b.helper);
+    const teamFight = new Set(mains.map(b => b.team)).size < mains.length;
+    const nm = i => { const b = bots[i]; return b.helper ? nameOf(b.owner) + "'s " + HELPERS[b.helper].name : nameOf(i); };
+    const side = t => teamFight && teamName ? teamName(t) : nameOf(mains.find(b => b.team === t).i);
+    const all = [];
+    const add = (ev, pri, k, text, extra) => all.push(Object.assign({ t: ev.t, pri, k, who: ev.who != null ? (bots[ev.who].helper ? bots[ev.who].owner : ev.who) : null, text }, extra));
+    for (const ev of B.log) {
+      if (ev.k === 'ko') add(ev, 10, 'ko', ev.self ? nm(ev.who) + ' blew itself up (' + ev.how + ')' : nm(ev.who) + ' destroyed by ' + nm(ev.by) + ' (' + (ev.friendly ? 'friendly fire, ' : '') + ev.how + ')');
+      else if (ev.k === 'break') add(ev, 9, 'break', nm(ev.who) + ': ' + ev.text + ', ' + ev.part.toLowerCase() + ' broke');
+      else if (ev.k === 'critko') add(ev, 8, 'crit', nm(ev.who) + ' finished ' + nm(ev.tgt) + ' with a ' + ev.dmg + ' damage crit');
+      else if (ev.k === 'glitch') add(ev, 6, 'glitch', nm(ev.who) + ': ' + ev.text + ' for ' + ev.dur + ' s');
+      else if (ev.k === 'flank') { const tot = Math.round(bots[ev.tgt].rear[ev.who]); add(ev, tot >= 30 ? 7 : 5, 'flank', nm(ev.who) + ' flanked ' + nm(ev.tgt) + ': ' + tot + ' damage on its blind side', { size: tot }); }
+      else if (ev.k === 'mod') add(ev, 5, 'mod', nm(ev.who) + ': ' + ev.text + (ev.tgt != null ? ' ' + nm(ev.tgt) : ''));
+      else if (ev.k === 'bigcrit') add(ev, 4, 'crit', nm(ev.who) + ' crit ' + nm(ev.tgt) + ' for ' + ev.dmg, { size: ev.dmg });
+      else if (ev.k === 'drone') add(ev, 3, 'drone', nm(ev.who) + ' shot down by ' + nm(ev.by));
+    }
+    // keep it short: only the biggest crits and flanks, a few module and drone moments, at most 12 lines
+    const cap = { crit: 3, flank: 3, mod: 3, drone: 3 };
+    const bySize = (a, b) => (b.pri - a.pri) || ((b.size || 0) - (a.size || 0)) || (a.t - b.t);
+    let keep = [];
+    for (const k of ['ko', 'break', 'glitch', 'crit', 'flank', 'mod', 'drone']) {
+      const ls = all.filter(l => l.k === k).sort(bySize);
+      keep = keep.concat(cap[k] ? ls.slice(0, cap[k]) : ls);
+    }
+    keep = keep.sort(bySize).slice(0, 12).sort((a, b) => a.t - b.t);
+    // turning point: the last time the eventual winner took the health lead
+    let turning = null, comeback = null;
+    if (B.winner >= 0 && B.trace.length) {
+      const lead = sh => { let best = null, bv = -1, second = -1; for (const t in sh) { if (sh[t] > bv) { second = bv; bv = sh[t]; best = +t; } else if (sh[t] > second) second = sh[t]; } return bv - second > 0.02 ? best : null; };
+      let prev = null, tp = null;
+      for (const s of B.trace) { const l = lead(s.sh); if (l == null) continue; if (l === B.winner && prev !== B.winner && prev != null) tp = s.t; prev = l; }
+      if (tp != null) {
+        const near = keep.filter(l => l.pri >= 5 && l.t <= tp + 0.5 && l.t >= tp - 5);
+        turning = { t: Math.round(tp * 10) / 10, line: near.length ? near[near.length - 1] : null };
+        if (turning.line) turning.line.turn = true;
+      }
+      let low = 1, lowT = 0;
+      for (const s of B.trace) if (s.sh[B.winner] < low) { low = s.sh[B.winner]; lowT = s.t; }
+      const at = B.trace.find(s => s.t === lowT);
+      if (low < 0.4 && at && Object.keys(at.sh).some(t => +t !== B.winner && at.sh[t] > low)) comeback = Math.round(low * 100);
+    }
+    const left = mains.filter(b => b.team === B.winner && b.hp > 0).length, of = mains.filter(b => b.team === B.winner).length;
+    let headline = B.winner < 0 ? 'Draw after ' + B.t.toFixed(1) + ' s.' :
+      side(B.winner) + ' wins' + (B.timeout ? ' on health at the time limit (' + B.t.toFixed(0) + ' s)' : ' in ' + B.t.toFixed(1) + ' s') + (of > 1 ? ', ' + left + ' of ' + of + ' robots left' : '') + '.';
+    if (comeback != null) headline += ' Comeback: was down to ' + comeback + '% health.';
+    else if (B.winner >= 0 && !turning) headline += ' Led from start to finish.';
+    // per side: crits, malfunctions, broken parts
+    const teams = [...new Set(mains.map(b => b.team))], summary = [];
+    const per = f => teams.map(t => side(t) + ' ' + f(mains.filter(b => b.team === t))).join(' · ');
+    summary.push('Crits: ' + per(ms => { const c = ms.reduce((a, b) => a + b.crits, 0); return c + (c ? ' (+' + Math.round(ms.reduce((a, b) => a + b.critDmg, 0)) + ' damage)' : ''); }));
+    summary.push('Malfunctions: ' + per(ms => ms.filter(b => b.glitch && b.glitch.done).length) + '. Broken parts: ' + per(ms => ms.reduce((a, b) => a + (b.broken || []).length, 0)) + '.');
+    return { headline, turning, lines: keep, summary };
+  }
+
+  const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame'];
+  const Sim = { SQUADS, WEAPONS, HELPERS, MODS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 
@@ -600,31 +865,51 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     Burner:   { b: { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium' }, d: 'Laser that cooks through any armour, but only up close.' },
     Lobber:   { b: { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium' }, d: 'Mortar from far away. Splash hurts slow robots, can\'t shoot up close.' },
     Buzzsaw:  { b: { lv: L(3, 1, 2, 2, 4, 1, 1), range: 'mid', weapon: 'saw', cal: 'medium' }, d: 'Throws spinning saw blades that bounce off walls and robots. Best in a crowd.' },
+    Whirlwind:{ b: { lv: L(3, 2, 4, 1, 4, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium' }, d: 'The whole robot is a spinning blade. Rams in, sends enemies flying, some bullets glance off.' },
+    Torch:    { b: { lv: L(4, 1, 3, 2, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium' }, d: 'Flamethrower. Sets robots on fire; fire ignores armour and spreads to anyone they touch.' },
   };
-  const MATRIX = {"Bulwark":{"Marksman":0.105,"Hornet":1,"Dasher":0.165,"Burner":0.03,"Lobber":0.015,"Buzzsaw":0.14},"Marksman":{"Bulwark":0.895,"Hornet":0.035,"Dasher":0.66,"Burner":1,"Lobber":0.245,"Buzzsaw":0.67},"Hornet":{"Bulwark":0,"Marksman":0.965,"Dasher":0.415,"Burner":1,"Lobber":0.71,"Buzzsaw":0.71},"Dasher":{"Bulwark":0.835,"Marksman":0.33999999999999997,"Hornet":0.585,"Burner":0.1525,"Lobber":0.58,"Buzzsaw":0.365},"Burner":{"Bulwark":0.97,"Marksman":0,"Hornet":0,"Dasher":0.8475,"Lobber":0.13,"Buzzsaw":0.7775},"Lobber":{"Bulwark":0.985,"Marksman":0.755,"Hornet":0.29000000000000004,"Dasher":0.42000000000000004,"Burner":0.87,"Buzzsaw":0.5},"Buzzsaw":{"Bulwark":0.86,"Marksman":0.32999999999999996,"Hornet":0.29000000000000004,"Dasher":0.635,"Burner":0.22250000000000003,"Lobber":0.5}};
+  const MATRIX = {"Bulwark":{"Marksman":0.078,"Hornet":0.8,"Dasher":0.125,"Burner":0.108,"Lobber":0.01,"Buzzsaw":0.4,"Whirlwind":0.04,"Torch":0.045},"Marksman":{"Bulwark":0.922,"Hornet":0.025,"Dasher":0.64,"Burner":1,"Lobber":0.215,"Buzzsaw":0.845,"Whirlwind":0.08,"Torch":0.99},"Hornet":{"Bulwark":0.2,"Marksman":0.975,"Dasher":0.543,"Burner":1,"Lobber":0.675,"Buzzsaw":0.973,"Whirlwind":0,"Torch":0.468},"Dasher":{"Bulwark":0.875,"Marksman":0.36,"Hornet":0.457,"Burner":0.33,"Lobber":0.635,"Buzzsaw":0.62,"Whirlwind":0.91,"Torch":0.333},"Burner":{"Bulwark":0.892,"Marksman":0,"Hornet":0,"Dasher":0.67,"Lobber":0.133,"Buzzsaw":0.895,"Whirlwind":0.56,"Torch":0.66},"Lobber":{"Bulwark":0.99,"Marksman":0.785,"Hornet":0.325,"Dasher":0.365,"Burner":0.867,"Buzzsaw":0.665,"Whirlwind":0.21,"Torch":0.665},"Buzzsaw":{"Bulwark":0.6,"Marksman":0.155,"Hornet":0.027,"Dasher":0.38,"Burner":0.105,"Lobber":0.335,"Whirlwind":0.74,"Torch":0.815},"Whirlwind":{"Bulwark":0.96,"Marksman":0.92,"Hornet":1,"Dasher":0.09,"Burner":0.44,"Lobber":0.79,"Buzzsaw":0.26,"Torch":0.74},"Torch":{"Bulwark":0.955,"Marksman":0.01,"Hornet":0.532,"Dasher":0.667,"Burner":0.34,"Lobber":0.335,"Buzzsaw":0.185,"Whirlwind":0.26}};
   const NAMES = { hp: 'Health', armor: 'Armour', speed: 'Speed', turret: 'Turret turn', fp: 'Firepower', acc: 'Accuracy', bullet: 'Bullet speed' };
   const UNIT = { hp: '', armor: ' per hit', speed: ' px/s', turret: '°/s', fp: ' dmg/s', acc: '%', bullet: ' px/s' };
   const clone = b => JSON.parse(JSON.stringify(b));
-  const sel = ['Marksman', 'Buzzsaw', 'Hornet', 'Bulwark', 'Burner', 'Lobber', 'Buzzsaw', 'Marksman'].map(n => ({ name: n, b: clone(PRESETS[n].b) }));
+  const sel = ['Marksman', 'Whirlwind', 'Torch', 'Bulwark', 'Burner', 'Lobber', 'Buzzsaw', 'Hornet', 'Dasher', 'Hornet'].map(n => ({ name: n, b: clone(PRESETS[n].b) }));
   [['medic'], ['miner'], ['waller', 'medic'], ['waller', 'miner', 'medic'], ['bodyguard', 'jammer'], ['spotter', 'gunner'], ['bomber', 'bomber'], ['gunner', 'medic']].forEach((h, i) => { sel[i].b.helpers = h.slice(); });
-  const LET = 'ABCDEFGH';
-  let count = 4, mode = 'ffa';
-  const teamMode = () => count > 4 || (mode === 'team' && count === 4);
+  const LET = 'ABCDEFGHIJ';
+  let count = 4, mode = 'squad';
+  // squadron cards: example squads found by the tuning simulations
+  const EXAMPLES = {"lone": [[{"lv": {"hp": 6, "armor": 1, "speed": 4, "turret": 3, "fp": 5, "acc": 2, "bullet": 7}, "weapon": "mortar", "cal": "rapid", "range": "long"}]], "duo": [[{"lv": {"hp": 5, "armor": 3, "speed": 0, "turret": 1, "fp": 3, "acc": 2, "bullet": 4}, "weapon": "saw", "cal": "medium", "range": "short"}, {"lv": {"hp": 3, "armor": 1, "speed": 4, "turret": 1, "fp": 1, "acc": 3, "bullet": 5}, "weapon": "gun", "cal": "heavy", "range": "long"}]], "trio": [[{"lv": {"hp": 3, "armor": 1, "speed": 1, "turret": 1, "fp": 2, "acc": 3, "bullet": 3}, "weapon": "mortar", "cal": "medium", "range": "mid"}, {"lv": {"hp": 2, "armor": 1, "speed": 2, "turret": 3, "fp": 2, "acc": 1, "bullet": 3}, "weapon": "saw", "cal": "rapid", "range": "long"}, {"lv": {"hp": 4, "armor": 0, "speed": 3, "turret": 1, "fp": 3, "acc": 1, "bullet": 2}, "weapon": "spinner", "cal": "medium", "range": "long"}]], "swarm": [[{"lv": {"hp": 2, "armor": 2, "speed": 2, "turret": 2, "fp": 0, "acc": 0, "bullet": 1}, "weapon": "saw", "cal": "rapid", "range": "mid"}, {"lv": {"hp": 1, "armor": 1, "speed": 1, "turret": 1, "fp": 3, "acc": 2, "bullet": 0}, "weapon": "laser", "cal": "heavy", "range": "mid"}, {"lv": {"hp": 2, "armor": 0, "speed": 1, "turret": 1, "fp": 3, "acc": 0, "bullet": 2}, "weapon": "flame", "cal": "medium", "range": "long"}, {"lv": {"hp": 1, "armor": 2, "speed": 1, "turret": 0, "fp": 1, "acc": 3, "bullet": 1}, "weapon": "gun", "cal": "heavy", "range": "long"}, {"lv": {"hp": 2, "armor": 0, "speed": 1, "turret": 0, "fp": 2, "acc": 3, "bullet": 1}, "weapon": "saw", "cal": "rapid", "range": "long"}]]};
+  const EXNAME = { lone: 'Titan', duo: 'Heavy', trio: 'Trooper', swarm: 'Mini' };
+  const card = { A: 'lone', B: 'trio' };
+  const slotsA = () => Sim.SQUADS[card.A].slots;
+  const cardOf = i => mode === 'squad' ? Sim.SQUADS[i < slotsA() ? card.A : card.B] : { points: 14, cap: 4, size: 30, name: '' };
+  const teamOf = i => mode === 'squad' ? (i < slotsA() ? 0 : 1) : (i < count / 2 ? 0 : 1);
+  const teamMode = () => mode === 'squad' || count > 4 || (mode === 'team' && count === 4);
+  function fillSide(side) {
+    const id = card[side], ex = EXAMPLES[id][0], start = side === 'A' ? 0 : slotsA();
+    ex.forEach((b, k) => { sel[start + k] = { name: EXNAME[id] + (ex.length > 1 ? ' ' + (k + 1) : ''), b: clone(b), ex: id }; });
+  }
   const FFA_COL = ['#1f6feb', '#d62828', '#2a9d3a', '#f08c00'];
   const TEAM_COL = ['#1f6feb', '#d62828'];
-  const colOf = i => teamMode() ? TEAM_COL[i < count / 2 ? 0 : 1] : FFA_COL[i];
+  const colOf = i => teamMode() ? TEAM_COL[teamOf(i)] : FFA_COL[i];
 
   const robotsEl = document.getElementById('robots');
+  const pc = x => Math.round(x * 100) + '%';
+  function strainLine(b) {
+    const R = Sim.riskOf(b), hi = R.glitch >= 0.35 || R.anyBreak >= 0.2;
+    return '<p class="modtx strain"><b>Strain ' + R.strain + '</b><span>' + R.parts.filter(p => p.strain).map(p => p.name + ' ' + p.strain).join(', ') + '</span>' +
+      '<label>Engineers <select data-k="eng">' + [0, 1, 2, 3].map(v => opt(v, String(v), R.eng)).join('') + '</select></label>' +
+      '<span class="risk' + (hi ? ' high' : '') + '">malfunction ' + pc(R.glitch) + ' · part break ' + pc(R.anyBreak) + '</span></p>';
+  }
   function opt(v, label, cur) { return '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + label + '</option>'; }
   function renderRobot(i) {
-    const R = sel[i], b = R.b;
+    const R = sel[i], b = R.b, C = cardOf(i);
     const pts = Sim.cost(b);
-    let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + (i < count / 2 ? 'blue' : 'red') + ' team</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
-      Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + opt('Custom', 'Custom', R.name) + '</select>' +
-      '<span class="pts' + (pts > 14 ? ' over' : '') + '">' + pts + ' / 14 points</span></h2>' +
-      '<p class="desc">' + (PRESETS[R.name] ? PRESETS[R.name].d : 'Your own build. Points over 14 are allowed here, just not fair.') + '</p>' +
+    let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + (teamOf(i) ? 'red' : 'blue') + (mode === 'squad' ? ' · ' + C.name : ' team') + '</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
+      (PRESETS[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + opt('Custom', 'Custom', R.name) + '</select>' +
+      '<span class="pts' + (pts > C.points ? ' over' : '') + '">' + pts + ' / ' + C.points + ' points</span></h2>' +
+      '<p class="desc">' + (PRESETS[R.name] ? PRESETS[R.name].d : R.ex ? 'Example ' + Sim.SQUADS[R.ex].name + ' robot found by the tuning simulations. Stats can go up to level ' + Sim.SQUADS[R.ex].cap + '.' : 'Your own build. Points over the budget are allowed here, just not fair.') + '</p>' +
       '<div class="choices">' +
-      '<label>Weapon<select data-k="weapon">' + opt('gun', 'Gun', b.weapon) + opt('laser', 'Laser', b.weapon) + opt('mortar', 'Mortar', b.weapon) + opt('saw', 'Saw blades', b.weapon) + '</select></label>' +
+      '<label>Weapon<select data-k="weapon">' + opt('gun', 'Gun', b.weapon) + opt('laser', 'Laser', b.weapon) + opt('mortar', 'Mortar', b.weapon) + opt('saw', 'Saw blades', b.weapon) + opt('spinner', 'Spinner blade', b.weapon) + opt('flame', 'Flamethrower', b.weapon) + '</select></label>' +
       '<label>Calibre<select data-k="cal"' + (b.weapon !== 'gun' ? ' disabled' : '') + '>' + opt('rapid', 'Rapid', b.cal) + opt('medium', 'Medium', b.cal) + opt('heavy', 'Heavy', b.cal) + '</select></label>' +
       '<label>Range<select data-k="range">' + opt('short', 'Short', b.range) + opt('mid', 'Mid', b.range) + opt('long', 'Long', b.range) + '</select></label>' +
       '<label>Module<select data-k="mod">' + opt('', 'None', b.mod || '') + Object.keys(Sim.MODS).map(k => opt(k, Sim.MODS[k].name, b.mod || '')).join('') + '</select></label></div>' +
@@ -632,11 +917,12 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       '<label>Shoots at<select data-k="focus">' + opt('main', 'Main robots', b.focus || 'main') + opt('medics', 'Medics first', b.focus || 'main') + opt('helpers', 'All helpers first', b.focus || 'main') + '</select></label></div>' +
       '<p class="modtx">' + ((b.helpers || []).filter(Boolean).length ? [...new Set(b.helpers.filter(Boolean))].map(h => '<b>' + Sim.HELPERS[h].name + ':</b> ' + Sim.HELPERS[h].text).join(' ') : 'No helpers. Add up to 3 drones above.') + '</p>' +
       '<p class="modtx">' + (b.mod ? '<b>' + Sim.MODS[b.mod].name + ':</b> ' + Sim.MODS[b.mod].text : 'No module. Pick one to add a surprise.') + '</p>' +
+      strainLine(b) +
       '<div class="lv">';
     const s = Sim.statsOf(b);
     for (const k of Sim.STATS) {
       let dots = '';
-      for (let v = 1; v <= 4; v++) dots += '<button type="button" data-st="' + k + '" data-v="' + v + '" class="' + (v <= b.lv[k] && v > 0 ? 'on' : '') + '" aria-label="' + NAMES[k] + ' level ' + v + '"></button>';
+      for (let v = 1; v <= Math.max(C.cap, b.lv[k]); v++) dots += '<button type="button" data-st="' + k + '" data-v="' + v + '" class="' + (v <= b.lv[k] && v > 0 ? 'on' : '') + '" aria-label="' + NAMES[k] + ' level ' + v + '"></button>';
       let val = s[k];
       if (k === 'fp' && b.weapon === 'laser') val = s.fp * 0.6;
       const shown = (typeof val === 'number' ? (Math.round(val * 10) / 10) : val) + UNIT[k];
@@ -646,13 +932,14 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const box = robotsEl.children[i];
     box.innerHTML = h;
   }
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 10; i++) {
     const d = document.createElement('div'); d.className = 'rb'; robotsEl.appendChild(d);
     d.addEventListener('change', e => {
       const k = e.target.dataset.k; if (!k && e.target.dataset.h == null) return;
       if (k === 'preset') { if (PRESETS[e.target.value]) { sel[i] = { name: e.target.value, b: clone(PRESETS[e.target.value].b) }; } else sel[i].name = 'Custom'; }
       else if (k === 'mod') { sel[i].b.mod = e.target.value || null; }
       else if (k === 'focus') { sel[i].b.focus = e.target.value; }
+      else if (k === 'eng') { sel[i].b.eng = +e.target.value; }
       else if (e.target.dataset.h != null) { const hs = (sel[i].b.helpers || ['', '', '']).slice(); while (hs.length < 3) hs.push(''); hs[+e.target.dataset.h] = e.target.value; sel[i].b.helpers = hs; }
       else { sel[i].b[k] = e.target.value; sel[i].name = 'Custom'; }
       renderRobot(i); reset();
@@ -692,14 +979,24 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   })();
 
   function renderAll() {
-    for (let i = 0; i < 8; i++) { robotsEl.children[i].hidden = i >= count; if (i < count) renderRobot(i); }
-    document.getElementById('mode').disabled = count !== 4;
-    if (count > 4) document.getElementById('mode').value = 'team';
-    if (count < 4) document.getElementById('mode').value = 'ffa';
-    if (count === 4) document.getElementById('mode').value = mode;
+    const sq = mode === 'squad';
+    document.getElementById('countWrap').hidden = sq; document.getElementById('cards').hidden = !sq;
+    if (sq) count = slotsA() + Sim.SQUADS[card.B].slots;
+    else { if (count > 8) count = 8; document.getElementById('count').value = String([2, 3, 4, 6, 8].includes(count) ? count : 4); count = +document.getElementById('count').value; }
+    for (let i = 0; i < 10; i++) { robotsEl.children[i].hidden = i >= count; if (i < count) renderRobot(i); }
   }
   document.getElementById('rand').onclick = () => {
     const P = Object.keys(PRESETS), Hs = Object.keys(Sim.HELPERS), Ms = Object.keys(Sim.MODS);
+    const r = a => a[Math.floor(Math.random() * a.length)];
+    if (mode === 'squad') {
+      // random robots that fit each side's card
+      for (let i = 0; i < count; i++) {
+        const C = cardOf(i), lv = {}; Sim.STATS.forEach(k => lv[k] = 0);
+        let left = C.points; while (left > 0) { const k = r(Sim.STATS); if (lv[k] < C.cap) { lv[k]++; left--; } }
+        sel[i] = { name: 'Random', b: { lv, weapon: r(Sim.WEAPONS), cal: r(['rapid', 'medium', 'heavy']), range: r(['short', 'mid', 'long']) } };
+      }
+      renderAll(); reset(); return;
+    }
     for (let i = 0; i < count; i++) {
       const n = P[Math.floor(Math.random() * P.length)];
       sel[i] = { name: n, b: clone(PRESETS[n].b) };
@@ -710,15 +1007,25 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     renderAll(); reset();
   };
   document.getElementById('count').onchange = e => { count = +e.target.value; renderAll(); reset(); };
-  document.getElementById('mode').onchange = e => { mode = e.target.value; renderAll(); reset(); };
+  document.getElementById('mode').onchange = e => { mode = e.target.value; if (mode === 'squad') { fillSide('A'); fillSide('B'); } renderAll(); reset(); };
+  for (const side of ['A', 'B']) {
+    const el = document.getElementById('card' + side);
+    el.innerHTML = Object.keys(Sim.SQUADS).map(k => opt(k, Sim.SQUADS[k].name + ' (' + Sim.SQUADS[k].slots + ')', card[side])).join('');
+    el.onchange = e => { card[side] = e.target.value; fillSide('A'); fillSide('B'); renderAll(); reset(); };
+  }
+  fillSide('A'); fillSide('B');
   let B, paused = false, mult = 1, hideMods = false;
-  document.getElementById('hideMods').onchange = e => { hideMods = e.target.checked; };
+  document.getElementById('hideMods').onchange = e => { hideMods = e.target.checked; startOdds(sel.slice(0, count).map((r, i) => Object.assign({}, r.b, { size: cardOf(i).size }))); };
   const showMod = b => b.mod && (!hideMods || b.revealed);
   function reset() {
-    const builds = sel.slice(0, count).map(r => r.b);
-    B = Sim.newBattle(builds, (Math.random() * 4294967296) >>> 0, teamMode() ? { teams: builds.map((_, i) => i < count / 2 ? 0 : 1) } : null);
+    const builds = sel.slice(0, count).map((r, i) => Object.assign({}, r.b, { size: cardOf(i).size }));
+    B = Sim.newBattle(builds, (Math.random() * 4294967296) >>> 0, teamMode() ? { teams: builds.map((_, i) => teamOf(i)) } : null);
     W = B.W; H = B.H; cv.width = W; cv.height = H;
-    document.getElementById('msg').textContent = teamMode()
+    recapEl.hidden = true; recapEl.innerHTML = '';
+    startOdds(builds);
+    document.getElementById('msg').textContent = mode === 'squad'
+      ? 'Blue ' + Sim.SQUADS[card.A].name + ' (' + slotsA() + ')  vs  Red ' + Sim.SQUADS[card.B].name + ' (' + Sim.SQUADS[card.B].slots + ')'
+      : teamMode()
       ? 'Blue: ' + sel.slice(0, count / 2).map(r => r.name).join(', ') + '  vs  Red: ' + sel.slice(count / 2, count).map(r => r.name).join(', ')
       : sel.slice(0, count).map(r => r.name).join(' vs ');
   }
@@ -774,6 +1081,14 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       ctx.fillStyle = colOf(q.owner); ctx.beginPath(); ctx.arc(x, y, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2); ctx.fill();
     }
     for (const b of B.bots) {
+      if (b.flame && b.hp > 0) {
+        for (let k = 0; k < 9; k++) {
+          const a = b.turret + (Math.random() - 0.5) * 0.7, r = 25 + Math.random() * 115;
+          ctx.fillStyle = Math.random() < 0.5 ? '#f08c00' : '#d62828'; ctx.globalAlpha = 0.25 + 0.5 * (1 - r / 140);
+          ctx.beginPath(); ctx.arc(b.x + Math.cos(a) * r, b.y + Math.sin(a) * r, 3 + r / 20, 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
       if (b.beam && b.hp > 0 && !b.helper) {
         ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 2; ctx.globalAlpha = 0.85;
         ctx.beginPath(); ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20); ctx.lineTo(b.x + Math.cos(b.beamA) * (b.beamLen || 280), b.y + Math.sin(b.beamA) * (b.beamLen || 280)); ctx.stroke();
@@ -784,35 +1099,63 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       if (b.helper) { drawHelper(b); continue; }
       ctx.save(); ctx.translate(b.x, b.y);
       if (b.hp <= 0) {
-        ctx.rotate(b.body); ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 2; ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-        ctx.beginPath(); ctx.moveTo(-SIZE / 2, -SIZE / 2); ctx.lineTo(SIZE / 2, SIZE / 2); ctx.moveTo(SIZE / 2, -SIZE / 2); ctx.lineTo(-SIZE / 2, SIZE / 2); ctx.stroke();
+        ctx.rotate(b.body); ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 2; ctx.strokeRect(-b.size / 2, -b.size / 2, b.size, b.size);
+        ctx.beginPath(); ctx.moveTo(-b.size / 2, -b.size / 2); ctx.lineTo(b.size / 2, b.size / 2); ctx.moveTo(b.size / 2, -b.size / 2); ctx.lineTo(-b.size / 2, b.size / 2); ctx.stroke();
         ctx.restore(); continue;
       }
       ctx.save(); ctx.rotate(b.body);
       ctx.fillStyle = colOf(b.i); ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1;
-      ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE); ctx.globalAlpha = 1;
+      ctx.fillRect(-b.size / 2, -b.size / 2, b.size, b.size); ctx.globalAlpha = 1;
       const ar = sel[b.i].b.lv.armor;
-      if (ar > 0) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; for (let k = 0; k < ar; k++) ctx.strokeRect(-SIZE / 2 + 3 + k * 3, -SIZE / 2 + 3 + k * 3, SIZE - 6 - k * 6, SIZE - 6 - k * 6); }
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(SIZE / 2 - 5, -3, 3, 6);
+      if (ar > 0) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; for (let k = 0; k < Math.min(ar, 4); k++) ctx.strokeRect(-b.size / 2 + 3 + k * 3, -b.size / 2 + 3 + k * 3, b.size - 6 - k * 6, b.size - 6 - k * 6); }
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(b.size / 2 - 5, -3, 3, 6);
       ctx.restore();
       ctx.rotate(b.turret);
       ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#111111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
       const w = b.s.weapon, cal = b.s.cal;
-      if (w === 'saw') { ctx.fillRect(0, -4, 14, 8); ctx.beginPath(); ctx.arc(16, 0, 5, 0, 7); ctx.fill(); }
+      if (w === 'spinner') {
+        ctx.rotate((b.spin || 0) - b.turret);
+        ctx.strokeStyle = '#111111'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, b.size * 0.7, 0, 7); ctx.stroke();
+        ctx.fillStyle = '#111111'; ctx.fillRect(-b.size * 0.77, -3, b.size * 1.54, 6);
+      }
+      else if (w === 'flame') { ctx.fillRect(0, -3.5, 18, 7); ctx.fillRect(14, -5, 5, 10); }
+      else if (w === 'saw') { ctx.fillRect(0, -4, 14, 8); ctx.beginPath(); ctx.arc(16, 0, 5, 0, 7); ctx.fill(); }
       else if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
       else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
       else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
       ctx.restore();
       if (b.hp > 0) drawMod(b);
       ctx.fillStyle = colOf(b.i); ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(LET[b.i] + ' · ' + sel[b.i].name, b.x, b.y - SIZE / 2 - 16);
+      ctx.fillText(LET[b.i] + ' · ' + sel[b.i].name, b.x, b.y - b.size / 2 - 16);
       const bw = 44, frac = Math.max(0, b.hp / b.s.hp);
-      ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 1; ctx.strokeRect(b.x - bw / 2, b.y - SIZE / 2 - 11, bw, 5);
-      ctx.fillRect(b.x - bw / 2, b.y - SIZE / 2 - 11, bw * frac, 5);
+      ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 1; ctx.strokeRect(b.x - bw / 2, b.y - b.size / 2 - 11, bw, 5);
+      ctx.fillRect(b.x - bw / 2, b.y - b.size / 2 - 11, bw * frac, 5);
+    }
+    // broken parts: a thin trail of grey smoke
+    for (const b of B.bots) if (b.hp > 0 && b.broken && b.broken.length) {
+      ctx.fillStyle = '#8a8a8a';
+      for (let k = 0; k < 3; k++) { const u = (B.t * 0.9 + k / 3) % 1; ctx.globalAlpha = 0.45 * (1 - u); ctx.beginPath(); ctx.arc(b.x - 8 + Math.sin(u * 6 + k) * 4, b.y - 6 - u * 26, 3 + u * 5, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    for (const b of B.bots) if (b.hp > 0 && b.burn > 0) {
+      const fl = 6 + Math.sin(B.t * 30 + b.i) * 2;
+      ctx.fillStyle = '#f08c00'; ctx.beginPath(); ctx.moveTo(b.x + 10, b.y - 4); ctx.lineTo(b.x + 14, b.y - 4 - fl * 1.6); ctx.lineTo(b.x + 18, b.y - 4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d62828'; ctx.beginPath(); ctx.moveTo(b.x + 12, b.y - 4); ctx.lineTo(b.x + 14, b.y - 4 - fl); ctx.lineTo(b.x + 16, b.y - 4); ctx.closePath(); ctx.fill();
     }
     ctx.strokeStyle = '#111111'; ctx.lineWidth = 2;
     for (const f of B.fx) {
+      if (f.k === 'spark' || f.k === 'ember') {
+        ctx.fillStyle = f.k === 'spark' ? '#111111' : '#f08c00';
+        for (let k = 0; k < 4; k++) { const a = k * 1.6 + f.x; ctx.fillRect(f.x + Math.cos(a) * (1 - f.life * 4) * 10, f.y + Math.sin(a) * (1 - f.life * 4) * 10 - (f.k === 'ember' ? (0.4 - f.life) * 25 : 0), 2.5, 2.5); }
+        continue;
+      }
+      if (f.k === 'crit' || f.k === 'glitch' || f.k === 'break') {
+        ctx.globalAlpha = Math.min(1, f.life * 3); ctx.fillStyle = f.k === 'glitch' ? '#111111' : '#b3261e';
+        ctx.font = '800 ' + (f.k === 'crit' ? 14 : 12) + 'px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(f.k === 'crit' ? 'CRIT!' : f.text, f.x, f.y - (0.6 - Math.min(0.6, f.life)) * 30);
+        ctx.globalAlpha = 1; continue;
+      }
       const L = f.k === 'emp' ? 0.4 : f.r ? 0.35 : 0.25;
       const grow = f.k === 'boom' || f.k === 'bigboom' || f.k === 'emp';
       const r = grow ? (f.r || 45) * (1 - f.life / L) : f.k === 'flip' ? 18 : f.k === 'hit' ? 10 : 6;
@@ -829,6 +1172,10 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     if (B.over) {
       ctx.fillStyle = '#111111'; ctx.font = '700 22px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(B.winner < 0 ? 'Draw' : teamMode() ? (B.winner === 0 ? 'Blue' : 'Red') + ' team wins' : LET[B.winner] + ' · ' + sel[B.winner].name + ' wins', W / 2, 40);
+      if (teamMode() && B.winner >= 0) {
+        const mine = B.bots.filter(b => !b.helper && b.team === B.winner).length, theirs = B.bots.filter(b => !b.helper && b.team !== B.winner).length;
+        if (mine < theirs) { ctx.fillStyle = '#b3261e'; ctx.font = '800 18px system-ui, sans-serif'; ctx.fillText(mine === 1 ? 'GIANT SLAYER! One robot beat ' + theirs + '.' : 'Outnumbered ' + mine + ' to ' + theirs + ' and still won!', W / 2, 66); }
+      }
     }
   }
 
@@ -836,7 +1183,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   const statusEl = document.getElementById('status');
   function updateStatus() {
     const groups = [];
-    if (teamMode()) for (const t of [0, 1]) groups.push({ label: t ? 'Red team' : 'Blue team', col: TEAM_COL[t], bots: B.bots.filter(b => b.team === t) });
+    if (teamMode()) for (const t of [0, 1]) groups.push({ label: (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], bots: B.bots.filter(b => b.team === t) });
     else for (const b of B.bots) if (!b.helper) groups.push({ label: LET[b.i] + ' ' + sel[b.i].name, col: colOf(b.i), bots: B.bots.filter(x => x.squad === b.i) });
     statusEl.innerHTML = groups.map(g => {
       const mains = g.bots.filter(b => !b.helper), helpers = g.bots.filter(b => b.helper);
@@ -877,11 +1224,90 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     if (b.mod === 'mines' || b.mod === 'smoke' || b.mod === 'decoy') { ctx.fillStyle = c; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(b.mod === 'mines' ? 'MINES' : b.mod === 'smoke' ? (b.modUsed ? '' : 'SMOKE') : (b.modUsed ? '' : 'DECOY'), b.x, b.y + SIZE / 2 + 13); }
   }
 
+  // ---- bookie's board: simulate the visible builds (cached), show fuzzy bands instead of exact odds ----
+  const ODDS_N = 40, oddsCache = new Map();
+  // bands compare a side's chance with its fair share (1 / number of sides); pays = what a 1-credit bet returns
+  // (about 0.92 / chance at the middle of each band, like the old exact odds; near a band edge a bet can be a bargain or a trap)
+  const BANDS = [
+    { min: 1.6, name: 'Heavy favourite', pay: 1.1 },
+    { min: 1.2, name: 'Favourite', pay: 1.3 },
+    { min: 0.85, name: 'Even', pay: 1.8 },
+    { min: 0.55, name: 'Underdog', pay: 2.6 },
+    { min: -1, name: 'Long shot', pay: 5 },
+  ];
+  const bandOf = (p, n) => BANDS.find(x => p * n >= x.min);
+  let oddsJob = null, oddsKey = null, oddsGroups = [];
+  const recapEl = document.getElementById('recap');
+  function groupsNow() {
+    if (teamMode()) return [0, 1].map(t => ({ name: (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], idx: [...Array(count).keys()].filter(i => teamOf(i) === t) }));
+    return [...Array(count).keys()].map(i => ({ name: LET[i] + ' ' + sel[i].name, col: colOf(i), idx: [i] }));
+  }
+  function startOdds(builds) {
+    oddsGroups = groupsNow();
+    const team = teamMode();
+    // the bookie only knows what everyone can see
+    const vis = builds.map(b => { const c = Object.assign({}, b); if (hideMods) delete c.mod; return c; });
+    oddsKey = JSON.stringify([team, oddsGroups.map(g => g.idx), vis]);
+    let job = oddsCache.get(oddsKey);
+    if (!job) { job = { groups: oddsGroups.map(g => g.idx), builds: vis, team, n: 0, wins: oddsGroups.map(() => 0) }; oddsCache.set(oddsKey, job); }
+    oddsJob = job;
+    renderOdds();
+    if (job.n < ODDS_N) setTimeout(oddsTick, 30);
+  }
+  function oddsTick() {
+    const job = oddsJob; if (!job || job.n >= ODDS_N) return;
+    const t0 = performance.now(), G = job.groups.length;
+    while (job.n < ODDS_N && performance.now() - t0 < 30) {
+      // rotate which side spawns where, fixed seeds so every PC gets the same board
+      const k = job.n, order = job.groups.map((_, g) => (g + k) % G), list = [], owner = [], teams = [];
+      order.forEach((g, pos) => job.groups[g].forEach(i => { list.push(job.builds[i]); owner.push(g); teams.push(pos); }));
+      const X = Sim.newBattle(list, 7001 + k * 977, job.team ? { teams } : null);
+      while (!X.over) Sim.step(X, 1 / 30);
+      if (X.winner < 0) job.wins.forEach((_, g) => job.wins[g] += 1 / G);
+      else job.wins[job.team ? order[X.winner] : owner[X.winner]]++;
+      job.n++;
+    }
+    if (job === oddsJob) renderOdds();
+    if (job.n < ODDS_N && job === oddsJob) setTimeout(oddsTick, 0);
+  }
+  const oddsDone = () => oddsJob && oddsJob.n >= ODDS_N;
+  function bandFor(g) { const j = oddsJob; return j && j.n >= 8 ? bandOf(j.wins[g] / j.n, j.groups.length) : null; }
+  function renderOdds() {
+    const j = oddsJob, exact = document.getElementById('exactOdds').checked, G = oddsGroups.length;
+    document.getElementById('oddsNote').textContent = j.n < ODDS_N ? 'crunching ' + j.n + ' / ' + ODDS_N + ' fights…' : 'from ' + ODDS_N + ' simulated fights of what everyone can see' + (hideMods ? ' (hidden modules left out)' : '');
+    document.getElementById('oddsRows').innerHTML = oddsGroups.map((g, k) => {
+      const bd = bandFor(k);
+      return '<div class="orow" style="border-color:' + g.col + '"><span class="who" style="color:' + g.col + '">' + g.name + '</span>' +
+        '<span class="band">' + (bd ? bd.name : '…') + '</span>' +
+        '<span class="pay">' + (bd ? 'pays ' + (Math.round(bd.pay * G / 2 * 10) / 10) + '× stake' : '&nbsp;') + (exact && j.n ? ' · ' + Math.round(j.wins[k] / j.n * 100) + '%' : '') + '</span></div>';
+    }).join('');
+  }
+  document.getElementById('exactOdds').onchange = renderOdds;
+
+  const TAG = { ko: 'Knockout', break: 'Part broke', glitch: 'Malfunction', crit: 'Crit', flank: 'Flank', mod: 'Module', drone: 'Drone down' };
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  function renderRecap() {
+    const R = Sim.recap(B, i => LET[i] + ' ' + sel[i].name, t => (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'));
+    // upset: the winner was an underdog or long shot on the bookie's board
+    let upset = '';
+    if (B.winner >= 0 && oddsDone()) {
+      const g = oddsGroups.findIndex(x => teamMode() ? x.idx.some(i => teamOf(i) === B.winner) : x.idx[0] === B.winner), bd = g >= 0 ? bandFor(g) : null;
+      if (bd && bd.min < 0.85) upset = ' <span class="upset">UPSET!</span> The bookie had them as ' + bd.name + '.';
+      else if (bd) upset = ' The bookie had them as ' + bd.name + '.';
+    }
+    const tp = R.turning ? '<p class="note">' + (R.turning.line ? 'Turning point at ' + R.turning.t + ' s (marked below).' : 'Took the lead for good at ' + R.turning.t + ' s.') + '</p>' : '';
+    recapEl.innerHTML = '<div class="head"><b>Fight recap</b></div><p style="margin:0">' + esc(R.headline) + upset + '</p>' + tp +
+      (R.lines.length ? '<ul class="rlist">' + R.lines.map(l => '<li' + (l.turn ? ' class="turn"' : '') + '><span class="rt">' + l.t.toFixed(1) + ' s</span><span class="tag" style="color:' + (l.who != null ? colOf(l.who) : 'inherit') + '">' + TAG[l.k] + '</span><span class="tx">' + esc(l.text) + '</span></li>').join('') + '</ul>' : '<p class="note">A clean fight: no knockouts, breaks or big moments logged.</p>') +
+      R.summary.map(x => '<p class="note" style="font-size:12.5px">' + esc(x) + '</p>').join('');
+    recapEl.hidden = false;
+  }
+
   let last = performance.now(), acc = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
     if (!paused) { acc += dt * mult; while (acc >= 1 / 60) { Sim.step(B, 1 / 60); acc -= 1 / 60; } }
+    if (B.over && !B.recapShown) { B.recapShown = true; renderRecap(); }
     draw();
     if (now - (frame.lastStatus || 0) > 120) { frame.lastStatus = now; updateStatus(); }
   }
