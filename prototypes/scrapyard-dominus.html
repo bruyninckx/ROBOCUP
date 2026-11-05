@@ -378,7 +378,7 @@ th { background: var(--soft); font-weight: 600; }
   const SPONSORS = {
     aegis:     { name: 'Aegis Heavy', tag: 'Built to Last', text: 'In Upkeep, each of your robots repairs 25 damage for free.' },
     blackwire: { name: 'Blackwire Syndicate', tag: 'Dirty Tricks', text: 'Draw +1 intrigue card in Upkeep (hand max 5); schemes need 2 less fame.' },
-    sovereign: { name: 'Sovereign Foundry', tag: 'Deep Pockets', text: 'Start with 4 mechanics (instead of 3) and win all Market tie-breaks.' },
+    sovereign: { name: 'Sovereign Foundry', tag: 'Deep Pockets', text: 'Start with 4 mechanics (instead of 3) and win deadlocked Market rebid ties.' },
     apex:      { name: 'Apex Media', tag: 'Prime Time', text: 'Gain +2 credits when you Host; robots become Fan Favourites at 2 wins (not 3).' },
     lucky:     { name: 'Lucky Seven', tag: 'House Edge', text: 'Bet up to 5 credits (instead of 3); losing bets refund 1 credit.' },
     vulture:   { name: 'Vulture Salvage', tag: 'Nothing Wasted', text: '+2 credits whenever any robot is scrapped; get 2 Scrap Crates when you lose.' },
@@ -594,7 +594,7 @@ th { background: var(--soft); font-weight: 600; }
   }
   function renderMarket() {
     const t = me();
-    let h = '<h2>Market: sealed bids</h2><p>Bid secretly on each lot and on the right to host this round\'s fight. Highest bid wins and pays; ties go to whoever has less fame (unless Sovereign Foundry is tied). Your bids together can\'t exceed your ' + t.credits + ' credits.</p>';
+    let h = '<h2>Market: sealed bids</h2><p>Bid secretly on each lot and on the right to host this round\'s fight. Highest bid wins and pays; if teams tie, only the tied teams bid again on top of their first bids (Spartacus style) using any unspent credits! If a rebid ties with nobody adding anything, lowest fame wins (or Sovereign Foundry). Your initial bids together can\'t exceed your ' + t.credits + ' credits.</p>';
     h += '<table><tr><th>Lot</th><th>What it does</th><th>Your bid</th></tr>';
     G.market.forEach((id, k) => h += '<tr><td><b>' + LOTS[id].name + '</b></td><td class="muted">' + LOTS[id].text + '</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bid' + k + '" aria-label="Bid on ' + LOTS[id].name + '"></td></tr>');
     h += '<tr><td><b>Host the fight</b></td><td class="muted">Host gains 1 fame' + (t.sponsor === 'apex' ? ' (+2 credits from Apex Media)' : '') + ', picks which two teams fight, and decides if the loser is spared or scrapped.</td><td><input type="number" min="0" max="' + t.credits + '" value="0" id="bidH" aria-label="Bid to host"></td></tr></table>';
@@ -618,35 +618,128 @@ th { background: var(--soft); font-weight: 600; }
     }
     return out;
   }
+  function aiRebidDom(t, k, curBid, maxAdd) {
+    if (maxAdd <= 0) return 0;
+    const lotId = k < 3 ? G.market[k] : 'host';
+    const maxWilling = k === 3
+      ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
+      : (lotId === 'robot' && t.robots.length < 3 ? 5.5 : lotId === 'mech' ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
+    const add = Math.round(Math.max(0, maxWilling - curBid) * (0.35 + rnd() * 0.85));
+    return Math.max(0, Math.min(maxAdd, add));
+  }
+  function availForRebidDom(ti, k) {
+    const A = G.domAuction;
+    if (!A) return 0;
+    let future = 0;
+    for (let m = k + 1; m < 4; m++) future += (A.all[ti][m] || 0);
+    return Math.max(0, G.teams[ti].credits - (A.all[ti][k] || 0) - future);
+  }
   function resolveMarket(myBids) {
-    const all = G.teams.map(t => t.human ? myBids : aiBids(t));
-    let h = '<h2>Market results</h2><table><tr><th>Lot</th>' + G.teams.map(t => '<th style="color:' + t.col + '">' + esc(t.name) + '</th>').join('') + '<th>Winner</th></tr>';
-    const wins = [];
-    for (let k = 0; k < 4; k++) {
-      const col = all.map(b => b[k]);
-      const mx = Math.max(...col);
-      let w = -1;
-      if (mx > 0) {
-        const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => (b.sponsor === 'sovereign' ? 1 : 0) - (a.sponsor === 'sovereign' ? 1 : 0) || a.fame - b.fame);
-        w = cand[0].i; G.teams[w].credits -= mx;
-      }
-      const label = k < 3 ? LOTS[G.market[k]].name : 'Host the fight';
-      h += '<tr><td>' + label + '</td>' + col.map((b, i) => '<td' + (i === w ? ' style="font-weight:700;color:' + G.teams[i].col + '"' : '') + '>' + b + '</td>').join('') + '<td>' + (w >= 0 ? tname(w) : '<span class="muted">nobody</span>') + '</td></tr>';
-      if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
-      if (k === 3) { G.host = w >= 0 ? w : Math.floor(rnd() * 4); if (w < 0) log('Nobody bid to host; ' + tname(G.host) + ' is drafted as host.'); }
+    const all = G.teams.map(t => t.human ? myBids.slice() : aiBids(t));
+    G.domAuction = {
+      all,
+      initAll: all.map(b => b.slice()),
+      addAll: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      curK: 0,
+      wins: [],
+      rows: [],
+      tie: null
+    };
+    stepDomMarket();
+  }
+  function finalizeDomLot(k, w, mx, note) {
+    const A = G.domAuction;
+    if (w >= 0 && mx > 0) G.teams[w].credits -= mx;
+    const label = k < 3 ? LOTS[G.market[k]].name : 'Host the fight';
+    const cells = [0, 1, 2, 3].map(i => {
+      const initB = A.initAll[i][k], addB = A.addAll[i][k], totB = A.all[i][k];
+      const txt = addB > 0 ? `${initB}+${addB}=<b>${totB}</b>` : String(totB);
+      return '<td' + (i === w ? ' style="font-weight:700;color:' + G.teams[i].col + '"' : '') + '>' + txt + '</td>';
+    }).join('');
+    const winTxt = (w >= 0 ? tname(w) + ' (' + mx + ' Cr' + (note ? ', ' + note : '') + ')' : '<span class="muted">nobody</span>');
+    A.rows.push('<tr><td>' + label + '</td>' + cells + '<td>' + winTxt + '</td></tr>');
+    if (k < 3 && w >= 0) A.wins.push({ lot: G.market[k], team: w, price: mx });
+    if (k === 3) {
+      G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+      if (w < 0) log('Nobody bid to host; ' + tname(G.host) + ' is drafted as host.');
     }
-    h += '</table>';
-    for (const x of wins) log(tname(x.team) + ' buys ' + LOTS[x.lot].name + ' for ' + x.price + '.', x.team === 0 ? 'me' : '');
+  }
+  function stepDomMarket() {
+    const A = G.domAuction;
+    while (A.curK < 4) {
+      const k = A.curK;
+      const label = k < 3 ? LOTS[G.market[k]].name : 'Host the fight';
+      const col = A.all.map(b => b[k]);
+      const eligible = A.tie && A.tie.k === k ? A.tie.teams : [0, 1, 2, 3];
+      const mx = Math.max(...eligible.map(ti => col[ti]));
+      if (mx <= 0) {
+        finalizeDomLot(k, -1, 0, '');
+        A.tie = null; A.curK++; continue;
+      }
+      const contenders = eligible.filter(ti => col[ti] === mx);
+      if (contenders.length === 1) {
+        const w = contenders[0];
+        const hadRebid = A.tie && A.tie.k === k;
+        if (hadRebid) log(tname(w) + ' wins the tie-break rebid on ' + label + ' (' + mx + ' credits total).', w === 0 ? 'me' : '');
+        finalizeDomLot(k, w, mx, hadRebid ? 'rebid' : '');
+        A.tie = null; A.curK++; continue;
+      }
+      if (A.tie && A.tie.k === k && A.tie.lastMaxAdd === 0) {
+        const sorted = contenders.slice().sort((a, b) =>
+          (G.teams[b].sponsor === 'sovereign' ? 1 : 0) - (G.teams[a].sponsor === 'sovereign' ? 1 : 0) ||
+          G.teams[a].fame - G.teams[b].fame
+        );
+        const w = sorted[0];
+        const reason = G.teams[w].sponsor === 'sovereign' ? 'Sovereign tie-break' : 'lower fame tie-break';
+        log('Rebid tied again on ' + label + ' with no extra bids; ' + tname(w) + ' wins (' + reason + ').', w === 0 ? 'me' : '');
+        finalizeDomLot(k, w, mx, reason);
+        A.tie = null; A.curK++; continue;
+      }
+      if (contenders.includes(0)) {
+        A.tie = { k, teams: contenders, baseBid: mx, maxMyAdd: availForRebidDom(0, k), lastMaxAdd: null };
+        renderDomRebid();
+        return;
+      } else {
+        const adds = [];
+        contenders.forEach(ti => {
+          const add = aiRebidDom(G.teams[ti], k, mx, availForRebidDom(ti, k));
+          A.all[ti][k] += add; A.addAll[ti][k] += add; adds.push(add);
+        });
+        A.tie = { k, teams: contenders, baseBid: mx, lastMaxAdd: Math.max(...adds) };
+      }
+    }
+    let h = '<h2>Market results</h2><table><tr><th>Lot</th>' + G.teams.map(t => '<th style="color:' + t.col + '">' + esc(t.name) + '</th>').join('') + '<th>Winner</th></tr>' + A.rows.join('') + '</table>';
+    for (const x of A.wins) log(tname(x.team) + ' buys ' + LOTS[x.lot].name + ' for ' + x.price + '.', x.team === 0 ? 'me' : '');
     const hostT = G.teams[G.host];
     hostT.fame += 1;
     if (hostT.sponsor === 'apex') { hostT.credits += 2; log(tname(G.host) + ' will host the fight (+1 fame, +2 credits from Apex Media).', G.host === 0 ? 'me' : ''); }
     else log(tname(G.host) + ' will host the fight (+1 fame).', G.host === 0 ? 'me' : '');
-    G.pendingInstall = wins.filter(x => x.team === 0 && needsRobot(x.lot));
-    for (const x of wins) {
+    G.pendingInstall = A.wins.filter(x => x.team === 0 && needsRobot(x.lot));
+    for (const x of A.wins) {
       if (x.team !== 0 || !needsRobot(x.lot)) applyLot(x.team, x.lot, x.team === 0 ? null : aiPickRobot(G.teams[x.team], x.lot));
     }
     G.marketTable = h;
+    G.domAuction = null;
     renderInstall();
+  }
+  function renderDomRebid() {
+    const A = G.domAuction, tie = A.tie;
+    const label = tie.k < 3 ? LOTS[G.market[tie.k]].name : 'Host the fight';
+    const tiedNames = tie.teams.map(ti => tname(ti)).join(', ');
+    let h = '<h2>Tie-break Rebid: ' + esc(label) + '</h2>';
+    h += '<p>Tied at <b>' + tie.baseBid + ' credits</b> between ' + tiedNames + '. Only the tied teams bid again; your ' + tie.baseBid + ' credit bid stays in and any extra credits you add are stacked on top. You have <b>' + tie.maxMyAdd + ' unspent credits</b> available (not committed to later lots).</p>';
+    h += '<div class="row"><label>Add on top (0–' + tie.maxMyAdd + '): <input type="number" min="0" max="' + tie.maxMyAdd + '" value="0" id="rebidInp"></label><button class="primary" id="rebidSub">Submit Rebid</button></div>';
+    panel(h);
+    $('#rebidSub').onclick = () => {
+      const myAdd = Math.max(0, Math.min(tie.maxMyAdd, Math.floor(+$('#rebidInp').value || 0)));
+      const adds = [];
+      tie.teams.forEach(ti => {
+        const add = ti === 0 ? myAdd : aiRebidDom(G.teams[ti], tie.k, tie.baseBid, availForRebidDom(ti, tie.k));
+        A.all[ti][tie.k] += add; A.addAll[ti][tie.k] += add; adds.push(add);
+      });
+      tie.lastMaxAdd = Math.max(...adds);
+      stepDomMarket();
+    };
   }
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech;
   function aiPickRobot(t, lot) {

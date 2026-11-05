@@ -1494,7 +1494,14 @@ html, body {
         '<button class="act secondary" id="pAct1">Pass Intrigue →</button>';
       $('#pAct1').onclick = () => { notify('You pass on Intrigue.'); finishIntrigue(); };
     } else if (G.phase === 'market') {
-      if (G.marketResolved) {
+      if (G.marketAuction && G.marketAuction.tie) {
+        const tie = G.marketAuction.tie;
+        const lotName = tie.k < 3 ? LOTS[G.market[tie.k]].name : 'Host the Fight';
+        const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
+        pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${tie.myAdd}/${tie.maxMyAdd} Cr → Total ${tie.baseBid + tie.myAdd} Cr):</span>` +
+          `<button class="act" id="pAct1">Lock Rebid (+${tie.myAdd} Cr) →</button>`;
+        $('#pAct1').onclick = submitHumanRebid;
+      } else if (G.marketResolved) {
         if (G.pendingInstall && G.pendingInstall.length) {
           const lot = LOTS[G.pendingInstall[0].lot];
           pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>.</span>';
@@ -1505,7 +1512,7 @@ html, body {
         }
       } else {
         const spent = (G.myBids || [0, 0, 0, 0]).reduce((a, b) => a + b, 0);
-        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Parts add Strain; Engineers prevent breaks!</span>' +
+        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid!</span>' +
           '<button class="act" id="pAct1">Lock Bids →</button>';
         $('#pAct1').onclick = () => resolveMarket(G.myBids);
       }
@@ -1769,11 +1776,12 @@ html, body {
     startMarket();
   }
 
-  /* ---------- Phase 3: Spatial Market on Arena Floor ---------- */
+  /* ---------- Phase 3: Spatial Market on Arena Floor (with Spartacus Tie Rebids) ---------- */
   function startMarket() {
     G.phase = 'market';
     G.marketResolved = false;
     G.marketResults = null;
+    G.marketAuction = null;
     setCameraGoal('compound');
     if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
@@ -1793,6 +1801,25 @@ html, body {
       return b;
     });
   }
+
+  function aiRebid(t, k, curBid, maxAdd) {
+    if (maxAdd <= 0) return 0;
+    const lotId = k < 3 ? G.market[k] : 'host';
+    const maxWilling = k === 3
+      ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
+      : (lotId === 'robot' && t.robots.length < 3 ? 5.5 : (lotId === 'eng' || lotId === 'mech') ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
+    const add = Math.round(Math.max(0, maxWilling - curBid) * (0.35 + rnd() * 0.85));
+    return Math.max(0, Math.min(maxAdd, add));
+  }
+
+  function availForRebid(ti, k) {
+    const A = G.marketAuction;
+    if (!A) return 0;
+    let futureCommitted = 0;
+    for (let m = k + 1; m < 4; m++) futureCommitted += (A.all[ti][m] || 0);
+    return Math.max(0, G.teams[ti].credits - (A.all[ti][k] || 0) - futureCommitted);
+  }
+
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng;
   function aiPickRobot(t, lot) {
     const L = LOTS[lot];
@@ -1835,52 +1862,165 @@ html, body {
   }
 
   function resolveMarket(myBids) {
-    const all = G.teams.map(t => t.i === viewerSeat ? myBids : aiBids(t));
-    const wins = [];
-    const results = [];
-    for (let k = 0; k < 4; k++) {
-      const col = all.map(b => b[k]);
-      const mx = Math.max(...col);
-      let w = -1;
-      if (mx > 0) {
-        const cand = G.teams.filter(t => col[t.i] === mx).sort((a, b) => (b.sponsor === 'sovereign' ? 1 : 0) - (a.sponsor === 'sovereign' ? 1 : 0) || a.fame - b.fame);
-        w = cand[0].i;
-        G.teams[w].credits -= mx;
+    const all = G.teams.map(t => t.i === viewerSeat ? myBids.slice() : aiBids(t));
+    G.marketAuction = {
+      all,
+      initialAll: all.map(b => b.slice()),
+      rebidAdds: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      curK: 0,
+      wins: [],
+      results: [],
+      tie: null
+    };
+    stepMarketAuction();
+  }
+
+  function submitHumanRebid() {
+    const A = G.marketAuction;
+    if (!A || !A.tie) return;
+    const { k, teams, baseBid, myAdd } = A.tie;
+    const adds = [];
+    teams.forEach(ti => {
+      const add = ti === viewerSeat ? myAdd : aiRebid(G.teams[ti], k, baseBid, availForRebid(ti, k));
+      A.all[ti][k] += add;
+      A.rebidAdds[ti][k] += add;
+      adds.push(add);
+    });
+    A.tie.lastMaxAdd = Math.max(...adds);
+    A.tie.waitingHuman = false;
+    stepMarketAuction();
+  }
+
+  function finalizeLotResult(k, w, mx, rebidNote) {
+    const A = G.marketAuction;
+    const col = A.all.map(b => b[k]);
+    const initCol = A.initialAll.map(b => b[k]);
+    const addCol = A.rebidAdds.map(b => b[k]);
+    if (w >= 0 && mx > 0) {
+      G.teams[w].credits -= mx;
+    }
+    if (k < 3) {
+      const lotId = G.market[k], L = LOTS[lotId];
+      if (w >= 0) A.wins.push({ idx: k, lot: lotId, team: w, price: mx });
+      A.results.push({
+        idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
+        winner: w, price: mx, bids: col, initBids: initCol, addBids: addCol,
+        rebidNote: rebidNote || '', target: w < 0 ? 'Unclaimed' : ''
+      });
+    } else {
+      G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+      const hostT = G.teams[G.host];
+      A.results.push({
+        idx: 3, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
+        winner: G.host, price: w >= 0 ? mx : 0, bids: col, initBids: initCol, addBids: addCol,
+        rebidNote: rebidNote || '',
+        target: w >= 0 ? '+1 Fame' + (hostT.sponsor === 'apex' ? ' & +2 Cr' : '') : 'Random Draw (0 Cr)'
+      });
+    }
+  }
+
+  function stepMarketAuction() {
+    const A = G.marketAuction;
+    if (!A) return;
+
+    while (A.curK < 4) {
+      const k = A.curK;
+      const lotName = k < 3 ? LOTS[G.market[k]].name : 'Host the Fight';
+      const col = A.all.map(b => b[k]);
+      const eligible = A.tie && A.tie.k === k ? A.tie.teams : [0, 1, 2, 3];
+      const mx = Math.max(...eligible.map(ti => col[ti]));
+
+      if (mx <= 0) {
+        finalizeLotResult(k, -1, 0, '');
+        A.tie = null;
+        A.curK++;
+        continue;
       }
-      if (k < 3) {
-        const lotId = G.market[k], L = LOTS[lotId];
-        if (w >= 0) wins.push({ idx: k, lot: lotId, team: w, price: mx });
-        results.push({
-          idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
-          winner: w, price: mx, bids: col, target: w < 0 ? 'Unclaimed' : ''
-        });
+
+      const contenders = eligible.filter(ti => col[ti] === mx);
+      if (contenders.length === 1) {
+        const w = contenders[0];
+        const hadRebid = A.tie && A.tie.k === k;
+        const note = hadRebid ? `Won Rebid (${A.initialAll[w][k]}+${A.rebidAdds[w][k]} Cr)` : '';
+        if (hadRebid) {
+          notify(`⚔️ <b>${esc(G.teams[w].name)}</b> won the tie-break rebid on <b>${esc(lotName)}</b> (${mx} Cr total)!`, G.teams[w].col);
+        }
+        finalizeLotResult(k, w, mx, note);
+        A.tie = null;
+        A.curK++;
+        continue;
+      }
+
+      // Tie among 2+ teams at mx > 0!
+      // If a rebid round just took place and nobody added any credits, fall back to tiebreaker (Sovereign Foundry, then lowest Fame).
+      if (A.tie && A.tie.k === k && A.tie.lastMaxAdd === 0) {
+        const sorted = contenders.slice().sort((a, b) =>
+          (G.teams[b].sponsor === 'sovereign' ? 1 : 0) - (G.teams[a].sponsor === 'sovereign' ? 1 : 0) ||
+          G.teams[a].fame - G.teams[b].fame
+        );
+        const w = sorted[0];
+        const reason = G.teams[w].sponsor === 'sovereign' ? 'Sovereign Tiebreak' : 'Low-Fame Tiebreak';
+        notify(`⚖️ Rebid stalemate on <b>${esc(lotName)}</b> at ${mx} Cr — <b>${esc(G.teams[w].name)}</b> wins (${reason})!`, G.teams[w].col);
+        finalizeLotResult(k, w, mx, reason);
+        A.tie = null;
+        A.curK++;
+        continue;
+      }
+
+      // Start or continue Spartacus Rebid among tied contenders!
+      if (contenders.includes(viewerSeat)) {
+        A.tie = {
+          k,
+          teams: contenders,
+          baseBid: mx,
+          myAdd: 0,
+          maxMyAdd: availForRebid(viewerSeat, k),
+          waitingHuman: true,
+          lastMaxAdd: null
+        };
+        updateHud();
+        return; // Wait for human rebid input
       } else {
-        G.host = w >= 0 ? w : Math.floor(rnd() * 4);
-        const hostT = G.teams[G.host];
-        results.push({
-          idx: 3, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
-          winner: G.host, price: w >= 0 ? mx : 0, bids: col,
-          target: w >= 0 ? '+1 Fame' + (hostT.sponsor === 'apex' ? ' & +2 Cr' : '') : 'Random Draw (0 Cr)'
+        // AI-only tie: resolve secret AI rebids immediately
+        const adds = [];
+        contenders.forEach(ti => {
+          const add = aiRebid(G.teams[ti], k, mx, availForRebid(ti, k));
+          A.all[ti][k] += add;
+          A.rebidAdds[ti][k] += add;
+          adds.push(add);
         });
+        A.tie = {
+          k,
+          teams: contenders,
+          baseBid: mx,
+          waitingHuman: false,
+          lastMaxAdd: Math.max(...adds)
+        };
+        // Loop continues on same k to evaluate the new rebid totals!
       }
     }
-    for (const x of wins) notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + esc(LOTS[x.lot].name) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
+
+    // All 4 lots resolved!
+    for (const x of A.wins) {
+      notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + esc(LOTS[x.lot].name) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
+    }
     const hostT = G.teams[G.host];
     hostT.fame += 1;
     if (hostT.sponsor === 'apex') hostT.credits += 2;
     notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host (+1 Fame' + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
 
-    G.pendingInstall = wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
-    for (const x of wins) {
+    G.pendingInstall = A.wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
+    for (const x of A.wins) {
       if (x.team !== viewerSeat || !needsRobot(x.lot)) {
         const dest = applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
-        results[x.idx].target = dest;
+        A.results[x.idx].target = dest;
       } else {
-        results[x.idx].target = '▼ Click a Robot Bay below';
+        A.results[x.idx].target = '▼ Click a Robot Bay below';
       }
     }
-    G.marketResults = results;
+    G.marketResults = A.results;
     G.marketResolved = true;
+    G.marketAuction = null;
     if (checkWin()) return;
     updateHud();
   }
@@ -2943,6 +3083,102 @@ html, body {
   function drawMarketOnArena(ctx, L) {
     const x0 = L.ax - L.aw / 2, y0 = L.ay - L.ah / 2;
 
+    if (G.marketAuction && G.marketAuction.tie) {
+      // --- Interactive Spartacus Tie-Break Rebid View ---
+      const A = G.marketAuction, tie = A.tie;
+      const items = G.market.map(id => ({ id, ...LOTS[id] })).concat([{ id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }]);
+
+      ctx.fillStyle = '#fff8eb';
+      ctx.fillRect(x0 + 2, y0 + 2, L.aw - 4, 26);
+      ctx.strokeStyle = '#d99000'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0, y0 + 28); ctx.lineTo(x0 + L.aw, y0 + 28); ctx.stroke();
+
+      const tiedNames = tie.teams.map(ti => G.teams[ti].name.split(' ')[0]).join(' vs ');
+      ctx.fillStyle = '#b45309'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`⚔️ TIE-BREAK REBID ON ${items[tie.k].name.toUpperCase()} (${tiedNames} @ ${tie.baseBid} Cr)`, x0 + 12, y0 + 19);
+
+      ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`Unspent Available: ${tie.maxMyAdd} Cr`, x0 + L.aw - 12, y0 + 19);
+
+      const w = 142, h = 180, gap = 10;
+      const totalW = 4 * w + 3 * gap;
+      const startX = L.ax - totalW / 2, cy = y0 + 33;
+
+      items.forEach((it, k) => {
+        const x = startX + k * (w + gap);
+        if (k < tie.k && A.results[k]) {
+          // Already resolved lot
+          const res = A.results[k];
+          const wTeam = res.winner >= 0 ? G.teams[res.winner] : null;
+          ctx.fillStyle = '#fcfbf9'; ctx.fillRect(x, cy, w, h);
+          ctx.strokeStyle = wTeam ? wTeam.col : '#bbb6a8'; ctx.lineWidth = 1.5; ctx.strokeRect(x, cy, w, h);
+          ctx.fillStyle = wTeam ? wTeam.col : '#888'; ctx.fillRect(x, cy, w, 22);
+          ctx.fillStyle = '#fff'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(wTeam ? `WON: ${wTeam.name.toUpperCase()}` : 'NO BIDS', x + w / 2, cy + 14.5);
+          ctx.fillStyle = '#111'; ctx.font = '900 12px system-ui, sans-serif';
+          ctx.fillText(`PAID ${res.price} Cr`, x + w / 2, cy + 44);
+          ctx.font = '800 11.5px system-ui, sans-serif';
+          ctx.fillText(`${it.icon} ${it.name}`, x + w / 2, cy + 72);
+          ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
+          ctx.fillText(it.text, x + w / 2, cy + 90);
+        } else if (k === tie.k) {
+          // Active Tie-Break Rebid Card!
+          ctx.fillStyle = '#fffdf7'; ctx.fillRect(x, cy, w, h);
+          ctx.strokeStyle = '#d99000'; ctx.lineWidth = 2.5; ctx.strokeRect(x, cy, w, h);
+          ctx.fillStyle = '#d99000'; ctx.fillRect(x, cy, w, 22);
+          ctx.fillStyle = '#fff'; ctx.font = '900 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`⚔️ TIE AT ${tie.baseBid} Cr!`, x + w / 2, cy + 14.5);
+
+          ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif';
+          ctx.fillText(`${it.icon} ${it.name}`, x + w / 2, cy + 40);
+
+          ctx.fillStyle = '#555'; ctx.font = '700 9px system-ui, sans-serif';
+          ctx.fillText(`Tied: ${tiedNames}`, x + w / 2, cy + 55);
+          ctx.fillStyle = '#b45309'; ctx.font = '800 10px system-ui, sans-serif';
+          ctx.fillText(`Your Total: ${tie.baseBid + tie.myAdd} Cr`, x + w / 2, cy + 71);
+
+          // Stepper: [−] +N Cr [+]
+          const btnY = cy + 80;
+          ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + 12, btnY, 26, 26);
+          ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + 12, btnY, 26, 26);
+          ctx.fillStyle = '#111'; ctx.font = '800 14px system-ui, sans-serif';
+          ctx.fillText('−', x + 25, btnY + 18);
+
+          ctx.fillStyle = '#1f6feb'; ctx.font = '900 13px system-ui, sans-serif';
+          ctx.fillText(`+${tie.myAdd} Cr`, x + w / 2, btnY + 18);
+
+          ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + w - 38, btnY, 26, 26);
+          ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + w - 38, btnY, 26, 26);
+          ctx.fillStyle = '#111'; ctx.font = '800 14px system-ui, sans-serif';
+          ctx.fillText('+', x + w - 25, btnY + 18);
+
+          hitRegions.push({ kind: 'rebid_minus', x: x + 12, y: btnY, w: 26, h: 26 });
+          hitRegions.push({ kind: 'rebid_plus',  x: x + w - 38, y: btnY, w: 26, h: 26 });
+
+          // Submit Rebid Button on Card
+          const sbY = cy + 114, sbH = 26;
+          ctx.fillStyle = '#111'; ctx.fillRect(x + 10, sbY, w - 20, sbH);
+          ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif';
+          ctx.fillText('Lock Rebid →', x + w / 2, sbY + 16.5);
+          hitRegions.push({ kind: 'rebid_submit', x: x + 10, y: sbY, w: w - 20, h: sbH });
+
+          ctx.fillStyle = '#666'; ctx.font = '600 8.5px system-ui, sans-serif';
+          ctx.fillText(`Max +${tie.maxMyAdd} Cr unspent`, x + w / 2, cy + 156);
+        } else {
+          // Future lot waiting in queue
+          ctx.fillStyle = '#f6f4ee'; ctx.fillRect(x, cy, w, h);
+          ctx.strokeStyle = '#ccc8bc'; ctx.lineWidth = 1; ctx.strokeRect(x, cy, w, h);
+          ctx.fillStyle = '#777'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('RESOLVING NEXT...', x + w / 2, cy + 20);
+          ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif';
+          ctx.fillText(`${it.icon} ${it.name}`, x + w / 2, cy + 62);
+          ctx.fillStyle = '#555'; ctx.font = '700 10px system-ui, sans-serif';
+          ctx.fillText(`Your Bid: ${A.all[viewerSeat][k]} Cr`, x + w / 2, cy + 92);
+        }
+      });
+      return;
+    }
+
     if (G.marketResolved && G.marketResults) {
       // --- Post-Bidding Market Auction Results Overview ---
       ctx.fillStyle = '#f6f4ee';
@@ -2991,10 +3227,11 @@ html, body {
         const wLabel = wTeam ? `${wTeam.name.toUpperCase()}${res.winner === viewerSeat ? ' (YOU)' : ''}` : 'NO BIDS';
         ctx.fillText(wLabel, x + w / 2, cy + 14.5);
 
-        // 2. Price Paid Badge
+        // 2. Price Paid Badge (+ Rebid Note if tied)
         ctx.fillStyle = wTeam ? '#111' : '#777';
-        ctx.font = '900 12.5px system-ui, sans-serif';
-        ctx.fillText(wTeam ? `PAID ${res.price} Cr` : '0 Cr · Unclaimed', x + w / 2, cy + 39);
+        ctx.font = '900 12px system-ui, sans-serif';
+        const paidTxt = wTeam ? (res.rebidNote ? `PAID ${res.price} Cr (Rebid)` : `PAID ${res.price} Cr`) : '0 Cr · Unclaimed';
+        ctx.fillText(paidTxt, x + w / 2, cy + 39);
 
         // 3. Lot Icon, Name & Effect
         ctx.fillStyle = '#111';
@@ -3016,7 +3253,7 @@ html, body {
         ctx.font = '700 9.5px system-ui, sans-serif';
         ctx.fillText(res.target || 'Claimed', x + w / 2, cy + 89.5);
 
-        // 5. All 4 Players' Sealed Bids Breakdown
+        // 5. All 4 Players' Sealed Bids (+ Rebid Additions) Breakdown
         ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(x + 8, cy + 101); ctx.lineTo(x + w - 8, cy + 101); ctx.stroke();
 
@@ -3026,13 +3263,16 @@ html, body {
         G.teams.forEach((tm, ti) => {
           const ry = cy + 127 + ti * 13;
           const bAmt = res.bids[ti] || 0;
+          const initB = res.initBids ? res.initBids[ti] : bAmt;
+          const addB = res.addBids ? res.addBids[ti] : 0;
           const isW = res.winner === ti && res.price > 0;
           ctx.fillStyle = isW ? tm.col : '#555';
-          ctx.font = (isW ? '800 ' : '600 ') + '9.5px system-ui, sans-serif';
+          ctx.font = (isW ? '800 ' : '600 ') + '9px system-ui, sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(tm.name + (ti === viewerSeat ? ' (You)' : ''), x + 10, ry);
+          ctx.fillText(tm.name.split(' ')[0] + (ti === viewerSeat ? ' (You)' : ''), x + 10, ry);
           ctx.textAlign = 'right';
-          ctx.fillText(`${bAmt} Cr${isW ? ' ★' : ''}`, x + w - 10, ry);
+          const bidStr = addB > 0 ? `${initB}+${addB}=${bAmt} Cr` : `${bAmt} Cr`;
+          ctx.fillText(`${bidStr}${isW ? ' ★' : ''}`, x + w - 10, ry);
         });
       });
       return;
@@ -3646,6 +3886,21 @@ html, body {
 
       if (r.kind === 'market_continue') {
         startArena();
+        return;
+      }
+
+      if (r.kind === 'rebid_minus' && G.marketAuction?.tie) {
+        G.marketAuction.tie.myAdd = Math.max(0, G.marketAuction.tie.myAdd - 1);
+        updateHud();
+        return;
+      }
+      if (r.kind === 'rebid_plus' && G.marketAuction?.tie) {
+        G.marketAuction.tie.myAdd = Math.min(G.marketAuction.tie.maxMyAdd, G.marketAuction.tie.myAdd + 1);
+        updateHud();
+        return;
+      }
+      if (r.kind === 'rebid_submit' && G.marketAuction?.tie) {
+        submitHumanRebid();
         return;
       }
 
