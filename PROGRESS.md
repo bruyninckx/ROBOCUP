@@ -6,10 +6,10 @@ Kev: fill in or change this split. Each assistant only edits its own areas.
 
 | Area | Files | Owner |
 |---|---|---|
-| Battle simulator, balance, modules, watchdog | `prototypes/arena-sandbox.html` (the `Sim` part), `tools/watchdog.js`, later `src/sim.js` | Claude (Agent 1) |
-| Strategy layer (rounds, intrigue, market, bets, crates, sponsors) | `prototypes/scrapyard-dominus.html` | Antigravity (Agent 2) |
-| Visuals / UI polish & tabletop multiplayer layout | `prototypes/tabletop-prototype.html` | Antigravity (Agent 2) |
-| Design docs & specs | `docs/upgrade-cards.md`, `docs/processors-and-drives.md`, `docs/sponsors.md`, `docs/playtest-kit.md` (`docs/` shared) | Antigravity (Agent 2) / shared |
+| Battle simulator, balance, modules, watchdog | `src/sim.js` (shared by all prototypes), `tools/watchdog.js` | Claude (Agent 1) |
+| Strategy layer (rounds, intrigue, market, bets, crates, sponsors) | `prototypes/scrapyard-dominus.html` | Claude for now (Antigravity paused, 5 Nov) |
+| Visuals / UI polish & tabletop multiplayer layout | `prototypes/tabletop-prototype.html` | Claude for now (Antigravity paused, 5 Nov) |
+| Design docs & specs | `docs/` (rulebook: `docs/rulebook.md`) | Claude for now / shared |
 
 ## Requests / handoffs
 
@@ -50,6 +50,7 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-05, Claude (branch `claude/shared-sim` = `claude/rulebook` + `claude/integration`): moved the battle simulator into one shared file `src/sim.js` (from the arena sandbox, the newest copy) and pointed all three prototypes (`<script src="../src/sim.js">`) and `tools/watchdog.js` at it. Ported the tabletop fork's live combat cards into it (`Sim.queueCmd`: waypoint, trigger, overclock, field engineer, oil, EMP; oil card now uses the same oil physics as the Oil Slick module). Checked: 300 random fights give exactly the same result as the old sandbox Sim; all three prototypes load and fight without errors in a headless browser. Fixed a tabletop bug: the New Robot lot dealt a starter without stats (`mkRobot(n, STARTERS[n])` → `.b`), which threw `maxHp` errors. Scrapyard Dominus and the tabletop now also get drives, processors, Phase 2 modules and the railgun from the shared Sim.
 - 2026-11-05, Claude (branch `claude/rulebook`, on top of `antigravity/tabletop-prototype`): added `docs/rulebook.md` (rulebook draft v0.1: Spartacus rules 1:1 in ROBOCUS terms plus all 5 Nov decisions; living version https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv), `tools/economy-sim.py` + `tools/economy-cards.json` (bot economy / game-length sim) and `docs/game-length-check.md` (result: starting at 4 fame a game ends in ~6 rounds, 70–110 min; starting at 2, ~8 rounds). No prototype code changed.
 - 2026-11-05, Antigravity (branch `antigravity/tabletop-prototype`): implemented the **9-Robot Starter Deck (`s1. Scrapper` .. `s1. Top`)** and the **3-Step Opening Setup & Starter Draft** in both `prototypes/tabletop-prototype.html` and `prototypes/scrapyard-dominus.html` (`prototypes/tabletop-prototype.html`, `prototypes/scrapyard-dominus.html`, `docs/starter-deck.md`):
   - **9 Stock Starter Robots (`STARTERS` & `SMATRIX`)**: Added all 9 `s1.` stock starter robots from `docs/starter-deck.md` (`s1. Scrapper`, `s1. Rattler`, `s1. Plinker`, `s1. Tin Can`, `s1. Sparky`, `s1. Lobster`, `s1. Grinder`, `s1. Zippo`, `s1. Top` — 11 stat points, max level 3, no secret module or helper drones, 1 engineer) and the 9×9 `SMATRIX` win-rate lookup table.

@@ -28,14 +28,11 @@ const os = require('os');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 
 const ROOT = path.resolve(__dirname, '..');
-const SANDBOX = path.join(ROOT, 'prototypes', 'arena-sandbox.html');
+const SANDBOX = path.join(ROOT, 'src', 'sim.js');   // the one shared Sim (also used by all three prototypes)
 
-// ---- load Sim straight out of the sandbox HTML, so we always test what Kev plays ----
+// ---- load the shared Sim (src/sim.js), the same file the prototypes load ----
 function loadSim(file) {
-  const html = fs.readFileSync(file, 'utf8');
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-  const code = scripts.find(s => s.includes('Robot auto-battle core'));
-  if (!code) throw new Error('Could not find the Sim script in ' + file);
+  const code = fs.readFileSync(file, 'utf8');
   const ctx = { Math, JSON, Object, Array, Set, Map, Number, String, Infinity, NaN, console };
   vm.createContext(ctx);
   vm.runInContext(code, ctx);

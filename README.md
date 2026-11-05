@@ -10,7 +10,8 @@ Goal: first team to 12 fame. About 2 hours per game, strategy + luck + banter.
 |---|---|
 | `prototypes/scrapyard-dominus.html` | Main game prototype: you vs 3 AI teams, full round loop (upkeep, intrigue, market, arena, bets, fight, aftermath). |
 | `prototypes/arena-sandbox.html` | Arena sandbox: build robots (14 stat points, weapon, calibre, range, module, up to 3 helpers; weapons gun, laser, mortar, saw blades, spinner, flamethrower), 2–8 robot fights incl. 4v4, squadron battles (Lone Wolf / Duo / Trio / Swarm cards), crits, strain/engineers (malfunctions and broken parts), a bookie's board with fuzzy odds bands, a fight recap after each fight, drives (wheels / tracks / omni / boost) and processors (zigzag / kiter / rammer), legendary railgun, matchup table. |
-| `tools/watchdog.js` | Combo watchdog: simulates thousands of random robots with the sandbox's `Sim` and reports dominant builds, dead options, lopsided matchups, upset rate and synergies. Writes `docs/watchdog-report.md`. |
+| `src/sim.js` | The battle simulator (`Sim`): one shared copy, loaded by all three prototypes and the watchdog. Includes the live combat card commands (`Sim.queueCmd`). |
+| `tools/watchdog.js` | Combo watchdog: simulates thousands of random robots with the shared `Sim` (`src/sim.js`) and reports dominant builds, dead options, lopsided matchups, upset rate and synergies. Writes `docs/watchdog-report.md`. |
 | `docs/` | Design docs: game concept, balance findings, card ideas. Read these before changing rules. |
 | `docs/archive/` | Older or rejected directions, kept for reference. |
 | `AGENTS.md` | Rules for AI coding assistants (Claude, Antigravity, ...) working in this folder. |
@@ -36,6 +37,4 @@ Targets: no build above 80% against other competitive builds, under 35% of match
 
 ## Code notes
 
-- Both prototypes contain a copy of the same deterministic battle simulator (`Sim`, seeded RNG, 60 Hz).
-  The copy in `arena-sandbox.html` is newer: it adds surprise modules, helper drones, saw blades and team battles up to 4v4. The watchdog reads `Sim` straight from that file.
-- A good first refactor is to move `Sim` into a shared `src/sim.js` that both pages load, so it isn't edited in two places.
+- All prototypes load the same deterministic battle simulator from `src/sim.js` (`Sim`, seeded RNG, 60 Hz) with `<script src="../src/sim.js">`, so open them from inside the repo folder. The watchdog reads the same file. Edit the sim only there.
