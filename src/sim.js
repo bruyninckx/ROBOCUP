@@ -20,8 +20,43 @@
     rapid:  { rate: 4,   shell: 1.3, turret: 1.25, tol: 7 },
     medium: { rate: 1.4, shell: 1.0, turret: 1.0,  tol: 5 },
     heavy:  { rate: 0.5, shell: 0.6, turret: 0.55, tol: 3 },
+    burst:  { rate: 3,   shell: 1.1, turret: 1.1,  tol: 6, burst: 3 },   // Burst Gun: 3 quick shots, then a pause (5 Nov)
   };
   const RANGES = { short: 140, mid: 250, long: 380 };
+  // form of the day (fraction / accuracy points, uniform +-); 0 = off. Tuned in the 5 Nov sim pass.
+  const FORM = { fp: 0.25, speed: 0.15, acc: 10 };
+  // Market robot cards v2 (5 Nov): full signature build + quirk. Sim pass 6 Nov moved one stat point on
+  // Juggernaut (hp->armour), Railgunner (fp->speed), Wasp (fp->hp), Fortress (turret->bullet) and the Scrap Bot (armour->fp). Turncoat = sandbox Burner build. Scrap Bot = starter.
+  const Lc = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
+  const ROBOT_CARDS = {
+    Juggernaut: { lv: Lc(2, 3, 4, 1, 4, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium', drive: 'boost', proc: 'rammer', mod: 'flipper', quirk: 'showstopper' },
+    Wasp:       { lv: Lc(4, 0, 2, 1, 3, 3, 1), range: 'mid', weapon: 'gun', cal: 'rapid', drive: 'omni', proc: 'zigzag', mod: 'shield', quirk: 'hotshot' },
+    Railgunner: { lv: Lc(3, 1, 2, 2, 3, 3, 0), range: 'long', weapon: 'railgun', cal: 'medium', drive: 'tracks', mod: 'reflect', quirk: 'headline' },
+    Sniper:     { lv: Lc(3, 0, 1, 1, 4, 3, 2), range: 'long', weapon: 'gun', cal: 'medium', proc: 'kiter', mod: 'jets', quirk: 'scope' },
+    Ricochet:   { lv: Lc(3, 1, 2, 2, 4, 1, 1), range: 'mid', weapon: 'saw', cal: 'medium', proc: 'kiter', mod: 'mines', quirk: 'trickshot' },
+    Brawler:    { lv: Lc(4, 3, 3, 0, 4, 0, 0), range: 'short', weapon: 'gun', cal: 'medium', drive: 'tracks', proc: 'rammer', mod: 'emp', quirk: 'grudge' },
+    Artillery:  { lv: Lc(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium', drive: 'boost', proc: 'zigzag', mod: 'jets', quirk: 'underrated' },
+    Hookshot:   { lv: Lc(4, 1, 2, 3, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', drive: 'tracks', mod: 'grapple', quirk: 'stickyfire' },
+    Turncoat:   { lv: Lc(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium', quirk: 'treacherous' },
+    Slick:      { lv: Lc(4, 1, 3, 2, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', mod: 'oil', quirk: 'fireproof' },
+    Fortress:   { lv: Lc(4, 4, 0, 0, 4, 1, 1), range: 'mid', weapon: 'gun', cal: 'heavy', drive: 'tracks', mod: 'repair', quirk: 'bastion' },
+    Tinker:     { lv: Lc(2, 0, 3, 2, 3, 2, 2), range: 'mid', weapon: 'gun', cal: 'medium', helpers: ['spotter'], quirk: 'cunning' },
+    'Scrap Bot': { lv: Lc(2, 0, 2, 2, 4, 1, 0), range: 'mid', weapon: 'gun', cal: 'medium', mod: null },
+  };
+  // armour cards (one per robot, build field 'arm'; decided 5 Nov, first-pass numbers)
+  const ARMOURS = {
+    heat:     { name: 'Heat Shield', text: 'Takes 40% off flame, laser and burning damage. -4% speed.' },
+    ablative: { name: 'Ablative Plating', text: 'Soaks the first 30 damage of any kind (after armour), then falls off. -9% speed until then.' },
+    spikes:   { name: 'Reactive Spikes', text: 'Rammers and spinners that touch it take 12 damage (once per 0.5 s each); knockback and contact stun on it halved. -4% speed.' },
+    mesh:     { name: 'Composite Mesh', text: '+1 armour level (max 4) with no speed penalty; on a robot already at armour 4: +9% speed instead.' },
+  };
+  // robot card quirks that change fights (build field 'quirk'); the others live in the strategy layer
+  const QUIRKS = {
+    trickshot:  { name: 'Trick Shot', text: 'Its saw blades can hit one extra time.' },
+    stickyfire: { name: 'Sticky Fire', text: 'Robots it sets alight burn up to 2 s longer.' },
+    fireproof:  { name: 'Fireproof', text: 'Its own fire and oil cannot hurt it.' },
+    bastion:    { name: 'Bastion', text: 'Carries up to 4 helper drones, and its helpers add no strain.' },
+  };
   // stat levels 5-8 exist only for bigger robots (Lone Wolf, Duo squadron cards); they continue the same steps
   for (const k in LV) { const a = LV[k], d = a[4] - a[3]; while (a.length < 9) a.push(a[a.length - 1] + d); }
   LV.acc = [45, 60, 75, 87, 97, 98, 99, 99, 99];
@@ -45,6 +80,7 @@
     reflect: { name: 'Reflective Plating', text: 'Bounces half of every laser hit back at the shooter and halves how fast flames set it alight.' },
     grapple: { name: 'Grappling Hook', text: 'Every 8 s: hooks its target (60-240 px away), yanks it about 140 px closer and stuns it 0.4 s. Great with mines, spinners and flamethrowers.' },
     jets:    { name: 'Jump Jets', text: 'When an enemy gets within 90 px or a mortar shell is about to land on it: leaps 160 px away, untouchable for 0.35 s. Every 7 s.' },
+    quantum: { name: 'Quantum Shield', text: 'Legendary. Once per fight, when it drops below 40% health: 3 s of no damage at all, and burning pauses.' },
     oil:     { name: 'Oil Slick', text: 'Below 65% health, drops an oil puddle every 8 s (65 px, 5 s). Other robots on oil slide and turn at a quarter speed. Flames set it on fire: 12 damage/s for 3 s.' },
   };
   // drives: how the robot turns its movement wish into motion (spec: docs/processors-and-drives.md)
@@ -67,8 +103,9 @@
   // Engineers (0-3 per robot) keep it running: each one cuts the malfunction chance by 40% and the break chance in half.
   const STRAIN = {
     weapon: { gun: 1, laser: 2, mortar: 2, saw: 2, flame: 2, spinner: 3, railgun: 3 },
-    cal: { rapid: 0, medium: 0, heavy: 1 },
-    mod: { shield: 1, flipper: 2, decoy: 1, mines: 1, repair: 1, emp: 2, boom: 1, smoke: 0, reflect: 0, grapple: 2, jets: 2, oil: 1 },
+    cal: { rapid: 0, medium: 0, heavy: 1, burst: 1 },
+    mod: { shield: 1, flipper: 2, decoy: 1, mines: 1, repair: 1, emp: 2, boom: 1, smoke: 0, reflect: 0, grapple: 2, jets: 2, oil: 1, quantum: 2 },
+    arm: { heat: 1, ablative: 0, spikes: 1, mesh: 1 },
     helper: 1,
   };
   const WNAME = { gun: 'Gun', laser: 'Laser', mortar: 'Mortar', saw: 'Saw blades', spinner: 'Spinner blade', flame: 'Flamethrower', railgun: 'Railgun' };
@@ -79,9 +116,10 @@
   function strainOf(b) {
     const parts = [], w = b.weapon || 'gun';
     parts.push({ part: 'weapon', name: WNAME[w] || w, strain: STRAIN.weapon[w] || 1 });
-    if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: 'Heavy calibre', strain: STRAIN.cal[b.cal] });
+    if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: b.cal === 'burst' ? 'Burst Gun' : 'Heavy calibre', strain: STRAIN.cal[b.cal] });
+    if (b.arm && ARMOURS[b.arm] && STRAIN.arm[b.arm]) parts.push({ part: 'arm', name: ARMOURS[b.arm].name, strain: STRAIN.arm[b.arm] });
     if (b.mod && MODS[b.mod] && STRAIN.mod[b.mod]) parts.push({ part: 'mod', name: MODS[b.mod].name, strain: STRAIN.mod[b.mod] });
-    (b.helpers || []).filter(h => HELPERS[h]).slice(0, 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: STRAIN.helper }));
+    (b.helpers || []).filter(h => HELPERS[h]).slice(0, b.quirk === 'bastion' ? 4 : 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: b.quirk === 'bastion' ? 0 : STRAIN.helper }));
     if (DRIVES[b.drive] && DRIVES[b.drive].strain) parts.push({ part: 'drive', name: DRIVES[b.drive].name, strain: DRIVES[b.drive].strain });
     if (PROCS[b.proc] && PROCS[b.proc].strain) parts.push({ part: 'proc', name: PROCS[b.proc].name, strain: PROCS[b.proc].strain });
     for (const k in OVER) { const v = (b.lv || {})[k] || 0; if (v >= 4) parts.push({ part: 'over', stat: k, name: OVER[k] + ' overdrive', strain: v >= 7 ? 2 : 1 }); }
@@ -97,7 +135,7 @@
     return { strain: st.total, parts: st.parts, eng: E, glitch, breaks, anyBreak };
   }
   // what a broken part does for the rest of the fight
-  const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED', drive: 'DRIVE LOCKED', proc: 'LOGIC GLITCH' };
+  const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED', drive: 'DRIVE LOCKED', proc: 'LOGIC GLITCH', arm: 'PLATING CRACKED' };
   function breakPart(B, b, p) {
     const key = p.part === 'over' ? p.stat : p.part;
     let label = BREAK_TEXT[key];
@@ -110,6 +148,7 @@
     else if (key === 'fp') { b.s.dmg *= 0.7; b.s.fp *= 0.7; }
     else if (key === 'drive') { b.driveLocked = true; b.s.speed *= 0.6; }   // omni loses its sideways glide, boost its dash
     else if (key === 'proc') b.procBroken = true;                           // back to the stock controller
+    else if (key === 'arm') { if (!b.arm) return false; if (b.abl > 0) b.s.speed /= 0.91; b.armBroken = b.arm; b.arm = null; b.abl = 0; }
     (b.broken = b.broken || []).push(p.name);
     B.fx.push({ k: 'break', x: b.x, y: b.y - 34, text: label, life: 1.8 });
     logE(B, { k: 'break', who: b.i, part: p.name, text: label });
@@ -138,6 +177,8 @@
     s.dmg = s.fp / s.fire;
     // rapid fire gets extra firepower to make up for bouncing off armour
     if (s.weapon === 'gun' && s.cal === 'rapid') s.dmg *= 1.08;
+    // burst shots: three smaller hits lose more to armour, so each one hits a little harder
+    if (s.weapon === 'gun' && s.cal === 'burst') s.dmg *= 1.15;
     // saw blades can hit up to 3 times, so each hit is weaker
     if (s.weapon === 'saw') s.dmg *= 0.8;
     // railgun: every slug lands and outranges everything, so each one hits softer (legendary, but beatable)
@@ -152,6 +193,10 @@
     if (D.speedMult !== 1) s.speed *= D.speedMult;
     s.turnBody = D.turnBody;
     s.mod = b.mod && MODS[b.mod] ? b.mod : null;
+    s.arm = b.arm && ARMOURS[b.arm] ? b.arm : null;
+    if (s.arm === 'mesh') { if (b.lv.armor < 4) s.armor = LV.armor[b.lv.armor + 1]; else s.speed *= 1.09; }
+    else if (s.arm === 'heat' || s.arm === 'spikes') s.speed *= 0.96;
+    else if (s.arm === 'ablative') s.speed *= 0.91;
     return s;
   }
   // helper drones that roll in with a main robot (max 3)
@@ -196,8 +241,15 @@
       return { i, squad: i, size: b.size || SIZE, focus: ['helpers', 'medics'].includes(b.focus) ? b.focus : 'main', team: teams[i], s, hp: s.hp, x, y, body: face, turret: face, target: -1,
         vx: 0, vy: 0, cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1,
         mod: s.mod, shield: s.mod === 'shield' ? 25 : 0, lastHit: -9, stun: 0, kx: 0, ky: 0, modCd: 0, modUsed: false, revealed: false, healed: 0,
-        lv: b.lv, drive: s.drive, proc: s.proc, kb: DRIVES[s.drive].kbMult, dashCd: 1.5, dashT: 0, ramCd: 0, jukeCd: 0, air: 0, wpX: null, wpY: null, wpT: 0, overclockT: 0 };
+        lv: b.lv, drive: s.drive, proc: s.proc, kb: DRIVES[s.drive].kbMult, dashCd: 1.5, dashT: 0, ramCd: 0, jukeCd: 0, air: 0, wpX: null, wpY: null, wpT: 0, overclockT: 0,
+        arm: s.arm, abl: s.arm === 'ablative' ? 30 : 0, quirk: QUIRKS[b.quirk] ? b.quirk : null, qT: 0, qUsed: false, spikeT: {} };
     });
+    // form of the day: every main robot rolls a small, hidden condition before the fight (softens hard counters)
+    if (FORM.fp || FORM.speed || FORM.acc) for (const b of bots) {
+      const r1 = rng() * 2 - 1, r2 = rng() * 2 - 1, r3 = rng() * 2 - 1;
+      b.form = { fp: 1 + FORM.fp * r1, speed: 1 + FORM.speed * r2, acc: FORM.acc * r3 };
+      b.s.fp *= b.form.fp; b.s.dmg *= b.form.fp; b.s.speed *= b.form.speed; b.s.acc = Math.max(20, Math.min(99, b.s.acc + b.form.acc));
+    }
     // malfunctions and broken parts come from strain; engineers make them rarer and shorter
     for (const b of bots) {
       const R = riskOf(builds[b.i]);
@@ -209,7 +261,7 @@
     }
     // helpers join after the main robots
     builds.forEach((b, i) => {
-      (b.helpers || []).filter(h => HELPERS[h]).slice(0, 3).forEach((h, k) => {
+      (b.helpers || []).filter(h => HELPERS[h]).slice(0, b.quirk === 'bastion' ? 4 : 3).forEach((h, k) => {
         const H = HELPERS[h], m = bots[i], a = m.body + Math.PI + (k - 1) * 0.9;
         bots.push({ i: bots.length, helper: h, owner: i, squad: i, size: H.size || 20, team: m.team, s: { hp: H.hp, armor: H.armor || 0, speed: H.speed }, hp: H.hp,
           x: Math.max(20, Math.min(W - 20, m.x + Math.cos(a) * 40)), y: Math.max(20, Math.min(H_ - 20, m.y + Math.sin(a) * 40)), body: m.body, target: -1, vx: 0, vy: 0,
@@ -257,9 +309,17 @@
     }
   }
   // push a robot away along angle a; tracks shrug half of it off, omni-drives fly further
+  // Reactive Spikes: a rammer or spinner that touches the plated robot takes 8 damage (once per 0.5 s per attacker)
+  function spikeBack(B, plated, attacker) {
+    if (plated.arm !== 'spikes' || attacker.hp <= 0) return;
+    const last = plated.spikeT[attacker.i];
+    if (last != null && B.t - last < 0.5) return;
+    plated.spikeT[attacker.i] = B.t; B.how = 'spikes'; hitBot(B, attacker, 12, plated, true); B.how = null;
+  }
   function push(e, a, v) { const k = v * (e.kb || 1); e.kx = Math.cos(a) * k; e.ky = Math.sin(a) * k; }
   function hitBot(B, tgt, dmg, src, pierce) {
     if (tgt.hp <= 0 || tgt.air > 0) return 0;   // mid-leap (jump jets) nothing touches it
+    if (tgt.qT > 0) return 0;                    // Quantum Shield bubble: nothing gets through
     tgt.lastHit = B.t;
     if (tgt.shield > 0) {
       const a = Math.min(tgt.shield, dmg); tgt.shield -= a; dmg -= a; tgt.revealed = true;
@@ -267,6 +327,12 @@
     }
     if (pierce === 0.5) dmg = Math.max(dmg * 0.25, dmg - tgt.s.armor * 0.5);   // railgun: half the armour
     else if (!pierce) dmg = Math.max(dmg * 0.25, dmg - tgt.s.armor);
+    if (tgt.arm === 'heat' && pierce === true && src && (src.s && (src.s.weapon === 'flame' || src.s.weapon === 'laser') || B.how === 'fire' || B.how === 'oil fire')) dmg *= 0.6;
+    if (tgt.abl > 0) { const a = Math.min(tgt.abl, dmg); tgt.abl -= a; dmg -= a; if (tgt.abl <= 0) { tgt.s.speed /= 0.91; B.fx.push({ k: 'break', x: tgt.x, y: tgt.y - 34, text: 'PLATING OFF', life: 1.2 }); } if (dmg <= 0.0001) { tgt.hitT = 0.05; return 0; } }
+    if (tgt.mod === 'quantum' && !tgt.qUsed && !tgt.helper && tgt.hp - dmg < 0.4 * tgt.s.hp) {
+      tgt.qUsed = true; tgt.qT = 3; tgt.revealed = true; dmg = Math.max(0, tgt.hp - 0.4 * tgt.s.hp);
+      B.fx.push({ k: 'break', x: tgt.x, y: tgt.y - 34, text: 'QUANTUM SHIELD', life: 1.5 }); logE(B, { k: 'mod', who: tgt.i, text: 'quantum shield saved', tgt: src.i });
+    }
     tgt.hp -= dmg; tgt.hitT = 0.08; tgt.lastBy = src.i;
     const friendly = tgt.team === src.team;
     if (friendly) src.ff += dmg; else src.dealt += dmg;
@@ -374,6 +440,7 @@
     }
     for (const b of B.bots) {
       if (b.overclockT > 0) b.overclockT = Math.max(0, b.overclockT - dt);
+      if (b.qT > 0) b.qT = Math.max(0, b.qT - dt);
       if (b.wpT > 0) { b.wpT = Math.max(0, b.wpT - dt); if (b.wpT <= 0 || Math.hypot(b.wpX - b.x, b.wpY - b.y) < 22) { b.wpT = 0; b.wpX = b.wpY = null; } }
     }
   }
@@ -404,11 +471,11 @@
         const f = Math.exp(-6 * dt); b.kx *= f; b.ky *= f; if (Math.hypot(b.kx, b.ky) < 10) b.kx = b.ky = 0;
       }
       if (b.hp <= 0) continue;
-      if (b.burn > 0) {
+      if (b.burn > 0 && !(b.qT > 0)) {
         // burning ignores armour; touching another robot spreads the fire (friend or foe)
         b.burn -= dt; B.how = 'fire'; hitBot(B, b, 5 * dt, B.bots[b.burnBy] || b, true); B.how = null;
         if (Math.floor(B.t * 4) !== Math.floor((B.t - dt) * 4)) B.fx.push({ k: 'ember', x: b.x + (B.rng() - 0.5) * 14, y: b.y - 6, life: 0.4 });
-        for (const o of B.bots) if (o !== b && o.hp > 0 && (o.burn || 0) < 0.8 && Math.hypot(o.x - b.x, o.y - b.y) < (o.size + b.size) / 2 + 6) { o.burn = 2; o.burnBy = b.burnBy; }
+        for (const o of B.bots) if (o !== b && o.hp > 0 && (o.burn || 0) < 0.8 && !(o.quirk === 'fireproof' && o.i === b.burnBy) && Math.hypot(o.x - b.x, o.y - b.y) < (o.size + b.size) / 2 + 6) { o.burn = 2; o.burnBy = b.burnBy; }
         if (b.hp <= 0) continue;
       }
       if (b.helper) { runHelper(B, b, dt); continue; }
@@ -546,7 +613,8 @@
           if (((b.vx - (e.vx || 0)) * ex + (b.vy - (e.vy || 0)) * ey) / d < 100) continue;
           const a = Math.atan2(ey, ex), first = !b.rammed;
           B.how = 'ram'; hitBot(B, e, 4 + 1.5 * b.lv.armor + 1.0 * b.lv.hp, b); B.how = null;
-          push(e, a, 240); e.stun = Math.max(e.stun, 0.25); e.lastBy = b.i;
+          push(e, a, 240 * (e.arm === 'spikes' ? 0.5 : 1)); e.stun = Math.max(e.stun, 0.25 * (e.arm === 'spikes' ? 0.5 : 1)); e.lastBy = b.i;
+          spikeBack(B, e, b);
           b.kx = -Math.cos(a) * 90; b.ky = -Math.sin(a) * 90; b.ramCd = 1.8; b.rammed = true;
           B.fx.push({ k: 'flip', x: (b.x + e.x) / 2, y: (b.y + e.y) / 2, life: 0.2 });
           if (first && !e.helper) logE(B, { k: 'mod', who: b.i, text: 'first ram into', tgt: e.i });
@@ -567,7 +635,9 @@
         if (b.cd <= 0 && err < rad(b.s.tol) && !allyInLine(B, b, b.turret, dist)) {
           const pellets = w === 'shotgun' ? 5 : 1;
           b.cd = 1 / b.s.fire * (w === 'shotgun' ? 1.6 : 1) * (0.9 + rng() * 0.2);
-          const spread = rad(25) * (1 - accE / 100) + (w === 'shotgun' ? rad(9) : 0) + fog * rad(22);
+          let burstSpread = 0;
+          if (b.s.cal === 'burst' && w === 'gun') { b.burstN = ((b.burstN || 0) + 1) % 3; burstSpread = b.burstN === 1 ? 0 : rad(3); b.cd = b.burstN === 0 ? b.cd * 2.4 : 0.1; }   // 0.1 s apart, ~0.8 s pause
+          const spread = rad(25) * (1 - accE / 100) + (w === 'shotgun' ? rad(9) : 0) + fog * rad(22) + burstSpread;
           for (let k = 0; k < pellets; k++) {
             const a = b.turret + (rng() * 2 - 1) * spread;
             const sx = b.x + Math.cos(b.turret) * 26, sy = b.y + Math.sin(b.turret) * 26;
@@ -589,7 +659,8 @@
           if (hit && !jammed) {
             const a = Math.atan2(hit.y - b.y, hit.x - b.x);
             critHit(B, hit, b.s.fp * 0.75, b);
-            push(hit, a, 340); hit.stun = Math.max(hit.stun, 0.35); hit.lastBy = b.i;
+            push(hit, a, 340 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.stun = Math.max(hit.stun, 0.35 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.lastBy = b.i;
+            spikeBack(B, hit, b);
             b.kx = -Math.cos(a) * 200; b.ky = -Math.sin(a) * 200;
             b.cd = 1 / b.s.fire; b.hits++; b.shots++;
             B.fx.push({ k: 'spark', x: (b.x + hit.x) / 2, y: (b.y + hit.y) / 2, life: 0.2 });
@@ -606,7 +677,7 @@
             if (B.walls.some(wl => wl.team !== b.team && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) != null && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) < d)) continue;
             hitBot(B, e, b.s.fp * 0.5 * oc * dt, b, true);
             if (e.mod === 'reflect' && !e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflective plating vs flames of', tgt: b.i }); }
-            e.burn = Math.min(4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
+            e.burn = Math.min(b.quirk === 'stickyfire' ? 6 : 4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
             b.hits += dt;
           }
           // oil in the cone catches fire
@@ -637,7 +708,7 @@
           const spread = rad(18) * (1 - accE / 100) + fog * rad(22);
           const a = b.turret + (rng() * 2 - 1) * spread, v = pspeed;
           B.saws.push({ x: b.x + Math.cos(b.turret) * 24, y: b.y + Math.sin(b.turret) * 24, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
-            owner: b.i, squad: b.squad, dmg: b.s.dmg, life: 4, hits: 0, bounces: 0, last: -1, lastT: -9 });
+            owner: b.i, squad: b.squad, dmg: b.s.dmg, life: 4, hits: 0, maxHits: b.quirk === 'trickshot' ? 4 : 3, bounces: 0, last: -1, lastT: -9 });
           b.shots++;
         }
       } else if (w === 'mortar') {
@@ -733,7 +804,7 @@
         q.vx *= 0.85; q.vy *= 0.85; q.hits++; q.dmg *= 0.75; q.last = e.i; q.lastT = B.t;
         break;
       }
-      if (q.life <= 0 || q.hits >= 3 || Math.hypot(q.vx, q.vy) < 110) B.saws.splice(k, 1);
+      if (q.life <= 0 || q.hits >= (q.maxHits || 3) || Math.hypot(q.vx, q.vy) < 110) B.saws.splice(k, 1);
     }
     for (let k = B.shells.length - 1; k >= 0; k--) {
       const q = B.shells[k];
@@ -768,7 +839,7 @@
       if (q.fire > 0) {
         q.fire -= dt;
         // burning oil: 12 damage/s to every robot in it, friend or foe
-        for (const e of B.bots) if (e.hp > 0 && Math.hypot(e.x - q.x, e.y - q.y) < q.r) { B.how = 'oil fire'; hitBot(B, e, 12 * dt, B.bots[q.by >= 0 ? q.by : q.owner], true); B.how = null; }
+        for (const e of B.bots) if (e.hp > 0 && !(e.quirk === 'fireproof' && e.i === q.owner) && Math.hypot(e.x - q.x, e.y - q.y) < q.r) { B.how = 'oil fire'; hitBot(B, e, 12 * dt, B.bots[q.by >= 0 ? q.by : q.owner], true); B.how = null; }
         if (q.fire <= 0) q.life = 0;
       }
       if (q.life <= 0) B.oils.splice(k, 1);
@@ -1013,7 +1084,7 @@
   }
 
   const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'railgun'];
-  const Sim = { SQUADS, WEAPONS, HELPERS, MODS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
+  const Sim = { FORM, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 

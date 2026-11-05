@@ -98,6 +98,58 @@ Rammer fix: on a spinner the Rammer Chip now only adds wounded-target hunting; w
 
 Every build beats at least one and loses to at least one.
 
+## Sim pass 2026-11-06 (robot cards, new parts, softer counters)
+Everything now runs on the shared `src/sim.js`. Tools: `node tools/robot-cards.js [--n 80] [--parts] [--form fp,speed,acc]` (robot card table) and `node tools/card-tune.js <card> <target>` (tries every one-point stat move on a card).
+
+New in the Sim (5 Nov cards, first-pass numbers):
+- **Burst Gun** = gun calibre `burst`: 3 shots 0.1 s apart, then ~0.8 s pause; shots 2–3 get +3° spread; each shot ×1.15 (small hits lose more to armour). Strain 1.
+- **Armour cards** (build field `arm`): Heat Shield (×0.6 flame, laser, burning and oil-fire damage; −4% speed), Ablative Plating (soaks the first 30 damage after armour, then falls off; −9% speed until then), Reactive Spikes (rammers/spinners touching it take 12, once per 0.5 s; knockback and contact stun on it halved; −4% speed), Composite Mesh (+1 armour level, no weight; at armour 4: +9% speed). A broken armour card stops working ("PLATING CRACKED").
+- **Quantum Shield** = module `quantum` (legendary): once per fight below 40% health, 3 s of no damage and burning pauses. Strain 2.
+- **Fight quirks** (build field `quirk`): Trick Shot (saws 4 hits), Sticky Fire (burn cap 6 s instead of 4), Fireproof (own fire and oil can't hurt it), Bastion (4 helpers, helpers add no strain).
+- **Robot cards** as data: `Sim.ROBOT_CARDS` (12 cards + Scrap Bot). The sandbox lists them under "Robot cards" and has Burst and Armour pickers.
+- **Not in the Sim yet: Twin Turret** (second weapon slot needs a second weapon system per robot).
+
+Softer counters: **form of the day** (`Sim.FORM`): before each fight every robot rolls a hidden condition: firepower ±25%, speed ±15%, accuracy ±10 points. Robot card pairings at 90/10 or worse: 55% → 30% (±35/20/14 gives 29%/45%, ±50/25/18 gives 24% but starts to feel like dice). Random builds (watchdog): 56% → 42% lopsided, upset rate 12% → 17%.
+
+One stat point moved on five cards (chosen by `card-tune.js`, closest to target with fewest lopsided matchups): Juggernaut HP3→2 AR2→3 (83% → 74%), Railgunner FP4→3 SP1→2 (74% → 72%), Wasp FP4→3 HP3→4 (74% → 70%), Fortress TU1→0 BU0→1 (20% → 26%), Scrap Bot AR1→0 FP3→4 (8% → 17%).
+
+New parts on the 12 cards (average win % vs the 13 stock cards, without → with): Heat Shield 49 → 55, Ablative Plating 49 → 60 (strongest: price it up), Reactive Spikes 49 → 50 (a niche counter to Juggernaut and Brawler), Composite Mesh 49 → 53, Quantum Shield 49 → 53 (replaces a signature module), Burst Gun 49 → 51 (on the 5 gun robots).
+
+12 cards: 30% of pairings 90/10 or worse, 45% 80/20 or worse
+
+Average win % vs the other 12 (cards + Scrap Bot):
+  Juggernaut   74%
+  Railgunner   72%
+  Wasp         70%
+  Sniper       62%
+  Ricochet     60%
+  Tinker       56%
+  Brawler      51%
+  Turncoat     44%
+  Slick        42%
+  Artillery    40%
+  Hookshot     38%
+  Fortress     26%
+  Scrap Bot    17%
+
+Row beats column (%):
+            Jugge Railg  Wasp Snipe Ricoc Tinke Brawl Turnc Slick Artil Hooks Fortr Scrap
+Juggernaut      -    29   100    79    23    61   100    90    56    95    76    91    94
+Railgunner     71     -    55    69    83    79    20   100    69    78    59    79   100
+Wasp            0    45     -   100   100   100     1    70    78   100    49   100   100
+Sniper         21    31     0     -    71    32    48    99    88    85    93    94    78
+Ricochet       78    18     0    29     -    51    90    40    89    63    85    80    95
+Tinker         39    21     0    68    49     -    36    38    91    56    89    88    95
+Brawler         0    80    99    53    10    64     -    65    26    90    57     0    69
+Turncoat       10     0    30     1    60    63    35     -    60    28    55    93    98
+Slick          44    31    22    13    11     9    74    40     -    57    57    71    69
+Artillery       5    22     0    15    38    44    10    73    43     -    56    81    89
+Hookshot       24    41    51     7    15    11    43    45    43    44     -    78    52
+Fortress        9    21     0     6    20    13   100     7    29    19    22     -    65
+Scrap Bot       6     0     0    22     5     5    31     3    31    11    48    35     -
+
+Still open: Wasp keeps 8 of 12 matchups lopsided (rapid fire + shield + zigzag; only armour beats it); Juggernaut and Railgunner are still the top 2 (priced 5); Scrap Bot 17% (target 20–30%); railgun dominates random builds (one legendary copy, so acceptable); spinners without speed stay a "build to discover".
+
 ## Known issues / next
 - Firepower is always maxed (a tax). Solve by making weapons parts with their own firepower/cost.
 - Counters are very hard (often 0/100). Want ~65/35 so luck and banter stay; soften via accuracy variance, mixed loadouts, or 2 weapons.

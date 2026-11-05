@@ -161,7 +161,10 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     's1. Top':      { b: { lv: L(2, 3, 3, 0, 3, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium' }, d: 'Starter. Armoured spinner. Wrecks saw turrets and long guns, loses to lasers and the Scrapper.' },
   };
   const SMATRIX = {"s1. Scrapper":{"s1. Rattler":0.555,"s1. Plinker":0.658,"s1. Tin Can":0.48,"s1. Sparky":0.265,"s1. Lobster":0.735,"s1. Grinder":0.665,"s1. Zippo":0.38,"s1. Top":0.885},"s1. Rattler":{"s1. Scrapper":0.445,"s1. Plinker":0.535,"s1. Tin Can":0.18,"s1. Sparky":1,"s1. Lobster":0.89,"s1. Grinder":0.55,"s1. Zippo":0.305,"s1. Top":0.245},"s1. Plinker":{"s1. Scrapper":0.342,"s1. Rattler":0.465,"s1. Tin Can":0.52,"s1. Sparky":0.98,"s1. Lobster":0.425,"s1. Grinder":0.408,"s1. Zippo":0.66,"s1. Top":0.14},"s1. Tin Can":{"s1. Scrapper":0.52,"s1. Rattler":0.82,"s1. Plinker":0.48,"s1. Sparky":0.753,"s1. Lobster":0.433,"s1. Grinder":0.258,"s1. Zippo":0.435,"s1. Top":0.195},"s1. Sparky":{"s1. Scrapper":0.735,"s1. Rattler":0,"s1. Plinker":0.02,"s1. Tin Can":0.247,"s1. Lobster":0.52,"s1. Grinder":0.155,"s1. Zippo":1,"s1. Top":0.98},"s1. Lobster":{"s1. Scrapper":0.265,"s1. Rattler":0.11,"s1. Plinker":0.575,"s1. Tin Can":0.567,"s1. Sparky":0.48,"s1. Grinder":0.775,"s1. Zippo":0.585,"s1. Top":0.67},"s1. Grinder":{"s1. Scrapper":0.335,"s1. Rattler":0.45,"s1. Plinker":0.592,"s1. Tin Can":0.742,"s1. Sparky":0.845,"s1. Lobster":0.225,"s1. Zippo":0.465,"s1. Top":0.02},"s1. Zippo":{"s1. Scrapper":0.62,"s1. Rattler":0.695,"s1. Plinker":0.34,"s1. Tin Can":0.565,"s1. Sparky":0,"s1. Lobster":0.415,"s1. Grinder":0.535,"s1. Top":0.795},"s1. Top":{"s1. Scrapper":0.115,"s1. Rattler":0.755,"s1. Plinker":0.86,"s1. Tin Can":0.805,"s1. Sparky":0.02,"s1. Lobster":0.33,"s1. Grinder":0.98,"s1. Zippo":0.205}};
-  const ALL = Object.assign({}, PRESETS, STARTERS);
+  // Market robot cards (shared Sim data): full build + quirk, as on the cards
+  const CARDS = {};
+  for (const [n, b] of Object.entries(Sim.ROBOT_CARDS)) CARDS['Card: ' + n] = { b: JSON.parse(JSON.stringify(b)), d: n === 'Scrap Bot' ? 'Starter robot: no quirk, stock gun, empty module slot.' : 'Market robot card' + (Sim.QUIRKS[b.quirk] ? ' with quirk ' + Sim.QUIRKS[b.quirk].name + ': ' + Sim.QUIRKS[b.quirk].text : ' (its quirk works outside the arena).') };
+  const ALL = Object.assign({}, PRESETS, STARTERS, CARDS);
   const NAMES = { hp: 'Health', armor: 'Armour', speed: 'Speed', turret: 'Turret turn', fp: 'Firepower', acc: 'Accuracy', bullet: 'Bullet speed' };
   const UNIT = { hp: '', armor: ' per hit', speed: ' px/s', turret: '°/s', fp: ' dmg/s', acc: '%', bullet: ' px/s' };
   const clone = b => JSON.parse(JSON.stringify(b));
@@ -198,21 +201,22 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const R = sel[i], b = R.b, C = cardOf(i);
     const pts = Sim.cost(b);
     let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + (teamOf(i) ? 'red' : 'blue') + (mode === 'squad' ? ' · ' + C.name : ' team') + '</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
-      (ALL[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + '<optgroup label="Presets">' + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Starter deck">' + Object.keys(STARTERS).map(n => opt(n, n, R.name)).join('') + '</optgroup>' + opt('Custom', 'Custom', R.name) + '</select>' +
+      (ALL[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + '<optgroup label="Presets">' + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Starter deck">' + Object.keys(STARTERS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Robot cards">' + Object.keys(CARDS).map(n => opt(n, n.slice(6), R.name)).join('') + '</optgroup>' + opt('Custom', 'Custom', R.name) + '</select>' +
       '<span class="pts' + (pts > C.points ? ' over' : '') + '">' + pts + ' / ' + C.points + ' points</span></h2>' +
       '<p class="desc">' + (ALL[R.name] ? ALL[R.name].d : R.ex ? 'Example ' + Sim.SQUADS[R.ex].name + ' robot found by the tuning simulations. Stats can go up to level ' + Sim.SQUADS[R.ex].cap + '.' : 'Your own build. Points over the budget are allowed here, just not fair.') + '</p>' +
       '<div class="choices">' +
       '<label>Weapon<select data-k="weapon">' + opt('gun', 'Gun', b.weapon) + opt('laser', 'Laser', b.weapon) + opt('mortar', 'Mortar', b.weapon) + opt('saw', 'Saw blades', b.weapon) + opt('spinner', 'Spinner blade', b.weapon) + opt('flame', 'Flamethrower', b.weapon) + opt('railgun', 'Railgun (legendary)', b.weapon) + '</select></label>' +
-      '<label>Calibre<select data-k="cal"' + (b.weapon !== 'gun' ? ' disabled' : '') + '>' + opt('rapid', 'Rapid', b.cal) + opt('medium', 'Medium', b.cal) + opt('heavy', 'Heavy', b.cal) + '</select></label>' +
+      '<label>Calibre<select data-k="cal"' + (b.weapon !== 'gun' ? ' disabled' : '') + '>' + opt('rapid', 'Rapid', b.cal) + opt('medium', 'Medium', b.cal) + opt('heavy', 'Heavy', b.cal) + opt('burst', 'Burst', b.cal) + '</select></label>' +
       '<label>Range<select data-k="range">' + opt('short', 'Short', b.range) + opt('mid', 'Mid', b.range) + opt('long', 'Long', b.range) + '</select></label>' +
-      '<label>Module<select data-k="mod">' + opt('', 'None', b.mod || '') + Object.keys(Sim.MODS).map(k => opt(k, Sim.MODS[k].name, b.mod || '')).join('') + '</select></label></div>' +
+      '<label>Module<select data-k="mod">' + opt('', 'None', b.mod || '') + Object.keys(Sim.MODS).map(k => opt(k, Sim.MODS[k].name, b.mod || '')).join('') + '</select></label>' +
+      '<label>Armour<select data-k="arm">' + opt('', 'None', b.arm || '') + Object.keys(Sim.ARMOURS).map(k => opt(k, Sim.ARMOURS[k].name, b.arm || '')).join('') + '</select></label></div>' +
       '<div class="choices">' + [0, 1, 2].map(k => '<label>Helper ' + (k + 1) + '<select data-h="' + k + '">' + opt('', 'None', (b.helpers || [])[k] || '') + Object.keys(Sim.HELPERS).map(h => opt(h, Sim.HELPERS[h].name, (b.helpers || [])[k] || '')).join('') + '</select></label>').join('') +
       '<label>Shoots at<select data-k="focus">' + opt('main', 'Main robots', b.focus || 'main') + opt('medics', 'Medics first', b.focus || 'main') + opt('helpers', 'All helpers first', b.focus || 'main') + '</select></label></div>' +
       '<div class="choices"><label>Drive<select data-k="drive">' + Object.keys(Sim.DRIVES).map(k => opt(k, Sim.DRIVES[k].name, b.drive || 'wheels')).join('') + '</select></label>' +
       '<label>Processor<select data-k="proc">' + Object.keys(Sim.PROCS).map(k => opt(k, Sim.PROCS[k].name, b.proc || 'standard')).join('') + '</select></label></div>' +
       '<p class="modtx"><b>' + Sim.DRIVES[b.drive || 'wheels'].name + ':</b> ' + Sim.DRIVES[b.drive || 'wheels'].text + ' <b>' + Sim.PROCS[b.proc || 'standard'].name + ':</b> ' + Sim.PROCS[b.proc || 'standard'].text + '</p>' +
       '<p class="modtx">' + ((b.helpers || []).filter(Boolean).length ? [...new Set(b.helpers.filter(Boolean))].map(h => '<b>' + Sim.HELPERS[h].name + ':</b> ' + Sim.HELPERS[h].text).join(' ') : 'No helpers. Add up to 3 drones above.') + '</p>' +
-      '<p class="modtx">' + (b.mod ? '<b>' + Sim.MODS[b.mod].name + ':</b> ' + Sim.MODS[b.mod].text : 'No module. Pick one to add a surprise.') + '</p>' +
+      '<p class="modtx">' + (b.mod ? '<b>' + Sim.MODS[b.mod].name + ':</b> ' + Sim.MODS[b.mod].text : 'No module. Pick one to add a surprise.') + (b.arm ? ' <b>' + Sim.ARMOURS[b.arm].name + ':</b> ' + Sim.ARMOURS[b.arm].text : '') + '</p>' +
       strainLine(b) +
       '<div class="lv">';
     const s = Sim.statsOf(b);
@@ -234,6 +238,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const k = e.target.dataset.k; if (!k && e.target.dataset.h == null) return;
       if (k === 'preset') { if (ALL[e.target.value]) { sel[i] = { name: e.target.value, b: clone(ALL[e.target.value].b) }; } else sel[i].name = 'Custom'; }
       else if (k === 'mod') { sel[i].b.mod = e.target.value || null; }
+      else if (k === 'arm') { sel[i].b.arm = e.target.value || null; }
       else if (k === 'focus') { sel[i].b.focus = e.target.value; }
       else if (k === 'eng') { sel[i].b.eng = +e.target.value; }
       else if (k === 'drive' || k === 'proc') { sel[i].b[k] = e.target.value; }

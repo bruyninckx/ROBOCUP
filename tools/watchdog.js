@@ -91,7 +91,7 @@ const MODE = arg('mode', 'duel');
 const SIZE = Math.max(2, Math.min(4, +arg('size', 4)));
 
 const { Sim, hash } = loadSim(SANDBOX);
-const STATS = Sim.STATS, MODS = Object.keys(Sim.MODS || {}), HELP = Object.keys(Sim.HELPERS || {});
+const STATS = Sim.STATS, MODS = Object.keys(Sim.MODS || {}), HELP = Object.keys(Sim.HELPERS || {}), ARMS = Object.keys(Sim.ARMOURS || {});
 const WEAPONS = Sim.WEAPONS || ['gun', 'laser', 'mortar', 'saw'];
 const CALS = Object.keys(Sim.CAL || { medium: 1 });
 const RANGES = Object.keys(Sim.RANGES || { mid: 1 });
@@ -112,6 +112,7 @@ function randomBuild() {
     helpers: [...Array(nh)].map(() => pick(HELP)),
     focus: pick(['main', 'medics', 'helpers']),
     drive: pick(DRIVES), proc: pick(PROCS),
+    arm: ARMS.length && rng() < 0.5 ? pick(ARMS) : null,
   };
 }
 const label = b => (b.weapon === 'gun' ? b.cal + ' gun' : b.weapon) + ', ' + b.range + ' range, ' +
@@ -205,6 +206,7 @@ async function teamMode(builds, t0) {
     ['Preferred range', rows(RANGES, (b, o) => b.range === o), o => o],
     ['Module', rows(MODS, (b, o) => b.mod === o), o => Sim.MODS[o].name],
     ['Helper', rows(HELP, (b, o) => b.helpers.includes(o)), o => Sim.HELPERS[o].name],
+    ...(ARMS.length ? [['Armour card', rows(ARMS, (b, o) => b.arm === o), o => Sim.ARMOURS[o].name]] : []),
     ['Drive', rows(DRIVES, (b, o) => (b.drive || 'wheels') === o), o => Sim.DRIVES ? Sim.DRIVES[o].name : o],
     ['Processor', rows(PROCS, (b, o) => (b.proc || 'standard') === o), o => Sim.PROCS ? Sim.PROCS[o].name : o],
   ];
@@ -272,6 +274,7 @@ async function teamMode(builds, t0) {
   addGroup('Preferred range', RANGES, (b, o) => b.range === o);
   addGroup('Module', ['(none)'].concat(MODS), (b, o) => o === '(none)' ? !b.mod : b.mod === o);
   addGroup('Helper', HELP, (b, o) => b.helpers.includes(o));
+  if (ARMS.length) addGroup('Armour card', ['(none)'].concat(ARMS), (b, o) => o === '(none)' ? !b.arm : b.arm === o);
   if (HELPERS_N === 'random') addGroup('Number of helpers', [0, 1, 2, 3], (b, o) => b.helpers.length === o);
   addGroup('Targeting order', ['main', 'medics', 'helpers'], (b, o) => b.focus === o);
   addGroup('Drive', DRIVES, (b, o) => (b.drive || 'wheels') === o);
