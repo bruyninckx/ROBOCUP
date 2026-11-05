@@ -1494,9 +1494,15 @@ html, body {
         '<button class="act secondary" id="pAct1">Pass Intrigue →</button>';
       $('#pAct1').onclick = () => { notify('You pass on Intrigue.'); finishIntrigue(); };
     } else if (G.phase === 'market') {
-      if (G.pendingInstall && G.pendingInstall.length) {
-        const lot = LOTS[G.pendingInstall[0].lot];
-        pb.innerHTML = '<span>🔩 <b>Install Upgrade:</b> Click one of your 3 Robot Bays in the South Command Garage to fit <b>' + esc(lot.name) + '</b>.</span>';
+      if (G.marketResolved) {
+        if (G.pendingInstall && G.pendingInstall.length) {
+          const lot = LOTS[G.pendingInstall[0].lot];
+          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>.</span>';
+        } else {
+          pb.innerHTML = '<span>📦 <b>Auction Results:</b> Review which player won each lot and for how much on the Arena board.</span>' +
+            '<button class="act" id="pAct1">Continue to Host Phase →</button>';
+          $('#pAct1').onclick = startArena;
+        }
       } else {
         const spent = (G.myBids || [0, 0, 0, 0]).reduce((a, b) => a + b, 0);
         pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Parts add Strain; Engineers prevent breaks!</span>' +
@@ -1766,6 +1772,8 @@ html, body {
   /* ---------- Phase 3: Spatial Market on Arena Floor ---------- */
   function startMarket() {
     G.phase = 'market';
+    G.marketResolved = false;
+    G.marketResults = null;
     setCameraGoal('compound');
     if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
@@ -1796,22 +1804,22 @@ html, body {
   }
   function applyLot(ti, lot, r) {
     const t = G.teams[ti], L = LOTS[lot];
-    if (L.mech) { t.mechs++; return; }
+    if (L.mech) { t.mechs++; return '+1 Mechanic Pool'; }
     if (L.eng) {
       t.engPool++;
       const needBot = t.robots.slice().sort((a, b) => Sim.strainOf(b.b).total - Sim.strainOf(a.b).total).find(x => (x.b.eng || 0) < 3);
       if (needBot) needBot.b.eng = (needBot.b.eng || 0) + 1;
-      return;
+      return needBot ? `Assigned to ${needBot.name}` : '+1 Engineer Pool';
     }
     if (L.robot) {
-      if (t.robots.length >= 3) { t.credits += 2; return; }
+      if (t.robots.length >= 3) { t.credits += 2; return 'Bays Full (+2 Cr)'; }
       const n = pick(Object.keys(PRESETS));
       const nr = mkRobot(n, PRESETS[n]);
       nr.b.eng = Math.min(1, freeEng(t));
       t.robots.push(nr);
-      return;
+      return `New Bot: ${nr.name}`;
     }
-    if (!r) return;
+    if (!r) return '';
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.weapon) r.b.weapon = L.weapon;
     if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
@@ -1823,11 +1831,13 @@ html, body {
     if (L.weapon === 'laser' || L.weapon === 'saw') r.b.range = 'mid';
     if (L.weapon === 'spinner' || L.weapon === 'flame') r.b.range = 'short';
     if (L.weapon === 'mortar') r.b.range = 'long';
+    return `Fitted on ${r.name}`;
   }
 
   function resolveMarket(myBids) {
     const all = G.teams.map(t => t.i === viewerSeat ? myBids : aiBids(t));
     const wins = [];
+    const results = [];
     for (let k = 0; k < 4; k++) {
       const col = all.map(b => b[k]);
       const mx = Math.max(...col);
@@ -1837,8 +1847,22 @@ html, body {
         w = cand[0].i;
         G.teams[w].credits -= mx;
       }
-      if (k < 3 && w >= 0) wins.push({ lot: G.market[k], team: w, price: mx });
-      if (k === 3) G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+      if (k < 3) {
+        const lotId = G.market[k], L = LOTS[lotId];
+        if (w >= 0) wins.push({ idx: k, lot: lotId, team: w, price: mx });
+        results.push({
+          idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
+          winner: w, price: mx, bids: col, target: w < 0 ? 'Unclaimed' : ''
+        });
+      } else {
+        G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+        const hostT = G.teams[G.host];
+        results.push({
+          idx: 3, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
+          winner: G.host, price: w >= 0 ? mx : 0, bids: col,
+          target: w >= 0 ? '+1 Fame' + (hostT.sponsor === 'apex' ? ' & +2 Cr' : '') : 'Random Draw (0 Cr)'
+        });
+      }
     }
     for (const x of wins) notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + esc(LOTS[x.lot].name) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
     const hostT = G.teams[G.host];
@@ -1849,12 +1873,16 @@ html, body {
     G.pendingInstall = wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
     for (const x of wins) {
       if (x.team !== viewerSeat || !needsRobot(x.lot)) {
-        applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+        const dest = applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+        results[x.idx].target = dest;
+      } else {
+        results[x.idx].target = '▼ Click a Robot Bay below';
       }
     }
+    G.marketResults = results;
+    G.marketResolved = true;
     if (checkWin()) return;
-    if (!G.pendingInstall.length) startArena();
-    else updateHud();
+    updateHud();
   }
 
   /* ---------- Phase 4: Host Invites ---------- */
@@ -1957,6 +1985,7 @@ html, body {
       const amt = Math.min(T.credits, 1 + Math.floor(rnd() * maxBetOf(T)));
       T.credits -= amt;
       F.bets.push({ team: T.i, side, amt });
+      notify(`🎲 <b>${esc(T.name)}</b> bet ${amt} Cr on <b>${esc(F.robots[side].name)}</b> (${F.pay[side]}×).`, T.col);
     }
     startFight();
   }
@@ -2044,10 +2073,14 @@ html, body {
     for (const x of F.bets) {
       if (x.side === w) {
         const pay = Math.round(x.amt * F.pay[w]);
+        x.payout = pay;
         G.teams[x.team].credits += pay;
         notify('🪙 <b>' + esc(G.teams[x.team].name) + '</b> won ' + pay + ' Cr on their bet!', G.teams[x.team].col);
       } else if (G.teams[x.team].sponsor === 'lucky') {
+        x.payout = 1;
         G.teams[x.team].credits += 1;
+      } else {
+        x.payout = 0;
       }
     }
     F.winner = { team: W, robot: wr };
@@ -2057,17 +2090,22 @@ html, body {
     if (lTeam.robots.includes(lr) && lr.dmg > 0) {
       const patch = lTeam.sponsor === 'vulture' ? 50 : 30;
       lr.dmg = Math.max(0, lr.dmg - patch);
+      F.loserCrateText = `Scrap Crate: −${patch} HP repaired`;
       notify(`📦 <b>${esc(lTeam.name)}</b> opens a Scrap Crate: patched −${patch} dmg on ${esc(lr.name)}.`, lTeam.col);
     } else {
-      lTeam.credits += lTeam.sponsor === 'vulture' ? 4 : 2;
+      const bonus = lTeam.sponsor === 'vulture' ? 4 : 2;
+      lTeam.credits += bonus;
+      F.loserCrateText = `Scrap Crate: +${bonus} Cr salvage`;
     }
 
     // Winner's Crate (pick 1 of 3 if player won!)
     if (W === viewerSeat) {
       G.crateChoices = shuffle(WINNER_CRATE_POOL.slice()).slice(0, 3);
+      F.winnerCrateText = 'Picking Winner\'s Crate...';
     } else {
       const pickLot = pick(WINNER_CRATE_POOL);
       applyLot(W, pickLot, aiPickRobot(wTeam, pickLot));
+      F.winnerCrateText = `Crate: ${LOTS[pickLot].name}`;
     }
 
     if (G.host === viewerSeat) {
@@ -2381,7 +2419,7 @@ html, body {
     });
 
     // 4. Draw Spatial Phase Content inside the Central Stage / Arena
-    if (G.phase === 'market' && (!G.pendingInstall || !G.pendingInstall.length)) {
+    if (G.phase === 'market') {
       drawMarketOnArena(ctx, L);
     } else if (G.phase === 'bets' && G.fight) {
       drawBettingOnArena(ctx, L);
@@ -2435,37 +2473,31 @@ html, body {
       // Show Invited Matchup Preview
       const [ta, tb] = G.fight.teams.map(i => G.teams[i]);
       ctx.fillStyle = '#111'; ctx.font = '800 12px system-ui, sans-serif';
-      ctx.fillText('UPCOMING ARENA DUEL', cx, cy - 28);
+      ctx.fillText('UPCOMING ARENA DUEL', cx, cy - 36);
 
       ctx.font = '900 18px system-ui, sans-serif';
       ctx.fillStyle = ta.col; ctx.textAlign = 'right';
-      ctx.fillText(ta.name.toUpperCase(), cx - 26, cy + 4);
+      ctx.fillText(ta.name.toUpperCase(), cx - 26, cy - 6);
       ctx.fillStyle = '#888'; ctx.textAlign = 'center'; ctx.font = '800 13px system-ui, sans-serif';
-      ctx.fillText('VS', cx, cy + 3);
+      ctx.fillText('VS', cx, cy - 7);
       ctx.font = '900 18px system-ui, sans-serif';
       ctx.fillStyle = tb.col; ctx.textAlign = 'left';
-      ctx.fillText(tb.name.toUpperCase(), cx + 26, cy + 4);
+      ctx.fillText(tb.name.toUpperCase(), cx + 26, cy - 6);
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#2a9d3a'; ctx.font = '800 12px system-ui, sans-serif';
-      ctx.fillText(G.chooseMyBot ? '▼ Click "Send to Pit" on one of your Robot Bays below' : 'Preparing fighters...', cx, cy + 38);
+      ctx.fillText(G.chooseMyBot ? '▼ Click "Send to Pit" on one of your Robot Bays below' : 'Preparing fighters...', cx, cy + 24);
     } else if (G.phase === 'arena' && G.host === viewerSeat) {
       ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
-      ctx.fillText('YOU ARE ARENA HOST — CLICK ANY 2 GARAGES TO INVITE', cx, cy - 4);
+      ctx.fillText('YOU ARE ARENA HOST — CLICK ANY 2 GARAGES TO INVITE', cx, cy - 14);
       const picked = (G.pickTeams || []).map(i => G.teams[i].name).join('  vs  ');
       ctx.fillStyle = '#1f6feb'; ctx.font = '700 12.5px system-ui, sans-serif';
-      ctx.fillText(picked ? `Selected: ${picked}` : 'Select 2 teams (you may include yourself)', cx, cy + 22);
+      ctx.fillText(picked ? `Selected: ${picked}` : 'Select 2 teams (you may include yourself)', cx, cy + 12);
     } else if (G.phase === 'intrigue') {
       ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
       ctx.fillText('INTRIGUE PHASE — DRAG A SCHEME CARD TO A GARAGE', cx, cy - 4);
       ctx.fillStyle = '#666'; ctx.font = '600 12px system-ui, sans-serif';
       ctx.fillText('Hover your bottom hand to draw a scheme, or click Done in the top bar to skip.', cx, cy + 20);
-    } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
-      const nextLot = LOTS[G.pendingInstall[0].lot];
-      ctx.fillStyle = '#1f6feb'; ctx.font = '900 15px system-ui, sans-serif';
-      ctx.fillText(`INSTALL UPGRADE: ${nextLot.name.toUpperCase()} (${nextLot.text})`, cx, cy - 4);
-      ctx.fillStyle = '#333'; ctx.font = '700 12px system-ui, sans-serif';
-      ctx.fillText('▼ Click "Fit Part" on one of your Robot Bays below to install', cx, cy + 20);
     } else {
       // Upkeep Standby Summary: Show 4-team Fame Standings Bar Chart
       ctx.fillStyle = '#444'; ctx.font = '800 11px system-ui, sans-serif';
@@ -2483,6 +2515,25 @@ html, body {
 
         ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'right';
         ctx.fillText(`${tm.fame}/12  ·  ${tm.credits} Cr`, x0 + L.aw - 24, ry + 11);
+      });
+    }
+
+    // Persistent Market Auction Recap Strip during Host/Fighter Selection (Phase 4)
+    if (G.phase === 'arena' && G.marketResults && G.marketResults.length) {
+      const fy = y0 + L.ah - 32;
+      ctx.fillStyle = '#f6f4ee';
+      ctx.fillRect(x0 + 2, fy, L.aw - 4, 30);
+      ctx.strokeStyle = '#dedad0'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0, fy); ctx.lineTo(x0 + L.aw, fy); ctx.stroke();
+
+      const colW = (L.aw - 16) / 4;
+      G.marketResults.forEach((res, k) => {
+        const rx = x0 + 8 + k * colW;
+        const wTeam = res.winner >= 0 ? G.teams[res.winner] : null;
+        ctx.fillStyle = '#222'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${res.icon} ${res.name}:`, rx, fy + 12);
+        ctx.fillStyle = wTeam ? wTeam.col : '#888'; ctx.font = '800 9.5px system-ui, sans-serif';
+        ctx.fillText(wTeam ? `${wTeam.name.split(' ')[0]} (${res.price} Cr)` : 'No Bids', rx, fy + 24);
       });
     }
   }
@@ -2866,6 +2917,103 @@ html, body {
   }
 
   function drawMarketOnArena(ctx, L) {
+    const x0 = L.ax - L.aw / 2, y0 = L.ay - L.ah / 2;
+
+    if (G.marketResolved && G.marketResults) {
+      // --- Post-Bidding Market Auction Results Overview ---
+      ctx.fillStyle = '#f6f4ee';
+      ctx.fillRect(x0 + 2, y0 + 2, L.aw - 4, 26);
+      ctx.strokeStyle = '#dedad0'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0, y0 + 28); ctx.lineTo(x0 + L.aw, y0 + 28); ctx.stroke();
+
+      ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('MARKET AUCTION RESULTS  —  WHO GOT WHAT & FOR HOW MUCH', x0 + 12, y0 + 19);
+
+      const waitingInstall = G.pendingInstall && G.pendingInstall.length > 0;
+      if (waitingInstall) {
+        const nextLot = LOTS[G.pendingInstall[0].lot];
+        ctx.fillStyle = '#1f6feb'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText(`▼ Click a Robot Bay below to fit ${nextLot.name}`, x0 + L.aw - 12, y0 + 19);
+      } else {
+        const btnW = 148, btnH = 20, btnX = x0 + L.aw - btnW - 8, btnY = y0 + 4;
+        ctx.fillStyle = '#111';
+        ctx.fillRect(btnX, btnY, btnW, btnH);
+        ctx.fillStyle = '#fff'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Continue to Host Phase →', btnX + btnW / 2, btnY + 13.5);
+        hitRegions.push({ kind: 'market_continue', x: btnX, y: btnY, w: btnW, h: btnH });
+      }
+
+      const w = 142, h = 180, gap = 10;
+      const totalW = G.marketResults.length * w + (G.marketResults.length - 1) * gap;
+      const startX = L.ax - totalW / 2, cy = y0 + 33;
+
+      G.marketResults.forEach((res, k) => {
+        const x = startX + k * (w + gap);
+        const wTeam = res.winner >= 0 ? G.teams[res.winner] : null;
+        const winCol = wTeam ? wTeam.col : '#888';
+
+        ctx.fillStyle = '#fcfbf9';
+        ctx.fillRect(x, cy, w, h);
+        ctx.strokeStyle = wTeam ? winCol : '#bbb6a8';
+        ctx.lineWidth = wTeam ? 2 : 1.2;
+        ctx.strokeRect(x, cy, w, h);
+
+        // 1. Top Winner Team Banner (22px tall)
+        ctx.fillStyle = winCol;
+        ctx.fillRect(x, cy, w, 22);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 10.5px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        const wLabel = wTeam ? `${wTeam.name.toUpperCase()}${res.winner === viewerSeat ? ' (YOU)' : ''}` : 'NO BIDS';
+        ctx.fillText(wLabel, x + w / 2, cy + 14.5);
+
+        // 2. Price Paid Badge
+        ctx.fillStyle = wTeam ? '#111' : '#777';
+        ctx.font = '900 12.5px system-ui, sans-serif';
+        ctx.fillText(wTeam ? `PAID ${res.price} Cr` : '0 Cr · Unclaimed', x + w / 2, cy + 39);
+
+        // 3. Lot Icon, Name & Effect
+        ctx.fillStyle = '#111';
+        ctx.font = '800 11.5px system-ui, sans-serif';
+        ctx.fillText(`${res.icon} ${res.name}`, x + w / 2, cy + 57);
+
+        ctx.fillStyle = '#666';
+        ctx.font = '600 9.5px system-ui, sans-serif';
+        ctx.fillText(res.text, x + w / 2, cy + 71);
+
+        // 4. Destination / Installed-On Pill
+        const isPendingHere = waitingInstall && G.pendingInstall[0].idx === k;
+        ctx.fillStyle = isPendingHere ? '#e8f1ff' : '#f2efe8';
+        ctx.fillRect(x + 8, cy + 77, w - 16, 18);
+        ctx.strokeStyle = isPendingHere ? '#1f6feb' : '#d5d1c7';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 8, cy + 77, w - 16, 18);
+        ctx.fillStyle = isPendingHere ? '#1f6feb' : '#222';
+        ctx.font = '700 9.5px system-ui, sans-serif';
+        ctx.fillText(res.target || 'Claimed', x + w / 2, cy + 89.5);
+
+        // 5. All 4 Players' Sealed Bids Breakdown
+        ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x + 8, cy + 101); ctx.lineTo(x + w - 8, cy + 101); ctx.stroke();
+
+        ctx.fillStyle = '#777'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('ALL SEALED BIDS:', x + 10, cy + 113);
+
+        G.teams.forEach((tm, ti) => {
+          const ry = cy + 127 + ti * 13;
+          const bAmt = res.bids[ti] || 0;
+          const isW = res.winner === ti && res.price > 0;
+          ctx.fillStyle = isW ? tm.col : '#555';
+          ctx.font = (isW ? '800 ' : '600 ') + '9.5px system-ui, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(tm.name + (ti === viewerSeat ? ' (You)' : ''), x + 10, ry);
+          ctx.textAlign = 'right';
+          ctx.fillText(`${bAmt} Cr${isW ? ' ★' : ''}`, x + w - 10, ry);
+        });
+      });
+      return;
+    }
+
     const items = G.market.map(id => ({ id, ...LOTS[id] })).concat([{ id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }]);
     const w = 138, h = 178, gap = 12;
     const totalW = items.length * w + (items.length - 1) * gap;
@@ -3007,32 +3155,96 @@ html, body {
       return;
     }
 
-    // Standard Fight Recap Table
-    ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('FIGHT RECAP: ' + rec.headline, x + 16, y + 24);
+    // 2-Column Aftermath Overview: Left = Fight Recap & Log, Right = Bookie Bets & Match Payouts
+    const splitX = x + 312;
+
+    // --- Left Column: Fight Recap ---
+    ctx.fillStyle = '#111'; ctx.font = '900 13.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('FIGHT RECAP: ' + rec.headline, x + 12, y + 20);
     if (rec.upset) {
-      ctx.fillStyle = '#d99000'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(rec.upset, x + w - 16, y + 24);
+      ctx.fillStyle = '#d99000'; ctx.font = '800 10px system-ui, sans-serif';
+      ctx.fillText(rec.upset, x + 12, y + 35);
+    } else {
+      ctx.fillStyle = '#666'; ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillText(rec.summary || '', x + 12, y + 35);
     }
 
-    ctx.fillStyle = '#666'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(rec.summary || '', x + 16, y + 42);
-
     ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x + 16, y + 50); ctx.lineTo(x + w - 16, y + 50); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 12, y + 43); ctx.lineTo(splitX - 10, y + 43); ctx.stroke();
 
     const lines = rec.lines || [];
     if (!lines.length) {
-      ctx.fillStyle = '#777'; ctx.font = '600 11.5px system-ui, sans-serif';
-      ctx.fillText('Clean fight — no major malfunctions or part breaks logged.', x + 16, y + 76);
+      ctx.fillStyle = '#777'; ctx.font = '600 10.5px system-ui, sans-serif';
+      ctx.fillText('Clean fight — no major malfunctions or breaks.', x + 12, y + 66);
     } else {
       lines.slice(0, 6).forEach((it, idx) => {
-        const rowY = y + 68 + idx * 20;
-        ctx.fillStyle = '#777'; ctx.font = '700 11px system-ui, sans-serif';
-        ctx.fillText(it.t.toFixed(1) + 's', x + 16, rowY);
+        const rowY = y + 60 + idx * 19;
+        ctx.fillStyle = '#777'; ctx.font = '700 10px system-ui, sans-serif';
+        ctx.fillText(it.t.toFixed(1) + 's', x + 12, rowY);
         ctx.fillStyle = it.kind === 'break' || it.kind === 'ko' ? '#d62828' : it.kind === 'crit' || it.kind === 'glitch' ? '#b45309' : '#111';
-        ctx.fillText(it.text, x + 58, rowY);
+        ctx.fillText(it.text.slice(0, 40), x + 46, rowY);
       });
+    }
+
+    // Vertical Divider
+    ctx.strokeStyle = '#dedad0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(splitX, y + 8); ctx.lineTo(splitX, y + h - 8); ctx.stroke();
+
+    // --- Right Column: Bookie Bets & Match Rewards Overview ---
+    const rx = splitX + 12, rw = x + w - rx - 10;
+    ctx.fillStyle = '#111'; ctx.font = '900 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('BOOKIE BETS & PAYOUTS OVERVIEW', rx, y + 20);
+    ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
+    ctx.fillText('Who bet on what & how much they won/lost', rx, y + 34);
+
+    ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rx, y + 43); ctx.lineTo(rx + rw, y + 43); ctx.stroke();
+
+    G.teams.forEach((tm, ti) => {
+      const rowY = y + 60 + ti * 23;
+      const bObj = (F.bets || []).find(b => b.team === ti);
+      ctx.fillStyle = tm.col; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(tm.name + (ti === viewerSeat ? ' (You)' : ''), rx, rowY);
+
+      if (!bObj) {
+        ctx.fillStyle = '#999'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText('No Bet (0 Cr)', rx + rw, rowY);
+      } else {
+        const botName = F.robots[bObj.side]?.name || 'Bot';
+        const mult = F.pay ? F.pay[bObj.side] : 1;
+        const won = F.B && F.B.winner === bObj.side;
+        const draw = F.B && F.B.winner < 0;
+        const pay = draw ? bObj.amt : (bObj.payout || 0);
+        const net = pay - bObj.amt;
+
+        ctx.fillStyle = '#444'; ctx.font = '600 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${bObj.amt} Cr on ${botName} (${mult}×)`, rx, rowY + 11);
+
+        ctx.textAlign = 'right';
+        ctx.font = '800 10px system-ui, sans-serif';
+        if (draw) {
+          ctx.fillStyle = '#666';
+          ctx.fillText(`Refund ${bObj.amt} Cr`, rx + rw, rowY + 5);
+        } else if (won) {
+          ctx.fillStyle = '#15803d';
+          ctx.fillText(`Won ${pay} Cr (+${net})`, rx + rw, rowY + 5);
+        } else {
+          ctx.fillStyle = '#d62828';
+          ctx.fillText(pay > 0 ? `Lucky +1 Cr (Net ${net})` : `Lost −${bObj.amt} Cr`, rx + rw, rowY + 5);
+        }
+      }
+    });
+
+    // Match Prize & Crate Summary Box at bottom-right
+    if (F.winner && F.loser) {
+      const bx = rx, by = y + 148, bw = rw, bh = 38;
+      ctx.fillStyle = '#f6f4ee'; ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
+      const wT = G.teams[F.winner.team], lT = G.teams[F.loser.team];
+      ctx.fillStyle = wT.col; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`🏆 ${wT.name}: +1 Fame, +3 Cr · ${F.winnerCrateText || 'Crate'}`, bx + 6, by + 14);
+      ctx.fillStyle = lT.col; ctx.font = '700 9.5px system-ui, sans-serif';
+      ctx.fillText(`🔧 ${lT.name}: ${F.loserCrateText || 'Scrap Crate'}`, bx + 6, by + 29);
     }
   }
 
@@ -3393,16 +3605,23 @@ html, body {
           }
         } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
           const item = G.pendingInstall.shift();
-          applyLot(viewerSeat, item.lot, bot);
+          const dest = applyLot(viewerSeat, item.lot, bot);
+          if (G.marketResults && item.idx != null && G.marketResults[item.idx]) {
+            G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
+          }
           spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
           notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
-          if (!G.pendingInstall.length) startArena();
-          else updateHud();
+          updateHud();
         } else if (G.phase === 'arena' && G.chooseMyBot) {
           const s = G.fight.teams.indexOf(viewerSeat);
           G.fight.robots[s] = bot;
           afterChoose();
         }
+        return;
+      }
+
+      if (r.kind === 'market_continue') {
+        startArena();
         return;
       }
 
@@ -3442,6 +3661,7 @@ html, body {
         const t = me();
         const wr = G.fight?.winner?.robot || t.robots[0];
         applyLot(viewerSeat, r.lot, wr);
+        if (G.fight) G.fight.winnerCrateText = `Crate: ${LOTS[r.lot].name}`;
         G.crateChoices = null;
         notify(`🎁 Claimed <b>${esc(LOTS[r.lot].name)}</b> from the Winner's Crate!`, t.col);
         updateHud();
