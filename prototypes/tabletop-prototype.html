@@ -191,9 +191,10 @@ html, body {
   pointer-events: none;
   /* Idle state: tab and card crest sit low and snug near bottom edge */
   transform: translateY(154px);
-  transition: transform 0.28s cubic-bezier(0.2, 0.85, 0.25, 1);
+  transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
-.hand-stage:hover .hand-tray,
+.hand-stage.open .hand-tray,
 .hand-tray.pinned,
 .hand-stage.dragging-active .hand-tray {
   transform: translateY(0);
@@ -202,9 +203,6 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-.cards-fan .hs-card {
-  pointer-events: auto;
 }
 .hand-tab {
   position: absolute;
@@ -223,7 +221,7 @@ html, body {
   pointer-events: auto;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  transition: all .18s ease;
+  transition: opacity .16s ease, background-color .16s ease, color .16s ease;
   user-select: none;
   z-index: 5;
   white-space: nowrap;
@@ -232,7 +230,7 @@ html, body {
   gap: 5px;
   line-height: 1.2;
 }
-.hand-tray:has(.hs-card:hover) .hand-tab {
+.hand-tray:has(.hs-slot:hover) .hand-tab {
   opacity: 0;
   pointer-events: none;
 }
@@ -241,14 +239,13 @@ html, body {
   font-size: 8.5px;
   transition: transform 0.22s ease;
 }
-.hand-stage:hover .hand-tab .tab-arrow,
+.hand-stage.open .hand-tab .tab-arrow,
 .hand-tray.pinned .hand-tab .tab-arrow {
   transform: rotate(180deg);
 }
 .hand-tab:hover {
   background: var(--ink);
   color: #fff;
-  transform: translateX(-50%) translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 .hand-tray.pinned .hand-tab {
@@ -256,13 +253,29 @@ html, body {
   color: #fff;
   border-color: var(--ink);
 }
+/* Stationary Hit-Slot Wrapper: never translates/rotates on hover, preventing hover-edge jitter */
+.hs-slot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 138px;
+  height: 206px;
+  margin-left: -69px;
+  pointer-events: auto;
+}
+.hs-slot:hover {
+  z-index: 60 !important;
+}
+.hs-slot.dragging-slot {
+  z-index: 100 !important;
+  pointer-events: none;
+}
 .hs-card {
   position: absolute;
   bottom: 12px;
-  left: 50%;
+  left: 0;
   width: 138px;
   height: 186px;
-  margin-left: -69px;
   background: #ffffff;
   opacity: 1;
   border: 2px solid var(--ink);
@@ -272,13 +285,14 @@ html, body {
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  pointer-events: auto;
   cursor: grab;
-  transform-origin: 50% 140%;
-  transition: transform 0.22s cubic-bezier(0.2, 0.85, 0.25, 1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease,
-              background-color 0.2s ease;
+  transform: translateY(var(--hy, 0px)) rotate(var(--ang, 0deg));
+  transform-origin: 50% 100%;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.18s ease,
+              border-color 0.18s ease,
+              background-color 0.18s ease;
+  will-change: transform;
 }
 .hs-card.playable {
   background: #ffffff;
@@ -297,15 +311,13 @@ html, body {
   border-color: #8c887e;
   cursor: default;
 }
-.hs-card:hover {
-  z-index: 60 !important;
+.hs-slot:hover .hs-card {
   background: #ffffff !important;
   border-color: var(--ink) !important;
-  transform: translate(var(--hx, 0px), -36px) rotate(0deg) scale(1.22) !important;
+  transform: translateY(-32px) rotate(0deg) scale(1.18);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
 }
 .hs-card.dragging {
-  z-index: 100 !important;
   background: #ffffff !important;
   cursor: grabbing;
   transition: none !important;
@@ -1574,33 +1586,44 @@ html, body {
     return false;
   }
 
-  function renderHand() {
+  function renderHand(force = false) {
     const stage = $('#handStage');
     const fan = $('#cardsFan');
     const countEl = $('#handCount');
-    const hand = me().hand;
+    const t = me();
+    const hand = t.hand;
     if (!fan) return;
-    fan.innerHTML = '';
     const n = hand.length;
     if (countEl) countEl.textContent = `(${n})`;
+
+    // Avoid recreating DOM nodes when hand & playability haven't changed (prevents hover transition resets)
+    const sig = `${G.phase}:${viewerSeat}:${hand.join(',')}:${hand.map(id => isCardPlayable(id) ? 1 : 0).join('')}:${t.fame}`;
+    if (!force && !dragCard && fan.dataset.sig === sig) return;
+    fan.dataset.sig = sig;
+    fan.innerHTML = '';
 
     hand.forEach((id, i) => {
       const c = CARDS[id];
       const playable = isCardPlayable(id);
-      const need = schemeNeed(me(), id);
+      const need = schemeNeed(t, id);
       const mid = (n - 1) / 2;
       const off = i - mid;
-      const angle = off * 5.6;
+      const angle = off * 5.2;
       const hx = off * 96;
-      const hy = Math.abs(off) * Math.abs(off) * 4.2;
+      const hy = Math.abs(off) * Math.abs(off) * 4.0;
+
+      // Outer stationary slot: fixed at translateX(hx) so its hover hit-box never shifts when the card lifts
+      const slot = document.createElement('div');
+      slot.className = 'hs-slot';
+      slot.style.transform = `translateX(${hx}px)`;
+      slot.style.zIndex = String(10 + i);
 
       const el = document.createElement('div');
       el.className = 'hs-card ' +
         (c.phase === 'fight' ? 'combat-card ' : c.phase === 'reaction' ? 'reaction-card ' : '') +
         (playable ? 'playable' : 'unplayable');
-      el.style.setProperty('--hx', hx + 'px');
-      el.style.transform = `translate(${hx}px, ${hy}px) rotate(${angle}deg)`;
-      el.style.zIndex = String(10 + i);
+      el.style.setProperty('--hy', hy + 'px');
+      el.style.setProperty('--ang', angle + 'deg');
 
       const typeLbl = c.phase === 'fight' ? '⚡ Combat' : c.phase === 'reaction' ? '🛡️ Reaction' : '🕵️ Scheme';
       const targetHint = c.target === 'garage' ? 'Drag to Rival Garage' :
@@ -1616,22 +1639,28 @@ html, body {
         '<div class="hs-desc">' + esc(c.text) + '</div>' +
         '<div class="hs-footer">' + targetHint + '</div>';
 
-      el.addEventListener('pointerdown', e => {
+      slot.addEventListener('pointerenter', () => {
+        stage.classList.add('open');
+      });
+
+      slot.addEventListener('pointerdown', e => {
         if (!isCardPlayable(id)) return;
         e.preventDefault();
         const rect = el.getBoundingClientRect();
         dragCard = {
-          idx: i, id, card: c, el,
+          idx: i, id, card: c, el, slot,
           startX: rect.left + rect.width / 2,
           startY: rect.top + rect.height / 2,
           curX: e.clientX,
           curY: e.clientY
         };
+        slot.classList.add('dragging-slot');
         el.classList.add('dragging');
-        stage.classList.add('dragging-active');
+        stage.classList.add('dragging-active', 'open');
       });
 
-      fan.appendChild(el);
+      slot.appendChild(el);
+      fan.appendChild(slot);
     });
   }
 
@@ -3718,11 +3747,26 @@ html, body {
     mouse.sx = e.clientX; mouse.sy = e.clientY;
     const w = screenToWorld(e.clientX, e.clientY);
     mouse.wx = w.x; mouse.wy = w.y;
+
+    // Spatial hysteresis for Hand Tray open/close so it never jitters at hover boundaries
+    const stage = $('#handStage');
+    if (stage) {
+      const distCenter = Math.abs(e.clientX - window.innerWidth / 2);
+      const fromBottom = window.innerHeight - e.clientY;
+      if (stage.classList.contains('open')) {
+        if (!dragCard && (fromBottom > 245 || distCenter > 365)) {
+          stage.classList.remove('open');
+        }
+      } else if (fromBottom <= 62 && distCenter <= 300) {
+        stage.classList.add('open');
+      }
+    }
+
     if (dragCard) {
       dragCard.curX = e.clientX;
       dragCard.curY = e.clientY;
       const dx = e.clientX - dragCard.startX, dy = e.clientY - dragCard.startY;
-      dragCard.el.style.transform = `translate(calc(var(--hx, 0px) + ${dx}px), ${dy}px) rotate(${dx * 0.04}deg) scale(1.08)`;
+      dragCard.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.04}deg) scale(1.08)`;
     }
   });
 
@@ -3735,11 +3779,12 @@ html, body {
 
     if (e.clientY < window.innerHeight - 145) {
       if (tryPlayDraggedCard(dc, w.x, w.y)) {
+        renderHand(true);
         updateHud();
         return;
       }
     }
-    renderHand();
+    renderHand(true);
   });
 
   function tryPlayDraggedCard(dc, wx, wy) {
@@ -3996,6 +4041,9 @@ html, body {
     viewerSeat = +e.target.value;
     updateHud();
   };
+  $('#handTab').addEventListener('pointerenter', () => {
+    $('#handStage').classList.add('open');
+  });
   $('#handTab').onclick = e => {
     e.stopPropagation();
     const tray = $('#handTray');
