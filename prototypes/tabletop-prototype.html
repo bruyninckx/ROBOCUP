@@ -1431,7 +1431,7 @@ html, body {
   function buildText(r) {
     const w = r.b.weapon === 'gun' ? r.b.cal + ' gun' : r.b.weapon;
     const hCount = (r.b.helpers || []).length;
-    return w + ' · ' + r.b.range + (hCount ? ` · +${hCount}🛸` : '');
+    return w + ' · ' + r.b.range + (hCount ? ` · ${hCount} drone${hCount > 1 ? 's' : ''}` : '');
   }
 
   function draw1(preferPhase) {
@@ -1607,12 +1607,14 @@ html, body {
     });
   }
 
-  /* Dynamic Auto-Fit Camera System (Asymmetrical: shifted slightly South so Player's Command Garage is prominent) */
+  /* Dynamic Auto-Fit Camera System:
+   * Because the Arena Pit is compact (620x210) when no fight is ongoing,
+   * the entire compound fits in 1080x620 and renders at near 1:1 crisp scale! */
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
-    const fitW = (sw - 40) / 1320;
-    const fitH = (sh - 140) / 980;
-    return Math.max(0.42, Math.min(0.74, Math.min(fitW, fitH)));
+    const fitW = (sw - 40) / 1090;
+    const fitH = (sh - 165) / 635;
+    return Math.max(0.52, Math.min(1.04, Math.min(fitW, fitH)));
   }
 
   function getArenaZoom() {
@@ -1627,7 +1629,7 @@ html, body {
     if (mode === 'arena') {
       cam.tx = 0; cam.ty = 0; cam.tzoom = getArenaZoom();
     } else {
-      cam.tx = 0; cam.ty = 72; cam.tzoom = getCompoundZoom();
+      cam.tx = 0; cam.ty = 26; cam.tzoom = getCompoundZoom();
     }
   }
 
@@ -2107,23 +2109,60 @@ html, body {
     };
   }
 
-  // Asymmetrical Garage Layout relative to viewerSeat:
-  // Pos 0 (South - Controlling Player): Large 900x228 Command Garage with full interactive Engineering Bays
-  // Pos 1, 2, 3 (West, North, East - Opponents): Slim Reconnaissance Strips showing compact public intel
-  const GARAGE_SLOTS = [
-    { pos: 0, dir: 'S', gx: 0,    gy: 432,  gw: 900, gh: 228, doorX: 0,    doorY: 280 },
-    { pos: 1, dir: 'W', gx: -556, gy: -10,  gw: 156, gh: 360, doorX: -450, doorY: 0   },
-    { pos: 2, dir: 'N', gx: 0,    gy: -346, gw: 580, gh: 82,  doorX: 0,    doorY: -280},
-    { pos: 3, dir: 'E', gx: 556,  gy: -10,  gw: 156, gh: 360, doorX: 450,  doorY: 0   },
-  ];
+  // Dynamic Asymmetrical Layout:
+  // When no fight is ongoing (arenaExpand = 0), the Central Pit is a compact 620x210 stage,
+  // pulling all 4 garages into a tight 1048x600 compound so your Command Garage & robots render large and crisp.
+  // When a fight starts (arenaExpand = 1), the Arena smoothly expands to the full 900x560 battleground.
+  let arenaExpand = 0;
+  const lerp = (a, b, u) => a + (b - a) * u;
+
+  function getDynamicLayout(u) {
+    const aw = lerp(620, Sim.W, u);
+    const ah = lerp(210, Sim.H, u);
+    const ax = 0;
+    const ay = lerp(-68, 0, u);
+    const slots = [
+      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(192, 438, u),  gw: 1048, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
+      { pos: 1, dir: 'W', gx: lerp(-428, -568, u), gy: ay,                gw: 192,  gh: 290, doorX: -aw / 2, doorY: ay          },
+      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-234, -342, u),gw: 620,  gh: 78,  doorX: 0,       doorY: ay - ah / 2 },
+      { pos: 3, dir: 'E', gx: lerp(428, 568, u),   gy: ay,                gw: 192,  gh: 290, doorX: aw / 2,  doorY: ay          },
+    ];
+    return { ax, ay, aw, ah, slots };
+  }
 
   function teamAtPos(pos) { return (viewerSeat + pos) % 4; }
   function posOfTeam(ti) { return (ti - viewerSeat + 4) % 4; }
 
-  const STAT_MINI = [
-    { k: 'hp', lbl: 'HP' }, { k: 'armor', lbl: 'AR' }, { k: 'speed', lbl: 'SP' },
-    { k: 'turret', lbl: 'TU' }, { k: 'firepower', lbl: 'FP' }, { k: 'accuracy', lbl: 'AC' }, { k: 'bullet', lbl: 'BU' }
+  // Minimalist 2-column visual stat bars (uses exact Sim.STATS keys: armor, speed, turret, fp, acc, bullet)
+  const STAT_BARS_LEFT  = [
+    { k: 'armor',  lbl: 'ARMOUR' },
+    { k: 'speed',  lbl: 'SPEED'  },
+    { k: 'turret', lbl: 'TURRET' },
   ];
+  const STAT_BARS_RIGHT = [
+    { k: 'fp',     lbl: 'FIREPWR'  },
+    { k: 'acc',    lbl: 'ACCURACY' },
+    { k: 'bullet', lbl: 'VELOCITY' },
+  ];
+
+  function drawBar(ctx, x, y, w, h, frac, fillCol, bgCol = '#e6e3da', ticks = 0) {
+    const f = Math.max(0, Math.min(1, frac || 0));
+    ctx.fillStyle = bgCol;
+    ctx.fillRect(x, y, w, h);
+    if (f > 0) {
+      ctx.fillStyle = fillCol;
+      ctx.fillRect(x, y, w * f, h);
+    }
+    if (ticks > 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      for (let i = 1; i < ticks; i++) {
+        ctx.fillRect(Math.round(x + (w * i) / ticks), y, 1, h);
+      }
+    }
+    ctx.strokeStyle = '#c8c4b8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+  }
 
   function drawRobotSprite(ctx, x, y, bodyA, turretA, col, b, hpFrac, name, modTag, stunned, overclocked, now, scale = 1, simBot = null) {
     const SIZE = 30 * scale;
@@ -2146,21 +2185,21 @@ html, body {
 
     const w = b.weapon || 'gun', cal = b.cal || 'medium';
     if (w === 'spinner') {
-      const bladeBrk = simBot?.breaks?.blade;
-      const spinA = simBot ? (simBot.spinA || now / 45) : (now / 90);
-      const R = 30 * scale;
+      const bladeBrk = (simBot?.broken || []).includes('Spinner blade');
+      const spinA = simBot ? (simBot.spin || now / 45) : (now / 90);
+      const R = 28 * scale;
       ctx.save();
       ctx.rotate(spinA);
       ctx.fillStyle = col; ctx.globalAlpha = bladeBrk ? 0.35 : 0.85;
       ctx.beginPath();
       const teeth = 16;
       for (let k = 0; k < teeth * 2; k++) {
-        const rr = k % 2 ? R * 0.72 : R, a = k * Math.PI / teeth;
+        const rr = k % 2 ? R * 0.74 : R, a = k * Math.PI / teeth;
         if (k === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
         else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
       }
       ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.4; ctx.stroke();
       ctx.restore();
     }
 
@@ -2174,8 +2213,8 @@ html, body {
 
     const ar = b.lv ? b.lv.armor : 0;
     if (ar > 0) {
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.3;
-      for (let k = 0; k < ar; k++) {
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+      for (let k = 0; k < Math.min(3, ar); k++) {
         const inset = (3 + k * 3) * scale;
         ctx.strokeRect(-SIZE / 2 + inset, -SIZE / 2 + inset, SIZE - inset * 2, SIZE - inset * 2);
       }
@@ -2212,7 +2251,7 @@ html, body {
     }
     if (stunned) {
       ctx.fillStyle = '#1f6feb'; ctx.font = '800 11px system-ui, sans-serif';
-      ctx.textAlign = 'center'; ctx.fillText('⚡ STUN', x, y + 28 * scale);
+      ctx.textAlign = 'center'; ctx.fillText('STUNNED', x, y + 28 * scale);
     }
   }
 
@@ -2239,6 +2278,11 @@ html, body {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
+    // Smoothly interpolate Arena expansion (0 = compact pre-fight stage, 1 = full 900x560 fight arena)
+    const targetExpand = G.phase === 'fight' ? 1 : 0;
+    arenaExpand += (targetExpand - arenaExpand) * 0.12;
+    if (Math.abs(targetExpand - arenaExpand) < 0.002) arenaExpand = targetExpand;
+
     cam.x += (cam.tx - cam.x) * 0.10;
     cam.y += (cam.ty - cam.y) * 0.10;
     cam.zoom += (cam.tzoom - cam.zoom) * 0.10;
@@ -2253,86 +2297,80 @@ html, body {
 
     hitRegions = [];
 
-    // Crisp compound floor grid
-    ctx.strokeStyle = '#dedad0';
+    const L = getDynamicLayout(arenaExpand);
+    const ax0 = L.ax - L.aw / 2, ay0 = L.ay - L.ah / 2;
+
+    // Subtle architectural background grid
+    ctx.strokeStyle = '#e5e1d7';
     ctx.lineWidth = 1;
     for (let x = -900; x <= 900; x += 60) { ctx.beginPath(); ctx.moveTo(x, -660); ctx.lineTo(x, 660); ctx.stroke(); }
     for (let y = -660; y <= 660; y += 60) { ctx.beginPath(); ctx.moveTo(-900, y); ctx.lineTo(900, y); ctx.stroke(); }
 
-    // 1. Draw Corridors & Blast Doors connecting the 4 Garages to the Central Arena
+    // 1. Draw Corridors & Blast Doors connecting the 4 Garages to the Central Stage / Arena
     const doorOpen = G.phase === 'fight' && G.fight && G.fight.rollout < 0.85;
-    GARAGE_SLOTS.forEach(slot => {
+    L.slots.forEach(slot => {
       const ti = teamAtPos(slot.pos);
       const isFighter = G.fight && G.fight.teams && G.fight.teams.includes(ti);
-      const openAmt = (doorOpen && isFighter) ? Math.sin(Math.min(1, G.fight.rollout * 1.8) * Math.PI) * 38 : 0;
+      const openAmt = (doorOpen && isFighter) ? Math.sin(Math.min(1, G.fight.rollout * 1.8) * Math.PI) * 32 : 0;
 
-      ctx.fillStyle = '#ebe7de';
+      ctx.fillStyle = '#eae6dc';
       if (slot.dir === 'S' || slot.dir === 'N') {
-        const cy = slot.dir === 'S' ? 280 : (slot.gy + slot.gh / 2);
-        const ch = slot.dir === 'S' ? (slot.gy - slot.gh / 2 - 280) : (-280 - (slot.gy + slot.gh / 2));
-        ctx.fillRect(-48, cy, 96, ch);
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-        ctx.strokeRect(-48, cy, 96, ch);
+        const topY = slot.dir === 'S' ? slot.doorY : (slot.gy + slot.gh / 2);
+        const botY = slot.dir === 'S' ? (slot.gy - slot.gh / 2) : slot.doorY;
+        const ch = Math.max(0, botY - topY);
+        ctx.fillRect(-40, topY, 80, ch);
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 1.8;
+        ctx.strokeRect(-40, topY, 80, ch);
         ctx.fillStyle = '#111';
-        ctx.fillRect(-46 - openAmt, slot.doorY - 4, 45, 8);
-        ctx.fillRect(1 + openAmt, slot.doorY - 4, 45, 8);
+        ctx.fillRect(-38 - openAmt, slot.doorY - 3, 37, 6);
+        ctx.fillRect(1 + openAmt, slot.doorY - 3, 37, 6);
       } else {
-        const cx = slot.dir === 'E' ? 450 : (slot.gx + slot.gw / 2);
-        const cw = slot.dir === 'E' ? (slot.gx - slot.gw / 2 - 450) : (-450 - (slot.gx + slot.gw / 2));
-        ctx.fillRect(cx, -48, cw, 96);
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-        ctx.strokeRect(cx, -48, cw, 96);
+        const leftX = slot.dir === 'E' ? slot.doorX : (slot.gx + slot.gw / 2);
+        const rightX = slot.dir === 'E' ? (slot.gx - slot.gw / 2) : slot.doorX;
+        const cw = Math.max(0, rightX - leftX);
+        ctx.fillRect(leftX, slot.doorY - 40, cw, 80);
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 1.8;
+        ctx.strokeRect(leftX, slot.doorY - 40, cw, 80);
         ctx.fillStyle = '#111';
-        ctx.fillRect(slot.doorX - 4, -46 - openAmt, 8, 45);
-        ctx.fillRect(slot.doorX - 4, 1 + openAmt, 8, 45);
+        ctx.fillRect(slot.doorX - 3, slot.doorY - 38 - openAmt, 6, 37);
+        ctx.fillRect(slot.doorX - 3, slot.doorY + 1 + openAmt, 6, 37);
       }
     });
 
-    // 2. Draw Central Arena Pit (-450..450, -280..280)
-    const AW = Sim.W, AH = Sim.H, ax0 = -AW / 2, ay0 = -AH / 2;
+    // 2. Draw Central Pit / Stage (compact 620x210 when no fight is ongoing; expands to 900x560 during fights)
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(ax0, ay0, AW, AH);
-    ctx.strokeStyle = '#eeebe3'; ctx.lineWidth = 1;
-    for (let x = ax0 + 60; x < ax0 + AW; x += 60) { ctx.beginPath(); ctx.moveTo(x, ay0); ctx.lineTo(x, ay0 + AH); ctx.stroke(); }
-    for (let y = ay0 + 60; y < ay0 + AH; y += 60) { ctx.beginPath(); ctx.moveTo(ax0, y); ctx.lineTo(ax0 + AW, y); ctx.stroke(); }
+    ctx.fillRect(ax0, ay0, L.aw, L.ah);
+    ctx.strokeStyle = '#f0ede6'; ctx.lineWidth = 1;
+    for (let x = ax0 + 60; x < ax0 + L.aw; x += 60) { ctx.beginPath(); ctx.moveTo(x, ay0); ctx.lineTo(x, ay0 + L.ah); ctx.stroke(); }
+    for (let y = ay0 + 60; y < ay0 + L.ah; y += 60) { ctx.beginPath(); ctx.moveTo(ax0, y); ctx.lineTo(ax0 + L.aw, y); ctx.stroke(); }
 
-    ctx.strokeStyle = '#d5d0c4'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 115, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#dfdbd0'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(L.ax, L.ay, Math.min(L.aw, L.ah) * 0.34, 0, Math.PI * 2); ctx.stroke();
 
-    ctx.strokeStyle = '#111111'; ctx.lineWidth = 3.5;
-    ctx.strokeRect(ax0, ay0, AW, AH);
+    ctx.strokeStyle = '#111111'; ctx.lineWidth = 3;
+    ctx.strokeRect(ax0, ay0, L.aw, L.ah);
 
-    hitRegions.push({ kind: 'arena', x: ax0, y: ay0, w: AW, h: AH });
+    hitRegions.push({ kind: 'arena', x: ax0, y: ay0, w: L.aw, h: L.ah });
 
     // 3. Draw Asymmetrical Garages: Player Command Garage (Pos 0) vs Slim Opponent Recon Strips (Pos 1, 2, 3)
-    GARAGE_SLOTS.forEach(slot => {
+    L.slots.forEach(slot => {
       const ti = teamAtPos(slot.pos);
       const t = G.teams[ti];
       if (slot.pos === 0) drawPlayerCommandGarage(ctx, slot, ti, t, now);
       else drawSlimOpponentGarage(ctx, slot, ti, t, now);
     });
 
-    // 4. Draw Spatial Phase Objects on the Arena Floor
+    // 4. Draw Spatial Phase Content inside the Central Stage / Arena
     if (G.phase === 'market' && (!G.pendingInstall || !G.pendingInstall.length)) {
-      drawMarketOnArena(ctx);
+      drawMarketOnArena(ctx, L);
     } else if (G.phase === 'bets' && G.fight) {
-      drawBettingOnArena(ctx);
+      drawBettingOnArena(ctx, L);
     } else if (G.phase === 'fight' && G.fight && G.fight.B) {
-      drawLiveBattleInArena(ctx, now);
+      drawLiveBattleInArena(ctx, now, L);
     } else if (G.phase === 'after' && G.fight && G.fight.B) {
-      drawLiveBattleInArena(ctx, now);
-      drawAftermathOnArena(ctx);
+      drawAftermathOnArena(ctx, L);
     } else {
-      ctx.fillStyle = '#111';
-      ctx.globalAlpha = 0.2;
-      ctx.font = '800 18px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        G.phase === 'intrigue' ? 'DRAG A SCHEME CARD TO A GARAGE' :
-        G.phase === 'arena' && G.host === viewerSeat ? 'CLICK 2 GARAGES TO INVITE TO THE PIT' :
-        'ARENA PIT · CONFIGURE YOUR BAYS BELOW', 0, 6
-      );
-      ctx.globalAlpha = 1;
+      drawStandbyStage(ctx, L, now);
     }
 
     // Welding sparks FX in garages
@@ -2354,6 +2392,81 @@ html, body {
     ctx.restore();
   }
 
+  /* ---------- Compact Pre-Fight Central Stage Overview ---------- */
+  function drawStandbyStage(ctx, L, now) {
+    const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
+
+    // Minimalist Stage Header Bar
+    ctx.fillStyle = '#f6f4ee';
+    ctx.fillRect(x0 + 2, y0 + 2, L.aw - 4, 28);
+    ctx.strokeStyle = '#dedad0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0 + 30); ctx.lineTo(x0 + L.aw, y0 + 30); ctx.stroke();
+
+    ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`ARENA PIT  ·  ROUND ${G.round} STANDBY`, x0 + 14, y0 + 19);
+
+    const hostTxt = G.host >= 0 ? `HOST: ${G.teams[G.host].name.toUpperCase()}` : 'HOST: DECIDED IN MARKET';
+    ctx.fillStyle = G.host >= 0 ? G.teams[G.host].col : '#666';
+    ctx.textAlign = 'right';
+    ctx.fillText(hostTxt, x0 + L.aw - 14, y0 + 19);
+
+    ctx.textAlign = 'center';
+    if (G.phase === 'arena' && G.fight && G.fight.teams) {
+      // Show Invited Matchup Preview
+      const [ta, tb] = G.fight.teams.map(i => G.teams[i]);
+      ctx.fillStyle = '#111'; ctx.font = '800 12px system-ui, sans-serif';
+      ctx.fillText('UPCOMING ARENA DUEL', cx, cy - 28);
+
+      ctx.font = '900 18px system-ui, sans-serif';
+      ctx.fillStyle = ta.col; ctx.textAlign = 'right';
+      ctx.fillText(ta.name.toUpperCase(), cx - 26, cy + 4);
+      ctx.fillStyle = '#888'; ctx.textAlign = 'center'; ctx.font = '800 13px system-ui, sans-serif';
+      ctx.fillText('VS', cx, cy + 3);
+      ctx.font = '900 18px system-ui, sans-serif';
+      ctx.fillStyle = tb.col; ctx.textAlign = 'left';
+      ctx.fillText(tb.name.toUpperCase(), cx + 26, cy + 4);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#2a9d3a'; ctx.font = '800 12px system-ui, sans-serif';
+      ctx.fillText(G.chooseMyBot ? '▼ Click "Send to Pit" on one of your Robot Bays below' : 'Preparing fighters...', cx, cy + 38);
+    } else if (G.phase === 'arena' && G.host === viewerSeat) {
+      ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
+      ctx.fillText('YOU ARE ARENA HOST — CLICK ANY 2 GARAGES TO INVITE', cx, cy - 4);
+      const picked = (G.pickTeams || []).map(i => G.teams[i].name).join('  vs  ');
+      ctx.fillStyle = '#1f6feb'; ctx.font = '700 12.5px system-ui, sans-serif';
+      ctx.fillText(picked ? `Selected: ${picked}` : 'Select 2 teams (you may include yourself)', cx, cy + 22);
+    } else if (G.phase === 'intrigue') {
+      ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
+      ctx.fillText('INTRIGUE PHASE — DRAG A SCHEME CARD TO A GARAGE', cx, cy - 4);
+      ctx.fillStyle = '#666'; ctx.font = '600 12px system-ui, sans-serif';
+      ctx.fillText('Hover your bottom hand to draw a scheme, or click Done in the top bar to skip.', cx, cy + 20);
+    } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
+      const nextLot = LOTS[G.pendingInstall[0].lot];
+      ctx.fillStyle = '#1f6feb'; ctx.font = '900 15px system-ui, sans-serif';
+      ctx.fillText(`INSTALL UPGRADE: ${nextLot.name.toUpperCase()} (${nextLot.text})`, cx, cy - 4);
+      ctx.fillStyle = '#333'; ctx.font = '700 12px system-ui, sans-serif';
+      ctx.fillText('▼ Click "Fit Part" on one of your Robot Bays below to install', cx, cy + 20);
+    } else {
+      // Upkeep Standby Summary: Show 4-team Fame Standings Bar Chart
+      ctx.fillStyle = '#444'; ctx.font = '800 11px system-ui, sans-serif';
+      ctx.fillText('CHAMPIONSHIP FAME STANDINGS (FIRST TO 12 WINS)', cx, y0 + 52);
+
+      G.teams.forEach((tm, idx) => {
+        const ry = y0 + 68 + idx * 31;
+        const sp = SPONSORS[tm.sponsor] || SPONSORS.aegis;
+        ctx.fillStyle = tm.col; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${tm.name}${idx === viewerSeat ? ' (You)' : ''}`, x0 + 24, ry + 11);
+        ctx.fillStyle = '#777'; ctx.font = '600 10.5px system-ui, sans-serif';
+        ctx.fillText(sp.name, x0 + 148, ry + 11);
+
+        drawBar(ctx, x0 + 280, ry + 2, 230, 10, tm.fame / WIN_FAME, tm.col, '#ebe8df', 12);
+
+        ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText(`${tm.fame}/12  ·  ${tm.credits} Cr`, x0 + L.aw - 24, ry + 11);
+      });
+    }
+  }
+
   /* ---------- Controlling Player's Large Command Garage (Pos 0 — South) ---------- */
   function drawPlayerCommandGarage(ctx, slot, ti, t, now) {
     const x0 = slot.gx - slot.gw / 2, y0 = slot.gy - slot.gh / 2;
@@ -2364,88 +2477,89 @@ html, body {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x0, y0, slot.gw, slot.gh);
     ctx.strokeStyle = (isDragTarget && hovered) || isHostPicked ? t.col : '#111111';
-    ctx.lineWidth = (isDragTarget && hovered) || isHostPicked ? 4.5 : 3;
+    ctx.lineWidth = (isDragTarget && hovered) || isHostPicked ? 4 : 2.5;
     ctx.strokeRect(x0, y0, slot.gw, slot.gh);
 
-    // Top Team Color Banner Strip
+    // Top Team Color Accent Line
     ctx.fillStyle = t.col;
-    ctx.fillRect(x0, y0, slot.gw, 7);
+    ctx.fillRect(x0, y0, slot.gw, 5);
 
     hitRegions.push({ kind: 'garage', team: ti, x: x0, y: y0, w: slot.gw, h: slot.gh });
 
-    // Command Header Row
-    const title = `${t.name.toUpperCase()} — COMMAND GARAGE (YOU)` + (G.host === ti ? ' 👑 HOST' : '') + (Object.keys(t.tamper).length ? ' 🕵️ TAMPERED' : '');
+    // --- Clean Non-Overlapping Command Header Row (y0 + 5 .. y0 + 42) ---
+    // 1. Left: Team Name (x0 + 16 .. x0 + 175)
+    const statusBadge = (G.host === ti ? ' · HOST' : '') + (Object.keys(t.tamper).length ? ' · TAMPERED' : '');
     ctx.fillStyle = t.col;
-    ctx.font = '900 15px system-ui, sans-serif';
+    ctx.font = '900 14.5px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(title, x0 + 14, y0 + 24);
+    ctx.fillText(`${t.name.toUpperCase()} (YOU)${statusBadge}`, x0 + 16, y0 + 26);
 
-    // Sponsor Badge (Clickable in Round 1 Upkeep to cycle sponsor)
+    // 2. Sponsor Pill (x0 + 215, w: 235) — uses sp.name & sp.tag (no undefined!)
     const sp = SPONSORS[t.sponsor] || SPONSORS.aegis;
-    const spX = x0 + 340, spY = y0 + 10, spW = 228, spH = 20;
-    ctx.fillStyle = G.round === 1 && G.phase === 'upkeep' ? '#eff6ff' : '#f4f2eb';
+    const canCycleSp = G.round === 1 && G.phase === 'upkeep';
+    const spX = x0 + 215, spY = y0 + 10, spW = 235, spH = 22;
+    ctx.fillStyle = canCycleSp ? '#f0f6ff' : '#f5f3ec';
     ctx.fillRect(spX, spY, spW, spH);
-    ctx.strokeStyle = G.round === 1 && G.phase === 'upkeep' ? '#1f6feb' : '#111';
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = canCycleSp ? '#1f6feb' : '#c8c4b8';
+    ctx.lineWidth = 1;
     ctx.strokeRect(spX, spY, spW, spH);
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = '#222';
     ctx.font = '700 10.5px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${sp.icon} ${sp.name}${G.round === 1 && G.phase === 'upkeep' ? ' ↻' : ''} (${sp.perk})`, spX + spW / 2, spY + 14);
-    if (G.round === 1 && G.phase === 'upkeep') {
+    ctx.fillText(`Sponsor: ${sp.name} (${sp.tag})${canCycleSp ? ' ↻' : ''}`, spX + spW / 2, spY + 14.5);
+    if (canCycleSp) {
       hitRegions.push({ kind: 'sponsor_cycle', x: spX, y: spY, w: spW, h: spH });
     }
 
-    // Staff & Resource Telemetry + Hire Engineer Button
-    const fEng = freeEng(t);
-    const hireX = x0 + slot.gw - 122, hireY = y0 + 9, hireW = 108, hireH = 22;
-    ctx.fillStyle = '#111';
-    ctx.font = '800 12.5px system-ui, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(`★ ${t.fame}/${WIN_FAME}   🪙 ${t.credits} Cr   🔧 ${t.mechs} Mech   👷 ${fEng}/${t.engPool} Free Eng`, hireX - 10, y0 + 24);
+    // 3. Fame Bar (x0 + 468 .. x0 + 628)
+    ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`FAME ${t.fame}/${WIN_FAME}`, x0 + 468, y0 + 25);
+    drawBar(ctx, x0 + 542, y0 + 16, 84, 9, t.fame / WIN_FAME, t.col, '#e6e3da', 4);
 
+    // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
+    const fEng = freeEng(t);
+    ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`CREDITS: ${t.credits} Cr     MECHS: ${t.mechs}     ENG: ${fEng}/${t.engPool} Free`, x0 + 644, y0 + 25);
+
+    // 5. Hire Engineer Button (x0 + 920, w: 112)
+    const hireX = x0 + slot.gw - 126, hireY = y0 + 10, hireW = 110, hireH = 22;
     const canHireEng = G.phase === 'upkeep' && t.credits >= 3 && t.engPool < 6;
-    ctx.fillStyle = canHireEng ? '#1f6feb' : '#e5e2da';
+    ctx.fillStyle = canHireEng ? '#111' : '#ebe8df';
     ctx.fillRect(hireX, hireY, hireW, hireH);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = canHireEng ? '#111' : '#c8c4b8'; ctx.lineWidth = 1;
     ctx.strokeRect(hireX, hireY, hireW, hireH);
-    ctx.fillStyle = canHireEng ? '#fff' : '#777';
-    ctx.font = '800 10.5px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('+ Hire 👷 (3 Cr)', hireX + hireW / 2, hireY + 15);
+    ctx.fillStyle = canHireEng ? '#fff' : '#888';
+    ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('+ Hire Eng (3 Cr)', hireX + hireW / 2, hireY + 14.5);
     if (canHireEng) {
       hitRegions.push({ kind: 'hire_eng', x: hireX, y: hireY, w: hireW, h: hireH });
     }
 
-    // Fame Progress Bar
-    ctx.fillStyle = '#ece9e0';
-    ctx.fillRect(x0 + 14, y0 + 34, slot.gw - 28, 4);
-    ctx.fillStyle = t.col;
-    ctx.fillRect(x0 + 14, y0 + 34, (slot.gw - 28) * Math.min(1, t.fame / WIN_FAME), 4);
+    // Header Bottom Divider
+    ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0 + 40); ctx.lineTo(x0 + slot.gw, y0 + 40); ctx.stroke();
 
-    // 3 Large Interactive Engineering Bays (282 x 170 each)
+    // --- 3 Minimalist Robot Bay Cards (330 x 210 each) ---
     for (let bIdx = 0; bIdx < 3; bIdx++) {
-      const bw = 282, bh = 170;
-      const bx = x0 + 14 + bIdx * 294;
-      const by = y0 + 44;
+      const bw = 330, bh = 210;
+      const bx = x0 + 14 + bIdx * 345;
+      const by = y0 + 46;
       const r = t.robots[bIdx];
       const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
 
-      ctx.fillStyle = r ? '#faf9f5' : '#f5f3ec';
+      ctx.fillStyle = r ? '#fcfbf9' : '#f6f4ee';
       ctx.fillRect(bx, by, bw, bh);
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = r ? '#222' : '#bbb6a8';
+      ctx.lineWidth = r ? 1.5 : 1.2;
+      if (!r) ctx.setLineDash([5, 5]);
       ctx.strokeRect(bx, by, bw, bh);
+      ctx.setLineDash([]);
 
       if (!r) {
-        ctx.save();
-        ctx.strokeStyle = '#888'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
-        ctx.strokeRect(bx + 6, by + 6, bw - 12, bh - 12);
-        ctx.fillStyle = '#555'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#666'; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText('+ EMPTY ENGINEERING BAY', bx + bw / 2, by + bh / 2 - 4);
-        ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillText('Bid on a Mystery Chassis in Market', bx + bw / 2, by + bh / 2 + 14);
-        ctx.restore();
+        ctx.fillStyle = '#888'; ctx.font = '600 11px system-ui, sans-serif';
+        ctx.fillText('Win a New Robot lot in the Market', bx + bw / 2, by + bh / 2 + 14);
         continue;
       }
 
@@ -2453,160 +2567,167 @@ html, body {
 
       if (inArenaNow) {
         ctx.fillStyle = t.col; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('⚔️ DEPLOYED IN ARENA PIT', bx + bw / 2, by + bh / 2 + 4);
+        ctx.fillText('DEPLOYED IN ARENA PIT', bx + bw / 2, by + bh / 2 + 5);
         continue;
       }
 
       const curHp = Math.max(0, maxHp(r) - r.dmg);
       const hpFrac = curHp / maxHp(r);
-
-      // Left Column of Bay: Robot Sprite + Helper Drone Satellites + HP Bar
-      drawRobotSprite(ctx, bx + 34, by + 38, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95);
       const helpers = r.b.helpers || [];
+
+      // 1. Top-Left Chassis Blueprint Preview Box (52 x 52)
+      const px = bx + 12, py = by + 10, ps = 52;
+      ctx.fillStyle = '#f3f1ea';
+      ctx.fillRect(px, py, ps, ps);
+      ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, ps, ps);
+      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95);
+
+      // Clean geometric satellite dots for helper drones on the preview corner
       helpers.forEach((hk, hi) => {
-        const hd = Sim.HELPERS[hk];
-        if (!hd) return;
-        const hx = bx + 14 + hi * 18, hy = by + 66;
-        ctx.fillStyle = '#fff'; ctx.fillRect(hx - 7, hy - 7, 14, 14);
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(hx - 7, hy - 7, 14, 14);
-        ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(hd.icon, hx, hy + 3.5);
+        const dx = px + 8 + hi * 10, dy = py + ps - 6;
+        ctx.fillStyle = t.col;
+        ctx.beginPath(); ctx.arc(dx, dy, 3.2, 0, Math.PI * 2); ctx.fill();
       });
 
-      // Right of Sprite: Name + Wins + HP Readout
+      // 2. Top-Right Identity, Weapon & Filled HP Bar (bx + 74 .. bx + 318)
       const fav = r.wins >= favWins(t);
-      ctx.fillStyle = '#111'; ctx.font = '900 13.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + (r.wins ? ' ' + '★'.repeat(Math.min(3, r.wins)) : '') + (fav ? ' 🏆' : ''), bx + 66, by + 19);
+      const winStr = r.wins ? '  ' + '★'.repeat(Math.min(3, r.wins)) : '';
+      ctx.fillStyle = '#111'; ctx.font = '900 14.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(r.name + winStr + (fav ? ' [FAV]' : ''), bx + 74, by + 23);
 
-      // HP Bar inside bay
-      ctx.fillStyle = '#111'; ctx.fillRect(bx + 66, by + 25, 134, 8);
-      ctx.fillStyle = '#e5e2da'; ctx.fillRect(bx + 67, by + 26, 132, 6);
-      ctx.fillStyle = hpFrac > 0.5 ? '#2a9d3a' : hpFrac > 0.25 ? '#d99000' : '#d62828';
-      ctx.fillRect(bx + 67, by + 26, 132 * hpFrac, 6);
-      ctx.fillStyle = '#111'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(`${curHp}/${maxHp(r)} HP`, bx + bw - 8, by + 32);
-
-      // Weapon + Clickable Range Pill + Clickable Secret Module Pill
       const wepLabel = r.b.weapon === 'gun' ? `${r.b.cal || 'medium'} gun` : r.b.weapon;
-      ctx.fillStyle = '#222'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`🔫 ${wepLabel.toUpperCase()}`, bx + 66, by + 48);
+      ctx.fillStyle = '#555'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(wepLabel.toUpperCase(), bx + bw - 12, by + 23);
 
-      // Clickable Range Stance Pill
-      const rngX = bx + 150, rngY = by + 36, rngW = 60, rngH = 16;
-      ctx.fillStyle = '#eef2ff'; ctx.fillRect(rngX, rngY, rngW, rngH);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(rngX, rngY, rngW, rngH);
-      ctx.fillStyle = '#1f6feb'; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`📏 ${r.b.range} ↻`, rngX + rngW / 2, rngY + 11.5);
-      hitRegions.push({ kind: 'range_toggle', robot: r, x: rngX, y: rngY, w: rngW, h: rngH });
+      // Clean Filled HP Bar
+      const hpCol = hpFrac > 0.5 ? '#2a9d3a' : hpFrac > 0.25 ? '#d99000' : '#d62828';
+      drawBar(ctx, bx + 74, by + 30, 166, 8, hpFrac, hpCol, '#e6e3da', 0);
+      ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`${curHp}/${maxHp(r)} HP`, bx + bw - 12, by + 38);
 
-      // Clickable Secret Module Pill (and Helper list)
-      const modX = bx + 66, modY = by + 55, modW = 144, modH = 16;
-      ctx.fillStyle = '#f5f3ff'; ctx.fillRect(modX, modY, modW, modH);
-      ctx.strokeStyle = '#6d28d9'; ctx.lineWidth = 1; ctx.strokeRect(modX, modY, modW, modH);
-      ctx.fillStyle = '#5b21b6'; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`⚙️ ${Sim.MODS[r.b.mod]?.name || 'None'} ↻`, modX + 5, modY + 11.5);
-      hitRegions.push({ kind: 'mod_cycle', robot: r, x: modX, y: modY, w: modW, h: modH });
-
-      // Clickable Target Focus Pill
-      const foc = r.b.focus || 'main';
-      const focLbl = foc === 'main' ? '🎯 Main' : foc === 'medics' ? '🎯 Medics' : '🎯 Drones';
-      const focX = bx + 214, focY = by + 36, focW = 60, focH = 35;
-      ctx.fillStyle = '#fffbeb'; ctx.fillRect(focX, focY, focW, focH);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1; ctx.strokeRect(focX, focY, focW, focH);
-      ctx.fillStyle = '#111'; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('FOCUS ↻', focX + focW / 2, focY + 13);
-      ctx.fillStyle = '#b45309'; ctx.font = '900 10px system-ui, sans-serif';
-      ctx.fillText(focLbl, focX + focW / 2, focY + 27);
-      hitRegions.push({ kind: 'focus_toggle', robot: r, x: focX, y: focY, w: focW, h: focH });
-
-      // 7-Stat Mini Level Pips Row (HP, AR, SP, TU, FP, AC, BU)
-      STAT_MINI.forEach((st, si) => {
-        const sx = bx + 8 + si * 38.5, sy = by + 77;
-        const lv = r.b.lv?.[st.k] || 0;
-        ctx.fillStyle = '#444'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(st.lbl, sx, sy + 8);
-        for (let p = 0; p < 4; p++) {
-          ctx.fillStyle = p < lv ? t.col : '#e2dfd7';
-          ctx.fillRect(sx + 15 + p * 5, sy + 1, 4, 7);
-        }
-      });
-
-      // Strain & Interactive Engineer Assignment Bar (by + 91 .. by + 130)
-      const stInfo = Sim.strainOf(r.b);
-      const rk = Sim.riskOf(r.b);
-      const eng = r.b.eng || 0;
-      const netS = rk.net;
-      const riskCol = netS === 0 ? '#15803d' : netS <= 3 ? '#b45309' : '#d62828';
-      const riskBg  = netS === 0 ? '#f0fdf4' : netS <= 3 ? '#fffbeb' : '#fef2f2';
-
-      const sbX = bx + 8, sbY = by + 90, sbW = bw - 16, sbH = 40;
-      ctx.fillStyle = riskBg;
-      ctx.fillRect(sbX, sbY, sbW, sbH);
-      ctx.strokeStyle = riskCol; ctx.lineWidth = 1.4;
-      ctx.strokeRect(sbX, sbY, sbW, sbH);
-
-      ctx.fillStyle = '#111'; ctx.font = '900 10.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`⚡ Strain ${stInfo.total} (Net ${netS})`, sbX + 6, sbY + 14);
-
-      ctx.fillStyle = riskCol; ctx.font = '800 10px system-ui, sans-serif';
-      const rkTxt = netS === 0
-        ? '✓ Tuned & Reliable (0% risk)'
-        : `⚠️ Glitch ${Math.round(rk.malf * 100)}% · Break ${Math.round(rk.brk * 100)}%`;
-      ctx.fillText(rkTxt, sbX + 6, sbY + 31);
-
-      // Engineer Assignment Controls: [−] 👷 E/3 [+]
-      const emX = sbX + sbW - 96, emY = sbY + 7, eBtnW = 22, eBtnH = 25;
-      const canMinus = eng > 0;
-      const canPlus = eng < 3 && freeEng(t) > 0;
-
-      ctx.fillStyle = canMinus ? '#fff' : '#e5e2da';
-      ctx.fillRect(emX, emY, eBtnW, eBtnH);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2; ctx.strokeRect(emX, emY, eBtnW, eBtnH);
-      ctx.fillStyle = canMinus ? '#111' : '#888'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('−', emX + eBtnW / 2, emY + 17);
-      hitRegions.push({ kind: 'eng_minus', robot: r, x: emX, y: emY, w: eBtnW, h: eBtnH });
-
-      ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif';
-      ctx.fillText(`👷 ${eng}`, emX + eBtnW + 23, emY + 17);
-
-      const epX = emX + eBtnW + 46;
-      ctx.fillStyle = canPlus ? '#fff' : '#e5e2da';
-      ctx.fillRect(epX, emY, eBtnW, eBtnH);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2; ctx.strokeRect(epX, emY, eBtnW, eBtnH);
-      ctx.fillStyle = canPlus ? '#111' : '#888'; ctx.font = '900 14px system-ui, sans-serif';
-      ctx.fillText('+', epX + eBtnW / 2, emY + 17);
-      hitRegions.push({ kind: 'eng_plus', robot: r, x: epX, y: emY, w: eBtnW, h: eBtnH });
-
-      // Bottom Contextual Action Bar inside Player Bay (by + 135 .. by + 163)
-      const actX = bx + 8, actY = by + 135, actW = bw - 16, actH = 27;
+      // Contextual Action Button OR Helper Drone Line (by + 44 .. by + 62)
       const repCost = Math.ceil(r.dmg / 20);
+      const actX = bx + 74, actY = by + 43, actW = bw - 86, actH = 20;
       if (G.phase === 'upkeep' && repCost > 0) {
         const ok = t.credits >= repCost;
         ctx.fillStyle = ok ? '#111' : '#999';
         ctx.fillRect(actX, actY, actW, actH);
-        ctx.fillStyle = '#fff'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`🔧 Repair Hull Damage −${r.dmg} HP (${repCost} Cr)`, actX + actW / 2, actY + 18);
+        ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`Repair Hull −${r.dmg} HP (${repCost} Cr)`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         ctx.fillStyle = '#1f6feb';
         ctx.fillRect(actX, actY, actW, actH);
-        ctx.fillStyle = '#fff'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`🔩 Fit ${nextLot.icon} ${nextLot.name} on ${r.name}`, actX + actW / 2, actY + 18);
+        ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`Fit ${nextLot.name} on ${r.name}`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'arena' && G.chooseMyBot) {
         ctx.fillStyle = '#2a9d3a';
         ctx.fillRect(actX, actY, actW, actH);
-        ctx.fillStyle = '#fff'; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`⚔️ Send ${r.name} to Arena Pit`, actX + actW / 2, actY + 18);
+        ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`Send ${r.name} to Arena Pit`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else {
-        ctx.fillStyle = '#f2efe8';
-        ctx.fillRect(actX, actY, actW, actH);
-        ctx.fillStyle = '#555'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        const dList = helpers.length ? helpers.map(h => Sim.HELPERS[h]?.icon + ' ' + Sim.HELPERS[h]?.name).join(', ') : 'No Helper Drones';
-        ctx.fillText(`Drones (${helpers.length}/3): ${dList}`, actX + actW / 2, actY + 17);
+        const dNames = helpers.length ? helpers.map(h => Sim.HELPERS[h]?.name || h).join(', ') : 'None';
+        ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`Drones (${helpers.length}/3): ${dNames}`, bx + 74, by + 57);
       }
+
+      // Subtle Divider
+      ctx.strokeStyle = '#e8e4da'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bx + 12, by + 68); ctx.lineTo(bx + bw - 12, by + 68); ctx.stroke();
+
+      // 3. Minimalist Visual Stat Bars (2 Columns x 3 Rows, by + 75 .. by + 125)
+      STAT_BARS_LEFT.forEach((st, idx) => {
+        const ry = by + 76 + idx * 17;
+        const lv = r.b.lv?.[st.k] || 0;
+        ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(st.lbl, bx + 12, ry + 7.5);
+        drawBar(ctx, bx + 68, ry, 86, 8, lv / 4, t.col, '#e6e3da', 4);
+      });
+      STAT_BARS_RIGHT.forEach((st, idx) => {
+        const ry = by + 76 + idx * 17;
+        const lv = r.b.lv?.[st.k] || 0;
+        ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(st.lbl, bx + 170, ry + 7.5);
+        drawBar(ctx, bx + 232, ry, 86, 8, lv / 4, t.col, '#e6e3da', 4);
+      });
+
+      // 4. Strain, Filled Risk Bar & Engineer Stepper (by + 132 .. by + 168)
+      const rk = Sim.riskOf(r.b);
+      const eng = rk.eng;
+      const glitchPct = Math.round((rk.glitch || 0) * 100);
+      const breakPct = Math.round((rk.anyBreak || 0) * 100);
+      const riskFrac = Math.min(1, (rk.glitch || 0) + (rk.anyBreak || 0) * 0.5);
+      const riskCol = riskFrac < 0.18 ? '#2a9d3a' : riskFrac < 0.38 ? '#d99000' : '#d62828';
+
+      const sbX = bx + 12, sbY = by + 132, sbW = bw - 24, sbH = 36;
+      ctx.fillStyle = '#f5f3ec';
+      ctx.fillRect(sbX, sbY, sbW, sbH);
+      ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
+      ctx.strokeRect(sbX, sbY, sbW, sbH);
+
+      ctx.fillStyle = '#111'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`STRAIN ${rk.strain}`, sbX + 8, sbY + 14);
+      ctx.fillStyle = riskCol; ctx.font = '700 10px system-ui, sans-serif';
+      ctx.fillText(`Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 68, sbY + 14);
+
+      // Clean Filled Reliability / Risk Bar
+      drawBar(ctx, sbX + 8, sbY + 21, 184, 7, riskFrac, riskCol, '#e2dfd7', 0);
+
+      // Engineer Stepper: [−] 1 ENG [+]
+      const emX = sbX + sbW - 102, emY = sbY + 6, eBtnW = 22, eBtnH = 24;
+      const canMinus = eng > 0;
+      const canPlus = eng < 3 && freeEng(t) > 0;
+
+      ctx.fillStyle = canMinus ? '#fff' : '#e6e3da';
+      ctx.fillRect(emX, emY, eBtnW, eBtnH);
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.strokeRect(emX, emY, eBtnW, eBtnH);
+      ctx.fillStyle = canMinus ? '#111' : '#999'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('−', emX + eBtnW / 2, emY + 16);
+      hitRegions.push({ kind: 'eng_minus', robot: r, x: emX, y: emY, w: eBtnW, h: eBtnH });
+
+      ctx.fillStyle = '#111'; ctx.font = '800 10.5px system-ui, sans-serif';
+      ctx.fillText(`${eng} ENG`, emX + eBtnW + 26, emY + 16);
+
+      const epX = emX + eBtnW + 52;
+      ctx.fillStyle = canPlus ? '#fff' : '#e6e3da';
+      ctx.fillRect(epX, emY, eBtnW, eBtnH);
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.strokeRect(epX, emY, eBtnW, eBtnH);
+      ctx.fillStyle = canPlus ? '#111' : '#999'; ctx.font = '800 13px system-ui, sans-serif';
+      ctx.fillText('+', epX + eBtnW / 2, emY + 16);
+      hitRegions.push({ kind: 'eng_plus', robot: r, x: epX, y: emY, w: eBtnW, h: eBtnH });
+
+      // 5. Bottom Tactical Controls Row (3 Non-Overlapping Pills, by + 175 .. by + 199)
+      const btnY = by + 175, btnH = 24;
+
+      // Pill 1: Range (w: 84)
+      const rngX = bx + 12, rngW = 84;
+      ctx.fillStyle = '#f5f3ec'; ctx.fillRect(rngX, btnY, rngW, btnH);
+      ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(rngX, btnY, rngW, btnH);
+      ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`Range: ${r.b.range} ↻`, rngX + rngW / 2, btnY + 15.5);
+      hitRegions.push({ kind: 'range_toggle', robot: r, x: rngX, y: btnY, w: rngW, h: btnH });
+
+      // Pill 2: Secret Module (w: 128)
+      const modX = bx + 102, modW = 128;
+      ctx.fillStyle = '#f5f3ec'; ctx.fillRect(modX, btnY, modW, btnH);
+      ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(modX, btnY, modW, btnH);
+      ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'} ↻`, modX + modW / 2, btnY + 15.5);
+      hitRegions.push({ kind: 'mod_cycle', robot: r, x: modX, y: btnY, w: modW, h: btnH });
+
+      // Pill 3: Target Focus (w: 82)
+      const foc = r.b.focus || 'main';
+      const focLbl = foc === 'main' ? 'Main' : foc === 'medics' ? 'Medics' : 'Drones';
+      const focX = bx + 236, focW = 82;
+      ctx.fillStyle = '#f5f3ec'; ctx.fillRect(focX, btnY, focW, btnH);
+      ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(focX, btnY, focW, btnH);
+      ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`Aim: ${focLbl} ↻`, focX + focW / 2, btnY + 15.5);
+      hitRegions.push({ kind: 'focus_toggle', robot: r, x: focX, y: btnY, w: focW, h: btnH });
     }
   }
 
@@ -2622,49 +2743,42 @@ html, body {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x0, y0, slot.gw, slot.gh);
     ctx.strokeStyle = (isDragTarget && hovered) || isHostPicked ? t.col : '#111111';
-    ctx.lineWidth = (isDragTarget && hovered) || isHostPicked ? 4 : 2;
+    ctx.lineWidth = (isDragTarget && hovered) || isHostPicked ? 3.5 : 2;
     ctx.strokeRect(x0, y0, slot.gw, slot.gh);
 
     ctx.fillStyle = t.col;
-    ctx.fillRect(x0, y0, slot.gw, 5);
+    ctx.fillRect(x0, y0, slot.gw, 4);
 
     hitRegions.push({ kind: 'garage', team: ti, x: x0, y: y0, w: slot.gw, h: slot.gh });
 
     const sp = SPONSORS[t.sponsor] || SPONSORS.aegis;
-    const title = `${t.name} ${sp.icon}` + (G.host === ti ? ' 👑' : '') + (Object.keys(t.tamper).length ? ' 🕵️' : '');
-    const stats = `★${t.fame}/${WIN_FAME} · 🪙${t.credits} · 🔧${t.mechs} · 👷${t.engPool}`;
+    const badges = (G.host === ti ? ' [HOST]' : '') + (Object.keys(t.tamper).length ? ' [!]' : '');
 
     if (horiz) {
-      // North Opponent Strip (580 x 82)
-      ctx.fillStyle = t.col; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(title, x0 + 10, y0 + 18);
-      ctx.fillStyle = '#111'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(stats, x0 + slot.gw - 10, y0 + 18);
+      // North Opponent Strip (620 x 78)
+      ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`${t.name} · ${sp.name}${badges}`, x0 + 10, y0 + 18);
 
-      // Fame bar
-      ctx.fillStyle = '#ece9e0'; ctx.fillRect(x0 + 10, y0 + 22, slot.gw - 20, 3);
-      ctx.fillStyle = t.col; ctx.fillRect(x0 + 10, y0 + 22, (slot.gw - 20) * Math.min(1, t.fame / WIN_FAME), 3);
+      ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + slot.gw - 10, y0 + 18);
 
-      // 3 Compact Horizontal Recon Pills (182 x 46)
+      // 3 Compact Horizontal Recon Cards (196 x 46)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
-        const bw = 182, bh = 46;
-        const bx = x0 + 10 + bIdx * 188, by = y0 + 29;
+        const bw = 196, bh = 46;
+        const bx = x0 + 10 + bIdx * 202, by = y0 + 25;
         drawCompactOpponentBay(ctx, slot, ti, t, t.robots[bIdx], bIdx, bx, by, bw, bh, now);
       }
     } else {
-      // West / East Opponent Strips (156 x 360)
-      ctx.fillStyle = t.col; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(title, x0 + 8, y0 + 18);
-      ctx.fillStyle = '#111'; ctx.font = '700 10.5px system-ui, sans-serif';
-      ctx.fillText(stats, x0 + 8, y0 + 32);
+      // West / East Opponent Strips (192 x 290)
+      ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`${t.name}${badges}`, x0 + 10, y0 + 18);
+      ctx.fillStyle = '#555'; ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillText(`${sp.name}  ·  Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr`, x0 + 10, y0 + 32);
 
-      ctx.fillStyle = '#ece9e0'; ctx.fillRect(x0 + 8, y0 + 36, slot.gw - 16, 3);
-      ctx.fillStyle = t.col; ctx.fillRect(x0 + 8, y0 + 36, (slot.gw - 16) * Math.min(1, t.fame / WIN_FAME), 3);
-
-      // 3 Compact Vertical Recon Pills (140 x 98)
+      // 3 Compact Vertical Recon Cards (172 x 76)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
-        const bw = slot.gw - 16, bh = 98;
-        const bx = x0 + 8, by = y0 + 44 + bIdx * 103;
+        const bw = slot.gw - 20, bh = 76;
+        const bx = x0 + 10, by = y0 + 40 + bIdx * 81;
         drawCompactOpponentBay(ctx, slot, ti, t, t.robots[bIdx], bIdx, bx, by, bw, bh, now);
       }
     }
@@ -2672,14 +2786,14 @@ html, body {
 
   function drawCompactOpponentBay(ctx, slot, ti, t, r, bIdx, bx, by, bw, bh, now) {
     const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
-    ctx.fillStyle = r ? '#faf9f5' : '#f4f2eb';
+    ctx.fillStyle = r ? '#fcfbf9' : '#f5f3ec';
     ctx.fillRect(bx, by, bw, bh);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = r ? '#c8c4b8' : '#dcd8ce'; ctx.lineWidth = 1;
     ctx.strokeRect(bx, by, bw, bh);
 
     if (!r) {
-      ctx.fillStyle = '#888'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('EMPTY', bx + bw / 2, by + bh / 2 + 3);
+      ctx.fillStyle = '#999'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('EMPTY BAY', bx + bw / 2, by + bh / 2 + 3);
       return;
     }
 
@@ -2687,7 +2801,7 @@ html, body {
 
     if (inArenaNow) {
       ctx.fillStyle = t.col; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('⚔️ IN PIT', bx + bw / 2, by + bh / 2 + 4);
+      ctx.fillText('IN ARENA PIT', bx + bw / 2, by + bh / 2 + 4);
       return;
     }
 
@@ -2695,204 +2809,214 @@ html, body {
     const hpFrac = curHp / maxHp(r);
     const face = slot.dir === 'N' ? Math.PI / 2 : slot.dir === 'W' ? 0 : Math.PI;
     const st = Sim.strainOf(r.b).total;
-    const hIcons = (r.b.helpers || []).map(h => Sim.HELPERS[h]?.icon || '').join('');
+    const wep = r.b.weapon === 'gun' ? `${r.b.cal || 'med'} gun` : r.b.weapon;
 
     if (slot.dir === 'N') {
-      // Ultra-compact 182x46 pill
-      drawRobotSprite(ctx, bx + 18, by + 23, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.62);
+      // Horizontal 196x46 card
+      drawRobotSprite(ctx, bx + 20, by + 23, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.65);
       ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 36, by + 14);
-      ctx.fillStyle = '#b45309'; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(`⚡${st} ${hIcons}`, bx + bw - 5, by + 14);
+      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 40, by + 15);
+      ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`${wep} · ${r.b.range}`, bx + bw - 6, by + 15);
 
-      // Mini HP bar
-      ctx.fillStyle = '#e5e2da'; ctx.fillRect(bx + 36, by + 18, bw - 42, 4);
-      ctx.fillStyle = t.col; ctx.fillRect(bx + 36, by + 18, (bw - 42) * hpFrac, 4);
+      drawBar(ctx, bx + 40, by + 21, bw - 46, 5, hpFrac, t.col, '#e6e3da', 0);
 
-      ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`${buildText(r)} · ⚙️?`, bx + 36, by + 36);
+      ctx.fillStyle = '#555'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`Strain ${st}  ·  Drones: ${(r.b.helpers || []).length}`, bx + 40, by + 39);
     } else {
-      // Compact 140x98 vertical recon card
-      drawRobotSprite(ctx, bx + 22, by + 25, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.68);
+      // Vertical 172x76 card
+      drawRobotSprite(ctx, bx + 22, by + 24, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.68);
       ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 44, by + 18);
-      ctx.fillStyle = '#444'; ctx.font = '700 10px system-ui, sans-serif';
-      ctx.fillText(`${curHp}/${maxHp(r)} HP`, bx + 44, by + 31);
+      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 44, by + 17);
+      ctx.fillStyle = '#666'; ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillText(`${wep} · ${r.b.range}`, bx + 44, by + 31);
 
-      // HP bar
-      ctx.fillStyle = '#e5e2da'; ctx.fillRect(bx + 8, by + 44, bw - 16, 4);
-      ctx.fillStyle = t.col; ctx.fillRect(bx + 8, by + 44, (bw - 16) * hpFrac, 4);
+      // Clean HP Bar + Strain Bar
+      ctx.fillStyle = '#444'; ctx.font = '700 9px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('HP', bx + 8, by + 50);
+      drawBar(ctx, bx + 28, by + 43, bw - 36, 6, hpFrac, t.col, '#e6e3da', 0);
 
-      ctx.fillStyle = '#222'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(buildText(r), bx + 8, by + 61);
-      ctx.fillStyle = '#b45309'; ctx.font = '800 9.5px system-ui, sans-serif';
-      ctx.fillText(`⚡ Strain ${st}   ${hIcons || 'No drones'}`, bx + 8, by + 75);
-      ctx.fillStyle = '#6d28d9'; ctx.font = '700 9.5px system-ui, sans-serif';
-      ctx.fillText('⚙️ ? Secret Module', bx + 8, by + 89);
+      ctx.fillText('STR', bx + 8, by + 64);
+      drawBar(ctx, bx + 28, by + 57, bw - 82, 6, Math.min(1, st / 8), '#d99000', '#e6e3da', 4);
+      ctx.fillStyle = '#666'; ctx.textAlign = 'right';
+      ctx.fillText(`Mod: ?`, bx + bw - 8, by + 64);
     }
   }
 
-  function drawMarketOnArena(ctx) {
+  function drawMarketOnArena(ctx, L) {
     const items = G.market.map(id => ({ id, ...LOTS[id] })).concat([{ id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }]);
-    const startX = -350, y = -95, w = 160, h = 190, gap = 20;
+    const w = 138, h = 178, gap = 12;
+    const totalW = items.length * w + (items.length - 1) * gap;
+    const startX = L.ax - totalW / 2, y = L.ay - h / 2;
+
     items.forEach((it, k) => {
       const x = startX + k * (w + gap);
       const bid = G.myBids[k] || 0;
 
-      ctx.fillStyle = k === 3 ? '#fffbeb' : '#faf9f5';
+      ctx.fillStyle = k === 3 ? '#fffdf5' : '#fcfbf9';
       ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#111';
-      ctx.lineWidth = bid > 0 ? 3 : 2;
+      ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#222';
+      ctx.lineWidth = bid > 0 ? 2.5 : 1.5;
       ctx.strokeRect(x, y, w, h);
 
-      ctx.font = '32px system-ui, sans-serif';
+      ctx.font = '26px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(it.icon, x + w / 2, y + 46);
+      ctx.fillText(it.icon, x + w / 2, y + 40);
 
-      ctx.fillStyle = '#111'; ctx.font = '800 13.5px system-ui, sans-serif';
-      ctx.fillText(it.name, x + w / 2, y + 74);
+      ctx.fillStyle = '#111'; ctx.font = '800 12.5px system-ui, sans-serif';
+      ctx.fillText(it.name, x + w / 2, y + 66);
 
-      ctx.fillStyle = '#666'; ctx.font = '600 11px system-ui, sans-serif';
-      ctx.fillText(it.text, x + w / 2, y + 94);
+      ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
+      ctx.fillText(it.text, x + w / 2, y + 86);
 
-      ctx.fillStyle = '#eee'; ctx.fillRect(x + 18, y + 125, 32, 32);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.strokeRect(x + 18, y + 125, 32, 32);
-      ctx.fillStyle = '#111'; ctx.font = '800 16px system-ui, sans-serif';
-      ctx.fillText('−', x + 34, y + 147);
+      const btnY = y + 122;
+      ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + 14, btnY, 28, 28);
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + 14, btnY, 28, 28);
+      ctx.fillStyle = '#111'; ctx.font = '800 15px system-ui, sans-serif';
+      ctx.fillText('−', x + 28, btnY + 19);
 
       ctx.fillStyle = bid > 0 ? '#1f6feb' : '#111';
-      ctx.font = '900 18px system-ui, sans-serif';
-      ctx.fillText(bid + ' Cr', x + w / 2, y + 147);
+      ctx.font = '900 15px system-ui, sans-serif';
+      ctx.fillText(bid + ' Cr', x + w / 2, btnY + 19);
 
-      ctx.fillStyle = '#eee'; ctx.fillRect(x + w - 50, y + 125, 32, 32);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.strokeRect(x + w - 50, y + 125, 32, 32);
-      ctx.fillStyle = '#111'; ctx.font = '800 16px system-ui, sans-serif';
-      ctx.fillText('+', x + w - 34, y + 147);
+      ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + w - 42, btnY, 28, 28);
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + w - 42, btnY, 28, 28);
+      ctx.fillStyle = '#111'; ctx.font = '800 15px system-ui, sans-serif';
+      ctx.fillText('+', x + w - 28, btnY + 19);
 
-      hitRegions.push({ kind: 'market_minus', idx: k, x: x + 18, y: y + 125, w: 32, h: 32 });
-      hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 50, y: y + 125, w: 32, h: 32 });
+      hitRegions.push({ kind: 'market_minus', idx: k, x: x + 14, y: btnY, w: 28, h: 28 });
+      hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 42, y: btnY, w: 28, h: 28 });
       hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
     });
   }
 
-  function drawBettingOnArena(ctx) {
+  function drawBettingOnArena(ctx, L) {
     const F = G.fight, mine = F.teams.indexOf(viewerSeat);
     const maxB = maxBetOf(me());
+    const w = 276, h = 166;
     [-1, 1].forEach((dir, s) => {
       const ti = F.teams[s], T = G.teams[ti], r = F.robots[s];
       const bd = F.bands ? F.bands[s] : bandOf(F.p[s]);
-      const x = dir * 185 - 135, y = -110, w = 270, h = 215;
+      const x = L.ax + (s === 0 ? -w - 12 : 12), y = L.ay - h / 2 - 10;
       const stake = G.myBet[s] || 0;
       const lockedOut = mine >= 0 && mine !== s;
 
-      ctx.fillStyle = '#faf9f5';
+      ctx.fillStyle = '#fcfbf9';
       ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = stake > 0 ? T.col : '#111';
-      ctx.lineWidth = stake > 0 ? 3.5 : 2;
+      ctx.strokeStyle = stake > 0 ? T.col : '#222';
+      ctx.lineWidth = stake > 0 ? 3 : 1.5;
       ctx.strokeRect(x, y, w, h);
 
-      ctx.fillStyle = T.col; ctx.font = '800 14.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`${T.name}: ${r.name}`, x + w / 2, y + 26);
+      ctx.fillStyle = T.col; ctx.font = '800 13.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${T.name}: ${r.name}`, x + w / 2, y + 22);
 
       const st = Sim.strainOf(r.b).total;
-      ctx.fillStyle = '#555'; ctx.font = '600 11px system-ui, sans-serif';
-      ctx.fillText(`${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP · ${buildText(r)} · ⚡${st}`, x + w / 2, y + 45);
+      ctx.fillStyle = '#555'; ctx.font = '600 10.5px system-ui, sans-serif';
+      ctx.fillText(`${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP  ·  ${buildText(r)}  ·  Strain ${st}`, x + w / 2, y + 39);
 
-      // Bookie Odds Band Banner
-      ctx.fillStyle = '#f2efe8';
-      ctx.fillRect(x + 18, y + 56, w - 36, 56);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2;
-      ctx.strokeRect(x + 18, y + 56, w - 36, 56);
+      // Minimalist Odds Band Box + Visual Win-Probability Bar
+      ctx.fillStyle = '#f4f2ec';
+      ctx.fillRect(x + 16, y + 48, w - 32, 58);
+      ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 16, y + 48, w - 32, 58);
 
-      ctx.fillStyle = T.col; ctx.font = '900 18px system-ui, sans-serif';
-      ctx.fillText(bd.name.toUpperCase(), x + w / 2, y + 80);
-      ctx.fillStyle = '#111'; ctx.font = '800 13px system-ui, sans-serif';
-      const exactStr = showExactOdds ? ` (${Math.round(F.p[s] * 100)}% sim)` : '';
-      ctx.fillText(`Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 101);
+      ctx.fillStyle = '#111'; ctx.font = '900 14px system-ui, sans-serif';
+      const exactStr = showExactOdds ? ` (${Math.round(F.p[s] * 100)}%)` : '';
+      ctx.fillText(`${bd.name.toUpperCase()}  ·  Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 69);
 
-      ctx.fillStyle = '#6d28d9'; ctx.font = '700 10.5px system-ui, sans-serif';
-      ctx.fillText('⚠️ Bookie does NOT know hidden modules or cards!', x + w / 2, y + 129);
+      drawBar(ctx, x + 28, y + 79, w - 56, 8, F.p[s], T.col, '#e2dfd7', 4);
+      ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
+      ctx.fillText('Bookie estimate (ignores secret modules & cards)', x + w / 2, y + 100);
 
       if (lockedOut) {
-        ctx.fillStyle = '#999'; ctx.font = '700 11.5px system-ui, sans-serif';
-        ctx.fillText('(Cannot bet against your own robot)', x + w / 2, y + 166);
+        ctx.fillStyle = '#999'; ctx.font = '700 11px system-ui, sans-serif';
+        ctx.fillText('(Cannot bet against your own robot)', x + w / 2, y + 138);
       } else {
         ctx.fillStyle = stake > 0 ? T.col : '#111';
-        ctx.fillRect(x + 35, y + 144, w - 70, 36);
-        ctx.fillStyle = '#fff'; ctx.font = '800 13px system-ui, sans-serif';
-        ctx.fillText(stake > 0 ? `🪙 Wager: ${stake} Cr → Win ${Math.round(stake * F.pay[s])} Cr` : `Click to Bet (0–${maxB} Cr)`, x + w / 2, y + 167);
+        ctx.fillRect(x + 28, y + 118, w - 56, 32);
+        ctx.fillStyle = '#fff'; ctx.font = '800 12px system-ui, sans-serif';
+        ctx.fillText(stake > 0 ? `Wager: ${stake} Cr → Win ${Math.round(stake * F.pay[s])} Cr` : `Click to Bet (0–${maxB} Cr)`, x + w / 2, y + 138);
         hitRegions.push({ kind: 'bet_card', side: s, x, y, w, h });
       }
     });
 
-    // Toggle exact % button at bottom of Bookie table
-    const tx = -95, ty = 116, tw = 190, th = 26;
+    const tx = L.ax - 85, ty = L.ay + h / 2 - 4, tw = 170, th = 22;
     ctx.fillStyle = '#fff'; ctx.fillRect(tx, ty, tw, th);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.strokeRect(tx, ty, tw, th);
-    ctx.fillStyle = '#111'; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(showExactOdds ? '🙈 Hide Exact Sim %' : '🔍 Show Exact Sim % (Debug)', 0, ty + 17);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, tw, th);
+    ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(showExactOdds ? 'Hide Exact Sim %' : 'Show Exact Sim %', L.ax, ty + 14.5);
     hitRegions.push({ kind: 'exact_odds', x: tx, y: ty, w: tw, h: th });
   }
 
-  function drawAftermathOnArena(ctx) {
+  function drawAftermathOnArena(ctx, L) {
     const F = G.fight, rec = F.recap;
     if (!rec) return;
 
-    const x = -310, y = -185, w = 620, h = G.crateChoices ? 365 : 235;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    const w = 596, h = 194;
+    const x = L.ax - w / 2, y = L.ay - h / 2;
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
-    ctx.strokeRect(x, y, w, h);
 
-    ctx.fillStyle = '#111'; ctx.font = '900 18px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('📋 FIGHT RECAP: ' + rec.head, 0, y + 30);
-
-    if (rec.upset) {
-      ctx.fillStyle = '#d99000'; ctx.font = '900 13px system-ui, sans-serif';
-      ctx.fillText('⚡ ' + rec.upset, 0, y + 50);
-    }
-
-    ctx.textAlign = 'left'; ctx.font = '700 12px system-ui, sans-serif';
-    rec.items.slice(0, 6).forEach((it, idx) => {
-      const rowY = y + (rec.upset ? 74 : 58) + idx * 22;
-      ctx.fillStyle = '#666';
-      ctx.fillText(it.t.toFixed(1) + 's', x + 22, rowY);
-      ctx.fillStyle = it.k === 'break' || it.k === 'ko' ? '#d62828' : it.k === 'crit' || it.k === 'glitch' ? '#b45309' : '#111';
-      ctx.fillText(it.msg, x + 68, rowY);
-    });
-
-    // If player won the fight, show 3 clickable Winner's Crate rewards!
     if (G.crateChoices && G.crateChoices.length) {
-      const cy = y + 210;
-      ctx.fillStyle = '#15803d'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('🎁 WINNER\'S CRATE — PICK 1 FREE REWARD TO INSTALL:', 0, cy);
+      // Player won: show Recap Headline + 3 clickable Winner's Crate cards
+      ctx.fillStyle = '#111'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`FIGHT RECAP: ${rec.headline}  —  PICK 1 WINNER'S CRATE REWARD:`, L.ax, y + 22);
 
       G.crateChoices.forEach((lotId, k) => {
-        const L = LOTS[lotId];
-        const cw = 180, ch = 115;
-        const cx = -285 + k * 195, cTop = cy + 14;
-        ctx.fillStyle = '#f0fdf4'; ctx.fillRect(cx, cTop, cw, ch);
+        const lot = LOTS[lotId];
+        const cw = 180, ch = 148;
+        const cx = L.ax - 282 + k * 192, cTop = y + 34;
+        ctx.fillStyle = '#fcfbf9'; ctx.fillRect(cx, cTop, cw, ch);
         ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2; ctx.strokeRect(cx, cTop, cw, ch);
 
-        ctx.font = '26px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(L.icon, cx + cw / 2, cTop + 34);
+        ctx.font = '24px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(lot.icon, cx + cw / 2, cTop + 34);
         ctx.fillStyle = '#111'; ctx.font = '800 13px system-ui, sans-serif';
-        ctx.fillText(L.name, cx + cw / 2, cTop + 58);
+        ctx.fillText(lot.name, cx + cw / 2, cTop + 58);
         ctx.fillStyle = '#555'; ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillText(L.text, cx + cw / 2, cTop + 76);
+        ctx.fillText(lot.text, cx + cw / 2, cTop + 78);
 
-        ctx.fillStyle = '#15803d'; ctx.fillRect(cx + 20, cTop + 85, cw - 40, 22);
+        ctx.fillStyle = '#15803d'; ctx.fillRect(cx + 20, cTop + 108, cw - 40, 26);
         ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui, sans-serif';
-        ctx.fillText('Claim Reward', cx + cw / 2, cTop + 100);
+        ctx.fillText('Claim Reward', cx + cw / 2, cTop + 125);
 
         hitRegions.push({ kind: 'crate_pick', lot: lotId, x: cx, y: cTop, w: cw, h: ch });
+      });
+      return;
+    }
+
+    // Standard Fight Recap Table
+    ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('FIGHT RECAP: ' + rec.headline, x + 16, y + 24);
+    if (rec.upset) {
+      ctx.fillStyle = '#d99000'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(rec.upset, x + w - 16, y + 24);
+    }
+
+    ctx.fillStyle = '#666'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(rec.summary || '', x + 16, y + 42);
+
+    ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 16, y + 50); ctx.lineTo(x + w - 16, y + 50); ctx.stroke();
+
+    const lines = rec.lines || [];
+    if (!lines.length) {
+      ctx.fillStyle = '#777'; ctx.font = '600 11.5px system-ui, sans-serif';
+      ctx.fillText('Clean fight — no major malfunctions or part breaks logged.', x + 16, y + 76);
+    } else {
+      lines.slice(0, 6).forEach((it, idx) => {
+        const rowY = y + 68 + idx * 20;
+        ctx.fillStyle = '#777'; ctx.font = '700 11px system-ui, sans-serif';
+        ctx.fillText(it.t.toFixed(1) + 's', x + 16, rowY);
+        ctx.fillStyle = it.kind === 'break' || it.kind === 'ko' ? '#d62828' : it.kind === 'crit' || it.kind === 'glitch' ? '#b45309' : '#111';
+        ctx.fillText(it.text, x + 58, rowY);
       });
     }
   }
 
-  function drawLiveBattleInArena(ctx, now) {
+  function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, B = F.B, ax0 = -Sim.W / 2, ay0 = -Sim.H / 2;
-    const col = s => G.teams[F.teams[s]].col;
+    const col = s => G.teams[F.teams[s]] ? G.teams[F.teams[s]].col : '#111';
 
     ctx.save();
     ctx.translate(ax0, ay0);
@@ -2916,10 +3040,10 @@ html, body {
     if (B.walls) {
       for (const w of B.walls) {
         ctx.save();
-        ctx.translate(w.x, w.y); ctx.rotate(w.a);
-        ctx.fillStyle = '#d6d3c9'; ctx.strokeStyle = col(w.owner); ctx.lineWidth = 2;
-        ctx.fillRect(-w.len / 2, -5, w.len, 10);
-        ctx.strokeRect(-w.len / 2, -5, w.len, 10);
+        ctx.translate(w.x, w.y); ctx.rotate(w.a || 0);
+        ctx.fillStyle = '#d6d3c9'; ctx.strokeStyle = col(w.team != null ? w.team : w.owner); ctx.lineWidth = 2;
+        ctx.fillRect(-(w.r || 22), -5, (w.r || 22) * 2, 10);
+        ctx.strokeRect(-(w.r || 22), -5, (w.r || 22) * 2, 10);
         ctx.restore();
       }
     }
@@ -2935,12 +3059,12 @@ html, body {
       ctx.globalAlpha = 1;
     }
     for (const m of B.mines) {
-      ctx.fillStyle = col(m.owner);
+      ctx.fillStyle = col(m.team != null ? m.team : m.owner);
       ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI * 2); ctx.fill();
     }
     for (const d of B.decoys) {
       ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.body);
-      ctx.strokeStyle = col(d.owner); ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
+      ctx.strokeStyle = col(d.team != null ? d.team : d.owner); ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
       ctx.strokeRect(-15, -15, 30, 30); ctx.restore();
     }
 
@@ -2948,7 +3072,7 @@ html, body {
     for (const b of B.bots) {
       if (!b.helper && b.hp > 0 && b.wpT > 0 && b.wpX != null) {
         ctx.save();
-        ctx.strokeStyle = col(b.i); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+        ctx.strokeStyle = col(b.team); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.wpX, b.wpY); ctx.stroke();
         ctx.beginPath(); ctx.arc(b.wpX, b.wpY, 10, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
@@ -2957,11 +3081,11 @@ html, body {
 
     // Projectiles
     for (const q of B.bullets) {
-      ctx.fillStyle = col(q.owner);
+      ctx.fillStyle = col(q.team != null ? q.team : q.owner);
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.8 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill();
     }
     for (const q of B.saws) {
-      const c = col(q.owner);
+      const c = col(q.team != null ? q.team : q.owner);
       ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(B.t * 25 + q.owner);
       ctx.fillStyle = c; ctx.beginPath();
       for (let k = 0; k < 16; k++) { const r = k % 2 ? 6 : 9.5, a = k * Math.PI / 8; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
@@ -2973,14 +3097,14 @@ html, body {
       const u = q.t / q.T;
       ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.arc(q.tx, q.ty, 45, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = col(q.owner);
+      ctx.fillStyle = col(q.team != null ? q.team : q.owner);
       ctx.beginPath();
       ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2);
       ctx.fill();
     }
     for (const b of B.bots) {
       if (b.beam && b.hp > 0) {
-        ctx.strokeStyle = col(b.i); ctx.lineWidth = 3;
+        ctx.strokeStyle = col(b.team); ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
         ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
@@ -2991,13 +3115,12 @@ html, body {
         ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
         ctx.stroke();
       }
-      if (b.flaming > 0 && b.hp > 0) {
-        const coneR = b.breaks?.flame ? 87 : 145;
+      if (b.flame > 0 && b.hp > 0) {
         ctx.save();
-        ctx.fillStyle = 'rgba(249, 115, 22, 0.28)';
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.26)';
         ctx.beginPath();
         ctx.moveTo(b.x, b.y);
-        ctx.arc(b.x, b.y, coneR, b.turret - 0.38, b.turret + 0.38);
+        ctx.arc(b.x, b.y, 130, b.turret - 0.38, b.turret + 0.38);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
@@ -3006,7 +3129,8 @@ html, body {
 
     // Main Robots & Helper Drones
     for (const b of B.bots) {
-      const ti = F.teams[b.i], slot = GARAGE_SLOTS[posOfTeam(ti)];
+      const side = b.team != null ? b.team : b.i;
+      const ti = F.teams[side], slot = L.slots[posOfTeam(ti)];
       const doorLocalX = slot.doorX - ax0, doorLocalY = slot.doorY - ay0;
       const u = F.rolloutDone ? 1 : Math.min(1, F.rollout);
       const rx = doorLocalX + (b.x - doorLocalX) * u;
@@ -3014,17 +3138,18 @@ html, body {
 
       if (b.helper) {
         if (b.hp <= 0) continue;
+        const hd = Sim.HELPERS[b.helper];
         ctx.save();
         ctx.translate(rx, ry);
-        if (b.kind === 'spotter' || b.kind === 'jammer') {
-          ctx.strokeStyle = col(b.i); ctx.globalAlpha = 0.22; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
-          ctx.beginPath(); ctx.arc(0, 0, b.def.aura, 0, Math.PI * 2); ctx.stroke();
+        if (b.helper === 'spotter' || b.helper === 'jammer') {
+          ctx.strokeStyle = col(side); ctx.globalAlpha = 0.2; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+          ctx.beginPath(); ctx.arc(0, 0, b.helper === 'spotter' ? 200 : 160, 0, Math.PI * 2); ctx.stroke();
           ctx.setLineDash([]); ctx.globalAlpha = 1;
         }
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = col(b.i); ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(b.def.icon, 0, 4);
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = col(side); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#111'; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(hd ? hd.icon : '•', 0, 3.5);
         ctx.restore();
         continue;
       }
@@ -3035,20 +3160,19 @@ html, body {
       }
 
       const modTag = b.revealed && b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : (b.mod ? ' [?]' : '');
-      drawRobotSprite(ctx, rx, ry, b.body, b.turret, col(b.i), F.robots[b.i].b, b.hp / b.s.hp, F.robots[b.i].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, b);
+      drawRobotSprite(ctx, rx, ry, b.body, b.turret, col(side), F.robots[side].b, b.hp / b.s.hp, F.robots[side].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, b);
 
-      // Show active burning / glitch / part break status under robot
+      // Show active burning / broken parts status under robot
       const subTags = [];
-      if (b.burning > 0) subTags.push('🔥 BURNING');
-      if (b.glitch) subTags.push('⚠️ ' + b.glitch.toUpperCase());
-      const brkCount = Object.keys(b.breaks || {}).length;
-      if (brkCount > 0) subTags.push(`💥 ${brkCount} PART BROKEN`);
+      if (b.burn > 0) subTags.push('BURNING');
+      const brkCount = (b.broken || []).length;
+      if (brkCount > 0) subTags.push(`${brkCount} BROKEN`);
       if (subTags.length && b.hp > 0) {
         ctx.fillStyle = '#d62828'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(subTags.join(' · '), rx, ry + 30);
       }
 
-      hitRegions.push({ kind: 'arena_bot', slot: b.i, x: ax0 + rx - 32, y: ay0 + ry - 32, w: 64, h: 64 });
+      hitRegions.push({ kind: 'arena_bot', slot: side, x: ax0 + rx - 32, y: ay0 + ry - 32, w: 64, h: 64 });
     }
 
     for (const f of B.fx) {
@@ -3177,7 +3301,7 @@ html, body {
         const idx = (SPONSOR_KEYS.indexOf(t.sponsor) + 1) % SPONSOR_KEYS.length;
         t.sponsor = SPONSOR_KEYS[idx];
         t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
-        notify(`🏛️ Sponsor switched to <b>${esc(SPONSORS[t.sponsor].name)}</b> (${esc(SPONSORS[t.sponsor].perk)}).`, t.col);
+        notify(`Sponsor switched to <b>${esc(SPONSORS[t.sponsor].name)}</b> (${esc(SPONSORS[t.sponsor].tag)}).`, t.col);
         updateHud();
         return;
       }
@@ -3189,7 +3313,7 @@ html, body {
           t.engPool++;
           const needBot = t.robots.slice().sort((a, b) => Sim.strainOf(b.b).total - Sim.strainOf(a.b).total).find(x => (x.b.eng || 0) < 3);
           if (needBot) needBot.b.eng = (needBot.b.eng || 0) + 1;
-          notify('👷 Hired an Engineer (+1 Engineer Pool).', t.col);
+          notify('Hired an Engineer (+1 Engineer Pool).', t.col);
           updateHud();
         }
         return;
@@ -3229,7 +3353,7 @@ html, body {
       }
 
       if (r.kind === 'focus_toggle') {
-        const bot = r.robot, order = ['main', 'medics', 'drones'];
+        const bot = r.robot, order = ['main', 'medics', 'helpers'];
         bot.b.focus = order[(order.indexOf(bot.b.focus || 'main') + 1) % 3];
         updateHud();
         return;
