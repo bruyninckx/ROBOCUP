@@ -2118,14 +2118,19 @@ html, body {
 
   function getDynamicLayout(u) {
     const aw = lerp(620, Sim.W, u);
-    const ah = lerp(210, Sim.H, u);
+    const ah = lerp(220, Sim.H, u);
     const ax = 0;
     const ay = lerp(-68, 0, u);
+    // At u=0:
+    // - Central Stage spans y: -178 .. +42
+    // - North Strip spans y: -276 .. -198 (20px corridor to -178)
+    // - West/East Strips span y: -248 .. +42 (bottom is flush with Stage bottom +42!)
+    // - South Command Garage spans y: +64 .. +332 (22px clear gap below Stage & West/East Strips!)
     const slots = [
-      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(192, 438, u),  gw: 1048, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
-      { pos: 1, dir: 'W', gx: lerp(-428, -568, u), gy: ay,                gw: 192,  gh: 290, doorX: -aw / 2, doorY: ay          },
-      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-234, -342, u),gw: 620,  gh: 78,  doorX: 0,       doorY: ay - ah / 2 },
-      { pos: 3, dir: 'E', gx: lerp(428, 568, u),   gy: ay,                gw: 192,  gh: 290, doorX: aw / 2,  doorY: ay          },
+      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(198, 438, u),  gw: 1048, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
+      { pos: 1, dir: 'W', gx: lerp(-428, -568, u), gy: lerp(-103, 0, u),  gw: 192,  gh: 290, doorX: -aw / 2, doorY: ay          },
+      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-237, -342, u),gw: 620,  gh: 78,  doorX: 0,       doorY: ay - ah / 2 },
+      { pos: 3, dir: 'E', gx: lerp(428, 568, u),   gy: lerp(-103, 0, u),  gw: 192,  gh: 290, doorX: aw / 2,  doorY: ay          },
     ];
     return { ax, ay, aw, ah, slots };
   }
@@ -2772,8 +2777,11 @@ html, body {
       // West / East Opponent Strips (192 x 290)
       ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(`${t.name}${badges}`, x0 + 10, y0 + 18);
-      ctx.fillStyle = '#555'; ctx.font = '600 10px system-ui, sans-serif';
-      ctx.fillText(`${sp.name}  ·  Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr`, x0 + 10, y0 + 32);
+      ctx.fillStyle = '#666'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(sp.name.split(' ')[0], x0 + slot.gw - 10, y0 + 18);
+
+      ctx.fillStyle = '#444'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + 10, y0 + 32);
 
       // 3 Compact Vertical Recon Cards (172 x 76)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
@@ -2807,13 +2815,12 @@ html, body {
 
     const curHp = Math.max(0, maxHp(r) - r.dmg);
     const hpFrac = curHp / maxHp(r);
-    const face = slot.dir === 'N' ? Math.PI / 2 : slot.dir === 'W' ? 0 : Math.PI;
     const st = Sim.strainOf(r.b).total;
     const wep = r.b.weapon === 'gun' ? `${r.b.cal || 'med'} gun` : r.b.weapon;
 
     if (slot.dir === 'N') {
       // Horizontal 196x46 card
-      drawRobotSprite(ctx, bx + 20, by + 23, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.65);
+      drawRobotSprite(ctx, bx + 20, by + 25, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.58);
       ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 40, by + 15);
       ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
@@ -2825,7 +2832,7 @@ html, body {
       ctx.fillText(`Strain ${st}  ·  Drones: ${(r.b.helpers || []).length}`, bx + 40, by + 39);
     } else {
       // Vertical 172x76 card
-      drawRobotSprite(ctx, bx + 22, by + 24, face, face, t.col, r.b, hpFrac, null, null, false, false, now, 0.68);
+      drawRobotSprite(ctx, bx + 22, by + 23, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.60);
       ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 44, by + 17);
       ctx.fillStyle = '#666'; ctx.font = '600 10px system-ui, sans-serif';
