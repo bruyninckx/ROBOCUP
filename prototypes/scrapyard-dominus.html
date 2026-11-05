@@ -100,17 +100,19 @@ th { background: var(--soft); font-weight: 600; }
   const wrapA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
   const turnToward = (a, target, maxStep) => { const d = wrapA(target - a); return a + Math.max(-maxStep, Math.min(maxStep, d)); };
 
-  // build: {lv:{hp:0..4,...}, range:'short'|'mid'|'long', weapon:'gun'|'mortar'|'laser'|'shotgun'}
+  // build: {lv:{hp:0..4,...}, range:'short'|'mid'|'long', weapon:'gun'|'mortar'|'laser'|'shotgun'|'saw'|'spinner'|'flame'}
   function statsOf(b) {
     const s = {};
     for (const k of STATS) s[k] = LV[k][b.lv[k]];
     s.range = RANGES[b.range] || 250;
     s.weapon = b.weapon || 'gun';
+    if (s.weapon === 'spinner') s.range = 0;
+    if (s.weapon === 'flame') s.range = Math.min(s.range, 95);
     s.cal = b.cal || 'medium';
     const c = CAL[s.cal];
-    s.fire = s.weapon === 'mortar' ? 0.45 : c.rate;
+    s.fire = s.weapon === 'mortar' ? 0.45 : s.weapon === 'saw' ? 0.8 : c.rate;
     s.dmg = s.fp / s.fire;
-    if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
+    if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 6;
     // weight: armour and health slow you down
     s.speed *= 1 - 0.09 * b.lv.armor - 0.04 * b.lv.hp;
     s.turnBody = 180;
@@ -136,9 +138,10 @@ th { background: var(--soft); font-weight: 600; }
       const x = sp[i][0], y = sp[i][1] + (n === 2 ? (rng() - 0.5) * 220 : (rng() - 0.5) * 60);
       const face = Math.atan2(H / 2 - y, W / 2 - x);
       return { i, team: teams[i], s, hp: s.hp, x, y, body: face, turret: face, target: -1,
-        vx: 0, vy: 0, cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1 };
+        vx: 0, vy: 0, kx: 0, ky: 0, spinCd: 0, burn: 0, burnBy: -1, flame: 0,
+        cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1 };
     });
-    return { bots, bullets: [], shells: [], fx: [], t: 0, over: false, winner: null, rng, n };
+    return { bots, bullets: [], saws: [], shells: [], fx: [], t: 0, over: false, winner: null, rng, n };
   }
   // is a teammate standing in the line of fire (before the target)?
   function allyInLine(B, b, a, len) {
@@ -165,11 +168,16 @@ th { background: var(--soft); font-weight: 600; }
 
   function hitBot(B, tgt, dmg, src, pierce) {
     if (tgt.hp <= 0) return;
-    if (!pierce) dmg = Math.max(dmg * 0.15, dmg - tgt.s.armor);
-    tgt.hp -= dmg; tgt.hitT = 0.08; tgt.lastBy = src.i;
-    const friendly = tgt.team === src.team;
-    if (friendly) src.ff += dmg; else src.dealt += dmg;
-    if (tgt.hp <= 0) { if (friendly) { if (tgt !== src) src.teamKills++; } else src.kills++; B.fx.push({ k: 'boom', x: tgt.x, y: tgt.y, life: 0.25 }); }
+    if (!pierce) dmg = Math.max(dmg * 0.25, dmg - tgt.s.armor);
+    tgt.hp -= dmg; tgt.hitT = 0.08; if (src) tgt.lastBy = src.i;
+    if (src) {
+      const friendly = tgt.team === src.team;
+      if (friendly) src.ff += dmg; else src.dealt += dmg;
+    }
+    if (tgt.hp <= 0) {
+      if (src) { if (tgt.team === src.team) { if (tgt !== src) src.teamKills++; } else src.kills++; }
+      B.fx.push({ k: 'boom', x: tgt.x, y: tgt.y, life: 0.25 });
+    }
   }
 
   function step(B, dt) {
@@ -178,16 +186,35 @@ th { background: var(--soft); font-weight: 600; }
     B.t += dt;
     for (const b of B.bots) {
       if (b.hp <= 0) continue;
+      if (b.burn > 0) {
+        b.burn -= dt;
+        hitBot(B, b, 5 * dt, B.bots[b.burnBy] || b, true);
+        if (b.hp <= 0) continue;
+      }
+      b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + b.kx * dt));
+      b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + b.ky * dt));
+      b.kx *= Math.pow(0.01, dt); b.ky *= Math.pow(0.01, dt);
+      b.spinCd = Math.max(0, b.spinCd - dt);
+      b.flame = 0;
+
       const o = pickTarget(B, b);
       if (!o) continue;
       const dx = o.x - b.x, dy = o.y - b.y, dist = Math.hypot(dx, dy), toO = Math.atan2(dy, dx);
       b.strafeT -= dt;
       if (b.strafeT <= 0) { b.strafe *= -1; b.strafeT = 0.8 + rng() * 1.7; }
-      const radial = Math.max(-1, Math.min(1, (dist - b.s.range) / 80));
-      let mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
-      let my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
+      const w = b.s.weapon;
+      let mx, my;
+      if (w === 'spinner') {
+        mx = Math.cos(toO) + Math.cos(toO + Math.PI / 2) * b.strafe * 0.18;
+        my = Math.sin(toO) + Math.sin(toO + Math.PI / 2) * b.strafe * 0.18;
+      } else {
+        const radial = Math.max(-1, Math.min(1, (dist - b.s.range) / 80));
+        mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
+        my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
+      }
       for (const p of B.bots) {
         if (p === b || p.hp <= 0) continue;
+        if (w === 'spinner' && p === o) continue;
         const sx = b.x - p.x, sy = b.y - p.y, sd = Math.hypot(sx, sy);
         if (sd < 60 && sd > 0.01) { mx += sx / sd * (60 - sd) / 30; my += sy / sd * (60 - sd) / 30; }
       }
@@ -202,9 +229,8 @@ th { background: var(--soft); font-weight: 600; }
       b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + Math.sin(b.body) * sp * dt));
       b.vx = Math.cos(b.body) * sp; b.vy = Math.sin(b.body) * sp;
 
-      const w = b.s.weapon;
-      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : b.s.bullet;
-      const tt = w === 'laser' ? 0 : dist / Math.max(50, pspeed);
+      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : w === 'saw' ? b.s.bullet * 0.65 : b.s.bullet;
+      const tt = (w === 'laser' || w === 'flame' || w === 'spinner') ? 0 : dist / Math.max(50, pspeed);
       const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
       b.turret = turnToward(b.turret, aim, rad(b.s.turret) * dt);
       b.cd -= dt;
@@ -223,6 +249,14 @@ th { background: var(--soft); font-weight: 600; }
           }
           B.fx.push({ k: 'flash', x: b.x + Math.cos(b.turret) * 26, y: b.y + Math.sin(b.turret) * 26, life: 0.06 });
           b.shots += pellets;
+        }
+      } else if (w === 'saw') {
+        if (b.cd <= 0 && err < rad(7) && !allyInLine(B, b, b.turret, dist)) {
+          b.cd = 1 / b.s.fire * (0.9 + rng() * 0.2);
+          const a = b.turret + (rng() * 2 - 1) * rad(14) * (1 - b.s.acc / 100);
+          B.saws.push({ x: b.x + Math.cos(b.turret) * 24, y: b.y + Math.sin(b.turret) * 24,
+            vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i, dmg: b.s.dmg * 0.7, life: 3.6, hits: 0, last: -1, lastT: -1 });
+          b.shots++;
         }
       } else if (w === 'mortar') {
         if (b.cd <= 0 && err < rad(8) && dist > 110) {
@@ -251,6 +285,40 @@ th { background: var(--soft); font-weight: 600; }
           }
           b.shots += dt;
         }
+      } else if (w === 'flame') {
+        if (dist < 160 && err < rad(35)) {
+          b.flame = 1;
+          for (const e of B.bots) {
+            if (e === b || e.hp <= 0 || e.team === b.team) continue;
+            const d = Math.hypot(e.x - b.x, e.y - b.y);
+            const ang = Math.abs(wrapA(Math.atan2(e.y - b.y, e.x - b.x) - b.turret));
+            if (d < 135 && ang < rad(22)) {
+              hitBot(B, e, b.s.fp * 0.52 * dt, b, true);
+              e.burn = 2.5; e.burnBy = b.i;
+              b.hits += dt;
+            }
+          }
+          b.shots += dt;
+        }
+      } else if (w === 'spinner') {
+        b.turret = b.body + B.t * 18;
+        if (b.spinCd <= 0) {
+          for (const e of B.bots) {
+            if (e === b || e.hp <= 0 || e.team === b.team) continue;
+            const d = Math.hypot(e.x - b.x, e.y - b.y);
+            if (d < 36) {
+              const a = Math.atan2(e.y - b.y, e.x - b.x);
+              const rel = Math.max(0, (b.vx - e.vx) * Math.cos(a) + (b.vy - e.vy) * Math.sin(a));
+              const dmg = b.s.fp * (0.42 + rel / 380);
+              hitBot(B, e, dmg, b);
+              e.kx += Math.cos(a) * 260; e.ky += Math.sin(a) * 260;
+              b.kx -= Math.cos(a) * 110; b.ky -= Math.sin(a) * 110;
+              b.spinCd = 0.25; b.shots++; b.hits++;
+              B.fx.push({ k: 'hit', x: (b.x + e.x) / 2, y: (b.y + e.y) / 2, life: 0.14 });
+              break;
+            }
+          }
+        }
       }
       b.hitT = Math.max(0, b.hitT - dt);
     }
@@ -260,12 +328,36 @@ th { background: var(--soft); font-weight: 600; }
       const own = B.bots[q.owner];
       let tgt = null;
       for (const e of B.bots) if (e.hp > 0 && e !== own && Math.abs(q.x - e.x) < SIZE / 2 + 2 && Math.abs(q.y - e.y) < SIZE / 2 + 2) { tgt = e; break; }
+      if (tgt && tgt.s.weapon === 'spinner' && rng() < 0.25) {
+        const nx = q.x - tgt.x, ny = q.y - tgt.y, nl = Math.hypot(nx, ny) || 1, dot = (q.vx * nx + q.vy * ny) / nl;
+        q.vx -= 2 * dot * nx / nl; q.vy -= 2 * dot * ny / nl; q.owner = tgt.i;
+        continue;
+      }
       if (tgt) {
         hitBot(B, tgt, q.dmg, own); own.hits++;
         B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
         B.bullets.splice(k, 1); continue;
       }
       if (q.life <= 0 || q.x < 0 || q.y < 0 || q.x > W || q.y > H) B.bullets.splice(k, 1);
+    }
+    for (let k = B.saws.length - 1; k >= 0; k--) {
+      const q = B.saws[k];
+      q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
+      if (q.x < 7 || q.x > W - 7) { q.vx *= -0.9; q.vy *= 0.9; q.x = Math.max(7, Math.min(W - 7, q.x)); q.dmg *= 0.75; }
+      if (q.y < 7 || q.y > H - 7) { q.vy *= -0.9; q.vx *= 0.9; q.y = Math.max(7, Math.min(H - 7, q.y)); q.dmg *= 0.75; }
+      const own = B.bots[q.owner];
+      for (const e of B.bots) {
+        if (e.hp <= 0 || e.team === own.team || (q.last === e.i && B.t - q.lastT < 0.4)) continue;
+        const dx = q.x - e.x, dy = q.y - e.y, d = Math.hypot(dx, dy);
+        if (d > SIZE / 2 + 7) continue;
+        hitBot(B, e, q.dmg, own); own.hits++;
+        B.fx.push({ k: 'hit', x: q.x, y: q.y, life: 0.1 });
+        const nx = dx / (d || 1), ny = dy / (d || 1), dot = q.vx * nx + q.vy * ny;
+        if (dot < 0) { q.vx -= 2 * dot * nx; q.vy -= 2 * dot * ny; }
+        q.vx *= 0.85; q.vy *= 0.85; q.hits++; q.dmg *= 0.75; q.last = e.i; q.lastT = B.t;
+        break;
+      }
+      if (q.life <= 0 || q.hits >= 3 || Math.hypot(q.vx, q.vy) < 110) B.saws.splice(k, 1);
     }
     for (let k = B.shells.length - 1; k >= 0; k--) {
       const q = B.shells[k];
@@ -320,13 +412,51 @@ th { background: var(--soft); font-weight: 600; }
 
   const L = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
   const PRESETS = {
-    Bulwark:  { lv: L(4, 3, 1, 0, 4, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium' },
-    Marksman: { lv: L(3, 0, 0, 1, 4, 3, 3), range: 'long', weapon: 'gun', cal: 'medium' },
-    Hornet:   { lv: L(4, 0, 1, 0, 4, 3, 2), range: 'mid', weapon: 'gun', cal: 'rapid' },
-    Dasher:   { lv: L(3, 0, 4, 1, 4, 1, 1), range: 'short', weapon: 'gun', cal: 'medium' },
-    Burner:   { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium' },
-    Lobber:   { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium' },
+    Bulwark:   { lv: L(4, 3, 1, 0, 4, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium' },
+    Marksman:  { lv: L(3, 0, 0, 1, 4, 3, 3), range: 'long', weapon: 'gun', cal: 'medium' },
+    Hornet:    { lv: L(4, 0, 1, 0, 4, 3, 2), range: 'mid', weapon: 'gun', cal: 'rapid' },
+    Dasher:    { lv: L(3, 0, 4, 1, 4, 1, 1), range: 'short', weapon: 'gun', cal: 'medium' },
+    Burner:    { lv: L(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium' },
+    Lobber:    { lv: L(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium' },
+    Buzzsaw:   { lv: L(3, 2, 3, 1, 4, 0, 1), range: 'mid', weapon: 'saw', cal: 'medium' },
+    Whirlwind: { lv: L(4, 2, 3, 0, 4, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium' },
+    Torch:     { lv: L(4, 1, 3, 2, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium' },
   };
+  // Starter Deck: 9 stock starter robots (11 stat points, cap level 3, no mod/helpers, 1 engineer)
+  const STARTERS = {
+    's1. Scrapper': { lv: L(3, 1, 3, 0, 3, 0, 1), range: 'short', weapon: 'gun',     cal: 'medium', desc: 'Tough & quick medium gun, likes it up close. Beats spinners & mortars.' },
+    's1. Rattler':  { lv: L(1, 0, 2, 0, 3, 3, 2), range: 'mid',   weapon: 'gun',     cal: 'rapid',  desc: 'Accurate rapid-fire bullet hose. Shreds lasers & mortars.' },
+    's1. Plinker':  { lv: L(0, 2, 1, 0, 3, 2, 3), range: 'long',  weapon: 'gun',     cal: 'medium', desc: 'Armoured long-range sniper with fast bullets. Deletes lasers.' },
+    's1. Tin Can':  { lv: L(1, 3, 1, 0, 3, 1, 2), range: 'mid',   weapon: 'gun',     cal: 'medium', desc: 'Armour-3 brick with medium gun. Rapid fire bounces right off.' },
+    's1. Sparky':   { lv: L(2, 1, 3, 1, 3, 1, 0), range: 'mid',   weapon: 'laser',   cal: 'medium', desc: 'Fast laser that cooks flamethrowers & spinners.' },
+    's1. Lobster':  { lv: L(1, 1, 3, 0, 3, 0, 3), range: 'long',  weapon: 'mortar',  cal: 'medium', desc: 'Quick mortar lobber. Crushes slow saw turrets.' },
+    's1. Grinder':  { lv: L(1, 2, 0, 0, 3, 3, 2), range: 'mid',   weapon: 'saw',     cal: 'medium', desc: 'Slow, precise saw-blade turret. Beats armour & lasers.' },
+    's1. Zippo':    { lv: L(0, 3, 3, 2, 3, 0, 0), range: 'short', weapon: 'flame',   cal: 'medium', desc: 'Armoured fast flamethrower. Burns spinners & rapid guns.' },
+    's1. Top':      { lv: L(2, 3, 3, 0, 3, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium', desc: 'Armoured spinner. Wrecks saw turrets & long guns.' },
+  };
+  const SMATRIX = {
+    's1. Scrapper': { 's1. Rattler': 56, 's1. Plinker': 66, 's1. Tin Can': 48, 's1. Sparky': 27, 's1. Lobster': 74, 's1. Grinder': 67, 's1. Zippo': 38, 's1. Top': 89 },
+    's1. Rattler':  { 's1. Scrapper': 45, 's1. Plinker': 54, 's1. Tin Can': 18, 's1. Sparky': 100, 's1. Lobster': 89, 's1. Grinder': 55, 's1. Zippo': 31, 's1. Top': 25 },
+    's1. Plinker':  { 's1. Scrapper': 34, 's1. Rattler': 47, 's1. Tin Can': 52, 's1. Sparky': 98, 's1. Lobster': 43, 's1. Grinder': 41, 's1. Zippo': 66, 's1. Top': 14 },
+    's1. Tin Can':  { 's1. Scrapper': 52, 's1. Rattler': 82, 's1. Plinker': 48, 's1. Sparky': 75, 's1. Lobster': 43, 's1. Grinder': 26, 's1. Zippo': 44, 's1. Top': 20 },
+    's1. Sparky':   { 's1. Scrapper': 74, 's1. Rattler': 0,  's1. Plinker': 2,  's1. Tin Can': 25, 's1. Lobster': 52, 's1. Grinder': 16, 's1. Zippo': 100, 's1. Top': 98 },
+    's1. Lobster':  { 's1. Scrapper': 27, 's1. Rattler': 11, 's1. Plinker': 58, 's1. Tin Can': 57, 's1. Sparky': 48, 's1. Grinder': 78, 's1. Zippo': 59, 's1. Top': 67 },
+    's1. Grinder':  { 's1. Scrapper': 34, 's1. Rattler': 45, 's1. Plinker': 59, 's1. Tin Can': 74, 's1. Sparky': 85, 's1. Lobster': 23, 's1. Zippo': 47, 's1. Top': 2 },
+    's1. Zippo':    { 's1. Scrapper': 62, 's1. Rattler': 70, 's1. Plinker': 34, 's1. Tin Can': 57, 's1. Sparky': 0,  's1. Lobster': 42, 's1. Grinder': 54, 's1. Top': 80 },
+    's1. Top':      { 's1. Scrapper': 12, 's1. Rattler': 76, 's1. Plinker': 86, 's1. Tin Can': 81, 's1. Sparky': 2,  's1. Lobster': 33, 's1. Grinder': 98, 's1. Zippo': 21 },
+  };
+  function starterOverallAvg(name) {
+    const row = SMATRIX[name]; if (!row) return 50;
+    const vals = Object.values(row);
+    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  }
+  function starterVsTableAvg(name) {
+    const row = SMATRIX[name]; if (!row || !G) return starterOverallAvg(name);
+    const oppNames = [];
+    for (const t of G.teams) if (!t.human) for (const r of t.robots) if (row[r.name] !== undefined) oppNames.push(r.name);
+    if (!oppNames.length) return starterOverallAvg(name);
+    return Math.round(oppNames.reduce((a, n) => a + row[n], 0) / oppNames.length);
+  }
   const SCRAP = { lv: L(1, 0, 1, 1, 1, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium' };
   const STATNAME = { hp: 'Health', armor: 'Armour', speed: 'Speed', turret: 'Turret', fp: 'Firepower', acc: 'Accuracy', bullet: 'Bullet speed' };
   const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
@@ -356,14 +486,17 @@ th { background: var(--soft); font-weight: 600; }
     hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
     barrel: { name: 'Long Barrel', text: '+1 Bullet speed on one robot.', stat: 'bullet' },
     core:   { name: 'High-Output Core', text: '+1 Firepower on one robot.', stat: 'fp' },
-    laser:  { name: 'Laser Retrofit', text: 'Turn one robot\'s weapon into a laser (ignores armour, short range).', weapon: 'laser' },
-    mortar: { name: 'Mortar Retrofit', text: 'Turn one robot\'s weapon into a mortar (splash, long range).', weapon: 'mortar' },
-    rapid:  { name: 'Rapid-fire Kit', text: 'Gun becomes rapid calibre: many small bullets, quick turret.', cal: 'rapid' },
-    heavy:  { name: 'Heavy Cannon', text: 'Gun becomes heavy calibre: huge slow shells, ignores most armour.', cal: 'heavy' },
-    robot:  { name: 'New Robot', text: 'A fresh robot joins your garage (max 3).', robot: true },
-    mech:   { name: 'Mechanic', text: '+1 credit income every round.', mech: true },
+    laser:   { name: 'Laser Retrofit', text: 'Turn one robot\'s weapon into a laser (ignores armour, mid range).', weapon: 'laser' },
+    mortar:  { name: 'Mortar Retrofit', text: 'Turn one robot\'s weapon into a mortar (splash, long range).', weapon: 'mortar' },
+    saw:     { name: 'Saw Launcher', text: 'Turn one robot\'s weapon into a boomerang saw (hits out and back).', weapon: 'saw' },
+    spinner: { name: 'Spinner Rim', text: 'Turn one robot\'s weapon into a spinning melee ring (ramming damage).', weapon: 'spinner' },
+    flame:   { name: 'Flamethrower', text: 'Turn one robot\'s weapon into a short-range fire cone (ignores half armour).', weapon: 'flame' },
+    rapid:   { name: 'Rapid-fire Kit', text: 'Gun becomes rapid calibre: many small bullets, quick turret.', cal: 'rapid' },
+    heavy:   { name: 'Heavy Cannon', text: 'Gun becomes heavy calibre: huge slow shells, ignores most armour.', cal: 'heavy' },
+    robot:   { name: 'New Robot', text: 'A fresh robot joins your garage (max 3).', robot: true },
+    mech:    { name: 'Mechanic', text: '+1 credit income every round.', mech: true },
   };
-  const WINNER_CRATE_POOL = ['plate', 'engine', 'motor', 'chip', 'hull', 'barrel', 'core', 'laser', 'mortar', 'rapid', 'heavy', 'mech'];
+  const WINNER_CRATE_POOL = ['plate', 'engine', 'motor', 'chip', 'hull', 'barrel', 'core', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'rapid', 'heavy', 'mech'];
   const SCRAP_CRATES = [
     { id: 'patch', name: 'Scrap Patch Kit', text: 'Free field repair (−30 damage, or +2 credits if no robot needs repair).', patch: 30 },
     { id: 's_plate', name: 'Salvaged Plate', text: '+1 Armour on a robot (or +2 credits if maxed).', stat: 'armor' },
@@ -396,27 +529,26 @@ th { background: var(--soft); font-weight: 600; }
   let botId = 0;
   function mkRobot(name, b) { return { id: ++botId, name, b: clone(b), dmg: 0, wins: 0 }; }
   function newGame() {
-    const names = shuffle(Object.keys(PRESETS).concat(Object.keys(PRESETS)));
     G = {
-      round: 1, phase: 'sponsor', host: -1, lastHost: -1,
+      round: 1, phase: 'sponsor', draftPick: 1, starterDeck: shuffle(Object.keys(STARTERS)), starterChoices: [],
+      host: -1, lastHost: -1,
       teams: TEAMS.map((t, i) => ({ ...t, i, sponsor: null, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
       deck: shuffle(SCHEME_DECK.slice()), lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
       fight: null, over: false,
     };
-    for (const t of G.teams) for (let k = 0; k < 2; k++) { let n = names.pop(); t.robots.push(mkRobot(n, PRESETS[n])); }
     $('#log').innerHTML = '';
-    log('Each team starts with 2 robots, 8 credits, 3 mechanics and 4 fame. First to ' + WIN_FAME + ' fame wins.');
+    log('Opening Setup: Choose your Team Sponsor, then draft 2 stock robots (1 of 3 twice) from the 9-robot Starter Deck. First to ' + WIN_FAME + ' fame wins.');
     renderPickSponsor();
   }
   function renderPickSponsor() {
-    let h = '<h2>Choose your Team Sponsor</h2><p>Each sponsor backs your garage with one special rule for the whole game. The 3 AI teams will draft from the remaining sponsors.</p><div class="cards">';
+    let h = '<h2>Step 1 of 3 — Choose your Team Sponsor</h2><p>Each sponsor backs your garage with one special rule for the whole game. Next, you and the 3 AI teams will draft 2 stock robots from the 9-card Starter Deck.</p><div class="cards">';
     for (const id in SPONSORS) {
       const sp = SPONSORS[id];
       h += '<button class="card" data-sp="' + id + '" style="width:230px"><span class="k">' + esc(sp.tag) + '</span><b>' + esc(sp.name) + '</b><span class="muted">' + esc(sp.text) + '</span></button>';
     }
-    h += '</div><div class="row"><button id="randSp">Random sponsor</button></div>';
+    h += '</div><div class="row"><button id="randSp">Random sponsor</button><button id="quickStart">Quick-Start (Random Sponsor & Draft)</button></div>';
     panel(h);
-    const choose = mySp => {
+    const choose = (mySp, autoDraft) => {
       const rest = shuffle(Object.keys(SPONSORS).filter(k => k !== mySp));
       G.teams.forEach((t, i) => {
         t.sponsor = i === 0 ? mySp : rest[i - 1];
@@ -424,10 +556,81 @@ th { background: var(--soft); font-weight: 600; }
       });
       log('You sign with <b>' + esc(SPONSORS[mySp].name) + '</b> (' + esc(SPONSORS[mySp].text) + ').', 'me');
       for (const t of G.teams) if (!t.human) log(tname(t.i) + ' is backed by <b>' + esc(SPONSORS[t.sponsor].name) + '</b>.');
-      startRound();
+      G.phase = 'draft';
+      G.draftPick = 1;
+      dealStarterChoicesDom();
+      if (autoDraft) {
+        pickStarterDom(G.starterChoices[0], true);
+        pickStarterDom(G.starterChoices[0], true);
+      } else {
+        renderStarterDraft();
+      }
     };
-    $('#panel').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => choose(b.dataset.sp));
-    $('#randSp').onclick = () => choose(pick(Object.keys(SPONSORS)));
+    $('#panel').querySelectorAll('[data-sp]').forEach(b => b.onclick = () => choose(b.dataset.sp, false));
+    $('#randSp').onclick = () => choose(pick(Object.keys(SPONSORS)), false);
+    $('#quickStart').onclick = () => choose(pick(Object.keys(SPONSORS)), true);
+  }
+  function dealStarterChoicesDom() {
+    G.starterDeck = shuffle(G.starterDeck);
+    G.starterChoices = G.starterDeck.splice(0, 3);
+  }
+  function aiDraftOneStarterDom(ti) {
+    G.starterDeck = shuffle(G.starterDeck);
+    const hand = G.starterDeck.splice(0, 3);
+    const otherNames = [];
+    for (const ot of G.teams) if (ot.i !== ti) for (const r of ot.robots) if (SMATRIX[r.name]) otherNames.push(r.name);
+    let bestIdx = 0, bestScore = -1;
+    hand.forEach((name, idx) => {
+      const row = SMATRIX[name] || {};
+      const score = otherNames.length
+        ? otherNames.reduce((a, on) => a + (row[on] ?? 50), 0) / otherNames.length
+        : starterOverallAvg(name);
+      if (score > bestScore) { bestScore = score; bestIdx = idx; }
+    });
+    const chosen = hand.splice(bestIdx, 1)[0];
+    G.starterDeck.push(...hand);
+    G.starterDeck = shuffle(G.starterDeck);
+    G.teams[ti].robots.push(mkRobot(chosen, STARTERS[chosen]));
+    log(tname(ti) + ' drafts <b>' + esc(chosen) + '</b>.');
+  }
+  function pickStarterDom(chosenName, silentRender) {
+    if (!G.starterChoices.includes(chosenName)) return;
+    const unpicked = G.starterChoices.filter(n => n !== chosenName);
+    G.starterDeck.push(...unpicked);
+    G.starterDeck = shuffle(G.starterDeck);
+    G.teams[0].robots.push(mkRobot(chosenName, STARTERS[chosenName]));
+    log('You draft <b>' + esc(chosenName) + '</b> (' + esc(STARTERS[chosenName].desc) + ').', 'me');
+    for (let ti = 1; ti < G.teams.length; ti++) aiDraftOneStarterDom(ti);
+    if (G.draftPick === 1) {
+      G.draftPick = 2;
+      dealStarterChoicesDom();
+      if (!silentRender) renderStarterDraft();
+    } else {
+      G.starterChoices = [];
+      startRound();
+    }
+  }
+  function renderStarterDraft() {
+    const stepNum = G.draftPick === 1 ? 2 : 3;
+    let h = '<h2>Step ' + stepNum + ' of 3 — Starter Deck Draft (Pick ' + G.draftPick + ' of 2)</h2>';
+    h += '<p>All 9 stock <code>s1.</code> starter robots spend 11 stat points (capped at level 3) so upgrades from the Market matter right away. Pick 1 of the 3 dealt cards below; the 2 unpicked cards return to the Starter Deck and reshuffle before the next pick.</p><div class="cards">';
+    G.starterChoices.forEach(name => {
+      const st = STARTERS[name];
+      const vsAvg = starterVsTableAvg(name);
+      const overall = starterOverallAvg(name);
+      const hasRivals = G.teams.some(t => !t.human && t.robots.length > 0);
+      const badge = hasRivals ? (vsAvg + '% avg vs table · ' + overall + '% overall') : (overall + '% 1v1 deck avg');
+      const statsLine = Sim.STATS.map(k => SHORT[k] + st.lv[k]).join(' · ');
+      h += '<button class="card" data-st="' + esc(name) + '" style="width:245px">' +
+        '<span class="k">' + esc(badge) + '</span>' +
+        '<b>' + esc(name) + '</b>' +
+        '<span style="font-size:12px">' + esc(st.desc) + '</span>' +
+        '<span class="muted">' + Sim.LV.hp[st.lv.hp] + ' HP · ' + esc(statsLine) + '</span>' +
+        '</button>';
+    });
+    h += '</div>';
+    panel(h);
+    $('#panel').querySelectorAll('[data-st]').forEach(b => b.onclick = () => pickStarterDom(b.dataset.st, false));
   }
   const me = () => G.teams[0];
   const tname = i => '<b style="color:' + G.teams[i].col + '">' + esc(G.teams[i].name) + '</b>';
@@ -451,7 +654,7 @@ th { background: var(--soft); font-weight: 600; }
   // ---------- render ----------
   const PHASES = [['upkeep', 'Upkeep'], ['intrigue', 'Intrigue'], ['market', 'Market'], ['arena', 'Arena'], ['bets', 'Bets'], ['fight', 'Fight'], ['after', 'Aftermath']];
   function renderTop() {
-    $('#roundLbl').textContent = G.phase === 'sponsor' ? 'Setup' : 'Round ' + G.round;
+    $('#roundLbl').textContent = (G.phase === 'sponsor' || G.phase === 'draft') ? 'Setup' : 'Round ' + G.round;
     $('#phases').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
     $('#teams').innerHTML = G.teams.map(t => {
       const sp = t.sponsor && SPONSORS[t.sponsor];
@@ -755,14 +958,18 @@ th { background: var(--soft); font-weight: 600; }
     if (L.mech) { t.mechs++; return; }
     if (L.robot) {
       if (t.robots.length >= 3) { t.credits += 2; log(tname(ti) + '\'s garage is full; they sell the robot on for 2.'); return; }
-      const n = pick(Object.keys(PRESETS)); t.robots.push(mkRobot(n, PRESETS[n])); return;
+      if (!G.starterDeck || !G.starterDeck.length) G.starterDeck = shuffle(Object.keys(STARTERS));
+      const n = G.starterDeck.pop();
+      t.robots.push(mkRobot(n, STARTERS[n]));
+      return;
     }
     if (!r) return;
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.weapon) r.b.weapon = L.weapon;
     if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
-    if (L.weapon === 'laser') r.b.range = 'mid';
+    if (L.weapon === 'laser' || L.weapon === 'saw') r.b.range = 'mid';
     if (L.weapon === 'mortar') r.b.range = 'long';
+    if (L.weapon === 'spinner' || L.weapon === 'flame') r.b.range = 'short';
   }
   function renderInstall() {
     if (checkWin()) return;
@@ -923,17 +1130,37 @@ th { background: var(--soft); font-weight: 600; }
     const col = s => G.teams[F.teams[s]].col;
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
     for (const q of B.bullets) { ctx.fillStyle = col(q.owner); ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.6 + Math.sqrt(q.dmg) * 0.6), 0, 7); ctx.fill(); }
+    for (const q of (B.saws || [])) {
+      ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.spin);
+      ctx.strokeStyle = col(q.owner); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, q.r, 0, 7); ctx.stroke();
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * (q.r - 3), Math.sin(a) * (q.r - 3)); ctx.lineTo(Math.cos(a + 0.2) * (q.r + 4), Math.sin(a + 0.2) * (q.r + 4)); ctx.stroke(); }
+      ctx.restore();
+    }
     for (const q of B.shells) {
       const u = q.t / q.T;
       ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(q.tx, q.ty, 45, 0, 7); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = col(q.owner); ctx.beginPath(); ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, 7); ctx.fill();
     }
-    for (const b of B.bots) if (b.beam && b.hp > 0) { ctx.strokeStyle = col(b.i); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20); ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280); ctx.stroke(); }
+    for (const b of B.bots) {
+      if (b.beam && b.hp > 0) { ctx.strokeStyle = col(b.i); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20); ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280); ctx.stroke(); }
+      if (b.flame && b.hp > 0) {
+        ctx.save(); ctx.fillStyle = col(b.i); ctx.globalAlpha = 0.22;
+        ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.arc(b.x, b.y, 130, b.turret - 0.42, b.turret + 0.42); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
     for (const b of B.bots) {
       ctx.save(); ctx.translate(b.x, b.y);
       if (b.hp <= 0) {
         ctx.rotate(b.body); ctx.strokeStyle = col(b.i); ctx.lineWidth = 2; ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
         ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, 15); ctx.moveTo(15, -15); ctx.lineTo(-15, 15); ctx.stroke(); ctx.restore(); continue;
+      }
+      if (b.s.weapon === 'spinner') {
+        ctx.save(); ctx.rotate(b.spinA || 0); ctx.strokeStyle = col(b.i); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, SIZE * 0.72, 0, 7); ctx.stroke();
+        for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(a) * SIZE * 0.65, Math.sin(a) * SIZE * 0.65); ctx.lineTo(Math.cos(a + 0.18) * SIZE * 0.85, Math.sin(a + 0.18) * SIZE * 0.85); ctx.stroke(); }
+        ctx.restore();
       }
       ctx.save(); ctx.rotate(b.body); ctx.fillStyle = col(b.i); ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1; ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE); ctx.globalAlpha = 1;
       const ar = Sim.LV.armor.indexOf(b.s.armor);
@@ -942,8 +1169,11 @@ th { background: var(--soft); font-weight: 600; }
       ctx.rotate(b.turret); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.fill();
       ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, 7); ctx.fill();
       const w = b.s.weapon, cal = b.s.cal;
-      if (w === 'mortar') ctx.fillRect(0, -5, 16, 10); else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
-      else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
+      if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
+      else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
+      else if (w === 'saw') { ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(16, 0, 6, 0, 7); ctx.stroke(); }
+      else if (w === 'flame') { ctx.fillRect(0, -4, 18, 8); }
+      else if (w !== 'spinner') ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
       ctx.restore();
       ctx.fillStyle = col(b.i); ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(F.robots[b.i].name, b.x, b.y - 31);
