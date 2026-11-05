@@ -1633,8 +1633,8 @@ html, body {
    * the entire compound fits in 1080x620 and renders at near 1:1 crisp scale! */
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
-    const fitW = (sw - 40) / 1090;
-    const fitH = (sh - 165) / 635;
+    const fitW = (sw - 36) / 1140;
+    const fitH = (sh - 160) / 665;
     return Math.max(0.52, Math.min(1.04, Math.min(fitW, fitH)));
   }
 
@@ -1650,7 +1650,7 @@ html, body {
     if (mode === 'arena') {
       cam.tx = 0; cam.ty = 0; cam.tzoom = getArenaZoom();
     } else {
-      cam.tx = 0; cam.ty = 26; cam.tzoom = getCompoundZoom();
+      cam.tx = 0; cam.ty = -4; cam.tzoom = getCompoundZoom();
     }
   }
 
@@ -2175,15 +2175,15 @@ html, body {
     const ax = 0;
     const ay = lerp(-68, 0, u);
     // At u=0:
-    // - Central Stage spans y: -178 .. +42
-    // - North Strip spans y: -276 .. -198 (20px corridor to -178)
-    // - West/East Strips span y: -248 .. +42 (bottom is flush with Stage bottom +42!)
-    // - South Command Garage spans y: +64 .. +332 (22px clear gap below Stage & West/East Strips!)
+    // - Central Stage spans x: -310 .. +310, y: -178 .. +42
+    // - North Opponent Garage (620x124) spans x: -310 .. +310, y: -318 .. -194 (16px corridor to -178)
+    // - West/East Opponent Garages (236x360) span x: -562 .. -326 and +326 .. +562, y: -318 .. +42 (top flush with North -318, bottom flush with Stage +42!)
+    // - South Command Garage (1124x268) spans x: -562 .. +562, y: +62 .. +330 (20px clear corridor below Stage & West/East!)
     const slots = [
-      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(198, 438, u),  gw: 1048, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
-      { pos: 1, dir: 'W', gx: lerp(-428, -568, u), gy: lerp(-103, 0, u),  gw: 192,  gh: 290, doorX: -aw / 2, doorY: ay          },
-      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-237, -342, u),gw: 620,  gh: 78,  doorX: 0,       doorY: ay - ah / 2 },
-      { pos: 3, dir: 'E', gx: lerp(428, 568, u),   gy: lerp(-103, 0, u),  gw: 192,  gh: 290, doorX: aw / 2,  doorY: ay          },
+      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(196, 436, u),  gw: 1124, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
+      { pos: 1, dir: 'W', gx: lerp(-444, -590, u), gy: lerp(-138, 0, u),  gw: 236,  gh: 360, doorX: -aw / 2, doorY: ay          },
+      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-256, -360, u),gw: 620,  gh: 124, doorX: 0,       doorY: ay - ah / 2 },
+      { pos: 3, dir: 'E', gx: lerp(444, 590, u),   gy: lerp(-138, 0, u),  gw: 236,  gh: 360, doorX: aw / 2,  doorY: ay          },
     ];
     return { ax, ay, aw, ah, slots };
   }
@@ -2193,14 +2193,14 @@ html, body {
 
   // Minimalist 2-column visual stat bars (uses exact Sim.STATS keys: armor, speed, turret, fp, acc, bullet)
   const STAT_BARS_LEFT  = [
-    { k: 'armor',  lbl: 'ARMOUR' },
-    { k: 'speed',  lbl: 'SPEED'  },
-    { k: 'turret', lbl: 'TURRET' },
+    { k: 'armor',  lbl: 'ARMOUR',   short: 'ARM' },
+    { k: 'speed',  lbl: 'SPEED',    short: 'SPD' },
+    { k: 'turret', lbl: 'TURRET',   short: 'TUR' },
   ];
   const STAT_BARS_RIGHT = [
-    { k: 'fp',     lbl: 'FIREPWR'  },
-    { k: 'acc',    lbl: 'ACCURACY' },
-    { k: 'bullet', lbl: 'VELOCITY' },
+    { k: 'fp',     lbl: 'FIREPWR',  short: 'FPW' },
+    { k: 'acc',    lbl: 'ACCURACY', short: 'ACC' },
+    { k: 'bullet', lbl: 'VELOCITY', short: 'VEL' },
   ];
 
   function drawBar(ctx, x, y, w, h, frac, fillCol, bgCol = '#e6e3da', ticks = 0) {
@@ -2610,10 +2610,10 @@ html, body {
     ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x0, y0 + 40); ctx.lineTo(x0 + slot.gw, y0 + 40); ctx.stroke();
 
-    // --- 3 Minimalist Robot Bay Cards (330 x 210 each) ---
+    // --- 3 Minimalist Robot Bay Cards (354 x 210 each inside 1124px South Garage) ---
     for (let bIdx = 0; bIdx < 3; bIdx++) {
-      const bw = 330, bh = 210;
-      const bx = x0 + 14 + bIdx * 345;
+      const bw = 354, bh = 210;
+      const bx = x0 + 16 + bIdx * 369;
       const by = y0 + 46;
       const r = t.robots[bIdx];
       const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
@@ -2661,7 +2661,7 @@ html, body {
         ctx.beginPath(); ctx.arc(dx, dy, 3.2, 0, Math.PI * 2); ctx.fill();
       });
 
-      // 2. Top-Right Identity, Weapon & Filled HP Bar (bx + 74 .. bx + 318)
+      // 2. Top-Right Identity, Weapon & Filled HP Bar (bx + 74 .. bx + bw - 12)
       const fav = r.wins >= favWins(t);
       const winStr = r.wins ? '  ' + '★'.repeat(Math.min(3, r.wins)) : '';
       ctx.fillStyle = '#111'; ctx.font = '900 14.5px system-ui, sans-serif'; ctx.textAlign = 'left';
@@ -2673,7 +2673,7 @@ html, body {
 
       // Clean Filled HP Bar
       const hpCol = hpFrac > 0.5 ? '#2a9d3a' : hpFrac > 0.25 ? '#d99000' : '#d62828';
-      drawBar(ctx, bx + 74, by + 30, 166, 8, hpFrac, hpCol, '#e6e3da', 0);
+      drawBar(ctx, bx + 74, by + 30, 190, 8, hpFrac, hpCol, '#e6e3da', 0);
       ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
       ctx.fillText(`${curHp}/${maxHp(r)} HP`, bx + bw - 12, by + 38);
 
@@ -2716,14 +2716,14 @@ html, body {
         const lv = r.b.lv?.[st.k] || 0;
         ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
         ctx.fillText(st.lbl, bx + 12, ry + 7.5);
-        drawBar(ctx, bx + 68, ry, 86, 8, lv / 4, t.col, '#e6e3da', 4);
+        drawBar(ctx, bx + 70, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
       });
       STAT_BARS_RIGHT.forEach((st, idx) => {
         const ry = by + 76 + idx * 17;
         const lv = r.b.lv?.[st.k] || 0;
         ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(st.lbl, bx + 170, ry + 7.5);
-        drawBar(ctx, bx + 232, ry, 86, 8, lv / 4, t.col, '#e6e3da', 4);
+        ctx.fillText(st.lbl, bx + 182, ry + 7.5);
+        drawBar(ctx, bx + 246, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
       });
 
       // 4. Strain, Filled Risk Bar & Engineer Stepper (by + 132 .. by + 168)
@@ -2746,7 +2746,7 @@ html, body {
       ctx.fillText(`Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 68, sbY + 14);
 
       // Clean Filled Reliability / Risk Bar
-      drawBar(ctx, sbX + 8, sbY + 21, 184, 7, riskFrac, riskCol, '#e2dfd7', 0);
+      drawBar(ctx, sbX + 8, sbY + 21, 206, 7, riskFrac, riskCol, '#e2dfd7', 0);
 
       // Engineer Stepper: [−] 1 ENG [+]
       const emX = sbX + sbW - 102, emY = sbY + 6, eBtnW = 22, eBtnH = 24;
@@ -2774,26 +2774,26 @@ html, body {
       // 5. Bottom Tactical Controls Row (3 Non-Overlapping Pills, by + 175 .. by + 199)
       const btnY = by + 175, btnH = 24;
 
-      // Pill 1: Range (w: 84)
-      const rngX = bx + 12, rngW = 84;
+      // Pill 1: Range (w: 92)
+      const rngX = bx + 12, rngW = 92;
       ctx.fillStyle = '#f5f3ec'; ctx.fillRect(rngX, btnY, rngW, btnH);
       ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(rngX, btnY, rngW, btnH);
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Range: ${r.b.range} ↻`, rngX + rngW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'range_toggle', robot: r, x: rngX, y: btnY, w: rngW, h: btnH });
 
-      // Pill 2: Secret Module (w: 128)
-      const modX = bx + 102, modW = 128;
+      // Pill 2: Secret Module (w: 136)
+      const modX = bx + 110, modW = 136;
       ctx.fillStyle = '#f5f3ec'; ctx.fillRect(modX, btnY, modW, btnH);
       ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(modX, btnY, modW, btnH);
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'} ↻`, modX + modW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'mod_cycle', robot: r, x: modX, y: btnY, w: modW, h: btnH });
 
-      // Pill 3: Target Focus (w: 82)
+      // Pill 3: Target Focus (w: 90)
       const foc = r.b.focus || 'main';
       const focLbl = foc === 'main' ? 'Main' : foc === 'medics' ? 'Medics' : 'Drones';
-      const focX = bx + 236, focW = 82;
+      const focX = bx + 252, focW = 90;
       ctx.fillStyle = '#f5f3ec'; ctx.fillRect(focX, btnY, focW, btnH);
       ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(focX, btnY, focW, btnH);
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
@@ -2802,7 +2802,7 @@ html, body {
     }
   }
 
-  /* ---------- Opponent Slim Reconnaissance Strips (Pos 1 West, Pos 2 North, Pos 3 East) ---------- */
+  /* ---------- Opponent Reconnaissance Garages (Pos 1 West, Pos 2 North, Pos 3 East) ---------- */
   function drawSlimOpponentGarage(ctx, slot, ti, t, now) {
     const x0 = slot.gx - slot.gw / 2, y0 = slot.gy - slot.gh / 2;
     const horiz = slot.dir === 'N';
@@ -2826,33 +2826,33 @@ html, body {
     const badges = (G.host === ti ? ' [HOST]' : '') + (Object.keys(t.tamper).length ? ' [!]' : '');
 
     if (horiz) {
-      // North Opponent Strip (620 x 78)
+      // North Opponent Garage (620 x 124)
       ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(`${t.name} · ${sp.name}${badges}`, x0 + 10, y0 + 18);
 
       ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
       ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + slot.gw - 10, y0 + 18);
 
-      // 3 Compact Horizontal Recon Cards (196 x 46)
+      // 3 Recon Cards with Full 6-Stat Filled Bars (196 x 92 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
-        const bw = 196, bh = 46;
+        const bw = 196, bh = 92;
         const bx = x0 + 10 + bIdx * 202, by = y0 + 25;
         drawCompactOpponentBay(ctx, slot, ti, t, t.robots[bIdx], bIdx, bx, by, bw, bh, now);
       }
     } else {
-      // West / East Opponent Strips (192 x 290)
+      // West / East Opponent Garages (236 x 360)
       ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(`${t.name}${badges}`, x0 + 10, y0 + 18);
       ctx.fillStyle = '#666'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(sp.name.split(' ')[0], x0 + slot.gw - 10, y0 + 18);
+      ctx.fillText(sp.name, x0 + slot.gw - 10, y0 + 18);
 
       ctx.fillStyle = '#444'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + 10, y0 + 32);
 
-      // 3 Compact Vertical Recon Cards (172 x 76)
+      // 3 Recon Cards with Full 6-Stat Filled Bars (216 x 98 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
-        const bw = slot.gw - 20, bh = 76;
-        const bx = x0 + 10, by = y0 + 40 + bIdx * 81;
+        const bw = slot.gw - 20, bh = 98;
+        const bx = x0 + 10, by = y0 + 40 + bIdx * 104;
         drawCompactOpponentBay(ctx, slot, ti, t, t.robots[bIdx], bIdx, bx, by, bw, bh, now);
       }
     }
@@ -2874,46 +2874,70 @@ html, body {
     hitRegions.push({ kind: 'bay', team: ti, bayIdx: bIdx, robot: r, x: bx, y: by, w: bw, h: bh });
 
     if (inArenaNow) {
-      ctx.fillStyle = t.col; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = t.col; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('IN ARENA PIT', bx + bw / 2, by + bh / 2 + 4);
       return;
     }
 
     const curHp = Math.max(0, maxHp(r) - r.dmg);
     const hpFrac = curHp / maxHp(r);
-    const st = Sim.strainOf(r.b).total;
+    const rk = Sim.riskOf(r.b);
     const wep = r.b.weapon === 'gun' ? `${r.b.cal || 'med'} gun` : r.b.weapon;
+    const helpers = r.b.helpers || [];
 
-    if (slot.dir === 'N') {
-      // Horizontal 196x46 card
-      drawRobotSprite(ctx, bx + 20, by + 25, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.58);
-      ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 40, by + 15);
-      ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(`${wep} · ${r.b.range}`, bx + bw - 6, by + 15);
+    // 1. Mini Blueprint Sprite Box (28 x 28) at top-left
+    const px = bx + 6, py = by + 5, ps = 28;
+    ctx.fillStyle = '#f3f1ea';
+    ctx.fillRect(px, py, ps, ps);
+    ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, ps, ps);
+    drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54);
 
-      drawBar(ctx, bx + 40, by + 21, bw - 46, 5, hpFrac, t.col, '#e6e3da', 0);
+    // 2. Top-Right Name, Weapon/Range & Filled HP Bar (bx + 40 .. bx + bw - 6)
+    ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 40, by + 15);
 
-      ctx.fillStyle = '#555'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`Strain ${st}  ·  Drones: ${(r.b.helpers || []).length}`, bx + 40, by + 39);
-    } else {
-      // Vertical 172x76 card
-      drawRobotSprite(ctx, bx + 22, by + 23, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.60);
-      ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 44, by + 17);
-      ctx.fillStyle = '#666'; ctx.font = '600 10px system-ui, sans-serif';
-      ctx.fillText(`${wep} · ${r.b.range}`, bx + 44, by + 31);
+    ctx.fillStyle = '#666'; ctx.font = '700 9px system-ui, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(`${wep} · ${r.b.range}`, bx + bw - 6, by + 15);
 
-      // Clean HP Bar + Strain Bar
-      ctx.fillStyle = '#444'; ctx.font = '700 9px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText('HP', bx + 8, by + 50);
-      drawBar(ctx, bx + 28, by + 43, bw - 36, 6, hpFrac, t.col, '#e6e3da', 0);
+    const hpCol = hpFrac > 0.5 ? '#2a9d3a' : hpFrac > 0.25 ? '#d99000' : '#d62828';
+    const hpBarW = bw - 88;
+    drawBar(ctx, bx + 40, by + 22, hpBarW, 6.5, hpFrac, hpCol, '#e6e3da', 0);
+    ctx.fillStyle = '#222'; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(`${curHp}/${maxHp(r)}`, bx + bw - 6, by + 28.5);
 
-      ctx.fillText('STR', bx + 8, by + 64);
-      drawBar(ctx, bx + 28, by + 57, bw - 82, 6, Math.min(1, st / 8), '#d99000', '#e6e3da', 4);
-      ctx.fillStyle = '#666'; ctx.textAlign = 'right';
-      ctx.fillText(`Mod: ?`, bx + bw - 8, by + 64);
-    }
+    // 3. Full 6-Stat Filled Bar Grid (2 Columns x 3 Rows: ARM, SPD, TUR | FPW, ACC, VEL)
+    const colW = Math.floor((bw - 16) / 2);
+    const barW = colW - 26;
+    STAT_BARS_LEFT.forEach((st, idx) => {
+      const ry = by + 39 + idx * 11.5;
+      const lv = r.b.lv?.[st.k] || 0;
+      ctx.fillStyle = '#444'; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(st.short, bx + 6, ry + 6);
+      drawBar(ctx, bx + 30, ry, barW, 6.5, lv / 4, t.col, '#e6e3da', 4);
+    });
+    STAT_BARS_RIGHT.forEach((st, idx) => {
+      const ry = by + 39 + idx * 11.5;
+      const lv = r.b.lv?.[st.k] || 0;
+      const rx = bx + 10 + colW;
+      ctx.fillStyle = '#444'; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(st.short, rx, ry + 6);
+      drawBar(ctx, rx + 24, ry, barW, 6.5, lv / 4, t.col, '#e6e3da', 4);
+    });
+
+    // 4. Bottom Recon Footer Strip: Strain, Engineers, Drones & Hidden Mod
+    const fy = by + 74, fh = bh - 78;
+    ctx.fillStyle = '#f3f1ea';
+    ctx.fillRect(bx + 4, fy, bw - 8, fh);
+
+    const glitchPct = Math.round((rk.glitch || 0) * 100);
+    const riskCol = glitchPct < 15 ? '#2a9d3a' : glitchPct < 30 ? '#b45309' : '#d62828';
+    ctx.fillStyle = riskCol; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`STR ${rk.strain} (${rk.eng}E · ${glitchPct}%)`, bx + 8, fy + fh / 2 + 3);
+
+    const dLbl = helpers.length ? helpers.map(h => (Sim.HELPERS[h]?.name || h).split(' ')[0]).join(',') : '0';
+    ctx.fillStyle = '#555'; ctx.font = '600 8.5px system-ui, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(`Drn:${dLbl} · Mod:?`, bx + bw - 8, fy + fh / 2 + 3);
   }
 
   function drawMarketOnArena(ctx, L) {
