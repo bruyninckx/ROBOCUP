@@ -33,6 +33,9 @@ Working title of the rough prototype: "Scrapyard Dominus" (https://claude.ai/art
 - Aftermath Crates: Winner picks **1 of 3** rewards from the **Winner's Crate** (parts, retrofits, or a mechanic); Loser receives a consolation **Scrap Crate** (2 Scrap Crates for Vulture Salvage) containing field repairs, salvaged stat parts, or intrigue/credits.
 - First to 12 fame. A scripted run ended in round 9.
 
+## Starter deck (decided 2026-11-05)
+Each team drafts 2 starters (see 3, keep 1, twice) from a deck of 9 stock robots with 11 stat points and stats up to level 3 (4 guns, laser, mortar, saw blades, flamethrower, spinner). Upgrade cards build from there. Details: `docs/starter-deck.md`.
+
 ## Fight recap (sandbox 2026-11-04)
 After every fight a short recap: knockouts (who, by what), broken parts, malfunctions, big crits and finishing crits, flanks (damage taken on the blind side, away from where the turret points), module moments (EMP, decoy, smoke, first flip), drones shot down, the turning point (when the winner took the health lead for good), comebacks, and an UPSET! flag when the bookie had the winner as Underdog or Long shot. `Sim.recap(B, nameOf, teamName)` returns it as data so the main game can reuse it (aftermath, banter, fame bonuses).
 

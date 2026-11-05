@@ -98,6 +98,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   <h3>Who beats whom (1 vs 1)</h3>
   <p class="note">Row against column, 200 simulated fights each. Click a cell to load that duel. The last ten robots use drives, processors and the newer modules.</p>
   <div class="tbl"><table id="tbl"></table></div>
+  <h3>Starter deck (1 vs 1)</h3>
+  <p class="note">The 9 robots players draft at the start of a game (see 3, keep 1, twice). 11 stat points, no stat above level 3, stock wheels and controller, no module or helpers: everything else comes from upgrade cards. Level 4 in speed, turret or firepower adds overdrive strain, so upgrades are where engineers start to matter. Row against column, 200 fights each.</p>
+  <div class="tbl"><table id="tbl2"></table></div>
   <ul class="note">
     <li>With 3 or 4 robots each one shoots its nearest enemy and switches when another gets clearly closer. Friendly fire is on: stray bullets, mortar splash (the shooter's own too) and the laser hurt teammates. Robots hold fire when a teammate is right in the line of fire, but spread and movement still cause accidents. The laser beam goes through every robot in its path.</li>
     <li>Luck: every hit has a 10% chance to be a critical (double damage).</li>
@@ -1082,6 +1085,20 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     Brawler:    { b: { lv: L(4, 3, 3, 0, 4, 0, 0), range: 'short', weapon: 'gun', cal: 'medium', drive: 'tracks', proc: 'rammer', mod: 'emp' }, d: 'Armoured rammer with a short gun and an EMP. Flattens the Wasp, stopped cold by the Fortress and saw blades.' },
   };
   const MATRIX = {"Bulwark":{"Marksman":0.078,"Dasher":0.125,"Lobber":0.01,"Whirlwind":0.04,"Juggernaut":0,"Railgunner":0.015,"Hookshot":0.035,"Artillery":0.085,"Ricochet":0.105,"Hornet":0.8,"Burner":0.108,"Buzzsaw":0.4,"Torch":0.045,"Sniper":0.085,"Wasp":0,"Slick":0.045,"Fortress":0.78,"Brawler":0.185},"Marksman":{"Bulwark":0.922,"Hornet":0.025,"Burner":1,"Buzzsaw":0.845,"Torch":0.99,"Sniper":0.22,"Wasp":0,"Slick":0.99,"Fortress":0.995,"Brawler":0.02,"Dasher":0.64,"Lobber":0.215,"Whirlwind":0.08,"Juggernaut":0.01,"Railgunner":0.513,"Hookshot":1,"Artillery":0.355,"Ricochet":0.655},"Dasher":{"Bulwark":0.875,"Lobber":0.635,"Whirlwind":0.91,"Juggernaut":0.145,"Railgunner":0.245,"Hookshot":0.325,"Artillery":0.455,"Ricochet":0.383,"Marksman":0.36,"Hornet":0.457,"Burner":0.33,"Buzzsaw":0.62,"Torch":0.333,"Sniper":0.455,"Wasp":0,"Slick":0.338,"Fortress":0.905,"Brawler":0.385},"Lobber":{"Bulwark":0.99,"Dasher":0.365,"Burner":0.867,"Buzzsaw":0.665,"Torch":0.665,"Sniper":0.3,"Wasp":0,"Slick":0.705,"Fortress":0.955,"Brawler":0.1,"Marksman":0.785,"Hornet":0.325,"Whirlwind":0.21,"Juggernaut":0.07,"Railgunner":0.15,"Hookshot":0.735,"Artillery":0.31,"Ricochet":0.565},"Whirlwind":{"Bulwark":0.96,"Dasher":0.09,"Burner":0.44,"Juggernaut":0.01,"Railgunner":0.02,"Hookshot":0.11,"Artillery":0.83,"Ricochet":0.005,"Marksman":0.92,"Hornet":1,"Lobber":0.79,"Buzzsaw":0.26,"Torch":0.74,"Sniper":0.3,"Wasp":0.8,"Slick":0.23,"Fortress":0.875,"Brawler":1},"Juggernaut":{"Bulwark":1,"Dasher":0.855,"Burner":0.99,"Whirlwind":0.99,"Torch":0.995,"Sniper":0.945,"Wasp":0.995,"Slick":0.84,"Fortress":0.955,"Brawler":1,"Marksman":0.99,"Hornet":0.995,"Lobber":0.93,"Buzzsaw":0.9,"Railgunner":0.36,"Hookshot":0.96,"Artillery":0.975,"Ricochet":0.27},"Railgunner":{"Bulwark":0.985,"Dasher":0.755,"Burner":1,"Whirlwind":0.98,"Torch":0.965,"Hookshot":0.905,"Artillery":0.91,"Ricochet":0.975,"Marksman":0.487,"Hornet":0.085,"Lobber":0.85,"Buzzsaw":0.925,"Juggernaut":0.64,"Sniper":0.85,"Wasp":0.603,"Slick":0.915,"Fortress":1,"Brawler":0.39},"Hookshot":{"Bulwark":0.965,"Dasher":0.675,"Burner":0.41,"Whirlwind":0.89,"Torch":0.83,"Railgunner":0.095,"Wasp":0.105,"Slick":0.835,"Fortress":0.685,"Brawler":0.465,"Marksman":0,"Hornet":0.735,"Lobber":0.265,"Buzzsaw":0.137,"Juggernaut":0.04,"Sniper":0.01,"Artillery":0.445,"Ricochet":0.17},"Artillery":{"Bulwark":0.915,"Dasher":0.545,"Burner":0.82,"Whirlwind":0.17,"Torch":0.49,"Railgunner":0.09,"Wasp":0,"Ricochet":0.478,"Marksman":0.645,"Hornet":0.325,"Lobber":0.69,"Buzzsaw":0.72,"Juggernaut":0.025,"Sniper":0.125,"Hookshot":0.555,"Slick":0.57,"Fortress":0.925,"Brawler":0.04},"Ricochet":{"Bulwark":0.895,"Dasher":0.617,"Burner":0.122,"Whirlwind":0.995,"Torch":0.915,"Railgunner":0.025,"Wasp":0.005,"Artillery":0.522,"Fortress":1,"Brawler":0.93,"Marksman":0.345,"Hornet":0.535,"Lobber":0.435,"Buzzsaw":0.785,"Juggernaut":0.73,"Sniper":0.29,"Hookshot":0.83,"Slick":0.905},"Hornet":{"Marksman":0.975,"Burner":1,"Buzzsaw":0.973,"Torch":0.468,"Sniper":0.905,"Wasp":0,"Slick":0.613,"Fortress":0.995,"Brawler":0,"Bulwark":0.2,"Dasher":0.543,"Lobber":0.675,"Whirlwind":0,"Juggernaut":0.005,"Railgunner":0.915,"Hookshot":0.265,"Artillery":0.675,"Ricochet":0.465},"Burner":{"Marksman":0,"Hornet":0,"Lobber":0.133,"Whirlwind":0.56,"Juggernaut":0.01,"Railgunner":0,"Hookshot":0.59,"Artillery":0.18,"Ricochet":0.878,"Bulwark":0.892,"Dasher":0.67,"Buzzsaw":0.895,"Torch":0.66,"Sniper":0,"Wasp":0.025,"Slick":0.64,"Fortress":1,"Brawler":0.43},"Buzzsaw":{"Marksman":0.155,"Hornet":0.027,"Lobber":0.335,"Torch":0.815,"Sniper":0.35,"Wasp":0,"Slick":0.85,"Fortress":0.985,"Brawler":0.355,"Bulwark":0.6,"Dasher":0.38,"Burner":0.105,"Whirlwind":0.74,"Juggernaut":0.1,"Railgunner":0.075,"Hookshot":0.863,"Artillery":0.28,"Ricochet":0.215},"Torch":{"Marksman":0.01,"Hornet":0.532,"Lobber":0.335,"Buzzsaw":0.185,"Juggernaut":0.005,"Railgunner":0.035,"Hookshot":0.17,"Artillery":0.51,"Ricochet":0.085,"Bulwark":0.955,"Dasher":0.667,"Burner":0.34,"Whirlwind":0.26,"Sniper":0.088,"Wasp":0.005,"Slick":0.71,"Fortress":0.465,"Brawler":0.13},"Sniper":{"Marksman":0.78,"Hornet":0.095,"Lobber":0.7,"Buzzsaw":0.65,"Juggernaut":0.055,"Wasp":0,"Slick":0.885,"Fortress":0.995,"Brawler":0.485,"Bulwark":0.915,"Dasher":0.545,"Burner":1,"Whirlwind":0.7,"Torch":0.912,"Railgunner":0.15,"Hookshot":0.99,"Artillery":0.875,"Ricochet":0.71},"Wasp":{"Marksman":1,"Hornet":1,"Lobber":1,"Buzzsaw":1,"Juggernaut":0.005,"Sniper":1,"Hookshot":0.895,"Artillery":1,"Ricochet":0.995,"Bulwark":1,"Dasher":1,"Burner":0.975,"Whirlwind":0.2,"Torch":0.995,"Railgunner":0.397,"Slick":1,"Fortress":1,"Brawler":0.04},"Slick":{"Marksman":0.01,"Hornet":0.387,"Lobber":0.295,"Buzzsaw":0.15,"Juggernaut":0.16,"Sniper":0.115,"Hookshot":0.165,"Fortress":0.473,"Brawler":0.4,"Bulwark":0.955,"Dasher":0.662,"Burner":0.36,"Whirlwind":0.77,"Torch":0.29,"Railgunner":0.085,"Wasp":0,"Artillery":0.43,"Ricochet":0.095},"Fortress":{"Marksman":0.005,"Hornet":0.005,"Lobber":0.045,"Buzzsaw":0.015,"Juggernaut":0.045,"Sniper":0.005,"Hookshot":0.315,"Slick":0.527,"Ricochet":0,"Bulwark":0.22,"Dasher":0.095,"Burner":0,"Whirlwind":0.125,"Torch":0.535,"Railgunner":0,"Wasp":0,"Artillery":0.075,"Brawler":0.96},"Brawler":{"Marksman":0.98,"Hornet":1,"Lobber":0.9,"Buzzsaw":0.645,"Juggernaut":0,"Sniper":0.515,"Hookshot":0.535,"Slick":0.6,"Ricochet":0.07,"Bulwark":0.815,"Dasher":0.615,"Burner":0.57,"Whirlwind":0,"Torch":0.87,"Railgunner":0.61,"Wasp":0.96,"Artillery":0.96,"Fortress":0.04}};
+  // starter deck: what players draft at the start of a game (tuned with simulations to ~46-58% each against the others)
+  const STARTERS = {
+    's1. Scrapper': { b: { lv: L(3, 1, 3, 0, 3, 0, 1), range: 'short', weapon: 'gun', cal: 'medium' }, d: 'Starter. Tough and quick with a medium gun, likes it up close. Beats spinners and mortars, loses to lasers.' },
+    's1. Rattler':  { b: { lv: L(1, 0, 2, 0, 3, 3, 2), range: 'mid', weapon: 'gun', cal: 'rapid' }, d: 'Starter. Accurate rapid-fire bullet hose. Shreds lasers and mortars, bounces off armour.' },
+    's1. Plinker':  { b: { lv: L(0, 2, 1, 0, 3, 2, 3), range: 'long', weapon: 'gun', cal: 'medium' }, d: 'Starter. Armoured long-range gun with fast bullets. Deletes lasers, hates spinners.' },
+    's1. Tin Can': { b: { lv: L(1, 3, 1, 0, 3, 1, 2), range: 'mid', weapon: 'gun', cal: 'medium' }, d: 'Starter. Armour-3 brick with a medium gun. Rapid fire bounces off it; saw blades and spinners chew it up.' },
+    's1. Sparky':   { b: { lv: L(2, 1, 3, 1, 3, 1, 0), range: 'mid', weapon: 'laser', cal: 'medium' }, d: 'Starter. Fast laser that cooks flamethrowers and spinners, but loses to rapid fire and long guns.' },
+    's1. Lobster':  { b: { lv: L(1, 1, 3, 0, 3, 0, 3), range: 'long', weapon: 'mortar', cal: 'medium' }, d: 'Starter. Quick mortar that lobs from far away. Good against slow saw turrets, hates rapid fire.' },
+    's1. Grinder':  { b: { lv: L(1, 2, 0, 0, 3, 3, 2), range: 'mid', weapon: 'saw', cal: 'medium' }, d: 'Starter. Slow, precise saw-blade turret. Beats armour and lasers, gets shredded by spinners.' },
+    's1. Zippo':    { b: { lv: L(0, 3, 3, 2, 3, 0, 0), range: 'short', weapon: 'flame', cal: 'medium' }, d: 'Starter. Armoured, fast flamethrower. Burns spinners and rapid guns, melts to lasers.' },
+    's1. Top':      { b: { lv: L(2, 3, 3, 0, 3, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium' }, d: 'Starter. Armoured spinner. Wrecks saw turrets and long guns, loses to lasers and the Scrapper.' },
+  };
+  const SMATRIX = {"s1. Scrapper":{"s1. Rattler":0.555,"s1. Plinker":0.658,"s1. Tin Can":0.48,"s1. Sparky":0.265,"s1. Lobster":0.735,"s1. Grinder":0.665,"s1. Zippo":0.38,"s1. Top":0.885},"s1. Rattler":{"s1. Scrapper":0.445,"s1. Plinker":0.535,"s1. Tin Can":0.18,"s1. Sparky":1,"s1. Lobster":0.89,"s1. Grinder":0.55,"s1. Zippo":0.305,"s1. Top":0.245},"s1. Plinker":{"s1. Scrapper":0.342,"s1. Rattler":0.465,"s1. Tin Can":0.52,"s1. Sparky":0.98,"s1. Lobster":0.425,"s1. Grinder":0.408,"s1. Zippo":0.66,"s1. Top":0.14},"s1. Tin Can":{"s1. Scrapper":0.52,"s1. Rattler":0.82,"s1. Plinker":0.48,"s1. Sparky":0.753,"s1. Lobster":0.433,"s1. Grinder":0.258,"s1. Zippo":0.435,"s1. Top":0.195},"s1. Sparky":{"s1. Scrapper":0.735,"s1. Rattler":0,"s1. Plinker":0.02,"s1. Tin Can":0.247,"s1. Lobster":0.52,"s1. Grinder":0.155,"s1. Zippo":1,"s1. Top":0.98},"s1. Lobster":{"s1. Scrapper":0.265,"s1. Rattler":0.11,"s1. Plinker":0.575,"s1. Tin Can":0.567,"s1. Sparky":0.48,"s1. Grinder":0.775,"s1. Zippo":0.585,"s1. Top":0.67},"s1. Grinder":{"s1. Scrapper":0.335,"s1. Rattler":0.45,"s1. Plinker":0.592,"s1. Tin Can":0.742,"s1. Sparky":0.845,"s1. Lobster":0.225,"s1. Zippo":0.465,"s1. Top":0.02},"s1. Zippo":{"s1. Scrapper":0.62,"s1. Rattler":0.695,"s1. Plinker":0.34,"s1. Tin Can":0.565,"s1. Sparky":0,"s1. Lobster":0.415,"s1. Grinder":0.535,"s1. Top":0.795},"s1. Top":{"s1. Scrapper":0.115,"s1. Rattler":0.755,"s1. Plinker":0.86,"s1. Tin Can":0.805,"s1. Sparky":0.02,"s1. Lobster":0.33,"s1. Grinder":0.98,"s1. Zippo":0.205}};
+  const ALL = Object.assign({}, PRESETS, STARTERS);
   const NAMES = { hp: 'Health', armor: 'Armour', speed: 'Speed', turret: 'Turret turn', fp: 'Firepower', acc: 'Accuracy', bullet: 'Bullet speed' };
   const UNIT = { hp: '', armor: ' per hit', speed: ' px/s', turret: '°/s', fp: ' dmg/s', acc: '%', bullet: ' px/s' };
   const clone = b => JSON.parse(JSON.stringify(b));
@@ -1118,9 +1135,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const R = sel[i], b = R.b, C = cardOf(i);
     const pts = Sim.cost(b);
     let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + (teamOf(i) ? 'red' : 'blue') + (mode === 'squad' ? ' · ' + C.name : ' team') + '</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
-      (PRESETS[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + opt('Custom', 'Custom', R.name) + '</select>' +
+      (ALL[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + '<optgroup label="Presets">' + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Starter deck">' + Object.keys(STARTERS).map(n => opt(n, n, R.name)).join('') + '</optgroup>' + opt('Custom', 'Custom', R.name) + '</select>' +
       '<span class="pts' + (pts > C.points ? ' over' : '') + '">' + pts + ' / ' + C.points + ' points</span></h2>' +
-      '<p class="desc">' + (PRESETS[R.name] ? PRESETS[R.name].d : R.ex ? 'Example ' + Sim.SQUADS[R.ex].name + ' robot found by the tuning simulations. Stats can go up to level ' + Sim.SQUADS[R.ex].cap + '.' : 'Your own build. Points over the budget are allowed here, just not fair.') + '</p>' +
+      '<p class="desc">' + (ALL[R.name] ? ALL[R.name].d : R.ex ? 'Example ' + Sim.SQUADS[R.ex].name + ' robot found by the tuning simulations. Stats can go up to level ' + Sim.SQUADS[R.ex].cap + '.' : 'Your own build. Points over the budget are allowed here, just not fair.') + '</p>' +
       '<div class="choices">' +
       '<label>Weapon<select data-k="weapon">' + opt('gun', 'Gun', b.weapon) + opt('laser', 'Laser', b.weapon) + opt('mortar', 'Mortar', b.weapon) + opt('saw', 'Saw blades', b.weapon) + opt('spinner', 'Spinner blade', b.weapon) + opt('flame', 'Flamethrower', b.weapon) + opt('railgun', 'Railgun (legendary)', b.weapon) + '</select></label>' +
       '<label>Calibre<select data-k="cal"' + (b.weapon !== 'gun' ? ' disabled' : '') + '>' + opt('rapid', 'Rapid', b.cal) + opt('medium', 'Medium', b.cal) + opt('heavy', 'Heavy', b.cal) + '</select></label>' +
@@ -1152,7 +1169,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const d = document.createElement('div'); d.className = 'rb'; robotsEl.appendChild(d);
     d.addEventListener('change', e => {
       const k = e.target.dataset.k; if (!k && e.target.dataset.h == null) return;
-      if (k === 'preset') { if (PRESETS[e.target.value]) { sel[i] = { name: e.target.value, b: clone(PRESETS[e.target.value].b) }; } else sel[i].name = 'Custom'; }
+      if (k === 'preset') { if (ALL[e.target.value]) { sel[i] = { name: e.target.value, b: clone(ALL[e.target.value].b) }; } else sel[i].name = 'Custom'; }
       else if (k === 'mod') { sel[i].b.mod = e.target.value || null; }
       else if (k === 'focus') { sel[i].b.focus = e.target.value; }
       else if (k === 'eng') { sel[i].b.eng = +e.target.value; }
@@ -1171,31 +1188,33 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     renderRobot(i);
   }
 
-  // matchup table
-  (function () {
-    const names = Object.keys(PRESETS);
+  // matchup tables: all presets, and the starter deck
+  function matchTable(id, P, M) {
+    const names = Object.keys(P);
     let h = '<tr><th></th>' + names.map(n => '<th>' + n + '</th>').join('') + '</tr>';
     for (const a of names) {
       h += '<tr><th>' + a + '</th>';
       for (const b of names) {
         if (a === b) { h += '<td>–</td>'; continue; }
-        const v = Math.round(MATRIX[a][b] * 100);
+        const v = Math.round(M[a][b] * 100);
         h += '<td class="cell ' + (v >= 60 ? 'w' : v <= 40 ? 'l' : '') + '" data-a="' + a + '" data-b="' + b + '">' + v + '%</td>';
       }
       h += '</tr>';
     }
-    const t = document.getElementById('tbl'); t.innerHTML = h;
+    const t = document.getElementById(id); t.innerHTML = h;
     t.addEventListener('click', e => {
       const c = e.target.closest('td.cell'); if (!c) return;
-      sel[0] = { name: c.dataset.a, b: clone(PRESETS[c.dataset.a].b) };
-      sel[1] = { name: c.dataset.b, b: clone(PRESETS[c.dataset.b].b) };
+      sel[0] = { name: c.dataset.a, b: clone(P[c.dataset.a].b) };
+      sel[1] = { name: c.dataset.b, b: clone(P[c.dataset.b].b) };
       // a table cell is a duel: leave squadron mode if needed
       mode = 'ffa'; document.getElementById('mode').value = 'ffa';
       count = 2; document.getElementById('count').value = '2';
       renderAll(); reset();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
-  })();
+  }
+  matchTable('tbl', PRESETS, MATRIX);
+  matchTable('tbl2', STARTERS, SMATRIX);
 
   function renderAll() {
     const sq = mode === 'squad';
