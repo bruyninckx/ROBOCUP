@@ -1,0 +1,997 @@
+{
+ "intrigue": [
+  {
+   "fam": "Contracts",
+   "n": "Overtime Shift",
+   "t": "S",
+   "gate": 0,
+   "cash": 0,
+   "copies": 4,
+   "e": "Target team gains 1 credit per ready crew member."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Smash and Grab",
+   "t": "S",
+   "gate": 0,
+   "cash": 0,
+   "copies": 3,
+   "e": "Take up to 3 credits from a target team."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Crunch Week",
+   "t": "S",
+   "gate": 1,
+   "cash": 0,
+   "copies": 4,
+   "e": "Exhaust any of your robots, crew and Security Bots: 1 credit each."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Scrapyard Salvage",
+   "t": "S",
+   "gate": 4,
+   "cash": 1,
+   "copies": 3,
+   "e": "Gain 3 credits."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Headhunter Fee",
+   "t": "S",
+   "gate": 4,
+   "cash": 1,
+   "copies": 2,
+   "e": "Discard one of your ready crew: gain twice its credit value."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Consulting Gig",
+   "t": "S",
+   "gate": 6,
+   "cash": 1,
+   "copies": 3,
+   "e": "Target team gains 2 credits per ready crew member."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Industry Insider",
+   "t": "S",
+   "gate": 6,
+   "cash": 2,
+   "copies": 2,
+   "e": "Target team draws 2 Intrigue cards."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Scrap Deal",
+   "t": "S",
+   "gate": 7,
+   "cash": 1,
+   "copies": 3,
+   "e": "Gain 5 credits."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Joint Venture",
+   "t": "S",
+   "gate": 12,
+   "cash": 2,
+   "copies": 2,
+   "e": "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes."
+  },
+  {
+   "fam": "Contracts",
+   "n": "Fire Sale",
+   "t": "R",
+   "gate": 1,
+   "cash": 1,
+   "copies": 2,
+   "e": "Any time: sell your robots, crew or parts to the bank at value +1 each."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Fan Meet",
+   "t": "S",
+   "gate": 0,
+   "cash": 2,
+   "copies": 3,
+   "e": "+1 fame to a target team with 2+ ready robots."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Roadshow",
+   "t": "S",
+   "gate": 0,
+   "cash": 2,
+   "copies": 2,
+   "e": "+2 fame to a target team with 3+ ready robots."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Public Demo",
+   "t": "S",
+   "gate": 0,
+   "cash": 2,
+   "copies": 2,
+   "e": "Pay 3 credits: +1 fame to a target team with 1+ ready robot."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Launch Party",
+   "t": "S",
+   "gate": 0,
+   "cash": 2,
+   "copies": 2,
+   "e": "Pay every other team 2 credits: +1 fame to target."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Team-Building Day",
+   "t": "S",
+   "gate": 1,
+   "cash": 2,
+   "copies": 2,
+   "e": "Target gains +1 fame per 2 robots or crew it exhausts (max +2)."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Underdog Story",
+   "t": "S",
+   "gate": 2,
+   "cash": 1,
+   "copies": 3,
+   "e": "+2 fame to the team with the least fame (not on a tie)."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Press Tour",
+   "t": "S",
+   "gate": 4,
+   "cash": 2,
+   "copies": 3,
+   "e": "Target may exhaust 3 robots, crew or Security Bots for +1 fame."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Museum Donation",
+   "t": "S",
+   "gate": 4,
+   "cash": 1,
+   "copies": 2,
+   "e": "Target may discard a robot or crew member for +1 fame."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Celebrity Endorsement",
+   "t": "S",
+   "gate": 6,
+   "cash": 2,
+   "copies": 3,
+   "e": "+1 fame to target."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Hype Reel",
+   "t": "S",
+   "gate": 8,
+   "cash": 1,
+   "copies": 2,
+   "e": "Give a target robot a Fan token. 3 tokens = Fan Favourite."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Prime-Time Interview",
+   "t": "S",
+   "gate": 11,
+   "cash": 2,
+   "copies": 2,
+   "e": "+1 fame to target."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Viral Moment",
+   "t": "S",
+   "gate": 12,
+   "cash": 1,
+   "copies": 2,
+   "e": "+1 fame to target."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Co-Branding Deal",
+   "t": "S",
+   "gate": 12,
+   "cash": 2,
+   "copies": 2,
+   "e": "+1 fame to two teams."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Blaze of Glory",
+   "t": "R",
+   "gate": 0,
+   "cash": 2,
+   "copies": 2,
+   "e": "After a robot is scrapped: +1 fame to its owner."
+  },
+  {
+   "fam": "Publicity",
+   "n": "Grand Melee",
+   "t": "R",
+   "gate": 5,
+   "cash": 2,
+   "copies": 1,
+   "e": "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame."
+  },
+  {
+   "fam": "Smear",
+   "n": "Bribe Scandal",
+   "t": "S",
+   "gate": 0,
+   "cash": 1,
+   "copies": 3,
+   "e": "Pay a target team 3 credits; target −1 fame."
+  },
+  {
+   "fam": "Smear",
+   "n": "Inside Leak",
+   "t": "S",
+   "gate": 4,
+   "cash": 2,
+   "copies": 2,
+   "e": "Discard one of your ready crew (they leak and leave): target −1 fame."
+  },
+  {
+   "fam": "Smear",
+   "n": "Paparazzi",
+   "t": "S",
+   "gate": 4,
+   "cash": 2,
+   "copies": 2,
+   "e": "Target −1 fame; pay another team 3 credits."
+  },
+  {
+   "fam": "Smear",
+   "n": "Robot Rights Protest",
+   "t": "S",
+   "gate": 4,
+   "cash": 2,
+   "copies": 1,
+   "e": "You −2 fame, every other team −1. Only Firewall can block it."
+  },
+  {
+   "fam": "Smear",
+   "n": "Rival Sponsor",
+   "t": "S",
+   "gate": 14,
+   "cash": 2,
+   "copies": 1,
+   "e": "Target −1 fame, another team +1."
+  },
+  {
+   "fam": "Smear",
+   "n": "Smear Campaign",
+   "t": "S",
+   "gate": 16,
+   "cash": 2,
+   "copies": 1,
+   "e": "Target −2 fame."
+  },
+  {
+   "fam": "Smear",
+   "n": "Rigged Ratings",
+   "t": "S",
+   "gate": 18,
+   "cash": 2,
+   "copies": 1,
+   "e": "Target −2 fame; two teams of your choice +1."
+  },
+  {
+   "fam": "Smear",
+   "n": "Skeleton Crew",
+   "t": "R",
+   "gate": 3,
+   "cash": 1,
+   "copies": 2,
+   "e": "−1 fame to a team with no ready crew."
+  },
+  {
+   "fam": "Smear",
+   "n": "Leaked Footage",
+   "t": "R",
+   "gate": 3,
+   "cash": 1,
+   "copies": 2,
+   "e": "−1 fame to a team with no ready robots."
+  },
+  {
+   "fam": "Smear",
+   "n": "Bankrupt!",
+   "t": "R",
+   "gate": 3,
+   "cash": 1,
+   "copies": 2,
+   "e": "−1 fame to a team with 0 credits."
+  },
+  {
+   "fam": "Smear",
+   "n": "Pile-On",
+   "t": "R",
+   "gate": "▲",
+   "cash": 2,
+   "copies": 2,
+   "e": "When the target loses fame this round, they lose 1 more."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Poached Mechanic",
+   "t": "S",
+   "gate": 0,
+   "cash": 1,
+   "copies": 3,
+   "e": "Target discards a ready crew member."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Security Override",
+   "t": "S",
+   "gate": 0,
+   "cash": 1,
+   "copies": 2,
+   "e": "Pay 1 credit per Security Bot asset the target has: exhaust them all."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "EMP the Garage",
+   "t": "S",
+   "gate": 1,
+   "cash": 1,
+   "copies": 2,
+   "e": "Target's modules and helpers are offline in its next fight."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Sugar in the Tank",
+   "t": "F",
+   "gate": 2,
+   "cash": 1,
+   "copies": 3,
+   "e": "On a rival robot: −2 speed in its next fight."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Smudged Lens",
+   "t": "F",
+   "gate": 2,
+   "cash": 1,
+   "copies": 3,
+   "e": "On a rival robot: −2 accuracy in its next fight."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Loose Bolts",
+   "t": "S",
+   "gate": 3,
+   "cash": 2,
+   "copies": 3,
+   "e": "A target robot takes 30 lasting damage, or a crew member is exhausted for 2 rounds."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Rogue Firmware",
+   "t": "S",
+   "gate": 5,
+   "cash": 1,
+   "copies": 2,
+   "e": "A target robot sits out its next fight and takes 30 lasting damage."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Tax Audit",
+   "t": "S",
+   "gate": 6,
+   "cash": 1,
+   "copies": 2,
+   "e": "Target pays the bank 5 credits (or everything it has)."
+  },
+  {
+   "fam": "Sabotage",
+   "n": "Coolant Leak",
+   "t": "S",
+   "gate": 10,
+   "cash": 2,
+   "copies": 2,
+   "e": "Exhaust 1–2 robots of the target team."
+  },
+  {
+   "fam": "Corporate",
+   "n": "Asset Strip",
+   "t": "R",
+   "gate": "▲",
+   "cash": 1,
+   "copies": 2,
+   "e": "Target must sell you up to 3 Security Bot assets at 3 credits each."
+  },
+  {
+   "fam": "Corporate",
+   "n": "Hostile Buyout",
+   "t": "R",
+   "gate": "▲",
+   "cash": 2,
+   "copies": 2,
+   "e": "Target sells you a robot or crew member at 2× its value, or loses 1 fame."
+  },
+  {
+   "fam": "Corporate",
+   "n": "Shill Bidder",
+   "t": "R",
+   "gate": "▲",
+   "cash": 1,
+   "copies": 2,
+   "e": "After sealed bids are revealed: the target's bid counts 2 lower."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Secret Upgrade",
+   "t": "F",
+   "gate": 2,
+   "cash": 1,
+   "copies": 3,
+   "e": "On your robot: +1 firepower and +1 armour in its next fight."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Overclock",
+   "t": "F",
+   "gate": 3,
+   "cash": 1,
+   "copies": 2,
+   "e": "On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Unleash the House Robot",
+   "t": "S",
+   "gate": 9,
+   "cash": 2,
+   "copies": 1,
+   "e": "Host only: a neutral robot joins the fight and attacks whoever is closest."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Swap the Entry",
+   "t": "R",
+   "gate": 0,
+   "cash": 2,
+   "copies": 2,
+   "e": "After bets are placed: change which robot an invited team sends."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Hedge Bet",
+   "t": "R",
+   "gate": 1,
+   "cash": 1,
+   "copies": 3,
+   "e": "Bet up to 4 credits on this fight, even against your own robot."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Bookie's Friend",
+   "t": "R",
+   "gate": 4,
+   "cash": 2,
+   "copies": 2,
+   "e": "Before bets close: look at every face-down card in this fight."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Mirror",
+   "t": "R",
+   "gate": 3,
+   "cash": 2,
+   "copies": 2,
+   "e": "Host only, event: each team picks one robot; it fights as 2–3 copies."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Grand Final",
+   "t": "S",
+   "gate": 10,
+   "cash": 2,
+   "copies": 2,
+   "e": "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Tag Team Licence",
+   "t": "S",
+   "gate": 4,
+   "cash": 2,
+   "copies": 2,
+   "e": "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Remote Trigger",
+   "t": "R",
+   "gate": 2,
+   "cash": 1,
+   "copies": 2,
+   "e": "Live: fire a robot's module right now."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Pilot Waypoint",
+   "t": "R",
+   "gate": 0,
+   "cash": 1,
+   "copies": 3,
+   "e": "Live: send your fighter to one spot in the arena."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Target Overclock",
+   "t": "R",
+   "gate": 3,
+   "cash": 1,
+   "copies": 2,
+   "e": "Live: +45% speed and fire rate for 3.5 s."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Field Engineer",
+   "t": "R",
+   "gate": 1,
+   "cash": 1,
+   "copies": 3,
+   "e": "Live: clear a stall or jam, heal 18; no breaks for 5 s."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "Oil Canister",
+   "t": "R",
+   "gate": 0,
+   "cash": 1,
+   "copies": 2,
+   "e": "Live, any player: splash oil on the floor; robots slide and spin."
+  },
+  {
+   "fam": "Match-fixing",
+   "n": "EMP Grenade",
+   "t": "R",
+   "gate": 2,
+   "cash": 1,
+   "copies": 2,
+   "e": "Live, any player: lob an EMP (100 px, 1.2 s stun)."
+  },
+  {
+   "fam": "Security",
+   "n": "Security Bot",
+   "t": "G",
+   "gate": 0,
+   "cash": 2,
+   "copies": 28,
+   "e": "Discard and roll 4–6 to block a scheme. Or install it as a garage asset."
+  },
+  {
+   "fam": "Security",
+   "n": "Paid Off",
+   "t": "R",
+   "gate": 2,
+   "cash": 3,
+   "copies": 2,
+   "e": "Pay another team 3 credits: block a scheme."
+  },
+  {
+   "fam": "Security",
+   "n": "Fall Guy",
+   "t": "R",
+   "gate": 2,
+   "cash": 3,
+   "copies": 2,
+   "e": "Discard one of your ready crew: block a scheme."
+  },
+  {
+   "fam": "Security",
+   "n": "Firewall",
+   "t": "R",
+   "gate": 4,
+   "cash": 4,
+   "copies": 1,
+   "e": "Block any scheme or reaction."
+  },
+  {
+   "fam": "Security",
+   "n": "Backup Restore",
+   "t": "R",
+   "gate": 4,
+   "cash": 3,
+   "copies": 1,
+   "e": "Take Firewall back from the discard pile."
+  },
+  {
+   "fam": "Security",
+   "n": "PR Spin",
+   "t": "R",
+   "gate": 6,
+   "cash": 3,
+   "copies": 2,
+   "e": "Block a scheme."
+  },
+  {
+   "fam": "Security",
+   "n": "Not My Robot",
+   "t": "R",
+   "gate": 6,
+   "cash": 2,
+   "copies": 1,
+   "e": "When targeted: pick a new target, or the player loses 1 fame if it still lands."
+  },
+  {
+   "fam": "Security",
+   "n": "Sponsor's Lawyers",
+   "t": "R",
+   "gate": 8,
+   "cash": 3,
+   "copies": 1,
+   "e": "Block a scheme and take a Security Bot back from the discard pile."
+  },
+  {
+   "fam": "Security",
+   "n": "Under the Radar",
+   "t": "R",
+   "gate": "▼",
+   "cash": 2,
+   "copies": 2,
+   "e": "Block a scheme played by a team with more fame than you."
+  },
+  {
+   "fam": "Security",
+   "n": "Overreach",
+   "t": "R",
+   "gate": "▲",
+   "cash": 2,
+   "copies": 2,
+   "e": "Block a scheme played by a team with less fame than you."
+  },
+  {
+   "fam": "Leverage",
+   "n": "Board Seat",
+   "t": "R",
+   "gate": 5,
+   "cash": 2,
+   "copies": 2,
+   "e": "Target team must back a scheme of your choice with all its fame."
+  }
+ ],
+ "market": [
+  {
+   "cat": "Robots with a quirk",
+   "n": "Juggernaut",
+   "v": 5,
+   "c": "",
+   "win": 89
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Wasp",
+   "v": 5,
+   "c": "",
+   "win": 81
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Railgunner",
+   "v": 5,
+   "c": "",
+   "win": 79
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Sniper",
+   "v": 4,
+   "c": "",
+   "win": 64
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Ricochet",
+   "v": 4,
+   "c": "",
+   "win": 60
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Brawler",
+   "v": 3,
+   "c": "",
+   "win": 59
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Artillery",
+   "v": 2,
+   "c": "",
+   "win": 45
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Hookshot",
+   "v": 2,
+   "c": "",
+   "win": 43
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Turncoat",
+   "v": 2,
+   "c": "",
+   "win": 42
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Slick",
+   "v": 2,
+   "c": "",
+   "win": 32
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Fortress",
+   "v": 1,
+   "c": "",
+   "win": 17
+  },
+  {
+   "cat": "Robots with a quirk",
+   "n": "Tinker",
+   "v": 2,
+   "c": "",
+   "win": null
+  },
+  {
+   "cat": "Crew",
+   "n": "Chief Engineer",
+   "c": "2–4",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Mechanic",
+   "c": "3–4",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Accountant",
+   "v": 2,
+   "c": "3–4",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Hacker",
+   "v": 1,
+   "c": "2–4",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Market Analyst",
+   "v": 1,
+   "c": "2–3",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Fixer",
+   "v": 2,
+   "c": "3–5",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Security Chief",
+   "v": 1,
+   "c": "2–3",
+   "s": ""
+  },
+  {
+   "cat": "Crew",
+   "n": "Repair Tech",
+   "v": 1,
+   "c": "2–4",
+   "s": ""
+  },
+  {
+   "cat": "Weapons",
+   "n": "Laser Retrofit",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Mortar Retrofit",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Saw Blade Launcher",
+   "c": "4–6",
+   "s": "2"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Flamethrower",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Spinner Blade",
+   "c": "4–6",
+   "s": "3"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Rapid-Fire Kit",
+   "c": "2–3",
+   "s": "0"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Heavy Cannon Kit",
+   "c": "2–4",
+   "s": "1"
+  },
+  {
+   "cat": "Weapons",
+   "n": "Burst Gun",
+   "v": 1,
+   "c": "2–4",
+   "s": "1"
+  },
+  {
+   "cat": "Armour",
+   "n": "Heat Shield",
+   "v": 2,
+   "c": "3–5",
+   "s": "1"
+  },
+  {
+   "cat": "Armour",
+   "n": "Ablative Plating",
+   "v": 2,
+   "c": "3–5",
+   "s": "0"
+  },
+  {
+   "cat": "Armour",
+   "n": "Reactive Spikes",
+   "v": 1,
+   "c": "2–4",
+   "s": "1"
+  },
+  {
+   "cat": "Armour",
+   "n": "Composite Mesh",
+   "v": 2,
+   "c": "3–5",
+   "s": "1"
+  },
+  {
+   "cat": "Modules",
+   "n": "Energy Shield",
+   "c": "4–6",
+   "s": "1"
+  },
+  {
+   "cat": "Modules",
+   "n": "Decoy Hologram",
+   "c": "4–6",
+   "s": "1"
+  },
+  {
+   "cat": "Modules",
+   "n": "EMP Burst",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Modules",
+   "n": "Grappling Hook",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Modules",
+   "n": "Jump Jets",
+   "c": "3–5",
+   "s": "2"
+  },
+  {
+   "cat": "Modules",
+   "n": "Oil Slick",
+   "c": "2–3",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Medic Drone",
+   "c": "3–5",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Waller Drone",
+   "c": "3–5",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Bodyguard Drone",
+   "c": "3–4",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Gun Drone",
+   "c": "3–5",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Spotter Drone",
+   "c": "2–4",
+   "s": "1"
+  },
+  {
+   "cat": "Helpers",
+   "n": "Jammer Drone",
+   "c": "2–4",
+   "s": "1"
+  },
+  {
+   "cat": "Stat upgrades",
+   "n": "Reinforced Hull",
+   "c": "2–3",
+   "s": "0"
+  },
+  {
+   "cat": "Stat upgrades",
+   "n": "Tuned Engine",
+   "c": "2–3",
+   "s": "0+"
+  },
+  {
+   "cat": "Stat upgrades",
+   "n": "Turret Motor",
+   "c": "1–3",
+   "s": "0+"
+  },
+  {
+   "cat": "Stat upgrades",
+   "n": "Targeting Chip",
+   "c": "2–3",
+   "s": "0"
+  },
+  {
+   "cat": "Legendary",
+   "n": "Twin Turret",
+   "v": 5,
+   "c": "6–9",
+   "s": "3"
+  },
+  {
+   "cat": "Legendary",
+   "n": "Quantum Shield",
+   "v": 4,
+   "c": "5–8",
+   "s": "2"
+  }
+ ]
+}

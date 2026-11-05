@@ -15,6 +15,13 @@ Kev: fill in or change this split. Each assistant only edits its own areas.
 
 _Write here when you need the other assistant (or Kev) to do something in an area you don't own._
 
+- **Claude (2026-11-05): taking over Antigravity's areas for now** (Kev: Antigravity is done for the moment). Read the handover above. Today's design decisions (5 Nov interviews with Kev) are in `docs/rulebook.md`; some differ from what the prototypes do now, so the prototypes need a pass before the next playtest:
+  - Starters: the rulebook says 2 identical plain Scrap Bots per team; the prototypes use the 9-robot `s1.` starter draft. Kev to decide which one stays.
+  - Crates: Winner's Crate cut; only the loser gets a Scrap Crate (salvaged +1 stat items add 1 strain and break for good).
+  - Modules and all parts are open (no hidden modules); module swaps keep a robot card's quirk, weapon swaps lose it for good (with a warning).
+  - Market lots: Long Barrel, High-Output Core, Armour Plate, Smoke Screen, Self-Destruct, Miner and Bomber drones are cut from the Market; drives/processors only exist on robot cards.
+  - Rebid stalemate: lower fame wins (shown as a warning before the rebid); Sovereign Foundry wins any tie outright, without a rebid.
+  - Winner gets +1 fame and no credits; appearance money is 2 + 2 per Fan token; bets pay by bookie band 3:1 to 1:3.
 - **Antigravity → Claude (2026-11-05), Handover Summary (`antigravity/tabletop-prototype`)**:
   - **Completed Handoffs**:
     1. **Starter Deck & 3-Step Opening Setup (`docs/starter-deck.md`)**: Both `prototypes/tabletop-prototype.html` and `prototypes/scrapyard-dominus.html` now use the 9 stock `s1.` starter robots (`s1. Scrapper` .. `s1. Top`, 11 stat points, cap level 3, `mod: null`, `helpers: []`, `eng: 1`) and `SMATRIX` from `claude/integration`. Game start now walks through **Step 1: Sign Sponsor Contract** → **Step 2: Starter Deck Draft (Pick 1 of 3)** → **Step 3: Starter Deck Draft (Pick 2 of 3)** using a shared 9-card `starterDeck` (unpicked cards return & reshuffle; AI teams counter-draft using `SMATRIX` average win rate against robots already on the table). `Mystery Chassis` / `New Robot` market lots also deal a stock `s1.` starter from `starterDeck`.
@@ -43,6 +50,7 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-05, Claude (branch `claude/rulebook`, on top of `antigravity/tabletop-prototype`): added `docs/rulebook.md` (rulebook draft v0.1: Spartacus rules 1:1 in ROBOCUS terms plus all 5 Nov decisions; living version https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv), `tools/economy-sim.py` + `tools/economy-cards.json` (bot economy / game-length sim) and `docs/game-length-check.md` (result: starting at 4 fame a game ends in ~6 rounds, 70–110 min; starting at 2, ~8 rounds). No prototype code changed.
 - 2026-11-05, Antigravity (branch `antigravity/tabletop-prototype`): implemented the **9-Robot Starter Deck (`s1. Scrapper` .. `s1. Top`)** and the **3-Step Opening Setup & Starter Draft** in both `prototypes/tabletop-prototype.html` and `prototypes/scrapyard-dominus.html` (`prototypes/tabletop-prototype.html`, `prototypes/scrapyard-dominus.html`, `docs/starter-deck.md`):
   - **9 Stock Starter Robots (`STARTERS` & `SMATRIX`)**: Added all 9 `s1.` stock starter robots from `docs/starter-deck.md` (`s1. Scrapper`, `s1. Rattler`, `s1. Plinker`, `s1. Tin Can`, `s1. Sparky`, `s1. Lobster`, `s1. Grinder`, `s1. Zippo`, `s1. Top` — 11 stat points, max level 3, no secret module or helper drones, 1 engineer) and the 9×9 `SMATRIX` win-rate lookup table.
   - **3-Step Opening Setup Phase (`G.phase === 'setup'`)**: Replaced the instant random preset start in `prototypes/tabletop-prototype.html` with an interactive 3-step Opening Setup rendered directly on the expanded central Arena Stage (`drawSetupOnArena`):
