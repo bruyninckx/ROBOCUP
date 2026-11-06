@@ -815,12 +815,14 @@ html, body {
   }
   function logBox() { return $('#ticker'); }
   function logAtBottom() { const t = logBox(); return t.scrollHeight - t.scrollTop - t.clientHeight < 24; }
+  // Kev, 6 Nov: the log always jumps to the newest line (also after the layout settles, e.g. a card box grows)
+  function logScroll() { const t = logBox(); if (!t) return; t.scrollTop = t.scrollHeight; $('#lpNew').hidden = true; requestAnimationFrame(() => { t.scrollTop = t.scrollHeight; }); }
   function logAppend(el) {
-    const t = logBox(), stick = logAtBottom();
+    const t = logBox();
     t.appendChild(el);
     if (!el.classList.contains('lp-phase')) logUnread();
     while (t.children.length > LOGC.max) t.removeChild(t.firstChild);
-    if (stick) t.scrollTop = t.scrollHeight; else $('#lpNew').hidden = false;
+    logScroll();
   }
   function logPhase() {
     if (!G) return;
@@ -837,7 +839,7 @@ html, body {
     tlog('msg', { text: ptPlain(html) });
     logPhase();
     const d = document.createElement('div');
-    if (LOGC.group) { const stick = logAtBottom(); d.className = 'lp-step'; d.innerHTML = html; LOGC.group.steps.appendChild(d); logUnread(); if (stick) logBox().scrollTop = logBox().scrollHeight; else $('#lpNew').hidden = false; return; }
+    if (LOGC.group) { d.className = 'lp-step'; d.innerHTML = html; LOGC.group.steps.appendChild(d); logUnread(); logScroll(); return; }
     d.className = 'tick-msg';
     if (borderCol) d.style.borderLeftColor = borderCol;
     d.innerHTML = html;
@@ -860,7 +862,7 @@ html, body {
     const g = LOGC.group; if (!g) return;
     LOGC.group = null;
     tlog('play', { text: g.text, result: result || null, steps: [...g.steps.children].map(x => ptPlain(x.innerHTML)) });
-    if (result) { const b = document.createElement('span'); b.className = 'lp-res ' + (result === 'blocked' || result === 'failed' ? 'no' : 'ok'); b.textContent = result === 'blocked' ? '✋ blocked' : result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); }
+    if (result) { const b = document.createElement('span'); b.className = 'lp-res ' + (result === 'blocked' || result === 'failed' ? 'no' : 'ok'); b.textContent = result === 'blocked' ? '✋ blocked' : result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); logScroll(); }
   }
 
   const cardType = c => c.phase === 'fight' ? '⚡ Live combat card' : c.phase === 'later' ? '🏟️ Arena card' : c.phase === 'security' ? '🤖 Security' :
@@ -1802,7 +1804,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 pacing-tools';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 bid-buttons-log';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3761,7 +3763,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -5144,9 +5146,10 @@ html, body {
         ctx.fillStyle = noFit ? '#efede7' : '#fcfbf9'; ctx.fillRect(x + 4, btnY - 4, w - 8, 36);
         ctx.fillStyle = '#555'; fitText(ctx, '🔒 bids open after the open market', x + w / 2, btnY + 18, w - 20, '800', 10.5);
       } else {
+        // the tile goes first: clicks are matched last-pushed-first, so − and + must sit on top (Kev, 6 Nov: − added a credit)
+        hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
         hitRegions.push({ kind: 'market_minus', idx: k, x: x + 14, y: btnY, w: 28, h: 28 });
         hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 42, y: btnY, w: 28, h: 28 });
-        hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
       }
     });
   }
