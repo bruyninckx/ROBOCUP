@@ -143,19 +143,16 @@ th { background: var(--soft); font-weight: 600; }
     press:   { name: 'Bribe the Press', need: 5, target: 'self', text: 'Pay 3 credits: gain 1 fame.' },
     smear:   { name: 'Smear Campaign', need: 7, target: 'team', text: 'The target loses 1 fame.' },
     overtime:{ name: 'Secret Upgrade', need: 4, target: 'self', text: 'Hidden: your robots fight with +1 Firepower and +1 Armour next fight.', tamper: { fp: 1, armor: 1 } },
-    guard:   { name: 'Guard Dog', need: 0, target: 'none', text: 'Keep in hand. The next scheme against you has a 50% chance to fail (card is used up).' },
+    guard:   { name: 'Security Bot', need: 0, target: 'none', text: 'Keep in hand. The next scheme against you is blocked on a 4–6 (50%); the bot is used up. Every team starts with one.' },
   };
   const SCHEME_DECK = ['bolts', 'bolts', 'sugar', 'sugar', 'gears', 'gears', 'lens', 'pocket', 'pocket', 'night', 'night', 'press', 'press', 'smear', 'overtime', 'overtime', 'guard', 'guard', 'guard'];
 
   // ---- market lots & crate rewards ----
   const LOTS = {
-    plate:  { name: 'Armour Plate', text: '+1 Armour on one robot.', stat: 'armor' },
     engine: { name: 'Tuned Engine', text: '+1 Speed on one robot.', stat: 'speed' },
     motor:  { name: 'Turret Motor', text: '+1 Turret turn on one robot.', stat: 'turret' },
     chip:   { name: 'Targeting Chip', text: '+1 Accuracy on one robot.', stat: 'acc' },
     hull:   { name: 'Reinforced Hull', text: '+1 Health on one robot.', stat: 'hp' },
-    barrel: { name: 'Long Barrel', text: '+1 Bullet speed on one robot.', stat: 'bullet' },
-    core:   { name: 'High-Output Core', text: '+1 Firepower on one robot.', stat: 'fp' },
     laser:   { name: 'Laser Retrofit', text: 'Turn one robot\'s weapon into a laser (ignores armour, mid range).', weapon: 'laser' },
     mortar:  { name: 'Mortar Retrofit', text: 'Turn one robot\'s weapon into a mortar (splash, long range).', weapon: 'mortar' },
     saw:     { name: 'Saw Launcher', text: 'Turn one robot\'s weapon into a boomerang saw (hits out and back).', weapon: 'saw' },
@@ -163,10 +160,19 @@ th { background: var(--soft); font-weight: 600; }
     flame:   { name: 'Flamethrower', text: 'Turn one robot\'s weapon into a short-range fire cone (ignores half armour).', weapon: 'flame' },
     rapid:   { name: 'Rapid-fire Kit', text: 'Gun becomes rapid calibre: many small bullets, quick turret.', cal: 'rapid' },
     heavy:   { name: 'Heavy Cannon', text: 'Gun becomes heavy calibre: huge slow shells, ignores most armour.', cal: 'heavy' },
+    burst:   { name: 'Burst Gun', text: 'Gun fires 3-shot bursts with a short pause.', cal: 'burst' },
+    a_heat:  { name: 'Heat Shield', text: 'Armour card: takes 40% off flame, laser and burning damage.', arm: 'heat' },
+    a_abl:   { name: 'Ablative Plating', text: 'Armour card: soaks the first 30 damage each fight, then falls off.', arm: 'ablative' },
+    a_spikes:{ name: 'Reactive Spikes', text: 'Armour card: rammers and spinners that touch it take 12 damage.', arm: 'spikes' },
+    a_mesh:  { name: 'Composite Mesh', text: 'Armour card: +1 armour level with no speed penalty.', arm: 'mesh' },
+    m_shield:{ name: 'Energy Shield', text: 'Module: 25 HP bubble that recharges.', mod: 'shield' },
+    m_decoy: { name: 'Decoy Hologram', text: 'Module: at 60% HP a hologram pulls enemy fire.', mod: 'decoy' },
+    m_emp:   { name: 'EMP Burst', text: 'Module: stuns enemies close by.', mod: 'emp' },
+    m_jets:  { name: 'Jump Jets', text: 'Module: leaps away when an enemy gets close.', mod: 'jets' },
     robot:   { name: 'New Robot', text: 'A fresh robot joins your garage (max 3).', robot: true },
     mech:    { name: 'Mechanic', text: '+1 credit income every round.', mech: true },
   };
-  const WINNER_CRATE_POOL = ['plate', 'engine', 'motor', 'chip', 'hull', 'barrel', 'core', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'rapid', 'heavy', 'mech'];
+  // Winner's Crate cut (rulebook, 5 Nov): only the loser draws a Scrap Crate
   const SCRAP_CRATES = [
     { id: 'patch', name: 'Scrap Patch Kit', text: 'Free field repair (−30 damage, or +2 credits if no robot needs repair).', patch: 30 },
     { id: 's_plate', name: 'Salvaged Plate', text: '+1 Armour on a robot (or +2 credits if maxed).', stat: 'armor' },
@@ -181,7 +187,7 @@ th { background: var(--soft); font-weight: 600; }
   const SPONSORS = {
     aegis:     { name: 'Aegis Heavy', tag: 'Built to Last', text: 'In Upkeep, each of your robots repairs 25 damage for free.' },
     blackwire: { name: 'Blackwire Syndicate', tag: 'Dirty Tricks', text: 'Draw +1 intrigue card in Upkeep (hand max 5); schemes need 2 less fame.' },
-    sovereign: { name: 'Sovereign Foundry', tag: 'Deep Pockets', text: 'Start with 4 mechanics (instead of 3) and win deadlocked Market rebid ties.' },
+    sovereign: { name: 'Sovereign Foundry', tag: 'Deep Pockets', text: 'Start with 4 mechanics (instead of 3) and win every market tie outright (no rebid).' },
     apex:      { name: 'Apex Media', tag: 'Prime Time', text: 'Gain +2 credits when you Host; robots become Fan Favourites at 2 wins (not 3).' },
     lucky:     { name: 'Lucky Seven', tag: 'House Edge', text: 'Bet up to 5 credits (instead of 3); losing bets refund 1 credit.' },
     vulture:   { name: 'Vulture Salvage', tag: 'Nothing Wasted', text: '+2 credits whenever any robot is scrapped; get 2 Scrap Crates when you lose.' },
@@ -202,8 +208,8 @@ th { background: var(--soft); font-weight: 600; }
     G = {
       round: 1, phase: 'sponsor', draftPick: 1, starterDeck: shuffle(Object.keys(STARTERS)), starterChoices: [],
       host: -1, lastHost: -1,
-      teams: TEAMS.map((t, i) => ({ ...t, i, sponsor: null, fame: 4, credits: 8, mechs: 3, hand: [], robots: [], tamper: {}, schemeLog: [] })),
-      deck: shuffle(SCHEME_DECK.slice()), lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot'])),
+      teams: TEAMS.map((t, i) => ({ ...t, i, sponsor: null, fame: 4, credits: 8, mechs: 3, hand: ['guard'], robots: [], tamper: {}, schemeLog: [] })),
+      deck: shuffle(SCHEME_DECK.slice()), lots: shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'robot'])),
       fight: null, over: false,
     };
     $('#log').innerHTML = '';
@@ -356,7 +362,7 @@ th { background: var(--soft); font-weight: 600; }
       const inc = t.mechs, cost = t.robots.length;
       t.credits += inc - cost;
       if (t.credits < 0) { t.credits = 0; }
-      const draws = t.sponsor === 'blackwire' ? 3 : 2, cap = t.sponsor === 'blackwire' ? 5 : 4;
+      const draws = t.sponsor === 'blackwire' ? 4 : 3, cap = t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;   // rulebook: draw 3, limit grows with fame
       for (let d = 0; d < draws; d++) t.hand.push(draw1());
       while (t.hand.length > cap) t.hand.shift();
       if (t.sponsor === 'aegis') {
@@ -418,10 +424,10 @@ th { background: var(--soft); font-weight: 600; }
       if (g >= 0) {
         T.hand.splice(g, 1);
         if (rnd() < 0.5) {
-          log((to === 0 ? 'Your Guard Dog' : tname(to) + '\'s Guard Dog') + ' caught ' + (from === 0 ? 'your ' + s.name : 'a schemer') + '. Foiled!', from === 0 || to === 0 ? 'me' : '');
+          log((to === 0 ? 'Your Security Bot' : tname(to) + '\'s Security Bot') + ' caught ' + (from === 0 ? 'your ' + s.name : 'a schemer') + '. Foiled!', from === 0 || to === 0 ? 'me' : '');
           return;
         }
-        if (to === 0) log('Your Guard Dog fell asleep.', 'me');
+        if (to === 0) log('Your Security Bot rolled too low.', 'me');
       }
     }
     switch (id) {
@@ -461,7 +467,7 @@ th { background: var(--soft); font-weight: 600; }
   // ---------- 3. market ----------
   function startMarket() {
     G.phase = 'market';
-    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'robot']));
+    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'robot']));
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
     renderMarket();
   }
@@ -557,13 +563,16 @@ th { background: var(--soft); font-weight: 600; }
         finalizeDomLot(k, w, mx, hadRebid ? 'rebid' : '');
         A.tie = null; A.curK++; continue;
       }
+      const sov = contenders.find(ti => G.teams[ti].sponsor === 'sovereign');   // rulebook: Sovereign wins ties outright
+      if (sov != null) {
+        log('Tie on ' + label + ' at ' + mx + ' credits; ' + tname(sov) + ' wins it outright (Sovereign Foundry).', sov === 0 ? 'me' : '');
+        finalizeDomLot(k, sov, mx, 'Sovereign');
+        A.tie = null; A.curK++; continue;
+      }
       if (A.tie && A.tie.k === k && A.tie.lastMaxAdd === 0) {
-        const sorted = contenders.slice().sort((a, b) =>
-          (G.teams[b].sponsor === 'sovereign' ? 1 : 0) - (G.teams[a].sponsor === 'sovereign' ? 1 : 0) ||
-          G.teams[a].fame - G.teams[b].fame
-        );
+        const sorted = contenders.slice().sort((a, b) => G.teams[a].fame - G.teams[b].fame || a - b);
         const w = sorted[0];
-        const reason = G.teams[w].sponsor === 'sovereign' ? 'Sovereign tie-break' : 'lower fame tie-break';
+        const reason = 'lower fame tie-break';
         log('Rebid tied again on ' + label + ' with no extra bids; ' + tname(w) + ' wins (' + reason + ').', w === 0 ? 'me' : '');
         finalizeDomLot(k, w, mx, reason);
         A.tie = null; A.curK++; continue;
@@ -620,6 +629,7 @@ th { background: var(--soft); font-weight: 600; }
     let cands = t.robots;
     if (L.cal) cands = cands.filter(r => r.b.weapon === 'gun');
     if (L.stat) cands = cands.filter(r => r.b.lv[L.stat] < 4);
+    if (L.arm || L.mod) { const free = cands.filter(r => !(L.arm ? r.b.arm : r.b.mod)); if (free.length) cands = free; }
     if (!cands.length) return null;
     return cands.slice().sort((a, b) => power(b) - power(a))[0];
   }
@@ -637,6 +647,8 @@ th { background: var(--soft); font-weight: 600; }
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.weapon) r.b.weapon = L.weapon;
     if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
+    if (L.arm) r.b.arm = L.arm;
+    if (L.mod) r.b.mod = L.mod;
     if (L.weapon === 'laser' || L.weapon === 'saw') r.b.range = 'mid';
     if (L.weapon === 'mortar') r.b.range = 'long';
     if (L.weapon === 'spinner' || L.weapon === 'flame') r.b.range = 'short';
@@ -672,7 +684,7 @@ th { background: var(--soft); font-weight: 600; }
     invite([a, b]);
   }
   function renderHostPick() {
-    let h = '<h2>You host the fight</h2><p>Pick two teams to fight (you may pick yourself). Invited teams get 2 credits appearance money. A team that declines loses 1 fame.</p><div class="row">' +
+    let h = '<h2>You host the fight</h2><p>Pick two teams to fight (you may pick yourself). Invited teams get 2 credits appearance money, plus 2 per fan token on their robot. A team that declines loses 1 fame.</p><div class="row">' +
       G.teams.map(t => '<button data-pt="' + t.i + '" style="color:' + t.col + ';border-color:' + t.col + (G.pickTeams.includes(t.i) ? ';outline:3px solid ' + t.col : '') + '">' + esc(t.name) + '</button>').join('') + '</div>' +
       '<div class="row"><button class="primary" id="go"' + (G.pickTeams.length === 2 ? '' : ' disabled') + '>Invite them</button></div>';
     panel(h);
@@ -712,7 +724,8 @@ th { background: var(--soft); font-weight: 600; }
     };
   }
   function afterChoose() {
-    for (const ti of G.fight.teams) G.teams[ti].credits += 2;
+    // appearance money (rulebook): 2 credits per invited team, plus 2 per Fan token (6 for a fan favourite)
+    G.fight.teams.forEach((ti, s) => { const T = G.teams[ti], r = G.fight.robots[s]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
     // odds from the VISIBLE builds and current damage only (sabotage is hidden)
     const [ra, rb] = G.fight.robots;
     let w = 0; const N = 60;
@@ -725,7 +738,8 @@ th { background: var(--soft); font-weight: 600; }
     }
     const p = Math.max(0.03, Math.min(0.97, w / N));
     G.fight.p = [p, 1 - p];
-    G.fight.pay = G.fight.p.map(x => Math.max(1.1, Math.min(6, Math.round(0.92 / x * 10) / 10)));
+    // rulebook bands: heavy underdog <25% pays 3:1, underdog 2:1, even 1:1, favourite 1:2, heavy favourite >75% 1:3 (total return shown)
+    G.fight.pay = G.fight.p.map(x => x < 0.25 ? 4 : x < 0.42 ? 3 : x < 0.58 ? 2 : x < 0.75 ? 1.5 : 1.33);
     startBets();
   }
 
@@ -866,8 +880,9 @@ th { background: var(--soft); font-weight: 600; }
     if (w < 0) { log('The fight ends in a draw. Bets are returned.'); for (const x of F.bets) G.teams[x.team].credits += x.amt; nextRoundButton('<p>A draw. Nobody gains fame; bets are returned.</p>'); return; }
     const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
     const wTeam = G.teams[W], lTeam = G.teams[Lt];
-    wTeam.fame += 1; wTeam.credits += 3; wr.wins++;
-    let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins: +1 fame, +3 credits.';
+    wTeam.fame += 1; wr.wins++;   // rulebook: no prize money
+    lr.dmg = Math.max(lr.dmg, Math.round(maxHp(lr) / 2));   // a spared loser keeps damage equal to half its health
+    let msg = '<p>' + tname(W) + '\'s <b>' + esc(wr.name) + '</b> wins: +1 fame.';
     if (wr.wins === favWins(wTeam)) { wTeam.fame += 1; msg += ' Win #' + wr.wins + ': <b>' + esc(wr.name) + '</b> becomes a fan favourite (+1 fame).'; }
     msg += '</p>';
     log(tname(W) + '\'s ' + esc(wr.name) + ' beats ' + tname(Lt) + '\'s ' + esc(lr.name) + ' (+1 fame).', W === 0 || Lt === 0 ? 'me' : '');
@@ -937,20 +952,7 @@ th { background: var(--soft); font-weight: 600; }
     log(tname(Lt) + ' opens ' + (scrapCount > 1 ? '2 Scrap Crates' : 'a Scrap Crate') + ': ' + scrapSummary + '.', Lt === 0 ? 'me' : '');
     msg += '<p><b>Scrap Crate (' + tname(Lt) + '):</b> ' + scrapSummary + '.</p>';
 
-    const choices = shuffle(WINNER_CRATE_POOL.slice()).slice(0, 3);
-    if (W === 0) {
-      G.crateChoices = choices;
-      G.crateBot = Math.max(0, wTeam.robots.indexOf(wr));
-      renderWinnerCrate(msg);
-    } else {
-      const pickLot = choices.find(id => LOTS[id].mech || aiPickRobot(wTeam, id)) || choices[0];
-      const tgt = needsRobot(pickLot) ? (aiPickRobot(wTeam, pickLot) || wr) : null;
-      applyLot(W, pickLot, tgt);
-      const detail = LOTS[pickLot].mech ? '+1 Mechanic' : (tgt ? 'on ' + esc(tgt.name) : '');
-      log(tname(W) + ' picks <b>' + LOTS[pickLot].name + '</b> from the Winner\'s Crate ' + detail + '.');
-      msg += '<p><b>Winner\'s Crate (' + tname(W) + '):</b> picked <b>' + LOTS[pickLot].name + '</b> ' + detail + '.</p>';
-      nextRoundButton(msg);
-    }
+    nextRoundButton(msg);   // Winner's Crate cut (rulebook)
   }
   function renderWinnerCrate(msg) {
     const t = me(), choices = G.crateChoices;

@@ -500,14 +500,15 @@ html, body {
   const favWins = t => t.sponsor === 'apex' ? 2 : 3;
   const maxBetOf = t => t.sponsor === 'lucky' ? 5 : 3;
 
+  // rulebook (5 Nov): 5 bands by the bookie's win chance; pays 1:3 .. 3:1, so total return 1.33x .. 4x the stake
   const BANDS = [
-    { min: 1.6,  name: 'Heavy favourite', pay: 1.1 },
-    { min: 1.2,  name: 'Favourite',       pay: 1.3 },
-    { min: 0.85, name: 'Even',            pay: 1.8 },
-    { min: 0.55, name: 'Underdog',        pay: 2.6 },
-    { min: -1,   name: 'Long shot',       pay: 5.0 },
+    { min: 0.75, name: 'Heavy favourite', pay: 1.33 },
+    { min: 0.58, name: 'Favourite',       pay: 1.5 },
+    { min: 0.42, name: 'Even',            pay: 2 },
+    { min: 0.25, name: 'Underdog',        pay: 3 },
+    { min: -1,   name: 'Heavy underdog',  pay: 4 },
   ];
-  const bandOf = p => BANDS.find(x => p * 2 >= x.min) || BANDS[2];
+  const bandOf = p => BANDS.find(x => p >= x.min) || BANDS[2];
 
   /* Unified Card Deck: Garage Schemes (Intrigue) + Live Combat Trigger Cards (Fight) */
   const CARDS = {
@@ -521,7 +522,7 @@ html, body {
     night:       { name: 'Night Shift',      phase: 'intrigue', target: 'self',   need: 0, icon: '🛠️', text: 'Your mechanics work late: gain +4 Credits.' },
     press:       { name: 'Bribe Press',      phase: 'intrigue', target: 'self',   need: 5, icon: '📰', text: 'Pay 3 Credits: gain +1 Fame immediately.' },
     overtime:    { name: 'Secret Upgrade',   phase: 'intrigue', target: 'self',   need: 4, icon: '⚡', text: 'Hidden: your robots get +1 FP & +1 AR next fight.', tamper: { fp: 1, armor: 1 } },
-    guard:       { name: 'Guard Dog',        phase: 'reaction', target: 'none',   need: 0, icon: '🐕', text: 'Keep in hand: 50% chance to foil sabotage on your Garage.' },
+    guard:       { name: 'Security Bot',     phase: 'reaction', target: 'none',   need: 0, icon: '🤖', text: 'Keep in hand: roll 4–6 (50%) to block a scheme on your Garage. Every team starts with one.' },
 
     // --- Live Arena Combat Cards (Played DURING the Fight by dragging into the Arena!) ---
     trigger:     { name: 'Remote Trigger',   phase: 'fight',    target: 'bot',    need: 0, icon: '🎛️', text: 'Live Fight: Trigger target robot\'s Surprise Module right now!' },
@@ -538,13 +539,10 @@ html, body {
   ];
 
   const LOTS = {
-    plate:     { name: 'Armour Plate',    icon: '🛡️', text: '+1 Armour',            stat: 'armor' },
     engine:    { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed',             stat: 'speed' },
     motor:     { name: 'Turret Motor',    icon: '🔄', text: '+1 Turret',            stat: 'turret' },
     chip:      { name: 'Targeting Chip',  icon: '🎯', text: '+1 Accuracy',          stat: 'acc' },
     hull:      { name: 'Reinforced Hull', icon: '🧱', text: '+1 Health',            stat: 'hp' },
-    barrel:    { name: 'Long Barrel',     icon: '📏', text: '+1 Bullet Speed',      stat: 'bullet' },
-    core:      { name: 'Overdrive Core',  icon: '⚡', text: '+1 Firepower',         stat: 'fp' },
     laser:     { name: 'Laser Retrofit',  icon: '🔦', text: 'Laser (2 Strain)',     weapon: 'laser' },
     mortar:    { name: 'Mortar Retrofit', icon: '💣', text: 'Mortar (2 Strain)',    weapon: 'mortar' },
     saw:       { name: 'Buzzsaw Launcher',icon: '⚙️', text: 'Saw Blades (2 Strain)',weapon: 'saw' },
@@ -552,19 +550,28 @@ html, body {
     flame:     { name: 'Flamethrower',    icon: '🔥', text: 'Fire Cone (2 Strain)', weapon: 'flame' },
     rapid:     { name: 'Rapid-fire Kit',  icon: '🔫', text: 'Rapid Gun (0 Strain)', cal: 'rapid' },
     heavy:     { name: 'Heavy Cannon',    icon: '💥', text: 'Heavy Gun (+1 Strain)',cal: 'heavy' },
-    m_shield:  { name: 'Energy Shield',   icon: '🛡️', text: 'Secret Shield (+1 Str)',mod: 'shield' },
-    m_emp:     { name: 'EMP Module',      icon: '⚡', text: 'Secret EMP (+1 Str)',  mod: 'emp' },
-    m_flipper: { name: 'Flipper Wedge',   icon: '🚀', text: 'Secret Flipper (+1 Str)',mod: 'flipper' },
-    m_smoke:   { name: 'Smoke Screen',    icon: '💨', text: 'Secret Smoke (+1 Str)',mod: 'smoke' },
+    burst:     { name: 'Burst Gun',       icon: '🔫', text: '3-shot bursts (+1 Str)',cal: 'burst' },
+    a_heat:    { name: 'Heat Shield',     icon: '🧯', text: '−40% fire & laser dmg', arm: 'heat' },
+    a_abl:     { name: 'Ablative Plating',icon: '🧱', text: 'Soaks first 30 dmg',    arm: 'ablative' },
+    a_spikes:  { name: 'Reactive Spikes', icon: '🦔', text: 'Hurts rammers/spinners',arm: 'spikes' },
+    a_mesh:    { name: 'Composite Mesh',  icon: '🕸️', text: '+1 Armour, no weight',  arm: 'mesh' },
+    m_shield:  { name: 'Energy Shield',   icon: '🛡️', text: 'Shield module (+1 Str)',mod: 'shield' },
+    m_decoy:   { name: 'Decoy Hologram',  icon: '👥', text: 'Decoy module (+1 Str)', mod: 'decoy' },
+    m_emp:     { name: 'EMP Module',      icon: '⚡', text: 'EMP module (+2 Str)',   mod: 'emp' },
+    m_grapple: { name: 'Grappling Hook',  icon: '🪝', text: 'Hook module (+2 Str)',  mod: 'grapple' },
+    m_jets:    { name: 'Jump Jets',       icon: '🦘', text: 'Jets module (+2 Str)',  mod: 'jets' },
+    m_oil:     { name: 'Oil Slick',       icon: '🛢️', text: 'Oil module (+1 Str)',   mod: 'oil' },
     d_medic:   { name: 'Medic Drone',     icon: '➕', text: 'Heals 4 HP/s (+1 Str)',helper: 'medic' },
     d_waller:  { name: 'Waller Drone',    icon: '🧱', text: 'Energy Walls (+1 Str)',helper: 'waller' },
     d_spotter: { name: 'Spotter Drone',   icon: '📡', text: '+15% Acc & Reveal',    helper: 'spotter' },
     d_gunner:  { name: 'Gun Drone',       icon: '🔫', text: 'Orbiting Gun (+1 Str)',helper: 'gunner' },
+    d_guard:   { name: 'Bodyguard Drone', icon: '🛡️', text: 'Soaks bullets (+1 Str)',helper: 'bodyguard' },
+    d_jammer:  { name: 'Jammer Drone',    icon: '📻', text: 'Slows turrets (+1 Str)',helper: 'jammer' },
     robot:     { name: 'New Robot',       icon: '🤖', text: '+1 Veteran Robot',     robot: true },
     mech:      { name: 'Hire Mechanic',   icon: '🔧', text: '+1 Mechanic (+1 Cr/R)',mech: true },
     eng:       { name: 'Hire Engineer',   icon: '👷', text: '+1 Engineer (Reliability)', eng: true },
   };
-  const WINNER_CRATE_POOL = ['plate', 'engine', 'motor', 'chip', 'hull', 'barrel', 'core', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'm_shield', 'm_emp', 'm_flipper', 'd_medic', 'd_waller', 'd_spotter', 'mech', 'eng'];
+  // Winner's Crate cut (rulebook, 5 Nov): only the loser draws a Scrap Crate
 
   const TEAMS = [
     { name: 'Blue Bolts',  col: '#1f6feb' },
@@ -741,7 +748,7 @@ html, body {
         const tie = G.marketAuction.tie;
         const lotName = tie.k < 3 ? LOTS[G.market[tie.k]].name : 'Host the Fight';
         const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
-        pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${tie.myAdd}/${tie.maxMyAdd} Cr → Total ${tie.baseBid + tie.myAdd} Cr):</span>` +
+        pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${tie.myAdd}/${tie.maxMyAdd} Cr → Total ${tie.baseBid + tie.myAdd} Cr). ⚠️ If nobody adds, the team with less fame wins.</span>` +
           `<button class="act" id="pAct1">Lock Rebid (+${tie.myAdd} Cr) →</button>`;
         $('#pAct1').onclick = submitHumanRebid;
       } else if (G.marketResolved) {
@@ -932,10 +939,10 @@ html, body {
         fame: 4, credits: 8,
         mechs: 3,
         engPool: 2, // 2 Engineers at start; 1 assigned to each drafted starter
-        hand: [], robots: [], tamper: {}, schemeLog: []
+        hand: ['guard'], robots: [], tamper: {}, schemeLog: []
       })),
       deck: shuffle(DECK_TEMPLATE.slice()),
-      lots: shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot'])),
+      lots: shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot'])),
       fight: null, over: false, crateChoices: null
     };
     setCameraGoal('compound');
@@ -1042,9 +1049,9 @@ html, body {
       if (t.sponsor === 'aegis') {
         for (const r of t.robots) if (r.dmg > 0) r.dmg = Math.max(0, r.dmg - 25);
       }
-      t.hand.push(draw1('intrigue'), draw1('fight'));
+      t.hand.push(draw1('intrigue'), draw1('intrigue'), draw1('fight'));   // rulebook: draw 3
       if (t.sponsor === 'blackwire') t.hand.push(draw1('intrigue'));
-      const cap = t.sponsor === 'blackwire' ? 6 : 5;
+      const cap = t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;                     // rulebook: hand limit grows with fame
       while (t.hand.length > cap) t.hand.shift();
 
       if (t.i !== viewerSeat) {
@@ -1072,7 +1079,7 @@ html, body {
       if (g >= 0) {
         T.hand.splice(g, 1);
         if (rnd() < 0.5) {
-          notify('🐕 <b>' + esc(T.name) + '\'s Guard Dog</b> foiled a sabotage attempt!', T.col);
+          notify('🤖 <b>' + esc(T.name) + '\'s Security Bot</b> blocked a sabotage attempt!', T.col);
           return;
         }
       }
@@ -1123,7 +1130,7 @@ html, body {
     G.marketResults = null;
     G.marketAuction = null;
     setCameraGoal('compound');
-    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['plate', 'engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
+    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
     G.myBids = [0, 0, 0, 0];
     G.pendingInstall = [];
@@ -1167,6 +1174,7 @@ html, body {
     if (L.cal) cands = cands.filter(r => r.b.weapon === 'gun');
     if (L.stat) cands = cands.filter(r => r.b.lv[L.stat] < 4);
     if (L.mod) cands = cands.filter(r => !r.b.mod);
+    if (L.arm) cands = cands.filter(r => !r.b.arm);
     if (L.helper) cands = cands.filter(r => (r.b.helpers || []).length < 3);
     return cands.slice().sort((a, b) => power(b) - power(a))[0] || t.robots[0];
   }
@@ -1193,6 +1201,7 @@ html, body {
     if (L.weapon) r.b.weapon = L.weapon;
     if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
     if (L.mod) r.b.mod = L.mod;
+    if (L.arm) r.b.arm = L.arm;
     if (L.helper) {
       r.b.helpers = r.b.helpers || [];
       if (r.b.helpers.length < 3) r.b.helpers.push(L.helper);
@@ -1295,14 +1304,20 @@ html, body {
       }
 
       // Tie among 2+ teams at mx > 0!
-      // If a rebid round just took place and nobody added any credits, fall back to tiebreaker (Sovereign Foundry, then lowest Fame).
+      // Rulebook (5 Nov): Sovereign Foundry wins any tie it's in outright, without a rebid.
+      const sov = contenders.find(ti => G.teams[ti].sponsor === 'sovereign');
+      if (sov != null) {
+        notify(`⚖️ Tie on <b>${esc(lotName)}</b> at ${mx} Cr — <b>${esc(G.teams[sov].name)}</b> wins outright (Sovereign Foundry)!`, G.teams[sov].col);
+        finalizeLotResult(k, sov, mx, 'Sovereign wins ties');
+        A.tie = null;
+        A.curK++;
+        continue;
+      }
+      // If a rebid round just took place and nobody added any credits, the team with less fame wins.
       if (A.tie && A.tie.k === k && A.tie.lastMaxAdd === 0) {
-        const sorted = contenders.slice().sort((a, b) =>
-          (G.teams[b].sponsor === 'sovereign' ? 1 : 0) - (G.teams[a].sponsor === 'sovereign' ? 1 : 0) ||
-          G.teams[a].fame - G.teams[b].fame
-        );
+        const sorted = contenders.slice().sort((a, b) => G.teams[a].fame - G.teams[b].fame || a - b);
         const w = sorted[0];
-        const reason = G.teams[w].sponsor === 'sovereign' ? 'Sovereign Tiebreak' : 'Low-Fame Tiebreak';
+        const reason = 'Low-Fame Tiebreak';
         notify(`⚖️ Rebid stalemate on <b>${esc(lotName)}</b> at ${mx} Cr — <b>${esc(G.teams[w].name)}</b> wins (${reason})!`, G.teams[w].col);
         finalizeLotResult(k, w, mx, reason);
         A.tie = null;
@@ -1423,11 +1438,11 @@ html, body {
 
   function afterChoose() {
     G.chooseMyBot = false;
-    for (const ti of G.fight.teams) G.teams[ti].credits += 2;
-    // Bookie simulates 40 fights of VISIBLE builds (hidden modules left out!)
+    // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
+    G.fight.teams.forEach((ti, s) => { const T = G.teams[ti], r = G.fight.robots[s]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
+    // Bookie simulates 40 fights of the builds: all parts are open, only face-down Intrigue cards stay hidden
     const [ra, rb] = G.fight.robots;
     const visA = clone(ra.b), visB = clone(rb.b);
-    delete visA.mod; delete visB.mod;
     let w = 0; const N = 40;
     for (let k = 0; k < N; k++) {
       const sw = k % 2;
@@ -1549,9 +1564,10 @@ html, body {
     }
     const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
     const wTeam = G.teams[W], lTeam = G.teams[Lt];
-    wTeam.fame += 1; wTeam.credits += 3; wr.wins++;
+    wTeam.fame += 1; wr.wins++;   // rulebook: no prize money, credits come from bets and appearance money
     if (wr.wins === favWins(wTeam)) wTeam.fame += 1;
-    notify('🏆 <b>' + esc(wr.name) + '</b> (' + esc(wTeam.name) + ') wins! +1 Fame, +3 Cr.', wTeam.col);
+    notify('🏆 <b>' + esc(wr.name) + '</b> (' + esc(wTeam.name) + ') wins! +1 Fame.', wTeam.col);
+    if (lr) lr.dmg = Math.max(lr.dmg, Math.round(maxHp(lr) / 2));   // rulebook: a spared loser keeps damage equal to half its health
 
     for (const x of F.bets) {
       if (x.side === w) {
@@ -1581,15 +1597,7 @@ html, body {
       F.loserCrateText = `Scrap Crate: +${bonus} Cr salvage`;
     }
 
-    // Winner's Crate (pick 1 of 3 if player won!)
-    if (W === viewerSeat) {
-      G.crateChoices = shuffle(WINNER_CRATE_POOL.slice()).slice(0, 3);
-      F.winnerCrateText = 'Picking Winner\'s Crate...';
-    } else {
-      const pickLot = pick(WINNER_CRATE_POOL);
-      applyLot(W, pickLot, aiPickRobot(wTeam, pickLot));
-      F.winnerCrateText = `Crate: ${LOTS[pickLot].name}`;
-    }
+    F.winnerCrateText = 'Fan token +1';   // Winner's Crate cut (rulebook)
 
     if (G.host === viewerSeat) {
       G.awaitingJudgment = true;
@@ -2609,7 +2617,7 @@ html, body {
 
     const dLbl = helpers.length ? helpers.map(h => (Sim.HELPERS[h]?.name || h).split(' ')[0]).join(',') : '0';
     ctx.fillStyle = '#555'; ctx.font = '600 8.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(`Drn:${dLbl} · Mod:${r.b.mod ? '?' : 'None'}`, bx + bw - 8, fy + fh / 2 + 3);
+    ctx.fillText(`Drn:${dLbl} · Mod:${r.b.mod ? (Sim.MODS[r.b.mod] ? Sim.MODS[r.b.mod].name : r.b.mod) : 'None'}`, bx + bw - 8, fy + fh / 2 + 3);
   }
 
   function drawMarketOnArena(ctx, L) {
@@ -3038,7 +3046,7 @@ html, body {
       ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
       const wT = G.teams[F.winner.team], lT = G.teams[F.loser.team];
       ctx.fillStyle = wT.col; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`🏆 ${wT.name}: +1 Fame, +3 Cr · ${F.winnerCrateText || 'Crate'}`, bx + 6, by + 14);
+      ctx.fillText(`🏆 ${wT.name}: +1 Fame · ${F.winnerCrateText || ''}`, bx + 6, by + 14);
       ctx.fillStyle = lT.col; ctx.font = '700 9.5px system-ui, sans-serif';
       ctx.fillText(`🔧 ${lT.name}: ${F.loserCrateText || 'Scrap Crate'}`, bx + 6, by + 29);
     }
@@ -3189,7 +3197,7 @@ html, body {
         ctx.beginPath(); ctx.arc(rx, ry, 23, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       }
 
-      const modTag = b.revealed && b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : (b.mod ? ' [?]' : '');
+      const modTag = b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : '';   // parts are open (rulebook)
       drawRobotSprite(ctx, rx, ry, b.body, b.turret, col(side), F.robots[side].b, b.hp / b.s.hp, F.robots[side].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, b);
 
       // Show active burning / broken parts status under robot
