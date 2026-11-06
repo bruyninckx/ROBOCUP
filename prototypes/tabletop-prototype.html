@@ -143,27 +143,34 @@ html, body {
   border: 1.5px solid rgba(255,255,255,0.45);
 }
 
-/* Subtle Event Ticker (Top-Left, Minimalist) */
-.ticker {
-  position: fixed;
-  top: 60px;
-  left: 16px;
-  z-index: 8;
-  width: 260px;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Action log (Kev, 6 Nov): persistent, scrollable, grouped by round/phase and by action; hover for help */
+.logpanel {
+  position: fixed; top: 60px; left: 8px; z-index: 8; width: 250px;
+  max-height: calc(100vh - 150px); display: flex; flex-direction: column;
+  background: rgba(255,253,247,0.94); border: 1.5px solid #111; border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.10); font-size: 11.5px;
 }
-.tick-msg {
-  background: rgba(255, 255, 255, 0.88);
-  border-left: 3px solid var(--ink);
-  padding: 4px 8px;
-  border-radius: 0 6px 6px 0;
-  font-size: 11.5px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  animation: slideIn .18s ease-out;
-}
+.logpanel.dragging { pointer-events: none; opacity: .35; }
+.lp-head { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; border-bottom: 1px solid #ddd8cc; font-weight: 800; font-size: 12px; }
+.lp-head button { border: 1.5px solid #111; background: #fff; border-radius: 6px; font: 800 11px system-ui, sans-serif; padding: 1px 7px; cursor: pointer; }
+.lp-body { overflow-y: auto; padding: 4px 6px 6px; display: flex; flex-direction: column; gap: 3px; scrollbar-width: thin; }
+.logpanel.collapsed { width: auto; }
+.logpanel.collapsed .lp-body, .logpanel.collapsed .lp-new { display: none; }
+.logpanel.collapsed .lp-head { border-bottom: 0; gap: 8px; }
+.lp-new { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); border: 1.5px solid #111; background: #111; color: #fff; border-radius: 999px; font: 800 10.5px system-ui, sans-serif; padding: 2px 10px; cursor: pointer; }
+.lp-new[hidden] { display: none; }
+.lp-phase { margin: 6px 0 1px; font: 800 10px system-ui, sans-serif; text-transform: uppercase; letter-spacing: .07em; color: #777; border-bottom: 1px solid #e4dfd3; padding-bottom: 1px; cursor: help; }
+.lp-phase:first-child { margin-top: 0; }
+.tick-msg { background: #fff; border-left: 3px solid var(--ink); padding: 3px 7px; border-radius: 0 6px 6px 0; line-height: 1.35; animation: slideIn .18s ease-out; }
+.lp-act { background: #fff; border-left: 3px solid var(--ink); border-radius: 0 6px 6px 0; animation: slideIn .18s ease-out; }
+.lp-act > .lp-ah { padding: 3px 7px; line-height: 1.35; cursor: help; }
+.lp-act > .lp-steps { padding: 0 7px 3px 12px; display: flex; flex-direction: column; gap: 1px; }
+.lp-act > .lp-steps:empty { display: none; }
+.lp-step { color: #444; font-size: 11px; line-height: 1.3; }
+.lp-step::before { content: '↳ '; color: #aaa; }
+.lp-res { float: right; font: 800 9.5px system-ui, sans-serif; padding: 0 5px; border-radius: 999px; margin-left: 4px; }
+.lp-res.ok { background: #e3f3e6; color: #17803a; } .lp-res.no { background: #fde4e4; color: #c62828; }
+.lcard { text-decoration: underline dotted #999; text-underline-offset: 2px; cursor: help; font-weight: 700; }
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -449,8 +456,8 @@ html, body {
 <!-- Dynamic Prompt Pill -->
 <div class="prompt-bar" id="promptBar"></div>
 
-<!-- Minimalist Event Ticker -->
-<div class="ticker" id="ticker"></div>
+<!-- Action log: scrollable, grouped by round/phase and action (hover anything for help) -->
+<div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Action log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">📜 Log</span><button id="lpToggle" title="Hide / show the log">–</button></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
 
 <!-- Hearthstone-Style Arched Hand -->
 <div class="hand-stage" id="handStage">
@@ -658,17 +665,78 @@ html, body {
     };
   }
 
+  /* ---------- action log (Kev, 6 Nov): kept for the whole game, scrollable, grouped ---------- */
+  const LOGC = { key: null, group: null, max: 600, unread: 0 };
+  function logUnread() {   // collapsed log: count what came in since
+    const lp = document.getElementById('logPanel'); if (!lp || !lp.classList.contains('collapsed')) return;
+    LOGC.unread++; $('#lpToggle').textContent = '▸ show (' + LOGC.unread + ' new)';
+  }
+  function logBox() { return $('#ticker'); }
+  function logAtBottom() { const t = logBox(); return t.scrollHeight - t.scrollTop - t.clientHeight < 24; }
+  function logAppend(el) {
+    const t = logBox(), stick = logAtBottom();
+    t.appendChild(el);
+    if (!el.classList.contains('lp-phase')) logUnread();
+    while (t.children.length > LOGC.max) t.removeChild(t.firstChild);
+    if (stick) t.scrollTop = t.scrollHeight; else $('#lpNew').hidden = false;
+  }
+  function logPhase() {
+    if (!G) return;
+    const key = G.round + '|' + G.phase;
+    if (key === LOGC.key) return;
+    LOGC.key = key;
+    const ph = PHASES.find(x => x[0] === G.phase), d = document.createElement('div');
+    d.className = 'lp-phase';
+    d.textContent = (G.phase === 'setup' ? 'Setup' : 'Round ' + G.round) + ' · ' + (ph ? ph[1].replace(/^\d+\.\s*/, '') : G.phase);
+    d.dataset.help = d.textContent + '|' + (PHASE_HELP[G.phase] || '');
+    logAppend(d);
+  }
   function notify(html, borderCol) {
-    const t = $('#ticker');
+    logPhase();
     const d = document.createElement('div');
+    if (LOGC.group) { const stick = logAtBottom(); d.className = 'lp-step'; d.innerHTML = html; LOGC.group.steps.appendChild(d); logUnread(); if (stick) logBox().scrollTop = logBox().scrollHeight; else $('#lpNew').hidden = false; return; }
     d.className = 'tick-msg';
     if (borderCol) d.style.borderLeftColor = borderCol;
     d.innerHTML = html;
-    t.appendChild(d);
-    while (t.children.length > 5) t.removeChild(t.firstChild);
-    setTimeout(() => { if (d.parentNode) d.remove(); }, 6500);
+    logAppend(d);
+  }
+  // one Intrigue play = one box: header (who plays what on whom), then every step under it, then ✓ / ✋
+  function logBegin(headHtml, col, helpTitle, helpBody) {
+    if (LOGC.group) logEnd();
+    logPhase();
+    const box = document.createElement('div'), h = document.createElement('div'), st = document.createElement('div');
+    box.className = 'lp-act'; if (col) box.style.borderLeftColor = col;
+    h.className = 'lp-ah'; h.innerHTML = headHtml;
+    if (helpTitle) h.dataset.help = helpTitle + '|' + (helpBody || '');
+    st.className = 'lp-steps';
+    box.appendChild(h); box.appendChild(st);
+    logAppend(box);
+    LOGC.group = { box, head: h, steps: st };
+  }
+  function logEnd(result) {
+    const g = LOGC.group; if (!g) return;
+    LOGC.group = null;
+    if (result) { const b = document.createElement('span'); b.className = 'lp-res ' + (result === 'blocked' || result === 'failed' ? 'no' : 'ok'); b.textContent = result === 'blocked' ? '✋ blocked' : result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); }
   }
 
+  const cardType = c => c.phase === 'fight' ? '⚡ Live combat card' : c.phase === 'later' ? '🏟️ Arena card' : c.phase === 'security' ? '🤖 Security' :
+                         c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
+  function cardHelp(id) {
+    const c = CARDS[id];
+    if (!c) return ['', ''];
+    const gate = c.gate === '▲' ? 'only vs a team with more fame' : c.gate === '▼' ? 'only vs a team with less fame' : c.need ? 'needs ' + c.need + ' fame' : 'no fame gate';
+    return [c.icon + ' ' + esc(c.name), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];
+  }
+  const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text)) + '>' + esc(L.name) + '</span>' : esc(id); };
+  const SCHEME_STEPS = '<br><br><b>How a play resolves</b><br>1. Fame gate: short on fame? Ask other teams to back you.<br>2. Harmful card: the target\'s Security Bots roll, 4–6 blocks.<br>3. Reaction window: any team may block it with a reaction card.<br>4. The effect happens (✓ landed) or not (✋ blocked).';
+  // header of one Intrigue play in the log (a rival's face-down card stays secret)
+  function playHead(F, id, T) {
+    const c = CARDS[id], hidden = c.t === 'F' && F.i !== viewerSeat;
+    const head = (hidden ? '🂠 ' : c.icon + ' ') + nm(F) + ' plays ' + (hidden ? 'a face-down card' : cardRef(id)) + (T && T !== F ? ' on ' + nm(T) : '');
+    const h = hidden ? ['🂠 Face-down card', 'Put on a robot without showing it. It stays secret (the bookie can\'t see it) until that robot\'s next fight.'] : cardHelp(id);
+    return [head, h[0], h[1] + SCHEME_STEPS];
+  }
   function mkRobot(name, b) {
     const copy = clone(b);
     if (!('mod' in copy)) copy.mod = pick(Object.keys(Sim.MODS));
@@ -1246,7 +1314,7 @@ html, body {
         e.preventDefault();
         if (G.cashMode && G.phase === 'intrigue' && G.intrigueTurn === viewerSeat) {
           const g = cashIn(t, id);
-          notify('💰 Cashed in <b>' + esc(c.name) + '</b> for ' + g + ' Cr.', t.col);
+          notify('💰 Cashed in ' + cardRef(id) + ' for ' + g + ' Cr.', t.col);
           updateHud();
           return;
         }
@@ -1271,16 +1339,18 @@ html, body {
   /* Dynamic Auto-Fit Camera System:
    * Because the Arena Pit is compact (620x210) when no fight is ongoing,
    * the entire compound fits in 1080x620 and renders at near 1:1 crisp scale! */
+  // room the open action log takes on the left; the table shifts right to keep clear of it
+  function logRoom() { const lp = document.getElementById('logPanel'); return lp && !lp.classList.contains('collapsed') ? lp.offsetWidth + 14 : 0; }
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
-    const fitW = (sw - 36) / 1140;
+    const fitW = (sw - 36 - logRoom()) / 1140;
     const fitH = (sh - 160) / 665;
     return Math.max(0.52, Math.min(1.04, Math.min(fitW, fitH)));
   }
 
   function getArenaZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
-    const fitW = (sw - 80) / 950;
+    const fitW = (sw - 80 - logRoom()) / 950;
     const fitH = (sh - 160) / 600;
     return Math.max(0.75, Math.min(1.15, Math.min(fitW, fitH)));
   }
@@ -1288,15 +1358,16 @@ html, body {
   function setCameraGoal(mode) {
     if (cam.manualZoom) return;
     if (mode === 'arena') {
-      cam.tx = 0; cam.ty = 0; cam.tzoom = getArenaZoom();
+      cam.tzoom = getArenaZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = 0;
     } else {
-      cam.tx = 0; cam.ty = -4; cam.tzoom = getCompoundZoom();
+      cam.tzoom = getCompoundZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = -4;
     }
   }
 
   /* ---------- Game Flow & Phases ---------- */
   function newGame() {
     const G0fame = G && G.startFame || 4;
+    { const t = document.getElementById('ticker'); if (t) t.innerHTML = ''; LOGC.key = null; LOGC.group = null; }
     G = {
       round: 1, phase: 'setup', setupStep: 'sponsor', host: -1,
       starterDeck: shuffle(Object.keys(STARTERS).slice()),
@@ -1495,7 +1566,7 @@ html, body {
     for (const { o, off } of res.ask) {
       if (F.fame + got >= needOf(F, c)) break;
       let yes, paid = 0;
-      if (res.seat && !forced) { forced = yes = true; removeFromHand(F, 'board_seat'); discardCard('board_seat'); notify('⛓️ Board Seat: ' + nm(o) + ' must back you with all its fame.', F.col); }
+      if (res.seat && !forced) { forced = yes = true; removeFromHand(F, 'board_seat'); discardCard('board_seat'); notify('⛓️ ' + cardRef('board_seat') + ': ' + nm(o) + ' must back with all its fame.', F.col); }
       else { const o2 = Math.min(off, F.credits); yes = aiWillBack(o, F, T, c, o2); if (yes && o2) { paid = payCr(F, o2); o.credits += paid; } }
       notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + o.fame + ' fame' + (paid ? ', paid ' + paid + ' Cr' : '') + ').' : '✋ ' + nm(o) + ' refuses to back you.', o.col);
       if (yes) got += o.fame;
@@ -1550,7 +1621,7 @@ html, body {
       F.ivNmr = true;
       return { blocked: false, T: nt };
     }
-    notify('🛡️ ' + nm(o) + ' blocks it with <b>' + esc(b.name) + '</b>!', o.col);
+    notify('🛡️ ' + nm(o) + ' blocks it with ' + cardRef(id) + '!', o.col);
     return { blocked: true, T };
   }
   async function defend(F, c, T) {
@@ -1560,8 +1631,8 @@ html, body {
         if (secReady(T) > 0) T.secBots--; else removeFromHand(T, 'security_bot');
         discardCard('security_bot');
         const roll = 1 + Math.floor(rnd() * 6);
-        if (roll >= 4) { notify('🤖 ' + nm(T) + '\'s Security Bot rolls ' + roll + ' and blocks ' + shown + '!', T.col); return { blocked: true, T }; }
-        notify('🤖 ' + nm(T) + '\'s Security Bot rolls ' + roll + ': not enough.', T.col);
+        if (roll >= 4) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
+        notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
       }
     }
     const order = [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat));
@@ -1591,7 +1662,7 @@ html, body {
       const yes = oi === viewerSeat
         ? await ivModal('⏱️ Pile-On?', nm(X) + ' just lost fame. Play <b>Pile-On</b> so they lose 1 more?', [{ label: 'Pile on', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
         : (X === leaderOf() && rnd() < 0.7);
-      if (yes) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' piles on: ' + nm(X) + ' loses 1 more fame.', o.col); break; }
+      if (yes) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' plays ' + cardRef('pile_on') + ': ' + nm(X) + ' loses 1 more fame.', o.col); break; }
     }
     return lost;
   }
@@ -1688,11 +1759,12 @@ html, body {
   }
   async function playScheme(F, id, T) {
     const c = CARDS[id];
+    if (!LOGC.group) { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); }
     removeFromHand(F, id);
-    if (c.t !== 'F') notify('🕵️ ' + nm(F) + ' plays <b>' + esc(c.name) + '</b>' + (T && T !== F ? ' on ' + nm(T) : '') + '.', F.col);
     const d = await defend(F, c, T);
     discardCard(id);
     if (!d.blocked) await resolveScheme(F, id, d.T);
+    logEnd(d.blocked ? 'blocked' : 'landed');
     updateHud();
     return !d.blocked;
   }
@@ -1781,7 +1853,8 @@ html, body {
       if (T === undefined || precheck(F, c, T) || !aiWants(F, c, T)) continue;
       if (!gateOk(c, F, T)) {
         if (typeof c.gate !== 'number' || needOf(F, c) - F.fame > 8 || rnd() < 0.4) continue;
-        if (!(await aiBacking(F, c, T))) continue;
+        { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing'); }
+        if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
       }
       await sleep(450);
       await playScheme(F, id, T);
@@ -1833,8 +1906,9 @@ html, body {
     G.ivBusy = true; updateHud();
     try {
       if (!gateOk(c, F, T)) {
-        if (typeof c.gate !== 'number') { notify('⚠️ ' + esc(c.name) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
-        if (!(await humanBacking(c, T))) { notify('Not enough backing: ' + esc(c.name) + ' stays in your hand.', '#b45309'); return false; }
+        if (typeof c.gate !== 'number') { notify('⚠️ ' + cardRef(id) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
+        { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); notify('needs ' + needOf(F, c) + ' fame, you have ' + F.fame + ': asking for backing'); }
+        if (!(await humanBacking(c, T))) { notify('not enough backing: ' + cardRef(id) + ' stays in your hand'); logEnd('failed'); return false; }
       }
       await playScheme(F, id, T);
     } finally { G.ivBusy = false; updateHud(); }
@@ -2132,7 +2206,7 @@ html, body {
 
     // All 4 lots resolved!
     for (const x of A.wins) {
-      notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + esc(LOTS[x.lot].name) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
+      notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + lotRef(x.lot) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
     }
     const hostT = G.teams[G.host];
     hostT.fame += 1;
@@ -2305,12 +2379,12 @@ html, body {
       const id = T.hand.splice(cIdx, 1)[0];
       if (id === 'trigger' || id === 'overclock' || id === 'field_eng') {
         Sim.queueCmd(B, { card: id, bot: s });
-        notify('🃏 <b>' + esc(T.name) + '</b> played <b>' + esc(CARDS[id].name) + '</b>!', T.col);
+        notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
       } else if (id === 'oil_card' || id === 'emp_card') {
         const foe = B.bots[1 - s];
         if (foe) {
           Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y });
-          notify('🃏 <b>' + esc(T.name) + '</b> played <b>' + esc(CARDS[id].name) + '</b>!', T.col);
+          notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
         }
       }
     });
@@ -2405,7 +2479,7 @@ html, body {
       T.robots.splice(T.robots.indexOf(robot), 1);
       for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
-      if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 Blaze of Glory: ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
+      if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
       if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
     } else {
       notify('👍 Host spared <b>' + esc(robot.name) + '</b>.', '#2a9d3a');
@@ -4233,7 +4307,7 @@ html, body {
       };
       Sim.queueCmd(B, cmd);
       if (bc) bc.postMessage({ type: 'CARD_CMD', seat: viewerSeat, cmd, name: c.name });
-      notify('🃏 You played <b>' + esc(c.name) + '</b>!', t.col);
+      notify('🃏 You played ' + cardRef(dc.id) + '!', t.col);
       return true;
     }
     return false;
@@ -4502,6 +4576,18 @@ html, body {
       setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound');
     }
   };
+  // action log controls: collapse (remembered per browser), "new" jump button, out of the way while dragging a card
+  (() => {
+    const lp = $('#logPanel'), body = $('#ticker'), nb = $('#lpNew'), tg = $('#lpToggle');
+    let col = window.innerWidth < 1250;
+    try { const v = localStorage.getItem('robocus.logCollapsed'); if (v != null) col = v === '1'; } catch (e) {}
+    const apply = () => { lp.classList.toggle('collapsed', col); LOGC.unread = 0; tg.textContent = col ? '▸ show' : '–'; if (G) setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound'); };
+    tg.onclick = () => { col = !col; try { localStorage.setItem('robocus.logCollapsed', col ? '1' : '0'); } catch (e) {} apply(); if (!col) body.scrollTop = body.scrollHeight; };
+    body.addEventListener('scroll', () => { if (logAtBottom()) nb.hidden = true; });
+    nb.onclick = () => { body.scrollTop = body.scrollHeight; nb.hidden = true; };
+    apply();
+    setInterval(() => lp.classList.toggle('dragging', !!dragCard), 150);
+  })();
   $('#quickFightBtn').onclick = () => {
     if (G.phase === 'setup') quickFinishSetup();
     const t = me();
