@@ -389,6 +389,24 @@ html, body {
 }
 #ivModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.25)}
 #ivModal[hidden]{display:none}
+#scoutPanel{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.22)}
+#scoutPanel[hidden]{display:none}
+.sc-box{position:relative;background:#fffdf7;border:2.5px solid #111;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:14px 16px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;font:13px/1.45 system-ui,sans-serif;color:#111}
+.sc-box h3{margin:0 0 4px;font-size:15.5px;padding-right:24px}
+.sc-x{position:absolute;top:8px;right:10px;border:0;background:none;font-size:16px;cursor:pointer}
+.sc-sub{color:#555;font-size:12px;margin-bottom:8px}
+.sc-field{font-weight:800;margin:6px 0}
+.sc-chip{display:inline-block;color:#fff;font-weight:800;font-size:11.5px;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.sc-tags{margin:6px 0 8px;font-size:12.5px}
+.sc-tags i{color:#666;font-style:normal;font-size:11px}
+.sc-up{color:#17803a;font-weight:800}.sc-dn{color:#d62828;font-weight:800}
+.sc-t{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 8px}
+.sc-t th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#777;border-bottom:1px solid #d5d1c7;padding:3px 4px}
+.sc-t td{padding:4px;border-bottom:1px solid #eee9dd}
+.sc-w{color:#666}
+.sc-spar{font:800 11.5px system-ui,sans-serif;padding:3px 8px;border-radius:7px;border:2px solid #111;background:#fff;cursor:pointer}
+.sc-spar[disabled],.sc-box button[disabled]{opacity:.4;cursor:not-allowed}
+.sc-note{color:#777;font-size:11.5px}
 .iv-box{background:#fffdf7;border:2.5px solid #111;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:14px 16px;width:min(440px,calc(100vw - 32px));font:13px/1.45 system-ui,sans-serif;color:#111}
 .iv-box h3{margin:0 0 8px;font-size:15px}
 .iv-box label{display:flex;align-items:center;gap:6px;margin:6px 0}
@@ -520,11 +538,11 @@ html, body {
 
   // rulebook (5 Nov): 5 bands by the bookie's win chance; pays 1:3 .. 3:1, so total return 1.33x .. 4x the stake
   const BANDS = [
-    { min: 0.75, name: 'Heavy favourite', pay: 1.33 },
-    { min: 0.58, name: 'Favourite',       pay: 1.5 },
-    { min: 0.42, name: 'Even',            pay: 2 },
-    { min: 0.25, name: 'Underdog',        pay: 3 },
-    { min: -1,   name: 'Heavy underdog',  pay: 4 },
+    { min: 0.75, name: 'Heavy favourite', short: 'Heavy fav', col: '#17803a', pay: 1.33 },
+    { min: 0.58, name: 'Favourite',       short: 'Favourite', col: '#2a9d3a', pay: 1.5 },
+    { min: 0.42, name: 'Even',            short: 'Even',      col: '#6b6860', pay: 2 },
+    { min: 0.25, name: 'Underdog',        short: 'Underdog',  col: '#c2410c', pay: 3 },
+    { min: -1,   name: 'Heavy underdog',  short: 'Heavy dog', col: '#d62828', pay: 4 },
   ];
   const bandOf = p => BANDS.find(x => p >= x.min) || BANDS[2];
 
@@ -615,7 +633,6 @@ html, body {
   let G = null;
   let viewerSeat = 0;
   let botSeq = 0;
-  let showExactOdds = false;
 
   const cam = { x: 0, y: 40, zoom: 0.58, tx: 0, ty: 40, tzoom: 0.58, manualZoom: false };
   const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false };
@@ -706,6 +723,187 @@ html, body {
     return w + ' · ' + r.b.range + (hCount ? ` · ${hCount} drone${hCount > 1 ? 's' : ''}` : '');
   }
 
+  /* ============================================================================
+   * BOOKIE'S SCOUTING (Kev, 6 Nov): how strong is my robot?
+   * 1. the bookie's fuzzy band vs the field (every robot of the other teams), on every bay and on every Market lot
+   * 3. counter tags (▲ strong vs / ▼ weak vs) from Sim.COUNTERS (tools/counter-tags.js)
+   * 5. paid information: a scout (1 Cr, exact % for every matchup this round) and a sparring match in Upkeep (2 Cr)
+   * The bookie only sees open parts at full health; face-down cards stay hidden. Results are cached per build pair,
+   * computed a few fights per frame so the table never freezes ("…" while it works).
+   * ============================================================================ */
+  const SC = { cache: new Map(), pend: new Map(), order: [], ver: 0 };
+  const SCOUT_N = 8;     // fights per pairing, sides swapped
+  const SCOUT_PRICE = 1, SPAR_PRICE = 2;
+  const bKey = b => JSON.stringify([b.lv, b.weapon || 'gun', b.cal || 'medium', b.range, b.mod || null, b.arm || null, (b.helpers || []).slice().sort(), b.eng == null ? 1 : b.eng, b.drive || null, b.proc || null, b.quirk || null, b.focus || 'main']);
+  function duelP(a, b) {   // win chance of build a vs build b, or null while the bookie is still working
+    const ka = bKey(a), kb = bKey(b);
+    if (ka === kb) return 0.5;
+    const k = ka + '|' + kb, kr = kb + '|' + ka;
+    if (SC.cache.has(k)) return SC.cache.get(k);
+    if (SC.cache.has(kr)) return 1 - SC.cache.get(kr);
+    if (!SC.pend.has(k) && !SC.pend.has(kr)) { SC.pend.set(k, { a: clone(a), b: clone(b), w: 0, n: 0 }); SC.order.push(k); }
+    return null;
+  }
+  function scoutWork(budgetMs) {
+    const t0 = performance.now();
+    while (SC.order.length && performance.now() - t0 < budgetMs) {
+      const k = SC.order[0], J = SC.pend.get(k);
+      const sw = J.n % 2, B = Sim.newBattle(sw ? [J.b, J.a] : [J.a, J.b], 9001 + J.n * 7919);
+      while (!B.over) Sim.step(B, 1 / 30);
+      J.w += B.winner === (sw ? 1 : 0) ? 1 : B.winner === -1 ? 0.5 : 0;
+      if (++J.n >= SCOUT_N) { SC.cache.set(k, J.w / J.n); SC.pend.delete(k); SC.order.shift(); SC.ver++; }
+    }
+  }
+  const rivalsOf = ti => G.teams.filter(T => T.i !== ti).flatMap(T => T.robots.map(r => ({ T, r })));
+  function fieldOdds(ti, b) {   // build b vs every robot of the other teams
+    const per = rivalsOf(ti).map(x => ({ T: x.T, r: x.r, p: duelP(b, x.r.b) }));
+    const done = per.every(x => x.p != null);
+    return { per, done, p: done && per.length ? per.reduce((a, x) => a + x.p, 0) / per.length : null };
+  }
+  const scouted = () => me().scoutRound === G.round;
+  const pctTxt = p => Math.round(p * 100) + '%';
+  const BAND_ABBR = { 'Heavy favourite': 'H.fav', Favourite: 'Fav', Even: 'Even', Underdog: 'Dog', 'Heavy underdog': 'H.dog' };
+  function oddsChip(p, compact) {
+    if (p == null) return { text: compact ? '…' : 'Bookie…', col: '#9a968c' };
+    const bd = bandOf(p);
+    return { text: scouted() ? (compact ? BAND_ABBR[bd.name] : bd.short) + ' ' + pctTxt(p) : bd.short, col: bd.col };
+  }
+  // a lot fitted on a copy of the robot (same rules as applyLot)
+  function lotBuild(r, L) {
+    if (!L || !r || !(L.stat || L.weapon || L.cal || L.mod || L.arm || L.helper)) return null;
+    const nb = clone(r.b);
+    if (L.stat) { if (nb.lv[L.stat] >= 4) return null; nb.lv[L.stat]++; }
+    if (L.weapon) nb.weapon = L.weapon;
+    if (L.cal) { if (nb.weapon !== 'gun') nb.range = 'mid'; nb.weapon = 'gun'; nb.cal = L.cal; }
+    if (L.mod) nb.mod = L.mod;
+    if (L.arm) nb.arm = L.arm;
+    if (L.helper) { nb.helpers = (nb.helpers || []).slice(); if (nb.helpers.length < 3) nb.helpers.push(L.helper); else nb.helpers[nb.helpers.length - 1] = L.helper; }
+    if (L.weapon === 'laser' || L.weapon === 'saw') nb.range = 'mid';
+    if (L.weapon === 'spinner' || L.weapon === 'flame') nb.range = 'short';
+    if (L.weapon === 'mortar') nb.range = 'long';
+    if (weaponSwapNote(r, L)) delete nb.quirk;
+    return nb;
+  }
+  // "Even→Fav" for one robot, '=' when the band doesn't move, null while computing
+  function oddsShift(ti, r, L) {
+    const nb = lotBuild(r, L);
+    if (!nb) return undefined;
+    const a = fieldOdds(ti, r.b).p, b = fieldOdds(ti, nb).p;
+    if (a == null || b == null) return null;
+    if (scouted()) return pctTxt(a) + '→' + pctTxt(b);
+    return bandOf(a) === bandOf(b) ? bandOf(a).short + ' =' : bandOf(a).short + '→' + bandOf(b).short;
+  }
+  // counter tags for a whole robot, or for one Market lot
+  const clsShort = k => Sim.WEAPON_CLASSES[k] ? Sim.WEAPON_CLASSES[k].short : k;
+  const clsName = k => Sim.WEAPON_CLASSES[k] ? Sim.WEAPON_CLASSES[k].name : k;
+  // weapon classes the robots of the other teams use: tags only mention what you can actually meet
+  const classesVs = ti => [...new Set(rivalsOf(ti).map(x => Sim.classOf(x.r.b)))];
+  const tagsFor = (ti, b, n = 3) => Sim.tagsOf(b, n, classesVs(ti));
+  function lotTags(L, ti) {
+    if (!L) return null;
+    const C = Sim.COUNTERS;
+    let o = null;
+    if (L.weapon || L.cal) o = C.weapons[Sim.classOf({ weapon: L.weapon || 'gun', cal: L.cal })] || null;
+    else { const k = L.arm ? 'arm:' + L.arm : L.mod ? 'mod:' + L.mod : L.helper ? 'helper:' + L.helper : null; o = k ? C.parts[k] || null : null; }
+    if (!o || ti == null) return o;
+    const on = classesVs(ti);
+    return { strong: o.strong.filter(k => on.includes(k)), weak: o.weak.filter(k => on.includes(k)) };
+  }
+  // ▲ green / ▼ red tag text on the canvas; returns the width used
+  function drawTags(ctx, tg, x, y, maxW, align, size, n = 2) {
+    if (!tg || !(tg.strong.length || tg.weak.length)) return 0;
+    const up = tg.strong.length ? '▲ ' + tg.strong.slice(0, n).map(clsShort).join(', ') : '';
+    const dn = tg.weak.length ? '▼ ' + tg.weak.slice(0, n).map(clsShort).join(', ') : '';
+    ctx.font = '800 ' + size + 'px system-ui, sans-serif';
+    const gap = up && dn ? size * 0.8 : 0, wU = up ? ctx.measureText(up).width : 0, wD = dn ? ctx.measureText(dn).width : 0;
+    const tot = wU + gap + wD, sc = Math.min(1, maxW / Math.max(1, tot));
+    ctx.save();
+    let sx = align === 'center' ? x - tot * sc / 2 : align === 'right' ? x - tot * sc : x;
+    ctx.translate(sx, y); ctx.scale(sc, 1); ctx.textAlign = 'left';
+    if (up) { ctx.fillStyle = '#17803a'; ctx.fillText(up, 0, 0); }
+    if (dn) { ctx.fillStyle = '#d62828'; ctx.fillText(dn, wU + gap, 0); }
+    ctx.restore();
+    return tot * sc;
+  }
+  function drawOddsChip(ctx, p, x, y, w, h, size, compact) {
+    const c = oddsChip(p, compact);
+    ctx.fillStyle = c.col; ctx.fillRect(x, y, w, h);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; fitText(ctx, '🎩 ' + c.text, x + w / 2, y + h / 2 + size * 0.36, w - 6, '800', size);
+  }
+
+  /* ---------- the scout panel: click a 🎩 chip on any robot ---------- */
+  let scoutOpen = null;
+  function openScout(ti, r) { scoutOpen = { ti, r }; renderScout(true); }
+  function closeScout() { scoutOpen = null; const el = document.getElementById('scoutPanel'); if (el) el.hidden = true; }
+  function renderScout(force) {
+    let el = document.getElementById('scoutPanel');
+    if (!scoutOpen) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
+    const { ti, r } = scoutOpen, T = G.teams[ti], t = me(), mine = ti === viewerSeat;
+    if (!T.robots.includes(r)) { closeScout(); return; }
+    const key = SC.ver + '|' + G.round + '|' + t.credits + '|' + G.phase + '|' + scouted() + '|' + bKey(r.b);
+    if (!force && el.dataset.key === key) return;
+    el.dataset.key = key;
+    const F = fieldOdds(ti, r.b), fr = Sim.frameOf(r.b), tg = tagsFor(ti, r.b, 3), sc = scouted();
+    const all = Sim.tagsOf(r.b, 4), on = classesVs(ti), off = { strong: all.strong.filter(k => !on.includes(k)), weak: all.weak.filter(k => !on.includes(k)) };
+    const chip = p => { const c = oddsChip(p); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
+    const canSpar = mine && G.phase === 'upkeep' && t.sparRound !== G.round && t.credits >= SPAR_PRICE && !r.exhausted;
+    const helpers = (r.b.helpers || []).map(h => Sim.HELPERS[h] ? Sim.HELPERS[h].name : h);
+    const parts = [wepName(r.b), r.b.arm && Sim.ARMOURS[r.b.arm] ? Sim.ARMOURS[r.b.arm].name : null, r.b.mod && Sim.MODS[r.b.mod] ? Sim.MODS[r.b.mod].name : null].concat(helpers.map(h => /drone/i.test(h) ? h : h + ' drone')).filter(Boolean);
+    const rows = F.per.map((x, k) => '<tr><td><b style="color:' + x.T.col + '">' + esc(x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + '</td><td class="sc-w">' + esc(wepName(x.r.b)) + '</td><td>' + chip(x.p) + '</td>' +
+      (mine && G.phase === 'upkeep' ? '<td><button class="sc-spar" data-k="' + k + '"' + (canSpar ? '' : ' disabled') + '>🥊 Spar</button></td>' : '') + '</tr>').join('');
+    const tagHtml = (tg.strong.length ? '<div><span class="sc-up">▲ Strong vs</span> ' + tg.strong.map(k => esc(clsName(k)) + (sc ? ' <i>' + pctTxt(tg.vs[k]) + '</i>' : '')).join(', ') + '</div>' : '') +
+      (tg.weak.length ? '<div><span class="sc-dn">▼ Weak vs</span> ' + tg.weak.map(k => esc(clsName(k)) + (sc ? ' <i>' + pctTxt(tg.vs[k]) + '</i>' : '')).join(', ') + '</div>' : '') || '<div class="sc-note">No clear counters among the weapons on the table.</div>';
+    const offHtml = off.strong.length || off.weak.length ? '<div class="sc-note">Not on the table right now: ' + [off.strong.length ? '▲ ' + off.strong.map(clsName).join(', ') : '', off.weak.length ? '▼ ' + off.weak.map(clsName).join(', ') : ''].filter(Boolean).join(' · ') + '</div>' : '';
+    el.hidden = false;
+    el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
+      '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + '</h3>' +
+      '<div class="sc-sub">' + esc(parts.join(' · ')) + '<br><b>' + fr.name + ' frame</b> (strain ' + fr.strain + '): ' + (fr.key === 'light' ? 'small and hard to hit' : fr.key === 'medium' ? 'standard size' : fr.key === 'heavy' ? 'bigger target' : 'a big target, easy to hit') + '</div>' +
+      '<div class="sc-field">Bookie vs the field: ' + chip(F.p) + (F.done ? '' : ' <span class="sc-note">working… ' + SC.order.length + ' matchups to go</span>') + '</div>' +
+      '<div class="sc-tags">' + tagHtml + offHtml + '<div class="sc-note">Tags come from the Sim: its weapon, plus what its armour card, module and drones add.</div></div>' +
+      (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon</th><th>bookie</th>' + (mine && G.phase === 'upkeep' ? '<th></th>' : '') + '</tr>' + rows + '</table>' : '') +
+      '<div class="sc-note">The bookie runs the robots in the Sim at full health and only sees open parts: face-down cards stay secret. ' + (sc ? 'Your scout is out: exact numbers this round.' : 'Bands are fuzzy on purpose.') + '</div>' +
+      '<div class="iv-btns">' + (sc ? '' : '<button class="primary sc-buy"' + (t.credits >= SCOUT_PRICE ? '' : ' disabled') + '>🔭 Hire a scout (' + SCOUT_PRICE + ' Cr): exact % this round</button>') +
+      (mine ? (G.phase === 'upkeep' ? (t.sparRound === G.round ? '<span class="sc-note">You already sparred this round.</span>' : '<span class="sc-note">🥊 Spar (' + SPAR_PRICE + ' Cr): watch a test fight vs one robot. No damage, no fame, no cards.</span>') : '<span class="sc-note">🥊 Sparring matches are booked in Upkeep.</span>') : '') +
+      '<button class="secondary sc-close">Close</button></div></div>';
+    el.querySelector('.sc-x').onclick = closeScout;
+    el.querySelector('.sc-close').onclick = closeScout;
+    el.onclick = e => { if (e.target === el) closeScout(); };
+    const buy = el.querySelector('.sc-buy');
+    if (buy) buy.onclick = buyScout;
+    el.querySelectorAll('.sc-spar').forEach(b => { b.onclick = () => { const x = F.per[+b.dataset.k]; startSpar(r, x.T, x.r); }; });
+  }
+  function buyScout() {
+    const t = me();
+    if (scouted() || t.credits < SCOUT_PRICE || G.phase === 'fight') return;
+    t.credits -= SCOUT_PRICE; t.scoutRound = G.round;
+    notify('🔭 You hired a scout: exact bookie numbers for every matchup this round.', t.col);
+    updateHud(); renderScout(true);
+  }
+  // sparring match (Upkeep, 2 Cr, once a round): a real Sim fight in the pit vs one rival robot, nothing carries over
+  function startSpar(r, T2, r2) {
+    const t = me();
+    if (G.phase !== 'upkeep' || t.sparRound === G.round || t.credits < SPAR_PRICE) return;
+    t.credits -= SPAR_PRICE; t.sparRound = G.round;
+    closeScout();
+    G.spar = { returnPhase: G.phase, prevFight: G.fight };
+    G.fight = { spar: true, sandbox: true, teams: [viewerSeat, T2.i], robots: [r, r2], bets: [] };
+    G.phase = 'fight';
+    const F = G.fight;
+    F.B = Sim.newBattle([clone(r.b), clone(r2.b)], (rnd() * 4294967296) >>> 0);
+    F.rollout = 0; F.rolloutDone = false;
+    notify('🥊 Sparring match: <b>' + esc(r.name) + '</b> vs ' + esc(T2.name) + '\'s <b>' + esc(r2.name) + '</b>. No damage, no fame.', t.col);
+    setCameraGoal('arena');
+    updateHud();
+  }
+  function endSpar() {
+    const F = G.fight, B = F.B, w = B.winner;
+    notify('🥊 Sparring result: ' + (w >= 0 ? '<b>' + esc(F.robots[w].name) + '</b> won' : 'a draw') + ' after ' + Math.round(B.t) + ' s. Back to the garage.', '#111');
+    G.phase = G.spar.returnPhase; G.fight = G.spar.prevFight; G.spar = null;
+    setCameraGoal('compound');
+    updateHud();
+  }
+
   function draw1() {
     if (!G.deck.length) { G.deck = shuffle(G.discard.length ? G.discard.splice(0) : DECK_TEMPLATE.slice()); notify('🔀 The Intrigue deck is reshuffled.', '#111'); }
     return G.deck.pop();
@@ -757,7 +955,7 @@ html, body {
       return;
     }
     if (G.phase === 'upkeep') {
-      pb.innerHTML = '<span>🔧 <b>Upkeep & Workshop:</b> Tune Engineers (👷), Target Focus & Range in your large South Command Garage, or repair damaged bots.</span>' +
+      pb.innerHTML = '<span>🔧 <b>Upkeep & Workshop:</b> Tune Engineers (👷), Target Focus & Range, repair damaged bots, or click a 🎩 bookie chip to scout and book a sparring match.</span>' +
         '<button class="act" id="pAct1">Done → Intrigue</button>';
       $('#pAct1').onclick = startIntrigue;
     } else if (G.phase === 'intrigue') {
@@ -809,6 +1007,10 @@ html, body {
       pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a Fighter Card in the Arena to bet up to ' + lim + ' Cr (' + (b0 + b1) + ' Cr staked).</span>' +
         '<button class="act" id="pAct1">Open Blast Doors & Fight! →</button>';
       $('#pAct1').onclick = lockBetsAndRollout;
+    } else if (G.phase === 'fight' && G.fight && G.fight.spar) {
+      pb.innerHTML = '<span>🥊 <b>Sparring match:</b> ' + esc(G.fight.robots[0].name) + ' vs ' + esc(G.fight.robots[1].name) + '. A test fight: no damage, no fame, no cards.</span>' +
+        '<button class="act secondary" id="pAct1">Skip</button>';
+      $('#pAct1').onclick = () => { if (G.fight?.B) while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); };
     } else if (G.phase === 'fight') {
       pb.innerHTML = '<span>⚔️ <b>Live Auto-Battle:</b> Drag gold <b>Combat Cards</b> (Field Engineer, Trigger, Waypoint) into the Arena!</span>' +
         '<button class="act secondary" id="pAct1">Skip</button>';
@@ -847,7 +1049,7 @@ html, body {
       if (c.phase === 'intrigue' || TURN_REACTIONS.has(c.name)) return typeof c.gate === 'number' || G.teams.some(o => o !== t && gateOk(c, t, o));
       return false;
     }
-    if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
+    if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.spar && !G.fight.B.over && G.fight.rolloutDone) {
       if (t.fame < (c.need || 0)) return false;
       return true;
     }
@@ -1970,7 +2172,7 @@ html, body {
 
   function stepAiCombatCards(F) {
     const B = F.B;
-    if (B.over || B.tick % 60 !== 0) return;
+    if (F.spar || B.over || B.tick % 60 !== 0) return;
     F.teams.forEach((ti, s) => {
       if (ti === viewerSeat) return;
       const T = G.teams[ti], b = B.bots[s];
@@ -1993,6 +2195,7 @@ html, body {
 
   /* ---------- Phase 7: Aftermath, Fight Recap & Crates ---------- */
   function aftermath() {
+    if (G.fight && G.fight.spar) return endSpar();
     G.phase = 'after';
     setCameraGoal('compound');
     const F = G.fight, B = F.B, w = B.winner;
@@ -2089,7 +2292,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS };
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -2179,8 +2382,12 @@ html, body {
     ctx.strokeRect(x, y, w, h);
   }
 
+  // garage previews shrink big frames a little so they still fit their box (bigger still looks bigger)
+  const previewK = b => Math.sqrt(30 / Sim.frameOf(b).size);
   function drawRobotSprite(ctx, x, y, bodyA, turretA, col, b, hpFrac, name, modTag, stunned, overclocked, now, scale = 1, simBot = null) {
-    const SIZE = 30 * scale;
+    // frame size grows with strain (Sim.frameOf), so loaded robots look (and are) bigger
+    const frameSz = simBot && simBot.size ? simBot.size : b.size || Sim.frameOf(b).size;
+    const SIZE = frameSz * scale, fs = frameSz / 30;
     ctx.save();
     ctx.translate(x, y);
 
@@ -2202,7 +2409,7 @@ html, body {
     if (w === 'spinner') {
       const bladeBrk = (simBot?.broken || []).includes('Spinner blade');
       const spinA = simBot ? (simBot.spin || now / 45) : (now / 90);
-      const R = 28 * scale;
+      const R = 28 * scale * fs;
       ctx.save();
       ctx.rotate(spinA);
       ctx.fillStyle = col; ctx.globalAlpha = bladeBrk ? 0.35 : 0.85;
@@ -2220,6 +2427,26 @@ html, body {
 
     ctx.save();
     ctx.rotate(bodyA);
+    // drive, drawn under the body: wheels = 4 tyres, tracks = treads, omni = corner rollers, boost = rear thruster
+    const S2 = SIZE / 2, drv = b.drive || 'wheels';
+    ctx.fillStyle = '#111';
+    if (drv === 'tracks') {
+      const tw = 6 * scale, off = simBot ? ((simBot.x + simBot.y) * 0.25) % (6 * scale) : 0;
+      for (const sy of [-1, 1]) {
+        const ty = sy > 0 ? S2 - 1 * scale : -S2 - tw + 1 * scale;
+        ctx.fillStyle = '#111'; ctx.fillRect(-S2 - 3 * scale, ty, SIZE + 6 * scale, tw);
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
+        for (let tx = -S2 - 3 * scale + off; tx < S2 + 3 * scale; tx += 6 * scale) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + tw); ctx.stroke(); }
+      }
+    } else if (drv === 'omni') {
+      for (const [ax, ay] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.beginPath(); ctx.arc(ax * S2, ay * S2, 4.5 * scale, 0, Math.PI * 2); ctx.fill(); }
+    } else if (drv === 'boost') {
+      const dash = simBot && simBot.dashT > 0;
+      ctx.fillStyle = dash ? '#f08c00' : '#111'; ctx.fillRect(-S2 - (dash ? 16 : 6) * scale, -5 * scale, (dash ? 16 : 6) * scale, 10 * scale);
+      ctx.fillStyle = '#111'; for (const sy of [-1, 1]) ctx.fillRect(-S2 + 3 * scale, sy > 0 ? S2 - 1 * scale : -S2 - 3 * scale, 8 * scale, 4 * scale);
+    } else {
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) ctx.fillRect(sx * (S2 - 7 * scale) - 4.5 * scale, sy > 0 ? S2 - 1 * scale : -S2 - 4 * scale, 9 * scale, 5 * scale);
+    }
     ctx.fillStyle = col;
     ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
     ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
@@ -2259,10 +2486,11 @@ html, body {
       ctx.fillStyle = col;
       ctx.font = '800 13px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(name + (modTag || ''), x, y - 28 * scale);
-      ctx.fillStyle = '#111'; ctx.fillRect(x - 23, y - 24 * scale, 46, 6);
-      ctx.fillStyle = '#e5e2da'; ctx.fillRect(x - 22, y - 23 * scale, 44, 4);
-      ctx.fillStyle = col; ctx.fillRect(x - 22, y - 23 * scale, 44 * Math.max(0, hpFrac), 4);
+      const top = Math.max(15 * scale, (w === 'spinner' ? 22 * fs : SIZE / 2 / scale + 1) * scale);   // clear of a big frame or spinner blade
+      ctx.fillText(name + (modTag || ''), x, y - top - 13 * scale);
+      ctx.fillStyle = '#111'; ctx.fillRect(x - 23, y - top - 9 * scale, 46, 6);
+      ctx.fillStyle = '#e5e2da'; ctx.fillRect(x - 22, y - top - 8 * scale, 44, 4);
+      ctx.fillStyle = col; ctx.fillRect(x - 22, y - top - 8 * scale, 44 * Math.max(0, hpFrac), 4);
     }
     if (stunned) {
       ctx.fillStyle = '#1f6feb'; ctx.font = '800 11px system-ui, sans-serif';
@@ -2510,7 +2738,7 @@ html, body {
       const px = bx + 8, py = by + 6, ps = 34;
       ctx.fillStyle = '#f3f1ea'; ctx.fillRect(px, py, ps, ps);
       ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1; ctx.strokeRect(px, py, ps, ps);
-      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.65);
+      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.65 * previewK(b));
 
       ctx.fillStyle = '#111'; ctx.font = '900 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(sName, bx + 48, by + 17);
@@ -2797,7 +3025,7 @@ html, body {
       ctx.fillRect(px, py, ps, ps);
       ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1;
       ctx.strokeRect(px, py, ps, ps);
-      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95);
+      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
 
       // Clean geometric satellite dots for helper drones on the preview corner
       helpers.forEach((hk, hi) => {
@@ -2835,10 +3063,11 @@ html, body {
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         const pv = lotPreview(r, nextLot), wasted = pv.startsWith('already');
+        const sh = oddsShift(viewerSeat, r, nextLot);
         ctx.fillStyle = wasted ? '#999' : '#1f6feb';
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-        fitText(ctx, `Fit ${nextLot.name}: ${pv}`, actX + actW / 2, actY + 13.5, actW - 8, '800', 10.5);
+        fitText(ctx, `Fit ${nextLot.name}: ` + (sh ? '🎩 ' + sh + ' · ' : sh === null ? '🎩 … · ' : '') + pv, actX + actW / 2, actY + 13.5, actW - 8, '800', 10.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'arena' && G.chooseMyBot) {
         ctx.fillStyle = r.exhausted ? '#999' : '#2a9d3a';
@@ -2847,9 +3076,13 @@ html, body {
         ctx.fillText(r.exhausted ? `${r.name} is exhausted` : `Send ${r.name} to Arena Pit`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else {
-        const dNames = helpers.length ? helpers.map(h => Sim.HELPERS[h]?.name || h).join(', ') : 'None';
-        ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(`Drones (${helpers.length}/3): ${dNames}`, bx + 74, by + 57);
+        // 🎩 the bookie's band vs the field (click for the scout panel) + counter tags
+        const fo = fieldOdds(ti, r.b);
+        drawOddsChip(ctx, fo.p, actX, actY, 112, actH, 10.5);
+        hitRegions.push({ kind: 'scout_chip', team: ti, robot: r, x: actX, y: actY, w: 112, h: actH });
+        if (!drawTags(ctx, tagsFor(ti, r.b), actX + 120, actY + 14, actW - 122, 'left', 10.5)) {
+          ctx.fillStyle = '#888'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('no clear counters', actX + 120, actY + 14);
+        }
       }
 
       // Subtle Divider
@@ -2893,9 +3126,12 @@ html, body {
       ctx.strokeRect(sbX, sbY, sbW, sbH);
 
       ctx.fillStyle = '#111'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`STRAIN ${rk.strain}`, sbX + 8, sbY + 14);
-      ctx.fillStyle = riskCol; ctx.font = '700 10px system-ui, sans-serif';
-      ctx.fillText(`Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 68, sbY + 14);
+      const stLbl = `STRAIN ${rk.strain} · ${Sim.frameOf(r.b).name.toUpperCase()}`;
+      ctx.fillText(stLbl, sbX + 8, sbY + 14);
+      const stW = ctx.measureText(stLbl).width;
+      ctx.fillStyle = riskCol; ctx.textAlign = 'right';
+      fitText(ctx, `Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 214, sbY + 14, 206 - stW - 10, '700', 10);
+      ctx.textAlign = 'left';
 
       // Clean Filled Reliability / Risk Bar
       drawBar(ctx, sbX + 8, sbY + 21, 206, 7, riskFrac, riskCol, '#e2dfd7', 0);
@@ -3054,7 +3290,7 @@ html, body {
     ctx.fillRect(px, py, ps, ps);
     ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
     ctx.strokeRect(px, py, ps, ps);
-    drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54);
+    drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54 * previewK(r.b));
 
     // 2. Top-Right Name, Weapon/Range & Filled HP Bar (bx + 40 .. bx + bw - 6)
     ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
@@ -3098,9 +3334,11 @@ html, body {
     ctx.fillStyle = riskCol; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`STR ${rk.strain} (${rk.eng}E · ${glitchPct}%)`, bx + 8, fy + fh / 2 + 3);
 
-    const dLbl = helpers.length ? helpers.map(h => (Sim.HELPERS[h]?.name || h).split(' ')[0]).join(',') : '0';
-    ctx.fillStyle = '#555'; ctx.font = '600 8.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(`Drn:${dLbl} · Mod:${r.b.mod ? (Sim.MODS[r.b.mod] ? Sim.MODS[r.b.mod].name : r.b.mod) : 'None'}`, bx + bw - 8, fy + fh / 2 + 3);
+    // 🎩 bookie's band vs the field + tags (click the chip for the scout panel)
+    const cw = 70, cx = bx + bw - 8 - cw, cy = fy + 2, ch = fh - 4;
+    drawOddsChip(ctx, fieldOdds(ti, r.b).p, cx, cy, cw, ch, 8.5, true);
+    hitRegions.push({ kind: 'scout_chip', team: ti, robot: r, x: cx, y: cy, w: cw, h: ch });
+    drawTags(ctx, tagsFor(ti, r.b), cx - 6, fy + fh / 2 + 3, bw - cw - 96, 'right', 8.5, 1);
   }
 
   function drawMarketOnArena(ctx, L) {
@@ -3324,9 +3562,18 @@ html, body {
       ctx.fillText(it.name, x + w / 2, y + 66);
 
       ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
-      fitText(ctx, it.text, x + w / 2, y + 86, w - 10, '600', 10.5);
+      fitText(ctx, it.text, x + w / 2, y + 83, w - 10, '600', 10.5);
+      drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 10, 'center', 9.5);
       const gain = lotGainShort(me(), LOTS[it.id] || it);
-      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 101, w - 10, '800', 9.5); }
+      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 112, w - 10, '800', 9); }
+      // 🎩 what the lot does to each of your robots' odds vs the field
+      if (LOTS[it.id] && needsRobot(it.id)) {
+        const sh = me().robots.map(r => [r, oddsShift(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
+        ctx.fillStyle = '#444';
+        if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 166, w - 10, '800', 9.5);
+        else if (!sh.length) fitText(ctx, '🎩 no robot can take it', x + w / 2, y + 166, w - 10, '800', 9.5);
+        else sh.forEach(([r, v], j) => { ctx.fillStyle = v.endsWith('=') ? '#777' : '#1f6feb'; fitText(ctx, '🎩 ' + r.name.replace('s1. ', '') + ': ' + v, x + w / 2, y + 162 + (j - (sh.length - 1) / 2) * 10.5, w - 10, '800', 9.5); });
+      }
 
       const btnY = y + 122;
       ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + 14, btnY, 28, 28);
@@ -3380,12 +3627,16 @@ html, body {
       ctx.strokeRect(x + 16, y + 48, w - 32, 58);
 
       ctx.fillStyle = '#111'; ctx.font = '900 14px system-ui, sans-serif';
-      const exactStr = showExactOdds ? ` (${Math.round(F.p[s] * 100)}%)` : '';
+      const exactStr = scouted() ? ` (${Math.round(F.p[s] * 100)}%)` : '';
       ctx.fillText(`${bd.name.toUpperCase()}  ·  Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 69);
 
       drawBar(ctx, x + 28, y + 79, w - 56, 8, F.p[s], T.col, '#e2dfd7', 4);
-      ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
-      ctx.fillText('Bookie estimate (ignores secret modules & cards)', x + w / 2, y + 100);
+      // tags for this matchup first (the opponent's weapon), else vs the field
+      const foeCls = Sim.classOf(F.robots[1 - s].b), mt = Sim.tagsOf(r.b, 3, [foeCls]);
+      if (!drawTags(ctx, mt.strong.length || mt.weak.length ? mt : tagsFor(ti, r.b), x + w / 2, y + 100, w - 40, 'center', 10, 3)) {
+        ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
+        ctx.fillText('Bookie estimate (ignores face-down cards)', x + w / 2, y + 100);
+      }
 
       if (lockedOut) {
         ctx.fillStyle = '#999'; ctx.font = '700 11px system-ui, sans-serif';
@@ -3403,8 +3654,8 @@ html, body {
     ctx.fillStyle = '#fff'; ctx.fillRect(tx, ty, tw, th);
     ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, tw, th);
     ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(showExactOdds ? 'Hide Exact Sim %' : 'Show Exact Sim %', L.ax, ty + 14.5);
-    hitRegions.push({ kind: 'exact_odds', x: tx, y: ty, w: tw, h: th });
+    ctx.fillText(scouted() ? '🔭 Scouted: exact %' : `🔭 Hire a scout (${SCOUT_PRICE} Cr): exact %`, L.ax, ty + 14.5);
+    if (!scouted()) hitRegions.push({ kind: 'buy_scout', x: tx, y: ty, w: tw, h: th });
   }
 
   function drawAftermathOnArena(ctx, L) {
@@ -3992,10 +4243,8 @@ html, body {
         updateHud(); return;
       }
 
-      if (r.kind === 'exact_odds') {
-        showExactOdds = !showExactOdds;
-        updateHud(); return;
-      }
+      if (r.kind === 'buy_scout') { buyScout(); return; }
+      if (r.kind === 'scout_chip') { openScout(r.team, r.robot); return; }
 
       if (r.kind === 'crate_pick') {
         const t = me();
@@ -4024,6 +4273,7 @@ html, body {
     const dt = Math.min(0.1, (now - lastT) / 1000);
     lastT = now;
 
+    if (G && !G.over) { scoutWork(G.phase === 'fight' ? 3 : 14); if (scoutOpen) renderScout(false); }
     if (G && G.phase === 'fight' && G.fight && G.fight.B) {
       const F = G.fight, B = F.B;
       if (!F.rolloutDone) {

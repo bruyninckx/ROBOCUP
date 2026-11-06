@@ -2,8 +2,7 @@
 /* Robot card matchup table: the 12 Market robot cards + the Scrap Bot starter, each pairing fought N times
    (sides swapped every other fight). Uses the shared Sim (src/sim.js).
 
-   node tools/robot-cards.js                 # 100 fights per pairing, current Sim.FORM
-   node tools/robot-cards.js --n 60 --form 0.15,0.1,6   # try a form-of-the-day level (fp, speed, accuracy points)
+   node tools/robot-cards.js                 # 100 fights per pairing
    node tools/robot-cards.js --parts          # also: average win % of every card with each new part fitted
    node tools/robot-cards.js --json out.json  # write the raw table
 */
@@ -14,7 +13,6 @@ const Sim = require(path.join(__dirname, '..', 'src', 'sim.js'));
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const N = +opt('n', 100);
-if (opt('form')) { const [fp, sp, acc] = opt('form').split(',').map(Number); Sim.FORM.fp = fp; Sim.FORM.speed = sp; Sim.FORM.acc = acc; }
 
 const CARDS = Sim.ROBOT_CARDS;
 const names = Object.keys(CARDS);
@@ -59,7 +57,7 @@ const t0 = Date.now();
 const M = table(CARDS, N);
 const cardsOnly = names.filter(n => n !== 'Scrap Bot');
 const S = summary(M, names), S12 = summary(M, cardsOnly);
-console.log(`Robot cards, ${N} fights per pairing, form ${JSON.stringify(Sim.FORM)}  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+console.log(`Robot cards, ${N} fights per pairing  (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 console.log(`12 cards: ${(S12.lopsided * 100).toFixed(0)}% of pairings 90/10 or worse, ${(S12.over80 * 100).toFixed(0)}% 80/20 or worse`);
 const order = names.slice().sort((a, b) => S.avg[b] - S.avg[a]);
 console.log('\nAverage win % vs the other 12 (cards + Scrap Bot):');
@@ -86,4 +84,4 @@ if (args.includes('--parts')) {
     console.log('  ' + pn.padEnd(26) + ` ${(base / cnt * 100).toFixed(0)}% -> ${(withP / cnt * 100).toFixed(0)}%  (${cnt} robots)`);
   }
 }
-if (opt('json')) fs.writeFileSync(opt('json'), JSON.stringify({ form: Sim.FORM, n: N, M, avg: S.avg, lopsided12: S12.lopsided }, null, 1));
+if (opt('json')) fs.writeFileSync(opt('json'), JSON.stringify({ n: N, M, avg: S.avg, lopsided12: S12.lopsided }, null, 1));

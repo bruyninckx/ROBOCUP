@@ -99,7 +99,7 @@ Rammer fix: on a spinner the Rammer Chip now only adds wounded-target hunting; w
 Every build beats at least one and loses to at least one.
 
 ## Sim pass 2026-11-06 (robot cards, new parts, softer counters)
-Everything now runs on the shared `src/sim.js`. Tools: `node tools/robot-cards.js [--n 80] [--parts] [--form fp,speed,acc]` (robot card table) and `node tools/card-tune.js <card> <target>` (tries every one-point stat move on a card).
+Everything now runs on the shared `src/sim.js`. Tools: `node tools/robot-cards.js [--n 80] [--parts]` (robot card table) and `node tools/card-tune.js <card> <target>` (tries every one-point stat move on a card).
 
 New in the Sim (5 Nov cards, first-pass numbers):
 - **Burst Gun** = gun calibre `burst`: 3 shots 0.1 s apart, then ~0.8 s pause; shots 2–3 get +3° spread; each shot ×1.15 (small hits lose more to armour). Strain 1.
@@ -109,7 +109,7 @@ New in the Sim (5 Nov cards, first-pass numbers):
 - **Robot cards** as data: `Sim.ROBOT_CARDS` (12 cards + Scrap Bot). The sandbox lists them under "Robot cards" and has Burst and Armour pickers.
 - **Not in the Sim yet: Twin Turret** (second weapon slot needs a second weapon system per robot).
 
-Softer counters: **form of the day** (`Sim.FORM`): before each fight every robot rolls a hidden condition: firepower ±25%, speed ±15%, accuracy ±10 points. Robot card pairings at 90/10 or worse: 55% → 30% (±35/20/14 gives 29%/45%, ±50/25/18 gives 24% but starts to feel like dice). Random builds (watchdog): 56% → 42% lopsided, upset rate 12% → 17%.
+Softer counters (removed 6 Nov, see below): **form of the day** (`Sim.FORM`): before each fight every robot rolls a hidden condition: firepower ±25%, speed ±15%, accuracy ±10 points. Robot card pairings at 90/10 or worse: 55% → 30% (±35/20/14 gives 29%/45%, ±50/25/18 gives 24% but starts to feel like dice). Random builds (watchdog): 56% → 42% lopsided, upset rate 12% → 17%.
 
 One stat point moved on five cards (chosen by `card-tune.js`, closest to target with fewest lopsided matchups): Juggernaut HP3→2 AR2→3 (83% → 74%), Railgunner FP4→3 SP1→2 (74% → 72%), Wasp FP4→3 HP3→4 (74% → 70%), Fortress TU1→0 BU0→1 (20% → 26%), Scrap Bot AR1→0 FP3→4 (8% → 17%).
 
@@ -171,3 +171,21 @@ Every robot card got every Market weapon (quirk removed, as the rulebook says; g
 The danger is one chassis: Juggernaut (speed 4, firepower 4, armour 3). The spinner is what holds it back; any gun on that body beats the whole field. Options: lock Juggernaut's spinner like the Railgunner's railgun, or move Juggernaut's stat points so a gun suits it less (for example firepower into health). Fortress gaining from a rapid gun mostly says Fortress is weak (28%), not that the swap is too strong.
 
 Prototype (tabletop): fitting a weapon of another type now asks first and says which stats the new weapon needs (flame and spinner ignore accuracy and velocity, laser and railgun ignore velocity), the calibre turret factor (heavy ×0.55, rapid ×1.25), and that the quirk is lost. The garage shows unused stats greyed out and the turret factor next to TURRET.
+
+## Form removed, frames, counter tags (2026-11-06, later)
+
+Kev didn't like form of the day, so `Sim.FORM` is gone. Frames now grow 5% per strain point (`Sim.frameOf`, rulebook Size rule). A first try let a bigger spinner also reach further, which made the Juggernaut stronger (75% → 80%), so melee reach now stays the stock frame's: a bigger frame is only a bigger target.
+
+Robot cards, 80 fights per pairing:
+
+| | form on (sim pass) | no form | no form + frames |
+|---|---|---|---|
+| Pairings 90/10 or worse | 30% | 38% | 47% |
+| Pairings 80/20 or worse | – | 65% | 58% |
+| Strongest | Juggernaut 74 | Railgunner 83 | Railgunner 80 |
+| Weakest card | Fortress 26 | Fortress 26 | Hookshot / Fortress 28 |
+| Scrap Bot | 17 | 11 | 17 |
+
+So the hard counters are back without form, and frames hit the loaded mid-table robots (Artillery 7 ⚡, Hookshot 5 ⚡) harder than the top. Next: rerun `tools/card-tune.js` without form, or soften counters another way (Kev to choose).
+
+Counter tags: `node tools/counter-tags.js` measures every weapon against every weapon (6 random 13-point builds each, points spent the way a player would for that weapon) and every armour card, module and drone (40 paired samples per opposing weapon: the same fight with and without the part). Results in `docs/counter-tags.md`; the tool writes them into `Sim.COUNTERS`, and `Sim.tagsOf(build)` turns them into a robot's ▲/▼ tags. Spinners come out weak against everything on generic builds; the tags describe the average robot with that weapon, the bookie chip describes the actual robot.

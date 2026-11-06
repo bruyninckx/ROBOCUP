@@ -26,6 +26,7 @@ Detail docs: `docs/upgrade-cards.md` (+ `.json`), `docs/robot-cards.md`, `docs/i
 
 ## System numbers
 - Strain: rulebook 5% break chance per ⚡ per fight, halved by a Chief Engineer (the Sim uses its own formula in `riskOf`, roughly 3.5% per ⚡).
-- Robot size: +5% frame per ⚡, Twin Turret +20% (rule decided, not in the Sim yet).
+- Robot size: +5% frame per ⚡ (in the Sim since 6 Nov, `Sim.frameOf`; reach stays the stock frame's), Twin Turret +20% (not in the Sim yet). Labels: Light 0–2 ⚡, Medium 3–4, Heavy 5–6, Titan 7+.
 - Bookie bands: heavy underdog <25%, underdog 25–42%, even 42–58%, favourite 58–75%, heavy favourite >75%.
-- Form of the day (Sim): firepower ±25%, speed ±15%, accuracy ±10 points per robot per fight.
+- Form of the day: removed 6 Nov (Kev didn't like it).
+- Reading strength (6 Nov): bookie band vs the field on every robot and lot, counter tags (`docs/counter-tags.md`), scout 1 Cr (exact % this round), sparring match 2 Cr in Upkeep.

@@ -177,7 +177,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   const EXNAME = { lone: 'Titan', duo: 'Heavy', trio: 'Trooper', swarm: 'Mini' };
   const card = { A: 'lone', B: 'trio' };
   const slotsA = () => Sim.SQUADS[card.A].slots;
-  const cardOf = i => mode === 'squad' ? Sim.SQUADS[i < slotsA() ? card.A : card.B] : { points: 14, cap: 4, size: 30, name: '' };
+  const cardOf = i => mode === 'squad' ? Sim.SQUADS[i < slotsA() ? card.A : card.B] : { points: 14, cap: 4, size: undefined, name: '' };
   const teamOf = i => mode === 'squad' ? (i < slotsA() ? 0 : 1) : (i < count / 2 ? 0 : 1);
   const teamMode = () => mode === 'squad' || count > 4 || (mode === 'team' && count === 4);
   function fillSide(side) {
@@ -192,9 +192,11 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   const pc = x => Math.round(x * 100) + '%';
   function strainLine(b) {
     const R = Sim.riskOf(b), hi = R.glitch >= 0.35 || R.anyBreak >= 0.2;
-    return '<p class="modtx strain"><b>Strain ' + R.strain + '</b><span>' + R.parts.filter(p => p.strain).map(p => p.name + ' ' + p.strain).join(', ') + '</span>' +
+    const fr = Sim.frameOf(b), tg = Sim.tagsOf(b, 3), cn = k => Sim.WEAPON_CLASSES[k].name;
+    return '<p class="modtx strain"><b>Strain ' + R.strain + ' · ' + fr.name + ' frame</b><span>' + R.parts.filter(p => p.strain).map(p => p.name + ' ' + p.strain).join(', ') + '</span>' +
       '<label>Engineers <select data-k="eng">' + [0, 1, 2, 3].map(v => opt(v, String(v), R.eng)).join('') + '</select></label>' +
-      '<span class="risk' + (hi ? ' high' : '') + '">malfunction ' + pc(R.glitch) + ' · part break ' + pc(R.anyBreak) + '</span></p>';
+      '<span class="risk' + (hi ? ' high' : '') + '">malfunction ' + pc(R.glitch) + ' · part break ' + pc(R.anyBreak) + '</span></p>' +
+      '<p class="modtx">' + (tg.strong.length ? '<b style="color:#17803a">▲ strong vs</b> ' + tg.strong.map(cn).join(', ') + ' ' : '') + (tg.weak.length ? '<b style="color:#d62828">▼ weak vs</b> ' + tg.weak.map(cn).join(', ') : '') + (tg.strong.length || tg.weak.length ? '' : 'No clear counters.') + '</p>';
   }
   function opt(v, label, cur) { return '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + label + '</option>'; }
   function renderRobot(i) {

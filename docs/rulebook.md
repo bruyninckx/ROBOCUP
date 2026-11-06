@@ -60,6 +60,7 @@ All teams do Upkeep at the same time. The game does the bookkeeping.
 2. **Repairs:** pay 1 credit per 20 damage you want to repair, and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
 3. **Ledger:** gain 1 credit per ready Mechanic. Pay 1 credit per ready robot and 1 credit per 2 helper drones. The Accountant takes 1 off the bill for each robot after the first.
 4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator).
+5. **Sparring match (optional, 2 credits, once a round):** pick one of your ready robots and any rival robot; they fight a test fight in the pit. Nothing carries over: no damage, no fame, no breaks, no cards played. It shows you how the matchup really plays out.
 
 ## 5. Intrigue phase
 
@@ -130,7 +131,7 @@ One fight per round, run by the host. Most fights are duels; about 1 in 4 should
 
 **4. Appearance money.** Each invited team gets 2 credits, plus 2 per Fan token on its robot (6 for a Fan Favourite).
 
-**5. Bets.** The bookie simulates the visible builds and shows each side in one of 5 bands: heavy underdog (under 25% to win), underdog (25–42%), even (42–58%), favourite (58–75%), heavy favourite (over 75%). Every team may place bets of 1–3 credits each (Lucky Seven: up to 5). You can't bet against your own robot unless you play Hedge Bet.
+**5. Bets.** The bookie simulates the visible builds and shows each side in one of 5 bands (a team that hired a scout this round also sees the exact %): heavy underdog (under 25% to win), underdog (25–42%), even (42–58%), favourite (58–75%), heavy favourite (over 75%). Every team may place bets of 1–3 credits each (Lucky Seven: up to 5). You can't bet against your own robot unless you play Hedge Bet.
 
 | Bet | Pays |
 | --- | --- |
@@ -176,7 +177,16 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 **Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 1 credit per 20 damage.
 
-**Size.** A robot's frame and hitbox grow 5% per ⚡ it carries, and Twin Turret adds +20% on top, which is easier to hit and easier to tell apart.
+**Size.** A robot's frame and hitbox grow 5% per ⚡ it carries, and Twin Turret adds +20% on top, which is easier to hit and easier to tell apart. Weapon reach doesn't grow: a bigger spinner or rammer is only a bigger target. Frame names for players: Light (0–2 ⚡), Medium (3–4), Heavy (5–6), Titan (7+).
+
+**Drives look different.** Wheels show 4 tyres, Tank Tracks show treads, Omni-Drive shows corner rollers, Overboost shows a rear thruster that flares when it dashes.
+
+**How strong is my robot? (Kev, 6 Nov)** Too many combinations to work out by hand, so the game tells you, with the bookie as your scout:
+
+- **Bookie chip (free, always on).** Every robot shows its band vs the field: the bookie's average chance against every robot of the other teams, in the same 5 bands as betting. When you fit a part, and on every Market lot, you see how the band moves (for example Even→Favourite). The bookie only sees open parts at full health; face-down cards stay hidden.
+- **Counter tags (free).** Every weapon and part shows ▲ strong vs / ▼ weak vs a weapon type, measured in the Sim (`docs/counter-tags.md`). A robot's tags add its armour card, module and drones to its weapon, and only name weapons that are on the table. On a bet card the tags are for that matchup.
+- **Scout (1 credit, any time but a fight):** the exact % for every matchup until the end of the round, instead of the fuzzy bands.
+- **Sparring match (2 credits, Upkeep):** see Upkeep step 5.
 
 ## 9. Winning
 
