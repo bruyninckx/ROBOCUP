@@ -19,10 +19,15 @@ const say = s => out.push(s);
 const pct = x => Math.round(x * 100) + '%';
 const all = { plays: {}, live: {}, lots: {}, formats: {}, calib: [], deals: { locked: 0, no: 0, yes: 0, refused: 0 }, errors: {}, notes: [] };
 say('# ROBOCUS playtest report\n');
-say(files.length + ' game log' + (files.length > 1 ? 's' : '') + '.\n');
 
+
+// a file is one game, or an "all saved games" export ({ games: [...] })
+const games = [];
 for (const f of files) {
-  let g; try { g = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { say('- ' + path.basename(f) + ': unreadable (' + e.message + ')'); continue; }
+  let j; try { j = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { say('- ' + path.basename(f) + ': unreadable (' + e.message + ')'); continue; }
+  if (Array.isArray(j.games)) j.games.forEach(g => games.push(g)); else games.push(j);
+}
+for (const g of games) {
   const ev = g.events || [];
   const over = ev.find(e => e.k === 'game_over');
   const last = ev[ev.length - 1] || { t: 0, r: 0 };

@@ -376,6 +376,7 @@
   function push(e, a, v) { const k = v * (e.kb || 1); e.kx = Math.cos(a) * k; e.ky = Math.sin(a) * k; }
   function hitBot(B, tgt, dmg, src, pierce) {
     if (tgt.hp <= 0 || tgt.air > 0) return 0;   // mid-leap (jump jets) nothing touches it
+    if (!src) src = tgt;                         // no robot behind it (EMP Grenade, arena): counts as the arena hurting it
     if (tgt.qT > 0) return 0;                    // Quantum Shield bubble: nothing gets through
     tgt.lastHit = B.t;
     if (tgt.shield > 0) {
@@ -392,7 +393,7 @@
     }
     tgt.hp -= dmg; tgt.hitT = 0.08; tgt.lastBy = src.i;
     const friendly = tgt.team === src.team;
-    if (friendly) src.ff += dmg; else src.dealt += dmg;
+    if (tgt !== src) { if (friendly) src.ff += dmg; else src.dealt += dmg; }
     // flank: hit from the blind side, more than 110 degrees away from where this robot's turret points
     if (!friendly && !src.helper && !tgt.helper && tgt.rear) {
       const off = Math.abs(wrapA(Math.atan2(src.y - tgt.y, src.x - tgt.x) - tgt.turret));
@@ -485,6 +486,7 @@
       B.banners.push({ x, y: y - 24, text: '🧲 EMP DROP!', col: '#1f6feb', life: 1.1 });
     }
   }
+  const EMP_CARD_STUN = 0.9, EMP_CARD_DMG = 5;   // measured (starter duels, played at 5 s on the enemy): 1.35 s + 10 = +17 win pts, 0.9 s + 5 = +9 (Field Engineer +9, Overclock +12)
   function liveTick(B, dt) {
     B.tick = (B.tick || 0) + 1;
     for (let i = B.cmdQueue.length - 1; i >= 0; i--) if (B.cmdQueue[i].execTick <= B.tick) applyCardCmd(B, B.cmdQueue.splice(i, 1)[0]);
@@ -494,7 +496,10 @@
         z.fuse -= dt;
         if (z.fuse <= 0) {
           B.fx.push({ k: 'emp', x: z.x, y: z.y, r: z.r, life: 0.4, col: '#1f6feb' });
-          for (const b of B.bots) if (b.hp > 0 && Math.hypot(b.x - z.x, b.y - z.y) < z.r) { b.stun = Math.max(b.stun, 1.35); hitBot(B, b, 10, null, true); }
+          // Kev, 6 Nov: was 1.35 s stun + 10 damage and crashed every frame (no source robot), so it hit again and again
+          B.how = 'EMP grenade';
+          for (const b of B.bots) if (b.hp > 0 && Math.hypot(b.x - z.x, b.y - z.y) < z.r) { b.stun = Math.max(b.stun, EMP_CARD_STUN); hitBot(B, b, EMP_CARD_DMG, null, true); }
+          B.how = null;
           B.zones.splice(k, 1);
         }
         continue;
@@ -1128,7 +1133,7 @@
     for (const ev of B.log) {
       if (ev.k === 'sudden') add(ev, 7, 'mod', 'Sudden death: the walls close in');
       else if (ev.k === 'heat') add(ev, 7, 'mod', 'The floor overheats: every robot burns');
-      else if (ev.k === 'ko') add(ev, 10, 'ko', ev.self && ev.how === 'overheated floor' ? nm(ev.who) + ' burned out on the overheated floor' : ev.self ? nm(ev.who) + ' blew itself up (' + ev.how + ')' : nm(ev.who) + ' destroyed by ' + nm(ev.by) + ' (' + (ev.friendly ? 'friendly fire, ' : '') + ev.how + ')');
+      else if (ev.k === 'ko') add(ev, 10, 'ko', ev.self && ev.how === 'overheated floor' ? nm(ev.who) + ' burned out on the overheated floor' : ev.self && ev.how === 'EMP grenade' ? nm(ev.who) + ' was finished off by an EMP Grenade' : ev.self ? nm(ev.who) + ' blew itself up (' + ev.how + ')' : nm(ev.who) + ' destroyed by ' + nm(ev.by) + ' (' + (ev.friendly ? 'friendly fire, ' : '') + ev.how + ')');
       else if (ev.k === 'break') add(ev, 9, 'break', nm(ev.who) + ': ' + ev.text + ', ' + ev.part.toLowerCase() + ' broke');
       else if (ev.k === 'critko') add(ev, 8, 'crit', nm(ev.who) + ' finished ' + nm(ev.tgt) + ' with a ' + ev.dmg + ' damage crit');
       else if (ev.k === 'glitch') add(ev, 6, 'glitch', nm(ev.who) + ': ' + ev.text + ' for ' + ev.dur + ' s');

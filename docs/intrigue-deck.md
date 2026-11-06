@@ -106,7 +106,7 @@ One-fight boosts, event formats and live combat cards live here; permanent upgra
 | **Target Overclock** | Reaction | 3 | 1 | 2 | Live: +45% speed and fire rate for 3.5 s. | tabletop |
 | **Field Engineer** | Reaction | 1 | 1 | 3 | Live: clear a stall or jam, heal 18; no breaks for 5 s. | tabletop |
 | **Oil Canister** | Reaction | 0 | 1 | 2 | Live, any player: splash oil on the floor; robots slide and spin. | tabletop |
-| **EMP Grenade** | Reaction | 2 | 1 | 2 | Live, any player: lob an EMP (100 px, 1.2 s stun). | tabletop |
+| **EMP Grenade** | Reaction | 2 | 1 | 2 | Live, any player: lob an EMP (100 px): 0.9 s stun and 5 damage to every robot it catches. | tabletop |
 
 ## Security (10 cards, 42 copies)
 
