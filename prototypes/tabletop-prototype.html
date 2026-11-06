@@ -561,10 +561,10 @@ html, body {
   }
 
   const LOTS = {
-    engine:    { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed',             stat: 'speed' },
-    motor:     { name: 'Turret Motor',    icon: '🔄', text: '+1 Turret',            stat: 'turret' },
-    chip:      { name: 'Targeting Chip',  icon: '🎯', text: '+1 Accuracy',          stat: 'acc' },
-    hull:      { name: 'Reinforced Hull', icon: '🧱', text: '+1 Health',            stat: 'hp' },
+    engine:    { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed level',       stat: 'speed' },
+    motor:     { name: 'Turret Motor',    icon: '🔄', text: '+1 Turret level',      stat: 'turret' },
+    chip:      { name: 'Targeting Chip',  icon: '🎯', text: '+1 Accuracy level',    stat: 'acc' },
+    hull:      { name: 'Reinforced Hull', icon: '🧱', text: '+1 Health level',      stat: 'hp' },
     laser:     { name: 'Laser Retrofit',  icon: '🔦', text: 'Laser (2 Strain)',     weapon: 'laser' },
     mortar:    { name: 'Mortar Retrofit', icon: '💣', text: 'Mortar (2 Strain)',    weapon: 'mortar' },
     saw:       { name: 'Buzzsaw Launcher',icon: '⚙️', text: 'Saw Blades (2 Strain)',weapon: 'saw' },
@@ -576,7 +576,7 @@ html, body {
     a_heat:    { name: 'Heat Shield',     icon: '🧯', text: '−40% fire & laser dmg', arm: 'heat' },
     a_abl:     { name: 'Ablative Plating',icon: '🧱', text: 'Soaks first 30 dmg',    arm: 'ablative' },
     a_spikes:  { name: 'Reactive Spikes', icon: '🦔', text: 'Hurts rammers/spinners',arm: 'spikes' },
-    a_mesh:    { name: 'Composite Mesh',  icon: '🕸️', text: '+1 Armour, no weight',  arm: 'mesh' },
+    a_mesh:    { name: 'Composite Mesh',  icon: '🕸️', text: '+1 Armour level, no weight', arm: 'mesh' },
     m_shield:  { name: 'Energy Shield',   icon: '🛡️', text: 'Shield module (+1 Str)',mod: 'shield' },
     m_decoy:   { name: 'Decoy Hologram',  icon: '👥', text: 'Decoy module (+1 Str)', mod: 'decoy' },
     m_emp:     { name: 'EMP Module',      icon: '⚡', text: 'EMP module (+2 Str)',   mod: 'emp' },
@@ -1574,6 +1574,37 @@ html, body {
   // which stats a weapon actually uses (src/sim.js): flame and spinner ignore accuracy and velocity, beams ignore velocity
   const UNUSED_STATS = { flame: ['acc', 'bullet'], spinner: ['acc', 'bullet'], laser: ['bullet'], railgun: ['bullet'] };
   const wepName = b => b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon;
+  // what a lot does to this robot in real numbers (Sim.statsOf before/after), e.g. "HP 85→110 · Speed 118→113"
+  const PREVIEW_F = [['hp', 'HP', 0, ''], ['armor', 'Armour', 1, '/hit'], ['speed', 'Speed', 0, ''], ['turret', 'Turret', 0, '°/s'], ['fp', 'Firepower', 1, ' dps'], ['acc', 'Accuracy', 0, '%'], ['bullet', 'Velocity', 0, '']];
+  function lotAfter(r, L) {
+    const nb = clone(r.b);
+    if (L.stat) { if (nb.lv[L.stat] >= 4) return null; nb.lv[L.stat]++; }
+    if (L.weapon) nb.weapon = L.weapon;
+    if (L.cal) { if (nb.weapon !== 'gun') nb.range = 'mid'; nb.weapon = 'gun'; nb.cal = L.cal; }
+    if (L.mod) nb.mod = L.mod;
+    if (L.arm) nb.arm = L.arm;
+    return nb;
+  }
+  function lotDiff(r, L) {
+    if (!L || !r || !(L.stat || L.weapon || L.cal || L.mod || L.arm)) return [];
+    const nb = lotAfter(r, L);
+    if (!nb) return null;   // stat already at max
+    const a = Sim.statsOf(r.b), b = Sim.statsOf(nb), f = (v, d) => d ? (Math.round(v * 10) / 10).toString() : Math.round(v).toString();
+    return PREVIEW_F.filter(([k]) => Math.abs((b[k] || 0) - (a[k] || 0)) > 0.05).map(([k, l, d, u]) => ({ k, l, from: f(a[k], d), to: f(b[k], d), u }));
+  }
+  function lotPreview(r, L) {
+    const d = lotDiff(r, L);
+    if (d === null) return 'already maxed: no gain!';
+    const s = d.map(x => x.l + ' ' + x.from + '→' + x.to + x.u).join(' · ');
+    return L.arm && L.arm !== 'mesh' ? L.text + (s ? ' · ' + s : '') : s || L.text;
+  }
+  // short line for the auction tile: the main stat on each of your robots
+  function lotGainShort(t, L) {
+    if (!L || !(L.stat || L.arm === 'mesh') || !t.robots.length) return '';
+    const key = L.stat || 'armor', lab = PREVIEW_F.find(x => x[0] === key);
+    return lab[1] + ': ' + t.robots.map(r => { const d = lotDiff(r, L); if (d === null) return 'max'; const x = d.find(y => y.k === key); return x ? x.from + '→' + x.to : '='; }).join(' / ');
+  }
+
   function weaponSwapNote(r, L) {
     if (!L || !(L.weapon || L.cal)) return '';
     const nb = { weapon: L.weapon || 'gun', cal: L.cal || r.b.cal };
@@ -1587,6 +1618,8 @@ html, body {
     if (nb.weapon === 'gun' && nb.cal !== 'medium') { const c = Sim.CAL[nb.cal]; lines.push('A ' + nb.cal + ' gun turns its turret at ×' + c.turret + ' and fires ' + (c.rate > 1.4 ? 'faster' : 'slower') + ' than a medium gun.'); }
     if (r.b.weapon !== 'gun' && nb.weapon === 'gun') lines.push('Range is reset to <b>mid</b>; change it with the Range button.');
     if (r.b.quirk) lines.push('❌ <b>' + esc(r.name) + ' loses its quirk for good</b>, even if the old weapon goes back on.');
+    const pv = lotPreview(r, L);
+    if (pv) lines.push('In numbers: ' + pv + '.');
     return lines.join('<br>');
   }
 
@@ -2801,10 +2834,11 @@ html, body {
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
-        ctx.fillStyle = '#1f6feb';
+        const pv = lotPreview(r, nextLot), wasted = pv.startsWith('already');
+        ctx.fillStyle = wasted ? '#999' : '#1f6feb';
         ctx.fillRect(actX, actY, actW, actH);
-        ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`Fit ${nextLot.name} on ${r.name}`, actX + actW / 2, actY + 13.5);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+        fitText(ctx, `Fit ${nextLot.name}: ${pv}`, actX + actW / 2, actY + 13.5, actW - 8, '800', 10.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'arena' && G.chooseMyBot) {
         ctx.fillStyle = r.exhausted ? '#999' : '#2a9d3a';
@@ -3290,7 +3324,9 @@ html, body {
       ctx.fillText(it.name, x + w / 2, y + 66);
 
       ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
-      ctx.fillText(it.text, x + w / 2, y + 86);
+      fitText(ctx, it.text, x + w / 2, y + 86, w - 10, '600', 10.5);
+      const gain = lotGainShort(me(), LOTS[it.id] || it);
+      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 101, w - 10, '800', 9.5); }
 
       const btnY = y + 122;
       ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + 14, btnY, 28, 28);
