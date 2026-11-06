@@ -129,6 +129,7 @@
     if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: b.cal === 'burst' ? 'Burst Gun' : 'Heavy calibre', strain: STRAIN.cal[b.cal] });
     if (wupOf(b)) parts.push({ part: 'wup', name: WUPS[b.wup].name, strain: STRAIN.wup });
     if (twinOf(b)) parts.push({ part: 'twin', name: 'Twin Turret', strain: 3 });
+    (b.salv || []).forEach(st => { if (SALV[st]) parts.push({ part: 'salv', stat: st, name: SALV[st], strain: 1 }); });
     if (b.arm && ARMOURS[b.arm] && STRAIN.arm[b.arm]) parts.push({ part: 'arm', name: ARMOURS[b.arm].name, strain: STRAIN.arm[b.arm] });
     if (b.mod && MODS[b.mod] && STRAIN.mod[b.mod]) parts.push({ part: 'mod', name: MODS[b.mod].name, strain: STRAIN.mod[b.mod] });
     (b.helpers || []).filter(h => HELPERS[h]).slice(0, b.quirk === 'bastion' ? 4 : 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: b.quirk === 'bastion' ? 0 : STRAIN.helper }));
@@ -141,6 +142,10 @@
   // easier to hit (balance by design) and easy to tell apart. Weapon reach stays the stock frame's (see the spinner and rammer).
   // The names are only labels for players: Light 0-2, Medium 3-4, Heavy 5-6, Titan 7+.
   const FRAME_PER_STRAIN = 0.05;
+  // Scrap Crate salvage (Kev, 6 Nov): +1 to a stat level, ⚡1, and gone for good when it breaks
+  const SALV = { armor: 'Salvaged Plate', hp: 'Salvaged Hull', speed: 'Salvaged Servo', turret: 'Salvaged Gear', acc: 'Salvaged Sights' };
+  // a part's key for broken-part bookkeeping between fights (build field brk = [keys])
+  const partKey = p => p.part === 'helper' ? 'helper:' + p.k : p.part === 'over' ? 'over:' + p.stat : p.part === 'salv' ? 'salv:' + p.stat : p.part;
   const FRAMES = [
     { key: 'light',  name: 'Light',  max: 2 },
     { key: 'medium', name: 'Medium', max: 4 },
@@ -196,9 +201,13 @@
   }
   // what a broken part does for the rest of the fight
   const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED', drive: 'DRIVE LOCKED', proc: 'LOGIC GLITCH', arm: 'PLATING CRACKED', wup: 'UPGRADE BURNT OUT' };
-  function breakPart(B, b, p) {
+  function breakPart(B, b, p, quiet) {
     const key = p.part === 'over' ? p.stat : p.part;
     let label = BREAK_TEXT[key];
+    if (key === 'salv') {   // the salvaged +1 stops working (and the tabletop throws it away after the fight)
+      const lv = (b.lv || {})[p.stat] || 0, a = LV[p.stat][lv], z = LV[p.stat][Math.max(0, lv - 1)];
+      if (a > 0) b.s[p.stat] *= z / a; label = 'SALVAGE FELL OFF';
+    }
     if (key === 'twin') { if (!b.tw) return false; b.twBroken = true; b.tw.beam = 0; b.tw.flame = 0; label = 'TWIN TURRET JAMMED'; }
     if (key === 'weapon') { b.s.dmg *= 0.5; b.s.fp *= 0.5; if (b.s.weapon === 'spinner') label = 'BLADE CRACKED'; }
     else if (key === 'cal') b.s.acc = Math.max(20, b.s.acc - 25);
@@ -217,6 +226,8 @@
     }
     else if (key === 'arm') { if (!b.arm) return false; if (b.abl > 0) b.s.speed /= 0.91; b.armBroken = b.arm; b.arm = null; b.abl = 0; }
     (b.broken = b.broken || []).push(p.name);
+    (b.brokenParts = b.brokenParts || []).push({ key: partKey(p), name: p.name, pre: !!quiet });
+    if (quiet) return true;   // still broken from an earlier fight: no fanfare
     B.fx.push({ k: 'break', x: b.x, y: b.y - 34, text: label, life: 1.8 });
     logE(B, { k: 'break', who: b.i, part: p.name, text: label });
     return true;
@@ -330,7 +341,8 @@
       b.eng = R.eng; b.strain = R.strain;
       if (rng() < R.glitch) b.glitch = { t: 3 + rng() * 12, kind: rng() < 0.5 ? 'stall' : 'jam', done: false };
       b.breaks = [];
-      for (const p of R.breaks) if (rng() < p.p) b.breaks.push({ t: 5 + rng() * 20, p, done: false });
+      const pre = builds[b.i].brk || [];
+      for (const p of R.breaks) if (!pre.includes(partKey(p)) && rng() < p.p) b.breaks.push({ t: 5 + rng() * 20, p, done: false });
       b.crits = 0; b.critDmg = 0; b.rear = {};
     }
     // helpers join after the main robots
@@ -342,7 +354,11 @@
           hitT: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1, mod: null, shield: 0, lastHit: -9, stun: 0, kx: 0, ky: 0, cd: 1 + k * 0.7, phase: k * 2.1, beam: 0 });
       });
     });
-    return { W, H, bots, saws: [], bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [], walls: [], oils: [], zones: [], banners: [], cmdQueue: [], tick: 0, t: 0, over: false, winner: null, rng, n, log: [], trace: [], how: null };
+    const B0 = { W, H, bots, saws: [], bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [], walls: [], oils: [], zones: [], banners: [], cmdQueue: [], tick: 0, t: 0, over: false, winner: null, rng, n, log: [], trace: [], how: null };
+    // parts still broken from an earlier fight (tabletop: broken until repaired in Upkeep) start the fight broken
+    builds.forEach((bd, i) => { if (!bd.brk || !bd.brk.length) return; const R = riskOf(bd);
+      for (const key of bd.brk) { const p = R.parts.find(x => partKey(x) === key); if (p) breakPart(B0, bots[i], p, true); } });
+    return B0;
   }
   // one weapon firing (Kev, 6 Nov: shared by the main weapon and the Twin Turret's second weapon)
   // st = turret state (turret, cd, beam, flame ...), S = that weapon's stats; b is the robot carrying it
@@ -1213,7 +1229,7 @@
   }
 
   const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'railgun'];
-  const Sim = { TWIN_WEAPONS, twinSpec, twinKey, twinOf, zoneOf, suddenAt, WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
+  const Sim = { SALV, partKey, TWIN_WEAPONS, twinSpec, twinKey, twinOf, zoneOf, suddenAt, WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 

@@ -677,7 +677,7 @@ html, body {
   const zeroBids = () => new Array(NLOTS + 1).fill(0);
   // 5 New Robot lots in the deck (was 1): they deal the Market robot cards first, then s1. starters
   // Kev, 6 Nov: Hire Mechanic / Hire Engineer lots became 5 New Crew lots that deal named crew cards
-  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter && !LOTS[k].legend && !LOTS[k].crew && k !== 'mech' && k !== 'eng').concat(['engine', 'chip', 'hull', 'd_medic', 'robot', 'robot', 'robot', 'robot', 'crew', 'crew', 'crew', 'crew']));
+  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter && !LOTS[k].legend && !LOTS[k].crew && !LOTS[k].crate && k !== 'mech' && k !== 'eng').concat(['engine', 'chip', 'hull', 'd_medic', 'robot', 'robot', 'robot', 'robot', 'crew', 'crew', 'crew', 'crew']));
   /* CREW CARDS (Kev, 6 Nov; docs/upgrade-cards.md): every crew member is a named card. t.crew = [{ uid, kind }].
    * t.mechs / t.engPool are counts of Mechanic / Chief Engineer cards (getters + setters, so older code keeps working).
    * Exhausting crew stays a count (t.exMechs = exhausted crew this round). */
@@ -693,6 +693,16 @@ html, body {
   };
   const CREW_DECK = ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'];
   LOTS.crew = { name: 'New Crew', icon: '👥', text: 'A crew card', crewLot: true };
+  /* SCRAP CRATE (Kev, 6 Nov): the loser draws 3 of these 7 and keeps 1 (Vulture Salvage keeps 2). Salvaged parts are +1 to a stat
+   * level with ⚡1; when one breaks in a fight it is gone for good. They can go into the Stash and be traded like parts. */
+  const CRATE_ITEMS = ['x_plate', 'x_hull', 'x_servo', 'x_gear', 'x_sights', 'x_patch', 'x_tape'];
+  LOTS.x_plate  = { name: 'Salvaged Plate',  icon: '🔩', text: '+1 Armour (⚡1, breaks for good)', salv: 'armor', crate: true };
+  LOTS.x_hull   = { name: 'Salvaged Hull',   icon: '🔩', text: '+1 Health (⚡1, breaks for good)', salv: 'hp', crate: true };
+  LOTS.x_servo  = { name: 'Salvaged Servo',  icon: '🔩', text: '+1 Speed (⚡1, breaks for good)', salv: 'speed', crate: true };
+  LOTS.x_gear   = { name: 'Salvaged Gear',   icon: '🔩', text: '+1 Turret (⚡1, breaks for good)', salv: 'turret', crate: true };
+  LOTS.x_sights = { name: 'Salvaged Sights', icon: '🔩', text: '+1 Accuracy (⚡1, breaks for good)', salv: 'acc', crate: true };
+  LOTS.x_patch  = { name: 'Scrap Patch Kit', icon: '🩹', text: 'Repair 30 damage for free', patch: 30, crate: true };
+  LOTS.x_tape   = { name: 'Black-Box Tape',  icon: '📼', text: 'Draw 1 Intrigue card, +1 Cr', tape: true, crate: true };
   let crewSeq = 0, crewLotSeq = 0;
   const hasCrew = (t, k) => !!(t && t.crew && t.crew.some(c => c.kind === k));
   const crewCount = (t, k) => t.crew.filter(c => c.kind === k).length;
@@ -876,6 +886,11 @@ html, body {
   const wearMult = r => 1 + (r.wear || 0) / WEAR_PER;
   const REPAIR_RATE = 0.7;   // credits per 20 damage, before wear
   const ownerOf = r => G && G.teams.find(t => t.robots.includes(r));
+  // a broken part costs half its bank value to repair, minimum 1 (rulebook 4)
+  const BRK_COST = { weapon: 2, cal: 1, wup: 2, twin: 3, mod: 1, arm: 1, helper: 2, drive: 1, proc: 1, over: 1 };
+  const brkName = (r, key) => { const p = Sim.riskOf(r.b).parts.find(x => Sim.partKey(x) === key); return p ? p.name : key; };
+  const brkCost = r => (r.b.brk || []).reduce((a, k) => a + (BRK_COST[k.split(':')[0]] || 1), 0);
+  const fixCost = r => repairCost(r) + brkCost(r);
   const repairK = r => hasCrew(ownerOf(r), 'repairtech') ? 0.5 : 1;   // 🛠️ Repair Tech: half price
   const repairBase = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * repairK(r)) : 0;
   const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * repairK(r) * wearMult(r)) : 0;
@@ -941,7 +956,7 @@ html, body {
   const SC = { cache: new Map(), pend: new Map(), order: [], ver: 0 };
   const SCOUT_N = 8;     // fights per pairing, sides swapped
   const SCOUT_PRICE = 1, SPAR_PRICE = 2;
-  const bKey = b => JSON.stringify([b.lv, b.weapon || 'gun', b.cal || 'medium', b.range, b.mod || null, b.arm || null, (b.helpers || []).slice().sort(), b.eng == null ? 1 : b.eng, b.drive || null, b.proc || null, b.quirk || null, b.focus || 'main', Sim.twinKey(b.twin), !!b.grudgeOn]);
+  const bKey = b => JSON.stringify([b.lv, b.weapon || 'gun', b.cal || 'medium', b.range, b.mod || null, b.arm || null, (b.helpers || []).slice().sort(), b.eng == null ? 1 : b.eng, b.drive || null, b.proc || null, b.quirk || null, b.focus || 'main', Sim.twinKey(b.twin), !!b.grudgeOn, (b.salv || []).slice().sort(), (b.brk || []).slice().sort()]);
   function duelP(a, b) {   // win chance of build a vs build b, or null while the bookie is still working
     const ka = bKey(a), kb = bKey(b);
     if (ka === kb) return 0.5;
@@ -977,8 +992,9 @@ html, body {
   }
   // a lot fitted on a copy of the robot (same rules as applyLot)
   function lotBuild(r, L, ti) {
-    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm || L.helper || L.twin) || !canFit(r, L)) return null;
+    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm || L.helper || L.twin || L.salv) || !canFit(r, L)) return null;
     const nb = clone(r.b);
+    if (L.salv) { nb.lv[L.salv]++; nb.salv = (nb.salv || []).concat([L.salv]); }
     if (L.twin) nb.twin = Sim.twinSpec(aiTwinPick(ti == null ? viewerSeat : ti, r));
     if (L.stat) nb.lv[L.stat]++;
     if (L.cal) nb.cal = L.cal;
@@ -1386,8 +1402,8 @@ html, body {
         $('#pAct2').onclick = () => resolveFate(true);
       } else if (G.fateBusy) {
         pb.innerHTML = '<span>👑 <b>Spare or scrap:</b> offers are going to the host…</span>';
-      } else if (G.crateChoices && G.crateChoices.length) {
-        pb.innerHTML = '<span>🎁 <b>Winner\'s Crate:</b> Click 1 of the 3 Prize Crates on the Arena floor to claim your reward!</span>';
+      } else if (G.crateChoices && G.crateChoices.items) {
+        pb.innerHTML = '<span>📦 <b>Scrap Crate:</b> your robot lost. Click ' + (G.crateChoices.keep - G.crateChoices.picked.length) + ' of the 3 salvage items on the arena floor to keep.</span>';
       } else {
         pb.innerHTML = '<span>🏁 <b>Aftermath & Recap:</b> Review the fight log on the Arena board, or advance to the next round.</span>' +
           '<button class="act" id="pAct1">Next Round →</button>';
@@ -1669,7 +1685,12 @@ html, body {
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
       for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
-      t.credits = Math.max(0, t.credits + t.mechs - (hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length));   // 🧮 Accountant: extra robots are free
+      { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
+        const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + (r.b.helpers || []).length, 0) / 2);
+        const net = t.mechs - bots - drones;
+        t.ledger = { mechs: t.mechs, bots, drones, net };
+        if (t.credits + net < 0) { t.debt = -(t.credits + net); t.credits = 0; } else { t.debt = 0; t.credits += net; }
+      }
       if (t.sponsor === 'aegis') {
         for (const r of t.robots) if (r.dmg > 0) r.dmg = Math.max(0, r.dmg - 25);
       }
@@ -1679,13 +1700,32 @@ html, body {
 
       if (t.i !== viewerSeat) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
-          const c = repairCost(r);
-          if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; r.wear = 0; }
+          const c = fixCost(r);
+          if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; r.wear = 0; r.b.brk = []; }
         }
         rebalanceAiEngineers(t);
       }
     }
     notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics earned credits; check your Engineers & Strain.', '#111');
+    { const L0 = me().ledger; if (L0) notify('🧾 Your ledger: +' + L0.mechs + ' Mechanics, −' + L0.bots + ' robot upkeep' + (L0.drones ? ', −' + L0.drones + ' drone upkeep' : '') + ' = ' + (L0.net >= 0 ? '+' : '') + L0.net + ' Cr.', me().col); }
+    updateHud();
+    settleDebts();
+  }
+  // Can't pay (rulebook 4): scrap one robot of your choice for each credit you can't pay
+  async function settleDebts() {
+    for (const t of G.teams) {
+      while (t.debt > 0 && t.robots.length) {
+        let r;
+        if (t.i === viewerSeat) r = await ivModal('🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })));
+        else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
+        if (!r) break;
+        t.robots.splice(t.robots.indexOf(r), 1); t.debt--; returnStarter(r.name);
+        for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
+        notify('🧾 <b>' + esc(t.name) + '</b> can\'t pay its upkeep and scraps <b>' + esc(r.name) + '</b>.', '#d62828');
+        if (!t.robots.length) { t.robots.push(mkRobot('Scrapbot', SCRAP)); notify('🤖 ' + nm(t) + ' gets a free Scrap Bot.', t.col); }
+      }
+      t.debt = 0;
+    }
     updateHud();
   }
 
@@ -1735,7 +1775,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 crew-trading';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 upkeep-damage';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2641,11 +2681,13 @@ html, body {
     const p = L && L.bot ? fieldOdds(t.i, Object.assign({}, L.bot.b, { eng: Math.min(1, freeEng(t)) })).p : null;
     return base + (p == null ? 0 : (p - 0.5) * 5);
   }
-  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew;
+  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew && !LOTS[id].tape;
   // can this part go on this robot? Weapon upgrades need that weapon, calibres need a gun (no weapon swaps)
   function canFit(r, L) {
     if (!r || !L) return false;
     if (L.twin) return !r.b.twin;
+    if (L.salv) return (r.b.lv[L.salv] || 0) < 4;
+    if (L.patch) return r.dmg > 0;
     if (L.wup) return (r.b.weapon || 'gun') === Sim.WUPS[L.wup].for;
     if (L.cal) return (r.b.weapon || 'gun') === 'gun' && (r.b.cal || 'medium') !== L.cal;
     if (L.stat) return r.b.lv[L.stat] < 4;
@@ -2754,8 +2796,11 @@ html, body {
       t.robots.push(nr);
       return `New Bot: ${nr.name}`;
     }
+    if (L.tape) { t.hand.push(draw1()); t.credits += 1; return '+1 Intrigue card, +1 Cr'; }
     if (!r) return '';
     if (!canFit(r, L)) return 'No robot can use it';   // no weapon swaps (Kev, 6 Nov); checked before a stat goes up
+    if (L.salv) { r.b.lv[L.salv]++; (r.b.salv = r.b.salv || []).push(L.salv); return L.name + ' on ' + r.name; }
+    if (L.patch) { r.dmg = Math.max(0, r.dmg - L.patch); return 'Patched ' + r.name; }
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.twin) { r.b.twin = Sim.twinSpec(twinPick || aiTwinPick(ti, r)); return 'Twin ' + Sim.TWIN_WEAPONS[Sim.twinKey(r.b.twin)] + ' on ' + r.name; }
     if (L.cal) r.b.cal = L.cal;
@@ -3456,6 +3501,16 @@ html, body {
         if (ti === viewerSeat) notify('⏱ <b>' + esc(r.name) + '</b> fought ' + Math.round(sec) + ' s: wear ' + Math.round(r.wear) + ' s, repairs now cost ×' + wearMult(r).toFixed(2) + ' until you repair it.', G.teams[ti].col); }
       const left = B.bots.filter((b, i) => !b.helper && map.botEnt[i] === e).map(b => Math.max(0, b.hp) / b.s.hp);
       r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) * (1 - Math.max(...left))));
+      // Kev, 6 Nov: parts that broke stay broken until repaired in Upkeep; salvaged parts that broke are gone for good
+      const keys = [...new Set(B.bots.filter((b, i) => !b.helper && map.botEnt[i] === e).flatMap(b => (b.brokenParts || []).map(x => x.key)))];
+      const fresh = keys.filter(k => !(r.b.brk || []).includes(k));
+      for (const k of keys.filter(k => k.startsWith('salv:'))) {
+        const st = k.slice(5), j = (r.b.salv || []).indexOf(st);
+        if (j >= 0) { r.b.salv.splice(j, 1); r.b.lv[st] = Math.max(0, r.b.lv[st] - 1); notify('🔩 ' + esc(r.name) + '\'s ' + esc(Sim.SALV[st]) + ' fell apart: gone for good.', G.teams[ti].col); }
+      }
+      r.b.brk = [...new Set((r.b.brk || []).concat(keys.filter(k => !k.startsWith('salv:'))))];
+      const freshTxt = fresh.filter(k => !k.startsWith('salv:')).map(k => brkName(r, k));
+      if (freshTxt.length) notify('⚠️ <b>' + esc(r.name) + '</b>: ' + freshTxt.map(esc).join(', ') + ' broke and stays broken until repaired in Upkeep.', G.teams[ti].col);
     });
     for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
     F.robots.forEach(r => {
@@ -3491,7 +3546,7 @@ html, body {
       if (F.sides[e] !== ws) { r.grudge = [...new Set(r.grudge.concat(winners.map(x => x.ti)))]; notify('✦ Grudge: ' + esc(r.name) + ' won\'t forget ' + winners.map(x => nm(G.teams[x.ti])).join(' and ') + ' (+1 firepower next time they meet).', G.teams[F.teams[e]].col); }
     });
     notify('🏆 <b>' + esc(sideLabel(F, ws)) + '</b> (' + esc(sideName(F, ws)) + ') win' + (winners.length > 1 ? '' : 's') + '! +' + famePer + ' Fame' + (winners.length > 1 ? ' each' : '') + '.', G.teams[winners[0].ti].col);
-    losers.forEach(({ e }) => { const r = F.robots[e]; r.dmg = Math.max(r.dmg, Math.round(maxHp(r) / 2)); });   // a spared loser keeps half its health as damage
+    losers.forEach(({ e }) => { const r = F.robots[e]; r.dmg = Math.min(r.dmg, Math.round(maxHp(r) / 2)); });   // rulebook 8: a spared loser goes home with half its health as damage (was max(), which kept knocked-out robots at 0 HP)
 
     for (const x of F.bets) {
       if (x.side === ws) {
@@ -3516,22 +3571,10 @@ html, body {
     F.loser = F.fateQueue.shift();
     if (F.fateN > 1) notify('👑 The host now decides spare or scrap for each losing robot, first knocked out first: ' + order.map(x => esc(F.robots[x.e].name) + ' (' + esc(G.teams[x.ti].name.split(' ')[0]) + ')').join(', ') + '.', G.teams[G.host].col);
 
-    // every losing team opens a consolation Scrap Crate (auto-applied)
-    const crateTxt = [];
-    losers.forEach(({ ti, e }) => {
-      const lTeam = G.teams[ti], lr = F.robots[e];
-      if (lTeam.robots.includes(lr) && lr.dmg > 0) {
-        const patch = lTeam.sponsor === 'vulture' ? 50 : 30;
-        lr.dmg = Math.max(0, lr.dmg - patch);
-        crateTxt.push(lTeam.name.split(' ')[0] + ': −' + patch + ' HP');
-        notify(`📦 <b>${esc(lTeam.name)}</b> opens a Scrap Crate: patched −${patch} dmg on ${esc(lr.name)}.`, lTeam.col);
-      } else {
-        const bonus = lTeam.sponsor === 'vulture' ? 4 : 2;
-        lTeam.credits += bonus;
-        crateTxt.push(lTeam.name.split(' ')[0] + ': +' + bonus + ' Cr');
-      }
-    });
-    F.loserCrateText = 'Scrap Crate: ' + crateTxt.join(', ');
+    // every losing team opens a Scrap Crate after the spare/scrap decisions (draw 3, keep 1; Vulture keeps 2)
+    F.crateQueue = losers.map(({ ti, e }) => ({ team: ti, robot: F.robots[e] }));
+    F.crateTxt = [];
+    F.loserCrateText = 'Scrap Crate: opening…';
     F.winnerCrateText = 'Fan token +1';   // Winner's Crate cut (rulebook)
 
     fateStep();
@@ -3579,7 +3622,7 @@ html, body {
       offs.forEach(o => { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
       if (robot.wins >= favWins(T)) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
-      T.robots.splice(T.robots.indexOf(robot), 1);
+      T.robots.splice(T.robots.indexOf(robot), 1); returnStarter(robot.name);
       for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
@@ -3595,11 +3638,51 @@ html, body {
       F.loser = F.fateQueue.shift(); F.fateI++; F.fateOffers = null;
       updateHud(); fateStep(); return;
     }
-    updateHud();
+    nextCrate();
+  }
+  /* ---------- Scrap Crate: each losing team draws 3 items and keeps 1 (Vulture Salvage keeps 2) ---------- */
+  function crateTarget(T, r, id) {   // the losing robot if it is still there and can take it, else another robot, else the Stash
+    const L = LOTS[id];
+    if (!needsRobot(id)) return null;
+    if (T.robots.includes(r) && canFit(r, L)) return r;
+    return T.robots.find(x => canFit(x, L)) || null;
+  }
+  function crateGive(T, r, id) {
+    const tg = crateTarget(T, r, id), L = LOTS[id];
+    let dest;
+    if (!needsRobot(id)) dest = applyLot(T.i, id, null);
+    else if (tg) dest = applyLot(T.i, id, tg);
+    else if (L.salv) dest = toStash(T, id, true) ? 'to the Stash' : 'sold';
+    else { T.credits += 1; dest = '+1 Cr (nothing to patch)'; }
+    notify('📦 <b>' + esc(T.name) + '</b> opens a Scrap Crate: ' + lotRef(id) + ' (' + esc(dest) + ').', T.col);
+    G.fight.crateTxt.push(T.name.split(' ')[0] + ': ' + L.name);
+    G.fight.loserCrateText = 'Scrap Crate: ' + G.fight.crateTxt.join(', ');
+  }
+  function aiCratePick(T, r, opts) {
+    const score = id => { const L = LOTS[id], tg = crateTarget(T, r, id);
+      if (L.patch) return tg ? Math.min(tg.dmg, 30) / 10 : 0;
+      if (L.tape) return 1.8;
+      return tg ? partWorth(T, id) - 0.5 : 0.5; };
+    return opts.slice().sort((a, b) => score(b) - score(a));
+  }
+  function humanCratePick(id) {
+    const CC = G.crateChoices;
+    if (!CC || !CC.items || CC.picked.includes(id) || !CC.items.includes(id)) return;
+    CC.picked.push(id); crateGive(me(), CC.robot, id);
+    if (CC.picked.length >= CC.keep) { G.crateChoices = null; nextCrate(); } else updateHud();
+  }
+  function nextCrate() {
+    const F = G.fight;
+    if (!F || !F.crateQueue || !F.crateQueue.length) { G.crateChoices = null; checkWin(); updateHud(); return; }
+    const { team, robot } = F.crateQueue.shift(), T = G.teams[team], keep = T.sponsor === 'vulture' ? 2 : 1;
+    const opts = shuffle(CRATE_ITEMS.slice()).slice(0, 3);
+    if (team === viewerSeat) { G.crateChoices = { items: opts, robot, keep, picked: [] }; updateHud(); return; }
+    aiCratePick(T, robot, opts).slice(0, keep).forEach(id => crateGive(T, robot, id));
+    nextCrate();
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -4368,14 +4451,16 @@ html, body {
       // Contextual Action Button OR Helper Drone Line (by + 44 .. by + 62)
       const repCost = repairCost(r);
       const actX = bx + 74, actY = by + 43, actW = bw - 86, actH = 20;
-      if (G.phase === 'upkeep' && repCost > 0) {
-        const ok = t.credits >= repCost;
-        ctx.fillStyle = ok ? '#111' : '#999';
+      const nBrk = (r.b.brk || []).length, allCost = repCost + brkCost(r);
+      if (G.phase === 'upkeep' && allCost > 0) {
+        const ok = t.credits >= allCost;
+        ctx.fillStyle = ok ? (nBrk ? '#b45309' : '#111') : '#999';
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        fitText(ctx, `Repair −${r.dmg} HP: ${repCost} Cr` + (r.wear > 0 ? `  ·  ⏱ ${Math.round(r.wear)} s wear ×${wearMult(r).toFixed(1)}` : ''), actX + actW / 2, actY + 13.5, actW - 10, '800', 10.5);
+        fitText(ctx, 'Repair' + (r.dmg > 0 ? ` −${r.dmg} HP` : '') + (nBrk ? ` + ${nBrk} broken part${nBrk > 1 ? 's' : ''}` : '') + `: ${allCost} Cr` + (r.wear > 0 ? `  ·  ⏱ ×${wearMult(r).toFixed(1)}` : ''), actX + actW / 2, actY + 13.5, actW - 10, '800', 10.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
-        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 0.7 Cr per 20 damage, more the longer it has fought.<br>' + wearTxt(r) + '<br>Repairing resets the wear. Unrepaired damage stays for the next fight.');
+        help(actX, actY, actW, actH, 'Repair', (r.dmg > 0 ? 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 0.7 Cr per 20 damage' + (repairK(r) < 1 ? ' (half: your Repair Tech)' : '') + ', more the longer it has fought.<br>' + wearTxt(r) + '<br>' : '') +
+          (nBrk ? '<b>Broken parts</b> (they stay broken until repaired, half their bank value each): ' + r.b.brk.map(k => esc(brkName(r, k)) + ' ' + (BRK_COST[k.split(':')[0]] || 1) + ' Cr').join(', ') + '.<br>' : '') + 'Repairing resets the wear. Unrepaired damage and broken parts stay for the next fight.');
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         const pv = lotPreview(r, nextLot), wasted = !canFit(r, nextLot);
@@ -4447,13 +4532,13 @@ html, body {
       ctx.strokeRect(sbX, sbY, sbW, sbH);
 
       ctx.fillStyle = '#111'; ctx.font = '800 10px system-ui, sans-serif'; ctx.textAlign = 'left';
-      const stLbl = `STRAIN ${rk.strain} · ${Sim.frameOf(r.b).name.toUpperCase()}`;
+      const stLbl = `STRAIN ${rk.strain} · ${Sim.frameOf(r.b).name.toUpperCase()}` + ((r.b.brk || []).length ? ` · ⚠️${r.b.brk.length}` : '');
       ctx.fillText(stLbl, sbX + 8, sbY + 14);
       const stW = ctx.measureText(stLbl).width;
       ctx.fillStyle = riskCol; ctx.textAlign = 'right';
       fitText(ctx, `Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 214, sbY + 14, 206 - stW - 10, '700', 10);
       ctx.textAlign = 'left';
-      { const h1 = helpStrain(r.b), h2 = helpRisk(r.b); help(sbX, sbY, stW + 12, sbH, h1[0], h1[1]); help(sbX + stW + 12, sbY, 214 - stW - 12, sbH, h2[0], h2[1]); }
+      { const h1 = helpStrain(r.b), h2 = helpRisk(r.b); if ((r.b.brk || []).length) { h1[0] += ' · ⚠️ ' + r.b.brk.length + ' broken'; h1[1] = '<b>Broken (until repaired in Upkeep):</b> ' + r.b.brk.map(k => esc(brkName(r, k))).join(', ') + '.<br>' + h1[1]; } help(sbX, sbY, stW + 12, sbH, h1[0], h1[1]); help(sbX + stW + 12, sbY, 214 - stW - 12, sbH, h2[0], h2[1]); }
 
       // Clean Filled Reliability / Risk Bar
       drawBar(ctx, sbX + 8, sbY + 21, 206, 7, riskFrac, riskCol, '#e2dfd7', 0);
@@ -4499,7 +4584,7 @@ html, body {
       ctx.fillStyle = '#f5f3ec'; ctx.fillRect(modX, btnY, modW, btnH);
       ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(modX, btnY, modW, btnH);
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'}`, modX + modW / 2, btnY + 15.5);
+      ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'}${(r.b.brk || []).includes('mod') ? ' ⚠️' : ''}`, modX + modW / 2, btnY + 15.5);
       help(modX, btnY, modW, btnH, 'Module: ' + esc(Sim.MODS[r.b.mod]?.name || 'none'), (Sim.MODS[r.b.mod] ? esc(Sim.MODS[r.b.mod].text) : 'No module fitted.') + '<br>Modules come from the Market (one per robot). Fitting a new one sends the old one to your 📦 Stash.');
 
       // Pill 3: Target Focus (w: 90)
@@ -5088,13 +5173,13 @@ html, body {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y, w, h);
 
-    if (G.crateChoices && G.crateChoices.length) {
-      // Player won: show Recap Headline + 3 clickable Winner's Crate cards
-      ctx.fillStyle = '#111'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`FIGHT RECAP: ${rec.headline}  —  PICK 1 WINNER'S CRATE REWARD:`, L.ax, y + 22);
-
-      G.crateChoices.forEach((lotId, k) => {
-        const lot = LOTS[lotId];
+    if (G.crateChoices && G.crateChoices.items) {
+      // You lost: open the Scrap Crate, keep 1 of 3 (Vulture Salvage: 2)
+      const CC = G.crateChoices;
+      ctx.fillStyle = '#111'; ctx.textAlign = 'center';
+      fitText(ctx, `📦 SCRAP CRATE for ${CC.robot.name}: keep ${CC.keep - CC.picked.length} of these`, L.ax, y + 22, 600, '900', 14);
+      CC.items.forEach((lotId, k) => {
+        const lot = LOTS[lotId], taken = CC.picked.includes(lotId), tg = crateTarget(me(), CC.robot, lotId);
         const cw = 180, ch = 148;
         const cx = L.ax - 282 + k * 192, cTop = y + 34;
         ctx.fillStyle = '#fcfbf9'; ctx.fillRect(cx, cTop, cw, ch);
@@ -5107,11 +5192,12 @@ html, body {
         ctx.fillStyle = '#555'; ctx.font = '600 11px system-ui, sans-serif';
         ctx.fillText(lot.text, cx + cw / 2, cTop + 78);
 
-        ctx.fillStyle = '#15803d'; ctx.fillRect(cx + 20, cTop + 108, cw - 40, 26);
+        ctx.fillStyle = '#666'; fitText(ctx, !needsRobot(lotId) ? 'for your team' : tg ? 'on ' + tg.name : lot.salv ? 'no robot can take it: to the Stash' : 'nothing to patch: +1 Cr', cx + cw / 2, cTop + 96, cw - 12, '700', 10);
+        ctx.fillStyle = taken ? '#999' : '#15803d'; ctx.fillRect(cx + 20, cTop + 108, cw - 40, 26);
         ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui, sans-serif';
-        ctx.fillText('Claim Reward', cx + cw / 2, cTop + 125);
-
-        hitRegions.push({ kind: 'crate_pick', lot: lotId, x: cx, y: cTop, w: cw, h: ch });
+        ctx.fillText(taken ? 'Taken' : 'Keep this', cx + cw / 2, cTop + 125);
+        help(cx, cTop, cw, ch, lot.icon + ' ' + esc(lot.name), esc(lot.text) + (lot.salv ? '<br>A salvaged part adds +1 to that stat level and ⚡1 strain. If it breaks in a fight it is gone for good.' : ''));
+        if (!taken) hitRegions.push({ kind: 'crate_pick', lot: lotId, x: cx, y: cTop, w: cw, h: ch });
       });
       return;
     }
@@ -5644,9 +5730,9 @@ html, body {
       if (r.kind === 'bay_action' || (r.kind === 'bay' && r.team === viewerSeat)) {
         const t = me(), bot = r.robot;
         if (G.phase === 'upkeep') {
-          const cost = repairCost(bot);
+          const cost = fixCost(bot);
           if (cost > 0 && t.credits >= cost) {
-            t.credits -= cost; bot.dmg = 0; bot.wear = 0;
+            t.credits -= cost; bot.dmg = 0; bot.wear = 0; bot.b.brk = [];
             spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
             notify('🔧 Repaired <b>' + esc(bot.name) + '</b> to full HP.', t.col);
             updateHud();
@@ -5742,16 +5828,7 @@ html, body {
       if (r.kind === 'buy_scout') { buyScout(); return; }
       if (r.kind === 'scout_chip') { openScout(r.team, r.robot); return; }
 
-      if (r.kind === 'crate_pick') {
-        const t = me();
-        const wr = G.fight?.winner?.robot || t.robots[0];
-        applyLot(viewerSeat, r.lot, wr);
-        if (G.fight) G.fight.winnerCrateText = `Crate: ${LOTS[r.lot].name}`;
-        G.crateChoices = null;
-        notify(`🎁 Claimed <b>${esc(LOTS[r.lot].name)}</b> from the Winner's Crate!`, t.col);
-        updateHud();
-        return;
-      }
+      if (r.kind === 'crate_pick') { humanCratePick(r.lot); return; }
     }
   });
 

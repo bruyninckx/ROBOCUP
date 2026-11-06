@@ -59,7 +59,7 @@ All teams do Upkeep at the same time. The game does the bookkeeping.
 1. **Ready:** every exhausted robot, crew card and Security Bot asset turns ready again, unless a card keeps it out (for example Rogue Firmware: sits out the next fight).
 2. **Repairs:** pay 0.7 credits per 20 damage you want to repair (rounded up; Kev, 6 Nov: 30% cheaper) (times the robot's battle wear, see section 8), and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
 3. **Ledger:** gain 1 credit per ready Mechanic. Pay 1 credit per ready robot and 1 credit per 2 helper drones. The Accountant takes 1 off the bill for each robot after the first.
-4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator).
+4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator). A team left without robots gets a free Scrap Bot. (Tabletop 6 Nov: the ledger is in the log every Upkeep; broken parts are repaired with the same Repair button as damage.)
 5. **Sparring match (optional, 2 credits, once a round):** pick one of your ready robots and any rival robot; they fight a test fight in the pit. Nothing carries over: no damage, no fame, no breaks, no cards played. It shows you how the matchup really plays out.
 
 ## 5. Intrigue phase
@@ -157,7 +157,7 @@ Winning bets get their stake back plus the payout; losing bets go to the bank.
 
 **8. Spare or scrap.** The host decides the loser's fate (with several losers, each losing robot in turn). **Spare:** the robot goes home with damage equal to half its health. **Scrap:** the robot goes to the Market discard and its bought parts go back to the owner's garage. Scrapping costs the host 1 fame per Fan token on the robot, and a Fan Favourite can't be scrapped. Teams may bribe the host. Vulture Salvage gets 2 credits whenever a robot is scrapped.
 
-**9. Scrap Crate.** The losing team draws one Scrap Crate item.
+**9. Scrap Crate.** After the spare/scrap decisions, each losing team draws 3 of the 7 Scrap Crate items and keeps 1 (Vulture Salvage keeps 2): Salvaged Plate / Hull / Servo / Gear / Sights (+1 armour / health / speed / turret / accuracy level, ⚡1, gone for good when it breaks; it goes on the losing robot, else another robot, else the Stash), Scrap Patch Kit (repair 30 damage) or Black-Box Tape (draw 1 Intrigue card, +1 credit). Built in the tabletop 6 Nov.
 
 ## 8. Robots and parts
 
