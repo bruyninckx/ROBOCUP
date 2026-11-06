@@ -774,7 +774,7 @@
       // (with full pursuit a boosted spinner never left contact and won 100% of its fights)
       if (proc === 'rammer' && b.s.weapon !== 'spinner') want_r = 0;
       // short-range brawlers shoulder-charge now and then (Kev, 6 Nov: robots should bump into each other)
-      if (b.s.range <= RANGES.short && !stalled) {
+      if (b.s.weapon === 'saw' && !stalled && proc !== 'rammer') {   // only saws shoulder-charge: other short-range robots charging in swung fights far too much (Scrapper v Top 79% → 0%)
         b.shoveCd = (b.shoveCd == null ? 2 + rng() * 2 : b.shoveCd) - dt;
         if (b.shoveT > 0) b.shoveT -= dt;
         else if (b.shoveCd <= 0 && adist < 200) { b.shoveT = 1.6; b.shoveCd = 3.5 + rng() * 2; }

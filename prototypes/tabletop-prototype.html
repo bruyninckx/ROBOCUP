@@ -1829,7 +1829,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 scrapyard-robots';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 bump-fix';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5694,9 +5694,14 @@ html, body {
     }
 
     // Projectiles
-    for (const q of B.bullets) {
-      ctx.fillStyle = colOf(q);
-      ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.8 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill();
+    for (const q of B.bullets) {   // Kev, 6 Nov: shots were hard to see; now a tracer streak, an ink outline, bigger for heavy rounds
+      const r = Math.min(7, 2.2 + Math.sqrt(q.dmg) * 0.75), sp = Math.hypot(q.vx || 0, q.vy || 0) || 1, tl = Math.min(34, 8 + r * 3.5);
+      ctx.save(); ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(232, 197, 71, 0.55)'; ctx.lineWidth = r * 1.3;
+      ctx.beginPath(); ctx.moveTo(q.x - q.vx / sp * tl, q.y - q.vy / sp * tl); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.fillStyle = colOf(q); ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
     }
     for (const q of B.saws) {
       const c = colOf(q);
