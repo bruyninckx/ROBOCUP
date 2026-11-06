@@ -28,4 +28,4 @@ So AI teams feel like they actually play their sponsor identity in `prototypes/s
 - **Lucky Seven Bookmakers**: Bets up to `5 credits` when confident.
 - **Vulture Salvage Co.**: As Host, is `+25%` more likely to give the **Thumbs Down (Scrap)** to collect its `+2 credit` salvage bounty.
 
-**Dealing (5 Nov):** each team is dealt 2 sponsors and keeps 1 secretly; all reveal together. The Winner's Crate is cut, so Scrap Crates only go to the loser.
+**Dealing (5 Nov; in the tabletop since 6 Nov):** each team is dealt 2 sponsors and keeps 1 secretly; all reveal together. (Tabletop: you are dealt 2 and click one; AI teams are dealt 2 of the rest in turn; the free sponsor switch in Upkeep is gone. Vulture Salvage keeps 2 Scrap Crate items on a loss.) The Winner's Crate is cut, so Scrap Crates only go to the loser.

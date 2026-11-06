@@ -21,7 +21,7 @@ Everything on a robot is open information. Surprise comes only from face-down In
 
 ## 2. Components and setup
 
-Each team starts with 4 fame, 8 credits, 1 robot, 3 Mechanics, 1 Security Bot and one sponsor (Kev, 6 Nov: one starting robot, was 2).
+Each team starts with 4 fame, 8 credits, 1 robot, 3 Mechanics, 1 Chief Engineer, 1 Security Bot and one sponsor (Kev, 6 Nov: one starting robot, was 2; crew are named cards, see the Market crew lots).
 
 | Component | Contents |
 | --- | --- |
@@ -110,7 +110,7 @@ Sovereign Foundry wins any tie it's in, without a rebid. Legendary cards (Railgu
 
 **3. Host bid.** Same rules as an auction; the winner takes the host token, hosts this round's fight and goes first in the next Intrigue phase. If every host bid is 0, a random bidder gets the token.
 
-**Robot-count wager.** With your host bid you also secretly name a robot count: 1, 2 or 3 robots per side. Only the winning host's count is used. 1 is a normal duel; 2 or 3 turns the fight into an event, and a side may send fewer robots than the count if it chooses, so uneven fights (3 vs 1) can happen.
+**Robot-count wager (Kev, 6 Nov: 1 or 2).** With your host bid you also secretly name a robot count: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel (an event keeps its own format). Calling 2 costs the host 1 credit; each invited team sends up to 2 of its ready robots (a team with one robot fights 1 vs 2). If the fight ends up uneven, the host loses its +1 host fame that round. A team gains fame once however many of its robots win, and gets the 2-credit appearance money once.
 
 ## 7. Arena phase
 

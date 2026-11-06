@@ -578,7 +578,7 @@ html, body {
     sovereign: { name: 'Sovereign Foundry',   tag: 'Deep Pockets',      text: 'Start with 4 Mechanics & win all Market tie-breaks.' },
     apex:      { name: 'Apex Media',          tag: 'Prime Time',        text: '+2 Cr when you Host; Fan Favourite at 2 wins (not 3).' },
     lucky:     { name: 'Lucky Seven',         tag: 'House Edge',        text: 'Bet up to 5 Cr; losing bets refund 1 Cr insurance.' },
-    vulture:   { name: 'Vulture Salvage',     tag: 'Scrap Bounty',      text: '+2 Cr whenever a bot is scrapped; 2 Scrap Crates on loss.' },
+    vulture:   { name: 'Vulture Salvage',     tag: 'Scrap Bounty',      text: '+2 Cr whenever a bot is scrapped; keeps 2 Scrap Crate items on a loss.' },
   };
   const SPONSOR_KEYS = Object.keys(SPONSORS);
   const favWins = t => t.sponsor === 'apex' ? 2 : 3;
@@ -1289,11 +1289,11 @@ html, body {
     }
     if (G.phase === 'setup') {
       if (G.setupStep === 'sponsor') {
-        pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> Click one of the 6 Sponsor contracts on the Arena Stage (AI teams draft from the rest).</span>' +
+        pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; click the one you keep (AI teams are dealt 2 of the rest and keep 1).</span>' +
           '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select></label>' +
           '<button class="act secondary" id="pAct1">Random Sponsor</button><button class="act" id="pAct2">Quick-Start →</button>';
         $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
-        $('#pAct1').onclick = () => pickSetupSponsor(pick(SPONSOR_KEYS));
+        $('#pAct1').onclick = () => pickSetupSponsor(pick(G.sponsorDeal));
         $('#pAct2').onclick = quickFinishSetup;
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
@@ -1346,8 +1346,11 @@ html, body {
         pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
         $('#pAct1').onclick = startLots;
       } else if (G.marketStage === 'host') {
-        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.</span>' +
+        const hc = G.myHostCount || 1;
+        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
+          '<button class="act secondary" id="pCount"' + helpAttr('🤖 Robot-count wager', 'Name 1 or 2 robots per side with your host bid. Only the winning host\'s count is used, and only for a normal duel (events keep their own format). 2 per side costs ' + WAGER_COST + ' Cr; each invited team sends up to 2 of its ready robots. If the fight ends up uneven (2 vs 1), you lose your +1 host fame that round.') + '>🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
+        $('#pCount').onclick = () => { G.myHostCount = hc === 2 ? 1 : 2; updateHud(); };
         $('#pAct1').onclick = () => resolveHostBid(G.myBids[HOST_K] || 0);
       } else {
         const spent = (G.myBids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
@@ -1579,7 +1582,8 @@ html, body {
       lots: lotDeck(),
       robotDeck: shuffle(Object.keys(MARKET_ROBOTS).filter(k => !MARKET_ROBOTS[k].legend)), crewDeck: shuffle(CREW_DECK.slice()),
       legends: shuffle(['L_rail', 'L_twin', 'L_quantum']), legendNext: null,
-      fight: null, over: false, crateChoices: null
+      fight: null, over: false, crateChoices: null,
+      sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
     };
     G.teams.forEach(t => { crewProps(t); t.mechs = 3; t.engPool = 1; });
     setCameraGoal('compound');
@@ -1617,10 +1621,11 @@ html, body {
 
   function pickSetupSponsor(mySp) {
     if (G.phase !== 'setup' || G.setupStep !== 'sponsor') return;
-    const rest = shuffle(SPONSOR_KEYS.filter(k => k !== mySp));
-    let rIdx = 0;
+    if (!G.sponsorDeal.includes(mySp)) mySp = G.sponsorDeal[0];
+    let free = SPONSOR_KEYS.filter(k => k !== mySp);
     G.teams.forEach((t, i) => {
-      t.sponsor = i === viewerSeat ? mySp : rest[rIdx++];
+      if (i === viewerSeat) t.sponsor = mySp;
+      else { const deal = shuffle(free.slice()).slice(0, 2); t.sponsor = pick(deal); free = free.filter(k => k !== t.sponsor); }   // AI: dealt 2 of the rest, keeps 1
       t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
     });
     notify(`Signed with <b>${esc(SPONSORS[mySp].name)}</b> (${esc(SPONSORS[mySp].tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}<b>s1.</b> starter robot!`, me().col);
@@ -1670,7 +1675,7 @@ html, body {
   function quickFinishSetup() {
     if (G.phase !== 'setup') return;
     if (G.setupStep === 'sponsor') {
-      pickSetupSponsor(pick(SPONSOR_KEYS));
+      pickSetupSponsor(pick(G.sponsorDeal));
     }
     while (G.phase === 'setup') {
       pickSetupStarter(Math.floor(rnd() * G.draftOffer.length));
@@ -1679,6 +1684,7 @@ html, body {
 
   function startRound() {
     G.phase = 'upkeep';
+    G.hostCount = 1; G.myHostCount = 1;
     G.crateChoices = null;
     setCameraGoal('compound');
     for (const t of G.teams) {
@@ -1775,7 +1781,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 layout-check';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 setup-arena-extras';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2590,6 +2596,7 @@ html, body {
   }
   function resolveHostBid(myBid) {
     if (G.marketAuction) return;
+    G.hostCounts = G.teams.map(t => t.i === viewerSeat ? (G.myHostCount || 1) : aiHostCount(t));
     const all = G.teams.map(t => { const b = zeroBids(); b[HOST_K] = Math.min(t.credits, t.i === viewerSeat ? myBid : aiHostBid(t)); return b; });
     G.teams.forEach((t, i) => { if (t.shill && all[i][HOST_K]) all[i][HOST_K] = Math.max(0, all[i][HOST_K] - t.shill); });
     G.marketAuction = { all, initialAll: all.map(b => b.slice()), rebidAdds: G.teams.map(zeroBids), curK: HOST_K, lastK: HOST_K, hostOnly: true, wins: [], results: [], tie: null };
@@ -2972,6 +2979,9 @@ html, body {
       hostT.fame += 1;
       if (hostT.sponsor === 'apex') hostT.credits += 2;
       notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host' + (res && res.price ? ' for ' + res.price + ' Cr' : ' (nobody bid: random draw)') + ' (+1 Fame' + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
+      G.hostCount = (G.hostCounts || [])[G.host] || 1;
+      tlog('wager', { host: G.host, count: G.hostCount });
+      if (G.hostCount === 2) notify('🤖🤖 ' + nm(hostT) + '\'s robot count: <b>2 per side</b> (if this round is a normal duel). Each invited team sends up to 2 robots.', hostT.col);
       G.marketResults = (G.marketResults || []).filter(r => r.idx !== HOST_K).concat(A.results);
       tlog('host_bid', { host: G.host, price: res ? res.price : 0, bids: res ? res.bids : null });
       G.hostResolved = true; G.marketResolved = true; G.marketAuction = null; G.marketStage = 'done';
@@ -3083,7 +3093,11 @@ html, body {
    * F.sides[e]; bets, odds and the winner are per side. */
   const HOUSE_BUILD = { lv: L(3, 2, 2, 2, 3, 2, 1), range: 'mid', weapon: 'gun', cal: 'heavy', mod: null, helpers: [], eng: 2 };
   const HOUSE_COL = '#5b5b5b';
-  const FORMAT_NAME = { duel: 'Duel', mirror: 'Mirror duel', ffa: 'Free-for-all', '2v2': '2v2' };
+  const FORMAT_NAME = { duel: 'Duel', mirror: 'Mirror duel', ffa: 'Free-for-all', '2v2': '2v2', double: 'Double duel (2 per side)' };
+  // Robot-count wager (Kev, 6 Nov): with the host bid you name 1 or 2 robots per side; the winning host's count is used.
+  // 2 costs the host 1 Cr; each invited team sends up to 2; if the fight ends up uneven (2 vs 1) the host loses its host fame.
+  const WAGER_COST = 1;
+  function aiHostCount(t) { const rr = readyRobots(t); return rr.length >= 2 && rnd() < 0.55 ? 2 : 1; }
   const sideTeams = (F, sd) => F.teams.filter((_, e) => F.sides[e] === sd);
   const sideName = (F, sd) => sd === 'house' || sd === 9 ? 'House Robot' : sideTeams(F, sd).map(ti => G.teams[ti].name).join(' + ');
   const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
@@ -3109,7 +3123,11 @@ html, body {
       const b = G.teams.map(t => t.i).filter(i => !a.includes(i));
       return invite(a.concat(b), [0, 0, 1, 1], '2v2');
     }
-    const fmt = ev && ev.kind === 'mirror' ? 'mirror' : 'duel';
+    let fmt = ev && ev.kind === 'mirror' ? 'mirror' : 'duel';
+    if (fmt === 'duel' && G.hostCount === 2) {   // the host called 2 per side: pays 1 Cr (if it can)
+      if (G.teams[H].credits >= WAGER_COST) { G.teams[H].credits -= WAGER_COST; fmt = 'double'; notify('🤖🤖 Host ' + nm(G.teams[H]) + ' pays ' + WAGER_COST + ' Cr: this fight is <b>2 robots per side</b>.', G.teams[H].col); }
+      else notify('🤖 Host ' + nm(G.teams[H]) + ' can\'t pay ' + WAGER_COST + ' Cr for 2 per side: it stays a duel.', G.teams[H].col);
+    }
     G.pendingFormat = fmt;
     if (H === viewerSeat) {
       // AI teams may offer you a deal to be invited, or to be left out
@@ -3151,7 +3169,7 @@ html, body {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = s[1].i;
     }
-    notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : '') + '!', host.col);
+    notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : fmt === 'double' ? ' (up to 2 robots each)' : '') + '!', host.col);
     invite([a, b], [0, 1], fmt);
   }
 
@@ -3196,7 +3214,7 @@ html, body {
       const t = G.teams[teams[e]];
       if (readyRobots(t).length) continue;
       addFame(t, -1);
-      const repl = format === 'duel' || format === 'mirror' ? G.teams.filter(x => !teams.includes(x.i) && readyRobots(x).length)[0] : null;
+      const repl = format === 'duel' || format === 'mirror' || format === 'double' ? G.teams.filter(x => !teams.includes(x.i) && readyRobots(x).length)[0] : null;
       notify('😴 ' + nm(t) + ' has no ready robot and ' + (repl ? 'declines (−1 fame); ' + nm(repl) + ' steps in.' : 'sits out (−1 fame).'), t.col);
       if (repl) teams[e] = repl.i; else { teams.splice(e, 1); sd.splice(e, 1); }
     }
@@ -3222,7 +3240,7 @@ html, body {
 
   function declineInvite() {
     const F = G.fight;
-    if (F.format !== 'duel' && F.format !== 'mirror') return;   // events can't be declined
+    if (F.format !== 'duel' && F.format !== 'mirror' && F.format !== 'double') return;   // events can't be declined
     const t = me(), s = F.teams.indexOf(viewerSeat);
     t.fame = Math.max(0, t.fame - 1);
     const repl = G.teams.filter(x => !F.teams.includes(x.i) && x.i !== viewerSeat && readyRobots(x).length)[0] || G.teams.filter(x => !F.teams.includes(x.i) && x.i !== viewerSeat)[0];
@@ -3242,7 +3260,7 @@ html, body {
       if (quirkOf(r) === 'Grudge' && r.grudge && F.teams.some((t2, e2) => F.sides[e2] !== F.sides[e] && r.grudge.includes(t2))) b.grudgeOn = true;   // ✦ Grudge
       for (let c = 0; c < copies; c++) { builds.push(clone(b)); botEnt.push(e); botName.push(r.name + (copies > 1 ? ' #' + (c + 1) : '')); }
     });
-    const teamOpt = F.format === '2v2' || F.format === 'mirror' || (F.house && F.nSides === 2) ? botEnt.map(e => F.sides[e]) : null;
+    const teamOpt = F.format === '2v2' || F.format === 'mirror' || F.format === 'double' || (F.house && F.nSides === 2) ? botEnt.map(e => F.sides[e]) : null;
     if (F.house) { builds.push(clone(HOUSE_BUILD)); botEnt.push(-1); botName.push('House Robot'); if (teamOpt) teamOpt.push(9); }
     const B = Sim.newBattle(builds, seed, teamOpt ? { teams: teamOpt } : undefined);
     if (!noDamage) B.bots.forEach((b, i) => { if (!b.helper && botEnt[i] >= 0) b.hp = Math.max(10, b.hp - F.robots[botEnt[i]].dmg); });
@@ -3263,9 +3281,10 @@ html, body {
   async function afterChoose() {
     G.chooseMyBot = false;
     const F = G.fight;
+    if (F && F.format === 'double' && !F.seconds) await addSeconds(F);
     await treacherousStep(F);
     // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
-    F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
+    { const paid = new Set(); F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; if (!r) return; T.credits += (r.wins >= favWins(T) ? 4 : 2 * r.wins) + (paid.has(ti) ? 0 : 2); paid.add(ti); }); }   // 2 Cr per invited team + 2 per Fan token (FAV: 6 total)
     // Bookie simulates the visible builds: all parts are open, only face-down Intrigue cards stay hidden
     const N = F.nSides === 2 && F.teams.length === 2 && !F.house && F.format === 'duel' ? 40 : 20;
     const w = Array(F.nSides).fill(0);
@@ -3291,6 +3310,23 @@ html, body {
     startBets();
   }
 
+  // Double duel: each invited team may add a second ready robot (AI: always, if it has one); uneven = no host fame
+  async function addSeconds(F) {
+    F.seconds = true;
+    const n = F.teams.length;
+    for (let e = 0; e < n; e++) {
+      const T = G.teams[F.teams[e]], first = F.robots[e];
+      const cands = readyRobots(T).filter(r => r !== first && r.dmg < maxHp(r));
+      if (!cands.length) continue;
+      let r2;
+      if (T.i === viewerSeat) r2 = await ivModal('🤖🤖 Second robot?', 'The host called <b>2 robots per side</b>. Send a second robot with ' + esc(first.name) + '?', cands.map(r => ({ label: '🤖 ' + esc(r.name) + ' (' + Math.max(0, maxHp(r) - r.dmg) + ' HP)', value: () => r })).concat([{ label: 'Just one', secondary: true, value: () => null }]));
+      else r2 = cands.sort((a, b) => power(b) - power(a))[0];
+      if (r2) { F.teams.push(T.i); F.robots.push(r2); F.sides.push(F.sides[e]); }
+    }
+    const per = [0, 1].map(sd => F.sides.filter(x => x === sd).length);
+    notify('🤖🤖 Double duel: ' + [0, 1].map(sd => esc(sideName(F, sd).split(' + ')[0]) + ' ' + per[sd]).join(' vs ') + ' robot' + (per[0] + per[1] > 2 ? 's' : '') + '.', '#111');
+    if (per[0] !== per[1] && G.host >= 0) { const H = G.teams[G.host]; H.fame = Math.max(0, H.fame - 1); notify('⚖️ Uneven fight (' + per.join(' vs ') + '): host ' + nm(H) + ' loses its +1 host fame this round.', H.col); }
+  }
   // ✦ Treacherous (Turncoat): in a 2v2 it may switch sides before the odds are set
   async function treacherousStep(F) {
     if (!F || F.format !== '2v2') return;
@@ -3531,9 +3567,11 @@ html, body {
     const famePer = F.event && F.event.kind === 'final' ? 2 : 1;
     const winners = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === ws);
     const losers = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] !== ws);
+    const famed = new Set();
     winners.forEach(({ ti, e }) => {
       const T = G.teams[ti], r = F.robots[e];
-      T.fame += famePer; r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
+      if (!famed.has(ti)) { T.fame += famePer; famed.add(ti); }   // fame once per team (a double duel or a team fight)
+      r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
       if (r.wins === favWins(T)) T.fame += 1;
       if (quirkOf(r) === 'Hotshot') { T.credits += 1; notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
       if (quirkOf(r) === 'Showstopper' && G.host >= 0 && G.host !== ti && G.teams[G.host].fame > 0) { G.teams[G.host].fame -= 1; T.fame += 1; notify('✦ Showstopper: ' + esc(r.name) + ' steals the show: ' + nm(T) + ' takes the host\'s +1 fame from ' + nm(G.teams[G.host]) + '.', T.col); }
@@ -4068,16 +4106,16 @@ html, body {
 
     if (G.setupStep === 'sponsor') {
       ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText('OPENING SETUP (STEP 1 OF 3)  —  CHOOSE YOUR TEAM SPONSOR', x0 + 12, y0 + 18.5);
+      ctx.fillText('SETUP 1/3  —  YOU ARE DEALT 2 SPONSORS: KEEP 1', x0 + 12, y0 + 18.5);
       ctx.fillStyle = '#666'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText('AI teams draft from remaining sponsors', x0 + L.aw - 12, y0 + 18.5);
+      ctx.fillText('AI teams: dealt 2 of the rest', x0 + L.aw - 12, y0 + 18.5);
 
-      const cw = 192, ch = 84, gapX = 10, gapY = 8;
-      const startX = cx - (3 * cw + 2 * gapX) / 2, startY = y0 + 34;
+      const cw = 250, ch = 110, gapX = 16, gapY = 8;
+      const startX = cx - (2 * cw + gapX) / 2, startY = y0 + 44;
 
-      SPONSOR_KEYS.forEach((spKey, idx) => {
+      G.sponsorDeal.forEach((spKey, idx) => {
         const sp = SPONSORS[spKey];
-        const col = idx % 3, row = Math.floor(idx / 3);
+        const col = idx % 2, row = 0;
         const bx = startX + col * (cw + gapX), by = startY + row * (ch + gapY);
         const hov = mouse.wx >= bx && mouse.wx <= bx + cw && mouse.wy >= by && mouse.wy <= by + ch;
 
@@ -4324,7 +4362,7 @@ html, body {
 
     // 2. Sponsor Pill (x0 + 215, w: 235) — uses sp.name & sp.tag (no undefined!)
     const sp = t.sponsor ? SPONSORS[t.sponsor] : null;
-    const canCycleSp = G.round === 1 && G.phase === 'upkeep';
+    const canCycleSp = false;   // Kev, 6 Nov: sponsors are dealt (2, keep 1); no free switching
     const spX = x0 + 215, spY = y0 + 10, spW = 235, spH = 22;
     ctx.fillStyle = canCycleSp || !sp ? '#f0f6ff' : '#f5f3ec';
     ctx.fillRect(spX, spY, spW, spH);
