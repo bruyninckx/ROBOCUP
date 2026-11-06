@@ -652,6 +652,13 @@ html, body {
     m_decoy:   { name: 'Decoy Hologram',  icon: '👥', text: 'Decoy module (+1 Str)', mod: 'decoy' },
     m_emp:     { name: 'EMP Module',      icon: '⚡', text: 'EMP module (+2 Str)',   mod: 'emp' },
     m_grapple: { name: 'Grappling Hook',  icon: '🪝', text: 'Hook module (+2 Str)',  mod: 'grapple' },
+    // Kev, 6 Nov: every module comes from the Market now (the free "Mod ↻" cycle button in the garage is gone)
+    m_flipper: { name: 'Flipper',         icon: '🥏', text: 'Flipper module (+2 Str)', mod: 'flipper' },
+    m_mines:   { name: 'Mine Layer',      icon: '💣', text: 'Mines module (+1 Str)', mod: 'mines' },
+    m_repair:  { name: 'Repair Drone',    icon: '🔧', text: 'Self-repair module (+1 Str)', mod: 'repair' },
+    m_boom:    { name: 'Self-Destruct',   icon: '💥', text: 'Boom module (+1 Str)',  mod: 'boom' },
+    m_smoke:   { name: 'Smoke Screen',    icon: '💨', text: 'Smoke module (no Str)', mod: 'smoke' },
+    m_reflect: { name: 'Reflective Plating', icon: '🪞', text: 'Anti-laser module (no Str)', mod: 'reflect' },
     m_jets:    { name: 'Jump Jets',       icon: '🦘', text: 'Jets module (+2 Str)',  mod: 'jets' },
     m_oil:     { name: 'Oil Slick',       icon: '🛢️', text: 'Oil module (+1 Str)',   mod: 'oil' },
     d_medic:   { name: 'Medic Drone',     icon: '➕', text: 'Heals 4 HP/s (+1 Str)',helper: 'medic' },
@@ -1645,7 +1652,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 emp-intro-fixes';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 market-modules';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2570,8 +2577,9 @@ html, body {
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
     if (L.cal) r.b.cal = L.cal;
     if (L.wup) r.b.wup = L.wup;
-    if (L.mod) r.b.mod = L.mod;
-    if (L.arm) r.b.arm = L.arm;
+    const t_ = G.teams[ti], oldLot = (k, v) => Object.keys(LOTS).find(id => LOTS[id][k] === v);
+    if (L.mod) { if (r.b.mod && r.b.mod !== L.mod) { const o = oldLot('mod', r.b.mod); if (o) toStash(t_, o); } r.b.mod = L.mod; }
+    if (L.arm) { if (r.b.arm && r.b.arm !== L.arm) { const o = oldLot('arm', r.b.arm); if (o) toStash(t_, o); } r.b.arm = L.arm; }
     if (L.helper) {
       r.b.helpers = r.b.helpers || [];
       if (r.b.helpers.length < 3) r.b.helpers.push(L.helper);
@@ -4264,9 +4272,8 @@ html, body {
       ctx.fillStyle = '#f5f3ec'; ctx.fillRect(modX, btnY, modW, btnH);
       ctx.strokeStyle = '#bab5a8'; ctx.lineWidth = 1; ctx.strokeRect(modX, btnY, modW, btnH);
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'} ↻`, modX + modW / 2, btnY + 15.5);
-      hitRegions.push({ kind: 'mod_cycle', robot: r, x: modX, y: btnY, w: modW, h: btnH });
-      help(modX, btnY, modW, btnH, 'Module: ' + esc(Sim.MODS[r.b.mod]?.name || 'none'), (Sim.MODS[r.b.mod] ? esc(Sim.MODS[r.b.mod].text) : 'No module fitted.') + '<br><i>Prototype shortcut: click to cycle modules.</i>');
+      ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'}`, modX + modW / 2, btnY + 15.5);
+      help(modX, btnY, modW, btnH, 'Module: ' + esc(Sim.MODS[r.b.mod]?.name || 'none'), (Sim.MODS[r.b.mod] ? esc(Sim.MODS[r.b.mod].text) : 'No module fitted.') + '<br>Modules come from the Market (one per robot). Fitting a new one sends the old one to your 📦 Stash.');
 
       // Pill 3: Target Focus (w: 90)
       const foc = r.b.focus || 'main';
@@ -4683,7 +4690,7 @@ html, body {
       ctx.fillStyle = '#555';
       fitText(ctx, it.text, x + w / 2, y + 82, w - 12, '600', 11.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 12, 'center', 11.5);
-      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
+      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.mod && Sim.MODS[it.mod] ? esc(Sim.MODS[it.mod].text) + '<br>One module per robot: a new one replaces the old (the old goes to your Stash).<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
       else if (k === HOST_K) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);

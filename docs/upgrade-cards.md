@@ -50,7 +50,7 @@ The old weapon retrofits (Laser, Mortar, Saw Blade Launcher, Flamethrower, Spinn
 | **Reactive Spikes** | `arm: spikes` | 1 | 2–4 | 1 | Rammers and spinners touching it take 12 damage; knockback and stun on it −50%. | in a prototype |
 | **Composite Mesh** | `arm: mesh` | 1 | 3–5 | 2 | +1 Armour (max 4) with no speed penalty. | in a prototype |
 
-## Modules (6)
+## Modules (6 + 6 in the tabletop Market)
 
 | Card | Sim key | ⚡ | Price | Bank value | Effect | Status |
 |---|---|---|---|---|---|---|
@@ -60,6 +60,19 @@ The old weapon retrofits (Laser, Mortar, Saw Blade Launcher, Flamethrower, Spinn
 | **Grappling Hook** | `mod: grapple` | 2 | 3–5 | 2 | Yanks an enemy 140 px toward you. | in a prototype |
 | **Jump Jets** | `mod: jets` | 2 | 3–5 | 2 | Leaps 160 px away when an enemy gets close. | in a prototype |
 | **Oil Slick** | `mod: oil` | 1 | 2–3 | 1 | Leaves oil puddles that make robots slide and spin. | in a prototype |
+
+Kev, 6 Nov: every module comes from the Market in the tabletop (the free module cycle button in the garage is gone), so these six Sim modules joined the lot deck too (prices and bank values still to set; bank value 2 for now):
+
+| Card | Sim key | ⚡ | Effect |
+|---|---|---|---|
+| **Flipper** | `mod: flipper` | 2 | On contact: 14 damage, throws the enemy back, 1.3 s stun; every 3 s. |
+| **Mine Layer** | `mod: mines` | 1 | Drops a mine every 1.6 s while driving (max 5), 22 damage. |
+| **Repair Drone** | `mod: repair` | 1 | Heals 6 HP/s after 1.2 s without being hit. |
+| **Self-Destruct** | `mod: boom` | 1 | Below 30% rams the nearest enemy; explodes for up to 45 within 90 px. |
+| **Smoke Screen** | `mod: smoke` | 0 | At 50% health, a 4 s smoke cloud that spreads shots. |
+| **Reflective Plating** | `mod: reflect` | 0 | Bounces half of every laser hit back; flames set it alight half as fast. |
+
+One module per robot: fitting a new one sends the old card to the Stash.
 
 ## Helpers (6)
 
