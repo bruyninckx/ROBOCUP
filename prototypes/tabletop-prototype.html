@@ -387,6 +387,21 @@ html, body {
   border-top: 1px solid #d5d1c7;
   padding-top: 2px;
 }
+#ivModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.25)}
+#ivModal[hidden]{display:none}
+.iv-box{background:#fffdf7;border:2.5px solid #111;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:14px 16px;width:min(440px,calc(100vw - 32px));font:13px/1.45 system-ui,sans-serif;color:#111}
+.iv-box h3{margin:0 0 8px;font-size:15px}
+.iv-box label{display:flex;align-items:center;gap:6px;margin:6px 0}
+.iv-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.iv-btns button{font:800 12.5px system-ui,sans-serif;padding:7px 12px;border-radius:8px;border:2px solid #111;cursor:pointer}
+.iv-btns button.primary{background:#111;color:#fff}
+.iv-btns button.secondary{background:#fff;color:#111}
+.iv-timer{height:5px;background:#e6e3da;border-radius:3px;margin-top:10px;overflow:hidden}
+.iv-timer i{display:block;height:100%;width:100%;background:#d62828}
+@keyframes ivt{from{width:100%}to{width:0%}}
+.hs-coin{font-size:9.5px;font-weight:800;background:#f2c14e;color:#5a3d00;border-radius:8px;padding:0 5px}
+.hs-card.later-card .hs-badge{background:#8c887e;color:#fff}
+.hs-card.cash-card.playable{border-color:#d99000;box-shadow:0 0 0 2.5px rgba(242,193,78,.8),0 8px 20px rgba(0,0,0,.18)}
 </style>
 </head>
 <body>
@@ -510,33 +525,37 @@ html, body {
   ];
   const bandOf = p => BANDS.find(x => p >= x.min) || BANDS[2];
 
-  /* Unified Card Deck: Garage Schemes (Intrigue) + Live Combat Trigger Cards (Fight) */
-  const CARDS = {
-    // --- Garage Intrigue Schemes (Played in Intrigue phase) ---
-    bolts:       { name: 'Loose Bolts',      phase: 'intrigue', target: 'garage', need: 0, icon: '🔩', text: 'Sabotage a Garage: −2 Armour next fight.', tamper: { armor: -2 } },
-    sugar:       { name: 'Sugar in Tank',    phase: 'intrigue', target: 'garage', need: 0, icon: '🧪', text: 'Sabotage a Garage: −2 Speed next fight.', tamper: { speed: -2 } },
-    gears:       { name: 'Stripped Gears',   phase: 'intrigue', target: 'garage', need: 0, icon: '⚙️', text: 'Sabotage a Garage: −2 Turret turn next fight.', tamper: { turret: -2 } },
-    lens:        { name: 'Smudged Lens',     phase: 'intrigue', target: 'garage', need: 3, icon: '👁️', text: 'Sabotage a Garage: −2 Accuracy next fight.', tamper: { acc: -2 } },
-    cut_corners: { name: 'Cut Corners',      phase: 'intrigue', target: 'garage', need: 2, icon: '⚠️', text: 'Sabotage a Garage: +3 Strain next fight (parts break!).', strainAdd: 3 },
-    pocket:      { name: 'Pickpocket',       phase: 'intrigue', target: 'garage', need: 0, icon: '🤏', text: 'Steal up to 3 Credits from target Garage.' },
-    night:       { name: 'Night Shift',      phase: 'intrigue', target: 'self',   need: 0, icon: '🛠️', text: 'Your mechanics work late: gain +4 Credits.' },
-    press:       { name: 'Bribe Press',      phase: 'intrigue', target: 'self',   need: 5, icon: '📰', text: 'Pay 3 Credits: gain +1 Fame immediately.' },
-    overtime:    { name: 'Secret Upgrade',   phase: 'intrigue', target: 'self',   need: 4, icon: '⚡', text: 'Hidden: your robots get +1 FP & +1 AR next fight.', tamper: { fp: 1, armor: 1 } },
-    guard:       { name: 'Security Bot',     phase: 'reaction', target: 'none',   need: 0, icon: '🤖', text: 'Keep in hand: roll 4–6 (50%) to block a scheme on your Garage. Every team starts with one.' },
-
-    // --- Live Arena Combat Cards (Played DURING the Fight by dragging into the Arena!) ---
-    trigger:     { name: 'Remote Trigger',   phase: 'fight',    target: 'bot',    need: 0, icon: '🎛️', text: 'Live Fight: Trigger target robot\'s Surprise Module right now!' },
-    waypoint:    { name: 'Pilot Waypoint',   phase: 'fight',    target: 'arena',  need: 0, icon: '📍', text: 'Live Fight: Order your fighter to drive to this exact Arena spot.' },
-    overclock:   { name: 'Target Overclock', phase: 'fight',    target: 'bot',    need: 0, icon: '🎯', text: 'Live Fight: Target robot gets +45% speed & fire rate for 3.5s.' },
-    field_eng:   { name: 'Field Engineer',   phase: 'fight',    target: 'bot',    need: 0, icon: '👷', text: 'Live Fight: Clear stall/jam, delay part breaks & heal +18 HP.' },
-    oil_card:    { name: 'Oil Canister',     phase: 'fight',    target: 'arena',  need: 0, icon: '🛢️', text: 'Live Fight: Splash oil on the Arena floor (spins & slows bots).' },
-    emp_card:    { name: 'EMP Grenade',      phase: 'fight',    target: 'arena',  need: 2, icon: '🧲', text: 'Live Fight: Lob a 0.75s fuse EMP pulse onto the Arena floor.' },
-  };
-
-  const DECK_TEMPLATE = [
-    'bolts', 'sugar', 'gears', 'lens', 'cut_corners', 'pocket', 'night', 'press', 'overtime', 'guard', 'guard',
-    'trigger', 'trigger', 'waypoint', 'waypoint', 'overclock', 'field_eng', 'field_eng', 'oil_card', 'emp_card'
-  ];
+  /* ============================================================================
+   * INTRIGUE v1 (docs/intrigue-deck.md, rulebook section 5; Kev 6 Nov):
+   * 74 cards / 185 copies in 8 families, fame gates (backing with an optional credit offer),
+   * 5-second reaction windows, Security Bots (4-6 blocks), cash-in, Ready / Exhausted.
+   * Arena-phase cards (events, Swap the Entry, Hedge Bet, Bookie's Friend, House Robot) are in the deck
+   * but only cash in for now: they arrive with the event-fight update.
+   * ============================================================================ */
+  const IV_DATA = [["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 4, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 2, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 2, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 2, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 2, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target gains +1 fame per 2 robots or crew it exhausts (max +2).", "Publicity"], ["Underdog Story", "S", 2, 1, 3, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 3, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 3, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 2, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 1, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 14, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 16, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 1, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 2, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 2, "−1 fame to a team with no ready robots.", "Smear"], ["Bankrupt!", "R", 3, 1, 2, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 2, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: −2 speed in its next fight.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −2 accuracy in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot takes 30 lasting damage, or a crew member is exhausted for 2 rounds.", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and takes 30 lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 2, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +1 firepower and +1 armour in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage.", "Match-fixing"], ["Unleash the House Robot", "S", 9, 2, 1, "Host only: a neutral robot joins the fight and attacks whoever is closest.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 3, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 2, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 2, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Remote Trigger", "R", 2, 1, 2, "Live: fire a robot's module right now.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: +45% speed and fire rate for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: clear a stall or jam, heal 18; no breaks for 5 s.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live, any player: splash oil on the floor; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live, any player: lob an EMP (100 px, 1.2 s stun).", "Match-fixing"], ["Security Bot", "G", 0, 2, 28, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction.", "Security"], ["Backup Restore", "R", 4, 3, 1, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 2, "Target team must back a scheme of your choice with all its fame.", "Leverage"]];
+  const LIVE_KEYS = { 'Remote Trigger': 'trigger', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card' };
+  const LIVE_TARGET = { trigger: 'bot', waypoint: 'arena', overclock: 'bot', field_eng: 'bot', oil_card: 'arena', emp_card: 'arena' };
+  const LIVE_ICON = { trigger: '🎛️', waypoint: '📍', overclock: '🎯', field_eng: '👷', oil_card: '🛢️', emp_card: '🧲' };
+  const LATER = new Set(['Grand Melee', 'Unleash the House Robot', 'Swap the Entry', 'Hedge Bet', "Bookie's Friend", 'Mirror', 'Grand Final', 'Tag Team Licence']);
+  const BLOCKERS = new Set(['Paid Off', 'Fall Guy', 'Firewall', 'PR Spin', 'Not My Robot', "Sponsor's Lawyers", 'Under the Radar', 'Overreach']);
+  const TURN_REACTIONS = new Set(['Fire Sale', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Backup Restore']);
+  const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory']);
+  const HARMFUL_FAMS = new Set(['Smear', 'Sabotage', 'Corporate']);
+  const FAM_ICON = { Contracts: '💼', Publicity: '📣', Smear: '🗞️', Sabotage: '🔧', Corporate: '🏢', 'Match-fixing': '🎲', Security: '🛡️', Leverage: '⛓️' };
+  const ANY_T = ['Overtime Shift', 'Consulting Gig', 'Industry Insider', 'Fan Meet', 'Roadshow', 'Public Demo', 'Launch Party', 'Team-Building Day', 'Press Tour', 'Celebrity Endorsement', 'Hype Reel', 'Prime-Time Interview', 'Viral Moment', 'Co-Branding Deal'];
+  const RIVAL_T = ['Smash and Grab', 'Joint Venture', 'Bribe Scandal', 'Inside Leak', 'Paparazzi', 'Rival Sponsor', 'Smear Campaign', 'Rigged Ratings', 'Poached Mechanic', 'Security Override', 'EMP the Garage', 'Sugar in the Tank', 'Smudged Lens', 'Loose Bolts', 'Rogue Firmware', 'Tax Audit', 'Coolant Leak', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!'];
+  const NONE_T = ['Underdog Story', 'Robot Rights Protest'];
+  const slugOf = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const CARDS = {};
+  const DECK_TEMPLATE = [];
+  for (const [name, t, gate, cash, copies, text, fam] of IV_DATA) {
+    const live = LIVE_KEYS[name], id = live || slugOf(name);
+    const phase = live ? 'fight' : LATER.has(name) ? 'later' : (t === 'S' || t === 'F') ? 'intrigue' : name === 'Security Bot' ? 'security' : 'reaction';
+    const target = live ? LIVE_TARGET[live] : ANY_T.includes(name) ? 'any' : RIVAL_T.includes(name) ? 'rival' : NONE_T.includes(name) ? 'none' : 'self';
+    CARDS[id] = { id, name, fam, t, gate, cash: +cash || 0, text, phase, target, icon: live ? LIVE_ICON[live] : FAM_ICON[fam] || '🃏',
+      need: typeof gate === 'number' ? gate : 0, harmful: HARMFUL_FAMS.has(fam) || name === 'Smash and Grab' };
+    for (let k = 0; k < copies; k++) DECK_TEMPLATE.push(id);
+  }
 
   const LOTS = {
     engine:    { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed',             stat: 'speed' },
@@ -684,22 +703,19 @@ html, body {
     return w + ' · ' + r.b.range + (hCount ? ` · ${hCount} drone${hCount > 1 ? 's' : ''}` : '');
   }
 
-  function draw1(preferPhase) {
-    if (!G.deck.length) G.deck = shuffle(DECK_TEMPLATE.slice());
-    if (preferPhase) {
-      const idx = G.deck.findIndex(k => CARDS[k].phase === preferPhase);
-      if (idx >= 0) return G.deck.splice(idx, 1)[0];
-    }
+  function draw1() {
+    if (!G.deck.length) { G.deck = shuffle(G.discard.length ? G.discard.splice(0) : DECK_TEMPLATE.slice()); notify('🔀 The Intrigue deck is reshuffled.', '#111'); }
     return G.deck.pop();
   }
 
   function fightBuild(ti, r) {
-    const b = clone(r.b);
-    const tm = G.teams[ti].tamper;
+    const b = clone(r.b), T = G.teams[ti];
+    const tm = r.tamper || {};
     for (const k in tm) {
-      if (k === 'extraStrain') b.extraStrain = (b.extraStrain || 0) + tm[k];
-      else if (b.lv[k] != null) b.lv[k] = Math.max(0, Math.min(4, b.lv[k] + tm[k]));
+      if (k === 'postDmg') continue;
+      if (b.lv[k] != null) b.lv[k] = Math.max(0, Math.min(4, b.lv[k] + tm[k]));
     }
+    if (T.tamper && T.tamper.noMods) { delete b.mod; b.helpers = []; }
     return b;
   }
 
@@ -723,7 +739,9 @@ html, body {
     if (G.phase === 'setup') {
       if (G.setupStep === 'sponsor') {
         pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> Click one of the 6 Sponsor contracts on the Arena Stage (AI teams draft from the rest).</span>' +
+          '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select></label>' +
           '<button class="act secondary" id="pAct1">Random Sponsor</button><button class="act" id="pAct2">Quick-Start →</button>';
+        $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
         $('#pAct1').onclick = () => pickSetupSponsor(pick(SPONSOR_KEYS));
         $('#pAct2').onclick = quickFinishSetup;
       } else {
@@ -740,9 +758,15 @@ html, body {
         '<button class="act" id="pAct1">Done → Intrigue</button>';
       $('#pAct1').onclick = startIntrigue;
     } else if (G.phase === 'intrigue') {
-      pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> Drag a Scheme card onto a Garage (or play <i>Cut Corners</i> to spike rival Strain!), or Pass.</span>' +
-        '<button class="act secondary" id="pAct1">Pass Intrigue →</button>';
-      $('#pAct1').onclick = () => { notify('You pass on Intrigue.'); finishIntrigue(); };
+      if (G.intrigueTurn === viewerSeat) {
+        pb.innerHTML = '<span>🕵️ <b>Your turn:</b> ' + (G.cashMode ? 'click cards to cash them in for their 🪙 value.' : 'drag cards onto a garage. Hand limit ' + handLimit(t) + ' at the end of your turn.') + '</span>' +
+          '<button class="act secondary" id="pAct1">' + (G.cashMode ? '✓ Done cashing' : '💰 Cash-in mode') + '</button><button class="act" id="pAct2"' + (G.ivBusy ? ' disabled' : '') + '>End turn →</button>';
+        $('#pAct1').onclick = () => { G.cashMode = !G.cashMode; updateHud(); };
+        $('#pAct2').onclick = () => { if (!G.ivBusy && G.endHumanTurn) G.endHumanTurn(); };
+      } else {
+        const it = G.teams[G.intrigueTurn];
+        pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
+      }
     } else if (G.phase === 'market') {
       if (G.marketAuction && G.marketAuction.tie) {
         const tie = G.marketAuction.tie;
@@ -798,24 +822,20 @@ html, body {
       } else {
         pb.innerHTML = '<span>🏁 <b>Aftermath & Recap:</b> Review the fight log on the Arena board, or advance to the next round.</span>' +
           '<button class="act" id="pAct1">Next Round →</button>';
-        $('#pAct1').onclick = () => { G.round++; G.host = -1; G.fight = null; startRound(); };
+        $('#pAct1').onclick = () => { G.round++; G.prevHost = G.host; G.host = -1; G.fight = null; startRound(); };
       }
     }
   }
 
   /* ---------- Hearthstone Arched Hand Rendering & Drag Physics ---------- */
-  function schemeNeed(t, id) {
-    const c = CARDS[id];
-    return Math.max(0, (c.need || 0) - (t.sponsor === 'blackwire' ? 2 : 0));
-  }
-
   function isCardPlayable(id) {
     const c = CARDS[id], t = me();
     if (!c) return false;
-    if (G.phase === 'intrigue' && c.phase === 'intrigue') {
-      if (t.fame < schemeNeed(t, id)) return false;
-      if (id === 'press' && t.credits < 3) return false;
-      return true;
+    if (G.phase === 'intrigue' && G.intrigueTurn === viewerSeat && !G.ivBusy) {
+      if (G.cashMode) return true;
+      if (c.phase === 'security') return true;
+      if (c.phase === 'intrigue' || TURN_REACTIONS.has(c.name)) return typeof c.gate === 'number' || G.teams.some(o => o !== t && gateOk(c, t, o));
+      return false;
     }
     if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
       if (t.fame < (c.need || 0)) return false;
@@ -835,7 +855,7 @@ html, body {
     if (countEl) countEl.textContent = `(${n})`;
 
     // Avoid recreating DOM nodes when hand & playability haven't changed (prevents hover transition resets)
-    const sig = `${G.phase}:${viewerSeat}:${hand.join(',')}:${hand.map(id => isCardPlayable(id) ? 1 : 0).join('')}:${t.fame}`;
+    const sig = `${G.phase}:${viewerSeat}:${G.cashMode ? 1 : 0}:${hand.join(',')}:${hand.map(id => isCardPlayable(id) ? 1 : 0).join('')}:${t.fame}`;
     if (!force && !dragCard && fan.dataset.sig === sig) return;
     fan.dataset.sig = sig;
     fan.innerHTML = '';
@@ -843,7 +863,7 @@ html, body {
     hand.forEach((id, i) => {
       const c = CARDS[id];
       const playable = isCardPlayable(id);
-      const need = schemeNeed(t, id);
+      const need = needOf(t, c);
       const mid = (n - 1) / 2;
       const off = i - mid;
       const angle = off * 5.2;
@@ -858,24 +878,28 @@ html, body {
 
       const el = document.createElement('div');
       el.className = 'hs-card ' +
-        (c.phase === 'fight' ? 'combat-card ' : c.phase === 'reaction' ? 'reaction-card ' : '') +
+        (c.phase === 'fight' ? 'combat-card ' : c.phase === 'reaction' || c.phase === 'security' ? 'reaction-card ' : c.phase === 'later' ? 'later-card ' : '') +
+        (G.cashMode && G.intrigueTurn === viewerSeat ? 'cash-card ' : '') +
         (playable ? 'playable' : 'unplayable');
       el.style.setProperty('--hy', hy + 'px');
       el.style.setProperty('--ang', angle + 'deg');
 
-      const typeLbl = c.phase === 'fight' ? '⚡ Combat' : c.phase === 'reaction' ? '🛡️ Reaction' : '🕵️ Scheme';
-      const targetHint = c.target === 'garage' ? 'Drag to Rival Garage' :
-                         c.target === 'self'   ? 'Drag to Your Garage' :
-                         c.target === 'bot'    ? 'Drag to Arena Robot' :
-                         c.target === 'arena'  ? 'Drag to Arena Floor' : 'Passive in Hand';
+      const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena · soon' : c.phase === 'security' ? '🤖 Security' :
+                      c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
+      const targetHint = c.phase === 'security' ? 'Install: drag to your garage' :
+                         c.phase === 'later' ? 'Cash in for now' :
+                         c.phase === 'fight' ? (c.target === 'bot' ? 'Fight: drag to a robot' : 'Fight: drag to the floor') :
+                         BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
+                         c.target === 'rival' ? 'Drag to a rival garage' : c.target === 'any' ? 'Drag to any garage' : 'Drag onto the table';
+      const gateTxt = c.gate === '▲' ? '▲ more fame' : c.gate === '▼' ? '▼ less fame' : need ? '★' + need : '';
 
       el.innerHTML =
         '<div class="hs-top"><span class="hs-badge">' + typeLbl + '</span>' +
-          (need ? '<span class="hs-need">★' + need + '</span>' : '') + '</div>' +
+          (gateTxt ? '<span class="hs-need">' + gateTxt + '</span>' : '') + '</div>' +
         '<div class="hs-art">' + c.icon + '</div>' +
         '<div class="hs-title">' + esc(c.name) + '</div>' +
         '<div class="hs-desc">' + esc(c.text) + '</div>' +
-        '<div class="hs-footer">' + targetHint + '</div>';
+        '<div class="hs-footer"><span class="hs-coin">🪙' + c.cash + '</span> ' + targetHint + '</div>';
 
       slot.addEventListener('pointerenter', () => {
         stage.classList.add('open');
@@ -884,6 +908,12 @@ html, body {
       slot.addEventListener('pointerdown', e => {
         if (!isCardPlayable(id)) return;
         e.preventDefault();
+        if (G.cashMode && G.phase === 'intrigue' && G.intrigueTurn === viewerSeat) {
+          const g = cashIn(t, id);
+          notify('💰 Cashed in <b>' + esc(c.name) + '</b> for ' + g + ' Cr.', t.col);
+          updateHud();
+          return;
+        }
         const rect = el.getBoundingClientRect();
         dragCard = {
           idx: i, id, card: c, el, slot,
@@ -930,18 +960,19 @@ html, body {
 
   /* ---------- Game Flow & Phases ---------- */
   function newGame() {
+    const G0fame = G && G.startFame || 4;
     G = {
       round: 1, phase: 'setup', setupStep: 'sponsor', host: -1,
       starterDeck: shuffle(Object.keys(STARTERS).slice()),
       draftOffer: [],
       teams: TEAMS.map((t, i) => ({
         ...t, i, sponsor: null,
-        fame: 4, credits: 8,
+        fame: G0fame, credits: 8,
         mechs: 3,
         engPool: 2, // 2 Engineers at start; 1 assigned to each drafted starter
-        hand: ['guard'], robots: [], tamper: {}, schemeLog: []
+        hand: [], robots: [], tamper: {}, schemeLog: [], secBots: 1, exMechs: 0, exSec: 0, shill: 0
       })),
-      deck: shuffle(DECK_TEMPLATE.slice()),
+      deck: shuffle(DECK_TEMPLATE.slice()), discard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot'])),
       fight: null, over: false, crateChoices: null
     };
@@ -1024,7 +1055,6 @@ html, body {
   function finishSetupPhase() {
     for (const t of G.teams) {
       rebalanceAiEngineers(t);
-      t.hand.push(draw1('intrigue'), draw1('fight'));
     }
     notify('<b>Opening Draft Complete!</b> All 4 garages have 2 <b>s1.</b> stock starters. Round 1 Upkeep begins.', '#111');
     startRound();
@@ -1045,14 +1075,15 @@ html, body {
     G.crateChoices = null;
     setCameraGoal('compound');
     for (const t of G.teams) {
+      // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
+      for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; }
+      t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       t.credits = Math.max(0, t.credits + t.mechs - t.robots.length);
       if (t.sponsor === 'aegis') {
         for (const r of t.robots) if (r.dmg > 0) r.dmg = Math.max(0, r.dmg - 25);
       }
-      t.hand.push(draw1('intrigue'), draw1('intrigue'), draw1('fight'));   // rulebook: draw 3
-      if (t.sponsor === 'blackwire') t.hand.push(draw1('intrigue'));
-      const cap = t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;                     // rulebook: hand limit grows with fame
-      while (t.hand.length > cap) t.hand.shift();
+      t.hand.push(draw1(), draw1(), draw1());   // rulebook: draw 3 (hand limit is checked at the end of your Intrigue turn)
+      if (t.sponsor === 'blackwire') t.hand.push(draw1());
 
       if (t.i !== viewerSeat) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
@@ -1066,61 +1097,382 @@ html, body {
     updateHud();
   }
 
-  function startIntrigue() {
+  /* ---------- Intrigue v1: helpers ---------- */
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const nm = t => '<b>' + esc(t.name) + '</b>';
+  const readyRobots = t => t.robots.filter(r => !r.exhausted);
+  const readyCrew = t => Math.max(0, t.mechs - (t.exMechs || 0));
+  const secReady = t => Math.max(0, (t.secBots || 0) - (t.exSec || 0));
+  const handLimit = t => t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;
+  const bestReady = t => readyRobots(t).slice().sort((a, b) => power(b) - power(a))[0] || t.robots.slice().sort((a, b) => power(b) - power(a))[0];
+  const leaderOf = () => G.teams.slice().sort((a, b) => b.fame - a.fame || a.i - b.i)[0];
+  const lowestOther = excl => G.teams.filter(t => !excl.includes(t.i)).sort((a, b) => a.fame - b.fame || a.i - b.i)[0];
+  function addFame(t, d) { const old = t.fame; t.fame = Math.max(1, Math.min(WIN_FAME, t.fame + d)); return t.fame - old; }
+  function payCr(t, n) { const p = Math.min(t.credits, n); t.credits -= p; return p; }
+  function needOf(F, c) { return Math.max(0, c.need - (F.sponsor === 'blackwire' && c.phase === 'intrigue' ? 2 : 0)); }
+  function schemeNeed(t, id) { return needOf(t, CARDS[id]); }
+  function gateOk(c, F, T, extra) {
+    if (c.gate === '▲') return !!T && F.fame > T.fame;
+    if (c.gate === '▼') return !!T && F.fame < T.fame;
+    return F.fame + (extra || 0) >= needOf(F, c);
+  }
+  function tamperRobot(r, d) { r.tamper = r.tamper || {}; for (const k in d) r.tamper[k] = (r.tamper[k] || 0) + d[k]; }
+  function discardCard(id) { G.discard.push(id); }
+  function removeFromHand(t, id) { const k = t.hand.indexOf(id); if (k >= 0) t.hand.splice(k, 1); return k >= 0; }
+
+  /* small modal: buttons [{label, value(el), secondary}], optional timeout (ms) and default value */
+  function ivModal(title, html, buttons, timeout, def) {
+    return new Promise(res => {
+      let el = document.getElementById('ivModal');
+      if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
+      el.innerHTML = '<div class="iv-box"><h3>' + title + '</h3><div class="iv-body">' + html + '</div><div class="iv-btns">' +
+        buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') +
+        '</div>' + (timeout ? '<div class="iv-timer"><i></i></div>' : '') + '</div>';
+      el.hidden = false;
+      let done = false, tm = null;
+      const finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; res(v); };
+      el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
+      if (timeout) { el.querySelector('.iv-timer i').style.animation = 'ivt ' + timeout + 'ms linear forwards'; tm = setTimeout(() => finish(typeof def === 'function' ? def(el) : def), timeout); }
+    });
+  }
+
+  /* ---------- backing: other teams add their fame for one card ---------- */
+  function aiWillBack(o, F, T, c, off) {
+    const lead = leaderOf();
+    if (T && T.i === o.i) return false;
+    if (T && T === lead && o !== lead && c.harmful) return rnd() < 0.85;
+    if (F === lead || F.fame >= 9) return off >= 3 && rnd() < 0.4;
+    return rnd() < 0.15 + 0.25 * off;
+  }
+  async function humanBacking(c, T) {
+    const F = me(), others = G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i));
+    const seat = F.hand.includes('board_seat') && F.fame >= 5;
+    const html = 'You need <b>' + (needOf(F, c) - F.fame) + '</b> more fame for <b>' + esc(c.name) + '</b>' + (T && T !== F ? ' (target ' + nm(T) + ')' : '') +
+      '. Tick teams to ask; you may offer credits. Backers add their fame for this one card, and you don\'t have to tell them what it is.' +
+      others.map(o => '<label><input type="checkbox" data-o="' + o.i + '" checked> ' + nm(o) + ' (' + o.fame + ' fame) · offer <input type="number" min="0" max="' + F.credits + '" value="0" data-off="' + o.i + '" style="width:46px"> Cr</label>').join('') +
+      (seat ? '<label><input type="checkbox" id="ivSeat"> Use <b>Board Seat</b>: the first ticked team must back you</label>' : '');
+    const res = await ivModal('🤝 Ask for backing', html, [
+      { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked).map(o => ({ o, off: Math.max(0, +el.querySelector('[data-off="' + o.i + '"]').value || 0) })), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
+      { label: 'Cancel', secondary: true, value: () => null }]);
+    if (!res) return false;
+    let got = 0, forced = false;
+    for (const { o, off } of res.ask) {
+      if (F.fame + got >= needOf(F, c)) break;
+      let yes, paid = 0;
+      if (res.seat && !forced) { forced = yes = true; removeFromHand(F, 'board_seat'); discardCard('board_seat'); notify('⛓️ Board Seat: ' + nm(o) + ' must back you with all its fame.', F.col); }
+      else { const o2 = Math.min(off, F.credits); yes = aiWillBack(o, F, T, c, o2); if (yes && o2) { paid = payCr(F, o2); o.credits += paid; } }
+      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + o.fame + ' fame' + (paid ? ', paid ' + paid + ' Cr' : '') + ').' : '✋ ' + nm(o) + ' refuses to back you.', o.col);
+      if (yes) got += o.fame;
+    }
+    return F.fame + got >= needOf(F, c);
+  }
+  async function aiBacking(F, c, T) {
+    let got = 0;
+    for (const o of G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i)).sort((a, b) => b.fame - a.fame)) {
+      if (F.fame + got >= needOf(F, c)) break;
+      const off = Math.min(2, Math.max(0, F.credits - 3));
+      let yes;
+      if (o.i === viewerSeat) {
+        yes = await ivModal('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + (off ? ' and offers <b>' + off + ' Cr</b>' : '') +
+          '. Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.', [{ label: 'Back them', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 7000, false);
+      } else yes = aiWillBack(o, F, T, c, off);
+      if (yes) { const p = payCr(F, off); o.credits += p; got += o.fame; notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (p ? ' for ' + p + ' Cr' : '') + '.', o.col); }
+    }
+    return F.fame + got >= needOf(F, c);
+  }
+
+  /* ---------- defence: Security Bots (target only), then a reaction window for everyone ---------- */
+  function blockOptions(o, F, c, T) {
+    return [...new Set(o.hand.filter(id => CARDS[id] && BLOCKERS.has(CARDS[id].name)))].filter(id => {
+      const b = CARDS[id];
+      if (c.name === 'Robot Rights Protest' && b.name !== 'Firewall') return false;
+      if (typeof b.gate === 'number' && o.fame < b.gate) return false;
+      if (b.name === 'Under the Radar') return F.fame > o.fame;
+      if (b.name === 'Overreach') return F.fame < o.fame;
+      if (b.name === 'Not My Robot') return !!T && T.i === o.i;
+      if (b.name === 'Paid Off') return o.credits >= 3;
+      if (b.name === 'Fall Guy') return readyCrew(o) > 0;
+      return true;
+    });
+  }
+  function aiWantsBlock(o, F, c, T) {
+    if (T && T.i === o.i && c.harmful) return rnd() < 0.85;
+    if (c.name === 'Robot Rights Protest') return rnd() < 0.5;
+    const helpsF = c.fam === 'Publicity' || c.name === 'Scrap Deal';
+    if (helpsF && (F === leaderOf() || F.fame >= 9)) return rnd() < 0.6;
+    return false;
+  }
+  async function applyBlock(o, id, F, c, T) {
+    const b = CARDS[id];
+    removeFromHand(o, id); discardCard(id);
+    if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); p.credits += payCr(o, 3); }
+    if (b.name === 'Fall Guy') o.mechs = Math.max(0, o.mechs - 1);
+    if (b.name === "Sponsor's Lawyers") { const k = G.discard.indexOf('security_bot'); if (k >= 0) { G.discard.splice(k, 1); o.hand.push('security_bot'); } }
+    if (b.name === 'Not My Robot') {
+      const nt = G.teams.filter(x => x !== o && x !== F).sort((a, z) => z.fame - a.fame)[0];
+      notify('🙅 ' + nm(o) + ': "Not my robot!" The scheme now targets ' + nm(nt) + '; if it lands, ' + nm(F) + ' loses 1 fame.', o.col);
+      F.ivNmr = true;
+      return { blocked: false, T: nt };
+    }
+    notify('🛡️ ' + nm(o) + ' blocks it with <b>' + esc(b.name) + '</b>!', o.col);
+    return { blocked: true, T };
+  }
+  async function defend(F, c, T) {
+    const shown = c.t === 'F' ? 'a face-down card' : '<b>' + esc(c.name) + '</b>';
+    if (T && T !== F && c.harmful) {
+      while (secReady(T) + T.hand.filter(x => x === 'security_bot').length > 0) {
+        if (secReady(T) > 0) T.secBots--; else removeFromHand(T, 'security_bot');
+        discardCard('security_bot');
+        const roll = 1 + Math.floor(rnd() * 6);
+        if (roll >= 4) { notify('🤖 ' + nm(T) + '\'s Security Bot rolls ' + roll + ' and blocks ' + shown + '!', T.col); return { blocked: true, T }; }
+        notify('🤖 ' + nm(T) + '\'s Security Bot rolls ' + roll + ': not enough.', T.col);
+      }
+    }
+    const order = [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat));
+    for (const oi of order) {
+      const o = G.teams[oi];
+      if (o === F) continue;
+      const opts = blockOptions(o, F, c, T);
+      if (!opts.length) continue;
+      let use = null;
+      if (oi === viewerSeat) {
+        use = await ivModal('⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
+          opts.map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id })).concat([{ label: 'Let it through', secondary: true, value: () => null }]), 5000, null);
+      } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
+      if (!use) continue;
+      const r = await applyBlock(o, use, F, c, T);
+      if (r.blocked) return r;
+      T = r.T;
+    }
+    return { blocked: false, T };
+  }
+  async function loseFame(X, d) {
+    const lost = -addFame(X, -d);
+    if (lost <= 0) return 0;
+    for (const oi of [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat))) {
+      const o = G.teams[oi];
+      if (o === X || !o.hand.includes('pile_on') || o.fame <= X.fame) continue;
+      const yes = oi === viewerSeat
+        ? await ivModal('⏱️ Pile-On?', nm(X) + ' just lost fame. Play <b>Pile-On</b> so they lose 1 more?', [{ label: 'Pile on', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
+        : (X === leaderOf() && rnd() < 0.7);
+      if (yes) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' piles on: ' + nm(X) + ' loses 1 more fame.', o.col); break; }
+    }
+    return lost;
+  }
+
+  /* ---------- card effects ---------- */
+  function precheck(F, c, T) {
+    const n = c.name;
+    if (c.phase === 'later') return 'This is an Arena card that arrives with event fights. Cash it in for now.';
+    if (WINDOW_ONLY.has(n) || BLOCKERS.has(n)) return 'This card plays automatically in a reaction window.';
+    if (c.target === 'rival' && (!T || T === F)) return 'Drop it on a rival garage.';
+    const need = { 'Public Demo': 3, 'Bribe Scandal': 3, 'Paparazzi': 3, 'Launch Party': 6, 'Joint Venture': 2 }[n];
+    if (need && F.credits < need) return n + ' needs ' + need + ' Cr.';
+    if (['Headhunter Fee', 'Inside Leak', 'Museum Donation'].includes(n) && readyCrew(F) < 1) return n + ' needs a ready crew member.';
+    if (n === 'Security Override' && (secReady(T) < 1 || F.credits < secReady(T))) return 'Needs a target with Security Bots and 1 Cr per bot.';
+    if (n === 'Asset Strip' && (secReady(T) < 1 || F.credits < 3)) return 'Needs a target with Security Bots and 3 Cr.';
+    if (n === 'Hostile Buyout' && (F.credits < 4 || F.robots.length >= 3 || T.robots.length < 2)) return 'Needs 4 Cr, a free bay, and a target with 2+ robots.';
+    if (n === 'Fire Sale' && F.robots.length < 2) return 'You need 2+ robots to sell one.';
+    if (n === 'Backup Restore' && !G.discard.includes('firewall')) return 'Firewall is not in the discard pile.';
+    if (n === 'Skeleton Crew' && readyCrew(T) > 0) return 'The target still has ready crew.';
+    if (n === 'Leaked Footage' && readyRobots(T).length > 0) return 'The target still has ready robots.';
+    if (n === 'Bankrupt!' && T.credits > 0) return 'The target still has credits.';
+    return null;
+  }
+  async function jointVenture(F, T) {
+    const ask = async X => X.i === viewerSeat
+      ? await ivModal('🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, true)
+      : rnd() < 0.65;
+    const a = await ask(F), b = await ask(T);
+    if (a && b) { F.credits += 5; T.credits += 5; notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
+    else if (a !== b) { const D = a ? T : F, V = a ? F : T; D.credits += payCr(V, 2); notify('🐍 Joint Venture: ' + nm(D) + ' defects and takes the stakes from ' + nm(V) + '.', D.col); }
+    else notify('🤝 Joint Venture: both defect. Nothing happens.', F.col);
+  }
+  async function hostileBuyout(F, T) {
+    const r = T.robots.slice().sort((a, b) => power(a) - power(b))[0];
+    const sell = T.i === viewerSeat
+      ? await ivModal('🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
+      : T.robots.length >= 3 || T.fame <= 2;
+    if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
+    else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
+  }
+  async function resolveScheme(F, id, T) {
+    const c = CARDS[id], n = c.name, say = h => notify(h, F.col);
+    switch (n) {
+      case 'Overtime Shift': { const g = readyCrew(T); T.credits += g; say('💼 Overtime: ' + nm(T) + ' +' + g + ' Cr.'); break; }
+      case 'Smash and Grab': { const g = payCr(T, 3); F.credits += g; say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
+      case 'Crunch Week': { const m = readyCrew(F), s = secReady(F); F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; F.credits += m + s; say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + (m + s) + ' crew and bots for +' + (m + s) + ' Cr.'); break; }
+      case 'Scrapyard Salvage': F.credits += 3; say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
+      case 'Headhunter Fee': F.mechs--; F.credits += 4; say('💼 ' + nm(F) + ' sells a Mechanic\'s contract for +4 Cr.'); break;
+      case 'Consulting Gig': { const g = 2 * readyCrew(T); T.credits += g; say('💼 Consulting: ' + nm(T) + ' +' + g + ' Cr.'); break; }
+      case 'Industry Insider': T.hand.push(draw1(), draw1()); say('💼 ' + nm(T) + ' draws 2 Intrigue cards.'); break;
+      case 'Scrap Deal': F.credits += 5; say('💼 ' + nm(F) + ' closes a scrap deal: +5 Cr.'); break;
+      case 'Joint Venture': await jointVenture(F, T); break;
+      case 'Fire Sale': { const r = F.robots.slice().sort((a, b) => power(a) - power(b))[0]; F.robots.splice(F.robots.indexOf(r), 1); F.credits += 2; say('💼 Fire Sale: ' + nm(F) + ' sells ' + esc(r.name) + ' to the bank for 2 Cr.'); break; }
+      case 'Fan Meet': if (readyRobots(T).length >= 2) { addFame(T, 1); say('📣 Fan Meet: ' + nm(T) + ' +1 fame.'); } else say('📣 Fan Meet fizzles: ' + nm(T) + ' needs 2 ready robots.'); break;
+      case 'Roadshow': if (readyRobots(T).length >= 3) { addFame(T, 2); say('📣 Roadshow: ' + nm(T) + ' +2 fame.'); } else say('📣 Roadshow fizzles: ' + nm(T) + ' needs 3 ready robots.'); break;
+      case 'Public Demo': payCr(F, 3); if (readyRobots(T).length >= 1) { addFame(T, 1); say('📣 Public Demo: ' + nm(T) + ' +1 fame.'); } break;
+      case 'Launch Party': for (const o of G.teams) if (o !== F) o.credits += payCr(F, 2); addFame(T, 1); say('📣 Launch Party: ' + nm(T) + ' +1 fame (everyone else got 2 Cr).'); break;
+      case 'Team-Building Day': { const p = Math.min(2, Math.floor(readyCrew(T) / 2)); T.exMechs = (T.exMechs || 0) + 2 * p; addFame(T, p); say('📣 Team-Building: ' + nm(T) + ' exhausts ' + 2 * p + ' crew, +' + p + ' fame.'); break; }
+      case 'Underdog Story': { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame) { addFame(s[0], 2); say('📣 Underdog Story: ' + nm(s[0]) + ' +2 fame.'); } else say('📣 Underdog Story fizzles: the bottom is tied.'); break; }
+      case 'Press Tour': { const m = readyCrew(T), s = secReady(T); if (m + s >= 3) { const a = Math.min(3, m); T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + (3 - a); addFame(T, 1); say('📣 Press Tour: ' + nm(T) + ' +1 fame.'); } else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready crew or bots.'); break; }
+      case 'Museum Donation': F.mechs--; addFame(F, 1); say('📣 ' + nm(F) + ' donates a Mechanic to the museum: +1 fame.'); break;
+      case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': addFame(T, 1); say('📣 ' + esc(n) + ': ' + nm(T) + ' +1 fame.'); break;
+      case 'Co-Branding Deal': { const o = lowestOther([T.i]); addFame(T, 1); addFame(o, 1); say('📣 Co-Branding: ' + nm(T) + ' and ' + nm(o) + ' +1 fame.'); break; }
+      case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, 1); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
+      case 'Bribe Scandal': T.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Bribe Scandal: ' + nm(T) + ' −1 fame.'); break;
+      case 'Inside Leak': F.mechs--; await loseFame(T, 1); say('🗞️ Inside Leak: ' + nm(T) + ' −1 fame.'); break;
+      case 'Paparazzi': { const o = lowestOther([F.i, T.i]); o.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Paparazzi: ' + nm(T) + ' −1 fame.'); break; }
+      case 'Robot Rights Protest': addFame(F, -2); for (const o of G.teams) if (o !== F) addFame(o, -1); say('🗞️ Robot Rights Protest: ' + nm(F) + ' −2 fame, every other team −1.'); break;
+      case 'Rival Sponsor': { const o = lowestOther([F.i, T.i]); await loseFame(T, 1); addFame(o, 1); say('🗞️ Rival Sponsor: ' + nm(T) + ' −1, ' + nm(o) + ' +1 fame.'); break; }
+      case 'Smear Campaign': await loseFame(T, 2); say('🗞️ Smear Campaign: ' + nm(T) + ' −2 fame.'); break;
+      case 'Rigged Ratings': { const o = lowestOther([F.i, T.i]); await loseFame(T, 2); addFame(F, 1); addFame(o, 1); say('🗞️ Rigged Ratings: ' + nm(T) + ' −2; ' + nm(F) + ' and ' + nm(o) + ' +1 fame.'); break; }
+      case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': await loseFame(T, 1); say('🗞️ ' + esc(n) + ': ' + nm(T) + ' −1 fame.'); break;
+      case 'Poached Mechanic': if (T.mechs > 0) T.mechs--; say('🔧 ' + nm(F) + ' poaches a Mechanic from ' + nm(T) + '.'); break;
+      case 'Security Override': { const k = secReady(T); payCr(F, k); T.exSec = (T.exSec || 0) + k; say('🔧 Security Override: ' + nm(T) + '\'s ' + k + ' Security Bot' + (k === 1 ? ' is' : 's are') + ' exhausted.'); break; }
+      case 'EMP the Garage': T.tamper.noMods = 1; T.schemeLog.push({ from: F.i, id }); say('🔧 EMP: ' + nm(T) + '\'s modules and helpers are offline next fight.'); break;
+      case 'Sugar in the Tank': case 'Smudged Lens': case 'Secret Upgrade': case 'Overclock': {
+        const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = bestReady(X);
+        if (!r) break;
+        tamperRobot(r, n === 'Sugar in the Tank' ? { speed: -2 } : n === 'Smudged Lens' ? { acc: -2 } : n === 'Secret Upgrade' ? { fp: 1, armor: 1 } : { speed: 2, fp: 1, postDmg: 20 });
+        (r.faceDown = r.faceDown || []).push({ from: F.i, id });
+        notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
+      }
+      case 'Loose Bolts': { const r = bestReady(T); if (r) { r.dmg = Math.min(maxHp(r) - 1, r.dmg + 30); say('🔧 Loose Bolts: ' + esc(r.name) + ' takes 30 lasting damage.'); } break; }
+      case 'Rogue Firmware': { const r = bestReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.dmg = Math.min(maxHp(r) - 1, r.dmg + 30); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and takes 30 damage.'); } break; }
+      case 'Tax Audit': { const p = payCr(T, 5); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
+      case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
+      case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; T.credits += payCr(F, 3 * k); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
+      case 'Hostile Buyout': await hostileBuyout(F, T); break;
+      case 'Shill Bidder': T.shill = (T.shill || 0) + 2; say('🏢 Shill Bidder: ' + nm(T) + '\'s bids count 2 lower this round.'); break;
+      case 'Backup Restore': G.discard.splice(G.discard.indexOf('firewall'), 1); F.hand.push('firewall'); say('🛡️ ' + nm(F) + ' takes Firewall back from the discard pile.'); break;
+      default: say('🃏 ' + esc(n) + ' has no effect yet.');
+    }
+    if (F.ivNmr) { F.ivNmr = false; if (c.harmful) { addFame(F, -1); notify('🙅 ' + nm(F) + ' loses 1 fame (Not My Robot).', F.col); } }
+  }
+  async function playScheme(F, id, T) {
+    const c = CARDS[id];
+    removeFromHand(F, id);
+    if (c.t !== 'F') notify('🕵️ ' + nm(F) + ' plays <b>' + esc(c.name) + '</b>' + (T && T !== F ? ' on ' + nm(T) : '') + '.', F.col);
+    const d = await defend(F, c, T);
+    discardCard(id);
+    if (!d.blocked) await resolveScheme(F, id, d.T);
+    updateHud();
+    return !d.blocked;
+  }
+  function cashIn(t, id) {
+    if (!removeFromHand(t, id)) return 0;
+    discardCard(id); t.credits += CARDS[id].cash;
+    return CARDS[id].cash;
+  }
+  function endTurnHandLimit(t) {
+    const lim = handLimit(t), keep = id => ['security_bot', 'firewall', 'pr_spin', 'paid_off'].includes(id);
+    const got = [];
+    while (t.hand.length > lim) {
+      const ids = t.hand.slice().sort((a, b) => (keep(a) - keep(b)) || ((CARDS[a].phase === 'later' ? -1 : 0) - (CARDS[b].phase === 'later' ? -1 : 0)) || CARDS[a].cash - CARDS[b].cash);
+      got.push(CARDS[ids[0]].name + ' +' + cashIn(t, ids[0]));
+    }
+    if (got.length && t.i === viewerSeat) notify('💰 Hand limit ' + lim + ': cashed in ' + got.join(', ') + ' Cr.', t.col);
+  }
+
+  /* ---------- AI Intrigue turn ---------- */
+  const AI_ORDER = ['Smear', 'Publicity', 'Sabotage', 'Corporate', 'Contracts', 'Match-fixing', 'Security', 'Leverage'];
+  function aiTarget(F, c) {
+    const others = G.teams.filter(o => o !== F);
+    if (c.target === 'none') return null;
+    if (c.target === 'self' || c.target === 'any') return F;
+    if (c.name === 'Skeleton Crew') return others.find(o => readyCrew(o) === 0);
+    if (c.name === 'Leaked Footage') return others.find(o => readyRobots(o).length === 0);
+    if (c.name === 'Bankrupt!') return others.find(o => o.credits === 0);
+    if (c.name === 'Joint Venture') return others.slice().sort((a, b) => b.credits - a.credits)[0];
+    if (c.name === 'Asset Strip' || c.name === 'Security Override') return others.filter(o => secReady(o) > 0).sort((a, b) => b.fame - a.fame)[0];
+    if (c.gate === '▲') return others.filter(o => o.fame < F.fame).sort((a, b) => b.fame - a.fame)[0];
+    return others.slice().sort((a, b) => b.fame - a.fame || b.credits - a.credits)[0];
+  }
+  function aiWants(F, c, T) {
+    const n = c.name;
+    if (n === 'Robot Rights Protest' || n === 'Fire Sale' || n === 'Backup Restore') return false;
+    if (c.fam === 'Smear' && T && T.fame < F.fame - 1) return false;
+    if (n === 'Underdog Story') { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); return s[0] === F && s[1].fame > F.fame; }
+    if (n === 'Fan Meet') return readyRobots(F).length >= 2;
+    if (n === 'Roadshow') return readyRobots(F).length >= 3;
+    if (n === 'Public Demo') return F.credits >= 6;
+    if (n === 'Launch Party') return F.credits >= 9;
+    if (n === 'Team-Building Day') return readyCrew(F) >= 2;
+    if (n === 'Press Tour') return readyCrew(F) + secReady(F) >= 3;
+    if (['Headhunter Fee', 'Museum Donation', 'Inside Leak'].includes(n)) return F.mechs >= 3;
+    if (n === 'Bribe Scandal' || n === 'Paparazzi') return F.credits >= 6;
+    if (n === 'Hostile Buyout') return T && T.robots.length >= 2;
+    if (n === 'Crunch Week') return F.credits <= 4;
+    return true;
+  }
+  async function aiIntrigueTurn(F) {
+    while (removeFromHand(F, 'security_bot')) F.secBots = (F.secBots || 0) + 1;   // install bots as garage assets
+    let plays = 0;
+    const ids = F.hand.slice().sort((a, b) => AI_ORDER.indexOf(CARDS[a].fam) - AI_ORDER.indexOf(CARDS[b].fam));
+    for (const id of ids) {
+      if (plays >= 2) break;
+      const c = CARDS[id];
+      if (!F.hand.includes(id) || !(c.phase === 'intrigue' || TURN_REACTIONS.has(c.name))) continue;
+      const T = aiTarget(F, c);
+      if (T === undefined || precheck(F, c, T) || !aiWants(F, c, T)) continue;
+      if (!gateOk(c, F, T)) {
+        if (typeof c.gate !== 'number' || needOf(F, c) - F.fame > 8 || rnd() < 0.4) continue;
+        if (!(await aiBacking(F, c, T))) continue;
+      }
+      await sleep(450);
+      await playScheme(F, id, T);
+      plays++;
+    }
+    if (F.credits <= 2) for (const id of F.hand.filter(x => CARDS[x].phase === 'later')) cashIn(F, id);
+    endTurnHandLimit(F);
+  }
+
+  /* ---------- Intrigue phase: host first, then clockwise ---------- */
+  async function runIntrigue() {
     G.phase = 'intrigue';
     setCameraGoal('compound');
-    updateHud();
-  }
-
-  function executeSchemeCard(from, id, to) {
-    const s = CARDS[id], F = G.teams[from], T = G.teams[to];
-    if (to !== from) {
-      const g = T.hand.indexOf('guard');
-      if (g >= 0) {
-        T.hand.splice(g, 1);
-        if (rnd() < 0.5) {
-          notify('🤖 <b>' + esc(T.name) + '\'s Security Bot</b> blocked a sabotage attempt!', T.col);
-          return;
-        }
+    const first = G.prevHost >= 0 ? G.prevHost : (G.round - 1) % 4;
+    for (let k = 0; k < 4; k++) {
+      const ti = (first + k) % 4, T = G.teams[ti];
+      G.intrigueTurn = ti; G.cashMode = false; updateHud();
+      if (ti === viewerSeat) {
+        await new Promise(res => { G.endHumanTurn = res; });
+        G.endHumanTurn = null;
+        endTurnHandLimit(T);
+      } else {
+        await sleep(400);
+        await aiIntrigueTurn(T);
       }
+      updateHud();
     }
-    if (id === 'pocket') {
-      const n = Math.min(3, T.credits);
-      T.credits -= n; F.credits += n;
-      notify('🤏 <b>' + esc(F.name) + '</b> pickpocketed ' + n + ' Cr from ' + esc(T.name) + '!', F.col);
-    } else if (id === 'night') {
-      F.credits += 4;
-      notify('🛠️ <b>' + esc(F.name) + '</b> ran a Night Shift (+4 Cr).', F.col);
-    } else if (id === 'press') {
-      F.credits -= 3; F.fame += 1;
-      notify('📰 <b>' + esc(F.name) + '</b> bribed the press (+1 Fame).', F.col);
-    } else if (s.strainAdd) {
-      T.tamper.extraStrain = (T.tamper.extraStrain || 0) + s.strainAdd;
-      T.schemeLog.push({ from, id });
-      notify('⚠️ Saboteur rigged <b>' + esc(T.name) + '</b>\'s parts (+3 Strain next fight)!', T.col);
-    } else if (s.tamper) {
-      for (const k in s.tamper) T.tamper[k] = (T.tamper[k] || 0) + s.tamper[k];
-      T.schemeLog.push({ from, id });
-      if (from === to) notify('⚡ <b>' + esc(F.name) + '</b> fitted a secret garage upgrade.', F.col);
-      else notify('🕵️ Saboteur snuck into <b>' + esc(T.name) + '</b>\'s garage!', T.col);
-    }
-  }
-
-  function finishIntrigue() {
-    for (const t of G.teams) {
-      if (t.i === viewerSeat) continue;
-      const idx = t.hand.findIndex(id => CARDS[id].phase === 'intrigue' && t.fame >= schemeNeed(t, id) && !(id === 'press' && t.credits < 3));
-      if (idx < 0 || rnd() < 0.3) continue;
-      const id = t.hand.splice(idx, 1)[0];
-      let to = t.i;
-      if (CARDS[id].target === 'garage') {
-        const others = G.teams.filter(x => x.i !== t.i);
-        to = others.sort((a, b) => b.fame - a.fame)[0].i;
-      }
-      executeSchemeCard(t.i, id, to);
-    }
+    G.intrigueTurn = -1; G.cashMode = false;
     if (checkWin()) return;
     startMarket();
+  }
+  function startIntrigue() { runIntrigue(); }
+
+  async function humanPlay(id, toTeam) {
+    if (G.ivBusy || G.phase !== 'intrigue' || G.intrigueTurn !== viewerSeat) return false;
+    const F = me(), c = CARDS[id];
+    let T = toTeam != null ? G.teams[toTeam] : null;
+    if (id === 'security_bot') {
+      if (toTeam !== viewerSeat) return false;
+      removeFromHand(F, id); F.secBots = (F.secBots || 0) + 1;
+      notify('🤖 You install a Security Bot in your garage.', F.col); updateHud(); return true;
+    }
+    if (c.target === 'self') T = F; else if (c.target === 'none') T = null; else if (c.target === 'any' && !T) T = F;
+    const pre = precheck(F, c, T);
+    if (pre) { notify('⚠️ ' + pre, '#b45309'); return false; }
+    G.ivBusy = true; updateHud();
+    try {
+      if (!gateOk(c, F, T)) {
+        if (typeof c.gate !== 'number') { notify('⚠️ ' + esc(c.name) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
+        if (!(await humanBacking(c, T))) { notify('Not enough backing: ' + esc(c.name) + ' stays in your hand.', '#b45309'); return false; }
+      }
+      await playScheme(F, id, T);
+    } finally { G.ivBusy = false; updateHud(); }
+    return true;
   }
 
   /* ---------- Phase 3: Spatial Market on Arena Floor (with Spartacus Tie Rebids) ---------- */
@@ -1215,6 +1567,7 @@ html, body {
 
   function resolveMarket(myBids) {
     const all = G.teams.map(t => t.i === viewerSeat ? myBids.slice() : aiBids(t));
+    G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
     G.marketAuction = {
       all,
       initialAll: all.map(b => b.slice()),
@@ -1397,11 +1750,12 @@ html, body {
     const host = G.teams[H];
     const others = G.teams.filter(t => t.i !== H);
     let a, b;
-    const best = host.robots.slice().sort((x, y) => power(y) - power(x))[0];
-    if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) {
-      a = H; b = others.slice().sort((x, y) => y.fame - x.fame)[0].i;
+    const best = readyRobots(host).sort((x, y) => power(y) - power(x))[0];
+    const able = others.filter(t => readyRobots(t).length);
+    if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5 && able.length) {
+      a = H; b = able.slice().sort((x, y) => y.fame - x.fame)[0].i;
     } else {
-      const s = shuffle(others.slice());
+      const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = s[1].i;
     }
     notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + '!', host.col);
@@ -1410,11 +1764,20 @@ html, body {
 
   function invite(pair) {
     G.fight = { teams: pair, robots: [null, null] };
+    // a team with no ready robot must decline (−1 fame); a team with a ready robot steps in
+    pair.forEach((ti, s) => {
+      const t = G.teams[ti];
+      if (readyRobots(t).length) return;
+      addFame(t, -1);
+      const repl = G.teams.filter(x => !pair.includes(x.i) && readyRobots(x).length)[0];
+      notify('😴 ' + nm(t) + ' has no ready robot and declines (−1 fame)' + (repl ? '; ' + nm(repl) + ' steps in.' : '.'), t.col);
+      if (repl) pair[s] = repl.i;
+    });
     pair.forEach((ti, s) => {
       if (ti !== viewerSeat) {
         const t = G.teams[ti];
         rebalanceAiEngineers(t);
-        G.fight.robots[s] = t.robots.filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+        G.fight.robots[s] = readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
       }
     });
     if (pair.includes(viewerSeat)) {
@@ -1428,9 +1791,9 @@ html, body {
   function declineInvite() {
     const t = me(), s = G.fight.teams.indexOf(viewerSeat);
     t.fame = Math.max(0, t.fame - 1);
-    const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
+    const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat && readyRobots(x).length)[0] || G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
     G.fight.teams[s] = repl.i;
-    G.fight.robots[s] = repl.robots.slice().sort((a, b) => power(b) - power(a))[0];
+    G.fight.robots[s] = (readyRobots(repl).length ? readyRobots(repl) : repl.robots).slice().sort((a, b) => power(b) - power(a))[0];
     G.chooseMyBot = false;
     notify('You declined (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
     afterChoose();
@@ -1501,8 +1864,8 @@ html, body {
 
     F.teams.forEach((ti, s) => {
       const T = G.teams[ti];
-      for (const e of T.schemeLog) {
-        const txt = e.from === ti ? '⚡ SECRET UPGRADE!' : '🔧 SABOTAGED: ' + CARDS[e.id].name.toUpperCase() + '!';
+      for (const e of (F.robots[s].faceDown || []).concat(T.schemeLog)) {
+        const txt = e.from === ti ? '⚡ ' + CARDS[e.id].name.toUpperCase() + '!' : '🔧 SABOTAGED: ' + CARDS[e.id].name.toUpperCase() + '!';
         F.B.banners.push({ x: F.B.bots[s].x, y: F.B.bots[s].y - 36, text: txt, col: e.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
       }
     });
@@ -1554,6 +1917,11 @@ html, body {
       r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp));
     });
     for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
+    F.robots.forEach(r => {
+      if (!r) return;
+      if (r.tamper && r.tamper.postDmg) { r.dmg = Math.min(maxHp(r) - 1, r.dmg + r.tamper.postDmg); notify('🔥 Overclock wears ' + esc(r.name) + ': ' + r.tamper.postDmg + ' lasting damage.', '#b45309'); }
+      r.tamper = {}; r.faceDown = []; r.exhausted = true;
+    });
 
     if (w < 0) {
       for (const x of F.bets) G.teams[x.team].credits += x.amt;
@@ -1617,6 +1985,7 @@ html, body {
       T.robots.splice(T.robots.indexOf(robot), 1);
       for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
+      if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 Blaze of Glory: ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
       if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
     } else {
       notify('👍 Host spared <b>' + esc(robot.name) + '</b>.', '#2a9d3a');
@@ -1624,6 +1993,9 @@ html, body {
     checkWin();
     updateHud();
   }
+
+  /* test hook for automated play-throughs (read-only use) */
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -2159,9 +2531,9 @@ html, body {
       ctx.fillText(picked ? `Selected: ${picked}` : 'Select 2 teams (you may include yourself)', cx, cy + 12);
     } else if (G.phase === 'intrigue') {
       ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
-      ctx.fillText('INTRIGUE PHASE — DRAG A SCHEME CARD TO A GARAGE', cx, cy - 4);
+      ctx.fillText(G.intrigueTurn === viewerSeat ? 'YOUR INTRIGUE TURN — DRAG A CARD TO A GARAGE' : 'INTRIGUE — ' + (G.teams[G.intrigueTurn] ? G.teams[G.intrigueTurn].name.toUpperCase() + ' IS SCHEMING' : 'HOST FIRST, THEN CLOCKWISE'), cx, cy - 4);
       ctx.fillStyle = '#666'; ctx.font = '600 12px system-ui, sans-serif';
-      ctx.fillText('Hover your bottom hand to draw a scheme, or click Done in the top bar to skip.', cx, cy + 20);
+      ctx.fillText('Teams take turns from the host. Rivals can back you, block you, or roll Security Bots.', cx, cy + 20);
     } else {
       // Upkeep Standby Summary: Show 4-team Fame Standings Bar Chart
       ctx.fillStyle = '#444'; ctx.font = '800 11px system-ui, sans-serif';
@@ -2223,7 +2595,7 @@ html, body {
 
     // --- Clean Non-Overlapping Command Header Row (y0 + 5 .. y0 + 42) ---
     // 1. Left: Team Name (x0 + 16 .. x0 + 175)
-    const statusBadge = (G.host === ti ? ' · HOST' : '') + (Object.keys(t.tamper).length ? ' · TAMPERED' : '');
+    const statusBadge = (G.host === ti ? ' · HOST' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' 🤖' + secReady(t);
     ctx.fillStyle = t.col;
     ctx.font = '900 14.5px system-ui, sans-serif';
     ctx.textAlign = 'left';
@@ -2345,7 +2717,7 @@ html, body {
       const fav = r.wins >= favWins(t);
       const winStr = r.wins ? '  ' + '★'.repeat(Math.min(3, r.wins)) : '';
       ctx.fillStyle = '#111'; ctx.font = '900 14.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(r.name + winStr + (fav ? ' [FAV]' : ''), bx + 74, by + 23);
+      ctx.fillText(r.name + winStr + (fav ? ' [FAV]' : '') + (r.exhausted ? ' 😴' : '') + (r.faceDown && r.faceDown.length ? ' 🂠×' + r.faceDown.length : ''), bx + 74, by + 23);
 
       const wepLabel = r.b.weapon === 'gun' ? `${r.b.cal || 'medium'} gun` : r.b.weapon;
       ctx.fillStyle = '#555'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
@@ -2375,10 +2747,10 @@ html, body {
         ctx.fillText(`Fit ${nextLot.name} on ${r.name}`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'arena' && G.chooseMyBot) {
-        ctx.fillStyle = '#2a9d3a';
+        ctx.fillStyle = r.exhausted ? '#999' : '#2a9d3a';
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`Send ${r.name} to Arena Pit`, actX + actW / 2, actY + 13.5);
+        ctx.fillText(r.exhausted ? `${r.name} is exhausted` : `Send ${r.name} to Arena Pit`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else {
         const dNames = helpers.length ? helpers.map(h => Sim.HELPERS[h]?.name || h).join(', ') : 'None';
@@ -2503,7 +2875,7 @@ html, body {
     hitRegions.push({ kind: 'garage', team: ti, x: x0, y: y0, w: slot.gw, h: slot.gh });
 
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
-    const badges = (G.host === ti ? ' [HOST]' : '') + (Object.keys(t.tamper).length ? ' [!]' : '');
+    const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' 🤖' + secReady(t) + ' 🃏' + t.hand.length;
 
     if (horiz) {
       // North Opponent Garage (620 x 124)
@@ -3300,19 +3672,11 @@ html, body {
 
   function tryPlayDraggedCard(dc, wx, wy) {
     const c = dc.card, t = me();
-    if (G.phase === 'intrigue' && c.phase === 'intrigue') {
+    if (G.phase === 'intrigue' && G.intrigueTurn === viewerSeat && c.phase !== 'fight') {
       const gHit = hitRegions.find(r => r.kind === 'garage' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
-      if (c.target === 'self') {
-        t.hand.splice(dc.idx, 1);
-        executeSchemeCard(viewerSeat, dc.id, viewerSeat);
-        finishIntrigue();
-        return true;
-      } else if (c.target === 'garage' && gHit && gHit.team !== viewerSeat) {
-        t.hand.splice(dc.idx, 1);
-        executeSchemeCard(viewerSeat, dc.id, gHit.team);
-        finishIntrigue();
-        return true;
-      }
+      if ((c.target === 'rival' || c.target === 'any' || c.phase === 'security') && !gHit) return false;
+      humanPlay(dc.id, gHit ? gHit.team : null);
+      return true;
     } else if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
       const inArena = wx >= -Sim.W / 2 && wx <= Sim.W / 2 && wy >= -Sim.H / 2 && wy <= Sim.H / 2;
       if (!inArena) return false;
@@ -3444,6 +3808,7 @@ html, body {
           notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
           updateHud();
         } else if (G.phase === 'arena' && G.chooseMyBot) {
+          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
           const s = G.fight.teams.indexOf(viewerSeat);
           G.fight.robots[s] = bot;
           afterChoose();
