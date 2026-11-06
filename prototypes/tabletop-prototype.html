@@ -1540,21 +1540,21 @@ html, body {
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
     const fitW = (sw - 36 - logRoom()) / 1140;
-    const fitH = (sh - 110) / 665;   // only the top pill and the hand tab above/below now
-    return Math.max(0.52, Math.min(1.04, Math.min(fitW, fitH)));
+    const fitH = (sh - 135) / 665;   // the top pill above, the hand tab below (layout check 6 Nov: 110 let the tab cover the bottom bay row)
+    return Math.max(0.52, Math.min(1.7, Math.min(fitW, fitH)));   // layout check 6 Nov: was capped at 1.04, tiny on 2560+ screens
   }
 
   function getArenaZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
     const fitW = (sw - 80 - logRoom()) / 950;
-    const fitH = (sh - 110) / 600;
-    return Math.max(0.75, Math.min(1.15, Math.min(fitW, fitH)));
+    const fitH = (sh - 140) / 600;   // clear of the top pill (above) and the hand tab (below)
+    return Math.max(0.6, Math.min(1.8, Math.min(fitW, fitH)));
   }
 
   function setCameraGoal(mode) {
     if (cam.manualZoom) return;
     if (mode === 'arena') {
-      cam.tzoom = getArenaZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = 0;
+      cam.tzoom = getArenaZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = -18 / cam.tzoom;   // a little lower: the top pill is taller than the hand tab
     } else {
       cam.tzoom = getCompoundZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = -10 / cam.tzoom;
     }
@@ -1775,7 +1775,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 upkeep-damage';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 layout-check';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3682,7 +3682,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen, cam };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -4500,8 +4500,9 @@ html, body {
         const ry = by + 76 + idx * 17;
         const lv = r.b.lv?.[st.k] || 0;
         ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(st.lbl, bx + 12, ry + 7.5);
-        if (st.k === 'turret' && calF !== 1) { ctx.fillStyle = calF < 1 ? '#d62828' : '#2a9d3a'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('×' + calF, bx + 66, ry + 7.5); }
+        const tcal = st.k === 'turret' && calF !== 1;   // a non-medium gun: short label so the ×factor fits (layout check 6 Nov)
+        ctx.fillText(tcal ? 'TUR' : st.lbl, bx + 12, ry + 7.5);
+        if (tcal) { ctx.fillStyle = calF < 1 ? '#d62828' : '#2a9d3a'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('×' + calF, bx + 67, ry + 7.5); }
         drawBar(ctx, bx + 70, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
         { const hs = helpStat(r.b, st.k); help(bx + 10, ry - 4, 160, 16, hs[0], hs[1]); }
       });
@@ -4715,11 +4716,11 @@ html, body {
     help(bx + 38, by + 18, bw - 42, 14, 'Health ' + curHp + '/' + maxHp(r), 'Damage stays between fights until it is repaired.<br>' + wearTxt(r));
 
     // 2. Top-Right Name, Weapon/Range & Filled HP Bar (bx + 40 .. bx + bw - 6)
-    ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(r.name + (r.wins ? ' ★' + r.wins : ''), bx + 40, by + 15);
-
-    ctx.fillStyle = '#666'; ctx.font = '700 9px system-ui, sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(`${wep} · ${r.b.range}`, bx + bw - 6, by + 15);
+    // name left, weapon right; both shrink to share the line (layout check 6 Nov: a twin weapon ran over the name)
+    const nmTxt = r.name + (r.wins ? ' ★' + r.wins : ''), wpTxt = `${wep.replace(' + twin ', ' +')} · ${r.b.range}`;
+    ctx.font = '800 11px system-ui, sans-serif'; const nmW = Math.min(ctx.measureText(nmTxt).width, (bw - 50) * 0.55);
+    ctx.fillStyle = '#111'; ctx.textAlign = 'left'; fitText(ctx, nmTxt, bx + 40, by + 15, nmW, '800', 11);
+    ctx.fillStyle = '#666'; ctx.textAlign = 'right'; fitText(ctx, wpTxt, bx + bw - 6, by + 15, bw - 52 - nmW, '700', 9);
 
     const hpCol = hpFrac > 0.5 ? '#2a9d3a' : hpFrac > 0.25 ? '#d99000' : '#d62828';
     const hpBarW = bw - 88;
