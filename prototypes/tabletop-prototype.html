@@ -674,7 +674,29 @@ html, body {
   // Kev, 6 Nov: one lot per player (4 lots, then the host bid), and a New Robot lot shows the actual robot for sale
   const NLOTS = 4, HOST_K = NLOTS;
   const zeroBids = () => new Array(NLOTS + 1).fill(0);
-  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
+  // 5 New Robot lots in the deck (was 1): they deal the Market robot cards first, then s1. starters
+  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter && !LOTS[k].legend).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot', 'robot', 'robot', 'robot']));
+  /* Market robot cards (docs/robot-cards.md, builds in Sim.ROBOT_CARDS). Fight quirks (Trick Shot, Sticky Fire,
+   * Fireproof, Bastion) work in the Sim; the others work here. value = bank value. */
+  const MARKET_ROBOTS = {
+    Juggernaut: { value: 5, kit: 'Spinner · Overboost · Rammer chip · Flipper', quirk: 'Showstopper', qt: 'When it wins, you take the host\'s +1 fame for that fight.' },
+    Wasp:       { value: 5, kit: 'Rapid-fire gun · Omni-drive · Zigzag chip · Energy Shield', quirk: 'Hotshot', qt: '+1 credit each time it wins.' },
+    Sniper:     { value: 4, kit: 'Long-range gun · Kiter chip · Jump Jets', quirk: 'Scope', qt: 'Before bets close, you see one face-down card on a robot in its fight.' },
+    Ricochet:   { value: 4, kit: 'Saw blades · Kiter chip · Mine Layer', quirk: 'Trick Shot', qt: 'Its saw blades bounce one extra time.' },
+    Brawler:    { value: 3, kit: 'Short-range gun · Tank tracks · Rammer chip · EMP Burst', quirk: 'Grudge', qt: 'After it loses to a team: +1 firepower in its next fight against that team.' },
+    Artillery:  { value: 2, kit: 'Mortar · Overboost · Zigzag chip · Jump Jets', quirk: 'Underrated', qt: 'The bookie lists it one band lower than the Sim says, so bets on it pay more.' },
+    Hookshot:   { value: 2, kit: 'Flamethrower · Tank tracks · Grappling Hook', quirk: 'Sticky Fire', qt: 'Robots it sets alight burn 2 s longer.' },
+    Turncoat:   { value: 2, kit: 'Laser · no drive, chip or module', quirk: 'Treacherous', qt: 'In a 2v2, before the odds are set, it may switch to the other side.' },
+    Slick:      { value: 2, kit: 'Flamethrower · Oil Slick', quirk: 'Fireproof', qt: 'Its own fire and oil can\'t hurt or slow it.' },
+    Fortress:   { value: 1, kit: 'Heavy cannon · Tank tracks · Repair Drone', quirk: 'Bastion', qt: 'Carries 4 helper drones instead of 3, and its helpers add no strain.' },
+    Tinker:     { value: 2, kit: 'Medium gun · Spotter Drone', quirk: 'Cunning', qt: 'If it didn\'t fight last round, draw 1 extra Intrigue card in Upkeep.' },
+    Railgunner: { value: 5, kit: 'Prototype railgun · Tank tracks · Reflective Plating', quirk: 'Headline Act', qt: 'When it fights, the host gains +1 extra fame.', legend: true },
+  };
+  const quirkOf = r => { const M = r && MARKET_ROBOTS[r.name]; return M ? M.quirk : null; };
+  /* Legendaries (rulebook 6): one copy each, announced one round before they come up (from round 2, every other round) */
+  LOTS.L_rail = { name: 'Railgunner', icon: '🌟', text: 'Legendary robot', robot: true, legend: true, railgunner: true, desc: MARKET_ROBOTS.Railgunner.kit + '. ✦ Headline Act: ' + MARKET_ROBOTS.Railgunner.qt };
+  LOTS.L_twin = { name: 'Twin Turret', icon: '🌟', text: '2nd weapon at 60% (+3 Str)', twin: true, legend: true };
+  LOTS.L_quantum = { name: 'Quantum Shield', icon: '🌟', text: 'Panic-bubble module (+2 Str)', mod: 'quantum', legend: true };
   // Winner's Crate cut (rulebook, 5 Nov): only the loser draws a Scrap Crate
 
   const TEAMS = [
@@ -869,7 +891,7 @@ html, body {
   const SC = { cache: new Map(), pend: new Map(), order: [], ver: 0 };
   const SCOUT_N = 8;     // fights per pairing, sides swapped
   const SCOUT_PRICE = 1, SPAR_PRICE = 2;
-  const bKey = b => JSON.stringify([b.lv, b.weapon || 'gun', b.cal || 'medium', b.range, b.mod || null, b.arm || null, (b.helpers || []).slice().sort(), b.eng == null ? 1 : b.eng, b.drive || null, b.proc || null, b.quirk || null, b.focus || 'main']);
+  const bKey = b => JSON.stringify([b.lv, b.weapon || 'gun', b.cal || 'medium', b.range, b.mod || null, b.arm || null, (b.helpers || []).slice().sort(), b.eng == null ? 1 : b.eng, b.drive || null, b.proc || null, b.quirk || null, b.focus || 'main', Sim.twinKey(b.twin), !!b.grudgeOn]);
   function duelP(a, b) {   // win chance of build a vs build b, or null while the bookie is still working
     const ka = bKey(a), kb = bKey(b);
     if (ka === kb) return 0.5;
@@ -904,9 +926,10 @@ html, body {
     return { text: scouted() ? (compact ? BAND_ABBR[bd.name] : bd.short) + ' ' + pctTxt(p) : bd.short, col: bd.col };
   }
   // a lot fitted on a copy of the robot (same rules as applyLot)
-  function lotBuild(r, L) {
-    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm || L.helper) || !canFit(r, L)) return null;
+  function lotBuild(r, L, ti) {
+    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm || L.helper || L.twin) || !canFit(r, L)) return null;
     const nb = clone(r.b);
+    if (L.twin) nb.twin = Sim.twinSpec(aiTwinPick(ti == null ? viewerSeat : ti, r));
     if (L.stat) nb.lv[L.stat]++;
     if (L.cal) nb.cal = L.cal;
     if (L.wup) nb.wup = L.wup;
@@ -1182,6 +1205,7 @@ html, body {
     renderHand();
   }
 
+  const legendNote = () => G.legendNext ? '<br>🌟 <b>Next round:</b> ' + lotRef(G.legendNext) + ' (legendary). Save up!' : '';
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
@@ -1244,7 +1268,7 @@ html, body {
           $('#pAct1').onclick = continueMarket;
         }
       } else if (G.marketStage === 'open') {
-        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits and 📦 Stash parts with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + '</span>' +
+        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits and 📦 Stash parts with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + legendNote() + '</span>' +
           G.teams.filter(o => o.i !== viewerSeat).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('') +
           '<button class="act" id="pAct1"' + (G.openBusy ? ' disabled' : '') + '>Start the auction →</button>';
         pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
@@ -1255,7 +1279,7 @@ html, body {
         $('#pAct1').onclick = () => resolveHostBid(G.myBids[HOST_K] || 0);
       } else {
         const spent = (G.myBids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
-        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.</span>' +
+        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.' + legendNote() + '</span>' +
           '<button class="act" id="pAct1">Lock Bids →</button>';
         $('#pAct1').onclick = () => resolveMarket(G.myBids);
       }
@@ -1482,6 +1506,8 @@ html, body {
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: lotDeck(),
+      robotDeck: shuffle(Object.keys(MARKET_ROBOTS).filter(k => !MARKET_ROBOTS[k].legend)),
+      legends: shuffle(['L_rail', 'L_twin', 'L_quantum']), legendNext: null,
       fight: null, over: false, crateChoices: null
     };
     setCameraGoal('compound');
@@ -1593,6 +1619,7 @@ html, body {
       }
       t.hand.push(draw1(), draw1(), draw1());   // rulebook: draw 3 (hand limit is checked at the end of your Intrigue turn)
       if (t.sponsor === 'blackwire') t.hand.push(draw1());
+      for (const r of t.robots) if (quirkOf(r) === 'Cunning' && G.round > 1 && (r.lastFight || 0) < G.round - 1) { t.hand.push(draw1()); notify('✦ Cunning: ' + esc(r.name) + ' sat out last round, so ' + nm(t) + ' draws 1 extra Intrigue card.', t.col); }
 
       if (t.i !== viewerSeat) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
@@ -1652,7 +1679,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 market-modules';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 robots-legendaries';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -1797,7 +1824,7 @@ html, body {
    * AI teams value a bundle as credits + what each part is worth to them (the bookie's band jump on their robots).
    * ============================================================================ */
   const STASH_MAX = 4;
-  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return L.wup || L.helper ? 3 : 2; };
+  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return L.legend ? 5 : L.wup || L.helper ? 3 : 2; };
   const bankHalf = id => Math.max(1, Math.floor(partValue(id) / 2));
   const stashOf = t => (t.stash = t.stash || []);
   function toStash(t, id, quiet) {
@@ -1918,7 +1945,8 @@ html, body {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
       const r = fits.length === 1 ? fits[0] : await ivModal('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));
       if (!r || stashOf(t)[k] !== id) return;
-      t.stash.splice(k, 1); applyLot(viewerSeat, id, r);
+      let tk = null; if (LOTS[id].twin) { tk = await askTwin(r); if (!tk || stashOf(t)[k] !== id) return; }
+      t.stash.splice(k, 1); applyLot(viewerSeat, id, r, tk);
       notify('🔩 Fitted ' + lotRef(id) + ' from your Stash on ' + esc(r.name) + '.', t.col);
       updateHud();
     }; });
@@ -2339,6 +2367,17 @@ html, body {
     if (G.lots.length < NLOTS) G.lots = lotDeck();
     G.market = [];
     for (let k = 0; k < NLOTS; k++) G.market.push(dealLot());
+    // the legendary announced last round takes the last slot; then maybe announce the next one
+    if (G.legendNext) {
+      const lg = G.legendNext; G.legendNext = null;
+      const old = G.market[NLOTS - 1]; if (LOTS[old] && LOTS[old].starter) returnStarter(LOTS[old].starter); else G.lots.unshift(old);
+      G.market[NLOTS - 1] = lg === 'L_rail' ? robotLot('Railgunner', true) : lg;
+      notify('🌟 <b>Legendary in the Market:</b> ' + lotRef(G.market[NLOTS - 1]) + ' (one copy).', '#b45309');
+    }
+    if (G.round >= 2 && G.round % 2 === 0 && G.legends.length) {
+      G.legendNext = G.legends.pop();
+      notify('🌟 <b>Next round\'s Market:</b> ' + lotRef(G.legendNext) + ' (legendary). Save your credits!', '#b45309');
+    }
     G.myBids = zeroBids();
     G.pendingInstall = [];
     G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
@@ -2418,7 +2457,7 @@ html, body {
         const b = (g && g.d > 0.08) || rnd() < 0.2 ? Math.min(budget, 1 + (rnd() < 0.4 ? 1 : 0)) : 0;
         budget -= b; return b;
       }
-      const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], 4) : G.market[k] === 'eng' ? 3 : 2.2;
+      const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], LOTS[G.market[k]].legend ? 6 : 4) : LOTS[G.market[k]].legend ? 5 : G.market[k] === 'eng' ? 3 : 2.2;
       let b = Math.round(want * (0.4 + rnd() * 1.1));
       b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
       budget -= b;
@@ -2432,7 +2471,7 @@ html, body {
     const lotId = k < NLOTS ? G.market[k] : 'host';
     const maxWilling = k === HOST_K
       ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
-      : (LOTS[lotId].robot ? robotWant(t, lotId, 5.5) : (lotId === 'eng' || lotId === 'mech') ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
+      : (LOTS[lotId].robot ? robotWant(t, lotId, LOTS[lotId].legend ? 8 : 5.5) : LOTS[lotId].legend ? 7 : (lotId === 'eng' || lotId === 'mech') ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
     const add = Math.round(Math.max(0, maxWilling - curBid) * (0.35 + rnd() * 0.85));
     return Math.max(0, Math.min(maxAdd, add));
   }
@@ -2454,16 +2493,25 @@ html, body {
     }
     return G.starterDeck.pop() || null;
   }
-  const returnStarter = n => { if (n && STARTERS[n] && !G.starterDeck.includes(n) && !G.teams.some(t => t.robots.some(r => r.name === n))) G.starterDeck.unshift(n); };
-  function robotLot(n) {
-    const bot = mkRobot(n, STARTERS[n].b), id = 'robot:' + n;
-    LOTS[id] = { name: n, icon: '🤖', text: wepName(bot.b) + ' · ' + bot.b.range + ' · ' + Sim.LV.hp[bot.b.lv.hp] + ' HP', robot: true, starter: n, bot, desc: STARTERS[n].d };
+  // a robot back into its deck: Market robot cards to the robot deck (also when scrapped), s1. starters to the starter deck
+  const returnStarter = n => {
+    if (!n || G.teams.some(t => t.robots.some(r => r.name === n))) return;
+    if (MARKET_ROBOTS[n]) { if (MARKET_ROBOTS[n].legend) { if (!G.legends.includes('L_rail')) G.legends.unshift('L_rail'); } else if (!G.robotDeck.includes(n)) G.robotDeck.unshift(n); }
+    else if (STARTERS[n] && !G.starterDeck.includes(n)) G.starterDeck.unshift(n);
+  };
+  function robotLot(n, legend) {
+    const card = MARKET_ROBOTS[n], bot = mkRobot(n, card ? Sim.ROBOT_CARDS[n] : STARTERS[n].b), id = 'robot:' + n;
+    LOTS[id] = { name: n, icon: legend ? '🌟' : '🤖', text: wepName(bot.b) + ' · ' + bot.b.range + ' · ' + Sim.LV.hp[bot.b.lv.hp] + ' HP', robot: true, starter: n, bot,
+      desc: card ? card.kit + '. ✦ ' + card.quirk + ': ' + card.qt : STARTERS[n].d, quirk: card ? card.quirk : null, value: card ? card.value : 1, legend: !!legend };
     return id;
   }
   function dealLot() {
     let id = G.lots.pop();
     if (LOTS[id] && LOTS[id].robot) {
       if (LOTS[id].starter) returnStarter(LOTS[id].starter);
+      const inMarket = new Set((G.market || []).map(x => LOTS[x] && LOTS[x].starter).filter(Boolean));
+      const card = G.robotDeck.filter(k => !inMarket.has(k)).pop();
+      if (card) { G.robotDeck.splice(G.robotDeck.indexOf(card), 1); return robotLot(card); }
       const n = drawStarter();
       id = n ? robotLot(n) : 'mech';
     }
@@ -2480,12 +2528,28 @@ html, body {
   // can this part go on this robot? Weapon upgrades need that weapon, calibres need a gun (no weapon swaps)
   function canFit(r, L) {
     if (!r || !L) return false;
+    if (L.twin) return !r.b.twin;
     if (L.wup) return (r.b.weapon || 'gun') === Sim.WUPS[L.wup].for;
     if (L.cal) return (r.b.weapon || 'gun') === 'gun' && (r.b.cal || 'medium') !== L.cal;
     if (L.stat) return r.b.lv[L.stat] < 4;
     return true;
   }
   const canTake = (t, id) => !needsRobot(id) || t.robots.some(r => canFit(r, LOTS[id]));
+  // Twin Turret: which second weapon a team would pick: the class that does best against the weapons on the table
+  function aiTwinPick(ti, r) {
+    const on = classesVs(ti), C = Sim.COUNTERS.weapons, main = Sim.classOf(r.b);
+    let best = 'gun', bv = -1;
+    for (const k of Object.keys(Sim.TWIN_WEAPONS)) {
+      if (k === main || !C[k]) continue;
+      const v = on.length ? on.reduce((a, c) => a + (c === k ? 0.5 : C[k].vs[c] != null ? C[k].vs[c] : 0.5), 0) / on.length : 0.5;
+      if (v > bv) { bv = v; best = k; }
+    }
+    return best;
+  }
+  async function askTwin(r) {
+    return ivModal('🌟 Twin Turret on ' + esc(r.name), 'Pick the second weapon. It sits on its own turret at <b>60% firepower</b>; the robot gets +20% frame and −5% speed. Its main weapon stays.',
+      Object.entries(Sim.TWIN_WEAPONS).filter(([k]) => k !== Sim.classOf(r.b)).map(([k, n]) => ({ label: n + (k === aiTwinPick(viewerSeat, r) ? ' ★' : ''), value: () => k })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));
+  }
   function aiPickRobot(t, lot) {
     const L = LOTS[lot];
     const fit = t.robots.filter(r => canFit(r, L));
@@ -2500,7 +2564,7 @@ html, body {
   // which stats a weapon actually uses (src/sim.js): flame and spinner ignore accuracy and velocity, beams ignore velocity
   const UNUSED_STATS = { flame: ['acc', 'bullet'], spinner: ['acc', 'bullet'], laser: ['bullet'], railgun: ['bullet'] };
   const WUP_SHORT = { barrel: 'barrel', lens: 'lens', serrated: 'serrated', ricochet: 'ricochet', napalm: 'napalm', cluster: 'cluster' };
-  const wepName = b => (b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon) + (Sim.wupOf(b) ? ' + ' + WUP_SHORT[b.wup] : '');
+  const wepName = b => (b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon) + (Sim.wupOf(b) ? ' + ' + WUP_SHORT[b.wup] : '') + (Sim.twinOf(b) ? ' + twin ' + Sim.TWIN_WEAPONS[Sim.twinKey(b.twin)].toLowerCase() : '');
   // what a lot does to this robot in real numbers (Sim.statsOf before/after), e.g. "HP 85→110 · Speed 118→113"
   const PREVIEW_F = [['hp', 'HP', 0, ''], ['armor', 'Armour', 1, '/hit'], ['speed', 'Speed', 0, ''], ['turret', 'Turret', 0, '°/s'], ['fp', 'Firepower', 1, ' dps'], ['acc', 'Accuracy', 0, '%'], ['bullet', 'Velocity', 0, '']];
   function lotAfter(r, L) {
@@ -2550,7 +2614,7 @@ html, body {
     return lines.join('<br>');
   }
 
-  function applyLot(ti, lot, r) {
+  function applyLot(ti, lot, r, twinPick) {
     const t = G.teams[ti], L = LOTS[lot];
     if (L.mech) { t.mechs++; return '+1 Mechanic Pool'; }
     if (L.eng) {
@@ -2575,6 +2639,7 @@ html, body {
     if (!r) return '';
     if (!canFit(r, L)) return 'No robot can use it';   // no weapon swaps (Kev, 6 Nov); checked before a stat goes up
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
+    if (L.twin) { r.b.twin = Sim.twinSpec(twinPick || aiTwinPick(ti, r)); return 'Twin ' + Sim.TWIN_WEAPONS[Sim.twinKey(r.b.twin)] + ' on ' + r.name; }
     if (L.cal) r.b.cal = L.cal;
     if (L.wup) r.b.wup = L.wup;
     const t_ = G.teams[ti], oldLot = (k, v) => Object.keys(LOTS).find(id => LOTS[id][k] === v);
@@ -2632,7 +2697,8 @@ html, body {
     if (k < NLOTS) {
       const lotId = G.market[k], L = LOTS[lotId];
       if (w >= 0) A.wins.push({ idx: k, lot: lotId, team: w, price: mx });
-      else if (L.starter) { returnStarter(L.starter); L.bot = null; }   // an unsold robot goes back to the starter deck
+      else if (L.starter) { returnStarter(L.starter); L.bot = null; }   // an unsold robot goes back to its deck
+      else if (L.legend && !G.legends.includes(lotId)) G.legends.unshift(lotId);   // an unsold legendary comes back later
       A.results.push({
         idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
         winner: w, price: mx, bids: col, initBids: initCol, addBids: addCol,
@@ -2834,7 +2900,7 @@ html, body {
         if (!d.blocked) {
           x.botched = true;
           const back = Math.floor(x.price / 2); W.credits += back; o.credits += 1;
-          G.lots.unshift(x.lot);
+          if (LOTS[x.lot] && LOTS[x.lot].legend) { if (!G.legends.includes(x.lot)) G.legends.unshift(x.lot); } else G.lots.unshift(x.lot);
           A.results[x.idx].target = '🔧 Botched: scrapped';
           notify('🔧 The install fails: ' + lotRef(x.lot) + ' is scrapped. ' + nm(W) + ' gets ' + back + ' Cr back, ' + nm(o) + ' takes 1 Cr.', o.col);
         }
@@ -3009,6 +3075,7 @@ html, body {
     const copies = F.format === 'mirror' ? 2 : 1, builds = [], botEnt = [], botName = [];
     F.teams.forEach((ti, e) => {
       const r = F.robots[e], b = visible ? clone(r.b) : fightBuild(ti, r);
+      if (quirkOf(r) === 'Grudge' && r.grudge && F.teams.some((t2, e2) => F.sides[e2] !== F.sides[e] && r.grudge.includes(t2))) b.grudgeOn = true;   // ✦ Grudge
       for (let c = 0; c < copies; c++) { builds.push(clone(b)); botEnt.push(e); botName.push(r.name + (copies > 1 ? ' #' + (c + 1) : '')); }
     });
     const teamOpt = F.format === '2v2' || F.format === 'mirror' || (F.house && F.nSides === 2) ? botEnt.map(e => F.sides[e]) : null;
@@ -3029,9 +3096,10 @@ html, body {
     return e == null || e < 0 ? 'house' : F.sides[e];
   }
 
-  function afterChoose() {
+  async function afterChoose() {
     G.chooseMyBot = false;
     const F = G.fight;
+    await treacherousStep(F);
     // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
     F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
     // Bookie simulates the visible builds: all parts are open, only face-down Intrigue cards stay hidden
@@ -3052,11 +3120,26 @@ html, body {
       if (ws === -1) w.forEach((_, i) => { w[i] += 1 / F.nSides; }); else if (ws !== 'house') w[ws] += 1;
     }
     F.p = w.map(x => Math.max(0.03, Math.min(0.95, x / N)));
-    F.bands = F.p.map(bandOf);
+    // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
+    F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
+    if (F.robots.some(r => quirkOf(r) === 'Underrated')) notify('✦ Underrated: the bookie lists Artillery\'s side one band lower than its numbers.', '#111');
     F.pay = F.bands.map(bd => bd.pay);
     startBets();
   }
 
+  // ✦ Treacherous (Turncoat): in a 2v2 it may switch sides before the odds are set
+  async function treacherousStep(F) {
+    if (!F || F.format !== '2v2') return;
+    for (let e = 0; e < F.robots.length; e++) {
+      const r = F.robots[e], T = G.teams[F.teams[e]];
+      if (quirkOf(r) !== 'Treacherous') continue;
+      const mine = F.sides[e], pw = sd => F.robots.reduce((a, x, k) => a + (k !== e && F.sides[k] === sd ? power(x) - x.dmg / 10 : 0), 0);
+      let go;
+      if (T.i === viewerSeat) go = await ivModal('✦ Treacherous', esc(r.name) + ' may switch to the other side of this 2v2 (3 against 1). Your team gets fame if its new side wins.', [{ label: 'Switch sides', value: () => true }, { label: 'Stay', secondary: true, value: () => false }]);
+      else go = pw(1 - mine) > pw(mine) * 1.15;
+      if (go) { F.sides[e] = 1 - mine; notify('✦ Treacherous: ' + esc(r.name) + ' (' + nm(T) + ') switches sides!', T.col); }
+    }
+  }
   /* ---------- Phase 5: Bets on Arena Floor ---------- */
   function startBets() {
     G.phase = 'bets';
@@ -3064,6 +3147,14 @@ html, body {
     G.hedge = false;
     setCameraGoal('compound');
     updateHud();
+    // ✦ Scope (Sniper): its owner sees one face-down card on a rival robot in this fight
+    const F = G.fight;
+    F.robots.forEach((r, e) => {
+      if (quirkOf(r) !== 'Scope' || F.teams[e] !== viewerSeat) return;
+      const seen = []; F.robots.forEach((x, k) => { if (F.sides[k] !== F.sides[e]) (x.faceDown || []).forEach(c => seen.push({ x, c })); });
+      const pick_ = seen.length ? seen[Math.floor(rnd() * seen.length)] : null;
+      ivModal('✦ Scope', pick_ ? 'Your Sniper spots a face-down card on <b>' + esc(pick_.x.name) + '</b>: ' + cardRef(pick_.c.id) + ' (played by ' + esc(G.teams[pick_.c.from].name) + ').' : 'Your Sniper checks the rival robots: no face-down cards on them.', [{ label: 'OK', value: () => null }]);
+    });
   }
   // Bets-step arena cards for the human (buttons in the prompt)
   function humanBookiesFriend() {
@@ -3249,6 +3340,8 @@ html, body {
       r.tamper = {}; r.faceDown = []; r.exhausted = true;
     });
 
+    F.robots.forEach(r => { if (r) r.lastFight = G.round; });
+    if (G.host >= 0 && F.robots.some(r => quirkOf(r) === 'Headline Act')) { G.teams[G.host].fame += 1; notify('✦ Headline Act: the Railgunner fought, so host ' + nm(G.teams[G.host]) + ' gains +1 extra fame.', G.teams[G.host].col); }
     if (ws === -1 || ws === 'house') {
       for (const x of F.bets) { G.teams[x.team].credits += x.amt; x.payout = x.amt; }
       notify(ws === 'house' ? '🏠 The House Robot wins! Nobody gets fame; bets refunded.' : 'Arena Draw! Bets refunded.', '#111');
@@ -3263,6 +3356,15 @@ html, body {
       const T = G.teams[ti], r = F.robots[e];
       T.fame += famePer; r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
       if (r.wins === favWins(T)) T.fame += 1;
+      if (quirkOf(r) === 'Hotshot') { T.credits += 1; notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
+      if (quirkOf(r) === 'Showstopper' && G.host >= 0 && G.host !== ti && G.teams[G.host].fame > 0) { G.teams[G.host].fame -= 1; T.fame += 1; notify('✦ Showstopper: ' + esc(r.name) + ' steals the show: ' + nm(T) + ' takes the host\'s +1 fame from ' + nm(G.teams[G.host]) + '.', T.col); }
+    });
+    // ✦ Grudge: a beaten Brawler remembers who beat it; meeting them again uses the grudge up
+    F.robots.forEach((r, e) => {
+      if (quirkOf(r) !== 'Grudge') return;
+      const foes = F.teams.filter((t2, e2) => F.sides[e2] !== F.sides[e]);
+      r.grudge = (r.grudge || []).filter(t2 => !foes.includes(t2));
+      if (F.sides[e] !== ws) { r.grudge = [...new Set(r.grudge.concat(winners.map(x => x.ti)))]; notify('✦ Grudge: ' + esc(r.name) + ' won\'t forget ' + winners.map(x => nm(G.teams[x.ti])).join(' and ') + ' (+1 firepower next time they meet).', G.teams[F.teams[e]].col); }
     });
     notify('🏆 <b>' + esc(sideLabel(F, ws)) + '</b> (' + esc(sideName(F, ws)) + ') win' + (winners.length > 1 ? '' : 's') + '! +' + famePer + ' Fame' + (winners.length > 1 ? ' each' : '') + '.', G.teams[winners[0].ti].col);
     losers.forEach(({ e }) => { const r = F.robots[e]; r.dmg = Math.max(r.dmg, Math.round(maxHp(r) / 2)); });   // a spared loser keeps half its health as damage
@@ -3373,7 +3475,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -3562,6 +3664,16 @@ html, body {
       ctx.fillRect(0, (cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5) * scale, (cal === 'heavy' ? 28 : cal === 'rapid' ? 21 : 25) * scale, (cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5) * scale);
     }
     ctx.restore();
+    if (Sim.twinOf(b)) {   // 🌟 Twin Turret: a small second turret at the back of the hull
+      const tA = simBot && simBot.tw ? simBot.tw.turret : turretA, w2 = b.twin.weapon, off = (simBot && simBot.twBroken) ? 0.35 : 1;
+      ctx.save(); ctx.rotate(bodyA); ctx.translate(-SIZE * 0.3, 0); ctx.rotate(tA - bodyA); ctx.globalAlpha = off;
+      ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(0, 0, 5.5 * scale, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = w2 === 'laser' ? '#1f6feb' : w2 === 'flame' ? '#ea580c' : '#111';
+      if (w2 === 'saw') { ctx.beginPath(); ctx.arc(11 * scale, 0, 4.5 * scale, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.fillRect(0, -1.8 * scale, (w2 === 'mortar' ? 10 : 16) * scale, (w2 === 'mortar' ? 7 : 3.6) * scale);
+      ctx.restore();
+    }
     ctx.restore();
 
     if (name) {
@@ -4676,6 +4788,12 @@ html, body {
       ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#222';
       ctx.lineWidth = bid > 0 ? 2.5 : 1.5;
       ctx.strokeRect(x, y, w, h);
+      if (LOTS[it.id] && LOTS[it.id].legend) {   // legendary: gold frame and tag
+        ctx.strokeStyle = '#d99000'; ctx.lineWidth = 3; ctx.strokeRect(x + 2.5, y + 2.5, w - 5, h - 5);
+        ctx.fillStyle = '#d99000'; ctx.fillRect(x + w / 2 - 40, y - 8, 80, 15);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🌟 LEGENDARY', x + w / 2, y + 3, 76, '900', 9.5);
+        help(x + w / 2 - 40, y - 8, 80, 15, '🌟 Legendary', 'One copy in the whole game, announced one round ahead. Unsold, it comes back later.');
+      }
 
       const RL = LOTS[it.id];
       if (RL && RL.bot) drawRobotLot(ctx, RL, x, y, w, h);
@@ -4690,7 +4808,7 @@ html, body {
       ctx.fillStyle = '#555';
       fitText(ctx, it.text, x + w / 2, y + 82, w - 12, '600', 11.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 12, 'center', 11.5);
-      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.mod && Sim.MODS[it.mod] ? esc(Sim.MODS[it.mod].text) + '<br>One module per robot: a new one replaces the old (the old goes to your Stash).<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
+      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.twin ? 'A second weapon on its own turret at 60% firepower (you pick it when you fit it). Frame +20%, −5% speed.<br>' : it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.mod && Sim.MODS[it.mod] ? esc(Sim.MODS[it.mod].text) + '<br>One module per robot: a new one replaces the old (the old goes to your Stash).<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
       else if (k === HOST_K) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
@@ -4749,12 +4867,12 @@ html, body {
     const lv = b.lv, stats = PREVIEW_F.map(([k, lab]) => lab + ' ' + lv[k] + '/4' + ((UNUSED_STATS[b.weapon] || []).includes(k) ? ' (unused)' : '')).join(' · ');
     help(x + 4, y + 4, w - 8, 86, '🤖 ' + esc(RL.name) + ' · for sale',
       esc(RL.desc || '') + '<br><b>' + esc(wepName(b)) + '</b>, ' + b.range + ' range, ' + Sim.LV.hp[lv.hp] + ' HP, ' + fr.name + ' frame.<br>Stat levels: ' + stats + '.<br>' +
-      'Win it and it joins your team in an empty bay (up to 3 robots). ' + (eng ? 'One of your free Engineers 👷 goes on it.' : '<b>You have no free Engineer</b>, so it arrives without one (more glitches); the bookie counts that.') + ' ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots keep their weapon for life.');
+      (RL.legend ? '<b>🌟 Legendary:</b> one copy in the whole game.<br>' : '') + 'Win it and it joins your team in an empty bay (up to 3 robots). ' + (eng ? 'One of your free Engineers 👷 goes on it.' : '<b>You have no free Engineer</b>, so it arrives without one (more glitches); the bookie counts that.') + ' ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots keep their weapon for life.');
     const tg = tagsFor(viewerSeat, b);
     if (drawTags(ctx, tg, x + w / 2, y + 100, w - 12, 'center', 11)) { const ht = helpTagsTxt(tg, 'this robot'); help(x + 4, y + 90, w - 8, 13, ht[0], ht[1]); }
-    ctx.fillStyle = '#1f6feb';
-    fitText(ctx, fr.name + ' frame · ⚡' + Sim.strainOf(b).total + ' · ' + (eng ? '👷 1 Eng' : '👷 no Eng'), x + w / 2, y + 115, w - 12, '800', 10.5);
-    { const hl = helpLook(b); help(x + 4, y + 105, w - 8, 13, hl[0], hl[1]); }
+    ctx.fillStyle = RL.quirk ? '#7c3aed' : '#1f6feb';
+    fitText(ctx, (RL.quirk ? '✦ ' + RL.quirk + ' · ' : '') + fr.name + ' ⚡' + Sim.strainOf(b).total + ' · ' + (eng ? '👷 1' : '👷 0'), x + w / 2, y + 115, w - 12, '800', 10.5);
+    { const hl = helpLook(b); help(x + 4, y + 105, w - 8, 13, RL.quirk ? '✦ ' + esc(RL.quirk) : hl[0], (RL.quirk ? esc(MARKET_ROBOTS[RL.name].qt) + '<br>' : '') + hl[1] + '<br>👷 = the Engineer it arrives with (one of your free ones).'); }
     if (full) {
       ctx.fillStyle = '#b45309'; fitText(ctx, '🏠 your bays are full', x + w / 2, y + 168, w - 12, '800', 10.5);
       ctx.fillStyle = '#666'; fitText(ctx, 'win it: +2 Cr instead', x + w / 2, y + 184, w - 12, '700', 10);
@@ -5094,25 +5212,27 @@ html, body {
       ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    for (const b of B.bots) {
-      if (b.beam && b.hp > 0) {
-        ctx.strokeStyle = colBot(b.helper ? b.owner : b.i); ctx.lineWidth = 3;
+    for (const b of B.bots) for (const st of [b, b.tw]) {   // the main weapon, then a Twin Turret's
+      if (!st) continue;
+      const len = st.beamLen || 280, lw = st === b ? 3 : 2;
+      if (st.beam && b.hp > 0) {
+        ctx.strokeStyle = colBot(b.helper ? b.owner : b.i); ctx.lineWidth = lw;
         ctx.beginPath();
-        ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
-        ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
+        ctx.moveTo(b.x + Math.cos(st.beamA) * 20, b.y + Math.sin(st.beamA) * 20);
+        ctx.lineTo(b.x + Math.cos(st.beamA) * len, b.y + Math.sin(st.beamA) * len);
         ctx.stroke();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
-        ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
+        ctx.moveTo(b.x + Math.cos(st.beamA) * 20, b.y + Math.sin(st.beamA) * 20);
+        ctx.lineTo(b.x + Math.cos(st.beamA) * len, b.y + Math.sin(st.beamA) * len);
         ctx.stroke();
       }
-      if (b.flame > 0 && b.hp > 0) {
+      if (st.flame > 0 && b.hp > 0) {
         ctx.save();
         ctx.fillStyle = 'rgba(249, 115, 22, 0.26)';
         ctx.beginPath();
         ctx.moveTo(b.x, b.y);
-        ctx.arc(b.x, b.y, 130, b.turret - 0.38, b.turret + 0.38);
+        ctx.arc(b.x, b.y, 130, st.turret - 0.38, st.turret + 0.38);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
@@ -5417,6 +5537,12 @@ html, body {
           }
         } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
           if (!canFit(bot, LOTS[G.pendingInstall[0].lot])) { notify('⚠️ ' + lotRef(G.pendingInstall[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ' (' + esc(wepName(bot.b)) + ').', '#b45309'); return; }
+          if (LOTS[G.pendingInstall[0].lot].twin) {
+            if (G.swapAsk) return; G.swapAsk = true;
+            askTwin(bot).then(k => { G.swapAsk = false; if (!k) return; const item = G.pendingInstall.shift(); const dest = applyLot(viewerSeat, item.lot, bot, k);
+              if (G.marketResults && item.idx != null && G.marketResults[item.idx]) G.marketResults[item.idx].target = dest; notify('🌟 Installed the Twin Turret on ' + esc(bot.name) + ': ' + Sim.TWIN_WEAPONS[k] + ' at 60%.', t.col); updateHud(); });
+            return;
+          }
           const item = G.pendingInstall.shift();
           const note = weaponSwapNote(bot, LOTS[item.lot]);
           if (note) {

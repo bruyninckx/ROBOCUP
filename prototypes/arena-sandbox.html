@@ -414,7 +414,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const x = q.sx + (q.tx - q.sx) * u, y = q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90;
       ctx.fillStyle = colOf(q.owner); ctx.beginPath(); ctx.arc(x, y, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2); ctx.fill();
     }
-    for (const b of B.bots) {
+    for (const b0 of B.bots) for (const st of [b0, b0.tw]) {   // main weapon, then a Twin Turret's
+      if (!st) continue;
+      const b = { x: b0.x, y: b0.y, hp: b0.hp, i: b0.i, helper: b0.helper, flame: st.flame, beam: st.beam, beamA: st.beamA, beamLen: st.beamLen, turret: st.turret };
       if (b.flame && b.hp > 0) {
         for (let k = 0; k < 9; k++) {
           const a = b.turret + (Math.random() - 0.5) * 0.7, r = 25 + Math.random() * 115;

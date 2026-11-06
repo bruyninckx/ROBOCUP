@@ -98,8 +98,8 @@ One module per robot: fitting a new one sends the old card to the Stash.
 
 | Card | Sim key | ⚡ | Price | Bank value | Effect | Status |
 |---|---|---|---|---|---|---|
-| **Twin Turret** | not in sim yet | 3 | 6–9 | 5 | A second weapon slot: fit any weapon card at 60% firepower. Frame +20%, −5% speed. | designed |
-| **Quantum Shield** | `mod: quantum` | 2 | 5–8 | 4 | Module. Once per fight below 40% HP: 3 s of no damage, burning pauses. | in a prototype |
+| **Twin Turret** | `twin: { weapon, cal }` | 3 | 6–9 | 5 | A second weapon on its own turret at 60% firepower: pick it when you fit it (medium/rapid/heavy/burst gun, laser, flamethrower, mortar, saw blades; not the robot's own weapon type). Frame +20%, −5% speed. Measured on the s1. starters: +0 (flame) to +13 (saw) win points. | in the tabletop (6 Nov) |
+| **Quantum Shield** | `mod: quantum` | 2 | 5–8 | 4 | Module. Once per fight below 40% HP: 3 s of no damage, burning pauses. | in the tabletop Market as a legendary (6 Nov) |
 
 ## Not in the Market (cut 5 Nov)
 

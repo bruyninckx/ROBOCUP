@@ -12,7 +12,7 @@ Detail docs: `docs/upgrade-cards.md` (+ `.json`), `docs/robot-cards.md`, `docs/i
 | Modules | 6 | Energy Shield, Decoy Hologram, EMP Burst, Grappling Hook, Jump Jets, Oil Slick |
 | Helpers | 6 | Medic, Waller, Bodyguard, Gun Drone, Spotter, Jammer |
 | Stat upgrades | 4 | Reinforced Hull, Tuned Engine, Turret Motor, Targeting Chip |
-| Legendary | 2 | Twin Turret (not in the Sim yet), Quantum Shield |
+| Legendary | 2 | Twin Turret (in the Sim and tabletop since 6 Nov), Quantum Shield |
 
 ## Outside the decks
 - Starters: 2 Scrap Bots + 3 Mechanics + 1 Security Bot per team (or the 9-robot `s1.` draft; Kev to decide). Stock gun, wheels, controller.
@@ -26,7 +26,7 @@ Detail docs: `docs/upgrade-cards.md` (+ `.json`), `docs/robot-cards.md`, `docs/i
 
 ## System numbers
 - Strain: rulebook 5% break chance per ⚡ per fight, halved by a Chief Engineer (the Sim uses its own formula in `riskOf`, roughly 3.5% per ⚡).
-- Robot size: +5% frame per ⚡ (in the Sim since 6 Nov, `Sim.frameOf`; reach stays the stock frame's), Twin Turret +20% (not in the Sim yet). Labels: Light 0–2 ⚡, Medium 3–4, Heavy 5–6, Titan 7+.
+- Robot size: +5% frame per ⚡ (in the Sim since 6 Nov, `Sim.frameOf`; reach stays the stock frame's), Twin Turret +20% (in the Sim since 6 Nov). Labels: Light 0–2 ⚡, Medium 3–4, Heavy 5–6, Titan 7+.
 - Bookie bands: heavy underdog <25%, underdog 25–42%, even 42–58%, favourite 58–75%, heavy favourite >75%.
 - Form of the day: removed 6 Nov (Kev didn't like it).
 - Reading strength (6 Nov): bookie band vs the field on every robot and lot, counter tags (`docs/counter-tags.md`), scout 1 Cr (exact % this round), sparring match 2 Cr in Upkeep.

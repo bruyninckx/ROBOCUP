@@ -128,6 +128,7 @@
     parts.push({ part: 'weapon', name: WNAME[w] || w, strain: STRAIN.weapon[w] || 1 });
     if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: b.cal === 'burst' ? 'Burst Gun' : 'Heavy calibre', strain: STRAIN.cal[b.cal] });
     if (wupOf(b)) parts.push({ part: 'wup', name: WUPS[b.wup].name, strain: STRAIN.wup });
+    if (twinOf(b)) parts.push({ part: 'twin', name: 'Twin Turret', strain: 3 });
     if (b.arm && ARMOURS[b.arm] && STRAIN.arm[b.arm]) parts.push({ part: 'arm', name: ARMOURS[b.arm].name, strain: STRAIN.arm[b.arm] });
     if (b.mod && MODS[b.mod] && STRAIN.mod[b.mod]) parts.push({ part: 'mod', name: MODS[b.mod].name, strain: STRAIN.mod[b.mod] });
     (b.helpers || []).filter(h => HELPERS[h]).slice(0, b.quirk === 'bastion' ? 4 : 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: b.quirk === 'bastion' ? 0 : STRAIN.helper }));
@@ -146,7 +147,13 @@
     { key: 'heavy',  name: 'Heavy',  max: 6 },
     { key: 'titan',  name: 'Titan',  max: 99 },
   ];
-  const frameOf = b => { const st = strainOf(b).total; return Object.assign({ strain: st, size: Math.round(SIZE * (1 + FRAME_PER_STRAIN * st) * 10) / 10 }, FRAMES.find(f => st <= f.max)); };
+  const frameOf = b => { const st = strainOf(b).total; return Object.assign({ strain: st, size: Math.round(SIZE * (1 + FRAME_PER_STRAIN * st) * (twinOf(b) ? 1.2 : 1) * 10) / 10 }, FRAMES.find(f => st <= f.max)); };
+  /* Twin Turret (legendary, Kev 6 Nov): a second weapon on its own turret at 60% firepower, +20% frame, -5% speed, ⚡3.
+   * Build field twin: { weapon, cal }. Ranged weapons only (no spinner, no railgun). */
+  const TWIN_WEAPONS = { gun: 'Medium gun', rapid: 'Rapid-fire gun', heavy: 'Heavy cannon', burst: 'Burst gun', laser: 'Laser', flame: 'Flamethrower', mortar: 'Mortar', saw: 'Saw blades' };
+  const twinSpec = k => ['rapid', 'heavy', 'burst', 'gun'].includes(k) ? { weapon: 'gun', cal: k === 'gun' ? 'medium' : k } : { weapon: k, cal: 'medium' };
+  const twinKey = t => t ? (t.weapon === 'gun' ? (t.cal === 'medium' || !t.cal ? 'gun' : t.cal) : t.weapon) : null;
+  function twinOf(b) { const t = b && b.twin; return t && TWIN_WEAPONS[twinKey(t)] ? t : null; }
   // counter tags (Kev, 6 Nov): the weapon classes players read on cards, and what each weapon / part is strong or weak against
   const WEAPON_CLASSES = {
     gun:     { name: 'Gun',          short: 'gun',     weapon: 'gun', cal: 'medium', range: 'mid' },
@@ -192,6 +199,7 @@
   function breakPart(B, b, p) {
     const key = p.part === 'over' ? p.stat : p.part;
     let label = BREAK_TEXT[key];
+    if (key === 'twin') { if (!b.tw) return false; b.twBroken = true; b.tw.beam = 0; b.tw.flame = 0; label = 'TWIN TURRET JAMMED'; }
     if (key === 'weapon') { b.s.dmg *= 0.5; b.s.fp *= 0.5; if (b.s.weapon === 'spinner') label = 'BLADE CRACKED'; }
     else if (key === 'cal') b.s.acc = Math.max(20, b.s.acc - 25);
     else if (key === 'mod') { if (!b.mod) return false; b.modBroken = b.mod; b.mod = null; b.shield = 0; b.revealed = true; }
@@ -260,6 +268,14 @@
     if (s.arm === 'mesh') { if (b.lv.armor < 4) s.armor = LV.armor[b.lv.armor + 1]; else s.speed *= 1.09; }
     else if (s.arm === 'heat' || s.arm === 'spikes') s.speed *= 0.96;
     else if (s.arm === 'ablative') s.speed *= 0.91;
+    if (b.grudgeOn) { s.fp *= 1.25; s.dmg *= 1.25; }   // Brawler's Grudge: +1 firepower level's worth vs the team that beat it
+    const tw = twinOf(b);
+    if (tw) {
+      s.speed *= 0.95;
+      const t2 = statsOf(Object.assign({}, b, { weapon: tw.weapon, cal: tw.cal || 'medium', wup: null, twin: null, grudgeOn: false }));
+      t2.fp *= 0.6; t2.dmg *= 0.6; if (b.grudgeOn) { t2.fp *= 1.25; t2.dmg *= 1.25; }
+      s.tw = t2;
+    }
     return s;
   }
   // helper drones that roll in with a main robot (max 3)
@@ -305,7 +321,8 @@
         vx: 0, vy: 0, cd: 0.3 + rng() * 0.4, strafe: rng() < 0.5 ? 1 : -1, strafeT: 1 + rng() * 2, hitT: 0, shots: 0, hits: 0, beam: 0, dealt: 0, kills: 0, ff: 0, teamKills: 0, lastBy: -1,
         mod: s.mod, shield: s.mod === 'shield' ? 25 : 0, lastHit: -9, stun: 0, kx: 0, ky: 0, modCd: 0, modUsed: false, revealed: false, healed: 0,
         lv: b.lv, drive: s.drive, proc: s.proc, kb: DRIVES[s.drive].kbMult, dashCd: 1.5, dashT: 0, ramCd: 0, jukeCd: 0, air: 0, wpX: null, wpY: null, wpT: 0, overclockT: 0,
-        arm: s.arm, abl: s.arm === 'ablative' ? 30 : 0, quirk: QUIRKS[b.quirk] ? b.quirk : null, qT: 0, qUsed: false, spikeT: {} };
+        arm: s.arm, abl: s.arm === 'ablative' ? 30 : 0, quirk: QUIRKS[b.quirk] ? b.quirk : null, qT: 0, qUsed: false, spikeT: {},
+        tw: s.tw ? { turret: face, cd: 0.6 + rng() * 0.4, beam: 0, flame: 0, s: s.tw } : null };
     });
     // malfunctions and broken parts come from strain; engineers make them rarer and shorter
     for (const b of bots) {
@@ -326,6 +343,144 @@
       });
     });
     return { W, H, bots, saws: [], bullets: [], shells: [], fx: [], mines: [], decoys: [], smokes: [], walls: [], oils: [], zones: [], banners: [], cmdQueue: [], tick: 0, t: 0, over: false, winner: null, rng, n, log: [], trace: [], how: null };
+  }
+  // one weapon firing (Kev, 6 Nov: shared by the main weapon and the Twin Turret's second weapon)
+  // st = turret state (turret, cd, beam, flame ...), S = that weapon's stats; b is the robot carrying it
+  function fireWeapon(B, b, st, S, o, dist, dt, oc, jammed, accE, fog) {
+    const rng = B.rng;
+    const w = S.weapon;
+    const pspeed = w === 'mortar' ? S.bullet * 0.55 : w === 'saw' ? S.bullet * 0.95 : S.bullet;
+    const tt = w === 'laser' || w === 'railgun' ? 0 : dist / Math.max(50, pspeed);   // beams and the railgun hit instantly
+    const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
+    if (!jammed) st.turret = turnToward(st.turret, aim, rad(S.turret) * oc * b.jam * dt);
+    st.cd -= dt * oc;
+    if (jammed) st.cd = Math.max(st.cd, 0.05);
+    st.beam = 0;
+    const err = Math.abs(wrapA(aim - st.turret));
+    if (w === 'gun' || w === 'shotgun') {
+      if (st.cd <= 0 && err < rad(S.tol) && !allyInLine(B, b, st.turret, dist)) {
+        const pellets = w === 'shotgun' ? 5 : 1;
+        st.cd = 1 / S.fire * (w === 'shotgun' ? 1.6 : 1) * (0.9 + rng() * 0.2);
+        let burstSpread = 0;
+        if (S.cal === 'burst' && w === 'gun') { st.burstN = ((st.burstN || 0) + 1) % 3; burstSpread = st.burstN === 1 ? 0 : rad(3); st.cd = st.burstN === 0 ? st.cd * 2.4 : 0.1; }   // 0.1 s apart, ~0.8 s pause
+        const spread = rad(25) * (1 - accE / 100) + (w === 'shotgun' ? rad(9) : 0) + fog * rad(22) + burstSpread;
+        for (let k = 0; k < pellets; k++) {
+          const a = st.turret + (rng() * 2 - 1) * spread;
+          const sx = b.x + Math.cos(st.turret) * 26, sy = b.y + Math.sin(st.turret) * 26;
+          B.bullets.push({ x: sx, y: sy, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i,
+            dmg: w === 'shotgun' ? S.dmg * 0.42 : S.dmg, life: w === 'shotgun' ? 260 / pspeed : 3 });
+        }
+        B.fx.push({ k: 'flash', x: b.x + Math.cos(st.turret) * 26, y: b.y + Math.sin(st.turret) * 26, life: 0.06 });
+        b.shots += pellets;
+      }
+    } else if (w === 'spinner') {
+      st.spin = (st.spin || 0) + dt * 18;
+      if (st.cd <= 0) {
+        let hit = null, hd = Infinity;
+        for (const e of B.bots) {
+          if (e.hp <= 0 || e.squad === b.squad || e.air > 0) continue;
+          const d = Math.hypot(e.x - b.x, e.y - b.y);
+          if (d < (SIZE + e.size) / 2 + 8 && d < hd) { hd = d; hit = e; }
+        }
+        if (hit && !jammed) {
+          const a = Math.atan2(hit.y - b.y, hit.x - b.x);
+          critHit(B, hit, S.fp * 0.75, b);
+          push(hit, a, 340 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.stun = Math.max(hit.stun, 0.35 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.lastBy = b.i;
+          spikeBack(B, hit, b);
+          b.kx = -Math.cos(a) * 200; b.ky = -Math.sin(a) * 200;
+          st.cd = 1 / S.fire; b.hits++; b.shots++;
+          B.fx.push({ k: 'spark', x: (b.x + hit.x) / 2, y: (b.y + hit.y) / 2, life: 0.2 });
+        }
+      }
+    } else if (w === 'flame') {
+      st.flame = 0;
+      if (dist < 140 && err < rad(25) && !jammed && !allyInLine(B, b, st.turret, dist)) {
+        st.flame = 1;
+        for (const e of B.bots) {
+          if (e.hp <= 0 || e.squad === b.squad) continue;
+          const ex = e.x - b.x, ey = e.y - b.y, d = Math.hypot(ex, ey);
+          if (d > 140 + e.size / 2 || Math.abs(wrapA(Math.atan2(ey, ex) - st.turret)) > rad(22)) continue;
+          if (B.walls.some(wl => wl.team !== b.team && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) != null && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) < d)) continue;
+          hitBot(B, e, S.fp * 0.5 * oc * dt, b, true);
+          if (e.mod === 'reflect' && !e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflective plating vs flames of', tgt: b.i }); }
+          e.burn = Math.min(b.quirk === 'stickyfire' || S.wup === 'napalm' ? 6 : 4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
+          b.hits += dt;
+        }
+        // oil in the cone catches fire
+        for (const q of B.oils) {
+          if (q.fire > 0) continue;
+          const ex = q.x - b.x, ey = q.y - b.y, d = Math.hypot(ex, ey);
+          if (d < 140 + q.r * 0.5 && Math.abs(wrapA(Math.atan2(ey, ex) - st.turret)) < rad(30)) { q.fire = 3; q.life = Math.max(q.life, 3); q.by = b.i; logE(B, { k: 'mod', who: b.i, text: 'set the oil slick on fire' }); }
+        }
+        b.shots += dt;
+      }
+    } else if (w === 'railgun') {
+      // hitscan slug: needs near-perfect aim, goes through every robot and wall in its 450 px path, ignores half the armour
+      if (st.cd <= 0 && err < rad(2) && dist < 450 && !jammed && !allyInLine(B, b, st.turret, dist)) {
+        st.cd = 1 / S.fire;
+        const a = st.turret + (rng() * 2 - 1) * (rad(18) * (1 - accE / 100) + fog * rad(12));
+        for (const e of B.bots) {
+          if (e.squad === b.squad || e.hp <= 0 || e.air > 0) continue;
+          const ex = e.x - b.x, ey = e.y - b.y;
+          const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
+          if (along > 0 && along < 450 && perp < e.size / 2 + 2) { critHit(B, e, S.dmg, b, 0.5); push(e, a, 120); b.hits++; }
+        }
+        B.fx.push({ k: 'rail', x: b.x, y: b.y, a, len: 450, squad: b.squad, life: 0.3 });
+        b.shots++;
+      }
+    } else if (w === 'saw') {
+      if (st.cd <= 0 && err < rad(6) && !allyInLine(B, b, st.turret, dist)) {
+        st.cd = 1 / S.fire * (0.9 + rng() * 0.2);
+        const spread = rad(18) * (1 - accE / 100) + fog * rad(22);
+        const a = st.turret + (rng() * 2 - 1) * spread, v = pspeed;
+        B.saws.push({ x: b.x + Math.cos(st.turret) * 24, y: b.y + Math.sin(st.turret) * 24, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+          owner: b.i, squad: b.squad, dmg: S.dmg, life: 4, hits: 0, maxHits: b.quirk === 'trickshot' || S.wup === 'ricochet' ? 4 : 3, bounces: 0, last: -1, lastT: -9 });
+        b.shots++;
+      }
+    } else if (w === 'mortar') {
+      if (st.cd <= 0 && err < rad(8) && dist > 110) {
+        st.cd = 1 / S.fire;
+        const flight = dist / pspeed;
+        const scatter = 90 * (1 - accE / 100) + fog * 70;
+        const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * scatter;
+        const tx = o.x + o.vx * flight + Math.cos(a) * r, ty = o.y + o.vy * flight + Math.sin(a) * r;
+        // hold fire if a teammate is near the planned impact
+        if (B.bots.some(p => p !== b && p.hp > 0 && p.team === b.team && Math.hypot(p.x - o.x, p.y - o.y) < 60)) { st.cd = 0.2; return; }
+        B.shells.push({ sx: b.x, sy: b.y, tx, ty, t: 0, T: flight, owner: b.i, dmg: S.dmg });
+        b.shots++;
+      }
+    } else if (w === 'laser') {
+      if (dist < 280 && !jammed && !allyInLine(B, b, st.turret, dist)) {
+        const wob = (rad(14) * (1 - accE / 100) + fog * rad(18)) * Math.sin(B.t * 9 + b.i * 2);
+        const a = st.turret + wob;
+        // perpendicular distance from target centre to the beam
+        st.beam = 1; st.beamA = a;
+        // enemy walls cut the beam short
+        let len = 280, wallHit = null;
+        for (const wl of B.walls) {
+          if (wl.team === b.team) continue;
+          const t = rayHitsSeg(b.x, b.y, Math.cos(a), Math.sin(a), wl);
+          if (t != null && t < len) { len = t; wallHit = wl; }
+        }
+        st.beamLen = len;
+        if (wallHit) wallHit.hp -= S.fp * 0.6 * oc * dt;
+        // the beam goes through everything in its path, friend or foe (not its own squad)
+        for (const e of B.bots) {
+          if (e.squad === b.squad || e.hp <= 0) continue;
+          const ex = e.x - b.x, ey = e.y - b.y;
+          const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
+          if (along > 0 && along < len && perp < e.size / 2 && !(e.air > 0)) {
+            if (e.mod === 'reflect') {
+              // half the beam bounces back at the shooter
+              if (!e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflected the laser of', tgt: b.i }); }
+              hitBot(B, e, S.fp * 0.3 * dt, b, true); B.how = 'reflected laser'; hitBot(B, b, S.fp * 0.3 * dt, e, true); B.how = null;
+            } else hitBot(B, e, S.fp * 0.6 * oc * dt, b, true);
+            b.hits += dt;
+          }
+        }
+        b.shots += dt;
+      }
+    }
   }
   // is a teammate standing in the line of fire (before the target)?
   function allyInLine(B, b, a, len) {
@@ -578,7 +733,7 @@
       if (b.glitchT > 0) b.glitchT -= dt;
       const stalled = b.glitchT > 0 && b.glitchKind === 'stall', jammed = b.glitchT > 0 && b.glitchKind === 'jam';
       runModule(B, b, dt);
-      if (b.stun > 0) { b.stun -= dt; b.vx = b.vy = 0; b.beam = 0; continue; }
+      if (b.stun > 0) { b.stun -= dt; b.vx = b.vy = 0; b.beam = 0; if (b.tw) { b.tw.beam = 0; b.tw.flame = 0; } continue; }
       const real = pickTarget(B, b);
       if (!real) continue;
       const dec = B.decoys.find(d => d.owner === real.i && d.fooled.includes(b.i));
@@ -706,139 +861,8 @@
         }
       }
 
-      const w = b.s.weapon;
-      const pspeed = w === 'mortar' ? b.s.bullet * 0.55 : w === 'saw' ? b.s.bullet * 0.95 : b.s.bullet;
-      const tt = w === 'laser' || w === 'railgun' ? 0 : dist / Math.max(50, pspeed);   // beams and the railgun hit instantly
-      const aim = Math.atan2(o.y + o.vy * tt - b.y, o.x + o.vx * tt - b.x);
-      if (!jammed) b.turret = turnToward(b.turret, aim, rad(b.s.turret) * oc * b.jam * dt);
-      b.cd -= dt * oc;
-      if (jammed) b.cd = Math.max(b.cd, 0.05);
-      b.beam = 0;
-      const err = Math.abs(wrapA(aim - b.turret));
-      if (w === 'gun' || w === 'shotgun') {
-        if (b.cd <= 0 && err < rad(b.s.tol) && !allyInLine(B, b, b.turret, dist)) {
-          const pellets = w === 'shotgun' ? 5 : 1;
-          b.cd = 1 / b.s.fire * (w === 'shotgun' ? 1.6 : 1) * (0.9 + rng() * 0.2);
-          let burstSpread = 0;
-          if (b.s.cal === 'burst' && w === 'gun') { b.burstN = ((b.burstN || 0) + 1) % 3; burstSpread = b.burstN === 1 ? 0 : rad(3); b.cd = b.burstN === 0 ? b.cd * 2.4 : 0.1; }   // 0.1 s apart, ~0.8 s pause
-          const spread = rad(25) * (1 - accE / 100) + (w === 'shotgun' ? rad(9) : 0) + fog * rad(22) + burstSpread;
-          for (let k = 0; k < pellets; k++) {
-            const a = b.turret + (rng() * 2 - 1) * spread;
-            const sx = b.x + Math.cos(b.turret) * 26, sy = b.y + Math.sin(b.turret) * 26;
-            B.bullets.push({ x: sx, y: sy, vx: Math.cos(a) * pspeed, vy: Math.sin(a) * pspeed, owner: b.i,
-              dmg: w === 'shotgun' ? b.s.dmg * 0.42 : b.s.dmg, life: w === 'shotgun' ? 260 / pspeed : 3 });
-          }
-          B.fx.push({ k: 'flash', x: b.x + Math.cos(b.turret) * 26, y: b.y + Math.sin(b.turret) * 26, life: 0.06 });
-          b.shots += pellets;
-        }
-      } else if (w === 'spinner') {
-        b.spin = (b.spin || 0) + dt * 18;
-        if (b.cd <= 0) {
-          let hit = null, hd = Infinity;
-          for (const e of B.bots) {
-            if (e.hp <= 0 || e.squad === b.squad || e.air > 0) continue;
-            const d = Math.hypot(e.x - b.x, e.y - b.y);
-            if (d < (SIZE + e.size) / 2 + 8 && d < hd) { hd = d; hit = e; }
-          }
-          if (hit && !jammed) {
-            const a = Math.atan2(hit.y - b.y, hit.x - b.x);
-            critHit(B, hit, b.s.fp * 0.75, b);
-            push(hit, a, 340 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.stun = Math.max(hit.stun, 0.35 * (hit.arm === 'spikes' ? 0.5 : 1)); hit.lastBy = b.i;
-            spikeBack(B, hit, b);
-            b.kx = -Math.cos(a) * 200; b.ky = -Math.sin(a) * 200;
-            b.cd = 1 / b.s.fire; b.hits++; b.shots++;
-            B.fx.push({ k: 'spark', x: (b.x + hit.x) / 2, y: (b.y + hit.y) / 2, life: 0.2 });
-          }
-        }
-      } else if (w === 'flame') {
-        b.flame = 0;
-        if (dist < 140 && err < rad(25) && !jammed && !allyInLine(B, b, b.turret, dist)) {
-          b.flame = 1;
-          for (const e of B.bots) {
-            if (e.hp <= 0 || e.squad === b.squad) continue;
-            const ex = e.x - b.x, ey = e.y - b.y, d = Math.hypot(ex, ey);
-            if (d > 140 + e.size / 2 || Math.abs(wrapA(Math.atan2(ey, ex) - b.turret)) > rad(22)) continue;
-            if (B.walls.some(wl => wl.team !== b.team && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) != null && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) < d)) continue;
-            hitBot(B, e, b.s.fp * 0.5 * oc * dt, b, true);
-            if (e.mod === 'reflect' && !e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflective plating vs flames of', tgt: b.i }); }
-            e.burn = Math.min(b.quirk === 'stickyfire' || b.s.wup === 'napalm' ? 6 : 4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
-            b.hits += dt;
-          }
-          // oil in the cone catches fire
-          for (const q of B.oils) {
-            if (q.fire > 0) continue;
-            const ex = q.x - b.x, ey = q.y - b.y, d = Math.hypot(ex, ey);
-            if (d < 140 + q.r * 0.5 && Math.abs(wrapA(Math.atan2(ey, ex) - b.turret)) < rad(30)) { q.fire = 3; q.life = Math.max(q.life, 3); q.by = b.i; logE(B, { k: 'mod', who: b.i, text: 'set the oil slick on fire' }); }
-          }
-          b.shots += dt;
-        }
-      } else if (w === 'railgun') {
-        // hitscan slug: needs near-perfect aim, goes through every robot and wall in its 450 px path, ignores half the armour
-        if (b.cd <= 0 && err < rad(2) && dist < 450 && !jammed && !allyInLine(B, b, b.turret, dist)) {
-          b.cd = 1 / b.s.fire;
-          const a = b.turret + (rng() * 2 - 1) * (rad(18) * (1 - accE / 100) + fog * rad(12));
-          for (const e of B.bots) {
-            if (e.squad === b.squad || e.hp <= 0 || e.air > 0) continue;
-            const ex = e.x - b.x, ey = e.y - b.y;
-            const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
-            if (along > 0 && along < 450 && perp < e.size / 2 + 2) { critHit(B, e, b.s.dmg, b, 0.5); push(e, a, 120); b.hits++; }
-          }
-          B.fx.push({ k: 'rail', x: b.x, y: b.y, a, len: 450, squad: b.squad, life: 0.3 });
-          b.shots++;
-        }
-      } else if (w === 'saw') {
-        if (b.cd <= 0 && err < rad(6) && !allyInLine(B, b, b.turret, dist)) {
-          b.cd = 1 / b.s.fire * (0.9 + rng() * 0.2);
-          const spread = rad(18) * (1 - accE / 100) + fog * rad(22);
-          const a = b.turret + (rng() * 2 - 1) * spread, v = pspeed;
-          B.saws.push({ x: b.x + Math.cos(b.turret) * 24, y: b.y + Math.sin(b.turret) * 24, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
-            owner: b.i, squad: b.squad, dmg: b.s.dmg, life: 4, hits: 0, maxHits: b.quirk === 'trickshot' || b.s.wup === 'ricochet' ? 4 : 3, bounces: 0, last: -1, lastT: -9 });
-          b.shots++;
-        }
-      } else if (w === 'mortar') {
-        if (b.cd <= 0 && err < rad(8) && dist > 110) {
-          b.cd = 1 / b.s.fire;
-          const flight = dist / pspeed;
-          const scatter = 90 * (1 - accE / 100) + fog * 70;
-          const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * scatter;
-          const tx = o.x + o.vx * flight + Math.cos(a) * r, ty = o.y + o.vy * flight + Math.sin(a) * r;
-          // hold fire if a teammate is near the planned impact
-          if (B.bots.some(p => p !== b && p.hp > 0 && p.team === b.team && Math.hypot(p.x - o.x, p.y - o.y) < 60)) { b.cd = 0.2; continue; }
-          B.shells.push({ sx: b.x, sy: b.y, tx, ty, t: 0, T: flight, owner: b.i, dmg: b.s.dmg });
-          b.shots++;
-        }
-      } else if (w === 'laser') {
-        if (dist < 280 && !jammed && !allyInLine(B, b, b.turret, dist)) {
-          const wob = (rad(14) * (1 - accE / 100) + fog * rad(18)) * Math.sin(B.t * 9 + b.i * 2);
-          const a = b.turret + wob;
-          // perpendicular distance from target centre to the beam
-          b.beam = 1; b.beamA = a;
-          // enemy walls cut the beam short
-          let len = 280, wallHit = null;
-          for (const wl of B.walls) {
-            if (wl.team === b.team) continue;
-            const t = rayHitsSeg(b.x, b.y, Math.cos(a), Math.sin(a), wl);
-            if (t != null && t < len) { len = t; wallHit = wl; }
-          }
-          b.beamLen = len;
-          if (wallHit) wallHit.hp -= b.s.fp * 0.6 * oc * dt;
-          // the beam goes through everything in its path, friend or foe (not its own squad)
-          for (const e of B.bots) {
-            if (e.squad === b.squad || e.hp <= 0) continue;
-            const ex = e.x - b.x, ey = e.y - b.y;
-            const along = ex * Math.cos(a) + ey * Math.sin(a), perp = Math.abs(-ex * Math.sin(a) + ey * Math.cos(a));
-            if (along > 0 && along < len && perp < e.size / 2 && !(e.air > 0)) {
-              if (e.mod === 'reflect') {
-                // half the beam bounces back at the shooter
-                if (!e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflected the laser of', tgt: b.i }); }
-                hitBot(B, e, b.s.fp * 0.3 * dt, b, true); B.how = 'reflected laser'; hitBot(B, b, b.s.fp * 0.3 * dt, e, true); B.how = null;
-              } else hitBot(B, e, b.s.fp * 0.6 * oc * dt, b, true);
-              b.hits += dt;
-            }
-          }
-          b.shots += dt;
-        }
-      }
+      fireWeapon(B, b, b, b.s, o, dist, dt, oc, jammed, accE, fog);
+      if (b.tw && !b.twBroken) fireWeapon(B, b, b.tw, b.tw.s, o, dist, dt, oc, jammed, accE, fog);   // Twin Turret: second weapon at 60%
       b.hitT = Math.max(0, b.hitT - dt);
     }
     for (let k = B.bullets.length - 1; k >= 0; k--) {
@@ -1189,7 +1213,7 @@
   }
 
   const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'railgun'];
-  const Sim = { zoneOf, suddenAt, WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
+  const Sim = { TWIN_WEAPONS, twinSpec, twinKey, twinOf, zoneOf, suddenAt, WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 

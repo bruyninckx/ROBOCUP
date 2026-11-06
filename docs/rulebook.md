@@ -106,7 +106,7 @@ The Market has three steps: open market, auction, host bid. Robots, crew, parts 
 4. **Tie again with nobody adding:** the team with less fame wins. The game shows this as a warning before the rebid, so everyone knows what a standstill means.
 5. **All bids 0:** the auction fails and the card is discarded.
 
-Sovereign Foundry wins any tie it's in, without a rebid. Legendary cards (Railgunner, Twin Turret, Quantum Shield) are announced one round before they come up, so teams can save. The Market Analyst sees the next round's lots early.
+Sovereign Foundry wins any tie it's in, without a rebid. Legendary cards (Railgunner, Twin Turret, Quantum Shield) are announced one round before they come up, so teams can save (tabletop, 6 Nov: from round 2, every other round announces one for the next round, where it takes one of the lot slots; an unsold legendary comes back later). New Robot lots deal the Market robot cards (with their quirks), then `s1.` starters; a scrapped or unsold robot card goes back into the robot deck. The Market Analyst sees the next round's lots early.
 
 **3. Host bid.** Same rules as an auction; the winner takes the host token, hosts this round's fight and goes first in the next Intrigue phase. If every host bid is 0, a random bidder gets the token.
 
