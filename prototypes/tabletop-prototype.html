@@ -895,6 +895,11 @@ html, body {
   const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };
   const SCHEME_STEPS = '<br><br><b>How a play resolves</b><br>1. Fame gate: short on fame? Ask other teams to back you.<br>2. Harmful card: the target\'s Security Bots roll, 4–6 blocks.<br>3. Reaction window: any team may block it with a reaction card.<br>4. The effect happens (✓ landed) or not (✋ blocked).';
   // header of one Intrigue play in the log (a rival's face-down card stays secret)
+  // asking for backing keeps the card secret (Kev, 6 Nov): the log names it only once it is really played
+  function secretHead(F, T) {
+    logBegin('🤫 ' + nm(F) + ' asks for backing for a secret scheme' + (T && T !== F ? ' on ' + nm(T) : ''), F.col, '🤫 Secret scheme', 'A team that lacks the fame for a card asks the others to back it, without saying which card. If the backing is enough, the card is played and shown; if not, it stays secret in their hand.');
+    LOGC.group.secret = true;
+  }
   function playHead(F, id, T) {
     const c = CARDS[id], hidden = c.t === 'F' && F.i !== HS;
     const head = (hidden ? '🂠 ' : c.icon + ' ') + nm(F) + ' plays ' + (hidden ? 'a face-down card' : cardRef(id)) + (T && T !== F ? ' on ' + nm(T) : '');
@@ -1822,7 +1827,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 topbar-hand-arena';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 secret-backing';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2400,6 +2405,10 @@ html, body {
   async function playScheme(F, id, T) {
     const c = CARDS[id];
     if (!LOGC.group) { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); }
+    else if (LOGC.group.secret) {   // backed: now the card is played, and shown
+      const ph = playHead(F, id, T), g = LOGC.group;
+      g.head.innerHTML = ph[0]; g.head.dataset.help = ph[1] + '|' + ph[2]; g.text = ptPlain(ph[0]); g.secret = false;
+    }
     await playFx(F, id, T);
     removeFromHand(F, id);
     const d = await defend(F, c, T);
@@ -2495,8 +2504,10 @@ html, body {
       const T = aiTarget(F, c);
       if (T === undefined || precheck(F, c, T) || !aiWants(F, c, T)) continue;
       if (!gateOk(c, F, T)) {
-        if (typeof c.gate !== 'number' || needOf(F, c) - F.fame > 8 || rnd() < 0.4) continue;
-        { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing'); }
+        // Kev, 6 Nov: only ask when the other teams' fame could close the gap (Red Rivets asked for 8 fame when all three rivals had 1)
+        const gap = needOf(F, c) - F.fame, could = G.teams.filter(o => o !== F && o !== T).reduce((a, o) => a + o.fame + (hasCrew(o, 'fixer') ? 2 : 0), 0);
+        if (typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+        secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
         if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
       }
       await sleep(450);
@@ -2550,8 +2561,8 @@ html, body {
     try {
       if (!gateOk(c, F, T)) {
         if (typeof c.gate !== 'number') { notify('⚠️ ' + cardRef(id) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
-        { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); notify('needs ' + needOf(F, c) + ' fame, you have ' + F.fame + ': asking for backing'); }
-        if (!(await humanBacking(c, T))) { notify('not enough backing: ' + cardRef(id) + ' stays in your hand'); logEnd('failed'); return false; }
+        secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, you have ' + F.fame + ': asking for backing');
+        if (!(await humanBacking(c, T))) { notify('not enough backing: the card stays secret in your hand'); logEnd('failed'); return false; }
       }
       await playScheme(F, id, T);
     } finally { G.ivBusy = false; updateHud(); }
