@@ -56,6 +56,7 @@ html, body {
   gap: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   backdrop-filter: blur(4px);
+  white-space: nowrap;   /* Kev, 6 Nov: the bar stays on one line */
 }
 @media (max-width: 1300px) {
   .top-pill { gap: 7px; padding: 4px 10px; max-width: calc(100vw - var(--colw) - 8px); }
@@ -224,11 +225,26 @@ html, body {
   inset: 0;
   pointer-events: none;
 }
-.hand-tab {
+.hand-bar {   /* Kev, 6 Nov: tab + "keep open" + "move" toggles */
   position: absolute;
   bottom: 204px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex; gap: 6px; align-items: center;
+  z-index: 5;
+}
+.hand-ctl {
+  font: inherit; font-size: 10px; font-weight: 800;
+  background: #fff; border: 1.5px solid var(--ink); border-radius: 999px; padding: 2px 9px;
+  pointer-events: auto; cursor: pointer; white-space: nowrap; color: var(--ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.hand-ctl:hover { background: #eee; }
+.hand-ctl.on { background: var(--ink); color: #fff; }
+.hand-tray:has(.hs-slot:hover) .hand-ctl { opacity: 0; pointer-events: none; }
+.hand-stage { transition: left .25s ease; }
+.hand-tab {
+  position: relative;
   background: #ffffff;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -481,8 +497,6 @@ html, body {
     <option value="2">Seat: Green Gears</option>
     <option value="3">Seat: Orange Ohms</option>
   </select>
-  <button class="pill-btn" id="quickFightBtn" title="Test a live fight with Combat Cards right now">⚡ Instant Fight</button>
-  <button class="pill-btn" id="camToggleBtn" title="Toggle camera between Full Compound and Arena Zoom">🔍 View</button>
 </div>
 
 <!-- Dynamic Prompt Pill -->
@@ -497,11 +511,15 @@ html, body {
 <!-- Hearthstone-Style Arched Hand -->
 <div class="hand-stage" id="handStage">
   <div class="hand-tray" id="handTray">
-    <button class="hand-tab" id="handTab" type="button" title="Click to pin/unpin hand">
-      <span class="tab-arrow">▲</span>
-      <span class="tab-label">HAND</span>
-      <span class="tab-count" id="handCount">(0)</span>
-    </button>
+    <div class="hand-bar">
+      <button class="hand-ctl" id="handSide" type="button" title="Move the hand: under your middle, left or right bay">⇆ middle</button>
+      <button class="hand-tab" id="handTab" type="button" title="Click to pin/unpin hand">
+        <span class="tab-arrow">▲</span>
+        <span class="tab-label">HAND</span>
+        <span class="tab-count" id="handCount">(0)</span>
+      </button>
+      <button class="hand-ctl" id="handPin" type="button" title="Keep the hand open">📌 keep open</button>
+    </div>
     <div class="cards-fan" id="cardsFan"></div>
   </div>
 </div>
@@ -1557,7 +1575,7 @@ html, body {
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
     const fitW = (sw - 36 - logRoom()) / (BOARD.W + 16);
-    const fitH = (sh - 135) / 665;   // the top pill above, the hand tab below (layout check 6 Nov: 110 let the tab cover the bottom bay row)
+    const fitH = (sh - 120) / 690;   // the one-line top bar above, the hand tab below; 690 = the board plus its coin rows
     return Math.max(0.52, Math.min(1.7, Math.min(fitW, fitH)));   // layout check 6 Nov: was capped at 1.04, tiny on 2560+ screens
   }
 
@@ -1804,7 +1822,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 board-layout';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 topbar-hand-arena';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2173,7 +2191,7 @@ html, body {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
           (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); await sleep(950); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
+      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -3827,7 +3845,7 @@ html, body {
      moment (the rest of the box darkens), an arrow points at the target, and blocks, Security Bot rolls and backing get
      a short pop in the box of whoever does it. The game waits while it shows. ---------- */
   const FX = [];
-  const FX_DUR = { play: 1500, react: 1150, roll: 1050, back: 950 };
+  const FX_DUR = { play: 4000, react: 3650, roll: 1550, back: 1450 };   // Kev, 6 Nov: each 0.5 s slower, cards 2 s longer still
   function boardFx(o) {
     if (!G || G.fast) return Promise.resolve();
     o.t0 = performance.now(); o.dur = o.dur || FX_DUR[o.kind] || 1000; FX.push(o);
@@ -3880,6 +3898,14 @@ html, body {
   }
   // 🪙 a row of coins above every team's box: its wealth at a glance (Kev, 6 Nov); +N / −N floats up when it changes
   const purseSeen = {}, purseFx = [];
+  let handSide = 'middle', handLeftPx = null;
+  function placeHand(L) {   // the hand sits under your middle bay (default), or under your right / left bay
+    const S = L.slots[0], k = { left: 0, middle: 1, right: 2 }[handSide];
+    const wx = S.gx - S.gw / 2 + 16 + (S.gw - 1124) / 2 + k * 369 + 177;
+    const sx = worldToScreen(wx, 0).x, half = 370, x = Math.round(Math.max(half, Math.min(window.innerWidth - half, sx)));
+    if (G.phase === 'fight' || handSide === 'middle' && Math.abs(x - window.innerWidth / 2) < 2) { if (handLeftPx !== 'c') { $('#handStage').style.left = ''; handLeftPx = 'c'; } return; }
+    if (x !== handLeftPx) { $('#handStage').style.left = x + 'px'; handLeftPx = x; }
+  }
   function drawPurse(ctx, t, B) {
     const n = Math.max(0, t.credits), show = Math.min(n, 40), r = 5.5, avail = B.w - 64, step = show > 1 ? Math.min(12, avail / show) : 12;
     const y = B.y - 9, x0 = B.x + 4 + r;
@@ -3924,12 +3950,12 @@ html, body {
         if (f.tgt != null) label('→ ' + G.teams[f.tgt].name, cy + chh + 18, G.teams[f.tgt].col, 11);
       } else if (f.kind === 'roll') {
         const sz = 62 * (0.7 + 0.3 * pop), dx = B.x + B.w / 2 - sz / 2, dy = B.y + B.h / 2 - sz / 2 - 6;
-        const face = t < 450 ? 1 + Math.floor(t / 60) % 6 : f.roll;   // tumbles, then lands on the real roll
+        const face = t < 700 ? 1 + Math.floor(t / 60) % 6 : f.roll;   // tumbles, then lands on the real roll
         ctx.fillStyle = '#fff'; rrect(ctx, dx, dy, sz, sz, 12); ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; rrect(ctx, dx, dy, sz, sz, 12); ctx.stroke();
         const pip = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[face];
         ctx.fillStyle = '#111'; pip.forEach(([px, py]) => { ctx.beginPath(); ctx.arc(dx + sz / 2 + px * sz * 0.26, dy + sz / 2 + py * sz * 0.26, sz * 0.08, 0, Math.PI * 2); ctx.fill(); });
         label('🤖 SECURITY BOT', dy - 8, '#6d28d9', 11);
-        if (t >= 450) label(f.ok ? 'BLOCKED!' : 'fails', dy + sz + 22, f.ok ? '#2a9d3a' : '#d62828', 13);
+        if (t >= 700) label(f.ok ? 'BLOCKED!' : 'fails', dy + sz + 22, f.ok ? '#2a9d3a' : '#d62828', 13);
       } else if (f.kind === 'back') {
         const cy = B.y + B.h / 2;
         ctx.font = (40 * (0.7 + 0.3 * pop)) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🤝', B.x + B.w / 2, cy + 6);
@@ -4218,6 +4244,7 @@ html, body {
     }
 
     if (G.phase !== 'fight') G.teams.forEach(t => { const B = boxOf(L, t.i); if (B) drawPurse(ctx, t, B); });
+    placeHand(L);
     drawBoardFx(ctx, L);
 
     // Welding sparks FX in garages
@@ -5530,13 +5557,15 @@ html, body {
     }
     ctx.restore();
   }
+  // where the battle is drawn: the arena box of the board layout (it grows from the pit to full size as a fight starts)
+  function battleFrame(L) { const k = Math.min(L.aw / Sim.W, L.ah / Sim.H); return { k, x0: L.ax - Sim.W * k / 2, y0: L.ay - Sim.H * k / 2 }; }
   function drawLiveBattleInArena(ctx, now, L) {
-    const F = G.fight, B = F.B, ax0 = -Sim.W / 2, ay0 = -Sim.H / 2;
+    const F = G.fight, B = F.B, fr = battleFrame(L), ax0 = fr.x0, ay0 = fr.y0;   // board layout: the battle sits in the arena box
     // colours: a bot takes its entrant team's colour (House Robot grey); things with a sim team use that team's side
     const colBot = i => { const e = F.botEnt ? F.botEnt[i] : i; return e == null || e < 0 ? HOUSE_COL : G.teams[F.teams[e]] ? G.teams[F.teams[e]].col : '#111'; };
     const colTeam = t => { if (!F.teamOpt) return colBot(t); if (t === 9) return HOUSE_COL; const e = F.sides ? F.sides.indexOf(t) : t; return e >= 0 && G.teams[F.teams[e]] ? G.teams[F.teams[e]].col : '#111'; };
     const colOf = x => x.team != null ? colTeam(x.team) : colBot(x.owner);
-    const sc = Math.min(Sim.W / B.W, Sim.H / B.H);   // bigger battles (5+ robots) get a bigger arena: draw it scaled down
+    const sc = Math.min(Sim.W / B.W, Sim.H / B.H) * fr.k;   // bigger battles (5+ robots) get a bigger arena: draw it scaled down; fr.k while the pit grows
 
     ctx.save();
     ctx.translate(ax0, ay0);
@@ -5843,10 +5872,11 @@ html, body {
       humanPlay(dc.id, gHit ? gHit.team : null);
       return true;
     } else if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
-      const inArena = wx >= -Sim.W / 2 && wx <= Sim.W / 2 && wy >= -Sim.H / 2 && wy <= Sim.H / 2;
+      const fr = battleFrame(getDynamicLayout(arenaExpand));
+      const inArena = wx >= fr.x0 && wx <= fr.x0 + Sim.W * fr.k && wy >= fr.y0 && wy <= fr.y0 + Sim.H * fr.k;
       if (!inArena) return false;
-      const B = G.fight.B, dsc = Math.min(Sim.W / B.W, Sim.H / B.H);
-      const localX = (wx + Sim.W / 2) / dsc, localY = (wy + Sim.H / 2) / dsc;
+      const B = G.fight.B, dsc = Math.min(Sim.W / B.W, Sim.H / B.H) * fr.k;
+      const localX = (wx - fr.x0) / dsc, localY = (wy - fr.y0) / dsc;
       let nearSlot = 0, bestD = Infinity;
       B.bots.filter(b => !b.helper).forEach((b, s) => {
         const d = Math.hypot(b.x - localX, b.y - localY);
@@ -6123,19 +6153,26 @@ html, body {
   $('#handTab').addEventListener('pointerenter', () => {
     $('#handStage').classList.add('open');
   });
-  $('#handTab').onclick = e => {
-    e.stopPropagation();
-    const tray = $('#handTray');
-    tray.classList.toggle('pinned');
-    const pinned = tray.classList.contains('pinned');
-    $('#handTab').title = pinned ? 'Hand pinned open (click to collapse)' : 'Click to pin hand open';
+  // Kev, 6 Nov: "keep open" toggle (remembered) and a toggle that moves the hand under your middle, right or left bay
+  const setPin = on => {
+    const tray = $('#handTray'); tray.classList.toggle('pinned', on);
+    $('#handPin').classList.toggle('on', on); $('#handPin').textContent = on ? '📌 kept open' : '📌 keep open';
+    $('#handTab').title = on ? 'Hand kept open (click to collapse)' : 'Click to keep the hand open';
+    try { localStorage.setItem('robocus.handPinned', on ? '1' : '0'); } catch (e) {}
   };
+  $('#handTab').onclick = e => { e.stopPropagation(); setPin(!$('#handTray').classList.contains('pinned')); };
+  $('#handPin').onclick = e => { e.stopPropagation(); setPin(!$('#handTray').classList.contains('pinned')); };
+  const SIDES = ['middle', 'right', 'left'];
+  const setSide = k => { handSide = k; $('#handSide').textContent = '⇆ ' + k; $('#handSide').classList.toggle('on', k !== 'middle'); try { localStorage.setItem('robocus.handSide', k); } catch (e) {} };
+  $('#handSide').onclick = e => { e.stopPropagation(); setSide(SIDES[(SIDES.indexOf(handSide) + 1) % 3]); };
+  try { if (localStorage.getItem('robocus.handPinned') === '1') setPin(true); const sd = localStorage.getItem('robocus.handSide'); if (SIDES.includes(sd)) setSide(sd); } catch (e) {}
   window.addEventListener('resize', () => {
     if (!cam.manualZoom) {
       setCameraGoal(G?.phase === 'fight' ? 'arena' : 'compound');
     }
   });
-  $('#camToggleBtn').onclick = () => {
+  // Kev, 6 Nov: the 🔍 View and ⚡ Instant Fight buttons are gone from the top bar (handlers kept, guarded)
+  if ($('#camToggleBtn')) $('#camToggleBtn').onclick = () => {
     cam.manualZoom = !cam.manualZoom;
     if (cam.manualZoom) {
       const zoomedIn = cam.tzoom > 0.85;
@@ -6158,7 +6195,7 @@ html, body {
   })();
   $('#ptBtn').onclick = ptMenu;
   ptRestoreDir();
-  $('#quickFightBtn').onclick = () => {
+  if ($('#quickFightBtn')) $('#quickFightBtn').onclick = () => {
     if (G.phase === 'setup') quickFinishSetup();
     const t = me();
     ['trigger', 'waypoint', 'overclock', 'field_eng'].forEach(cid => {
