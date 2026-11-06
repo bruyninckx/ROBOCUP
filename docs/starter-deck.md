@@ -45,3 +45,4 @@ How they were made: stat points tuned by simulation (random allocations within e
 ## Open
 - Both `prototypes/tabletop-prototype.html` and `prototypes/scrapyard-dominus.html` now implement the 3-step Opening Setup (Sponsor Contract → Starter Deck Draft Pick 1 of 3 → Starter Deck Draft Pick 2 of 3) using the shared 9-card `STARTERS` deck and `SMATRIX` AI counter-drafting, and `New Robot` / `Mystery Chassis` market lots deal a stock `s1.` starter from the remaining starter deck.
 - Prices: starters are free at game start; `Mystery Chassis` / `New Robot` market lots deal a random stock starter.
+- Tabletop (Kev, 6 Nov): a `New Robot` lot draws its starter when the Market is dealt and shows that robot on its tile (stats, weapon, frame, tags, bookie band); the winner gets exactly that robot, an unsold one goes back to the deck.

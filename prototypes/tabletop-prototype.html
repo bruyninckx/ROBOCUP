@@ -664,6 +664,10 @@ html, body {
     mech:      { name: 'Hire Mechanic',   icon: '🔧', text: '+1 Mechanic (+1 Cr/R)',mech: true },
     eng:       { name: 'Hire Engineer',   icon: '👷', text: '+1 Engineer (Reliability)', eng: true },
   };
+  // Kev, 6 Nov: one lot per player (4 lots, then the host bid), and a New Robot lot shows the actual robot for sale
+  const NLOTS = 4, HOST_K = NLOTS;
+  const zeroBids = () => new Array(NLOTS + 1).fill(0);
+  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
   // Winner's Crate cut (rulebook, 5 Nov): only the loser draws a Scrap Crate
 
   const TEAMS = [
@@ -770,7 +774,7 @@ html, body {
     return [c.icon + ' ' + esc(c.name), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
-  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text)) + '>' + esc(L.name) + '</span>' : esc(id); };
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };
   const SCHEME_STEPS = '<br><br><b>How a play resolves</b><br>1. Fame gate: short on fame? Ask other teams to back you.<br>2. Harmful card: the target\'s Security Bots roll, 4–6 blocks.<br>3. Reaction window: any team may block it with a reaction card.<br>4. The effect happens (✓ landed) or not (✋ blocked).';
   // header of one Intrigue play in the log (a rival's face-down card stays secret)
   function playHead(F, id, T) {
@@ -1064,7 +1068,7 @@ html, body {
     setup: 'Pick a sponsor and draft your starter robot.',
     upkeep: 'Robots get ready, mechanics earn credits, repairs, engineers; scouting and sparring.',
     intrigue: 'Teams take turns playing schemes (fame gates, backing, reactions) or cashing cards in.',
-    market: 'Sealed bids on 3 lots and the right to host. Ties: rebid, less fame wins.',
+    market: 'Sealed bids on 4 lots (one per player), then a separate bid to host. Ties: rebid, less fame wins.',
     arena: 'The host invites two teams; each sends a robot.',
     bets: 'Everyone bets on the fight at the bookie\'s odds.',
     fight: 'The auto-battle. Live cards can be played into it.',
@@ -1214,7 +1218,7 @@ html, body {
         pb.innerHTML = '<span>🔧 <b>Lots won.</b> Before anything is fitted, teams holding <b>Botched Install</b> may wreck a rival\'s part…</span>';
       } else if (G.marketAuction && G.marketAuction.tie) {
         const tie = G.marketAuction.tie;
-        const lotName = tie.k < 3 ? LOTS[G.market[tie.k]].name : 'Host the Fight';
+        const lotName = tie.k < NLOTS ? LOTS[G.market[tie.k]].name : 'Host the Fight';
         const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
         pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${tie.myAdd}/${tie.maxMyAdd} Cr → Total ${tie.baseBid + tie.myAdd} Cr). ⚠️ If nobody adds, the team with less fame wins.</span>` +
           `<button class="act" id="pAct1">Lock Rebid (+${tie.myAdd} Cr) →</button>`;
@@ -1237,11 +1241,11 @@ html, body {
         pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
         $('#pAct1').onclick = startLots;
       } else if (G.marketStage === 'host') {
-        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[3] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.</span>' +
+        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.</span>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
-        $('#pAct1').onclick = () => resolveHostBid(G.myBids[3] || 0);
+        $('#pAct1').onclick = () => resolveHostBid(G.myBids[HOST_K] || 0);
       } else {
-        const spent = (G.myBids || [0, 0, 0, 0]).slice(0, 3).reduce((a, b) => a + b, 0);
+        const spent = (G.myBids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
         pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.</span>' +
           '<button class="act" id="pAct1">Lock Bids →</button>';
         $('#pAct1').onclick = () => resolveMarket(G.myBids);
@@ -1468,7 +1472,7 @@ html, body {
         hand: [], robots: [], tamper: {}, schemeLog: [], secBots: 1, exMechs: 0, exSec: 0, shill: 0
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
-      lots: shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot'])),
+      lots: lotDeck(),
       fight: null, over: false, crateChoices: null
     };
     setCameraGoal('compound');
@@ -1639,7 +1643,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 playtest-log';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 market-4-lots';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2313,9 +2317,10 @@ html, body {
     G.marketResults = null;
     G.marketAuction = null;
     setCameraGoal('compound');
-    if (G.lots.length < 3) G.lots = shuffle(Object.keys(LOTS).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot']));
-    G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
-    G.myBids = [0, 0, 0, 0];
+    if (G.lots.length < NLOTS) G.lots = lotDeck();
+    G.market = [];
+    for (let k = 0; k < NLOTS; k++) G.market.push(dealLot());
+    G.myBids = zeroBids();
     G.pendingInstall = [];
     G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
     updateHud();
@@ -2365,10 +2370,10 @@ html, body {
     } else notify('✋ ' + nm(O) + ' turns the trade down (you give ' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
     updateHud();
   }
-  function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the 3 lots.', '#111'); updateHud(); }
+  function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the ' + NLOTS + ' lots.', '#111'); updateHud(); }
   function continueMarket() { if (G.hostResolved) startArena(); else startHostBid(); }
   function startHostBid() {
-    G.marketStage = 'host'; G.marketResolved = false; G.myBids = [0, 0, 0, 0];
+    G.marketStage = 'host'; G.marketResolved = false; G.myBids = zeroBids();
     notify('👑 <b>Host bid:</b> every team bids in secret for the right to host this round.', '#111');
     updateHud();
   }
@@ -2379,23 +2384,22 @@ html, body {
   }
   function resolveHostBid(myBid) {
     if (G.marketAuction) return;
-    const all = G.teams.map(t => [0, 0, 0, Math.min(t.credits, t.i === viewerSeat ? myBid : aiHostBid(t))]);
-    G.teams.forEach((t, i) => { if (t.shill && all[i][3]) all[i][3] = Math.max(0, all[i][3] - t.shill); });
-    G.marketAuction = { all, initialAll: all.map(b => b.slice()), rebidAdds: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], curK: 3, lastK: 3, hostOnly: true, wins: [], results: [], tie: null };
+    const all = G.teams.map(t => { const b = zeroBids(); b[HOST_K] = Math.min(t.credits, t.i === viewerSeat ? myBid : aiHostBid(t)); return b; });
+    G.teams.forEach((t, i) => { if (t.shill && all[i][HOST_K]) all[i][HOST_K] = Math.max(0, all[i][HOST_K] - t.shill); });
+    G.marketAuction = { all, initialAll: all.map(b => b.slice()), rebidAdds: G.teams.map(zeroBids), curK: HOST_K, lastK: HOST_K, hostOnly: true, wins: [], results: [], tie: null };
     stepMarketAuction();
   }
 
   function aiBids(t) {
     let budget = t.credits;
-    return [0, 1, 2, 3].map(k => {
-      if (k === 3) return 0;                               // hosting is a separate bid after the lots
+    return zeroBids().map((_, k) => {
+      if (k === HOST_K) return 0;                          // hosting is a separate bid after the lots
       if (!canTake(t, G.market[k])) {                      // no robot of ours can take it: only as a cheap Stash buy (to trade, or to keep it from a rival)
         const lead = leaderOf(), g = lead !== t ? partGain(lead, G.market[k]) : null;
         const b = (g && g.d > 0.08) || rnd() < 0.2 ? Math.min(budget, 1 + (rnd() < 0.4 ? 1 : 0)) : 0;
         budget -= b; return b;
       }
-      const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) + (t.sponsor === 'apex' ? 1.2 : 0)
-                           : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'eng' ? 3 : 2.2);
+      const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], 4) : G.market[k] === 'eng' ? 3 : 2.2;
       let b = Math.round(want * (0.4 + rnd() * 1.1));
       b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
       budget -= b;
@@ -2405,11 +2409,11 @@ html, body {
 
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
-    if (k < 3 && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
-    const lotId = k < 3 ? G.market[k] : 'host';
-    const maxWilling = k === 3
+    if (k < NLOTS && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
+    const lotId = k < NLOTS ? G.market[k] : 'host';
+    const maxWilling = k === HOST_K
       ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
-      : (lotId === 'robot' && t.robots.length < 3 ? 5.5 : (lotId === 'eng' || lotId === 'mech') ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
+      : (LOTS[lotId].robot ? robotWant(t, lotId, 5.5) : (lotId === 'eng' || lotId === 'mech') ? 4.2 : 3.5) + (t.sponsor === 'sovereign' ? 1.0 : 0);
     const add = Math.round(Math.max(0, maxWilling - curBid) * (0.35 + rnd() * 0.85));
     return Math.max(0, Math.min(maxAdd, add));
   }
@@ -2418,10 +2422,41 @@ html, body {
     const A = G.marketAuction;
     if (!A) return 0;
     let futureCommitted = 0;
-    for (let m = k + 1; m < 4; m++) futureCommitted += (A.all[ti][m] || 0);
+    for (let m = k + 1; m <= HOST_K; m++) futureCommitted += (A.all[ti][m] || 0);
     return Math.max(0, G.teams[ti].credits - (A.all[ti][k] || 0) - futureCommitted);
   }
 
+  /* ---------- New Robot lots (Kev, 6 Nov): the lot is a real robot from the starter deck, shown on its tile ---------- */
+  function drawStarter() {
+    const inMarket = new Set((G.market || []).map(id => LOTS[id] && LOTS[id].starter).filter(Boolean));
+    if (!G.starterDeck || !G.starterDeck.length) {
+      const taken = new Set(G.teams.flatMap(t => t.robots.map(r => r.name)));
+      G.starterDeck = shuffle(Object.keys(STARTERS).filter(k => !taken.has(k) && !inMarket.has(k)));
+    }
+    return G.starterDeck.pop() || null;
+  }
+  const returnStarter = n => { if (n && STARTERS[n] && !G.starterDeck.includes(n) && !G.teams.some(t => t.robots.some(r => r.name === n))) G.starterDeck.unshift(n); };
+  function robotLot(n) {
+    const bot = mkRobot(n, STARTERS[n].b), id = 'robot:' + n;
+    LOTS[id] = { name: n, icon: '🤖', text: wepName(bot.b) + ' · ' + bot.b.range + ' · ' + Sim.LV.hp[bot.b.lv.hp] + ' HP', robot: true, starter: n, bot, desc: STARTERS[n].d };
+    return id;
+  }
+  function dealLot() {
+    let id = G.lots.pop();
+    if (LOTS[id] && LOTS[id].robot) {
+      if (LOTS[id].starter) returnStarter(LOTS[id].starter);
+      const n = drawStarter();
+      id = n ? robotLot(n) : 'mech';
+    }
+    return id;
+  }
+  // what a robot lot is worth to an AI team: more when the bookie rates it well against that team's rivals
+  function robotWant(t, id, base) {
+    const L = LOTS[id];
+    if (t.robots.length >= 3) return 1;
+    const p = L && L.bot ? fieldOdds(t.i, Object.assign({}, L.bot.b, { eng: Math.min(1, freeEng(t)) })).p : null;
+    return base + (p == null ? 0 : (p - 0.5) * 5);
+  }
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng;
   // can this part go on this robot? Weapon upgrades need that weapon, calibres need a gun (no weapon swaps)
   function canFit(r, L) {
@@ -2434,12 +2469,14 @@ html, body {
   const canTake = (t, id) => !needsRobot(id) || t.robots.some(r => canFit(r, LOTS[id]));
   function aiPickRobot(t, lot) {
     const L = LOTS[lot];
-    let cands = t.robots.filter(r => canFit(r, L));
-    if (!cands.length) return null;
+    const fit = t.robots.filter(r => canFit(r, L));
+    if (!fit.length) return null;
+    let cands = fit;
     if (L.mod) cands = cands.filter(r => !r.b.mod);
     if (L.arm) cands = cands.filter(r => !r.b.arm);
     if (L.helper) cands = cands.filter(r => (r.b.helpers || []).length < 3);
-    return cands.slice().sort((a, b) => power(b) - power(a))[0] || cands[0];
+    if (!cands.length) cands = fit;   // every robot has one already: replace it on the strongest
+    return cands.slice().sort((a, b) => power(b) - power(a))[0];
   }
   // which stats a weapon actually uses (src/sim.js): flame and spinner ignore accuracy and velocity, beams ignore velocity
   const UNUSED_STATS = { flame: ['acc', 'bullet'], spinner: ['acc', 'bullet'], laser: ['bullet'], railgun: ['bullet'] };
@@ -2504,17 +2541,21 @@ html, body {
       return needBot ? `Assigned to ${needBot.name}` : '+1 Engineer Pool';
     }
     if (L.robot) {
-      if (t.robots.length >= 3) { t.credits += 2; return 'Bays Full (+2 Cr)'; }
-      if (!G.starterDeck || !G.starterDeck.length) G.starterDeck = shuffle(Object.keys(STARTERS));
-      const n = G.starterDeck.pop();
-      const nr = mkRobot(n, STARTERS[n].b);
+      if (t.robots.length >= 3) { t.credits += 2; if (L.starter) { returnStarter(L.starter); L.bot = null; } return 'Bays Full (+2 Cr)'; }
+      let nr;
+      if (L.bot) { nr = L.bot; L.bot = null; }   // the robot shown on the tile
+      else {
+        if (!G.starterDeck || !G.starterDeck.length) G.starterDeck = shuffle(Object.keys(STARTERS));
+        const n = G.starterDeck.pop();
+        nr = mkRobot(n, STARTERS[n].b);
+      }
       nr.b.eng = Math.min(1, freeEng(t));
       t.robots.push(nr);
       return `New Bot: ${nr.name}`;
     }
     if (!r) return '';
+    if (!canFit(r, L)) return 'No robot can use it';   // no weapon swaps (Kev, 6 Nov); checked before a stat goes up
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
-    if (!canFit(r, L)) return 'No robot can use it';   // no weapon swaps (Kev, 6 Nov)
     if (L.cal) r.b.cal = L.cal;
     if (L.wup) r.b.wup = L.wup;
     if (L.mod) r.b.mod = L.mod;
@@ -2531,11 +2572,11 @@ html, body {
     if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
     const all = G.teams.map(t => t.i === viewerSeat ? myBids.slice() : aiBids(t));
     G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
-    all.forEach(b => { b[3] = 0; });
+    all.forEach(b => { b[HOST_K] = 0; });
     G.marketAuction = {
-      all, lastK: 2,
+      all, lastK: NLOTS - 1,
       initialAll: all.map(b => b.slice()),
-      rebidAdds: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+      rebidAdds: G.teams.map(zeroBids),
       curK: 0,
       wins: [],
       results: [],
@@ -2568,9 +2609,10 @@ html, body {
     if (w >= 0 && mx > 0) {
       G.teams[w].credits -= mx;
     }
-    if (k < 3) {
+    if (k < NLOTS) {
       const lotId = G.market[k], L = LOTS[lotId];
       if (w >= 0) A.wins.push({ idx: k, lot: lotId, team: w, price: mx });
+      else if (L.starter) { returnStarter(L.starter); L.bot = null; }   // an unsold robot goes back to the starter deck
       A.results.push({
         idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
         winner: w, price: mx, bids: col, initBids: initCol, addBids: addCol,
@@ -2580,7 +2622,7 @@ html, body {
       G.host = w >= 0 ? w : Math.floor(rnd() * 4);
       const hostT = G.teams[G.host];
       A.results.push({
-        idx: 3, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
+        idx: HOST_K, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
         winner: G.host, price: w >= 0 ? mx : 0, bids: col, initBids: initCol, addBids: addCol,
         rebidNote: rebidNote || '',
         target: w >= 0 ? '+1 Fame' + (hostT.sponsor === 'apex' ? ' & +2 Cr' : '') : 'Random Draw (0 Cr)'
@@ -2594,7 +2636,7 @@ html, body {
 
     while (A.curK <= A.lastK) {
       const k = A.curK;
-      const lotName = k < 3 ? LOTS[G.market[k]].name : 'Host the Fight';
+      const lotName = k < NLOTS ? LOTS[G.market[k]].name : 'Host the Fight';
       const col = A.all.map(b => b[k]);
       const eligible = A.tie && A.tie.k === k ? A.tie.teams : [0, 1, 2, 3];
       const mx = Math.max(...eligible.map(ti => col[ti]));
@@ -2680,7 +2722,7 @@ html, body {
       hostT.fame += 1;
       if (hostT.sponsor === 'apex') hostT.credits += 2;
       notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host' + (res && res.price ? ' for ' + res.price + ' Cr' : ' (nobody bid: random draw)') + ' (+1 Fame' + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
-      G.marketResults = (G.marketResults || []).filter(r => r.idx !== 3).concat(A.results);
+      G.marketResults = (G.marketResults || []).filter(r => r.idx !== HOST_K).concat(A.results);
       tlog('host_bid', { host: G.host, price: res ? res.price : 0, bids: res ? res.bids : null });
       G.hostResolved = true; G.marketResolved = true; G.marketAuction = null; G.marketStage = 'done';
       if (checkWin()) return;
@@ -3300,7 +3342,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -3891,7 +3933,7 @@ html, body {
       ctx.strokeStyle = '#dedad0'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x0, fy); ctx.lineTo(x0 + L.aw, fy); ctx.stroke();
 
-      const colW = (L.aw - 16) / 4;
+      const colW = (L.aw - 16) / Math.max(4, G.marketResults.length);
       G.marketResults.forEach((res, k) => {
         const rx = x0 + 8 + k * colW;
         const wTeam = res.winner >= 0 ? G.teams[res.winner] : null;
@@ -4389,7 +4431,7 @@ html, body {
     if (G.marketAuction && G.marketAuction.tie) {
       // --- Interactive Spartacus Tie-Break Rebid View ---
       const A = G.marketAuction, tie = A.tie;
-      const items = A.hostOnly ? [{ id: 'host', k: 3, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
+      const items = A.hostOnly ? [{ id: 'host', k: HOST_K, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
 
       ctx.fillStyle = '#fff8eb';
       ctx.fillRect(x0 + 2, y0 + 2, L.aw - 4, 26);
@@ -4507,8 +4549,8 @@ html, body {
         hitRegions.push({ kind: 'market_continue', x: btnX, y: btnY, w: btnW, h: btnH });
       }
 
-      const w = 142, h = 180, gap = 10;
-      const totalW = G.marketResults.length * w + (G.marketResults.length - 1) * gap;
+      const nR = G.marketResults.length, gap = nR > 4 ? 6 : 10, w = Math.min(142, Math.floor((L.aw - 12 - (nR - 1) * gap) / nR)), h = 180;
+      const totalW = nR * w + (nR - 1) * gap;
       const startX = L.ax - totalW / 2, cy = y0 + 33;
 
       G.marketResults.forEach((res, k) => {
@@ -4529,22 +4571,21 @@ html, body {
         ctx.font = '800 10.5px system-ui, sans-serif';
         ctx.textAlign = 'center';
         const wLabel = wTeam ? `${wTeam.name.toUpperCase()}${res.winner === viewerSeat ? ' (YOU)' : ''}` : 'NO BIDS';
-        ctx.fillText(wLabel, x + w / 2, cy + 14.5);
+        fitText(ctx, wLabel, x + w / 2, cy + 14.5, w - 8, '800', 10.5);
 
         // 2. Price Paid Badge (+ Rebid Note if tied)
         ctx.fillStyle = wTeam ? '#111' : '#777';
         ctx.font = '900 12px system-ui, sans-serif';
         const paidTxt = wTeam ? (res.rebidNote ? `PAID ${res.price} Cr (Rebid)` : `PAID ${res.price} Cr`) : '0 Cr · Unclaimed';
-        ctx.fillText(paidTxt, x + w / 2, cy + 39);
+        fitText(ctx, paidTxt, x + w / 2, cy + 39, w - 8, '900', 12);
 
         // 3. Lot Icon, Name & Effect
         ctx.fillStyle = '#111';
-        ctx.font = '800 11.5px system-ui, sans-serif';
-        ctx.fillText(`${res.icon} ${res.name}`, x + w / 2, cy + 57);
+        fitText(ctx, `${res.icon} ${res.name}`, x + w / 2, cy + 57, w - 8, '800', 11.5);
+        if (LOTS[res.id]) help(x + 4, cy + 47, w - 8, 28, esc(res.icon + ' ' + res.name), esc(res.text) + (LOTS[res.id].desc ? '<br>' + esc(LOTS[res.id].desc) : ''));
 
         ctx.fillStyle = '#666';
-        ctx.font = '600 9.5px system-ui, sans-serif';
-        ctx.fillText(res.text, x + w / 2, cy + 71);
+        fitText(ctx, res.text, x + w / 2, cy + 71, w - 8, '600', 9.5);
 
         // 4. Destination / Installed-On Pill
         const isPendingHere = waitingInstall && G.pendingInstall[0].idx === k;
@@ -4554,8 +4595,7 @@ html, body {
         ctx.lineWidth = 1;
         ctx.strokeRect(x + 8, cy + 77, w - 16, 18);
         ctx.fillStyle = isPendingHere ? '#1f6feb' : '#222';
-        ctx.font = '700 9.5px system-ui, sans-serif';
-        ctx.fillText(res.target || 'Claimed', x + w / 2, cy + 89.5);
+        fitText(ctx, res.target || 'Claimed', x + w / 2, cy + 89.5, w - 20, '700', 9.5);
 
         // 5. All 4 Players' Sealed Bids (+ Rebid Additions) Breakdown
         ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
@@ -4573,19 +4613,19 @@ html, body {
           ctx.fillStyle = isW ? tm.col : '#555';
           ctx.font = (isW ? '800 ' : '600 ') + '9px system-ui, sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(tm.name.split(' ')[0] + (ti === viewerSeat ? ' (You)' : ''), x + 10, ry);
+          ctx.fillText(tm.name.split(' ')[0] + (ti === viewerSeat && w > 130 ? ' (You)' : ti === viewerSeat ? '*' : ''), x + 8, ry);
           ctx.textAlign = 'right';
           const bidStr = addB > 0 ? `${initB}+${addB}=${bAmt} Cr` : `${bAmt} Cr`;
-          ctx.fillText(`${bidStr}${isW ? ' ★' : ''}`, x + w - 10, ry);
+          ctx.fillText(`${bidStr}${isW ? ' ★' : ''}`, x + w - 8, ry);
         });
       });
       return;
     }
 
     // Kev, 6 Nov: the lots first, then hosting as its own sealed bid
-    const items = G.marketStage === 'host' ? [{ id: 'host', k: 3, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
+    const items = G.marketStage === 'host' ? [{ id: 'host', k: HOST_K, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
     // Kev, 6 Nov: text must be readable: wider, taller tiles, bigger type, the bookie line in two parts
-    const w = 172, h = 200, gap = 12;
+    const gap = items.length > 3 ? 8 : 12, w = Math.min(172, Math.floor((L.aw - 8 - (items.length - 1) * gap) / items.length)), h = 200;
     const totalW = items.length * w + (items.length - 1) * gap;
     const startX = L.ax - totalW / 2, y = L.ay - h / 2;
     if (G.marketStage === 'host') {
@@ -4600,13 +4640,16 @@ html, body {
       const k = it.k, x = startX + j * (w + gap);
       const bid = G.myBids[k] || 0;
 
-      const noFit = k < 3 && !canTake(me(), it.id);
-      ctx.fillStyle = k === 3 ? '#fffdf5' : noFit ? '#efede7' : '#fcfbf9';
+      const noFit = k < NLOTS && !canTake(me(), it.id);
+      ctx.fillStyle = k === HOST_K ? '#fffdf5' : noFit ? '#efede7' : '#fcfbf9';
       ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#222';
       ctx.lineWidth = bid > 0 ? 2.5 : 1.5;
       ctx.strokeRect(x, y, w, h);
 
+      const RL = LOTS[it.id];
+      if (RL && RL.bot) drawRobotLot(ctx, RL, x, y, w, h);
+      else {
       ctx.font = '26px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(it.icon, x + w / 2, y + 40);
@@ -4618,7 +4661,7 @@ html, body {
       fitText(ctx, it.text, x + w / 2, y + 82, w - 12, '600', 11.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 12, 'center', 11.5);
       if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
-      else if (k === 3) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
+      else if (k === HOST_K) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
       if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 113, w - 12, '800', 11); help(x + 4, y + 103, w - 8, 13, 'Real numbers', esc(gain) + '<br>The stat on each of your robots before→after, one per robot (separated by /). "max" = already at level 4.'); }
@@ -4634,6 +4677,7 @@ html, body {
           ctx.fillStyle = v.col; fitText(ctx, v.text, x + w / 2, y + 186, w - 12, '900', 12.5);
         } else sh.forEach(([r, v], j) => { ctx.fillStyle = v.col; fitText(ctx, r.name.replace('s1. ', '') + ': ' + v.short, x + w / 2, y + 166 + j * 14, w - 12, '800', 11); });
         help(x + 4, y + 156, w - 8, 40, '🎩 What it does to your odds', 'The bookie\'s band vs the field for each of your robots, <b>before→after</b> fitting this lot. <b>=</b> means the band doesn\'t move. ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
+      }
       }
 
       const btnY = y + 124;
@@ -4660,6 +4704,38 @@ html, body {
         hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
       }
     });
+  }
+
+  // a New Robot lot: the robot itself, its weapon, frame, counter tags and the bookie's band vs the field
+  function drawRobotLot(ctx, RL, x, y, w, h) {
+    const t = me(), bot = RL.bot, eng = Math.min(1, freeEng(t)), full = t.robots.length >= 3, now = performance.now();
+    const b = (bot.b.eng || 0) === eng ? bot.b : Object.assign({}, bot.b, { eng }), fr = Sim.frameOf(b);   // as it would arrive in your garage
+    ctx.fillStyle = '#efece4'; ctx.fillRect(x + 6, y + 6, w - 12, 46);
+    drawRobotSprite(ctx, x + w / 2, y + 29, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.6 * previewK(b));
+    ctx.textAlign = 'center'; ctx.fillStyle = '#111';
+    fitText(ctx, '🤖 ' + RL.name, x + w / 2, y + 68, w - 10, '800', 14);
+    ctx.fillStyle = '#555';
+    fitText(ctx, RL.text, x + w / 2, y + 84, w - 10, '600', 11);
+    const lv = b.lv, stats = PREVIEW_F.map(([k, lab]) => lab + ' ' + lv[k] + '/4' + ((UNUSED_STATS[b.weapon] || []).includes(k) ? ' (unused)' : '')).join(' · ');
+    help(x + 4, y + 4, w - 8, 86, '🤖 ' + esc(RL.name) + ' · for sale',
+      esc(RL.desc || '') + '<br><b>' + esc(wepName(b)) + '</b>, ' + b.range + ' range, ' + Sim.LV.hp[lv.hp] + ' HP, ' + fr.name + ' frame.<br>Stat levels: ' + stats + '.<br>' +
+      'Win it and it joins your team in an empty bay (up to 3 robots). ' + (eng ? 'One of your free Engineers 👷 goes on it.' : '<b>You have no free Engineer</b>, so it arrives without one (more glitches); the bookie counts that.') + ' ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots keep their weapon for life.');
+    const tg = tagsFor(viewerSeat, b);
+    if (drawTags(ctx, tg, x + w / 2, y + 100, w - 12, 'center', 11)) { const ht = helpTagsTxt(tg, 'this robot'); help(x + 4, y + 90, w - 8, 13, ht[0], ht[1]); }
+    ctx.fillStyle = '#1f6feb';
+    fitText(ctx, fr.name + ' frame · ⚡' + Sim.strainOf(b).total + ' · ' + (eng ? '👷 1 Eng' : '👷 no Eng'), x + w / 2, y + 115, w - 12, '800', 10.5);
+    { const hl = helpLook(b); help(x + 4, y + 105, w - 8, 13, hl[0], hl[1]); }
+    if (full) {
+      ctx.fillStyle = '#b45309'; fitText(ctx, '🏠 your bays are full', x + w / 2, y + 168, w - 12, '800', 10.5);
+      ctx.fillStyle = '#666'; fitText(ctx, 'win it: +2 Cr instead', x + w / 2, y + 184, w - 12, '700', 10);
+      help(x + 4, y + 158, w - 8, 34, 'Bays full', 'You already have 3 robots. Winning this lot pays you 2 Cr instead (the robot goes back to the deck). You can still bid to keep it from a rival.');
+      return;
+    }
+    const p = fieldOdds(viewerSeat, b).p, c = oddsChip(p);
+    ctx.fillStyle = '#666'; fitText(ctx, '🎩 vs the field', x + w / 2, y + 168, w - 12, '700', 10.5);
+    ctx.fillStyle = c.col; fitText(ctx, p == null ? 'bookie working…' : scouted() ? bandOf(p).short + ' ' + pctTxt(p) : bandOf(p).name, x + w / 2, y + 186, w - 12, '900', 12.5);
+    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field' + (p == null ? '' : ': ' + bandOf(p).name + (scouted() ? ' (' + pctTxt(p) + ')' : '')),
+      'The bookie\'s chance for <b>' + esc(RL.name) + '</b> against every robot of the other teams, at full health, as it comes (no extra parts). ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
   }
 
   function drawBettingOnArena(ctx, L) {
@@ -5350,7 +5426,7 @@ html, body {
         updateHud(); return;
       }
       if (r.kind === 'market_plus' || r.kind === 'market_tile') {
-        const spent = r.idx === 3 ? G.myBids[3] : G.myBids.slice(0, 3).reduce((a, b) => a + b, 0);
+        const spent = r.idx === HOST_K ? G.myBids[HOST_K] : G.myBids.slice(0, NLOTS).reduce((a, b) => a + b, 0);
         if (spent < me().credits) G.myBids[r.idx] = (G.myBids[r.idx] || 0) + 1;
         else if (r.kind === 'market_tile') G.myBids[r.idx] = 0;
         updateHud(); return;

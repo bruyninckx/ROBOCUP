@@ -98,7 +98,7 @@ The Market has three steps: open market, auction, host bid. Robots, crew, parts 
 
 **Stash and deals (Kev, 6 Nov; built in the tabletop prototype).** Every team has a **Stash** of up to 4 spare parts, open for all to see: parts it won that no robot can take, or parts it keeps aside. A Stash part can be fitted when a robot can take it (Upkeep or Market), traded, or sold to the bank at **half value** (min 1 credit; drones and weapon upgrades are worth 3, other parts 2). A full Stash sells the next part at half value. **Deals** use one offer panel everywhere: you move credits and Stash parts onto the table and lock it in; the other side accepts or refuses, and nothing moves until then. Deals happen in the open market (trades both ways), when you ask for backing, when the host picks fighters (pay to be invited or to be left out; paid only if the host does it), when the host decides spare or scrap (the loser's team pleads, rivals push; the host takes the offers of the side it picks), for a Tag Team ally, and as card threats (pay off a Botched Install or Swap the Entry, or demand a payoff instead of playing it). Intrigue cards can't be traded. No timers on any decision window.
 
-**2. Auction.** Lay out one Market card per player. Auction them one at a time:
+**2. Auction.** Lay out one Market card per player (4 in the tabletop prototype). A **New Robot** card is a real robot from the starter deck, turned face up: everyone sees its stats, weapon, frame, counter tags and the bookie's band vs the field before bidding; an unsold robot goes back to the starter deck. Auction them one at a time:
 
 1. Every team bids credits in secret; bids are shown together.
 2. The highest bid pays the bank and takes the card. Everyone else keeps their credits.
