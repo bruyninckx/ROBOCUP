@@ -773,7 +773,7 @@ html, body {
     Hookshot:   { value: 2, kit: 'Flamethrower · Tank tracks · Grappling Hook', quirk: 'Sticky Fire', qt: 'Robots it sets alight burn 2 s longer.' },
     Turncoat:   { value: 2, kit: 'Laser · no drive, chip or module', quirk: 'Treacherous', qt: 'In a 2v2, before the odds are set, it may switch to the other side.' },
     Slick:      { value: 2, kit: 'Flamethrower · Oil Slick', quirk: 'Fireproof', qt: 'Its own fire and oil can\'t hurt or slow it.' },
-    Fortress:   { value: 1, kit: 'Heavy cannon · Tank tracks · Repair Drone', quirk: 'Bastion', qt: 'Carries 4 helper drones instead of 3, and its helpers add no strain.' },
+    Fortress:   { value: 1, kit: 'Heavy cannon · Tank tracks · Repair Drone · Gun Drone', quirk: 'Bastion', qt: 'Carries 4 helper drones instead of 3, and its helpers add no strain.' },
     Tinker:     { value: 2, kit: 'Medium gun · Spotter Drone', quirk: 'Cunning', qt: 'If it didn\'t fight last round, draw 1 extra Intrigue card in Upkeep.' },
     Railgunner: { value: 5, kit: 'Prototype railgun · Tank tracks · Reflective Plating', quirk: 'Headline Act', qt: 'When it fights, the host gains +1 extra fame.', legend: true },
   };
@@ -1831,7 +1831,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 shared-sprites';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 card-balance-ai';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2635,6 +2635,23 @@ html, body {
         updateHud();
       }
     }
+    // Kev, 6 Nov ("improve AI play"; AI teams never offered robots): a team with a spare robot sells its weakest to a
+    // team that is down to one robot, when it is short of credits or has a full garage
+    for (const A of G.teams) {
+      if (A.i === HS || G.marketStage !== 'open' || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
+      const spare = A.robots.slice().sort((x, y) => power(x) - power(y))[0];
+      const buyer = G.teams.filter(Bt => Bt !== A && Bt.robots.length <= 1).sort((x, y) => y.credits - x.credits)[0];
+      if (!buyer) continue;
+      const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
+      if (buyer.credits < price) continue;
+      let yes;
+      if (buyer.i === HS) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + esc(wepName(spare.b)) + ', ' + Math.max(0, maxHp(spare) - spare.dmg) + '/' + maxHp(spare) + ' HP) for <b>' + price + ' Cr</b>. You have only one robot.');
+      else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
+      if (!yes) continue;
+      transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
+      notify('🤝 ' + nm(A) + ' sells its robot <b>' + esc(spare.name) + '</b> to ' + nm(buyer) + ' for ' + price + ' Cr.', A.col);
+      updateHud();
+    }
     // AI teams that can use a part in your Stash offer to buy it
     for (const id of HS >= 0 ? stashOf(me()).slice() : []) {
       if (G.marketStage !== 'open') break;
@@ -3180,7 +3197,13 @@ html, body {
   // Robot-count wager (Kev, 6 Nov): with the host bid you name 1 or 2 robots per side; the winning host's count is used.
   // 2 costs the host 1 Cr; each invited team sends up to 2; if the fight ends up uneven (2 vs 1) the host loses its host fame.
   const WAGER_COST = 1;
-  function aiHostCount(t) { const rr = readyRobots(t); return rr.length >= 2 && rnd() < 0.55 ? 2 : 1; }
+  // AI robot count (Kev, 6 Nov: "improve AI play"): 2 per side only when the host has 2 fit robots and another team does too
+  // (an uneven 2 vs 1 costs the host its fame), and not every time
+  const fitRobots = T => readyRobots(T).filter(r => r.dmg < maxHp(r) * 0.6);
+  function aiHostCount(t) { return fitRobots(t).length >= 2 && G.teams.some(x => x !== t && fitRobots(x).length >= 2) && rnd() < 0.6 ? 2 : 1; }
+  // the AI's guess of robot a beating robot b: the bookie's number if it has one, else a rough power comparison
+  const aiEdge = (ra, rb) => { const p = duelP(ra.b, rb.b); const hp = r => 1 - 0.6 * r.dmg / maxHp(r); return p != null ? Math.max(0.02, Math.min(0.98, p + (hp(ra) - hp(rb)) * 0.35)) : 0.5 + (power(ra) * hp(ra) - power(rb) * hp(rb)) * 0.04; };
+  const bestVs = (T, foes) => readyRobots(T).map(r => ({ r, p: foes.length ? foes.reduce((a, f) => a + aiEdge(r, f), 0) / foes.length : 0.5 })).sort((x, y) => y.p - x.p)[0];
   const sideTeams = (F, sd) => F.teams.filter((_, e) => F.sides[e] === sd);
   const sideName = (F, sd) => sd === 'house' || sd === 9 ? 'House Robot' : sideTeams(F, sd).map(ti => G.teams[ti].name).join(' + ');
   const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
@@ -3242,15 +3265,26 @@ html, body {
     }
     if (forceOut) others = others.filter(t => t.i !== HS);
     let a, b;
-    const best = readyRobots(host).sort((x, y) => power(y) - power(x))[0];
-    const able = others.filter(t => readyRobots(t).length);
+    // Kev, 6 Nov ("improve AI play"): the host weighs the matchups instead of picking at random.
+    // 2 per side: only teams that can field 2 (an uneven fight costs the host its fame)
+    const two = fmt === 'double', okTeam = t => readyRobots(t).length >= (two ? 2 : 1);
+    const able0 = others.filter(t => readyRobots(t).length), able = able0.filter(okTeam).length >= (okTeam(host) ? 1 : 2) ? able0.filter(okTeam) : able0;
+    const strong = T => readyRobots(T).slice().sort((x, y) => power(y) - power(x)).slice(0, 2);
+    const mine = able.map(T => ({ T, p: (bestVs(host, strong(T)) || { p: 0 }).p })).sort((x, y) => y.p - x.p);
+    const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && mine[0].p >= 0.55 && rnd() < 0.85;
     if (forceIn) {
-      a = viewerSeat; b = (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) ? H : (shuffle(able.filter(t => t.i !== HS))[0] || others.find(t => t.i !== HS)).i;
-    } else if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5 && able.length) {
-      a = H; b = able.slice().sort((x, y) => y.fame - x.fame)[0].i;
+      const vsMe = (bestVs(host, strong(me())) || { p: 0 }).p;
+      a = viewerSeat; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== HS).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== HS)).i;
+    } else if (fightSelf) {
+      a = H; b = mine[0].T.i;   // its best matchup (ties: whoever has more fame)
+    } else if (able.length >= 2) {
+      // stay out: put the team with the most fame against the rival most likely to beat it
+      const lead = able.slice().sort((x, y) => y.fame - x.fame)[0], rest = able.filter(t => t !== lead);
+      const foe = rest.map(T => ({ T, p: (bestVs(T, strong(lead)) || { p: 0 }).p })).sort((x, y) => y.p - x.p)[0];
+      if (rnd() < 0.8 && foe) { a = lead.i; b = foe.T.i; } else { const sh = shuffle(able.slice()); a = sh[0].i; b = sh[1].i; }
     } else {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
-      a = s[0].i; b = s[1].i;
+      a = s[0].i; b = (s[1] || { i: H }).i;
     }
     notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : fmt === 'double' ? ' (up to 2 robots each)' : '') + '!', host.col);
     invite([a, b], [0, 1], fmt);
@@ -3311,7 +3345,9 @@ html, body {
       if (ti !== HS) {
         const t = G.teams[ti];
         rebalanceAiEngineers(t);
-        G.fight.robots[e] = readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
+        const foes = teams.filter((x, k) => sides2[k] !== sides2[e]).flatMap(x => readyRobots(G.teams[x]).slice().sort((p, q) => power(q) - power(p)).slice(0, 1));
+        const pick = bestVs({ robots: readyRobots(t).filter(r => r.dmg < maxHp(r)) }, foes);   // Kev, 6 Nov: send the robot with the best matchup, not just the biggest
+        G.fight.robots[e] = (pick && pick.r) || readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
       }
     });
     if (teams.includes(HS)) {

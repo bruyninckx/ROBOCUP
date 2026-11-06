@@ -27,17 +27,17 @@
   // Juggernaut (hp->armour), Railgunner (fp->speed), Wasp (fp->hp), Fortress (turret->bullet) and the Scrap Bot (armour->fp). Turncoat = sandbox Burner build. Scrap Bot = starter.
   const Lc = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
   const ROBOT_CARDS = {
-    Juggernaut: { lv: Lc(2, 3, 4, 1, 4, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium', drive: 'boost', proc: 'rammer', mod: 'flipper', quirk: 'showstopper' },
-    Wasp:       { lv: Lc(4, 0, 2, 1, 3, 3, 1), range: 'mid', weapon: 'gun', cal: 'rapid', drive: 'omni', proc: 'zigzag', mod: 'shield', quirk: 'hotshot' },
-    Railgunner: { lv: Lc(3, 1, 2, 2, 3, 3, 0), range: 'long', weapon: 'railgun', cal: 'medium', drive: 'tracks', mod: 'reflect', quirk: 'headline' },
-    Sniper:     { lv: Lc(3, 0, 1, 1, 4, 3, 2), range: 'long', weapon: 'gun', cal: 'medium', proc: 'kiter', mod: 'jets', quirk: 'scope' },
-    Ricochet:   { lv: Lc(3, 1, 2, 2, 4, 1, 1), range: 'mid', weapon: 'saw', cal: 'medium', proc: 'kiter', mod: 'mines', quirk: 'trickshot' },
-    Brawler:    { lv: Lc(4, 3, 3, 0, 4, 0, 0), range: 'short', weapon: 'gun', cal: 'medium', drive: 'tracks', proc: 'rammer', mod: 'emp', quirk: 'grudge' },
-    Artillery:  { lv: Lc(1, 0, 3, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium', drive: 'boost', proc: 'zigzag', mod: 'jets', quirk: 'underrated' },
-    Hookshot:   { lv: Lc(4, 1, 2, 3, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', drive: 'tracks', mod: 'grapple', quirk: 'stickyfire' },
-    Turncoat:   { lv: Lc(4, 1, 2, 1, 4, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium', quirk: 'treacherous' },
-    Slick:      { lv: Lc(4, 1, 3, 2, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', mod: 'oil', quirk: 'fireproof' },
-    Fortress:   { lv: Lc(4, 4, 0, 0, 4, 1, 1), range: 'mid', weapon: 'gun', cal: 'heavy', drive: 'tracks', mod: 'repair', quirk: 'bastion' },
+    Juggernaut: { lv: Lc(1, 4, 4, 1, 4, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium', drive: 'boost', proc: 'rammer', mod: 'flipper', quirk: 'showstopper' },
+    Wasp:       { lv: Lc(4, 0, 4, 0, 3, 3, 0), range: 'mid', weapon: 'gun', cal: 'rapid', drive: 'omni', proc: 'zigzag', mod: 'shield', quirk: 'hotshot' },
+    Railgunner: { lv: Lc(1, 2, 2, 2, 4, 3, 0), range: 'long', weapon: 'railgun', cal: 'medium', drive: 'tracks', mod: 'reflect', quirk: 'headline' },
+    Sniper:     { lv: Lc(2, 1, 1, 1, 4, 3, 2), range: 'long', weapon: 'gun', cal: 'medium', proc: 'kiter', mod: 'jets', quirk: 'scope' },
+    Ricochet:   { lv: Lc(3, 1, 2, 1, 4, 1, 2), range: 'mid', weapon: 'saw', cal: 'medium', proc: 'kiter', mod: 'mines', quirk: 'trickshot' },
+    Brawler:    { lv: Lc(3, 4, 2, 0, 4, 0, 1), range: 'short', weapon: 'gun', cal: 'medium', drive: 'tracks', proc: 'rammer', mod: 'emp', quirk: 'grudge' },
+    Artillery:  { lv: Lc(3, 0, 1, 0, 4, 2, 4), range: 'long', weapon: 'mortar', cal: 'medium', drive: 'boost', proc: 'zigzag', mod: 'jets', quirk: 'underrated' },
+    Hookshot:   { lv: Lc(3, 1, 3, 3, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', drive: 'tracks', mod: 'grapple', quirk: 'stickyfire' },
+    Turncoat:   { lv: Lc(3, 1, 3, 2, 3, 2, 0), range: 'mid', weapon: 'laser', cal: 'medium', quirk: 'treacherous' },
+    Slick:      { lv: Lc(3, 1, 4, 2, 4, 0, 0), range: 'short', weapon: 'flame', cal: 'medium', mod: 'oil', quirk: 'fireproof' },
+    Fortress:   { lv: Lc(4, 4, 0, 0, 4, 0, 2), range: 'mid', weapon: 'gun', cal: 'heavy', drive: 'tracks', mod: 'repair', helpers: ['gunner'], quirk: 'bastion' },
     Tinker:     { lv: Lc(2, 0, 3, 2, 3, 2, 2), range: 'mid', weapon: 'gun', cal: 'medium', helpers: ['spotter'], quirk: 'cunning' },
     'Scrap Bot': { lv: Lc(2, 0, 2, 2, 4, 1, 0), range: 'mid', weapon: 'gun', cal: 'medium', mod: null },
   };
