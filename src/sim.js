@@ -508,10 +508,26 @@
     }
   }
 
+  /* ---------- Sudden death (Kev, 6 Nov): no time limit. At the old limit the arena walls close in over SHRINK_T
+   * seconds to a small box in the middle, pushing everyone together; once closed the floor overheats and every robot
+   * takes damage that grows each second (ignores armour), so a fight always ends with a robot standing. ---------- */
+  const SUDDEN_SHRINK_T = 20, SUDDEN_BOX_W = 240, SUDDEN_BOX_H = 190, SUDDEN_CAP = 90;
+  const suddenAt = B => 60 + (B.n - 2) * 30;
+  function zoneOf(B) {
+    const t = B.t - suddenAt(B);
+    if (t <= 0) return { x0: 0, y0: 0, x1: B.W, y1: B.H, k: 0, t: 0, heat: 0 };
+    const k = Math.min(1, t / SUDDEN_SHRINK_T), e = k * k * (3 - 2 * k);
+    const ix = e * (B.W - SUDDEN_BOX_W) / 2, iy = e * (B.H - SUDDEN_BOX_H) / 2;
+    return { x0: ix, y0: iy, x1: B.W - ix, y1: B.H - iy, k, t, heat: Math.max(0, t - SUDDEN_SHRINK_T) };
+  }
   function step(B, dt) {
     if (B.over) return;
     liveTick(B, dt);
     const W = B.W, H = B.H;
+    const Z = B.zone = zoneOf(B);
+    if (Z.k > 0 && !B.suddenLogged) { B.suddenLogged = true; logE(B, { k: 'sudden' }); B.banners.push({ x: W / 2, y: H / 2 - 40, text: '⚠️ SUDDEN DEATH: THE WALLS CLOSE IN', col: '#d62828', life: 2.4 }); }
+    if (Z.heat > 0 && !B.heatLogged) { B.heatLogged = true; logE(B, { k: 'heat' }); B.banners.push({ x: W / 2, y: H / 2 - 40, text: '🔥 THE FLOOR OVERHEATS', col: '#d62828', life: 2.2 }); }
+    const zx = v => Math.max(Z.x0 + SIZE / 2, Math.min(Z.x1 - SIZE / 2, v)), zy = v => Math.max(Z.y0 + SIZE / 2, Math.min(Z.y1 - SIZE / 2, v));
     // helper auras: spotters help their robot aim, jammers slow enemy turrets
     for (const b of B.bots) { b.spotted = false; b.jam = 1; }
     for (const h of B.bots) {
@@ -528,7 +544,7 @@
       // knockback (from a flipper) slides the robot; walls hurt
       if (b.kx || b.ky) {
         const nx = b.x + b.kx * dt, ny = b.y + b.ky * dt;
-        const cx = Math.max(SIZE / 2, Math.min(W - SIZE / 2, nx)), cy = Math.max(SIZE / 2, Math.min(H - SIZE / 2, ny));
+        const cx = zx(nx), cy = zy(ny);
         if ((cx !== nx || cy !== ny) && Math.hypot(b.kx, b.ky) > 150) { B.how = 'wall slam'; hitBot(B, b, 8, B.bots[b.lastBy >= 0 ? b.lastBy : b.i], true); B.how = null; B.fx.push({ k: 'hit', x: cx, y: cy, life: 0.15 }); b.kx = b.ky = 0; }
         b.x = cx; b.y = cy;
         const f = Math.exp(-6 * dt); b.kx *= f; b.ky *= f; if (Math.hypot(b.kx, b.ky) < 10) b.kx = b.ky = 0;
@@ -544,7 +560,7 @@
       if (b.helper) { runHelper(B, b, dt); continue; }
       if (b.air > 0) {
         // jump jets: flying, untouchable, can't act
-        b.air -= dt; b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + b.jx * dt)); b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + b.jy * dt));
+        b.air -= dt; b.x = zx(b.x + b.jx * dt); b.y = zy(b.y + b.jy * dt);
         b.vx = b.jx; b.vy = b.jy; b.beam = 0; b.flame = 0; continue;
       }
       if (b.glitch && !b.glitch.done && B.t >= b.glitch.t) {
@@ -609,7 +625,7 @@
         if (adist < minSafe) { radial = -1.15; sw = 0.45; }
         else if (adist <= maxBand) { radial = (adist - want_r) / 120 * 0.5; sw = 0.85; }
         else { radial = Math.min(0.85, (adist - maxBand) / 90); sw = 0.75; }
-        if (b.x < 120 || b.x > W - 120 || b.y < 120 || b.y > H - 120) {
+        if (b.x < Z.x0 + 120 || b.x > Z.x1 - 120 || b.y < Z.y0 + 120 || b.y > Z.y1 - 120) {
           // corner escape: circle toward the middle of the arena instead of backing into the wall
           const cx = W / 2 - b.x, cy = H / 2 - b.y;
           b.strafe = -Math.sin(toO) * cx + Math.cos(toO) * cy >= 0 ? 1 : -1; b.strafeT = 0.7; sw = 1.1;
@@ -633,9 +649,9 @@
         const sx = b.x - p.x, sy = b.y - p.y, sd = Math.hypot(sx, sy), RR = p.helper ? 32 : proc === 'kiter' && p.team !== b.team ? 95 : 60;
         if (sd < RR && sd > 0.01) { mx += sx / sd * (RR - sd) / 30; my += sy / sd * (RR - sd) / 30; }
       }
-      const m = 70;
-      if (b.x < m) mx += (m - b.x) / m * 2; if (b.x > W - m) mx -= (b.x - (W - m)) / m * 2;
-      if (b.y < m) my += (m - b.y) / m * 2; if (b.y > H - m) my -= (b.y - (H - m)) / m * 2;
+      const m = Math.min(70, (Z.x1 - Z.x0) / 3, (Z.y1 - Z.y0) / 3), lx = b.x - Z.x0, rx = Z.x1 - b.x, ty = b.y - Z.y0, by_ = Z.y1 - b.y;
+      if (lx < m) mx += (m - lx) / m * 2; if (rx < m) mx -= (m - rx) / m * 2;
+      if (ty < m) my += (m - ty) / m * 2; if (by_ < m) my -= (m - by_) / m * 2;
       if (b.wpT > 0 && b.wpX != null) { const wdx = b.wpX - b.x, wdy = b.wpY - b.y, wd = Math.hypot(wdx, wdy) || 1; mx = wdx / wd * 1.4; my = wdy / wd * 1.4; }
       const oc = b.overclockT > 0 ? 1.45 : 1;   // Target Overclock live card
       const want = Math.atan2(my, mx), mag = Math.min(1, Math.hypot(mx, my));
@@ -663,8 +679,8 @@
       }
       // on oil: slide, most of the old motion carries on
       if (oil) { const k = 1 - Math.exp(-2.5 * dt); vx = b.vx + (vx - b.vx) * k; vy = b.vy + (vy - b.vy) * k; }
-      b.x = Math.max(SIZE / 2, Math.min(W - SIZE / 2, b.x + vx * dt));
-      b.y = Math.max(SIZE / 2, Math.min(H - SIZE / 2, b.y + vy * dt));
+      b.x = zx(b.x + vx * dt);
+      b.y = zy(b.y + vy * dt);
       b.vx = vx; b.vy = vy;
       // rammer impact: blunt damage + knockback when it slams into an enemy at speed (a spinner's blade already does the hitting)
       if (proc === 'rammer' && b.s.weapon !== 'spinner') {
@@ -910,11 +926,22 @@
     for (let k = B.fx.length - 1; k >= 0; k--) { B.fx[k].life -= dt; if (B.fx[k].life <= 0) B.fx.splice(k, 1); }
     for (let k = B.banners.length - 1; k >= 0; k--) { const bn = B.banners[k]; bn.life -= dt; bn.y -= 18 * dt; if (bn.life <= 0) B.banners.splice(k, 1); }
     if (Math.floor(B.t * 4) !== Math.floor((B.t - dt) * 4)) B.trace.push({ t: B.t, sh: teamShares(B) });
+    // the closing walls shove everyone inside; once closed the floor overheats: 1% of max health per second, +1% every second
+    for (const b of B.bots) {
+      if (b.hp <= 0) continue;
+      if (b.helper) { b.x = Math.max(Z.x0 + 6, Math.min(Z.x1 - 6, b.x)); b.y = Math.max(Z.y0 + 6, Math.min(Z.y1 - 6, b.y)); continue; }
+      if (Z.k > 0) { b.x = zx(b.x); b.y = zy(b.y); }
+      if (Z.heat > 0) { b.preHeat = b.hp; B.how = 'overheated floor'; hitBot(B, b, b.s.hp * 0.01 * Z.heat * dt, b, true); B.how = null; }
+    }
     const alive = [...new Set(B.bots.filter(b => b.hp > 0 && !b.helper).map(b => b.team))];
+    if (!alive.length && Z.heat > 0) {   // everyone burned out on the same tick: the one with the most health left survives on 1 HP
+      const last = B.bots.filter(b => !b.helper && b.preHeat > 0).sort((a, b) => b.preHeat - a.preHeat)[0];
+      if (last) { last.hp = 1; alive.push(last.team); }
+    }
     if (alive.length <= 1) {
       B.over = true;
       B.winner = alive.length ? alive[0] : -1;
-    } else if (B.t >= 60 + (B.n - 2) * 30) {
+    } else if (B.t >= suddenAt(B) + SUDDEN_CAP) {   // safety net only (e.g. a robot that can't be hurt): judge on health
       B.over = true; B.timeout = true;
       const score = {};
       for (const b of B.bots) if (!b.helper) score[b.team] = (score[b.team] || 0) + Math.max(0, b.hp) / b.s.hp;
@@ -1099,7 +1126,9 @@
     const all = [];
     const add = (ev, pri, k, text, extra) => all.push(Object.assign({ t: ev.t, pri, k, who: ev.who != null ? (bots[ev.who].helper ? bots[ev.who].owner : ev.who) : null, text }, extra));
     for (const ev of B.log) {
-      if (ev.k === 'ko') add(ev, 10, 'ko', ev.self ? nm(ev.who) + ' blew itself up (' + ev.how + ')' : nm(ev.who) + ' destroyed by ' + nm(ev.by) + ' (' + (ev.friendly ? 'friendly fire, ' : '') + ev.how + ')');
+      if (ev.k === 'sudden') add(ev, 7, 'mod', 'Sudden death: the walls close in');
+      else if (ev.k === 'heat') add(ev, 7, 'mod', 'The floor overheats: every robot burns');
+      else if (ev.k === 'ko') add(ev, 10, 'ko', ev.self && ev.how === 'overheated floor' ? nm(ev.who) + ' burned out on the overheated floor' : ev.self ? nm(ev.who) + ' blew itself up (' + ev.how + ')' : nm(ev.who) + ' destroyed by ' + nm(ev.by) + ' (' + (ev.friendly ? 'friendly fire, ' : '') + ev.how + ')');
       else if (ev.k === 'break') add(ev, 9, 'break', nm(ev.who) + ': ' + ev.text + ', ' + ev.part.toLowerCase() + ' broke');
       else if (ev.k === 'critko') add(ev, 8, 'crit', nm(ev.who) + ' finished ' + nm(ev.tgt) + ' with a ' + ev.dmg + ' damage crit');
       else if (ev.k === 'glitch') add(ev, 6, 'glitch', nm(ev.who) + ': ' + ev.text + ' for ' + ev.dur + ' s');
@@ -1155,7 +1184,7 @@
   }
 
   const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'railgun'];
-  const Sim = { WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
+  const Sim = { zoneOf, suddenAt, WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 

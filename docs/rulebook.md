@@ -151,7 +151,7 @@ Prototype details: Mirror makes each robot fight as 2 copies. Grand Melee is a f
 
 Winning bets get their stake back plus the payout; losing bets go to the bank.
 
-**6. The fight.** Bets close, face-down cards stay hidden until they trigger, and the auto-battle runs. Each player may play one live combat card during it. The fight ends when one side has no working robots left. After 60 seconds, sudden death starts: the arena walls close in step by step, and any robot outside the safe zone takes damage, until one side falls.
+**6. The fight.** Bets close, face-down cards stay hidden until they trigger, and the auto-battle runs. Each player may play one live combat card during it. The fight ends when one side has no working robots left. After 60 seconds (+30 s per robot beyond two), sudden death starts (built in the Sim, Kev 6 Nov): over 20 seconds the arena walls close in to a small box in the middle (240 × 190), pushing every robot together; then the floor overheats and every robot loses 1% of its max health per second, +1% more every second (armour doesn't help), until one side falls. There is no time limit any more; if every robot burns out on the same moment, the one with the most health left survives.
 
 **7. Results.** The winning team gains 1 fame and no prize money (as in Spartacus: credits come from bets and appearance money); in a team fight, every team with a winning robot gains 1 fame (once). The winning robot gets a Fan token; its third token makes it a Fan Favourite (+1 fame to its owner; losing a Fan Favourite costs 1 fame). Apex Media gets Fan Favourite on the second win.
 

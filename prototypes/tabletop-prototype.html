@@ -1645,7 +1645,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 fate-all-losers';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 sudden-death';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4965,6 +4965,24 @@ html, body {
     }
   }
 
+  // Sudden death (Kev, 6 Nov): the closing walls, the overheated floor, and a 10-second warning before it starts
+  function drawZone(ctx, B) {
+    const Z = B.zone, W = B.W, H = B.H, left = Sim.suddenAt(B) - B.t;
+    ctx.save();
+    if (Z && Z.k > 0) {
+      ctx.fillStyle = Z.heat > 0 ? 'rgba(214, 40, 40, 0.30)' : 'rgba(40, 30, 30, 0.28)';
+      ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); ctx.fill('evenodd');
+      if (Z.heat > 0) { ctx.fillStyle = 'rgba(255, 120, 0, ' + (0.10 + 0.08 * Math.sin(B.t * 8)).toFixed(3) + ')'; ctx.fillRect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); }
+      ctx.strokeStyle = '#d62828'; ctx.lineWidth = 4; ctx.setLineDash([14, 10]); ctx.lineDashOffset = -B.t * 30;
+      ctx.strokeRect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); ctx.setLineDash([]);
+      ctx.fillStyle = '#d62828'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(Z.heat > 0 ? '🔥 OVERHEAT: every robot burns, more each second' : '⚠️ SUDDEN DEATH: the walls close in', W / 2, 22);
+    } else if (left > 0 && left <= 10) {
+      ctx.fillStyle = '#b45309'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('⏱ Sudden death in ' + Math.ceil(left) + ' s', W / 2, 20);
+    }
+    ctx.restore();
+  }
   function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, B = F.B, ax0 = -Sim.W / 2, ay0 = -Sim.H / 2;
     // colours: a bot takes its entrant team's colour (House Robot grey); things with a sim team use that team's side
@@ -4976,6 +4994,7 @@ html, body {
     ctx.save();
     ctx.translate(ax0, ay0);
     ctx.scale(sc, sc);
+    drawZone(ctx, B);
 
     // Zones (Oil Slicks, EMP Bombs)
     for (const z of B.zones) {

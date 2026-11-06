@@ -340,8 +340,27 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
 
   const cv = document.getElementById('cv'), ctx = cv.getContext('2d'), SIZE = Sim.SIZE;
   let W = Sim.W, H = Sim.H;
+  // Sudden death (Kev, 6 Nov): the closing walls, the overheated floor, and a 10-second warning before it starts
+  function drawZone(ctx, B) {
+    const Z = B.zone, W = B.W, H = B.H, left = Sim.suddenAt(B) - B.t;
+    ctx.save();
+    if (Z && Z.k > 0) {
+      ctx.fillStyle = Z.heat > 0 ? 'rgba(214, 40, 40, 0.30)' : 'rgba(40, 30, 30, 0.28)';
+      ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); ctx.fill('evenodd');
+      if (Z.heat > 0) { ctx.fillStyle = 'rgba(255, 120, 0, ' + (0.10 + 0.08 * Math.sin(B.t * 8)).toFixed(3) + ')'; ctx.fillRect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); }
+      ctx.strokeStyle = '#d62828'; ctx.lineWidth = 4; ctx.setLineDash([14, 10]); ctx.lineDashOffset = -B.t * 30;
+      ctx.strokeRect(Z.x0, Z.y0, Z.x1 - Z.x0, Z.y1 - Z.y0); ctx.setLineDash([]);
+      ctx.fillStyle = '#d62828'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(Z.heat > 0 ? '🔥 OVERHEAT: every robot burns, more each second' : '⚠️ SUDDEN DEATH: the walls close in', W / 2, 22);
+    } else if (left > 0 && left <= 10) {
+      ctx.fillStyle = '#b45309'; ctx.font = '900 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('⏱ Sudden death in ' + Math.ceil(left) + ' s', W / 2, 20);
+    }
+    ctx.restore();
+  }
   function draw() {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    drawZone(ctx, B);
     // smoke clouds
     for (const sm of B.smokes) {
       ctx.fillStyle = '#9a9a9a'; ctx.globalAlpha = 0.35 * Math.min(1, sm.life);
