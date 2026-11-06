@@ -566,14 +566,14 @@ html, body {
    * Arena-phase cards (events, Swap the Entry, Hedge Bet, Bookie's Friend, House Robot) are in the deck
    * but only cash in for now: they arrive with the event-fight update.
    * ============================================================================ */
-  const IV_DATA = [["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 4, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 2, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 2, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 2, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 2, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target gains +1 fame per 2 robots or crew it exhausts (max +2).", "Publicity"], ["Underdog Story", "S", 2, 1, 3, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 3, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 3, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 2, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 1, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 14, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 16, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 1, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 2, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 2, "−1 fame to a team with no ready robots.", "Smear"], ["Bankrupt!", "R", 3, 1, 2, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 2, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: −2 speed in its next fight.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −2 accuracy in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot takes 30 lasting damage, or a crew member is exhausted for 2 rounds.", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and takes 30 lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 2, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +1 firepower and +1 armour in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage.", "Match-fixing"], ["Unleash the House Robot", "S", 9, 2, 1, "Host only: a neutral robot joins the fight and attacks whoever is closest.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 3, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 2, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 2, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Remote Trigger", "R", 2, 1, 2, "Live: fire a robot's module right now.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: +45% speed and fire rate for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: clear a stall or jam, heal 18; no breaks for 5 s.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live, any player: splash oil on the floor; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live, any player: lob an EMP (100 px, 1.2 s stun).", "Match-fixing"], ["Security Bot", "G", 0, 2, 28, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction.", "Security"], ["Backup Restore", "R", 4, 3, 1, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 2, "Target team must back a scheme of your choice with all its fame.", "Leverage"]];
+  const IV_DATA = [["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 4, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 2, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 2, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 2, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 2, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target gains +1 fame per 2 robots or crew it exhausts (max +2).", "Publicity"], ["Underdog Story", "S", 2, 1, 3, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 3, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 3, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 2, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 1, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 14, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 16, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 1, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 2, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 2, "−1 fame to a team with no ready robots.", "Smear"], ["Bankrupt!", "R", 3, 1, 2, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 2, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: −2 speed in its next fight.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −2 accuracy in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot takes 30 lasting damage, or a crew member is exhausted for 2 rounds.", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and takes 30 lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 2, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 3, "When a rival wins a Market part: the install fails and the part is scrapped. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +1 firepower and +1 armour in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage.", "Match-fixing"], ["Unleash the House Robot", "S", 9, 2, 1, "Host only: a neutral robot joins the fight and attacks whoever is closest.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 3, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 2, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 2, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Remote Trigger", "R", 2, 1, 2, "Live: fire a robot's module right now.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: +45% speed and fire rate for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: clear a stall or jam, heal 18; no breaks for 5 s.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live, any player: splash oil on the floor; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live, any player: lob an EMP (100 px, 1.2 s stun).", "Match-fixing"], ["Security Bot", "G", 0, 2, 28, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction.", "Security"], ["Backup Restore", "R", 4, 3, 1, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 2, "Target team must back a scheme of your choice with all its fame.", "Leverage"]];
   const LIVE_KEYS = { 'Remote Trigger': 'trigger', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card' };
   const LIVE_TARGET = { trigger: 'bot', waypoint: 'arena', overclock: 'bot', field_eng: 'bot', oil_card: 'arena', emp_card: 'arena' };
   const LIVE_ICON = { trigger: '🎛️', waypoint: '📍', overclock: '🎯', field_eng: '👷', oil_card: '🛢️', emp_card: '🧲' };
   const LATER = new Set(['Grand Melee', 'Unleash the House Robot', 'Swap the Entry', 'Hedge Bet', "Bookie's Friend", 'Mirror', 'Grand Final', 'Tag Team Licence']);
   const BLOCKERS = new Set(['Paid Off', 'Fall Guy', 'Firewall', 'PR Spin', 'Not My Robot', "Sponsor's Lawyers", 'Under the Radar', 'Overreach']);
   const TURN_REACTIONS = new Set(['Fire Sale', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Backup Restore']);
-  const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory']);
+  const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory', 'Botched Install']);
   const HARMFUL_FAMS = new Set(['Smear', 'Sabotage', 'Corporate']);
   const FAM_ICON = { Contracts: '💼', Publicity: '📣', Smear: '🗞️', Sabotage: '🔧', Corporate: '🏢', 'Match-fixing': '🎲', Security: '🛡️', Leverage: '⛓️' };
   const ANY_T = ['Overtime Shift', 'Consulting Gig', 'Industry Insider', 'Fan Meet', 'Roadshow', 'Public Demo', 'Launch Party', 'Team-Building Day', 'Press Tour', 'Celebrity Endorsement', 'Hype Reel', 'Prime-Time Interview', 'Viral Moment', 'Co-Branding Deal'];
@@ -596,14 +596,17 @@ html, body {
     motor:     { name: 'Turret Motor',    icon: '🔄', text: '+1 Turret level',      stat: 'turret' },
     chip:      { name: 'Targeting Chip',  icon: '🎯', text: '+1 Accuracy level',    stat: 'acc' },
     hull:      { name: 'Reinforced Hull', icon: '🧱', text: '+1 Health level',      stat: 'hp' },
-    laser:     { name: 'Laser Retrofit',  icon: '🔦', text: 'Laser (2 Strain)',     weapon: 'laser' },
-    mortar:    { name: 'Mortar Retrofit', icon: '💣', text: 'Mortar (2 Strain)',    weapon: 'mortar' },
-    saw:       { name: 'Buzzsaw Launcher',icon: '⚙️', text: 'Saw Blades (2 Strain)',weapon: 'saw' },
-    spinner:   { name: 'Spinner Blade',   icon: '🌀', text: 'Spinner (3 Strain)',   weapon: 'spinner' },
-    flame:     { name: 'Flamethrower',    icon: '🔥', text: 'Fire Cone (2 Strain)', weapon: 'flame' },
-    rapid:     { name: 'Rapid-fire Kit',  icon: '🔫', text: 'Rapid Gun (0 Strain)', cal: 'rapid' },
-    heavy:     { name: 'Heavy Cannon',    icon: '💥', text: 'Heavy Gun (+1 Strain)',cal: 'heavy' },
-    burst:     { name: 'Burst Gun',       icon: '🔫', text: '3-shot bursts (+1 Str)',cal: 'burst' },
+    // Kev, 6 Nov: no weapon swaps. A robot keeps its weapon; each weapon type has its own upgrade (Sim.WUPS),
+    // and guns can change calibre. Both only fit robots with that weapon.
+    w_barrel:  { name: 'Match-grade Barrel', icon: '🔩', text: 'Guns only (+1 Str)',         wup: 'barrel' },
+    w_lens:    { name: 'Focusing Lens',   icon: '🔍', text: 'Lasers only (+1 Str)',          wup: 'lens' },
+    w_serrated:{ name: 'Serrated Blade',  icon: '🌀', text: 'Spinners only (+1 Str)',        wup: 'serrated' },
+    w_ricochet:{ name: 'Ricochet Rig',    icon: '⚙️', text: 'Saw blades only (+1 Str)',      wup: 'ricochet' },
+    w_napalm:  { name: 'Napalm Mix',      icon: '🔥', text: 'Flamethrowers only (+1 Str)',   wup: 'napalm' },
+    w_cluster: { name: 'Cluster Shells',  icon: '💣', text: 'Mortars only (+1 Str)',         wup: 'cluster' },
+    rapid:     { name: 'Rapid-fire Kit',  icon: '🔫', text: 'Guns only: rapid (0 Str)',      cal: 'rapid' },
+    heavy:     { name: 'Heavy Cannon',    icon: '💥', text: 'Guns only: heavy (+1 Str)',     cal: 'heavy' },
+    burst:     { name: 'Burst Gun',       icon: '🔫', text: 'Guns only: 3-shot bursts (+1 Str)', cal: 'burst' },
     a_heat:    { name: 'Heat Shield',     icon: '🧯', text: '−40% fire & laser dmg', arm: 'heat' },
     a_abl:     { name: 'Ablative Plating',icon: '🧱', text: 'Soaks first 30 dmg',    arm: 'ablative' },
     a_spikes:  { name: 'Reactive Spikes', icon: '🦔', text: 'Hurts rammers/spinners',arm: 'spikes' },
@@ -792,7 +795,7 @@ html, body {
   }
 
   function buildText(r) {
-    const w = r.b.weapon === 'gun' ? r.b.cal + ' gun' : r.b.weapon;
+    const w = wepName(r.b);
     const hCount = (r.b.helpers || []).length;
     return w + ' · ' + r.b.range + (hCount ? ` · ${hCount} drone${hCount > 1 ? 's' : ''}` : '');
   }
@@ -844,18 +847,14 @@ html, body {
   }
   // a lot fitted on a copy of the robot (same rules as applyLot)
   function lotBuild(r, L) {
-    if (!L || !r || !(L.stat || L.weapon || L.cal || L.mod || L.arm || L.helper)) return null;
+    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm || L.helper) || !canFit(r, L)) return null;
     const nb = clone(r.b);
-    if (L.stat) { if (nb.lv[L.stat] >= 4) return null; nb.lv[L.stat]++; }
-    if (L.weapon) nb.weapon = L.weapon;
-    if (L.cal) { if (nb.weapon !== 'gun') nb.range = 'mid'; nb.weapon = 'gun'; nb.cal = L.cal; }
+    if (L.stat) nb.lv[L.stat]++;
+    if (L.cal) nb.cal = L.cal;
+    if (L.wup) nb.wup = L.wup;
     if (L.mod) nb.mod = L.mod;
     if (L.arm) nb.arm = L.arm;
     if (L.helper) { nb.helpers = (nb.helpers || []).slice(); if (nb.helpers.length < 3) nb.helpers.push(L.helper); else nb.helpers[nb.helpers.length - 1] = L.helper; }
-    if (L.weapon === 'laser' || L.weapon === 'saw') nb.range = 'mid';
-    if (L.weapon === 'spinner' || L.weapon === 'flame') nb.range = 'short';
-    if (L.weapon === 'mortar') nb.range = 'long';
-    if (weaponSwapNote(r, L)) delete nb.quirk;
     return nb;
   }
   // "Even→Fav" for one robot, '=' when the band doesn't move, null while computing
@@ -877,7 +876,7 @@ html, body {
     if (!L) return null;
     const C = Sim.COUNTERS;
     let o = null;
-    if (L.weapon || L.cal) o = C.weapons[Sim.classOf({ weapon: L.weapon || 'gun', cal: L.cal })] || null;
+    if (L.cal) o = C.weapons[Sim.classOf({ weapon: 'gun', cal: L.cal })] || null;
     else { const k = L.arm ? 'arm:' + L.arm : L.mod ? 'mod:' + L.mod : L.helper ? 'helper:' + L.helper : null; o = k ? C.parts[k] || null : null; }
     if (!o || ti == null) return o;
     const on = classesVs(ti);
@@ -956,7 +955,7 @@ html, body {
   }
   function helpLotTags(L) {
     const o = lotTags(L, viewerSeat); if (!o) return null;
-    const vs = lotTags(L, null).vs || {}, isW = L.weapon || L.cal;
+    const vs = lotTags(L, null).vs || {}, isW = !!L.cal;
     const f = k => esc(clsName(k)) + ' ' + (isW ? pctTxt(vs[k]) : (vs[k] >= 0 ? '+' : '') + Math.round(vs[k] * 100) + ' pts');
     return ['▲ / ▼ ' + esc(L.name),
       (o.strong.length ? '<b style="color:#17803a">▲ ' + (isW ? 'strong vs' : 'helps vs') + '</b> ' + o.strong.map(f).join(', ') + '<br>' : '') +
@@ -1153,7 +1152,9 @@ html, body {
         pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
       }
     } else if (G.phase === 'market') {
-      if (G.marketAuction && G.marketAuction.tie) {
+      if (G.marketAuction && G.marketAuction.sabotageDone) {
+        pb.innerHTML = '<span>🔧 <b>Lots won.</b> Before anything is fitted, teams holding <b>Botched Install</b> may wreck a rival\'s part…</span>';
+      } else if (G.marketAuction && G.marketAuction.tie) {
         const tie = G.marketAuction.tie;
         const lotName = tie.k < 3 ? LOTS[G.market[tie.k]].name : 'Host the Fight';
         const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
@@ -1932,6 +1933,7 @@ html, body {
   function aiBids(t) {
     let budget = t.credits;
     return [0, 1, 2, 3].map(k => {
+      if (k < 3 && !canTake(t, G.market[k])) return 0;   // no robot of ours can take this part
       const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) + (t.sponsor === 'apex' ? 1.2 : 0)
                            : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'eng' ? 3 : 2.2);
       let b = Math.round(want * (0.4 + rnd() * 1.1));
@@ -1943,6 +1945,7 @@ html, body {
 
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
+    if (k < 3 && !canTake(t, G.market[k])) return 0;
     const lotId = k < 3 ? G.market[k] : 'host';
     const maxWilling = k === 3
       ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
@@ -1960,32 +1963,42 @@ html, body {
   }
 
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng;
+  // can this part go on this robot? Weapon upgrades need that weapon, calibres need a gun (no weapon swaps)
+  function canFit(r, L) {
+    if (!r || !L) return false;
+    if (L.wup) return (r.b.weapon || 'gun') === Sim.WUPS[L.wup].for;
+    if (L.cal) return (r.b.weapon || 'gun') === 'gun' && (r.b.cal || 'medium') !== L.cal;
+    if (L.stat) return r.b.lv[L.stat] < 4;
+    return true;
+  }
+  const canTake = (t, id) => !needsRobot(id) || t.robots.some(r => canFit(r, LOTS[id]));
   function aiPickRobot(t, lot) {
     const L = LOTS[lot];
-    let cands = t.robots;
-    if (L.cal) cands = cands.filter(r => r.b.weapon === 'gun');
-    if (L.stat) cands = cands.filter(r => r.b.lv[L.stat] < 4);
+    let cands = t.robots.filter(r => canFit(r, L));
+    if (!cands.length) return null;
     if (L.mod) cands = cands.filter(r => !r.b.mod);
     if (L.arm) cands = cands.filter(r => !r.b.arm);
     if (L.helper) cands = cands.filter(r => (r.b.helpers || []).length < 3);
-    return cands.slice().sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+    return cands.slice().sort((a, b) => power(b) - power(a))[0] || cands[0];
   }
   // which stats a weapon actually uses (src/sim.js): flame and spinner ignore accuracy and velocity, beams ignore velocity
   const UNUSED_STATS = { flame: ['acc', 'bullet'], spinner: ['acc', 'bullet'], laser: ['bullet'], railgun: ['bullet'] };
-  const wepName = b => b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon;
+  const WUP_SHORT = { barrel: 'barrel', lens: 'lens', serrated: 'serrated', ricochet: 'ricochet', napalm: 'napalm', cluster: 'cluster' };
+  const wepName = b => (b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon) + (Sim.wupOf(b) ? ' + ' + WUP_SHORT[b.wup] : '');
   // what a lot does to this robot in real numbers (Sim.statsOf before/after), e.g. "HP 85→110 · Speed 118→113"
   const PREVIEW_F = [['hp', 'HP', 0, ''], ['armor', 'Armour', 1, '/hit'], ['speed', 'Speed', 0, ''], ['turret', 'Turret', 0, '°/s'], ['fp', 'Firepower', 1, ' dps'], ['acc', 'Accuracy', 0, '%'], ['bullet', 'Velocity', 0, '']];
   function lotAfter(r, L) {
     const nb = clone(r.b);
     if (L.stat) { if (nb.lv[L.stat] >= 4) return null; nb.lv[L.stat]++; }
-    if (L.weapon) nb.weapon = L.weapon;
-    if (L.cal) { if (nb.weapon !== 'gun') nb.range = 'mid'; nb.weapon = 'gun'; nb.cal = L.cal; }
+    if (L.cal) { if (nb.weapon !== 'gun') return null; nb.cal = L.cal; }
+    if (L.wup) nb.wup = L.wup;
     if (L.mod) nb.mod = L.mod;
     if (L.arm) nb.arm = L.arm;
     return nb;
   }
   function lotDiff(r, L) {
-    if (!L || !r || !(L.stat || L.weapon || L.cal || L.mod || L.arm)) return [];
+    if (!L || !r || !(L.stat || L.cal || L.wup || L.mod || L.arm)) return [];
+    if (!canFit(r, L)) return null;
     const nb = lotAfter(r, L);
     if (!nb) return null;   // stat already at max
     const a = Sim.statsOf(r.b), b = Sim.statsOf(nb), f = (v, d) => d ? (Math.round(v * 10) / 10).toString() : Math.round(v).toString();
@@ -1993,7 +2006,7 @@ html, body {
   }
   function lotPreview(r, L) {
     const d = lotDiff(r, L);
-    if (d === null) return 'already maxed: no gain!';
+    if (d === null) return L.stat ? 'already maxed: no gain!' : 'doesn\'t fit this robot';
     const s = d.map(x => x.l + ' ' + x.from + '→' + x.to + x.u).join(' · ');
     return L.arm && L.arm !== 'mesh' ? L.text + (s ? ' · ' + s : '') : s || L.text;
   }
@@ -2005,8 +2018,8 @@ html, body {
   }
 
   function weaponSwapNote(r, L) {
-    if (!L || !(L.weapon || L.cal)) return '';
-    const nb = { weapon: L.weapon || 'gun', cal: L.cal || r.b.cal };
+    if (!L || !L.cal || r.b.weapon !== 'gun') return '';
+    const nb = { weapon: 'gun', cal: L.cal };
     if (nb.weapon === r.b.weapon && (nb.weapon !== 'gun' || nb.cal === r.b.cal)) return '';
     const lv = r.b.lv, lost = (UNUSED_STATS[r.b.weapon] || []).filter(k => !(UNUSED_STATS[nb.weapon] || []).includes(k));
     const nameOf = { acc: 'Accuracy', bullet: 'Velocity' };
@@ -2016,7 +2029,6 @@ html, body {
     if (gone.length) lines.push('Points in ' + gone.map(k => nameOf[k]).join(' and ') + ' are wasted on the new weapon.');
     if (nb.weapon === 'gun' && nb.cal !== 'medium') { const c = Sim.CAL[nb.cal]; lines.push('A ' + nb.cal + ' gun turns its turret at ×' + c.turret + ' and fires ' + (c.rate > 1.4 ? 'faster' : 'slower') + ' than a medium gun.'); }
     if (r.b.weapon !== 'gun' && nb.weapon === 'gun') lines.push('Range is reset to <b>mid</b>; change it with the Range button.');
-    if (r.b.quirk) lines.push('❌ <b>' + esc(r.name) + ' loses its quirk for good</b>, even if the old weapon goes back on.');
     const pv = lotPreview(r, L);
     if (pv) lines.push('In numbers: ' + pv + '.');
     return lines.join('<br>');
@@ -2042,9 +2054,9 @@ html, body {
     }
     if (!r) return '';
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
-    if (weaponSwapNote(r, L)) delete r.b.quirk;   // rulebook: a weapon swap removes the quirk for good
-    if (L.weapon) r.b.weapon = L.weapon;
-    if (L.cal) { if (r.b.weapon !== 'gun') r.b.range = 'mid'; r.b.weapon = 'gun'; r.b.cal = L.cal; }
+    if (!canFit(r, L)) return 'No robot can use it';   // no weapon swaps (Kev, 6 Nov)
+    if (L.cal) r.b.cal = L.cal;
+    if (L.wup) r.b.wup = L.wup;
     if (L.mod) r.b.mod = L.mod;
     if (L.arm) r.b.arm = L.arm;
     if (L.helper) {
@@ -2052,13 +2064,11 @@ html, body {
       if (r.b.helpers.length < 3) r.b.helpers.push(L.helper);
       else r.b.helpers[r.b.helpers.length - 1] = L.helper;
     }
-    if (L.weapon === 'laser' || L.weapon === 'saw') r.b.range = 'mid';
-    if (L.weapon === 'spinner' || L.weapon === 'flame') r.b.range = 'short';
-    if (L.weapon === 'mortar') r.b.range = 'long';
     return `Fitted on ${r.name}`;
   }
 
   function resolveMarket(myBids) {
+    if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
     const all = G.teams.map(t => t.i === viewerSeat ? myBids.slice() : aiBids(t));
     G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
     G.marketAuction = {
@@ -2204,19 +2214,23 @@ html, body {
       }
     }
 
-    // All 4 lots resolved!
-    for (const x of A.wins) {
-      notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + lotRef(x.lot) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
+    // All 4 lots resolved! First a window for Botched Install, then the installs
+    if (!A.sabotageDone) {
+      for (const x of A.wins) notify('📦 <b>' + esc(G.teams[x.team].name) + '</b> won ' + lotRef(x.lot) + ' (' + x.price + ' Cr).', G.teams[x.team].col);
+      A.sabotageDone = true; G.ivBusy = true; updateHud();
+      botchedWindow(A).catch(e => console.error(e)).then(() => { G.ivBusy = false; stepMarketAuction(); });
+      return;
     }
     const hostT = G.teams[G.host];
     hostT.fame += 1;
     if (hostT.sponsor === 'apex') hostT.credits += 2;
     notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host (+1 Fame' + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
 
-    G.pendingInstall = A.wins.filter(x => x.team === viewerSeat && needsRobot(x.lot));
+    G.pendingInstall = A.wins.filter(x => x.team === viewerSeat && needsRobot(x.lot) && canTake(me(), x.lot));
     for (const x of A.wins) {
-      if (x.team !== viewerSeat || !needsRobot(x.lot)) {
-        const dest = applyLot(x.team, x.lot, x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot));
+      if (x.team !== viewerSeat || !needsRobot(x.lot) || !canTake(me(), x.lot)) {
+        const pickR = x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot);
+        const dest = needsRobot(x.lot) && !canTake(G.teams[x.team], x.lot) ? 'No robot can use it' : applyLot(x.team, x.lot, pickR);
         A.results[x.idx].target = dest;
       } else {
         A.results[x.idx].target = '▼ Click a Robot Bay below';
@@ -2227,6 +2241,55 @@ html, body {
     G.marketAuction = null;
     if (checkWin()) return;
     updateHud();
+  }
+
+  /* ---------- Botched Install (Kev, 6 Nov): stopping a rival's upgrade is a scheme, not a dead bid ----------
+   * After the lots are won and before anything is fitted, every team holding Botched Install may play it on a
+   * rival's part. Normal defence: the target's Security Bots roll 4-6, then the reaction window. If it lands, the
+   * part is scrapped (bottom of the lot deck), the winner gets half its bid back and the saboteur 1 Cr. */
+  function partThreat(ti, lot) {   // best band jump the part gives one of the winner's robots, or null while the bookie works
+    const T = G.teams[ti];
+    let best = null;
+    for (const r of T.robots) {
+      const nb = lotBuild(r, LOTS[lot]); if (!nb) continue;
+      const a = fieldOdds(ti, r.b).p, b = fieldOdds(ti, nb).p;
+      if (a == null || b == null) continue;
+      const jump = BANDS.indexOf(bandOf(a)) - BANDS.indexOf(bandOf(b));
+      if (!best || jump > best.jump || (jump === best.jump && b - a > best.d)) best = { r, a, b, jump, d: b - a };
+    }
+    return best;
+  }
+  async function botchedWindow(A) {
+    const parts = A.wins.filter(x => needsRobot(x.lot) && canTake(G.teams[x.team], x.lot));
+    for (const x of parts) {
+      const W = G.teams[x.team], th = partThreat(x.team, x.lot);
+      const thTxt = th ? esc(th.r.name) + ': ' + bandOf(th.a).short + ' → ' + bandOf(th.b).short : '';
+      for (const oi of [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat))) {
+        const o = G.teams[oi];
+        if (o === W || !o.hand.includes('botched_install') || o.fame < (CARDS.botched_install.need || 0)) continue;
+        const yes = oi === viewerSeat
+          ? await ivModal('🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr).',
+              [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }], 6000, false)
+          : (th && th.jump >= 1) || (W === leaderOf() && x.price >= 3 && rnd() < 0.6) || (!th && x.price >= 4 && rnd() < 0.5);
+        if (!yes) continue;
+        { const ph = playHead(o, 'botched_install', W); logBegin(ph[0], o.col, ph[1], ph[2]); }
+        notify('target: ' + lotRef(x.lot) + (thTxt ? ' (' + thTxt + ')' : ''));
+        removeFromHand(o, 'botched_install');
+        const d = await defend(o, CARDS.botched_install, W);
+        discardCard('botched_install');
+        if (!d.blocked) {
+          x.botched = true;
+          const back = Math.floor(x.price / 2); W.credits += back; o.credits += 1;
+          G.lots.unshift(x.lot);
+          A.results[x.idx].target = '🔧 Botched: scrapped';
+          notify('🔧 The install fails: ' + lotRef(x.lot) + ' is scrapped. ' + nm(W) + ' gets ' + back + ' Cr back, ' + nm(o) + ' takes 1 Cr.', o.col);
+        }
+        logEnd(d.blocked ? 'blocked' : 'landed');
+        updateHud();
+        break;   // one Botched Install per part
+      }
+    }
+    A.wins = A.wins.filter(x => !x.botched);
   }
 
   /* ---------- Phase 4: Host Invites ---------- */
@@ -3230,7 +3293,7 @@ html, body {
       drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
       { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
       { const hn = helpName(t, r); help(bx + 70, by + 8, 200, 20, hn[0], hn[1]); }
-      help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon. Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
+      help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon, for life: robots never swap weapons. ' + (Sim.wupOf(r.b) ? '<b>' + esc(Sim.WUPS[r.b.wup].name) + '</b>: ' + esc(Sim.WUPS[r.b.wup].text) + ' ' : 'Upgrade it with its own weapon upgrade from the Market. ') + 'Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
       help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 1 Cr per 20 damage.');
 
       // Clean geometric satellite dots for helper drones on the preview corner
@@ -3246,7 +3309,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '900 14.5px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(r.name + winStr + (fav ? ' [FAV]' : '') + (r.exhausted ? ' 😴' : '') + (r.faceDown && r.faceDown.length ? ' 🂠×' + r.faceDown.length : ''), bx + 74, by + 23);
 
-      const wepLabel = r.b.weapon === 'gun' ? `${r.b.cal || 'medium'} gun` : r.b.weapon;
+      const wepLabel = wepName(r.b);
       ctx.fillStyle = '#555'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
       ctx.fillText(wepLabel.toUpperCase(), bx + bw - 12, by + 23);
 
@@ -3269,7 +3332,7 @@ html, body {
         help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr (1 Cr per 20 damage). Unrepaired damage stays for the next fight.');
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
-        const pv = lotPreview(r, nextLot), wasted = pv.startsWith('already');
+        const pv = lotPreview(r, nextLot), wasted = !canFit(r, nextLot);
         const sh = oddsShift(viewerSeat, r, nextLot);
         ctx.fillStyle = wasted ? '#999' : '#1f6feb';
         ctx.fillRect(actX, actY, actW, actH);
@@ -3506,7 +3569,7 @@ html, body {
     const curHp = Math.max(0, maxHp(r) - r.dmg);
     const hpFrac = curHp / maxHp(r);
     const rk = Sim.riskOf(r.b);
-    const wep = r.b.weapon === 'gun' ? `${r.b.cal || 'med'} gun` : r.b.weapon;
+    const wep = wepName(r.b).replace('medium', 'med');
     const helpers = r.b.helpers || [];
 
     // 1. Mini Blueprint Sprite Box (28 x 28) at top-left
@@ -3781,7 +3844,8 @@ html, body {
       const x = startX + k * (w + gap);
       const bid = G.myBids[k] || 0;
 
-      ctx.fillStyle = k === 3 ? '#fffdf5' : '#fcfbf9';
+      const noFit = k < 3 && !canTake(me(), it.id);
+      ctx.fillStyle = k === 3 ? '#fffdf5' : noFit ? '#efede7' : '#fcfbf9';
       ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#222';
       ctx.lineWidth = bid > 0 ? 2.5 : 1.5;
@@ -3797,7 +3861,7 @@ html, body {
       ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
       fitText(ctx, it.text, x + w / 2, y + 83, w - 10, '600', 10.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 10, 'center', 9.5);
-      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), esc(it.text) + '<br><b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
+      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
       else if (k === 3) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
@@ -3807,7 +3871,7 @@ html, body {
         const sh = me().robots.map(r => [r, oddsShift(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
         ctx.fillStyle = '#444';
         if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 166, w - 10, '800', 9.5);
-        else if (!sh.length) fitText(ctx, '🎩 no robot can take it', x + w / 2, y + 166, w - 10, '800', 9.5);
+        else if (!sh.length) { ctx.fillStyle = '#b45309'; fitText(ctx, '✋ none of your robots can take it', x + w / 2, y + 166, w - 10, '800', 9.5); help(x + 4, y + 152, w - 8, 24, 'Not for your robots', 'Weapon upgrades only fit that weapon, and calibres only fit guns (robots keep their weapon for life). You can\'t bid on it, but ' + cardRef('botched_install') + ' can wreck a rival\'s install.'); }
         else sh.forEach(([r, v], j) => { ctx.fillStyle = v.endsWith('=') ? '#777' : '#1f6feb'; fitText(ctx, '🎩 ' + r.name.replace('s1. ', '') + ': ' + v, x + w / 2, y + 162 + (j - (sh.length - 1) / 2) * 10.5, w - 10, '800', 9.5); });
         help(x + 4, y + 152, w - 8, 24, '🎩 What it does to your odds', 'The bookie\'s band vs the field for each of your robots, <b>before→after</b> fitting this lot. <b>=</b> means the band doesn\'t move. ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
       }
@@ -4407,13 +4471,14 @@ html, body {
             updateHud();
           }
         } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
+          if (!canFit(bot, LOTS[G.pendingInstall[0].lot])) { notify('⚠️ ' + lotRef(G.pendingInstall[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ' (' + esc(wepName(bot.b)) + ').', '#b45309'); return; }
           const item = G.pendingInstall.shift();
           const note = weaponSwapNote(bot, LOTS[item.lot]);
           if (note) {
             G.pendingInstall.unshift(item);
             if (G.swapAsk) return;
             G.swapAsk = true;
-            ivModal('🔁 Swap weapon on ' + esc(bot.name) + '?', note, [{ label: 'Swap it', value: () => true }, { label: 'Pick another bay', secondary: true, value: () => false }]).then(ok => {
+            ivModal('🔁 Change calibre on ' + esc(bot.name) + '?', note, [{ label: 'Change it', value: () => true }, { label: 'Pick another bay', secondary: true, value: () => false }]).then(ok => {
               G.swapAsk = false;
               if (!ok) return;
               G.pendingInstall.shift();
@@ -4463,6 +4528,10 @@ html, body {
       if (r.kind === 'market_minus') {
         G.myBids[r.idx] = Math.max(0, (G.myBids[r.idx] || 0) - 1);
         updateHud(); return;
+      }
+      if ((r.kind === 'market_plus' || r.kind === 'market_tile') && r.idx < 3 && !canTake(me(), G.market[r.idx])) {
+        notify('⚠️ None of your robots can take ' + lotRef(G.market[r.idx]) + ', so you can\'t bid on it. Want to stop a rival getting it? Keep ' + cardRef('botched_install') + ' ready.', '#b45309');
+        return;
       }
       if (r.kind === 'market_plus' || r.kind === 'market_tile') {
         const spent = G.myBids.reduce((a, b) => a + b, 0);

@@ -19,7 +19,7 @@
 
 **Starter:** Scrap Bot, HP2 AR0 SP2 TU2 FP4 AC1 BU0 (11 points), stock gun, no quirk, empty module slot, value 1, about 17% vs the cards. Alternative: the 9-robot `s1.` starter draft in `docs/starter-deck.md` (Kev to decide).
 
-**Rules:** weapon swap = quirk lost for good (warning first); module swap keeps the quirk; drive/processor fixed; the Railgunner is the deck's only railgun. Fight quirks in the Sim: Trick Shot, Sticky Fire, Fireproof, Bastion; the others (Showstopper, Hotshot, Headline Act, Scope, Grudge, Underrated, Treacherous, Cunning) work in the strategy layer.
+**Rules:** no weapon swaps (6 Nov): a robot keeps its weapon for life and takes its weapon type's upgrade instead; module swap keeps the quirk; drive/processor fixed; the Railgunner is the deck's only railgun. Fight quirks in the Sim: Trick Shot, Sticky Fire, Fireproof, Bastion; the others (Showstopper, Hotshot, Headline Act, Scope, Grudge, Underrated, Treacherous, Cunning) work in the strategy layer.
 
 **6 Nov sim pass changes:** Juggernaut HP3→2 AR2→3, Railgunner FP4→3 SP1→2, Wasp FP4→3 HP3→4, Fortress TU1→0 BU0→1, Scrap Bot AR1→0 FP3→4 (one point each, chosen with `tools/card-tune.js`). Details in `docs/robot-arena-balance-findings.md`.
 

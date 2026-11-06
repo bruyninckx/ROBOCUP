@@ -97,6 +97,17 @@
     rammer:   { name: 'Rammer Chip', strain: 1, text: 'Drives straight into its target, hunts wounded enemies, and rams for damage plus knockback (more with armour and health).' },
   };
 
+  // weapon upgrades (Kev, 6 Nov): weapons are never swapped, a robot keeps its weapon for life. Each weapon type has
+  // its own upgrade that makes it better at what it already does. One upgrade slot per robot, +1 strain.
+  const WUPS = {
+    barrel:   { name: 'Match-grade Barrel', for: 'gun',     text: 'Guns: bullets fly 15% faster and the aim is steadier (+4 accuracy).' },
+    lens:     { name: 'Focusing Lens',      for: 'laser',   text: 'Lasers: the beam burns 5% hotter.' },
+    serrated: { name: 'Serrated Blade',     for: 'spinner', text: 'Spinners: the blade bites 20% harder.' },
+    ricochet: { name: 'Ricochet Rig',       for: 'saw',     text: 'Saw blades: each blade can hit one extra time and cuts 12% deeper.' },
+    napalm:   { name: 'Napalm Mix',         for: 'flame',   text: 'Flamethrowers: targets burn up to 2 s longer.' },
+    cluster:  { name: 'Cluster Shells',     for: 'mortar',  text: 'Mortars: shells hit 15% harder.' },
+  };
+  const wupOf = b => b.wup && WUPS[b.wup] && WUPS[b.wup].for === (b.weapon || 'gun') ? b.wup : null;
   // strain: how hard each part pushes the robot. More strain = more malfunctions and broken parts.
   // Engineers (0-3 per robot) keep it running: each one cuts the malfunction chance by 40% and the break chance in half.
   const STRAIN = {
@@ -105,6 +116,7 @@
     mod: { shield: 1, flipper: 2, decoy: 1, mines: 1, repair: 1, emp: 2, boom: 1, smoke: 0, reflect: 0, grapple: 2, jets: 2, oil: 1, quantum: 2 },
     arm: { heat: 1, ablative: 0, spikes: 1, mesh: 1 },
     helper: 1,
+    wup: 1,
   };
   const WNAME = { gun: 'Gun', laser: 'Laser', mortar: 'Mortar', saw: 'Saw blades', spinner: 'Spinner blade', flame: 'Flamethrower', railgun: 'Railgun' };
   const OVER = { speed: 'Speed', turret: 'Turret', fp: 'Firepower' };
@@ -115,6 +127,7 @@
     const parts = [], w = b.weapon || 'gun';
     parts.push({ part: 'weapon', name: WNAME[w] || w, strain: STRAIN.weapon[w] || 1 });
     if (w === 'gun' && STRAIN.cal[b.cal || 'medium']) parts.push({ part: 'cal', name: b.cal === 'burst' ? 'Burst Gun' : 'Heavy calibre', strain: STRAIN.cal[b.cal] });
+    if (wupOf(b)) parts.push({ part: 'wup', name: WUPS[b.wup].name, strain: STRAIN.wup });
     if (b.arm && ARMOURS[b.arm] && STRAIN.arm[b.arm]) parts.push({ part: 'arm', name: ARMOURS[b.arm].name, strain: STRAIN.arm[b.arm] });
     if (b.mod && MODS[b.mod] && STRAIN.mod[b.mod]) parts.push({ part: 'mod', name: MODS[b.mod].name, strain: STRAIN.mod[b.mod] });
     (b.helpers || []).filter(h => HELPERS[h]).slice(0, b.quirk === 'bastion' ? 4 : 3).forEach((h, k) => parts.push({ part: 'helper', k, name: HELPERS[h].name, strain: b.quirk === 'bastion' ? 0 : STRAIN.helper }));
@@ -175,7 +188,7 @@
     return { strain: st.total, parts: st.parts, eng: E, glitch, breaks, anyBreak };
   }
   // what a broken part does for the rest of the fight
-  const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED', drive: 'DRIVE LOCKED', proc: 'LOGIC GLITCH', arm: 'PLATING CRACKED' };
+  const BREAK_TEXT = { weapon: 'WEAPON DAMAGED', cal: 'BARREL WARPED', mod: 'MODULE FRIED', helper: 'DRONE FAILURE', speed: 'ENGINE BLOWN', turret: 'TURRET MOTOR BURNT', fp: 'OVERHEATED', drive: 'DRIVE LOCKED', proc: 'LOGIC GLITCH', arm: 'PLATING CRACKED', wup: 'UPGRADE BURNT OUT' };
   function breakPart(B, b, p) {
     const key = p.part === 'over' ? p.stat : p.part;
     let label = BREAK_TEXT[key];
@@ -188,6 +201,12 @@
     else if (key === 'fp') { b.s.dmg *= 0.7; b.s.fp *= 0.7; }
     else if (key === 'drive') { b.driveLocked = true; b.s.speed *= 0.6; }   // omni loses its sideways glide, boost its dash
     else if (key === 'proc') b.procBroken = true;                           // back to the stock controller
+    else if (key === 'wup') {   // the weapon upgrade stops working: undo its bonus
+      if (!b.s.wup) return false;
+      if (b.s.wup === 'barrel') { b.s.bullet /= 1.15; b.s.acc -= 4; }
+      if (b.s.wupF !== 1) { b.s.dmg /= b.s.wupF; b.s.fp /= b.s.wupF; b.s.wupF = 1; }
+      b.s.wup = null;
+    }
     else if (key === 'arm') { if (!b.arm) return false; if (b.abl > 0) b.s.speed /= 0.91; b.armBroken = b.arm; b.arm = null; b.abl = 0; }
     (b.broken = b.broken || []).push(p.name);
     B.fx.push({ k: 'break', x: b.x, y: b.y - 34, text: label, life: 1.8 });
@@ -224,6 +243,10 @@
     // railgun: every slug lands and outranges everything, so each one hits softer (legendary, but beatable)
     if (s.weapon === 'railgun') s.dmg *= 0.55;
     if (s.weapon === 'gun') { s.bullet *= c.shell; s.turret *= c.turret; s.tol = c.tol; } else s.tol = 5;
+    s.wup = wupOf(b);
+    s.wupF = { lens: 1.05, serrated: 1.2, cluster: 1.15, ricochet: 1.12 }[s.wup] || 1;
+    if (s.wup === 'barrel') { s.bullet *= 1.15; s.acc = Math.min(99, s.acc + 4); }
+    if (s.wupF !== 1) { s.dmg *= s.wupF; s.fp *= s.wupF; }
     // weight: armour and health slow you down (tracks feel half of it)
     const D = DRIVES[b.drive] || DRIVES.wheels;
     s.drive = DRIVES[b.drive] ? b.drive : 'wheels';
@@ -711,7 +734,7 @@
             if (B.walls.some(wl => wl.team !== b.team && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) != null && rayHitsSeg(b.x, b.y, ex / d, ey / d, wl) < d)) continue;
             hitBot(B, e, b.s.fp * 0.5 * oc * dt, b, true);
             if (e.mod === 'reflect' && !e.revealed) { e.revealed = true; logE(B, { k: 'mod', who: e.i, text: 'reflective plating vs flames of', tgt: b.i }); }
-            e.burn = Math.min(b.quirk === 'stickyfire' ? 6 : 4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
+            e.burn = Math.min(b.quirk === 'stickyfire' || b.s.wup === 'napalm' ? 6 : 4, (e.burn || 0) + dt * 2 * (e.mod === 'reflect' ? 0.5 : 1)); e.burnBy = b.i;
             b.hits += dt;
           }
           // oil in the cone catches fire
@@ -742,7 +765,7 @@
           const spread = rad(18) * (1 - accE / 100) + fog * rad(22);
           const a = b.turret + (rng() * 2 - 1) * spread, v = pspeed;
           B.saws.push({ x: b.x + Math.cos(b.turret) * 24, y: b.y + Math.sin(b.turret) * 24, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
-            owner: b.i, squad: b.squad, dmg: b.s.dmg, life: 4, hits: 0, maxHits: b.quirk === 'trickshot' ? 4 : 3, bounces: 0, last: -1, lastT: -9 });
+            owner: b.i, squad: b.squad, dmg: b.s.dmg, life: 4, hits: 0, maxHits: b.quirk === 'trickshot' || b.s.wup === 'ricochet' ? 4 : 3, bounces: 0, last: -1, lastT: -9 });
           b.shots++;
         }
       } else if (w === 'mortar') {
@@ -1118,7 +1141,7 @@
   }
 
   const WEAPONS = ['gun', 'laser', 'mortar', 'saw', 'spinner', 'flame', 'railgun'];
-  const Sim = { FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
+  const Sim = { WUPS, wupOf, FRAMES, frameOf, WEAPON_CLASSES, classOf, COUNTERS, tagsOf, ROBOT_CARDS, SQUADS, WEAPONS, HELPERS, MODS, ARMOURS, QUIRKS, CAL, W, H, SIZE, STATS, LV, RANGES, STRAIN, ENG_MAX, DRIVES, PROCS, newBattle, step, fight, statsOf, cost, mkRng, strainOf, riskOf, recap, queueCmd };
   if (typeof module !== 'undefined' && module.exports) module.exports = Sim; else root.Sim = Sim;
 })(this);
 

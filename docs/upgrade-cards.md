@@ -4,9 +4,9 @@ Source of truth for the card list: the card table (https://claude.ai/artifact/K9
 
 ## Rules in short
 
-- Market deck: **50 different cards**: 12 robots, 8 crew, 8 weapons, 4 armour, 6 modules, 6 helpers, 4 stat upgrades, 2 legendary. Robot cards: `docs/robot-cards.md`.
+- Market deck: **50 different cards**: 12 robots, 8 crew, 9 weapon upgrades, 4 armour, 6 modules, 6 helpers, 4 stat upgrades, 2 legendary. Robot cards: `docs/robot-cards.md`.
 - Slots per robot: 1 weapon, 1 armour, 1 module, up to 3 helpers (Fortress 4), stat upgrades up to level 4. All parts are **open** information.
-- Robot cards come pre-built. A bought **weapon** may replace the signature weapon, but the robot loses its quirk for good (warning first). A bought **module** may replace the signature module and the quirk stays. Drive and processor are fixed; the railgun stays on the Railgunner. A removed part stays in the garage as a spare.
+- Robot cards come pre-built. Weapons are never swapped (6 Nov): each weapon type has its own upgrade instead. A bought **module** may replace the signature module and the quirk stays. Drive and processor are fixed; the railgun stays on the Railgunner. A removed part stays in the garage as a spare.
 - Parts are fitted only in the open market. Price = expected winning bid; **bank value** = what the bank pays (printed on the card).
 - Strain (⚡): each part adds strain; more strain, more malfunctions and broken parts (sim formula in `src/sim.js` `riskOf`; rulebook first guess 5% per ⚡ per fight, halved by a Chief Engineer). Broken parts stay broken until repaired for half their bank value (min 1).
 
@@ -23,18 +23,23 @@ Source of truth for the card list: the card table (https://claude.ai/artifact/K9
 | **Security Chief** | — | – | 2–3 | 1 | Your Security Bots block on 3–6 instead of 4–6. | designed |
 | **Repair Tech** | — | – | 2–4 | 1 | Repairs cost half: 1 credit per 40 damage, rounded up. | designed |
 
-## Weapons (8)
+## Weapon upgrades (9) — no weapon swaps (Kev, 6 Nov)
 
-| Card | Sim key | ⚡ | Price | Bank value | Effect | Status |
-|---|---|---|---|---|---|---|
-| **Laser Retrofit** | `weapon: laser` | 2 | 3–5 | 2 | Beam, 280 px range. Ignores armour and pierces every robot in line. | in a prototype |
-| **Mortar Retrofit** | `weapon: mortar` | 2 | 3–5 | 2 | Lobbed shell with splash. Lobs over walls; long range. | in a prototype |
-| **Saw Blade Launcher** | `weapon: saw` | 2 | 4–6 | 3 | Ricocheting discs bounce off walls and robots, up to 3 hits. | in a prototype |
-| **Flamethrower** | `weapon: flame` | 2 | 3–5 | 2 | Short fire cone that ignores armour. Burning robots spread fire. | in a prototype |
-| **Spinner Blade** | `weapon: spinner` | 3 | 4–6 | 3 | The whole robot spins: rams, hurls enemies, deflects 25% of bullets. | in a prototype |
-| **Rapid-Fire Kit** | `calibre: rapid` | 0 | 2–3 | 1 | 4 shots/s and a quick turret. Shreds light robots, weak vs armour. | in a prototype |
-| **Heavy Cannon Kit** | `calibre: heavy` | 1 | 2–4 | 1 | 0.5 shots/s, huge slow shells that punch through armour. | in a prototype |
-| **Burst Gun** | `calibre: burst` | 1 | 2–4 | 1 | 3 quick shots, then a 0.8 s pause. About the damage/s of a medium gun. | in a prototype |
+A robot keeps its weapon for life. These only fit robots with that weapon (`Sim.WUPS`, build key `wup`, one slot, +1 ⚡). Effect measured on the `s1.` starters vs the other 8 (16 fights per pairing).
+
+| Card | Sim key | Fits | ⚡ | Effect | s1. starter |
+|---|---|---|---|---|---|
+| **Match-grade Barrel** | `wup: barrel` | guns | 1 | Bullets 15% faster, +4 accuracy. | Scrapper 56→58, Rattler 45→54, Plinker 52→55, Tin Can 43→53 |
+| **Focusing Lens** | `wup: lens` | lasers | 1 | Beam 5% hotter (lasers react strongly to damage). | Sparky 42→48 |
+| **Serrated Blade** | `wup: serrated` | spinners | 1 | Blade 20% harder. | Top 49→56 |
+| **Ricochet Rig** | `wup: ricochet` | saw blades | 1 | One extra hit per blade, 12% harder. | Grinder 50→57 |
+| **Napalm Mix** | `wup: napalm` | flamethrowers | 1 | Burn up to 2 s longer (cap 6 s). | Zippo 44→52 |
+| **Cluster Shells** | `wup: cluster` | mortars | 1 | Shells 15% harder. | Lobster 45→51 |
+| **Rapid-Fire Kit** | `calibre: rapid` | guns | 0 | 4 shots/s and a quick turret. Shreds light robots, weak vs armour. | |
+| **Heavy Cannon Kit** | `calibre: heavy` | guns | 1 | 0.5 shots/s, huge slow shells that punch through armour. | |
+| **Burst Gun** | `calibre: burst` | guns | 1 | 3 quick shots, then a 0.8 s pause. | |
+
+The old weapon retrofits (Laser, Mortar, Saw Blade Launcher, Flamethrower, Spinner Blade) are gone from the Market: those weapons come only with their robots. Why: a swap averaged −18 win points on the starters but moved 30 of 72 swaps by 2+ bookie bands (Sparky + Spinner 55→80%), so it was a gamble that erased the robot's identity.
 
 ## Armour (4)
 

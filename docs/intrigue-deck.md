@@ -1,6 +1,6 @@
 # Intrigue deck (v1 + 5 Nov additions)
 
-74 different cards, 185 copies, in the 8 Spartacus families. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. Live cards: max 1 per player per fight, played after bets close. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
+75 different cards, 188 copies, in the 8 Spartacus families. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. Live cards: max 1 per player per fight, played after bets close. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
 
 ## Contracts (10 cards, 28 copies)
 
@@ -59,7 +59,7 @@ Costs rivals fame. The big ones gate above 12, so hitting a leader takes a team-
 | **Bankrupt!** | Reaction | 3 | 1 | 2 | −1 fame to a team with 0 credits. | Destitute! |
 | **Pile-On** | Reaction | ▲ | 2 | 2 | When the target loses fame this round, they lose 1 more. | Twist the Knife |
 
-## Sabotage (9 cards, 22 copies)
+## Sabotage (10 cards, 25 copies)
 
 Attacks on a rival garage. The face-down cards are what make the bookmaker wrong.
 
@@ -74,6 +74,7 @@ Attacks on a rival garage. The face-down cards are what make the bookmaker wrong
 | **Rogue Firmware** | Scheme | 5 | 1 | 2 | A target robot sits out its next fight and takes 30 lasting damage. | Incite Rebellion |
 | **Tax Audit** | Scheme | 6 | 1 | 2 | Target pays the bank 5 credits (or everything it has). | Word to the Tax Collector |
 | **Coolant Leak** | Scheme | 10 | 2 | 2 | Exhaust 1–2 robots of the target team. | Piss in Your Porridge |
+| **Botched Install** | Reaction | 3 | 1 | 3 | When a rival wins a Market part (before it is fitted): the install fails and the part is scrapped. They get half their bid back; you take 1 credit. Security Bots and reactions can stop it. | new (Kev, 6 Nov: stopping a rival's upgrade is a scheme, not a blocking bid) |
 
 ## Corporate (3 cards, 6 copies)
 

@@ -7,7 +7,7 @@ Detail docs: `docs/upgrade-cards.md` (+ `.json`), `docs/robot-cards.md`, `docs/i
 |---|---|---|
 | Robots | 12 | Juggernaut, Wasp, Railgunner (legendary), Sniper, Ricochet, Brawler, Artillery, Hookshot, Turncoat, Slick, Fortress, Tinker |
 | Crew | 8 | Chief Engineer, Mechanic, Accountant, Hacker, Market Analyst, Fixer, Security Chief, Repair Tech |
-| Weapons | 8 | Laser, Mortar, Saw Blade Launcher, Flamethrower, Spinner Blade, Rapid-Fire Kit, Heavy Cannon Kit, Burst Gun |
+| Weapon upgrades | 9 | No weapon swaps (Kev, 6 Nov). One upgrade per weapon type: Match-grade Barrel, Focusing Lens, Serrated Blade, Ricochet Rig, Napalm Mix, Cluster Shells; plus gun calibres Rapid-Fire Kit, Heavy Cannon Kit, Burst Gun |
 | Armour | 4 | Heat Shield, Ablative Plating, Reactive Spikes, Composite Mesh |
 | Modules | 6 | Energy Shield, Decoy Hologram, EMP Burst, Grappling Hook, Jump Jets, Oil Slick |
 | Helpers | 6 | Medic, Waller, Bodyguard, Gun Drone, Spotter, Jammer |

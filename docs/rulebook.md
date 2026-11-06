@@ -167,8 +167,8 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 **Robot cards come pre-built.** Each robot card has its signature weapon, drive, processor and module, plus one quirk.
 
-- **Weapon swap:** a bought weapon can replace the signature weapon, but the robot loses its quirk for good, even if the old weapon goes back on. The game warns you before you confirm.
-- **Module swap:** allowed, and the quirk stays.
+- **No weapon swaps (Kev, 6 Nov):** a robot keeps its weapon for life; the weapon is its identity. Each weapon type has its own **weapon upgrade** (one slot, +1 ⚡) that makes it better at what it already does: Match-grade Barrel (guns), Focusing Lens (lasers), Serrated Blade (spinners), Ricochet Rig (saw blades), Napalm Mix (flamethrowers), Cluster Shells (mortars). Guns may also change calibre (rapid, heavy, burst). A part only fits robots with that weapon, and you can't bid on a part none of your robots can take. Want a different weapon: get another robot, or fit the Twin Turret (a second weapon at 60%).
+- **Module swap:** allowed, and the quirk stays. Calibre changes and weapon upgrades keep the quirk too.
 - **Drive and processor:** fixed. The Railgunner's railgun can't move to another robot.
 - **Spares:** a part you take off stays in your garage. Refit it later or sell it to the bank.
 - **Scrap Bots** have no quirk, so any part can go on them freely.
