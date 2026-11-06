@@ -70,6 +70,16 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
 .rlist li.turn { background: var(--soft); border-radius: 4px; }
 .rlist li.turn .tx::after { content: '  ← turning point'; font-weight: 700; }
 .upset { color: var(--bad); font-weight: 800; }
+.ok { color: #17803a; font-weight: 700; } .off { color: var(--bad); font-weight: 700; }
+.ck { display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; }
+.ck .note { font-size: 12.5px; }
+.prog { height: 6px; background: var(--soft); border-radius: 3px; overflow: hidden; }
+.prog > div { height: 100%; background: var(--ink); width: 0; }
+.cmp { display: grid; grid-template-columns: minmax(120px, 1.4fr) repeat(4, minmax(60px, 1fr)); gap: 3px 10px; font-variant-numeric: tabular-nums; font-size: 13px; align-items: center; }
+.cmp b { font-size: 12px; color: var(--muted); }
+.cbar { position: relative; height: 10px; background: var(--soft); border-radius: 3px; }
+.cbar i { position: absolute; top: -2px; width: 3px; height: 14px; }
+.stt td, .stt th { font-size: 12.5px; }
 .rlist .rt { white-space: nowrap; }
 @media (max-width: 480px) { .rlist li { display: block; } .rlist .rt, .rlist .tag { margin-right: 6px; } }
 </style>
@@ -89,6 +99,20 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   <div class="panel" id="odds">
     <div class="head"><b>Bookie's board</b><span class="note" id="oddsNote"></span><label><input type="checkbox" id="exactOdds"> show exact %</label></div>
     <div class="orows" id="oddsRows"></div>
+  </div>
+  <div class="panel" id="check">
+    <div class="head"><b>Does the bookie get it right?</b><span class="note">The bookie runs 40 fixed fights of what everyone can see. Here you run fresh fights of the real builds and compare.</span></div>
+    <div class="ck"><button id="runN">Run fights</button><select id="runCount" aria-label="How many fights"><option value="100">100 fights</option><option value="200" selected>200 fights</option><option value="500">500 fights</option><option value="1000">1000 fights</option></select><span class="note" id="runNote"></span></div>
+    <div class="prog" id="runProg" hidden><div></div></div>
+    <div id="runOut"></div>
+    <div class="ck" style="margin-top:6px"><button id="sweep">Test the bookie on random duels</button>
+      <select id="sweepPool" aria-label="Which robots"><option value="starters">Starter deck</option><option value="cards" selected>Robot cards</option><option value="presets">Presets</option><option value="all">All of them</option></select>
+      <select id="sweepCount" aria-label="How many duels"><option value="20">20 duels</option><option value="40" selected>40 duels</option><option value="80">80 duels</option></select>
+      <label class="note"><input type="checkbox" id="sweepDmg"> with random starting damage</label>
+      <span class="note" id="sweepNote"></span></div>
+    <div class="prog" id="sweepProg" hidden><div></div></div>
+    <div id="sweepOut"></div>
+    <div id="tally" class="note" style="font-size:12.5px"></div>
   </div>
   <div class="status" id="status" aria-live="off"></div>
   <canvas id="cv" width="900" height="560" aria-label="Arena"></canvas>
@@ -195,6 +219,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const fr = Sim.frameOf(b), tg = Sim.tagsOf(b, 3), cn = k => Sim.WEAPON_CLASSES[k].name;
     return '<p class="modtx strain"><b>Strain ' + R.strain + ' · ' + fr.name + ' frame</b><span>' + R.parts.filter(p => p.strain).map(p => p.name + ' ' + p.strain).join(', ') + '</span>' +
       '<label>Engineers <select data-k="eng">' + [0, 1, 2, 3].map(v => opt(v, String(v), R.eng)).join('') + '</select></label>' +
+      '<label>Starts with damage <select data-k="dmg">' + [0, 10, 20, 30, 40, 50, 60, 70, 80].map(v => opt(v, v + '%', Math.round((b.dmgPct || 0)))).join('') + '</select></label>' +
       '<span class="risk' + (hi ? ' high' : '') + '">malfunction ' + pc(R.glitch) + ' · part break ' + pc(R.anyBreak) + '</span></p>' +
       '<p class="modtx">' + (tg.strong.length ? '<b style="color:#17803a">▲ strong vs</b> ' + tg.strong.map(cn).join(', ') + ' ' : '') + (tg.weak.length ? '<b style="color:#d62828">▼ weak vs</b> ' + tg.weak.map(cn).join(', ') : '') + (tg.strong.length || tg.weak.length ? '' : 'No clear counters.') + '</p>';
   }
@@ -243,6 +268,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       else if (k === 'arm') { sel[i].b.arm = e.target.value || null; }
       else if (k === 'focus') { sel[i].b.focus = e.target.value; }
       else if (k === 'eng') { sel[i].b.eng = +e.target.value; }
+      else if (k === 'dmg') { sel[i].b.dmgPct = +e.target.value; }
       else if (k === 'drive' || k === 'proc') { sel[i].b[k] = e.target.value; }
       else if (e.target.dataset.h != null) { const hs = (sel[i].b.helpers || ['', '', '']).slice(); while (hs.length < 3) hs.push(''); hs[+e.target.dataset.h] = e.target.value; sel[i].b.helpers = hs; }
       else { sel[i].b[k] = e.target.value; sel[i].name = 'Custom'; }
@@ -328,6 +354,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   function reset() {
     const builds = sel.slice(0, count).map((r, i) => Object.assign({}, r.b, { size: cardOf(i).size }));
     B = Sim.newBattle(builds, (Math.random() * 4294967296) >>> 0, teamMode() ? { teams: builds.map((_, i) => teamOf(i)) } : null);
+    applyDamage(B, builds);
     W = B.W; H = B.H; cv.width = W; cv.height = H;
     recapEl.hidden = true; recapEl.innerHTML = '';
     startOdds(builds);
@@ -610,6 +637,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       const k = job.n, order = job.groups.map((_, g) => (g + k) % G), list = [], owner = [], teams = [];
       order.forEach((g, pos) => job.groups[g].forEach(i => { list.push(job.builds[i]); owner.push(g); teams.push(pos); }));
       const X = Sim.newBattle(list, 7001 + k * 977, job.team ? { teams } : null);
+      applyDamage(X, list);
       while (!X.over) Sim.step(X, 1 / 30);
       if (X.winner < 0) job.wins.forEach((_, g) => job.wins[g] += 1 / G);
       else job.wins[job.team ? order[X.winner] : owner[X.winner]]++;
@@ -632,8 +660,120 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   }
   document.getElementById('exactOdds').onchange = renderOdds;
 
+  // lasting damage a robot brings into the fight (the tabletop keeps damage between fights); main robots come first in B.bots
+  function applyDamage(X, list) { list.forEach((b, i) => { const p = (b.dmgPct || 0) / 100; if (p > 0 && X.bots[i] && !X.bots[i].helper) X.bots[i].hp = Math.max(10, X.bots[i].hp - X.bots[i].s.hp * p); }); }
+
+  // ---------- Does the bookie get it right? (Kev, 6 Nov) ----------
+  // runs fights in small slices so the page stays responsive; job = { groups: [[build idx]], builds, team }
+  function runBatch(job, n, seedOf, onStep, onDone) {
+    const G = job.groups.length, wins = job.groups.map(() => 0); let k = 0;
+    const tick = () => {
+      const t0 = performance.now();
+      while (k < n && performance.now() - t0 < 25) {
+        const order = job.groups.map((_, g) => (g + k) % G), list = [], owner = [], teams = [];
+        order.forEach((g, pos) => job.groups[g].forEach(i => { list.push(job.builds[i]); owner.push(g); teams.push(pos); }));
+        const X = Sim.newBattle(list.map(clone), seedOf(k), job.team ? { teams } : null);
+        applyDamage(X, list);
+        while (!X.over) Sim.step(X, 1 / 30);
+        if (X.winner < 0) wins.forEach((_, g) => wins[g] += 1 / G); else wins[job.team ? order[X.winner] : owner[X.winner]]++;
+        k++;
+      }
+      onStep && onStep(k / n);
+      if (k < n) setTimeout(tick, 0); else onDone(wins.map(w => w / n));
+    };
+    setTimeout(tick, 0);
+  }
+  const rndSeed = () => (Math.random() * 4294967296) >>> 0;
+  const bookieSeed = k => 7001 + k * 977;   // the same fixed seeds as the bookie's board
+  const margin = (p, n) => 1.96 * Math.sqrt(Math.max(p * (1 - p), 0.01) / n);   // 95% range of a real result
+  const prog = (id, f) => { const el = document.getElementById(id); el.hidden = f >= 1; el.firstElementChild.style.width = Math.round(f * 100) + '%'; };
+  let busy = false;
+  document.getElementById('runN').onclick = () => {
+    if (busy) return;
+    const n = +document.getElementById('runCount').value, groups = groupsNow(), team = teamMode();
+    const builds = sel.slice(0, count).map((r, i) => Object.assign({}, r.b, { size: cardOf(i).size }));   // the REAL builds, hidden modules included
+    const finish = bookie => {
+      busy = true; document.getElementById('runNote').textContent = 'running ' + n + ' fresh fights…';
+      runBatch({ groups: groups.map(g => g.idx), builds, team }, n, rndSeed, f => prog('runProg', f), real => {
+        busy = false; prog('runProg', 1);
+        const Gn = groups.length;
+        document.getElementById('runNote').textContent = n + ' fresh fights, random seeds' + (hideMods ? '; the bookie could not see hidden modules' : '');
+        document.getElementById('runOut').innerHTML = '<div class="cmp"><b>Side</b><b>Bookie (40 fights)</b><b>Band</b><b>Real (' + n + ')</b><b>Verdict</b>' + groups.map((g, k) => {
+          const pb = bookie[k], pr = real[k], m = margin(pr, n), bb = bandOf(pb, Gn), br = bandOf(pr, Gn), ok = Math.abs(pb - pr) <= m + margin(pb, ODDS_N) * 0.5;
+          return '<span style="color:' + g.col + ';font-weight:700">' + esc(g.name) + '</span><span>' + pc(pb) + '</span><span>' + bb.name + '</span><span>' + pc(pr) + ' <span class="note">±' + Math.round(m * 100) + '</span></span>' +
+            '<span class="' + (ok ? 'ok' : 'off') + '">' + (ok ? '✓ matches' : '✗ off by ' + Math.round(Math.abs(pb - pr) * 100) + ' pts') + (br !== bb ? ' <span class="note">(really ' + br.name + ')</span>' : '') + '</span>';
+        }).join('') + '</div>';
+      });
+    };
+    // the bookie's own numbers: its board if it has finished, else work them out the same way
+    if (oddsDone()) finish(oddsJob.wins.map(w => w / oddsJob.n));
+    else { busy = true; document.getElementById('runNote').textContent = 'the bookie is still crunching…'; const vis = builds.map(b => { const c = Object.assign({}, b); if (hideMods) delete c.mod; return c; });
+      runBatch({ groups: groups.map(g => g.idx), builds: vis, team }, ODDS_N, bookieSeed, null, bk => { busy = false; finish(bk); }); }
+  };
+  // a sweep over random duels: the bookie's 40 fixed fights vs 100 fresh ones, grouped by the band the bookie posted
+  document.getElementById('sweep').onclick = () => {
+    if (busy) return;
+    const pool = { starters: STARTERS, cards: CARDS, presets: PRESETS, all: ALL }[document.getElementById('sweepPool').value];
+    const names = Object.keys(pool).filter(n => n !== 'Card: Scrap Bot'), N = +document.getElementById('sweepCount').value, withDmg = document.getElementById('sweepDmg').checked;
+    const duels = []; const r = a => a[Math.floor(Math.random() * a.length)];
+    for (let k = 0; k < N; k++) { let a = r(names), b = r(names); while (b === a) b = r(names); duels.push([a, b, withDmg ? 10 * Math.floor(Math.random() * 7) : 0, withDmg ? 10 * Math.floor(Math.random() * 7) : 0]); }
+    const rows = []; busy = true; let d = 0;
+    const next = () => {
+      if (d >= duels.length) { busy = false; prog('sweepProg', 1); showSweep(rows); return; }
+      const [a, b, da, db] = duels[d], builds = [Object.assign(clone(pool[a].b), { dmgPct: da }), Object.assign(clone(pool[b].b), { dmgPct: db })];
+      const job = { groups: [[0], [1]], builds, team: false };
+      runBatch(job, ODDS_N, bookieSeed, null, bk => runBatch(job, 100, rndSeed, null, real => {
+        rows.push({ a, b, da, db, pb: bk[0], pr: real[0] }); d++;
+        document.getElementById('sweepNote').textContent = 'duel ' + d + ' / ' + duels.length + '…'; prog('sweepProg', d / duels.length); next();
+      }));
+    };
+    document.getElementById('sweepOut').innerHTML = ''; next();
+  };
+  function showSweep(rows) {
+    const short = n => n.replace(/^Card: /, '');
+    const mae = rows.reduce((a, x) => a + Math.abs(x.pb - x.pr), 0) / rows.length;
+    const bandHit = rows.filter(x => bandOf(x.pb, 2) === bandOf(x.pr, 2)).length;
+    const far = rows.filter(x => Math.abs(x.pb - x.pr) > margin(x.pr, 100) + 0.08).length;
+    // calibration: for each band the bookie posted (for side A and, mirrored, side B), how often that side really won
+    const byBand = BANDS.map(bd => ({ bd, n: 0, real: 0, said: 0 }));
+    rows.forEach(x => [[x.pb, x.pr], [1 - x.pb, 1 - x.pr]].forEach(([pb, pr]) => { const e = byBand.find(y => y.bd === bandOf(pb, 2)); e.n++; e.real += pr; e.said += pb; }));
+    document.getElementById('sweepNote').textContent = rows.length + ' duels · each: the bookie\'s 40 fixed fights vs 100 fresh fights';
+    document.getElementById('sweepOut').innerHTML =
+      '<p style="margin:4px 0"><b>Average miss: ' + Math.round(mae * 100) + ' points.</b> Right band ' + bandHit + ' of ' + rows.length + ' times. Clearly wrong (more than chance plus 8 points): <span class="' + (far ? 'off' : 'ok') + '">' + far + '</span>.</p>' +
+      '<div class="cmp"><b>Bookie said</b><b>Times posted</b><b>Bookie avg</b><b>Really won</b><b></b>' + byBand.filter(e => e.n).map(e => '<span>' + e.bd.name + '</span><span>' + e.n + '</span><span>' + pc(e.said / e.n) + '</span><span>' + pc(e.real / e.n) + '</span><span class="' + (Math.abs(e.said - e.real) / e.n <= 0.06 ? 'ok' : 'off') + '">' + (Math.abs(e.said - e.real) / e.n <= 0.06 ? '✓' : (e.real > e.said ? 'too pessimistic' : 'too optimistic')) + '</span>').join('') + '</div>' +
+      '<details style="margin-top:6px"><summary class="note">All ' + rows.length + ' duels, biggest misses first (click one to load it)</summary><div class="tbl"><table class="stt" id="sweepTbl"><tr><th>Robot A</th><th>Robot B</th><th>Bookie: A wins</th><th>Band</th><th>Really</th><th>Miss</th></tr>' +
+      rows.slice().sort((p, q) => Math.abs(q.pb - q.pr) - Math.abs(p.pb - p.pr)).map((x, k) => '<tr class="cell" data-k="' + rows.indexOf(x) + '"><td>' + esc(short(x.a)) + (x.da ? ' <span class="note">(' + x.da + '% dmg)</span>' : '') + '</td><td>' + esc(short(x.b)) + (x.db ? ' <span class="note">(' + x.db + '% dmg)</span>' : '') + '</td><td>' + pc(x.pb) + '</td><td>' + bandOf(x.pb, 2).name + '</td><td>' + pc(x.pr) + '</td><td class="' + (Math.abs(x.pb - x.pr) > margin(x.pr, 100) + 0.08 ? 'off' : '') + '">' + Math.round(Math.abs(x.pb - x.pr) * 100) + '</td></tr>').join('') + '</table></div></details>';
+    document.getElementById('sweepTbl').onclick = e => {
+      const tr = e.target.closest('tr[data-k]'); if (!tr) return; const x = rows[+tr.dataset.k];
+      sel[0] = { name: x.a, b: Object.assign(clone(ALL[x.a].b), { dmgPct: x.da }) }; sel[1] = { name: x.b, b: Object.assign(clone(ALL[x.b].b), { dmgPct: x.db }) };
+      mode = 'ffa'; document.getElementById('mode').value = 'ffa'; count = 2; document.getElementById('count').value = '2';
+      renderAll(); reset(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  }
+  // every fight you watch: what the bookie posted for the winner
+  const watched = [];
+  function noteWatched() {
+    if (!oddsDone() || B.winner == null) return;
+    const g = B.winner < 0 ? -1 : oddsGroups.findIndex(x => teamMode() ? x.idx.some(i => teamOf(i) === B.winner) : x.idx[0] === B.winner);
+    const fav = oddsJob.wins.indexOf(Math.max(...oddsJob.wins));
+    watched.push({ fav: g === fav, band: g >= 0 ? bandFor(g).name : 'draw', p: g >= 0 ? oddsJob.wins[g] / oddsJob.n : 0 });
+    const favWins = watched.filter(w => w.fav).length, exp = watched.reduce((a, w) => a + Math.max(...[w.p]), 0);
+    document.getElementById('tally').innerHTML = '<b>Fights you watched: ' + watched.length + '.</b> The bookie\'s favourite won ' + favWins + '. Winners by the band they had: ' +
+      BANDS.map(bd => [bd.name, watched.filter(w => w.band === bd.name).length]).filter(x => x[1]).map(x => x[0] + ' ' + x[1]).join(' · ') + '.';
+  }
+
   const TAG = { ko: 'Knockout', break: 'Part broke', glitch: 'Malfunction', crit: 'Crit', flank: 'Flank', mod: 'Module', drone: 'Drone down' };
   const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  // per robot: what it did in this fight
+  function statsTable() {
+    const mains = B.bots.filter(b => !b.helper);
+    const koT = i => { const e = B.log.find(ev => ev.k === 'ko' && ev.who === i); return e ? e.t : null; };
+    const beam = w => w === 'laser' || w === 'flame';
+    return '<div class="tbl"><table class="stt"><tr><th>Robot</th><th>Damage dealt</th><th>Shots</th><th>Hits</th><th>Hit %</th><th>Crits</th><th>Healed</th><th>Health left</th><th>Out at</th><th>Broke</th></tr>' + mains.map(b => {
+      const w = b.s.weapon, t = koT(b.i), sh = beam(w) ? b.shots.toFixed(1) + ' s firing' : Math.round(b.shots);
+      return '<tr><td style="color:' + colOf(b.i) + ';font-weight:700;text-align:left">' + LET[b.i] + ' ' + esc(sel[b.i].name) + '</td><td>' + Math.round(b.dealt || 0) + (b.ff ? ' <span class="note">(' + Math.round(b.ff) + ' friendly)</span>' : '') + '</td><td>' + sh + '</td><td>' + (b.hits || 0) + '</td><td>' + (!beam(w) && b.shots >= 1 ? Math.round(100 * b.hits / b.shots) + '%' : '–') + '</td><td>' + (b.crits || 0) + '</td><td>' + Math.round(b.healed || 0) + '</td><td>' + Math.max(0, Math.round(b.hp)) + ' / ' + Math.round(b.s.hp) + '</td><td>' + (t != null ? t.toFixed(1) + ' s' : '–') + '</td><td>' + ((b.broken || []).join(', ') || '–') + '</td></tr>';
+    }).join('') + '</table></div>';
+  }
   function renderRecap() {
     const R = Sim.recap(B, i => LET[i] + ' ' + sel[i].name, t => (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'));
     // upset: the winner was an underdog or long shot on the bookie's board
@@ -646,8 +786,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const tp = R.turning ? '<p class="note">' + (R.turning.line ? 'Turning point at ' + R.turning.t + ' s (marked below).' : 'Took the lead for good at ' + R.turning.t + ' s.') + '</p>' : '';
     recapEl.innerHTML = '<div class="head"><b>Fight recap</b></div><p style="margin:0">' + esc(R.headline) + upset + '</p>' + tp +
       (R.lines.length ? '<ul class="rlist">' + R.lines.map(l => '<li' + (l.turn ? ' class="turn"' : '') + '><span class="rt">' + l.t.toFixed(1) + ' s</span><span class="tag" style="color:' + (l.who != null ? colOf(l.who) : 'inherit') + '">' + TAG[l.k] + '</span><span class="tx">' + esc(l.text) + '</span></li>').join('') + '</ul>' : '<p class="note">A clean fight: no knockouts, breaks or big moments logged.</p>') +
-      R.summary.map(x => '<p class="note" style="font-size:12.5px">' + esc(x) + '</p>').join('');
+      R.summary.map(x => '<p class="note" style="font-size:12.5px">' + esc(x) + '</p>').join('') + statsTable();
     recapEl.hidden = false;
+    noteWatched();
   }
 
   let last = performance.now(), acc = 0;
