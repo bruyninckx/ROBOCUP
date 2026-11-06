@@ -1215,11 +1215,11 @@ html, body {
     } else if (G.phase === 'fight' && G.fight && G.fight.spar) {
       pb.innerHTML = '<span>🥊 <b>Sparring match:</b> ' + esc(G.fight.robots[0].name) + ' vs ' + esc(G.fight.robots[1].name) + '. A test fight: no damage, no fame, no cards.</span>' +
         '<button class="act secondary" id="pAct1">Skip</button>';
-      $('#pAct1').onclick = () => { if (G.fight?.B) while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); };
+      $('#pAct1').onclick = () => { if (G.fight?.B) { G.fight.rolloutDone = true; G.fight.rollout = 1; while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); } };
     } else if (G.phase === 'fight') {
       pb.innerHTML = '<span>⚔️ <b>Live Auto-Battle:</b> Drag gold <b>Combat Cards</b> (Field Engineer, Trigger, Waypoint) into the Arena!</span>' +
         '<button class="act secondary" id="pAct1">Skip</button>';
-      $('#pAct1').onclick = () => { if (G.fight?.B) while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); };
+      $('#pAct1').onclick = () => { if (G.fight?.B) { G.fight.rolloutDone = true; G.fight.rollout = 1; while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); } };
     } else if (G.phase === 'after') {
       if (G.awaitingJudgment && G.host === viewerSeat) {
         const lr = G.fight.loser.robot;
@@ -2488,12 +2488,12 @@ html, body {
       if (cIdx < 0 || B.rng() > 0.35) return;
       const id = T.hand.splice(cIdx, 1)[0];
       if (id === 'trigger' || id === 'overclock' || id === 'field_eng') {
-        Sim.queueCmd(B, { card: id, bot: s });
+        Sim.queueCmd(B, { card: id, bot: s, by: T.name });
         notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
       } else if (id === 'oil_card' || id === 'emp_card') {
         const foe = B.bots[1 - s];
         if (foe) {
-          Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y });
+          Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y, by: T.name });
           notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
         }
       }
@@ -2507,6 +2507,7 @@ html, body {
     setCameraGoal('compound');
     const F = G.fight, B = F.B, w = B.winner;
     F.recap = Sim.recap(B, i => F.robots[i] ? F.robots[i].name : ('Bot ' + (i + 1)));
+    { const tp = F.recap.turning; notify('🏁 ' + esc(F.recap.headline) + (tp ? '<br>⭐ Turning point at ' + tp.t + ' s' + (tp.line ? ': ' + esc(tp.line.detail || tp.line.text) : '') : '') + F.recap.lines.filter(l => l.k === 'card' && l !== (tp && tp.line)).map(l => '<br>' + l.t.toFixed(1) + ' s ' + esc(l.detail || l.text)).join(''), '#111'); }
     if (w >= 0 && F.bands && F.bands[w] && F.bands[w].min < 0.85) {
       F.recap.upset = `UPSET! Bookie had ${F.robots[w].name} as ${F.bands[w].name} (${F.pay[w]}×)!`;
     }
@@ -2858,7 +2859,7 @@ html, body {
     for (let y = -660; y <= 660; y += 60) { ctx.beginPath(); ctx.moveTo(-900, y); ctx.lineTo(900, y); ctx.stroke(); }
 
     // 1. Draw Corridors & Blast Doors connecting the 4 Garages to the Central Stage / Arena
-    const doorOpen = G.phase === 'fight' && G.fight && G.fight.rollout < 0.85;
+    const doorOpen = false;   // robots roll in from the arena's sides now (fight intro)
     L.slots.forEach(slot => {
       const ti = teamAtPos(slot.pos);
       const isFighter = G.fight && G.fight.teams && G.fight.teams.includes(ti);
@@ -4061,13 +4062,16 @@ html, body {
 
     // --- Left Column: Fight Recap ---
     ctx.fillStyle = '#111'; ctx.font = '900 13.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('FIGHT RECAP: ' + rec.headline, x + 12, y + 20);
+    fitText(ctx, 'FIGHT RECAP: ' + rec.headline, x + 12, y + 20, splitX - x - 24, '900', 13.5);
+    help(x + 8, y + 6, splitX - x - 16, 20, 'Fight recap', esc(rec.headline) + (rec.turning ? '<br>⭐ Turning point at ' + rec.turning.t + ' s' + (rec.turning.line ? ': ' + esc(rec.turning.line.text) : '') + '.' : ''));
     if (rec.upset) {
       ctx.fillStyle = '#d99000'; ctx.font = '800 10px system-ui, sans-serif';
       ctx.fillText(rec.upset, x + 12, y + 35);
     } else {
       ctx.fillStyle = '#666'; ctx.font = '600 10px system-ui, sans-serif';
-      ctx.fillText(rec.summary || '', x + 12, y + 35);
+      const sumTxt = Array.isArray(rec.summary) ? rec.summary.join('  ') : (rec.summary || '');
+      fitText(ctx, sumTxt, x + 12, y + 35, splitX - x - 24, '600', 10);
+      help(x + 8, y + 26, splitX - x - 16, 13, 'Crits, malfunctions, broken parts', esc(sumTxt));
     }
 
     ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
@@ -4078,12 +4082,15 @@ html, body {
       ctx.fillStyle = '#777'; ctx.font = '600 10.5px system-ui, sans-serif';
       ctx.fillText('Clean fight — no major malfunctions or breaks.', x + 12, y + 66);
     } else {
-      lines.slice(0, 6).forEach((it, idx) => {
+      // the 6 most important moments (KOs, cards played, breaks first), shown in time order
+      const show = lines.slice().sort((a, b) => (b.pri - a.pri) || (a.t - b.t)).slice(0, 6).sort((a, b) => a.t - b.t);
+      show.forEach((it, idx) => {
         const rowY = y + 60 + idx * 19;
-        ctx.fillStyle = '#777'; ctx.font = '700 10px system-ui, sans-serif';
+        ctx.fillStyle = '#777'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'left';
         ctx.fillText(it.t.toFixed(1) + 's', x + 12, rowY);
-        ctx.fillStyle = it.kind === 'break' || it.kind === 'ko' ? '#d62828' : it.kind === 'crit' || it.kind === 'glitch' ? '#b45309' : '#111';
-        ctx.fillText(it.text.slice(0, 40), x + 46, rowY);
+        ctx.fillStyle = it.k === 'break' || it.k === 'ko' ? '#d62828' : it.k === 'card' ? '#1f6feb' : it.k === 'crit' || it.k === 'glitch' ? '#b45309' : '#111';
+        fitText(ctx, (it.turn ? '⭐ ' : '') + it.text, x + 46, rowY, splitX - x - 58, it.k === 'card' || it.turn ? '800' : '700', 10);
+        help(x + 8, rowY - 12, splitX - x - 16, 17, it.t.toFixed(1) + ' s' + (it.turn ? ' · ⭐ turning point' : ''), esc(it.detail || it.text) + (it.turn ? '<br>Around here the winner took the health lead for good.' : ''));
       });
     }
 
@@ -4263,13 +4270,22 @@ html, body {
     }
 
     // Main Robots & Helper Drones
+    // Fight intro (Kev, 6 Nov): robots roll in through the side walls (team 0 from the left, the other from the
+    // right) to their start spots, then stand still for a 3-2-1 countdown; nothing moves in the sim before that.
+    const intro = !F.rolloutDone;
+    if (intro) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Sim.W, Sim.H); ctx.clip(); }
+    const ease = t => 1 - Math.pow(1 - t, 3);
     for (const b of B.bots) {
       const side = b.team != null ? b.team : b.i;
-      const ti = F.teams[side], slot = L.slots[posOfTeam(ti)];
-      const doorLocalX = slot.doorX - ax0, doorLocalY = slot.doorY - ay0;
-      const u = F.rolloutDone ? 1 : Math.min(1, F.rollout);
-      const rx = doorLocalX + (b.x - doorLocalX) * u;
-      const ry = doorLocalY + (b.y - doorLocalY) * u;
+      let rx = b.x, ry = b.y, bodyA = b.body, turA = b.turret;
+      if (intro) {
+        const u = ease(Math.max(0, Math.min(1, F.rollout))), fromLeft = side % 2 === 0;
+        const sx = fromLeft ? -70 : Sim.W + 70;
+        rx = sx + (b.x - sx) * u;
+        const travel = fromLeft ? 0 : Math.PI, turnIn = Math.max(0, (u - 0.7) / 0.3);
+        const da = Math.atan2(Math.sin(b.body - travel), Math.cos(b.body - travel));
+        bodyA = travel + da * turnIn; turA = bodyA;
+      }
 
       if (b.helper) {
         if (b.hp <= 0) continue;
@@ -4295,7 +4311,7 @@ html, body {
       }
 
       const modTag = b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : '';   // parts are open (rulebook)
-      drawRobotSprite(ctx, rx, ry, b.body, b.turret, col(side), F.robots[side].b, b.hp / b.s.hp, F.robots[side].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, b);
+      drawRobotSprite(ctx, rx, ry, bodyA, turA, col(side), F.robots[side].b, b.hp / b.s.hp, F.robots[side].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, intro ? Object.assign({}, b, { x: rx, y: ry }) : b);
 
       // Show active burning / broken parts status under robot
       const subTags = [];
@@ -4309,6 +4325,7 @@ html, body {
 
       hitRegions.push({ kind: 'arena_bot', slot: side, x: ax0 + rx - 32, y: ay0 + ry - 32, w: 64, h: 64 });
     }
+    if (intro) ctx.restore();
 
     for (const f of B.fx) {
       if (f.k === 'heal') {
@@ -4323,6 +4340,25 @@ html, body {
     for (const bn of B.banners) {
       ctx.fillStyle = bn.col || '#111'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(bn.text, bn.x, bn.y);
+    }
+
+    // 3 · 2 · 1 · FIGHT!
+    const cd = F.countdown, flash = F.fightFlash || 0;
+    if ((intro && cd != null && cd >= 0) || flash > 0) {
+      const txt = intro ? String(Math.max(1, 3 - Math.floor(cd))) : 'FIGHT!';
+      const frac = intro ? cd - Math.floor(cd) : 1 - flash / 0.9;
+      const sc = 1 + 0.6 * Math.pow(1 - Math.min(1, frac * 2.5), 2);
+      ctx.save();
+      ctx.translate(Sim.W / 2, Sim.H / 2);
+      ctx.scale(sc, sc);
+      ctx.globalAlpha = intro ? Math.min(1, (1 - frac) * 3) : Math.min(1, flash / 0.4);
+      ctx.font = '900 ' + (intro ? 120 : 92) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 10; ctx.strokeStyle = '#fff'; ctx.strokeText(txt, 0, 0);
+      ctx.fillStyle = intro ? '#111' : '#d62828'; ctx.fillText(txt, 0, 0);
+      ctx.restore();
+    } else if (intro) {
+      ctx.fillStyle = '#555'; ctx.font = '800 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(F.spar ? '🥊 SPARRING MATCH' : 'ROBOTS ENTERING THE ARENA…', Sim.W / 2, Sim.H / 2);
     }
 
     ctx.restore();
@@ -4420,7 +4456,7 @@ html, body {
 
       t.hand.splice(dc.idx, 1);
       const cmd = {
-        card: dc.id,
+        card: dc.id, by: t.name,
         bot: c.target === 'arena' ? (mySlot >= 0 ? mySlot : nearSlot) : nearSlot,
         x: localX,
         y: localY
@@ -4646,13 +4682,17 @@ html, body {
     if (G && G.phase === 'fight' && G.fight && G.fight.B) {
       const F = G.fight, B = F.B;
       if (!F.rolloutDone) {
-        F.rollout += dt * 0.85;
-        if (F.rollout >= 1) {
-          F.rollout = 1;
-          F.rolloutDone = true;
+        // intro: wait for the arena to open up, roll in (1.6 s), then a 3 s countdown; the sim stays frozen until "FIGHT!"
+        const T_OPEN = 0.6, T_ROLL = 1.6, T_COUNT = 3;
+        F.introT = (F.introT || 0) + Math.min(dt, 0.1);
+        F.rollout = Math.max(0, Math.min(1, (F.introT - T_OPEN) / T_ROLL));
+        F.countdown = F.introT >= T_OPEN + T_ROLL ? F.introT - T_OPEN - T_ROLL : null;
+        if (F.countdown != null && F.countdown >= T_COUNT) {
+          F.rollout = 1; F.rolloutDone = true; F.countdown = null; F.fightFlash = 0.9;
           updateHud();
         }
       } else {
+        if (F.fightFlash > 0) F.fightFlash = Math.max(0, F.fightFlash - dt);
         accT += dt;
         while (accT >= 1 / 60 && !B.over) {
           stepAiCombatCards(F);

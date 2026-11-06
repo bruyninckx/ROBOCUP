@@ -453,9 +453,15 @@
     else if (m === 'oil') { B.oils.push({ x: b.x, y: b.y, r: 65, life: 5, fire: 0, owner: b.i, by: -1 }); say('🛢️ OIL DUMP!', '#111'); }
     else { b.shield = Math.min(40, (b.shield || 0) + 25); B.fx.push({ k: 'emp', x: b.x, y: b.y, r: 75, life: 0.35, col: '#0284c7' }); say('🛡️ SHIELD SURGE!', '#0284c7'); }
   }
+  // live cards go into the fight log, so the recap can show them (Kev, 6 Nov: a Field Engineer turned a fight and wasn't mentioned)
+  const CARD_NAME = { waypoint: 'Pilot Waypoint', trigger: 'Remote Trigger', overclock: 'Target Overclock', field_eng: 'Field Engineer', oil_card: 'Oil Canister', emp_card: 'EMP Grenade' };
   function applyCardCmd(B, c) {
     const W = B.W, H = B.H, b = c.bot != null ? B.bots[c.bot] : null;
     if (['waypoint', 'trigger', 'overclock', 'field_eng'].includes(c.card) && (!b || b.hp <= 0)) return;
+    const ev = { k: 'card', card: c.card, name: CARD_NAME[c.card] || c.card, by: c.by || null, who: b ? b.i : null, hpBefore: b ? Math.round(b.hp) : null };
+    if (c.card === 'field_eng' && b) ev.fixed = b.glitchT > 0 ? 'cleared a ' + (b.glitchKind || 'malfunction') : b.glitch && !b.glitch.done ? 'stopped a ' + b.glitch.kind + ' before it hit' : '';
+    if (c.card === 'trigger' && b) ev.mod = b.mod && MODS[b.mod] ? MODS[b.mod].name : 'shield';
+    logE(B, ev);
     if (c.card === 'waypoint') {
       b.wpX = Math.max(40, Math.min(W - 40, c.x)); b.wpY = Math.max(40, Math.min(H - 40, c.y)); b.wpT = 3.8;
       B.banners.push({ x: b.wpX, y: b.wpY - 18, text: '📍 WAYPOINT ORDER', col: '#1f6feb', life: 1.4 });
@@ -1101,12 +1107,20 @@
       else if (ev.k === 'mod') add(ev, 5, 'mod', nm(ev.who) + ': ' + ev.text + (ev.tgt != null ? ' ' + nm(ev.tgt) : ''));
       else if (ev.k === 'bigcrit') add(ev, 4, 'crit', nm(ev.who) + ' crit ' + nm(ev.tgt) + ' for ' + ev.dmg, { size: ev.dmg });
       else if (ev.k === 'drone') add(ev, 3, 'drone', nm(ev.who) + ' shot down by ' + nm(ev.by));
+      else if (ev.k === 'card') {
+        const on = ev.who != null ? ' on ' + nm(ev.who) : '', by = ev.by ? ' (' + ev.by + ')' : '';
+        const what = ev.card === 'field_eng' ? ': +18 HP' + (ev.fixed ? ', ' + ev.fixed : '') + ', no breaks for 12 s' + (ev.hpBefore != null ? ' (was at ' + ev.hpBefore + ' HP)' : '')
+          : ev.card === 'overclock' ? ': +45% speed and fire rate for 3.5 s' : ev.card === 'trigger' ? ': fired its ' + ev.mod + ' now'
+          : ev.card === 'waypoint' ? ': sent to a spot' : ev.card === 'oil_card' ? ': oil on the floor' : ev.card === 'emp_card' ? ': EMP on the floor' : '';
+        const short = ev.card === 'field_eng' ? ': +18 HP' + (ev.fixed ? ', ' + ev.fixed.replace(' before it hit', '') : '') : ev.card === 'overclock' ? ': +45% for 3.5 s' : ev.card === 'trigger' ? ': ' + ev.mod + ' now' : '';
+        add(ev, 9, 'card', '🃏 ' + ev.name + on + short, { who: ev.who, detail: '🃏 ' + ev.name + by + on + what });
+      }
     }
     // keep it short: only the biggest crits and flanks, a few module and drone moments, at most 12 lines
     const cap = { crit: 3, flank: 3, mod: 3, drone: 3 };
     const bySize = (a, b) => (b.pri - a.pri) || ((b.size || 0) - (a.size || 0)) || (a.t - b.t);
     let keep = [];
-    for (const k of ['ko', 'break', 'glitch', 'crit', 'flank', 'mod', 'drone']) {
+    for (const k of ['ko', 'card', 'break', 'glitch', 'crit', 'flank', 'mod', 'drone']) {
       const ls = all.filter(l => l.k === k).sort(bySize);
       keep = keep.concat(cap[k] ? ls.slice(0, cap[k]) : ls);
     }
