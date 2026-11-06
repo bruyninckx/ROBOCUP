@@ -794,11 +794,13 @@ html, body {
   const me = () => G.teams[viewerSeat];
   const maxHp = r => Sim.LV.hp[r.b.lv.hp];
   // battle wear (Kev, 6 Nov): every second a robot spends fighting since its last repair makes repairs dearer:
-  // cost = 1 Cr per 20 damage × (1 + wear / 60 s), rounded up. A full repair resets the wear.
+  // cost = 0.7 Cr per 20 damage × (1 + wear / 60 s), rounded up (Kev, 6 Nov: 30% cheaper than 1 Cr). A full repair resets the wear.
   const WEAR_PER = 60;
   const wearMult = r => 1 + (r.wear || 0) / WEAR_PER;
-  const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * wearMult(r)) : 0;
-  const wearTxt = r => '⏱ ' + Math.round(r.wear || 0) + ' s of fighting since its last repair → repairs ×' + wearMult(r).toFixed(2) + (r.dmg > 0 ? ': ' + Math.ceil(r.dmg / 20) + ' Cr base → <b>' + repairCost(r) + ' Cr</b>' : '');
+  const REPAIR_RATE = 0.7;   // credits per 20 damage, before wear
+  const repairBase = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE) : 0;
+  const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * wearMult(r)) : 0;
+  const wearTxt = r => '⏱ ' + Math.round(r.wear || 0) + ' s of fighting since its last repair → repairs ×' + wearMult(r).toFixed(2) + (r.dmg > 0 ? ': ' + repairBase(r) + ' Cr base → <b>' + repairCost(r) + ' Cr</b>' : '');
   const power = r => Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) + (r.b.helpers || []).length * 1.5 - r.dmg / 20;
   const usedEng = t => t.robots.reduce((a, r) => a + (r.b.eng || 0), 0);
   const freeEng = t => Math.max(0, t.engPool - usedEng(t));
@@ -1291,7 +1293,7 @@ html, body {
       if (G.awaitingJudgment && G.host === viewerSeat) {
         const lr = G.fight.loser.robot, fo = G.fight.fateOffers || { spare: [], scrap: [] };
         const ot = side => fo[side].length ? fo[side].map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B)).join(', ') : 'no offers';
-        pb.innerHTML = '<span>👑 <b>Host Judgment:</b> Decide the fate of defeated <b>' + esc(lr.name) + '</b>. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
+        pb.innerHTML = '<span>👑 <b>Host Judgment' + (G.fight.fateN > 1 ? ' (' + G.fight.fateI + ' of ' + G.fight.fateN + ')' : '') + ':</b> Decide the fate of ' + esc(G.teams[G.fight.loser.team].name) + '\'s defeated <b>' + esc(lr.name) + '</b>. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
           '<button class="act" id="pAct1">👍 Spare</button><button class="act secondary" id="pAct2" style="border-color:#ff6b6b;color:#ff9b9b">👎 Scrap</button>';
         $('#pAct1').onclick = () => resolveFate(false);
         $('#pAct2').onclick = () => resolveFate(true);
@@ -1643,7 +1645,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 market-4-lots';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 fate-all-losers';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3260,15 +3262,15 @@ html, body {
         x.payout = 0;
       }
     }
-    // the host judges one loser: in a duel the loser, in an event the first robot knocked out
-    let judged = losers[0];
-    if (losers.length > 1) {
-      const firstKo = B.log.find(ev => ev.k === 'ko' && map.botEnt[ev.who] >= 0 && F.sides[map.botEnt[ev.who]] !== ws);
-      if (firstKo) judged = losers.find(x => x.e === map.botEnt[firstKo.who]) || judged;
-    }
+    // Kev, 6 Nov: the host judges EVERY losing robot, one at a time, in the order they were knocked out
+    const koAt = e => { const i = B.log.findIndex(ev => ev.k === 'ko' && map.botEnt[ev.who] === e); return i < 0 ? 1e9 : i; };
+    const order = losers.slice().sort((a, b) => koAt(a.e) - koAt(b.e));
     F.winner = { team: winners[0].ti, robot: F.robots[winners[0].e] };
     F.winners = winners.map(x => ({ team: x.ti, robot: F.robots[x.e] }));
-    F.loser = { team: judged.ti, robot: F.robots[judged.e] };
+    F.fateQueue = order.map(x => ({ team: x.ti, robot: F.robots[x.e] }));
+    F.fateN = F.fateQueue.length; F.fateI = 1;
+    F.loser = F.fateQueue.shift();
+    if (F.fateN > 1) notify('👑 The host now decides spare or scrap for each losing robot, first knocked out first: ' + order.map(x => esc(F.robots[x.e].name) + ' (' + esc(G.teams[x.ti].name.split(' ')[0]) + ')').join(', ') + '.', G.teams[G.host].col);
 
     // every losing team opens a consolation Scrap Crate (auto-applied)
     const crateTxt = [];
@@ -3295,6 +3297,10 @@ html, body {
   async function fateStep() {
     const F = G.fight, H = G.teams[G.host], L = G.teams[F.loser.team], lr = F.loser.robot;
     const canScrap = lr.wins < favWins(L) && G.host !== L.i;
+    if (!canScrap) {   // nothing to decide: the host's own robot, or a Fan Favourite
+      resolveFate(false, G.host === L.i ? 'it is the host\'s own robot' : 'a Fan Favourite can\'t be scrapped');
+      return;
+    }
     F.fateOffers = { spare: [], scrap: [] };
     G.fateBusy = true; updateHud();
     for (const T of G.teams) {
@@ -3304,7 +3310,7 @@ html, body {
     }
     if (H.i !== viewerSeat && canScrap) {
       const mine = L.i === viewerSeat;
-      const pick = mine ? 'spare' : await ivModal('👑 Spare or scrap?', 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>. Push the decision with a deal?',
+      const pick = mine ? 'spare' : await ivModal('👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
         [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }]);
       if (pick) {
         const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' });
@@ -3322,7 +3328,7 @@ html, body {
     resolveFate(canScrap && score > 0);
   }
 
-  function resolveFate(scrap) {
+  function resolveFate(scrap, safeWhy) {
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
@@ -3334,10 +3340,17 @@ html, body {
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
       if (!T.robots.length) T.robots.push(mkRobot('Scrapbot', SCRAP));
+    } else if (safeWhy) {
+      notify('🛡️ <b>' + esc(robot.name) + '</b> (' + nm(T) + ') is safe: ' + safeWhy + '.', '#2a9d3a');
     } else {
       notify('👍 Host spared <b>' + esc(robot.name) + '</b>.', '#2a9d3a');
     }
-    checkWin();
+    if (checkWin()) return;
+    const F = G.fight;
+    if (F && F.fateQueue && F.fateQueue.length) {   // next losing robot
+      F.loser = F.fateQueue.shift(); F.fateI++; F.fateOffers = null;
+      updateHud(); fateStep(); return;
+    }
     updateHud();
   }
 
@@ -4082,7 +4095,7 @@ html, body {
       { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
       { const hn = helpName(t, r); help(bx + 70, by + 8, 200, 20, hn[0], hn[1]); }
       help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon, for life: robots never swap weapons. ' + (Sim.wupOf(r.b) ? '<b>' + esc(Sim.WUPS[r.b.wup].name) + '</b>: ' + esc(Sim.WUPS[r.b.wup].text) + ' ' : 'Upgrade it with its own weapon upgrade from the Market. ') + 'Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
-      help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 1 Cr per 20 damage, ×(1 + fighting time / 60 s).<br>' + wearTxt(r));
+      help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 0.7 Cr per 20 damage (about 1 Cr per 29), ×(1 + fighting time / 60 s), rounded up.<br>' + wearTxt(r));
 
       // Clean geometric satellite dots for helper drones on the preview corner
       helpers.forEach((hk, hi) => {
@@ -4117,7 +4130,7 @@ html, body {
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
         fitText(ctx, `Repair −${r.dmg} HP: ${repCost} Cr` + (r.wear > 0 ? `  ·  ⏱ ${Math.round(r.wear)} s wear ×${wearMult(r).toFixed(1)}` : ''), actX + actW / 2, actY + 13.5, actW - 10, '800', 10.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
-        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 1 Cr per 20 damage, more the longer it has fought.<br>' + wearTxt(r) + '<br>Repairing resets the wear. Unrepaired damage stays for the next fight.');
+        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 0.7 Cr per 20 damage, more the longer it has fought.<br>' + wearTxt(r) + '<br>Repairing resets the wear. Unrepaired damage stays for the next fight.');
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         const pv = lotPreview(r, nextLot), wasted = !canFit(r, nextLot);

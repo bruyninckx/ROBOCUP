@@ -57,7 +57,7 @@ At the end of the Intrigue, Market and Arena phases, check for a winner (section
 All teams do Upkeep at the same time. The game does the bookkeeping.
 
 1. **Ready:** every exhausted robot, crew card and Security Bot asset turns ready again, unless a card keeps it out (for example Rogue Firmware: sits out the next fight).
-2. **Repairs:** pay 1 credit per 20 damage you want to repair (times the robot's battle wear, see section 8), and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
+2. **Repairs:** pay 0.7 credits per 20 damage you want to repair (rounded up; Kev, 6 Nov: 30% cheaper) (times the robot's battle wear, see section 8), and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
 3. **Ledger:** gain 1 credit per ready Mechanic. Pay 1 credit per ready robot and 1 credit per 2 helper drones. The Accountant takes 1 off the bill for each robot after the first.
 4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator).
 5. **Sparring match (optional, 2 credits, once a round):** pick one of your ready robots and any rival robot; they fight a test fight in the pit. Nothing carries over: no damage, no fame, no breaks, no cards played. It shows you how the matchup really plays out.
@@ -131,7 +131,7 @@ One fight per round, run by the host. Most fights are duels; about 1 in 4 should
 
 **When the Arena cards are played (Kev, 6 Nov; built in the tabletop prototype).** Tag Team Licence and Grand Final are schemes on your Intrigue turn and set up this round's fight. Right after the host bid comes the **Host step**: the host may play Mirror or Unleash the House Robot, and any team may play Grand Melee (host first, then clockwise). In the **Bets step**, Bookie's Friend and Hedge Bet are played while bets are open, and Swap the Entry right after bets are locked (the bets and odds stay as they were). An Arena card can still be cashed in on your Intrigue turn instead.
 
-Prototype details: Mirror makes each robot fight as 2 copies. Grand Melee is a free-for-all for every team with a ready robot. In an event a team with no ready robot sits out (−1 fame) and events can't be declined. The House Robot (heavy gun, armour 2) drops in at the top: if it is the last one standing nobody gets fame and bets are refunded. In an event with several losers the host judges the first robot knocked out, and every losing team opens a Scrap Crate.
+Prototype details: Mirror makes each robot fight as 2 copies. Grand Melee is a free-for-all for every team with a ready robot. In an event a team with no ready robot sits out (−1 fame) and events can't be declined. The House Robot (heavy gun, armour 2) drops in at the top: if it is the last one standing nobody gets fame and bets are refunded. In an event with several losers the host judges **every** losing robot, one at a time, first knocked out first (each with its own offers); the host's own robot and Fan Favourites are safe. Every losing team opens a Scrap Crate.
 
 **3. Invitations.** The host invites one team at a time until both sides are filled; the host may invite itself. A team that accepts picks the robot it sends. A team that declines loses 1 fame, and the host invites the next one. If every other team has been asked and a side is still open, the host must fill it. If only one team accepts, there's no fight this round. In a 2v2, the host invites four times (no team more than twice, no team asked again after declining) and pairs the teams.
 
@@ -155,7 +155,7 @@ Winning bets get their stake back plus the payout; losing bets go to the bank.
 
 **7. Results.** The winning team gains 1 fame and no prize money (as in Spartacus: credits come from bets and appearance money); in a team fight, every team with a winning robot gains 1 fame (once). The winning robot gets a Fan token; its third token makes it a Fan Favourite (+1 fame to its owner; losing a Fan Favourite costs 1 fame). Apex Media gets Fan Favourite on the second win.
 
-**8. Spare or scrap.** The host decides the loser's fate. **Spare:** the robot goes home with damage equal to half its health. **Scrap:** the robot goes to the Market discard and its bought parts go back to the owner's garage. Scrapping costs the host 1 fame per Fan token on the robot, and a Fan Favourite can't be scrapped. Teams may bribe the host. Vulture Salvage gets 2 credits whenever a robot is scrapped.
+**8. Spare or scrap.** The host decides the loser's fate (with several losers, each losing robot in turn). **Spare:** the robot goes home with damage equal to half its health. **Scrap:** the robot goes to the Market discard and its bought parts go back to the owner's garage. Scrapping costs the host 1 fame per Fan token on the robot, and a Fan Favourite can't be scrapped. Teams may bribe the host. Vulture Salvage gets 2 credits whenever a robot is scrapped.
 
 **9. Scrap Crate.** The losing team draws one Scrap Crate item.
 
@@ -181,7 +181,7 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 **Strain and breaking.** Every part and upgrade shows its strain (⚡). Before a fight, each breakable part may break, more likely the more strain the robot carries: 5% per ⚡, halved by an assigned Chief Engineer. Only legendaries, parts with value 4–5 and salvaged Scrap Crate items can break. A broken part stops working and stays broken until you repair it in Upkeep for half its bank value (minimum 1 credit); a broken salvaged item is gone for good.
 
-**Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 1 credit per 20 damage, times the robot's **battle wear** (Kev, 6 Nov): every second it has fought since its last repair adds wear, and repairs cost ×(1 + wear / 60 s), rounded up. So a 30-second slugfest makes the next repair 1.5× as dear, a quick knockout barely matters. A full repair resets the wear; damage you leave stacks wear on top.
+**Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 0.7 credits per 20 damage (Kev, 6 Nov: 30% cheaper than 1 credit), times the robot's **battle wear** (Kev, 6 Nov): every second it has fought since its last repair adds wear, and repairs cost ×(1 + wear / 60 s), rounded up. So a 30-second slugfest makes the next repair 1.5× as dear, a quick knockout barely matters. A full repair resets the wear; damage you leave stacks wear on top.
 
 **Size.** A robot's frame and hitbox grow 5% per ⚡ it carries, and Twin Turret adds +20% on top, which is easier to hit and easier to tell apart. Weapon reach doesn't grow: a bigger spinner or rammer is only a bigger target. Frame names for players: Light (0–2 ⚡), Medium (3–4), Heavy (5–6), Titan (7+).
 
