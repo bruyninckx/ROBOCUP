@@ -490,7 +490,7 @@ html, body {
 <div class="stashcard" id="stashCard"></div>
 
 <!-- Action log: scrollable, grouped by round/phase and action (hover anything for help) -->
-<div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Action log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">📜 Log</span><button id="lpToggle" title="Hide / show the log">–</button></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
+<div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Action log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">📜 Log</span><span style="display:flex;gap:5px"><button id="ptBtn">📝</button><button id="lpToggle" title="Hide / show the log">–</button></span></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
 </div>
 
 <!-- Hearthstone-Style Arched Hand -->
@@ -732,6 +732,7 @@ html, body {
     logAppend(d);
   }
   function notify(html, borderCol) {
+    tlog('msg', { text: ptPlain(html) });
     logPhase();
     const d = document.createElement('div');
     if (LOGC.group) { const stick = logAtBottom(); d.className = 'lp-step'; d.innerHTML = html; LOGC.group.steps.appendChild(d); logUnread(); if (stick) logBox().scrollTop = logBox().scrollHeight; else $('#lpNew').hidden = false; return; }
@@ -751,11 +752,12 @@ html, body {
     st.className = 'lp-steps';
     box.appendChild(h); box.appendChild(st);
     logAppend(box);
-    LOGC.group = { box, head: h, steps: st };
+    LOGC.group = { box, head: h, steps: st, text: ptPlain(headHtml) };
   }
   function logEnd(result) {
     const g = LOGC.group; if (!g) return;
     LOGC.group = null;
+    tlog('play', { text: g.text, result: result || null, steps: [...g.steps.children].map(x => ptPlain(x.innerHTML)) });
     if (result) { const b = document.createElement('span'); b.className = 'lp-res ' + (result === 'blocked' || result === 'failed' ? 'no' : 'ok'); b.textContent = result === 'blocked' ? '✋ blocked' : result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); }
   }
 
@@ -787,6 +789,12 @@ html, body {
   }
   const me = () => G.teams[viewerSeat];
   const maxHp = r => Sim.LV.hp[r.b.lv.hp];
+  // battle wear (Kev, 6 Nov): every second a robot spends fighting since its last repair makes repairs dearer:
+  // cost = 1 Cr per 20 damage × (1 + wear / 60 s), rounded up. A full repair resets the wear.
+  const WEAR_PER = 60;
+  const wearMult = r => 1 + (r.wear || 0) / WEAR_PER;
+  const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * wearMult(r)) : 0;
+  const wearTxt = r => '⏱ ' + Math.round(r.wear || 0) + ' s of fighting since its last repair → repairs ×' + wearMult(r).toFixed(2) + (r.dmg > 0 ? ': ' + Math.ceil(r.dmg / 20) + ' Cr base → <b>' + repairCost(r) + ' Cr</b>' : '');
   const power = r => Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) + (r.b.helpers || []).length * 1.5 - r.dmg / 20;
   const usedEng = t => t.robots.reduce((a, r) => a + (r.b.eng || 0), 0);
   const freeEng = t => Math.max(0, t.engPool - usedEng(t));
@@ -1155,6 +1163,7 @@ html, body {
   function updateHud() {
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
     renderStash();
+    ptPhase();
     $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '"' + helpAttr(l, PHASE_HELP[k] || '') + '>' + l + '</span>').join('');
     renderPromptBar();
     renderHand();
@@ -1445,6 +1454,7 @@ html, body {
   /* ---------- Game Flow & Phases ---------- */
   function newGame() {
     const G0fame = G && G.startFame || 4;
+    ptNew();
     { const t = document.getElementById('ticker'); if (t) t.innerHTML = ''; LOGC.key = null; LOGC.group = null; }
     G = {
       round: 1, phase: 'setup', setupStep: 'sponsor', host: -1,
@@ -1462,6 +1472,7 @@ html, body {
       fight: null, over: false, crateChoices: null
     };
     setCameraGoal('compound');
+    tlog('new_game', { startFame: G0fame, starterPicks: STARTER_PICKS, teams: G.teams.map(t => t.name) });
     notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (pick 1 of 3)!', '#111');
     updateHud();
   }
@@ -1572,8 +1583,8 @@ html, body {
 
       if (t.i !== viewerSeat) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
-          const c = Math.ceil(r.dmg / 20);
-          if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; }
+          const c = repairCost(r);
+          if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; r.wear = 0; }
         }
         rebalanceAiEngineers(t);
       }
@@ -1620,6 +1631,139 @@ html, body {
       // Kev, 6 Nov: no countdown bars, they put too much pressure on; every window waits for your answer
     });
   }
+
+  /* ============================================================================
+   * PLAYTEST LOG (Kev, 6 Nov): every game is recorded for later analysis and debugging.
+   * One JSON file per game: build, settings, every log line, phase snapshots (fame, credits, robots, Stash), clicks
+   * and buttons, Market results, fights (format, entrants, bookie odds, bets, result, recap), deals, notes and errors.
+   * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
+   * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
+   * ============================================================================ */
+  const BUILD = 'tabletop 2026-11-06 playtest-log';   // bump when the prototype changes, so logs can be matched to code
+  const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
+  const ptDiv = document.createElement('div');
+  const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
+  function ptNew() {
+    if (PT.game && PT.game.events.length > 3) ptSaveNow();
+    PT.game = { id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19), build: BUILD, started: Date.now(), ua: navigator.userAgent, view: [window.innerWidth, window.innerHeight], seat: viewerSeat, events: [] };
+    PT.lastKey = null; PT.errs = 0; PT.errSeen = {};
+    ptBadge();
+  }
+  function tlog(k, data) {
+    if (!PT.game) return;
+    try {
+      PT.game.events.push(Object.assign({ t: Math.round((Date.now() - PT.game.started) / 100) / 10, k, r: G ? G.round : 0, ph: G ? G.phase : '' }, data || {}));
+      ptSaveSoon();
+    } catch (e) { /* never let logging break the game */ }
+  }
+  const ptBuild = b => b ? { lv: b.lv, weapon: b.weapon, cal: b.cal, wup: b.wup || null, range: b.range, mod: b.mod || null, arm: b.arm || null, helpers: (b.helpers || []).slice(), eng: b.eng, drive: b.drive || null, proc: b.proc || null, quirk: b.quirk || null } : null;
+  function ptSnapshot() {
+    return G.teams.map(t => ({ i: t.i, name: t.name, sponsor: t.sponsor, fame: t.fame, cr: t.credits, mechs: t.mechs, eng: t.engPool, sec: t.secBots || 0, hand: t.hand.length,
+      handIds: t.i === viewerSeat ? t.hand.slice() : undefined, stash: (t.stash || []).slice(),
+      robots: t.robots.map(r => ({ name: r.name, dmg: r.dmg, wins: r.wins, ex: !!r.exhausted, b: ptBuild(r.b) })) }));
+  }
+  function ptPhase() {
+    if (!G || !PT.game) return;
+    const key = G.round + '|' + G.phase + '|' + (G.phase === 'market' ? G.marketStage : '');
+    if (key === PT.lastKey) return;
+    PT.lastKey = key;
+    tlog('phase', { stage: G.phase === 'market' ? G.marketStage : undefined, host: G.host, teams: ptSnapshot() });
+  }
+  // ---- saving: browser storage always, a folder on disk when picked ----
+  const LS_INDEX = 'robocus.playtest.index';
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function ptSaveSoon() { if (PT.timer) return; PT.timer = setTimeout(() => { PT.timer = null; ptSaveNow(); }, 2500); }
+  function ptSaveNow() {
+    if (!PT.game) return;
+    const json = JSON.stringify(PT.game);
+    let idx = []; try { idx = JSON.parse(lsGet(LS_INDEX) || '[]'); } catch (e) {}
+    if (!idx.includes(PT.game.id)) idx.push(PT.game.id);
+    while (idx.length > 10) lsDel('robocus.playtest.' + idx.shift());
+    if (!lsSet('robocus.playtest.' + PT.game.id, json)) { while (idx.length > 1 && !lsSet('robocus.playtest.' + PT.game.id, json)) lsDel('robocus.playtest.' + idx.shift()); }
+    lsSet(LS_INDEX, JSON.stringify(idx));
+    if (PT.dir && PT.dirState === 'granted') ptWriteFile(PT.game.id + '.json', json);
+  }
+  async function ptWriteFile(name, text) {
+    try { const fh = await PT.dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(text); await w.close(); }
+    catch (e) { PT.dirState = 'error'; ptBadge(); console.warn('playtest log: folder write failed', e); }
+  }
+  // the folder handle is kept in IndexedDB, so you pick the folder once; the browser may ask again after a restart
+  function ptDb() { return new Promise((res, rej) => { const q = indexedDB.open('robocus', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+  async function ptDbGet(k) { try { const db = await ptDb(); return await new Promise(res => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch (e) { return null; } }
+  async function ptDbSet(k, v) { try { const db = await ptDb(); db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch (e) {} }
+  async function ptRestoreDir() {
+    const h = await ptDbGet('playtestDir');
+    if (!h) return;
+    PT.dir = h;
+    try { PT.dirState = (await h.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'granted' : 'prompt'; } catch (e) { PT.dirState = 'prompt'; }
+    ptBadge();
+  }
+  async function ptPickDir() {
+    if (!window.showDirectoryPicker) { notify('⚠️ This browser can\'t write to a folder: use ⬇️ Download instead (Chrome or Edge can).', '#b45309'); return; }
+    try {
+      const h = await window.showDirectoryPicker({ id: 'robocus-playtests', mode: 'readwrite' });
+      PT.dir = h; PT.dirState = 'granted'; await ptDbSet('playtestDir', h);
+      notify('📝 Playtest logs now also save to the folder <b>' + esc(h.name) + '</b>.', '#111');
+      // also write the earlier games still in this browser
+      let idx = []; try { idx = JSON.parse(lsGet(LS_INDEX) || '[]'); } catch (e) {}
+      for (const id of idx) { const j = lsGet('robocus.playtest.' + id); if (j) await ptWriteFile(id + '.json', j); }
+      ptSaveNow(); ptBadge();
+    } catch (e) { /* cancelled */ }
+  }
+  async function ptReconnect() {
+    try { PT.dirState = (await PT.dir.requestPermission({ mode: 'readwrite' })) === 'granted' ? 'granted' : 'prompt'; } catch (e) { PT.dirState = 'prompt'; }
+    if (PT.dirState === 'granted') { ptSaveNow(); notify('📝 Logging to the folder <b>' + esc(PT.dir.name) + '</b> again.', '#111'); }
+    ptBadge();
+  }
+  function ptDownload() {
+    ptSaveNow();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(PT.game, null, 1)], { type: 'application/json' }));
+    a.download = 'robocus-playtest-' + PT.game.id + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  async function ptNote() {
+    const txt = await ivModal('🐞 Add a note to the log', 'What happened? Anything odd, a rule question, a bug, an idea. It is saved with the current game state.<br><textarea id="ptNoteTxt" rows="4" style="width:100%;margin-top:6px;font:13px system-ui,sans-serif"></textarea>',
+      [{ label: 'Save note', value: el => el.querySelector('#ptNoteTxt').value.trim() }, { label: 'Cancel', secondary: true, value: () => '' }]);
+    if (!txt) return;
+    tlog('note', { text: txt, teams: ptSnapshot(), view: [window.innerWidth, window.innerHeight] });
+    ptSaveNow();
+    notify('🐞 Note saved to the playtest log.', '#111');
+  }
+  function ptBadge() {
+    const b = document.getElementById('ptBtn'); if (!b) return;
+    const st = PT.dirState === 'granted' ? '📝 ●' : PT.dirState === 'prompt' ? '📝 ↻' : '📝';
+    b.textContent = st + (PT.errs ? ' 🐞' + PT.errs : '');
+    b.style.color = PT.dirState === 'granted' ? '#17803a' : PT.dirState === 'prompt' || PT.dirState === 'error' ? '#b45309' : '#111';
+    b.dataset.help = 'Playtest log|' + (PT.dirState === 'granted' ? 'Every game is saved to the folder <b>' + esc(PT.dir.name) + '</b> as you play.' : PT.dirState === 'prompt' ? 'The log folder needs your OK again (browser restart): click to reconnect.' : 'Games are saved in this browser (last 10). Click to save them to a folder on disk too (pick ROBOCUS/playtests).') +
+      (PT.errs ? '<br>🐞 ' + PT.errs + ' error' + (PT.errs > 1 ? 's' : '') + ' recorded this game.' : '') + '<br><i>Click for options and to add a note.</i>';
+  }
+  async function ptMenu() {
+    if (PT.dirState === 'prompt') { await ptReconnect(); if (PT.dirState === 'granted') return; }
+    const n = PT.game ? PT.game.events.length : 0;
+    const pick = await ivModal('📝 Playtest log', 'This game: <b>' + n + '</b> events recorded' + (PT.errs ? ', 🐞 <b>' + PT.errs + '</b> errors' : '') + '.<br>' +
+      (PT.dirState === 'granted' ? 'Saving to the folder <b>' + esc(PT.dir.name) + '</b>.' : 'Saved in this browser (last 10 games). Pick a folder to keep them on disk: choose <b>ROBOCUS/playtests</b>.'),
+      [{ label: '🐞 Add a note', value: () => 'note' }, { label: PT.dirState === 'granted' ? '📁 Change folder' : '📁 Save to a folder…', value: () => 'dir' }, { label: '⬇️ Download this game', value: () => 'dl' }, { label: 'Close', secondary: true, value: () => null }]);
+    if (pick === 'note') ptNote(); else if (pick === 'dir') ptPickDir(); else if (pick === 'dl') ptDownload();
+  }
+  // errors: recorded with stack and the moment they happened (each distinct one counted)
+  function ptError(msg, stack) {
+    const key = String(msg).slice(0, 200);
+    PT.errSeen[key] = (PT.errSeen[key] || 0) + 1;
+    if (PT.errSeen[key] > 3) return;   // the same error every frame: keep the first few
+    PT.errs++;
+    tlog('error', { msg: key, stack: String(stack || '').split('\n').slice(0, 8).join('\n'), n: PT.errSeen[key], teams: G ? ptSnapshot() : undefined });
+    ptSaveNow(); ptBadge();
+  }
+  window.addEventListener('error', e => ptError(e.message, e.error && e.error.stack || (e.filename + ':' + e.lineno)));
+  window.addEventListener('unhandledrejection', e => ptError('Unhandled promise: ' + (e.reason && e.reason.message || e.reason), e.reason && e.reason.stack));
+  window.addEventListener('beforeunload', () => { if (PT.game) { const json = JSON.stringify(PT.game); lsSet('robocus.playtest.' + PT.game.id, json); } });
+  // every HTML button you press (prompt, modals, deal panel, Stash, hand-limit…)
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (b && b.id !== 'ptBtn') tlog('button', { text: (b.textContent || '').trim().slice(0, 60), id: b.id || undefined, box: b.closest('#ivModal') ? 'modal' : b.closest('#dealModal') ? 'deal' : b.closest('#promptBar') ? 'prompt' : b.closest('#stashCard') ? 'stash' : undefined });
+  }, true);
 
   /* ============================================================================
    * STASH & DEALS (Kev, 6 Nov)
@@ -1721,8 +1865,8 @@ html, body {
           z.ondragleave = () => z.classList.remove('over');
           z.ondrop = e => { e.preventDefault(); const [id, side, zone] = e.dataTransfer.getData('text/plain').split('|'); if (side === z.dataset.drop && zone !== z.dataset.zone) move(id, side, zone); else draw(); };
         });
-        el.querySelector('[data-k="lock"]').onclick = () => { el.hidden = true; el.innerHTML = ''; res(st); };
-        el.querySelector('[data-k="no"]').onclick = () => { el.hidden = true; el.innerHTML = ''; res(null); };
+        el.querySelector('[data-k="lock"]').onclick = () => { el.hidden = true; el.innerHTML = ''; tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, give: st.give, want: st.want, locked: true }); res(st); };
+        el.querySelector('[data-k="no"]').onclick = () => { el.hidden = true; el.innerHTML = ''; tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, locked: false }); res(null); };
       };
       draw();
     });
@@ -2537,6 +2681,7 @@ html, body {
       if (hostT.sponsor === 'apex') hostT.credits += 2;
       notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host' + (res && res.price ? ' for ' + res.price + ' Cr' : ' (nobody bid: random draw)') + ' (+1 Fame' + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
       G.marketResults = (G.marketResults || []).filter(r => r.idx !== 3).concat(A.results);
+      tlog('host_bid', { host: G.host, price: res ? res.price : 0, bids: res ? res.bids : null });
       G.hostResolved = true; G.marketResolved = true; G.marketAuction = null; G.marketStage = 'done';
       if (checkWin()) return;
       updateHud();
@@ -2561,6 +2706,7 @@ html, body {
       }
     }
     G.marketResults = A.results;
+    tlog('market', { lots: A.results.map(r => ({ id: r.id, winner: r.winner, price: r.price, bids: r.bids, target: r.target })) });
     G.marketResolved = true;
     G.marketAuction = null;
     if (checkWin()) return;
@@ -2960,6 +3106,8 @@ html, body {
     const m = buildBattle(F, (rnd() * 4294967296) >>> 0, false);
     F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds;
     F.entBot = F.teams.map((_, e) => m.botEnt.indexOf(e));
+    tlog('fight_start', { format: F.format, house: !!F.house, event: F.event ? F.event.kind : null, sides: F.sides, p: F.p, bands: (F.bands || []).map(b => b.name),
+      entrants: F.teams.map((ti, e) => ({ team: ti, robot: F.robots[e].name, dmg: F.robots[e].dmg, b: ptBuild(F.robots[e].b), faceDown: (F.robots[e].faceDown || []).map(x => x.id) })), bets: F.bets });
     F.rollout = 0;
     F.rolloutDone = false;
     if (F.format === 'ffa' && F.event && F.event.kind === 'ffa' && G.host >= 0) { addFame(G.teams[G.host], 1); notify('⚔️ Grand Melee happens: host ' + nm(G.teams[G.host]) + ' +1 fame.', G.teams[G.host].col); }
@@ -3008,6 +3156,9 @@ html, body {
     const map = { botEnt: F.botEnt || F.teams.map((_, i) => i), teamOpt: F.teamOpt };
     const ws = winSide(F, B, map);
     F.winSide = ws;
+    tlog('fight_end', { sandbox: !!F.sandbox, winSide: ws, time: Math.round(B.t * 10) / 10, timeout: !!B.timeout, p: F.p,
+      bots: B.bots.filter(b => !b.helper).map((b, i) => ({ name: F.botName ? F.botName[i] : i, hp: Math.max(0, Math.round(b.hp)), max: Math.round(b.s.hp), broken: b.broken || [], crits: b.crits })),
+      log: B.log.filter(ev => ['ko', 'card', 'break', 'glitch'].includes(ev.k)).slice(0, 40) });
     F.recap = Sim.recap(B, i => (F.botName && F.botName[i]) || (F.robots[i] ? F.robots[i].name : 'Bot ' + (i + 1)), t => sideName(F, t));
     { const tp = F.recap.turning; notify('🏁 ' + esc(F.recap.headline) + (tp ? '<br>⭐ Turning point at ' + tp.t + ' s' + (tp.line ? ': ' + esc(tp.line.detail || tp.line.text) : '') : '') + F.recap.lines.filter(l => l.k === 'card' && l !== (tp && tp.line)).map(l => '<br>' + l.t.toFixed(1) + ' s ' + esc(l.detail || l.text)).join(''), '#111'); }
     if (ws >= 0 && F.bands && F.bands[ws] && F.bands[ws].min < 0.42) F.recap.upset = 'UPSET! Bookie had ' + sideLabel(F, ws) + ' as ' + F.bands[ws].name + ' (' + F.pay[ws] + '×)!';
@@ -3021,6 +3172,11 @@ html, body {
     // damage: each robot keeps what its bot took (Mirror: its healthiest copy)
     F.teams.forEach((ti, e) => {
       const r = F.robots[e];
+      { const idx = B.bots.map((b, i) => i).filter(i => !B.bots[i].helper && map.botEnt[i] === e);
+        const ko = idx.map(i => { const k = B.log.find(ev => ev.k === 'ko' && ev.who === i); return k ? k.t : B.t; });
+        const sec = Math.max(...ko); r.wear = (r.wear || 0) + sec;
+        tlog('wear', { robot: r.name, add: Math.round(sec * 10) / 10, wear: Math.round(r.wear), mult: +wearMult(r).toFixed(2) });
+        if (ti === viewerSeat) notify('⏱ <b>' + esc(r.name) + '</b> fought ' + Math.round(sec) + ' s: wear ' + Math.round(r.wear) + ' s, repairs now cost ×' + wearMult(r).toFixed(2) + ' until you repair it.', G.teams[ti].col); }
       const left = B.bots.filter((b, i) => !b.helper && map.botEnt[i] === e).map(b => Math.max(0, b.hp) / b.s.hp);
       r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) * (1 - Math.max(...left))));
     });
@@ -3144,11 +3300,12 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
     if (!w.length) return false;
+    if (!G.over) { tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
     G.over = true;
     updateHud();
     return true;
@@ -3883,7 +4040,7 @@ html, body {
       { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
       { const hn = helpName(t, r); help(bx + 70, by + 8, 200, 20, hn[0], hn[1]); }
       help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon, for life: robots never swap weapons. ' + (Sim.wupOf(r.b) ? '<b>' + esc(Sim.WUPS[r.b.wup].name) + '</b>: ' + esc(Sim.WUPS[r.b.wup].text) + ' ' : 'Upgrade it with its own weapon upgrade from the Market. ') + 'Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
-      help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 1 Cr per 20 damage.');
+      help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 1 Cr per 20 damage, ×(1 + fighting time / 60 s).<br>' + wearTxt(r));
 
       // Clean geometric satellite dots for helper drones on the preview corner
       helpers.forEach((hk, hi) => {
@@ -3909,16 +4066,16 @@ html, body {
       ctx.fillText(`${curHp}/${maxHp(r)} HP`, bx + bw - 12, by + 38);
 
       // Contextual Action Button OR Helper Drone Line (by + 44 .. by + 62)
-      const repCost = Math.ceil(r.dmg / 20);
+      const repCost = repairCost(r);
       const actX = bx + 74, actY = by + 43, actW = bw - 86, actH = 20;
       if (G.phase === 'upkeep' && repCost > 0) {
         const ok = t.credits >= repCost;
         ctx.fillStyle = ok ? '#111' : '#999';
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`Repair Hull −${r.dmg} HP (${repCost} Cr)`, actX + actW / 2, actY + 13.5);
+        fitText(ctx, `Repair −${r.dmg} HP: ${repCost} Cr` + (r.wear > 0 ? `  ·  ⏱ ${Math.round(r.wear)} s wear ×${wearMult(r).toFixed(1)}` : ''), actX + actW / 2, actY + 13.5, actW - 10, '800', 10.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
-        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr (1 Cr per 20 damage). Unrepaired damage stays for the next fight.');
+        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 1 Cr per 20 damage, more the longer it has fought.<br>' + wearTxt(r) + '<br>Repairing resets the wear. Unrepaired damage stays for the next fight.');
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         const pv = lotPreview(r, nextLot), wasted = !canFit(r, nextLot);
@@ -4171,7 +4328,7 @@ html, body {
     { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
     { const hn = helpName(t, r); help(bx + 38, by + 4, bw / 2 - 30, 14, hn[0], hn[1]); }
     help(bx + bw / 2 + 8, by + 4, bw / 2 - 12, 14, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon and the distance it tries to fight at.');
-    help(bx + 38, by + 18, bw - 42, 14, 'Health ' + curHp + '/' + maxHp(r), 'Damage stays between fights until it is repaired.');
+    help(bx + 38, by + 18, bw - 42, 14, 'Health ' + curHp + '/' + maxHp(r), 'Damage stays between fights until it is repaired.<br>' + wearTxt(r));
 
     // 2. Top-Right Name, Weapon/Range & Filled HP Bar (bx + 40 .. bx + bw - 6)
     ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
@@ -5042,6 +5199,8 @@ html, body {
     if (dragCard) return;
     const w = screenToWorld(e.clientX, e.clientY);
     const wx = w.x, wy = w.y;
+    { const top = hitRegions.slice().reverse().find(r => wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
+      if (top) tlog('click', { kind: top.kind, idx: top.idx, side: top.side, team: top.team, robot: top.robot ? top.robot.name : undefined }); }
 
     for (let i = hitRegions.length - 1; i >= 0; i--) {
       const r = hitRegions[i];
@@ -5124,9 +5283,9 @@ html, body {
       if (r.kind === 'bay_action' || (r.kind === 'bay' && r.team === viewerSeat)) {
         const t = me(), bot = r.robot;
         if (G.phase === 'upkeep') {
-          const cost = Math.ceil(bot.dmg / 20);
+          const cost = repairCost(bot);
           if (cost > 0 && t.credits >= cost) {
-            t.credits -= cost; bot.dmg = 0;
+            t.credits -= cost; bot.dmg = 0; bot.wear = 0;
             spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
             notify('🔧 Repaired <b>' + esc(bot.name) + '</b> to full HP.', t.col);
             updateHud();
@@ -5318,6 +5477,8 @@ html, body {
     apply();
     setInterval(() => lp.classList.toggle('dragging', !!dragCard), 150);
   })();
+  $('#ptBtn').onclick = ptMenu;
+  ptRestoreDir();
   $('#quickFightBtn').onclick = () => {
     if (G.phase === 'setup') quickFinishSetup();
     const t = me();

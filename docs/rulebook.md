@@ -57,7 +57,7 @@ At the end of the Intrigue, Market and Arena phases, check for a winner (section
 All teams do Upkeep at the same time. The game does the bookkeeping.
 
 1. **Ready:** every exhausted robot, crew card and Security Bot asset turns ready again, unless a card keeps it out (for example Rogue Firmware: sits out the next fight).
-2. **Repairs:** pay 1 credit per 20 damage you want to repair, and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
+2. **Repairs:** pay 1 credit per 20 damage you want to repair (times the robot's battle wear, see section 8), and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
 3. **Ledger:** gain 1 credit per ready Mechanic. Pay 1 credit per ready robot and 1 credit per 2 helper drones. The Accountant takes 1 off the bill for each robot after the first.
 4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator).
 5. **Sparring match (optional, 2 credits, once a round):** pick one of your ready robots and any rival robot; they fight a test fight in the pit. Nothing carries over: no damage, no fame, no breaks, no cards played. It shows you how the matchup really plays out.
@@ -181,7 +181,7 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 **Strain and breaking.** Every part and upgrade shows its strain (⚡). Before a fight, each breakable part may break, more likely the more strain the robot carries: 5% per ⚡, halved by an assigned Chief Engineer. Only legendaries, parts with value 4–5 and salvaged Scrap Crate items can break. A broken part stops working and stays broken until you repair it in Upkeep for half its bank value (minimum 1 credit); a broken salvaged item is gone for good.
 
-**Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 1 credit per 20 damage.
+**Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 1 credit per 20 damage, times the robot's **battle wear** (Kev, 6 Nov): every second it has fought since its last repair adds wear, and repairs cost ×(1 + wear / 60 s), rounded up. So a 30-second slugfest makes the next repair 1.5× as dear, a quick knockout barely matters. A full repair resets the wear; damage you leave stacks wear on top.
 
 **Size.** A robot's frame and hitbox grow 5% per ⚡ it carries, and Twin Turret adds +20% on top, which is easier to hit and easier to tell apart. Weapon reach doesn't grow: a bigger spinner or rammer is only a bigger target. Frame names for players: Light (0–2 ⚡), Medium (3–4), Heavy (5–6), Titan (7+).
 
