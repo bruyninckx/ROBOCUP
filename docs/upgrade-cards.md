@@ -12,16 +12,18 @@ Source of truth for the card list: the card table (https://claude.ai/artifact/K9
 
 ## Crew (8)
 
+Kev, 6 Nov: named crew cards in the tabletop. Every team starts with 3 Mechanics (Sovereign Foundry 4) and 1 Chief Engineer. 5 New Crew lots in the lot deck deal from a crew deck of 10 (2 Mechanics, 2 Chief Engineers, one of each specialist), shown face up; unsold crew goes back. No crew limit. Intrigue cards that discard a crew member take a Mechanic first, else the least valuable card. Crew, robots (with their parts, without their Chief Engineers) and installed Security Bots can be traded in the open market; a team keeps at least one robot.
+
 | Card | Sim key | ⚡ | Price | Bank value | Effect | Status |
 |---|---|---|---|---|---|---|
-| **Chief Engineer** | — | – | 2–4 | 1 | Assign to a robot (max 3): fewer malfunctions, half the part breaks. | in a prototype |
-| **Mechanic** | — | – | 3–4 | 2 | +1 credit every Upkeep. Also a starter card. | in a prototype |
-| **Accountant** | — | – | 3–4 | 2 | Upkeep −1 for each robot after the first. | designed |
-| **Hacker** | — | – | 2–4 | 1 | Once per round: peek at 1 face-down card on a rival robot. | designed |
-| **Market Analyst** | — | – | 2–3 | 1 | See next round’s Market lots before you bid. | designed |
-| **Fixer** | — | – | 3–5 | 2 | When you back a scheme, count +2 fame toward its gate. | designed |
-| **Security Chief** | — | – | 2–3 | 1 | Your Security Bots block on 3–6 instead of 4–6. | designed |
-| **Repair Tech** | — | – | 2–4 | 1 | Repairs cost half: 1 credit per 40 damage, rounded up. | designed |
+| **Chief Engineer** | — | – | 2–4 | 1 | Assign to a robot (max 3): fewer malfunctions, half the part breaks. | in the tabletop (crew card) |
+| **Mechanic** | — | – | 3–4 | 2 | +1 credit every Upkeep. Also a starter card. | in the tabletop (crew card) |
+| **Accountant** | — | – | 3–4 | 2 | Upkeep −1 for each robot after the first. | in the tabletop |
+| **Hacker** | — | – | 2–4 | 1 | Once per round: peek at 1 face-down card on a rival robot (tabletop: when bets open, on a rival robot in the fight). | in the tabletop |
+| **Market Analyst** | — | – | 2–3 | 1 | See next round’s Market lots before you bid. | in the tabletop |
+| **Fixer** | — | – | 3–5 | 2 | When you back a scheme, count +2 fame toward its gate. | in the tabletop |
+| **Security Chief** | — | – | 2–3 | 1 | Your Security Bots block on 3–6 instead of 4–6. | in the tabletop |
+| **Repair Tech** | — | – | 2–4 | 1 | Repairs cost half (tabletop: half of 0.7 Cr per 20 damage × wear, rounded up). | in the tabletop |
 
 ## Weapon upgrades (9) — no weapon swaps (Kev, 6 Nov)
 

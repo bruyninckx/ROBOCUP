@@ -426,6 +426,7 @@ html, body {
 .dl-zone.over{border-color:#1f6feb;background:#f0f6ff}
 .dl-stash{background:#f6f4ee}
 .dl-chip{border:1.5px solid #111;border-radius:999px;padding:2px 9px;font:700 12px system-ui,sans-serif;background:#fff;cursor:grab}
+.dl-chip.dl-asset{border-color:#7c3aed;background:#f5f0ff}
 .stashcard{background:rgba(255,253,247,.96);border:1.5px solid #111;border-radius:10px;font-size:12px;flex:0 0 auto}
 .st-list{padding:4px 6px 6px;display:flex;flex-direction:column;gap:3px}
 .st-row{display:flex;align-items:center;gap:5px}
@@ -675,7 +676,54 @@ html, body {
   const NLOTS = 4, HOST_K = NLOTS;
   const zeroBids = () => new Array(NLOTS + 1).fill(0);
   // 5 New Robot lots in the deck (was 1): they deal the Market robot cards first, then s1. starters
-  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter && !LOTS[k].legend).concat(['engine', 'chip', 'hull', 'mech', 'eng', 'd_medic', 'robot', 'robot', 'robot', 'robot']));
+  // Kev, 6 Nov: Hire Mechanic / Hire Engineer lots became 5 New Crew lots that deal named crew cards
+  const lotDeck = () => shuffle(Object.keys(LOTS).filter(k => !LOTS[k].starter && !LOTS[k].legend && !LOTS[k].crew && k !== 'mech' && k !== 'eng').concat(['engine', 'chip', 'hull', 'd_medic', 'robot', 'robot', 'robot', 'robot', 'crew', 'crew', 'crew', 'crew']));
+  /* CREW CARDS (Kev, 6 Nov; docs/upgrade-cards.md): every crew member is a named card. t.crew = [{ uid, kind }].
+   * t.mechs / t.engPool are counts of Mechanic / Chief Engineer cards (getters + setters, so older code keeps working).
+   * Exhausting crew stays a count (t.exMechs = exhausted crew this round). */
+  const CREW = {
+    mechanic:   { name: 'Mechanic',       icon: '🔧', value: 2, short: '+1 Cr every Upkeep', text: '+1 credit every Upkeep.' },
+    chief:      { name: 'Chief Engineer', icon: '👷', value: 1, short: 'Fewer glitches & breaks', text: 'Put it on a robot (max 3 per robot): −40% malfunctions and half the part breaks each.' },
+    accountant: { name: 'Accountant',     icon: '🧮', value: 2, short: 'Extra robots: no upkeep', text: 'Upkeep: only your first robot costs 1 Cr; the others are free.' },
+    hacker:     { name: 'Hacker',         icon: '💻', value: 1, short: 'Peek at a hidden card', text: 'Each fight you are in or bet on: before bets close, see 1 face-down card on a rival robot.' },
+    analyst:    { name: 'Market Analyst', icon: '🔮', value: 1, short: 'See next round\'s lots', text: 'See next round\'s Market lots before you bid.' },
+    fixer:      { name: 'Fixer',          icon: '🕴️', value: 2, short: '+2 fame when backing', text: 'When you back someone\'s scheme, you count +2 fame toward its gate.' },
+    secchief:   { name: 'Security Chief', icon: '👮', value: 1, short: 'Security Bots block on 3+', text: 'Your Security Bots block on 3–6 instead of 4–6.' },
+    repairtech: { name: 'Repair Tech',    icon: '🛠️', value: 1, short: 'Repairs half price', text: 'Repairs cost half.' },
+  };
+  const CREW_DECK = ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'];
+  LOTS.crew = { name: 'New Crew', icon: '👥', text: 'A crew card', crewLot: true };
+  let crewSeq = 0, crewLotSeq = 0;
+  const hasCrew = (t, k) => !!(t && t.crew && t.crew.some(c => c.kind === k));
+  const crewCount = (t, k) => t.crew.filter(c => c.kind === k).length;
+  function fixEng(t) { while (usedEng(t) > crewCount(t, 'chief')) { const r = t.robots.filter(x => (x.b.eng || 0) > 0).sort((a, b) => b.b.eng - a.b.eng)[0]; if (!r) break; r.b.eng--; } }
+  function setCrewCount(t, k, v) {
+    v = Math.max(0, Math.round(v)); let n = crewCount(t, k);
+    while (n < v) { t.crew.push({ uid: ++crewSeq, kind: k }); n++; }
+    while (n > v) { const i = t.crew.map(c => c.kind).lastIndexOf(k); t.crew.splice(i, 1); n--; }
+    if (k === 'chief') fixEng(t);
+  }
+  function crewProps(t) {
+    t.crew = t.crew || [];
+    Object.defineProperty(t, 'mechs', { get() { return crewCount(t, 'mechanic'); }, set(v) { setCrewCount(t, 'mechanic', v); }, enumerable: true, configurable: true });
+    Object.defineProperty(t, 'engPool', { get() { return crewCount(t, 'chief'); }, set(v) { setCrewCount(t, 'chief', v); }, enumerable: true, configurable: true });
+  }
+  // a team loses one crew member (an Intrigue card discards it): a Mechanic first, else the least valuable card
+  function loseCrew(t, why) {
+    if (!t.crew.length) return null;
+    const c = t.crew.find(x => x.kind === 'mechanic') || t.crew.slice().sort((a, b) => CREW[a.kind].value - CREW[b.kind].value)[0];
+    t.crew.splice(t.crew.indexOf(c), 1); if (c.kind === 'chief') fixEng(t);
+    if (why) notify('👥 ' + nm(t) + ' loses its ' + crewRef(c.kind) + ' (' + why + ').', t.col);
+    return c;
+  }
+  const crewRef = k => '<span class="lcard"' + helpAttr(CREW[k].icon + ' ' + CREW[k].name, esc(CREW[k].text)) + '>' + esc(CREW[k].name) + '</span>';
+  const crewIcons = t => '🔧' + t.mechs + ' 👷' + freeEng(t) + '/' + t.engPool + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('');
+  const crewHelp = t => t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.';
+  function crewLot(k) {
+    const id = 'crew:' + k + ':' + (++crewLotSeq);
+    LOTS[id] = { name: CREW[k].name, icon: CREW[k].icon, text: CREW[k].short, crew: k, desc: CREW[k].text };
+    return id;
+  }
   /* Market robot cards (docs/robot-cards.md, builds in Sim.ROBOT_CARDS). Fight quirks (Trick Shot, Sticky Fire,
    * Fireproof, Bastion) work in the Sim; the others work here. value = bank value. */
   const MARKET_ROBOTS = {
@@ -827,8 +875,10 @@ html, body {
   const WEAR_PER = 60;
   const wearMult = r => 1 + (r.wear || 0) / WEAR_PER;
   const REPAIR_RATE = 0.7;   // credits per 20 damage, before wear
-  const repairBase = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE) : 0;
-  const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * wearMult(r)) : 0;
+  const ownerOf = r => G && G.teams.find(t => t.robots.includes(r));
+  const repairK = r => hasCrew(ownerOf(r), 'repairtech') ? 0.5 : 1;   // 🛠️ Repair Tech: half price
+  const repairBase = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * repairK(r)) : 0;
+  const repairCost = r => r.dmg > 0 ? Math.ceil(r.dmg / 20 * REPAIR_RATE * repairK(r) * wearMult(r)) : 0;
   const wearTxt = r => '⏱ ' + Math.round(r.wear || 0) + ' s of fighting since its last repair → repairs ×' + wearMult(r).toFixed(2) + (r.dmg > 0 ? ': ' + repairBase(r) + ' Cr base → <b>' + repairCost(r) + ' Cr</b>' : '');
   const power = r => Sim.STATS.reduce((a, k) => a + r.b.lv[k], 0) + (r.b.helpers || []).length * 1.5 - r.dmg / 20;
   const usedEng = t => t.robots.reduce((a, r) => a + (r.b.eng || 0), 0);
@@ -1205,7 +1255,13 @@ html, body {
     renderHand();
   }
 
-  const legendNote = () => G.legendNext ? '<br>🌟 <b>Next round:</b> ' + lotRef(G.legendNext) + ' (legendary). Save up!' : '';
+  const analystNote = () => {
+    if (!hasCrew(me(), 'analyst') || G.phase !== 'market') return '';
+    const nx = G.lots.length >= NLOTS ? G.lots.slice(-NLOTS).reverse() : null;
+    const nmOf = id => id === 'robot' ? 'New Robot' : id === 'crew' ? 'New Crew' : LOTS[id] ? LOTS[id].name : id;
+    return '<br>🔮 <b>Market Analyst, next round:</b> ' + (nx ? nx.map(nmOf).join(', ') + (G.legendNext ? ' (the last slot goes to the legendary)' : '') : 'the lot deck reshuffles, no peek');
+  };
+  const legendNote = () => analystNote() + (G.legendNext ? '<br>🌟 <b>Next round:</b> ' + lotRef(G.legendNext) + ' (legendary). Save up!' : '');
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
@@ -1268,7 +1324,7 @@ html, body {
           $('#pAct1').onclick = continueMarket;
         }
       } else if (G.marketStage === 'open') {
-        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits and 📦 Stash parts with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + legendNote() + '</span>' +
+        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits, 📦 Stash parts, robots, crew and Security Bots with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + legendNote() + '</span>' +
           G.teams.filter(o => o.i !== viewerSeat).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('') +
           '<button class="act" id="pAct1"' + (G.openBusy ? ' disabled' : '') + '>Start the auction →</button>';
         pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
@@ -1500,16 +1556,16 @@ html, body {
       teams: TEAMS.map((t, i) => ({
         ...t, i, sponsor: null,
         fame: G0fame, credits: 8,
-        mechs: 3,
-        engPool: 2, // 2 Engineers at start; 1 goes on the drafted starter, 1 free to assign
+        crew: [],   // Kev, 6 Nov: 3 Mechanics + 1 Chief Engineer (on the drafted starter); see crewProps
         hand: [], robots: [], tamper: {}, schemeLog: [], secBots: 1, exMechs: 0, exSec: 0, shill: 0
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: lotDeck(),
-      robotDeck: shuffle(Object.keys(MARKET_ROBOTS).filter(k => !MARKET_ROBOTS[k].legend)),
+      robotDeck: shuffle(Object.keys(MARKET_ROBOTS).filter(k => !MARKET_ROBOTS[k].legend)), crewDeck: shuffle(CREW_DECK.slice()),
       legends: shuffle(['L_rail', 'L_twin', 'L_quantum']), legendNext: null,
       fight: null, over: false, crateChoices: null
     };
+    G.teams.forEach(t => { crewProps(t); t.mechs = 3; t.engPool = 1; });
     setCameraGoal('compound');
     tlog('new_game', { startFame: G0fame, starterPicks: STARTER_PICKS, teams: G.teams.map(t => t.name) });
     notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (pick 1 of 3)!', '#111');
@@ -1613,7 +1669,7 @@ html, body {
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
       for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
-      t.credits = Math.max(0, t.credits + t.mechs - t.robots.length);
+      t.credits = Math.max(0, t.credits + t.mechs - (hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length));   // 🧮 Accountant: extra robots are free
       if (t.sponsor === 'aegis') {
         for (const r of t.robots) if (r.dmg > 0) r.dmg = Math.max(0, r.dmg - 25);
       }
@@ -1637,7 +1693,7 @@ html, body {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const nm = t => '<b>' + esc(t.name) + '</b>';
   const readyRobots = t => t.robots.filter(r => !r.exhausted);
-  const readyCrew = t => Math.max(0, t.mechs - (t.exMechs || 0));
+  const readyCrew = t => Math.max(0, t.crew.length - (t.exMechs || 0));
   const secReady = t => Math.max(0, (t.secBots || 0) - (t.exSec || 0));
   const handLimit = t => t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;
   const bestReady = t => readyRobots(t).slice().sort((a, b) => power(b) - power(a))[0] || t.robots.slice().sort((a, b) => power(b) - power(a))[0];
@@ -1679,7 +1735,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 robots-legendaries';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 crew-trading';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -1698,7 +1754,7 @@ html, body {
   }
   const ptBuild = b => b ? { lv: b.lv, weapon: b.weapon, cal: b.cal, wup: b.wup || null, range: b.range, mod: b.mod || null, arm: b.arm || null, helpers: (b.helpers || []).slice(), eng: b.eng, drive: b.drive || null, proc: b.proc || null, quirk: b.quirk || null } : null;
   function ptSnapshot() {
-    return G.teams.map(t => ({ i: t.i, name: t.name, sponsor: t.sponsor, fame: t.fame, cr: t.credits, mechs: t.mechs, eng: t.engPool, sec: t.secBots || 0, hand: t.hand.length,
+    return G.teams.map(t => ({ i: t.i, name: t.name, sponsor: t.sponsor, fame: t.fame, cr: t.credits, mechs: t.mechs, eng: t.engPool, crew: t.crew.map(c => c.kind), sec: t.secBots || 0, hand: t.hand.length,
       handIds: t.i === viewerSeat ? t.hand.slice() : undefined, stash: (t.stash || []).slice(),
       robots: t.robots.map(r => ({ name: r.name, dmg: r.dmg, wins: r.wins, ex: !!r.exhausted, b: ptBuild(r.b) })) }));
   }
@@ -1856,13 +1912,39 @@ html, body {
     return best;
   }
   function partWorth(t, id) { const g = partGain(t, id); return g ? partValue(id) + Math.max(0, Math.round(g.d * 15)) : bankHalf(id); }
-  const bundleWorth = (t, B) => (B && B.cr || 0) + (B && B.items || []).reduce((a, id) => a + partWorth(t, id), 0);
-  const bundleEmpty = B => !B || (!B.cr && !(B.items || []).length);
-  const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : ''].concat((B.items || []).map(lotRef)).filter(Boolean).join(' + ');
+  /* ---------- trading robots, crew and Security Bots (Kev, 6 Nov: open market only; a team keeps at least one robot) ---------- */
+  const robotById = id => { for (const T of G.teams) { const r = T.robots.find(x => String(x.id) === String(id)); if (r) return { T, r }; } return null; };
+  const crewByUid = uid => { for (const T of G.teams) { const c = T.crew.find(x => String(x.uid) === String(uid)); if (c) return { T, c }; } return null; };
+  const isAsset = tok => /^[RC]:/.test(tok);
+  // what owning a robot is worth to a team: its card value, its parts, and how the bookie rates it there
+  function robotWorth(t, r) {
+    const b = r.b, parts = (b.mod ? 1 : 0) + (b.arm ? 1 : 0) + (b.wup ? 1 : 0) + (b.twin ? 2 : 0) + (b.helpers || []).length;
+    const p = fieldOdds(t.i, b).p;
+    return Math.max(1, Math.round((MARKET_ROBOTS[r.name] ? MARKET_ROBOTS[r.name].value : 2) + parts * 1.5 + (p == null ? 0 : (p - 0.5) * 8) - r.dmg / 30 + (t.robots.length <= 1 ? 2 : 0)));
+  }
+  const crewWorth = (t, k) => CREW[k].value + (k === 'mechanic' && G.round <= 4 ? 1 : 0) + (hasCrew(t, k) && k !== 'mechanic' && k !== 'chief' ? -1 : 1);
+  function tokWorth(t, tok) {
+    if (tok[0] === 'R') { const x = robotById(tok.slice(2)); return x ? (x.T === t || t.robots.length < 3 ? robotWorth(t, x.r) : 0) : 0; }
+    if (tok[0] === 'C') { const x = crewByUid(tok.slice(2)); return x ? crewWorth(t, x.c.kind) : 0; }
+    return partWorth(t, tok);
+  }
+  const bundleWorth = (t, B) => (B && B.cr || 0) + (B && B.sec || 0) * 2 + (B && B.items || []).reduce((a, id) => a + tokWorth(t, id), 0);
+  const bundleEmpty = B => !B || (!B.cr && !B.sec && !(B.items || []).length);
+  const tokRef = tok => { if (tok[0] === 'R' && tok[1] === ':') { const x = robotById(tok.slice(2)); return x ? '🤖 <b>' + esc(x.r.name) + '</b>' : 'a robot'; } if (tok[0] === 'C' && tok[1] === ':') { const x = crewByUid(tok.slice(2)); return x ? crewRef(x.c.kind) : 'crew'; } return lotRef(tok); };
+  const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : '', B.sec ? B.sec + ' Security Bot' + (B.sec > 1 ? 's' : '') : ''].concat((B.items || []).map(tokRef)).filter(Boolean).join(' + ');
   function transfer(from, to, B) {
     if (bundleEmpty(B)) return;
     if (B.cr) to.credits += payCr(from, B.cr);
-    for (const id of B.items || []) { const k = stashOf(from).indexOf(id); if (k >= 0) { from.stash.splice(k, 1); toStash(to, id, true); } }
+    if (B.sec) { const n = Math.min(B.sec, from.secBots || 0); from.secBots -= n; to.secBots = (to.secBots || 0) + n; }
+    for (const id of B.items || []) {
+      if (id.startsWith('R:')) {   // a robot with its fitted parts; its Chief Engineers stay home
+        const x = robotById(id.slice(2)); if (!x || x.T !== from || from.robots.length <= 1 || to.robots.length >= 3) continue;
+        from.robots.splice(from.robots.indexOf(x.r), 1); x.r.b.eng = 0; to.robots.push(x.r);
+      } else if (id.startsWith('C:')) {
+        const x = crewByUid(id.slice(2)); if (!x || x.T !== from) continue;
+        from.crew.splice(from.crew.indexOf(x.c), 1); to.crew.push(x.c); if (x.c.kind === 'chief') fixEng(from);
+      } else { const k = stashOf(from).indexOf(id); if (k >= 0) { from.stash.splice(k, 1); toStash(to, id, true); } }
+    }
   }
   // a short "what it does for you" line for a part, seen from team t
   function partForTxt(t, id) {
@@ -1885,27 +1967,51 @@ html, body {
   function dealPanel(opts) {
     return new Promise(res => {
       const me_ = me(), O = opts.from;
-      const st = { give: { cr: 0, items: [] }, want: { cr: 0, items: [] } };
+      const st = { give: { cr: 0, sec: 0, items: [] }, want: { cr: 0, sec: 0, items: [] } };
       let el = document.getElementById('dealModal');
       if (!el) { el = document.createElement('div'); el.id = 'dealModal'; document.body.appendChild(el); }
-      const chip = (id, side, zone) => '<span class="dl-chip" draggable="true" data-id="' + id + '" data-side="' + side + '" data-zone="' + zone + '"' +
-        helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>For you: ' + partForTxt(me_, id) + (O ? '<br>For ' + esc(O.name) + ': ' + partForTxt(O, id) : '') + '<br><i>Click or drag to move it.</i>') + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>';
+      const chipHelp = id => {
+        if (id.startsWith('R:')) { const x = robotById(id.slice(2)); if (!x) return ['robot', '']; const fo = fieldOdds(x.T.i, x.r.b).p;
+          return ['🤖 ' + esc(x.r.name), esc(wepName(x.r.b)) + ' · ' + x.r.b.range + ' · ' + Math.max(0, maxHp(x.r) - x.r.dmg) + '/' + maxHp(x.r) + ' HP' + (quirkOf(x.r) ? ' · ✦ ' + esc(quirkOf(x.r)) : '') + '<br>🎩 ' + (fo == null ? 'bookie working…' : bandOf(fo).name) + ' vs the field.<br>It moves with its fitted parts; its Chief Engineers stay with the old team.'];
+        }
+        if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? [CREW[x.c.kind].icon + ' ' + CREW[x.c.kind].name, esc(CREW[x.c.kind].text)] : ['crew', '']; }
+        return [LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>For you: ' + partForTxt(me_, id) + (O ? '<br>For ' + esc(O.name) + ': ' + partForTxt(O, id) : '')];
+      };
+      const chipLabel = id => { if (id.startsWith('R:')) { const x = robotById(id.slice(2)); return '🤖 ' + esc(x ? x.r.name : '?'); } if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? CREW[x.c.kind].icon + ' ' + esc(CREW[x.c.kind].name) : '?'; } return LOTS[id].icon + ' ' + esc(LOTS[id].name); };
+      const chip = (id, side, zone) => { const h = chipHelp(id); return '<span class="dl-chip' + (isAsset(id) ? ' dl-asset' : '') + '" draggable="true" data-id="' + id + '" data-side="' + side + '" data-zone="' + zone + '"' + helpAttr(h[0], h[1] + '<br><i>Click or drag to move it.</i>') + '>' + chipLabel(id) + '</span>'; };
+      const pool = T => stashOf(T).concat(opts.assets ? T.robots.map(r => 'R:' + r.id).concat(T.crew.map(c => 'C:' + c.uid)) : []);
       const draw = () => {
         const minus = (arr, rem) => { const x = arr.slice(); rem.forEach(id => { const k = x.indexOf(id); if (k >= 0) x.splice(k, 1); }); return x; };
-        const myLeft = minus(stashOf(me_), st.give.items), theirLeft = O ? minus(stashOf(O), st.want.items) : [];
+        const myLeft = minus(pool(me_), st.give.items), theirLeft = O ? minus(pool(O), st.want.items) : [];
         const col = (title, side, who, left, onTable, cr, crMax) =>
           '<div class="dl-col"><div class="dl-h">' + title + '</div>' +
           '<div class="dl-cr"><button data-cr="' + side + '" data-d="-1">−</button><b>' + cr + ' Cr</b><button data-cr="' + side + '" data-d="1">+</button><span class="sc-note">of ' + crMax + '</span></div>' +
+          (opts.assets ? '<div class="dl-cr"><button data-sec="' + side + '" data-d="-1">−</button><b>🤖 ' + (st[side].sec || 0) + ' Security Bot' + ((st[side].sec || 0) === 1 ? '' : 's') + '</b><button data-sec="' + side + '" data-d="1">+</button><span class="sc-note">of ' + ((side === 'give' ? me_ : O).secBots || 0) + '</span></div>' : '') +
           '<div class="dl-zone" data-drop="' + side + '" data-zone="table">' + (onTable.map(id => chip(id, side, 'table')).join('') || '<span class="sc-note">drop parts here</span>') + '</div>' +
-          '<div class="dl-sub">' + who + ' Stash</div><div class="dl-zone dl-stash" data-drop="' + side + '" data-zone="stash">' + (left.map(id => chip(id, side, 'stash')).join('') || '<span class="sc-note">empty</span>') + '</div></div>';
+          '<div class="dl-sub">' + who + (opts.assets ? ' Stash, robots and crew' : ' Stash') + '</div><div class="dl-zone dl-stash" data-drop="' + side + '" data-zone="stash">' + (left.map(id => chip(id, side, 'stash')).join('') || '<span class="sc-note">empty</span>') + '</div></div>';
         el.innerHTML = '<div class="iv-box dl-box"><h3>' + opts.title + '</h3><div class="iv-body">' + (opts.intro || '') + '</div><div class="dl-cols">' +
           (opts.give !== false ? col(opts.want ? 'You give' : 'Your offer', 'give', 'Your', myLeft, st.give.items, st.give.cr, me_.credits) : '') +
           (opts.want && O ? col('You get from ' + esc(O.name), 'want', esc(O.name.split(' ')[0]) + '\'s', theirLeft, st.want.items, st.want.cr, O.credits) : '') +
-          '</div><div class="sc-note" style="margin-top:6px">Nothing moves until you lock it in' + (O && O.i !== viewerSeat ? '; ' + esc(O.name) + ' then accepts or refuses' : '') + '.</div>' +
+          '</div><div class="sc-note dl-flash" hidden style="color:#b45309;font-weight:700"></div><div class="sc-note" style="margin-top:6px">Nothing moves until you lock it in' + (O && O.i !== viewerSeat ? '; ' + esc(O.name) + ' then accepts or refuses' : '') + '.</div>' +
           '<div class="iv-btns"><button class="primary" data-k="lock">🔒 ' + (opts.lock || 'Lock in offer') + '</button><button class="secondary" data-k="no">No deal</button></div></div>';
         el.hidden = false;
         el.querySelectorAll('[data-cr]').forEach(b => { b.onclick = () => { const S = b.dataset.cr, max = S === 'give' ? me_.credits : O.credits; st[S].cr = Math.max(0, Math.min(max, st[S].cr + +b.dataset.d)); draw(); }; });
-        const move = (id, side, zone) => { const L = st[side].items; if (zone === 'table') L.splice(L.indexOf(id), 1); else L.push(id); draw(); };
+        el.querySelectorAll('[data-sec]').forEach(b => { b.onclick = () => { const S = b.dataset.sec, max = ((S === 'give' ? me_ : O).secBots || 0); st[S].sec = Math.max(0, Math.min(max, (st[S].sec || 0) + +b.dataset.d)); draw(); }; });
+        const nR = side => st[side].items.filter(x => x.startsWith('R:')).length;
+        const move = (id, side, zone) => {
+          const L = st[side].items;
+          if (zone === 'table') L.splice(L.indexOf(id), 1);
+          else {
+            if (id.startsWith('R:')) {   // a team keeps at least one robot, and has 3 bays
+              const fromT = side === 'give' ? me_ : O, toT = side === 'give' ? O : me_, other = side === 'give' ? 'want' : 'give';
+              if (fromT.robots.length - nR(side) <= 1) { flash('A team always keeps at least one robot.'); return; }
+              if (toT.robots.length - nR(other) + nR(side) >= 3) { flash(esc(toT.name) + ' has no free bay (3 robots max).'); return; }
+            }
+            L.push(id);
+          }
+          draw();
+        };
+        const flash = msg => { const n = el.querySelector('.dl-flash'); if (n) { n.innerHTML = '⚠️ ' + msg; n.hidden = false; } };
         el.querySelectorAll('.dl-chip').forEach(c => {
           c.onclick = () => move(c.dataset.id, c.dataset.side, c.dataset.zone);
           c.ondragstart = e => { e.dataTransfer.setData('text/plain', c.dataset.id + '|' + c.dataset.side + '|' + c.dataset.zone); };
@@ -1982,8 +2088,9 @@ html, body {
         B = d.give; yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
         if (yes) transfer(F, o, B);
       }
-      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + o.fame + ' fame' + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
-      if (yes) got += o.fame;
+      const bf = o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // 🕴️ Fixer: +2 fame toward the gate
+      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
+      if (yes) got += bf;
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -1997,7 +2104,7 @@ html, body {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
           (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-      if (yes) { transfer(F, o, B); got += o.fame; notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
+      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -2027,7 +2134,7 @@ html, body {
     const b = CARDS[id];
     removeFromHand(o, id); discardCard(id);
     if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); p.credits += payCr(o, 3); }
-    if (b.name === 'Fall Guy') o.mechs = Math.max(0, o.mechs - 1);
+    if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
     if (b.name === "Sponsor's Lawyers") { const k = G.discard.indexOf('security_bot'); if (k >= 0) { G.discard.splice(k, 1); o.hand.push('security_bot'); } }
     if (b.name === 'Not My Robot') {
       const nt = G.teams.filter(x => x !== o && x !== F).sort((a, z) => z.fame - a.fame)[0];
@@ -2045,7 +2152,7 @@ html, body {
         if (secReady(T) > 0) T.secBots--; else removeFromHand(T, 'security_bot');
         discardCard('security_bot');
         const roll = 1 + Math.floor(rnd() * 6);
-        if (roll >= 4) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
+        if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
         notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
       }
     }
@@ -2115,7 +2222,7 @@ html, body {
     const sell = T.i === viewerSeat
       ? await ivModal('🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
       : T.robots.length >= 3 || T.fame <= 2;
-    if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
+    if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; r.b.eng = 0; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
   }
   // Tag Team Licence: pick an ally; it may refuse for −1 fame
@@ -2148,7 +2255,7 @@ html, body {
       case 'Smash and Grab': { const g = payCr(T, 3); F.credits += g; say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
       case 'Crunch Week': { const m = readyCrew(F), s = secReady(F); F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; F.credits += m + s; say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + (m + s) + ' crew and bots for +' + (m + s) + ' Cr.'); break; }
       case 'Scrapyard Salvage': F.credits += 3; say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
-      case 'Headhunter Fee': F.mechs--; F.credits += 4; say('💼 ' + nm(F) + ' sells a Mechanic\'s contract for +4 Cr.'); break;
+      case 'Headhunter Fee': { const c = loseCrew(F); const g = c ? 2 * CREW[c.kind].value : 0; F.credits += g; say('💼 ' + nm(F) + ' sells its ' + (c ? crewRef(c.kind) : 'crew') + '\'s contract for +' + g + ' Cr.'); break; }
       case 'Consulting Gig': { const g = 2 * readyCrew(T); T.credits += g; say('💼 Consulting: ' + nm(T) + ' +' + g + ' Cr.'); break; }
       case 'Industry Insider': T.hand.push(draw1(), draw1()); say('💼 ' + nm(T) + ' draws 2 Intrigue cards.'); break;
       case 'Scrap Deal': F.credits += 5; say('💼 ' + nm(F) + ' closes a scrap deal: +5 Cr.'); break;
@@ -2161,19 +2268,19 @@ html, body {
       case 'Team-Building Day': { const p = Math.min(2, Math.floor(readyCrew(T) / 2)); T.exMechs = (T.exMechs || 0) + 2 * p; addFame(T, p); say('📣 Team-Building: ' + nm(T) + ' exhausts ' + 2 * p + ' crew, +' + p + ' fame.'); break; }
       case 'Underdog Story': { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame) { addFame(s[0], 2); say('📣 Underdog Story: ' + nm(s[0]) + ' +2 fame.'); } else say('📣 Underdog Story fizzles: the bottom is tied.'); break; }
       case 'Press Tour': { const m = readyCrew(T), s = secReady(T); if (m + s >= 3) { const a = Math.min(3, m); T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + (3 - a); addFame(T, 1); say('📣 Press Tour: ' + nm(T) + ' +1 fame.'); } else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready crew or bots.'); break; }
-      case 'Museum Donation': F.mechs--; addFame(F, 1); say('📣 ' + nm(F) + ' donates a Mechanic to the museum: +1 fame.'); break;
+      case 'Museum Donation': { const c = loseCrew(F); addFame(F, 1); say('📣 ' + nm(F) + ' donates its ' + (c ? crewRef(c.kind) : 'crew') + ' to the museum: +1 fame.'); break; }
       case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': addFame(T, 1); say('📣 ' + esc(n) + ': ' + nm(T) + ' +1 fame.'); break;
       case 'Co-Branding Deal': { const o = lowestOther([T.i]); addFame(T, 1); addFame(o, 1); say('📣 Co-Branding: ' + nm(T) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, 1); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
       case 'Bribe Scandal': T.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Bribe Scandal: ' + nm(T) + ' −1 fame.'); break;
-      case 'Inside Leak': F.mechs--; await loseFame(T, 1); say('🗞️ Inside Leak: ' + nm(T) + ' −1 fame.'); break;
+      case 'Inside Leak': loseCrew(F, 'the leak'); await loseFame(T, 1); say('🗞️ Inside Leak: ' + nm(T) + ' −1 fame.'); break;
       case 'Paparazzi': { const o = lowestOther([F.i, T.i]); o.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Paparazzi: ' + nm(T) + ' −1 fame.'); break; }
       case 'Robot Rights Protest': addFame(F, -2); for (const o of G.teams) if (o !== F) addFame(o, -1); say('🗞️ Robot Rights Protest: ' + nm(F) + ' −2 fame, every other team −1.'); break;
       case 'Rival Sponsor': { const o = lowestOther([F.i, T.i]); await loseFame(T, 1); addFame(o, 1); say('🗞️ Rival Sponsor: ' + nm(T) + ' −1, ' + nm(o) + ' +1 fame.'); break; }
       case 'Smear Campaign': await loseFame(T, 2); say('🗞️ Smear Campaign: ' + nm(T) + ' −2 fame.'); break;
       case 'Rigged Ratings': { const o = lowestOther([F.i, T.i]); await loseFame(T, 2); addFame(F, 1); addFame(o, 1); say('🗞️ Rigged Ratings: ' + nm(T) + ' −2; ' + nm(F) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': await loseFame(T, 1); say('🗞️ ' + esc(n) + ': ' + nm(T) + ' −1 fame.'); break;
-      case 'Poached Mechanic': if (T.mechs > 0) T.mechs--; say('🔧 ' + nm(F) + ' poaches a Mechanic from ' + nm(T) + '.'); break;
+      case 'Poached Mechanic': { const c = loseCrew(T); say('🔧 ' + nm(F) + ' poaches ' + (c ? 'a ' + crewRef(c.kind) : 'nobody') + ' from ' + nm(T) + '.'); break; }
       case 'Security Override': { const k = secReady(T); payCr(F, k); T.exSec = (T.exSec || 0) + k; say('🔧 Security Override: ' + nm(T) + '\'s ' + k + ' Security Bot' + (k === 1 ? ' is' : 's are') + ' exhausted.'); break; }
       case 'EMP the Garage': T.tamper.noMods = 1; T.schemeLog.push({ from: F.i, id }); say('🔧 EMP: ' + nm(T) + '\'s modules and helpers are offline next fight.'); break;
       case 'Sugar in the Tank': case 'Smudged Lens': case 'Secret Upgrade': case 'Overclock': {
@@ -2277,7 +2384,7 @@ html, body {
     if (n === 'Launch Party') return F.credits >= 9;
     if (n === 'Team-Building Day') return readyCrew(F) >= 2;
     if (n === 'Press Tour') return readyCrew(F) + secReady(F) >= 3;
-    if (['Headhunter Fee', 'Museum Donation', 'Inside Leak'].includes(n)) return F.mechs >= 3;
+    if (['Headhunter Fee', 'Museum Donation', 'Inside Leak'].includes(n)) return F.crew.length >= 4;
     if (n === 'Bribe Scandal' || n === 'Paparazzi') return F.credits >= 6;
     if (n === 'Hostile Buyout') return T && T.robots.length >= 2;
     if (n === 'Crunch Week') return F.credits <= 4;
@@ -2419,9 +2526,10 @@ html, body {
     G.openBusy = false; updateHud();
   }
   async function humanTrade(O) {
-    const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits and Stash parts on both sides, then lock it in. ' + nm(O) + ' accepts if it comes out ahead.', from: O, want: true, lock: 'Lock in trade' });
+    const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + ' accepts if it comes out ahead. Robots, crew and Security Bots only change hands here, in the open market.', from: O, want: true, assets: true, lock: 'Lock in trade' });
     if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
     const gain = bundleWorth(O, d.give) - bundleWorth(O, d.want);
+    if (d.want.items.some(x => x.startsWith('R:')) && O.robots.length - d.want.items.filter(x => x.startsWith('R:')).length + d.give.items.filter(x => x.startsWith('R:')).length < 1) { notify('✋ ' + nm(O) + ' must keep a robot.', O.col); return; }
     if (gain >= 1) {
       transfer(me(), O, d.give); transfer(O, me(), d.want);
       notify('🤝 Trade: you give ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', me().col);
@@ -2457,7 +2565,7 @@ html, body {
         const b = (g && g.d > 0.08) || rnd() < 0.2 ? Math.min(budget, 1 + (rnd() < 0.4 ? 1 : 0)) : 0;
         budget -= b; return b;
       }
-      const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], LOTS[G.market[k]].legend ? 6 : 4) : LOTS[G.market[k]].legend ? 5 : G.market[k] === 'eng' ? 3 : 2.2;
+      const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], LOTS[G.market[k]].legend ? 6 : 4) : LOTS[G.market[k]].legend ? 5 : LOTS[G.market[k]].crew ? crewWant(t, LOTS[G.market[k]].crew) : G.market[k] === 'eng' ? 3 : 2.2;
       let b = Math.round(want * (0.4 + rnd() * 1.1));
       b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
       budget -= b;
@@ -2465,6 +2573,14 @@ html, body {
     });
   }
 
+  // what a crew card is worth to an AI team (Mechanics pay back early, Chief Engineers when robots carry strain)
+  function crewWant(t, k) {
+    if (k === 'mechanic') return G.round <= 4 ? 4 : 2.5;
+    if (k === 'chief') return t.robots.some(r => (r.b.eng || 0) < 2 && Sim.strainOf(r.b).total >= 3) ? 3.5 : 2;
+    if (k === 'accountant') return t.robots.length >= 2 ? 3.5 : 2;
+    if (k === 'repairtech') return t.robots.some(r => r.dmg > 30) ? 3 : 2;
+    return hasCrew(t, k) ? 0.5 : 2.5;
+  }
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
     if (k < NLOTS && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
@@ -2507,6 +2623,7 @@ html, body {
   }
   function dealLot() {
     let id = G.lots.pop();
+    if (id === 'crew') { const k = G.crewDeck.pop(); return k ? crewLot(k) : 'mech'; }
     if (LOTS[id] && LOTS[id].robot) {
       if (LOTS[id].starter) returnStarter(LOTS[id].starter);
       const inMarket = new Set((G.market || []).map(x => LOTS[x] && LOTS[x].starter).filter(Boolean));
@@ -2524,7 +2641,7 @@ html, body {
     const p = L && L.bot ? fieldOdds(t.i, Object.assign({}, L.bot.b, { eng: Math.min(1, freeEng(t)) })).p : null;
     return base + (p == null ? 0 : (p - 0.5) * 5);
   }
-  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng;
+  const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew;
   // can this part go on this robot? Weapon upgrades need that weapon, calibres need a gun (no weapon swaps)
   function canFit(r, L) {
     if (!r || !L) return false;
@@ -2616,6 +2733,7 @@ html, body {
 
   function applyLot(ti, lot, r, twinPick) {
     const t = G.teams[ti], L = LOTS[lot];
+    if (L.crew) { t.crew.push({ uid: ++crewSeq, kind: L.crew }); if (L.crew === 'chief') { const nb = t.robots.slice().sort((a, b) => Sim.strainOf(b.b).total - Sim.strainOf(a.b).total).find(x => (x.b.eng || 0) < 3); if (nb && freeEng(t) > 0) { nb.b.eng = (nb.b.eng || 0) + 1; return 'Hired, on ' + nb.name; } } return 'Hired'; }
     if (L.mech) { t.mechs++; return '+1 Mechanic Pool'; }
     if (L.eng) {
       t.engPool++;
@@ -2699,6 +2817,7 @@ html, body {
       if (w >= 0) A.wins.push({ idx: k, lot: lotId, team: w, price: mx });
       else if (L.starter) { returnStarter(L.starter); L.bot = null; }   // an unsold robot goes back to its deck
       else if (L.legend && !G.legends.includes(lotId)) G.legends.unshift(lotId);   // an unsold legendary comes back later
+      else if (L.crew) G.crewDeck.unshift(L.crew);                                 // unsold crew goes back to the crew deck
       A.results.push({
         idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
         winner: w, price: mx, bids: col, initBids: initCol, addBids: addCol,
@@ -3149,6 +3268,11 @@ html, body {
     updateHud();
     // ✦ Scope (Sniper): its owner sees one face-down card on a rival robot in this fight
     const F = G.fight;
+    if (hasCrew(me(), 'hacker')) {   // 💻 Hacker: one face-down card on a rival robot in this fight
+      const mySd = F.teams.includes(viewerSeat) ? F.sides[F.teams.indexOf(viewerSeat)] : -1;
+      const seen = []; F.robots.forEach((x, k) => { if (F.sides[k] !== mySd) (x.faceDown || []).forEach(c => seen.push({ x, c })); });
+      if (seen.length) { const h = seen[Math.floor(rnd() * seen.length)]; ivModal('💻 Hacker', 'Your Hacker gets into ' + esc(h.x.name) + '\'s systems: face-down ' + cardRef(h.c.id) + ' (played by ' + esc(G.teams[h.c.from].name) + ').', [{ label: 'OK', value: () => null }]); }
+    }
     F.robots.forEach((r, e) => {
       if (quirkOf(r) !== 'Scope' || F.teams[e] !== viewerSeat) return;
       const seen = []; F.robots.forEach((x, k) => { if (F.sides[k] !== F.sides[e]) (x.faceDown || []).forEach(c => seen.push({ x, c })); });
@@ -4142,22 +4266,13 @@ html, body {
     // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
     const fEng = freeEng(t);
     ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(`CREDITS: ${t.credits} Cr     MECHS: ${t.mechs}     ENG: ${fEng}/${t.engPool} Free`, x0 + 644, y0 + 25);
-    help(x0 + 640, y0 + 8, 270, 26, 'Credits · Mechanics · Engineers', '<b>Cr</b> credits: for bids, repairs, bets, scouting and sparring.<br><b>MECHS</b>: each Mechanic earns 1 Cr per Upkeep (each robot costs 1 Cr upkeep).<br><b>ENG</b> free/total Engineers: put 0–3 on a robot with its − / + buttons to cut glitches and breaks.');
-
-    // 5. Hire Engineer Button (x0 + 920, w: 112)
-    const hireX = x0 + slot.gw - 126, hireY = y0 + 10, hireW = 110, hireH = 22;
-    const canHireEng = G.phase === 'upkeep' && t.credits >= 3 && t.engPool < 6;
-    ctx.fillStyle = canHireEng ? '#111' : '#ebe8df';
-    ctx.fillRect(hireX, hireY, hireW, hireH);
-    ctx.strokeStyle = canHireEng ? '#111' : '#c8c4b8'; ctx.lineWidth = 1;
-    ctx.strokeRect(hireX, hireY, hireW, hireH);
-    ctx.fillStyle = canHireEng ? '#fff' : '#888';
-    ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('+ Hire Eng (3 Cr)', hireX + hireW / 2, hireY + 14.5);
-    if (canHireEng) {
-      hitRegions.push({ kind: 'hire_eng', x: hireX, y: hireY, w: hireW, h: hireH });
-    }
+    void fEng;
+    ctx.fillText(`CREDITS: ${t.credits} Cr`, x0 + 644, y0 + 25);
+    help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, repairs, bets, scouting and sparring. Each Mechanic earns 1 Cr per Upkeep; each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '') + '.');
+    // 5. Crew cards (Kev, 6 Nov: named crew; new crew comes from the Market)
+    ctx.fillStyle = '#111'; ctx.textAlign = 'left';
+    fitText(ctx, 'CREW: ' + crewIcons(t), x0 + 760, y0 + 25, slot.gw - 760 - 14, '800', 11.5);
+    help(x0 + 756, y0 + 8, slot.gw - 760 - 10, 26, '👥 Your crew (' + t.crew.length + ')', crewHelp(t) + '<br>🔧 Mechanics · 👷 free/total Chief Engineers (put 0–3 on a robot with its − / + buttons). New crew comes from <b>New Crew</b> lots in the Market; trade crew in the open market.');
 
     // Header Bottom Divider
     ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
@@ -4423,13 +4538,13 @@ html, body {
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
     const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '');
     const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length + ' · 📦' + stashOf(t).length;
-    const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · <b>' + t.mechs + 'M</b> Mechanics (earn credits) / <b>' + t.engPool + 'E</b> Engineers (keep robots running) · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand · <b>📦' + stashOf(t).length + '</b> Stash: ' + (stashOf(t).length ? stashOf(t).map(id => esc(LOTS[id].name) + ' (' + partForTxt(me(), id) + ')').join(', ') : 'empty') + '.'];
+    const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · crew: ' + crewHelp(t).replace(/<br>/g, ' · ') + ' · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand · <b>📦' + stashOf(t).length + '</b> Stash: ' + (stashOf(t).length ? stashOf(t).map(id => esc(LOTS[id].name) + ' (' + partForTxt(me(), id) + ')').join(', ') : 'empty') + '.'];
     const spHelp = t.sponsor && SPONSORS[t.sponsor] ? ['Sponsor: ' + esc(SPONSORS[t.sponsor].name), '<b>' + esc(SPONSORS[t.sponsor].tag) + '</b>: ' + esc(SPONSORS[t.sponsor].text)] : null;
     const badgeHelp = G.host === ti || G.intrigueTurn === ti ? [esc(t.name), (G.host === ti ? '<b>[HOST]</b>: runs this round\'s fight. ' : '') + (G.intrigueTurn === ti ? '<b>🕵️</b>: it\'s their Intrigue turn.' : '')] : null;
 
     if (horiz) {
       // North Opponent Garage (620 x 124)
-      const statTxt = `Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E  ·  ${assets}`;
+      const statTxt = `Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${crewIcons(t)}  ·  ${assets}`;
       ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
       const statW = ctx.measureText(statTxt).width;
       ctx.fillText(statTxt, x0 + slot.gw - 10, y0 + 18);
@@ -4456,7 +4571,7 @@ html, body {
       if (spHelp) help(x0 + headW + 18, y0 + 5, slot.gw - headW - 24, 18, spHelp[0], spHelp[1]);
 
       ctx.fillStyle = '#444'; ctx.textAlign = 'left';
-      fitText(ctx, `Fame ${t.fame}/${WIN_FAME} · ${t.credits} Cr · ${t.mechs}M/${t.engPool}E · ${assets}`, x0 + 10, y0 + 32, slot.gw - 20, '600', 10);
+      fitText(ctx, `Fame ${t.fame}/${WIN_FAME} · ${t.credits} Cr · ${crewIcons(t)} · ${assets}`, x0 + 10, y0 + 32, slot.gw - 20, '600', 10);
       help(x0 + 6, y0 + 23, slot.gw - 12, 14, oppHelp[0], oppHelp[1]);
 
       // 3 Recon Cards with Full 6-Stat Filled Bars (216 x 98 each)
@@ -4809,6 +4924,7 @@ html, body {
       fitText(ctx, it.text, x + w / 2, y + 82, w - 12, '600', 11.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 12, 'center', 11.5);
       if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.twin ? 'A second weapon on its own turret at 60% firepower (you pick it when you fit it). Frame +20%, −5% speed.<br>' : it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.mod && Sim.MODS[it.mod] ? esc(Sim.MODS[it.mod].text) + '<br>One module per robot: a new one replaces the old (the old goes to your Stash).<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
+      else if (it.crew && CREW[it.crew]) help(x + 4, y + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
       else if (k === HOST_K) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
