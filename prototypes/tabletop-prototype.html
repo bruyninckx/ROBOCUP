@@ -492,10 +492,10 @@ html, body {
   <span id="roundBadge" style="font-weight:800;font-size:12px">R1</span>
   <div class="phase-steps" id="phaseSteps"></div>
   <select class="seat-select" id="seatSel" title="Switch perspective (or open multiple tabs)">
-    <option value="0">Seat: Blue Bolts</option>
-    <option value="1">Seat: Red Rivets</option>
-    <option value="2">Seat: Green Gears</option>
-    <option value="3">Seat: Orange Ohms</option>
+    <option value="0">Seat: Steel Bolts</option>
+    <option value="1">Seat: Rust Rivets</option>
+    <option value="2">Seat: Moss Gears</option>
+    <option value="3">Seat: Plum Ohms</option>
   </select>
 </div>
 
@@ -783,10 +783,12 @@ html, body {
   // Winner's Crate cut (rulebook, 5 Nov): only the loser draws a Scrap Crate
 
   const TEAMS = [
-    { name: 'Blue Bolts',  col: '#1f6feb' },
-    { name: 'Red Rivets',  col: '#d62828' },
-    { name: 'Green Gears', col: '#2a9d3a' },
-    { name: 'Orange Ohms', col: '#e07b00' },
+    // Kev, 6 Nov: the "B · Team colours" palette (muted, and different in lightness for colour-blind players);
+    // team names don't matter much (online, players pick their own)
+    { name: 'Steel Bolts', col: '#3F78A8' },
+    { name: 'Rust Rivets', col: '#C8642B' },
+    { name: 'Moss Gears',  col: '#5E8A3A' },
+    { name: 'Plum Ohms',   col: '#86528F' },
   ];
   const PHASES = [
     ['setup', '0. Draft'],
@@ -1827,7 +1829,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 backing-fixes';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 scrapyard-robots';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3807,7 +3809,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, drawRobotSprite, TEAMS, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -4025,7 +4027,7 @@ html, body {
   }
 
   // garage previews shrink big frames a little so they still fit their box (bigger still looks bigger)
-  const previewK = b => Math.sqrt(30 / Sim.frameOf(b).size);
+  const previewK = b => Math.sqrt(30 / Sim.frameOf(b).size) * 0.72;   // Scrapyard sprites: weapons reach far forward, so pictures sit a bit low and smaller
   // 👷 badge on a robot picture: how many Chief Engineers sit on it (Kev, 6 Nov: hard to see)
   function engBadge(ctx, r, xr, yt, k) {
     const n = (r.b && r.b.eng) || 0; if (!n) return;
@@ -4049,110 +4051,148 @@ html, body {
     ctx.textAlign = 'left';
     help(x, y, w, h, modIcon(m) + ' Module: ' + esc(Sim.MODS[m].name), esc(Sim.MODS[m].text || ''));
   }
+  // ---------- Robot sprites: Kev's "B · Scrapyard" design (6 Nov) ----------
+  // Chunky, bolted, thick ink lines, seen from above. Only the hull takes the team colour; frame = hull shape,
+  // drive = wheels / omni rollers / tracks / thruster, weapon on a grey turret. Damage shows on the hull:
+  // scorch marks and dents grow as health drops, a broken part sparks and smokes (a broken weapon is bent),
+  // and a destroyed robot is a grey, smoking wreck with a torn-off track.
+  const SY = { ink: '#2B2118', turret: '#8C8F86', dark: '#3A3530', tread: '#807868', accent: '#E8C547', blade: '#A9AAA2', bolt: '#E4E1DA', wreck: '#7A746B', wreckT: '#6E6A62' };
+  const SCORCH = [[-0.42, 0.27, 0.19, 0.1], [0.27, -0.33, 0.13, 0.07], [0.12, 0.37, 0.11, 0.05], [-0.3, -0.2, 0.12, 0.07], [0.33, 0.15, 0.1, 0.06], [-0.05, 0.05, 0.1, 0.06]];
+  const DENTS = [[-0.42, -0.07, -0.25, 0, -0.38, 0.1], [0.33, 0.07, 0.21, 0.17, 0.37, 0.23], [-0.2, 0.33, -0.08, 0.4, -0.15, 0.47], [0.1, -0.42, 0.25, -0.35, 0.18, -0.28]];
+  function syPath(ctx, fill, stroke, lw, f) { ctx.beginPath(); f(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.stroke(); } }
+  const syRR = (ctx, x, y, w, h, r) => { if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+  function syBolts(ctx, pts) { for (const [bx, by] of pts) syPath(ctx, SY.bolt, SY.ink, 1.5, () => ctx.arc(bx, by, 2.3, 0, Math.PI * 2)); }
   function drawRobotSprite(ctx, x, y, bodyA, turretA, col, b, hpFrac, name, modTag, stunned, overclocked, now, scale = 1, simBot = null) {
-    // frame size grows with strain (Sim.frameOf), so loaded robots look (and are) bigger
     const frameSz = simBot && simBot.size ? simBot.size : b.size || Sim.frameOf(b).size;
     const SIZE = frameSz * scale, fs = frameSz / 30;
+    const w = b.weapon || 'gun', cal = b.cal || 'medium', fr = Sim.frameOf(b).key, drv = b.drive || 'wheels';
+    const dead = hpFrac <= 0, spin = w === 'spinner';
+    const brk = simBot ? (simBot.brokenParts || []).map(p => p.key) : (b.brk || []);
+    const wepBroken = brk.some(k => /^(weapon|wup|cal)/.test(k)) || (simBot && (simBot.broken || []).some(n => /blade|barrel|weapon|rail|gun/i.test(n)));
+    // body size in design units (the hull's width maps to the frame size)
+    const dim = spin ? { W: 84, H: 84 } : fr === 'light' ? { W: 48, H: 56 } : fr === 'medium' ? { W: 44, H: 54 } : fr === 'heavy' ? { W: 48, H: 60 } : { W: 68, H: 80 };
+    const k = spin ? (28 * scale * fs) / 62 : SIZE * 1.12 / dim.W, W2 = dim.W / 2, H2 = dim.H / 2;
+    const hull = dead ? SY.wreck : col, tur = dead ? SY.wreckT : SY.turret;
     ctx.save();
     ctx.translate(x, y);
+    if (overclocked && !dead) { ctx.strokeStyle = '#d99000'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, (23 + Math.sin(now / 60) * 2.5) * scale * Math.max(1, fs), 0, Math.PI * 2); ctx.stroke(); }
 
-    if (hpFrac <= 0) {
-      ctx.rotate(bodyA);
-      ctx.strokeStyle = col; ctx.lineWidth = 2.5;
-      ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-      ctx.beginPath(); ctx.moveTo(-14 * scale, -14 * scale); ctx.lineTo(14 * scale, 14 * scale); ctx.moveTo(14 * scale, -14 * scale); ctx.lineTo(-14 * scale, 14 * scale); ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
-    if (overclocked) {
-      ctx.strokeStyle = '#d99000'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(0, 0, (23 + Math.sin(now / 60) * 2.5) * scale, 0, Math.PI * 2); ctx.stroke();
-    }
-
-    const w = b.weapon || 'gun', cal = b.cal || 'medium';
-    if (w === 'spinner') {
-      const bladeBrk = (simBot?.broken || []).includes('Spinner blade');
-      const spinA = simBot ? (simBot.spin || now / 45) : (now / 90);
-      const R = 28 * scale * fs;
-      ctx.save();
-      ctx.rotate(spinA);
-      ctx.fillStyle = col; ctx.globalAlpha = bladeBrk ? 0.35 : 0.85;
-      ctx.beginPath();
-      const teeth = 16;
-      for (let k = 0; k < teeth * 2; k++) {
-        const rr = k % 2 ? R * 0.74 : R, a = k * Math.PI / teeth;
-        if (k === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
-        else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-      }
-      ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.4; ctx.stroke();
-      ctx.restore();
-    }
-
+    // ---- hull, drive and bolts (rotate with the body; the design faces up, the game faces +x)
     ctx.save();
-    ctx.rotate(bodyA);
-    // drive, drawn under the body: wheels = 4 tyres, tracks = treads, omni = corner rollers, boost = rear thruster
-    const S2 = SIZE / 2, drv = b.drive || 'wheels';
-    ctx.fillStyle = '#111';
-    if (drv === 'tracks') {
-      const tw = 6 * scale, off = simBot ? ((simBot.x + simBot.y) * 0.25) % (6 * scale) : 0;
-      for (const sy of [-1, 1]) {
-        const ty = sy > 0 ? S2 - 1 * scale : -S2 - tw + 1 * scale;
-        ctx.fillStyle = '#111'; ctx.fillRect(-S2 - 3 * scale, ty, SIZE + 6 * scale, tw);
-        ctx.strokeStyle = '#666'; ctx.lineWidth = 1;
-        for (let tx = -S2 - 3 * scale + off; tx < S2 + 3 * scale; tx += 6 * scale) { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx, ty + tw); ctx.stroke(); }
+    ctx.rotate(bodyA + Math.PI / 2 + (dead ? 0.24 : 0));
+    ctx.scale(k, k);
+    if (spin) {
+      syPath(ctx, SY.dark, SY.ink, 2, () => ctx.arc(0, 0, 56, 0, Math.PI * 2));
+      if (!dead) {
+        const sa = simBot ? (simBot.spin || now / 45) : now / 90, bladeBrk = wepBroken;
+        ctx.save(); ctx.rotate(sa); ctx.globalAlpha = bladeBrk ? 0.45 : 1;
+        for (let n = 0; n < 3; n++) { ctx.save(); ctx.rotate(n * 2.0944); syPath(ctx, SY.blade, SY.ink, 2.5, () => { ctx.moveTo(-9, -62); ctx.lineTo(9, -62); ctx.lineTo(5, -44); ctx.lineTo(-5, -44); ctx.closePath(); }); ctx.restore(); }
+        ctx.restore(); ctx.globalAlpha = 1;
       }
-    } else if (drv === 'omni') {
-      for (const [ax, ay] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.beginPath(); ctx.arc(ax * S2, ay * S2, 4.5 * scale, 0, Math.PI * 2); ctx.fill(); }
-    } else if (drv === 'boost') {
-      const dash = simBot && simBot.dashT > 0;
-      ctx.fillStyle = dash ? '#f08c00' : '#111'; ctx.fillRect(-S2 - (dash ? 16 : 6) * scale, -5 * scale, (dash ? 16 : 6) * scale, 10 * scale);
-      ctx.fillStyle = '#111'; for (const sy of [-1, 1]) ctx.fillRect(-S2 + 3 * scale, sy > 0 ? S2 - 1 * scale : -S2 - 3 * scale, 8 * scale, 4 * scale);
+      syPath(ctx, hull, SY.ink, 3.5, () => ctx.arc(0, 0, 42, 0, Math.PI * 2));
+      ctx.setLineDash([6, 3]); syPath(ctx, null, SY.ink, 2, () => ctx.arc(0, 0, 32, 0, Math.PI * 2)); ctx.setLineDash([]);
+      syBolts(ctx, [[0, -24], [21, 12], [-21, 12]]);
     } else {
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) ctx.fillRect(sx * (S2 - 7 * scale) - 4.5 * scale, sy > 0 ? S2 - 1 * scale : -S2 - 4 * scale, 9 * scale, 5 * scale);
-    }
-    ctx.fillStyle = col;
-    ctx.fillRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-    ctx.strokeRect(-SIZE / 2, -SIZE / 2, SIZE, SIZE);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(SIZE / 2 - 5 * scale, -3 * scale, 3 * scale, 6 * scale);
-
-    const ar = b.lv ? b.lv.armor : 0;
-    if (ar > 0) {
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
-      for (let k = 0; k < Math.min(3, ar); k++) {
-        const inset = (3 + k * 3) * scale;
-        ctx.strokeRect(-SIZE / 2 + inset, -SIZE / 2 + inset, SIZE - inset * 2, SIZE - inset * 2);
+      // drive
+      if (drv === 'tracks') {
+        const tx = W2 + 7, th = dim.H + 12, off = simBot ? ((simBot.x + simBot.y) * 0.5) % 7 : 0;
+        for (const sx of [-1, 1]) {
+          const torn = dead && sx > 0;
+          ctx.save(); if (torn) { ctx.translate(10, 6); ctx.rotate(0.16); }
+          syPath(ctx, SY.dark, SY.ink, 2, () => syRR(ctx, sx * tx - 7, -th / 2, 14, th, 3));
+          ctx.strokeStyle = SY.tread; ctx.lineWidth = 9; ctx.setLineDash([4, 3]); ctx.lineDashOffset = off;
+          ctx.beginPath(); ctx.moveTo(sx * tx, -th / 2 + 3); ctx.lineTo(sx * tx, th / 2 - 3); ctx.stroke(); ctx.setLineDash([]);
+          ctx.restore();
+        }
+      } else if (drv === 'omni') {
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) if (!(dead && sx > 0 && sy > 0)) syPath(ctx, SY.dark, SY.ink, 2, () => ctx.arc(sx * W2, sy * H2 * 0.72, 7, 0, Math.PI * 2));
+      } else {
+        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) if (!(dead && sx > 0 && sy > 0)) syPath(ctx, SY.dark, SY.ink, 2, () => syRR(ctx, sx * (W2 + 4.5) - 4.5, sy * H2 * 0.62 - 8, 9, 16, 3));
+        if (drv === 'boost') {   // rear thruster, lit while dashing
+          const dash = simBot && simBot.dashT > 0;
+          syPath(ctx, SY.dark, SY.ink, 2, () => syRR(ctx, -8, H2 - 2, 16, 9, 2));
+          if (dash) syPath(ctx, SY.accent, SY.ink, 1.5, () => { ctx.moveTo(-7, H2 + 7); ctx.lineTo(7, H2 + 7); ctx.lineTo(0, H2 + 22 + Math.sin(now / 40) * 3); ctx.closePath(); });
+        }
       }
+      // hull by frame
+      syPath(ctx, hull, SY.ink, 3.5, () => {
+        if (fr === 'light') { ctx.moveTo(0, -H2); ctx.lineTo(W2, -H2 / 2); ctx.lineTo(W2, H2 / 2); ctx.lineTo(0, H2); ctx.lineTo(-W2, H2 / 2); ctx.lineTo(-W2, -H2 / 2); ctx.closePath(); }
+        else syRR(ctx, -W2, -H2, dim.W, dim.H, fr === 'medium' ? 12 : 6);
+      });
+      const ar = b.lv ? b.lv.armor : 0;
+      if (fr === 'titan' || ar >= 2) { ctx.setLineDash([6, 3]); syPath(ctx, null, SY.ink, 2, () => syRR(ctx, -W2 + 8, -H2 + 8, dim.W - 16, dim.H - 16, 4)); ctx.setLineDash([]); }
+      syBolts(ctx, fr === 'light' ? [[-14, -10], [14, -10], [-14, 12], [14, 12]] : fr === 'medium' ? [[-14, -H2 + 8], [14, -H2 + 8]] : [[-W2 + 7, -H2 + 7], [W2 - 7, -H2 + 7], [-W2 + 7, H2 - 7], [W2 - 7, H2 - 7]]);
     }
+    // battle damage on the hull: more scorch marks and dents the lower the health
+    const hurt = dead ? 1 : Math.max(0, 1 - hpFrac);
+    const nScorch = dead ? 4 : Math.min(SCORCH.length, Math.floor(hurt * 7)), nDent = dead ? 3 : Math.min(DENTS.length, Math.floor(hurt * 5));
+    ctx.fillStyle = 'rgba(43, 33, 24, 0.38)';
+    for (let n = 0; n < nScorch; n++) { const [sx, sy, rx, ry] = SCORCH[n]; ctx.beginPath(); ctx.ellipse(sx * dim.W, sy * dim.H, rx * dim.W, ry * dim.H, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = SY.ink; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    for (let n = 0; n < nDent; n++) { const d = DENTS[n]; ctx.beginPath(); ctx.moveTo(d[0] * dim.W, d[1] * dim.H); ctx.lineTo(d[2] * dim.W, d[3] * dim.H); ctx.lineTo(d[4] * dim.W, d[5] * dim.H); ctx.stroke(); }
+    ctx.lineCap = 'butt';
     ctx.restore();
 
+    // ---- turret and weapon (turn with the turret)
     ctx.save();
-    ctx.rotate(turretA);
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 7.5 * scale, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 0, 4.5 * scale, 0, Math.PI * 2); ctx.fill();
-    if (w === 'mortar') ctx.fillRect(0, -5 * scale, 16 * scale, 10 * scale);
-    else if (w === 'laser') { ctx.fillStyle = '#1f6feb'; ctx.fillRect(0, -2 * scale, 24 * scale, 4 * scale); }
-    else if (w === 'saw') { ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(16 * scale, 0, 7.5 * scale, 0, Math.PI * 2); ctx.stroke(); ctx.fillRect(0, -4 * scale, 14 * scale, 8 * scale); }
-    else if (w === 'flame') {
-      ctx.fillStyle = '#111'; ctx.fillRect(0, -4.5 * scale, 18 * scale, 9 * scale);
-      ctx.fillStyle = '#ea580c'; ctx.fillRect(15 * scale, -6 * scale, 6 * scale, 12 * scale);
-    } else if (w === 'spinner') {
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 3 * scale, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.fillRect(0, (cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5) * scale, (cal === 'heavy' ? 28 : cal === 'rapid' ? 21 : 25) * scale, (cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5) * scale);
+    ctx.rotate((spin ? bodyA : turretA) + Math.PI / 2 + (dead ? 0.24 : 0));
+    ctx.scale(k, k);
+    const bend = wepBroken && !spin ? 0.5 : 0;   // a broken weapon is bent / snapped
+    const barrel = (bx, by, bw, bh, r) => { ctx.save(); if (bend && by < -20) { ctx.translate(bx + bw / 2, by + bh); ctx.rotate(bend); ctx.translate(-(bx + bw / 2), -(by + bh)); } syPath(ctx, SY.dark, SY.ink, 1.5, () => syRR(ctx, bx, by, bw, bh, r || 1)); ctx.restore(); };
+    if (!spin) {
+      if (w === 'railgun') {
+        barrel(-7, -62, 4, 50); barrel(3, -62, 4, 50);
+        if (!bend) for (const ay of [-54, -44, -34]) syPath(ctx, SY.accent, SY.ink, 1.5, () => ctx.rect(-9, ay, 18, 3));
+      } else if (w === 'laser') {
+        barrel(-2.5, -54, 5, 42);
+        if (!bend) syPath(ctx, '#7fd3e6', SY.ink, 1.5, () => ctx.arc(0, -55, 4.5, 0, Math.PI * 2));
+      } else if (w === 'mortar') {
+        syPath(ctx, SY.dark, SY.ink, 2, () => syRR(ctx, -8, -32, 16, 20, 3)); syPath(ctx, SY.ink, null, 0, () => ctx.arc(0, -30, 4.5, 0, Math.PI * 2));
+      } else if (w === 'saw') {
+        syPath(ctx, SY.dark, SY.ink, 1.5, () => syRR(ctx, -11, -34, 22, 13, 3));
+        ctx.save(); ctx.translate(bend ? 6 : 0, -44); ctx.rotate(simBot ? B_SAW(simBot, now) : now / 120);
+        ctx.setLineDash([5, 3]); syPath(ctx, SY.blade, SY.ink, 3, () => ctx.arc(0, 0, 12, 0, Math.PI * 2)); ctx.setLineDash([]);
+        syPath(ctx, SY.dark, SY.ink, 1.5, () => ctx.arc(0, 0, 3, 0, Math.PI * 2)); ctx.restore();
+      } else if (w === 'flame') {
+        const fl = simBot ? (simBot.flame > 0 || simBot.firing) : false, flick = Math.sin(now / 50) * 3;
+        if (!bend) syPath(ctx, SY.accent, SY.ink, 1.5, () => { ctx.moveTo(-9, -49); ctx.lineTo(9, -49); ctx.lineTo(15, -61 - (fl ? 6 + flick : 0)); ctx.lineTo(0, -56 - (fl ? 8 : 0)); ctx.lineTo(-15, -61 - (fl ? 6 - flick : 0)); ctx.closePath(); });
+        ctx.save(); if (bend) { ctx.translate(0, -20); ctx.rotate(bend); ctx.translate(0, 20); }
+        syPath(ctx, SY.dark, SY.ink, 1.5, () => { ctx.moveTo(-5, -20); ctx.lineTo(5, -20); ctx.lineTo(9, -48); ctx.lineTo(-9, -48); ctx.closePath(); }); ctx.restore();
+      } else {   // guns by calibre
+        if (cal === 'rapid') { barrel(-6, -46, 4, 32); barrel(2, -46, 4, 32); }
+        else if (cal === 'burst') { barrel(-8, -44, 4, 30); barrel(-2, -48, 4, 34); barrel(4, -44, 4, 30); }
+        else if (cal === 'heavy') { barrel(-7, -60, 14, 44, 2); if (!bend) syPath(ctx, SY.accent, SY.ink, 1.5, () => syRR(ctx, -9, -62, 18, 6, 2)); }
+        else barrel(-3.5, -50, 7, 38, 1.5);
+      }
+    }
+    // turret
+    if (w === 'railgun') syPath(ctx, tur, SY.ink, 3, () => syRR(ctx, -12, -12, 24, 24, 4));
+    else syPath(ctx, tur, SY.ink, 3, () => ctx.arc(0, 0, spin ? 15 : fr === 'titan' ? 16 : 11, 0, Math.PI * 2));
+    if (!dead && w !== 'railgun') syPath(ctx, SY.accent, SY.ink, 1.5, () => ctx.arc(0, 0, spin ? 5 : 4, 0, Math.PI * 2));
+    // a broken part sparks and smokes (by the weapon)
+    if (brk.length && !dead) {
+      const fl = 0.75 + 0.25 * Math.sin(now / 70);
+      ctx.save(); ctx.translate(spin ? 20 : 9, spin ? -30 : -40); ctx.scale(fl, fl);
+      syPath(ctx, SY.accent, SY.ink, 1.2, () => { const pts = [[0, -7], [3, -2], [9, -5], [5, 1], [9, 6], [2, 4], [0, 10], [-2, 4], [-8, 6], [-4, 0], [-8, -5], [-2, -2]]; pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); });
+      ctx.restore();
     }
     ctx.restore();
-    if (Sim.twinOf(b)) {   // 🌟 Twin Turret: a small second turret at the back of the hull
-      const tA = simBot && simBot.tw ? simBot.tw.turret : turretA, w2 = b.twin.weapon, off = (simBot && simBot.twBroken) ? 0.35 : 1;
-      ctx.save(); ctx.rotate(bodyA); ctx.translate(-SIZE * 0.3, 0); ctx.rotate(tA - bodyA); ctx.globalAlpha = off;
-      ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(0, 0, 5.5 * scale, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.2; ctx.stroke();
-      ctx.fillStyle = w2 === 'laser' ? '#1f6feb' : w2 === 'flame' ? '#ea580c' : '#111';
-      if (w2 === 'saw') { ctx.beginPath(); ctx.arc(11 * scale, 0, 4.5 * scale, 0, Math.PI * 2); ctx.stroke(); }
-      ctx.fillRect(0, -1.8 * scale, (w2 === 'mortar' ? 10 : 16) * scale, (w2 === 'mortar' ? 7 : 3.6) * scale);
+    // smoke drifts up from broken parts and wrecks (screen-up, not rotated)
+    if (dead || brk.length) {
+      const t = now / 1000, n = dead ? 3 : 2;
+      for (let s = 0; s < n; s++) {
+        const ph = (t * 0.6 + s / n) % 1, r = (4 + ph * 7) * k * 1.6;
+        ctx.fillStyle = 'rgba(110, 106, 98, ' + (0.55 * (1 - ph)).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc((dead ? 0 : 6 * k) + Math.sin(t * 2 + s) * 3 * k, -ph * 40 * k - (dead ? 0 : 20 * k), r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    if (Sim.twinOf(b) && !dead) {   // 🌟 Twin Turret: a small second turret at the back of the hull
+      const tA = simBot && simBot.tw ? simBot.tw.turret : turretA, w2 = b.twin.weapon, off = (simBot && simBot.twBroken) ? 0.4 : 1;
+      ctx.save(); ctx.rotate(bodyA); ctx.translate(-SIZE * 0.32, 0); ctx.rotate(tA - bodyA + Math.PI / 2); ctx.scale(k, k); ctx.globalAlpha = off;
+      syPath(ctx, SY.dark, SY.ink, 1.3, () => syRR(ctx, -2.5, -26, 5, 18, 1));
+      if (w2 === 'flame') syPath(ctx, SY.accent, SY.ink, 1, () => { ctx.moveTo(-5, -26); ctx.lineTo(5, -26); ctx.lineTo(0, -34); ctx.closePath(); });
+      syPath(ctx, SY.turret, SY.ink, 2, () => ctx.arc(0, 0, 8, 0, Math.PI * 2));
+      syPath(ctx, SY.accent, SY.ink, 1, () => ctx.arc(0, 0, 3, 0, Math.PI * 2));
       ctx.restore();
     }
     ctx.restore();
@@ -4161,17 +4201,20 @@ html, body {
       ctx.fillStyle = col;
       ctx.font = '800 13px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      const top = Math.max(15 * scale, (w === 'spinner' ? 22 * fs : SIZE / 2 / scale + 1) * scale);   // clear of a big frame or spinner blade
+      const top = Math.max(15 * scale, (spin ? 28 * fs : SIZE * 0.62 / scale + 4) * scale);   // clear of a big frame or spinner blade
       ctx.fillText(name + (modTag || ''), x, y - top - 13 * scale);
-      ctx.fillStyle = '#111'; ctx.fillRect(x - 23, y - top - 9 * scale, 46, 6);
-      ctx.fillStyle = '#e5e2da'; ctx.fillRect(x - 22, y - top - 8 * scale, 44, 4);
-      ctx.fillStyle = col; ctx.fillRect(x - 22, y - top - 8 * scale, 44 * Math.max(0, hpFrac), 4);
+      if (!dead) {
+        ctx.fillStyle = '#111'; ctx.fillRect(x - 23, y - top - 9 * scale, 46, 6);
+        ctx.fillStyle = '#e5e2da'; ctx.fillRect(x - 22, y - top - 8 * scale, 44, 4);
+        ctx.fillStyle = col; ctx.fillRect(x - 22, y - top - 8 * scale, 44 * Math.max(0, hpFrac), 4);
+      }
     }
-    if (stunned) {
+    if (stunned && !dead) {
       ctx.fillStyle = '#1f6feb'; ctx.font = '800 11px system-ui, sans-serif';
       ctx.textAlign = 'center'; ctx.fillText('STUNNED', x, y + 28 * scale);
     }
   }
+  const B_SAW = (sb, now) => (sb.sawA != null ? sb.sawA : now / 90);
 
   function renderWorld(now) {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -4387,7 +4430,7 @@ html, body {
       const px = bx + 8, py = by + 6, ps = 34;
       ctx.fillStyle = '#f3f1ea'; ctx.fillRect(px, py, ps, ps);
       ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1; ctx.strokeRect(px, py, ps, ps);
-      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.65 * previewK(b));
+      drawRobotSprite(ctx, px + ps / 2, py + ps * 0.6, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.65 * previewK(b));
 
       ctx.fillStyle = '#111'; ctx.font = '900 12px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(sName, bx + 48, by + 17);
@@ -4666,7 +4709,7 @@ html, body {
       ctx.fillRect(px, py, ps, ps);
       ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1;
       ctx.strokeRect(px, py, ps, ps);
-      drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
+      drawRobotSprite(ctx, px + ps / 2, py + ps * 0.6, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
       { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
       engBadge(ctx, r, px + ps, py, 1);
       modBadge(ctx, r, px, py, 1);
@@ -4961,7 +5004,7 @@ html, body {
     ctx.fillRect(px, py, ps, ps);
     ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
     ctx.strokeRect(px, py, ps, ps);
-    drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54 * previewK(r.b));
+    drawRobotSprite(ctx, px + ps / 2, py + ps * 0.6, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54 * previewK(r.b));
     { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
     engBadge(ctx, r, px + ps, py, 0.8);
     modBadge(ctx, r, px, py, 0.8);
@@ -5316,7 +5359,7 @@ html, body {
     const t = me(), bot = RL.bot, eng = Math.min(1, freeEng(t)), full = t.robots.length >= 3, now = performance.now();
     const b = (bot.b.eng || 0) === eng ? bot.b : Object.assign({}, bot.b, { eng }), fr = Sim.frameOf(b);   // as it would arrive in your garage
     ctx.fillStyle = '#efece4'; ctx.fillRect(x + 6, y + 6, w - 12, 46);
-    drawRobotSprite(ctx, x + w / 2, y + 29, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.6 * previewK(b));
+    drawRobotSprite(ctx, x + w / 2, y + 32, -Math.PI / 2, -Math.PI / 2, t.col, b, 1, null, null, false, false, now, 0.6 * previewK(b));
     ctx.textAlign = 'center'; ctx.fillStyle = '#111';
     fitText(ctx, '🤖 ' + RL.name, x + w / 2, y + 68, w - 10, '800', 14);
     ctx.fillStyle = '#555';
@@ -5781,6 +5824,18 @@ html, body {
       if (f.k === 'heal') {
         ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+        continue;
+      }
+      if (f.k === 'rail') {   // Kev, 6 Nov: the railgun slug was invisible (only a tiny ring at the shooter)
+        const fade = Math.max(0, Math.min(1, f.life / 0.3)), ex = f.x + Math.cos(f.a) * f.len, ey = f.y + Math.sin(f.a) * f.len;
+        ctx.save(); ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(232, 197, 71, ' + (0.45 * fade).toFixed(3) + ')'; ctx.lineWidth = 9;
+        ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 255, 255, ' + fade.toFixed(3) + ')'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.fillStyle = 'rgba(232, 197, 71, ' + fade.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(f.x + Math.cos(f.a) * 24, f.y + Math.sin(f.a) * 24, 7 * fade + 2, 0, Math.PI * 2); ctx.fill();   // muzzle flash
+        ctx.restore();
         continue;
       }
       ctx.strokeStyle = f.col || '#111'; ctx.lineWidth = 2;
