@@ -155,3 +155,19 @@ Still open: Wasp keeps 8 of 12 matchups lopsided (rapid fire + shield + zigzag; 
 - Counters are very hard (often 0/100). Want ~65/35 so luck and banter stay; soften via accuracy variance, mixed loadouts, or 2 weapons.
 - One AI behaviour for all robots; orders (charge/kite/flank) would add another layer.
 - Helpers and modules are free power in the sandbox; price them in the economy.
+
+## Weapon-swap check 2026-11-06 (`tools/weapon-swap.js`, 24 fights per pairing)
+
+Every robot card got every Market weapon (quirk removed, as the rulebook says; guns at mid range) and fought the 12 unmodified cards. Stats stay as they are on a swap, so a chassis built for one weapon usually gets worse with another: 104 of 117 swaps lose win rate.
+
+| Card | Signature | Base win % | Best swap | Swap win % |
+|---|---|---|---|---|
+| Juggernaut | spinner | 77 | heavy gun | **92** (medium 91, saw 89, rapid 88, burst 85) |
+| Fortress | heavy gun | 28 | rapid gun | 40 (burst 39) |
+| Scrap Bot | medium gun | 12 | burst gun | 19 |
+| Railgunner | railgun | 77 | laser | 49 (every swap is far worse) |
+| all others | | | | +0 to +4 |
+
+The danger is one chassis: Juggernaut (speed 4, firepower 4, armour 3). The spinner is what holds it back; any gun on that body beats the whole field. Options: lock Juggernaut's spinner like the Railgunner's railgun, or move Juggernaut's stat points so a gun suits it less (for example firepower into health). Fortress gaining from a rapid gun mostly says Fortress is weak (28%), not that the swap is too strong.
+
+Prototype (tabletop): fitting a weapon of another type now asks first and says which stats the new weapon needs (flame and spinner ignore accuracy and velocity, laser and railgun ignore velocity), the calibre turret factor (heavy ×0.55, rapid ×1.25), and that the quirk is lost. The garage shows unused stats greyed out and the turret factor next to TURRET.

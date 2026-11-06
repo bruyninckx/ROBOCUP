@@ -399,6 +399,9 @@ html, body {
 .iv-timer{height:5px;background:#e6e3da;border-radius:3px;margin-top:10px;overflow:hidden}
 .iv-timer i{display:block;height:100%;width:100%;background:#d62828}
 @keyframes ivt{from{width:100%}to{width:0%}}
+.hs-card.need-fame::after{content:'';position:absolute;inset:0;border-radius:9px;background:rgba(214,40,40,.16);pointer-events:none}
+.hs-card.need-fame .hs-need{color:#b42318}
+.iv-list{max-height:240px;overflow:auto;margin-top:6px;border-top:1px solid #e6e3da}
 .hs-coin{font-size:9.5px;font-weight:800;background:#f2c14e;color:#5a3d00;border-radius:8px;padding:0 5px}
 .hs-card.later-card .hs-badge{background:#8c887e;color:#fff}
 .hs-card.cash-card.playable{border-color:#d99000;box-shadow:0 0 0 2.5px rgba(242,193,78,.8),0 8px 20px rgba(0,0,0,.18)}
@@ -828,6 +831,13 @@ html, body {
   }
 
   /* ---------- Hearthstone Arched Hand Rendering & Drag Physics ---------- */
+  // the card's fame gate is out of reach on your own fame (you can still ask for backing)
+  function lacksFame(t, c) {
+    if (c.phase === 'later' || BLOCKERS.has(c.name) && typeof c.gate !== 'number') return false;
+    if (c.gate === '▲' || c.gate === '▼') return !G.teams.some(o => o !== t && gateOk(c, t, o));
+    return needOf(t, c) > t.fame;
+  }
+
   function isCardPlayable(id) {
     const c = CARDS[id], t = me();
     if (!c) return false;
@@ -880,14 +890,15 @@ html, body {
       el.className = 'hs-card ' +
         (c.phase === 'fight' ? 'combat-card ' : c.phase === 'reaction' || c.phase === 'security' ? 'reaction-card ' : c.phase === 'later' ? 'later-card ' : '') +
         (G.cashMode && G.intrigueTurn === viewerSeat ? 'cash-card ' : '') +
+        (lacksFame(t, c) ? 'need-fame ' : '') +
         (playable ? 'playable' : 'unplayable');
       el.style.setProperty('--hy', hy + 'px');
       el.style.setProperty('--ang', angle + 'deg');
 
-      const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena · soon' : c.phase === 'security' ? '🤖 Security' :
+      const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena' : c.phase === 'security' ? '🤖 Security' :
                       c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
       const targetHint = c.phase === 'security' ? 'Install: drag to your garage' :
-                         c.phase === 'later' ? 'Cash in for now' :
+                         c.phase === 'later' ? 'Arena card: cash in for now' :
                          c.phase === 'fight' ? (c.target === 'bot' ? 'Fight: drag to a robot' : 'Fight: drag to the floor') :
                          BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
                          c.target === 'rival' ? 'Drag to a rival garage' : c.target === 'any' ? 'Drag to any garage' : 'Drag onto the table';
@@ -1375,6 +1386,33 @@ html, body {
     if (got.length && t.i === viewerSeat) notify('💰 Hand limit ' + lim + ': cashed in ' + got.join(', ') + ' Cr.', t.col);
   }
 
+  /* hand limit for the human: a warning popup, the cheapest cards are pre-ticked, you may pick others or go back */
+  function cashOrder(t) {
+    const keep = id => ['security_bot', 'firewall', 'pr_spin', 'paid_off'].includes(id);
+    return t.hand.map((id, k) => k).sort((a, b) => { const A = t.hand[a], B = t.hand[b];
+      return (keep(A) - keep(B)) || ((CARDS[A].phase === 'later' ? -1 : 0) - (CARDS[B].phase === 'later' ? -1 : 0)) || CARDS[A].cash - CARDS[B].cash; });
+  }
+  async function humanHandLimit(t) {
+    const lim = handLimit(t), over = t.hand.length - lim;
+    if (over <= 0) return true;
+    const pre = new Set(cashOrder(t).slice(0, over));
+    for (;;) {
+      const html = '⚠️ You hold <b>' + t.hand.length + '</b> cards and your hand limit is <b>' + lim + '</b> (fame ' + t.fame + '). ' +
+        'Tick <b>' + over + '</b> card' + (over > 1 ? 's' : '') + ' to cash in. The cheapest ones are ticked for you.' +
+        '<div class="iv-list">' + t.hand.map((id, k) => '<label><input type="checkbox" data-k="' + k + '"' + (pre.has(k) ? ' checked' : '') + '> ' +
+          CARDS[id].icon + ' ' + esc(CARDS[id].name) + ' <span class="hs-coin">🪙' + CARDS[id].cash + '</span></label>').join('') + '</div>';
+      const pick = await ivModal('💰 Over your hand limit', html, [
+        { label: 'Cash in ticked cards', value: el => [...el.querySelectorAll('input[data-k]')].filter(x => x.checked).map(x => +x.dataset.k) },
+        { label: '← Back to my turn', secondary: true, value: () => null }]);
+      if (!pick) return false;
+      if (pick.length < over) { notify('⚠️ Tick at least ' + over + ' card' + (over > 1 ? 's' : '') + '.', '#b45309'); pick.forEach(k => pre.add(k)); continue; }
+      const ids = pick.map(k => t.hand[k]), got = [];
+      for (const id of ids) got.push(CARDS[id].name + ' +' + cashIn(t, id));
+      notify('💰 Cashed in ' + got.join(', ') + ' Cr.', t.col);
+      return true;
+    }
+  }
+
   /* ---------- AI Intrigue turn ---------- */
   const AI_ORDER = ['Smear', 'Publicity', 'Sabotage', 'Corporate', 'Contracts', 'Match-fixing', 'Security', 'Leverage'];
   function aiTarget(F, c) {
@@ -1437,9 +1475,12 @@ html, body {
       const ti = (first + k) % 4, T = G.teams[ti];
       G.intrigueTurn = ti; G.cashMode = false; updateHud();
       if (ti === viewerSeat) {
-        await new Promise(res => { G.endHumanTurn = res; });
-        G.endHumanTurn = null;
-        endTurnHandLimit(T);
+        for (;;) {
+          await new Promise(res => { G.endHumanTurn = res; });
+          G.endHumanTurn = null;
+          if (await humanHandLimit(T)) break;
+          updateHud();
+        }
       } else {
         await sleep(400);
         await aiIntrigueTurn(T);
@@ -1530,6 +1571,25 @@ html, body {
     if (L.helper) cands = cands.filter(r => (r.b.helpers || []).length < 3);
     return cands.slice().sort((a, b) => power(b) - power(a))[0] || t.robots[0];
   }
+  // which stats a weapon actually uses (src/sim.js): flame and spinner ignore accuracy and velocity, beams ignore velocity
+  const UNUSED_STATS = { flame: ['acc', 'bullet'], spinner: ['acc', 'bullet'], laser: ['bullet'], railgun: ['bullet'] };
+  const wepName = b => b.weapon === 'gun' ? (b.cal || 'medium') + ' gun' : b.weapon;
+  function weaponSwapNote(r, L) {
+    if (!L || !(L.weapon || L.cal)) return '';
+    const nb = { weapon: L.weapon || 'gun', cal: L.cal || r.b.cal };
+    if (nb.weapon === r.b.weapon && (nb.weapon !== 'gun' || nb.cal === r.b.cal)) return '';
+    const lv = r.b.lv, lost = (UNUSED_STATS[r.b.weapon] || []).filter(k => !(UNUSED_STATS[nb.weapon] || []).includes(k));
+    const nameOf = { acc: 'Accuracy', bullet: 'Velocity' };
+    const lines = ['<b>' + esc(wepName(r.b)) + '</b> → <b>' + esc(wepName(nb)) + '</b>. The robot keeps its stat levels; only the weapon changes.'];
+    if (lost.length) lines.push('⚠️ ' + lost.map(k => nameOf[k] + ' ' + lv[k] + '/4').join(' and ') + ': the old weapon ignored ' + (lost.length > 1 ? 'these' : 'this') + ', the new one needs ' + (lost.length > 1 ? 'them' : 'it') + '.');
+    const gone = (UNUSED_STATS[nb.weapon] || []).filter(k => !(UNUSED_STATS[r.b.weapon] || []).includes(k));
+    if (gone.length) lines.push('Points in ' + gone.map(k => nameOf[k]).join(' and ') + ' are wasted on the new weapon.');
+    if (nb.weapon === 'gun' && nb.cal !== 'medium') { const c = Sim.CAL[nb.cal]; lines.push('A ' + nb.cal + ' gun turns its turret at ×' + c.turret + ' and fires ' + (c.rate > 1.4 ? 'faster' : 'slower') + ' than a medium gun.'); }
+    if (r.b.weapon !== 'gun' && nb.weapon === 'gun') lines.push('Range is reset to <b>mid</b>; change it with the Range button.');
+    if (r.b.quirk) lines.push('❌ <b>' + esc(r.name) + ' loses its quirk for good</b>, even if the old weapon goes back on.');
+    return lines.join('<br>');
+  }
+
   function applyLot(ti, lot, r) {
     const t = G.teams[ti], L = LOTS[lot];
     if (L.mech) { t.mechs++; return '+1 Mechanic Pool'; }
@@ -1550,8 +1610,9 @@ html, body {
     }
     if (!r) return '';
     if (L.stat) r.b.lv[L.stat] = Math.min(4, r.b.lv[L.stat] + 1);
+    if (weaponSwapNote(r, L)) delete r.b.quirk;   // rulebook: a weapon swap removes the quirk for good
     if (L.weapon) r.b.weapon = L.weapon;
-    if (L.cal) { r.b.weapon = 'gun'; r.b.cal = L.cal; }
+    if (L.cal) { if (r.b.weapon !== 'gun') r.b.range = 'mid'; r.b.weapon = 'gun'; r.b.cal = L.cal; }
     if (L.mod) r.b.mod = L.mod;
     if (L.arm) r.b.arm = L.arm;
     if (L.helper) {
@@ -1995,7 +2056,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn };
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -2597,9 +2658,8 @@ html, body {
     // 1. Left: Team Name (x0 + 16 .. x0 + 175)
     const statusBadge = (G.host === ti ? ' · HOST' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' 🤖' + secReady(t);
     ctx.fillStyle = t.col;
-    ctx.font = '900 14.5px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`${t.name.toUpperCase()} (YOU)${statusBadge}`, x0 + 16, y0 + 26);
+    fitText(ctx, `${t.name.toUpperCase()} (YOU)${statusBadge}`, x0 + 16, y0 + 26, 192, '900', 14.5);
 
     // 2. Sponsor Pill (x0 + 215, w: 235) — uses sp.name & sp.tag (no undefined!)
     const sp = t.sponsor ? SPONSORS[t.sponsor] : null;
@@ -2763,19 +2823,25 @@ html, body {
       ctx.beginPath(); ctx.moveTo(bx + 12, by + 68); ctx.lineTo(bx + bw - 12, by + 68); ctx.stroke();
 
       // 3. Minimalist Visual Stat Bars (2 Columns x 3 Rows, by + 75 .. by + 125)
+      const unused = UNUSED_STATS[r.b.weapon] || [];
+      const calF = r.b.weapon === 'gun' && r.b.cal && r.b.cal !== 'medium' ? Sim.CAL[r.b.cal].turret : 1;
       STAT_BARS_LEFT.forEach((st, idx) => {
         const ry = by + 76 + idx * 17;
         const lv = r.b.lv?.[st.k] || 0;
         ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
         ctx.fillText(st.lbl, bx + 12, ry + 7.5);
+        if (st.k === 'turret' && calF !== 1) { ctx.fillStyle = calF < 1 ? '#d62828' : '#2a9d3a'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('×' + calF, bx + 66, ry + 7.5); }
         drawBar(ctx, bx + 70, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
       });
       STAT_BARS_RIGHT.forEach((st, idx) => {
         const ry = by + 76 + idx * 17;
-        const lv = r.b.lv?.[st.k] || 0;
-        ctx.fillStyle = '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
+        const lv = r.b.lv?.[st.k] || 0, off = unused.includes(st.k);
+        ctx.fillStyle = off ? '#aaa' : '#444'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
         ctx.fillText(st.lbl, bx + 182, ry + 7.5);
+        ctx.globalAlpha = off ? 0.35 : 1;
         drawBar(ctx, bx + 246, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
+        ctx.globalAlpha = 1;
+        if (off) { ctx.fillStyle = '#999'; ctx.font = '700 8px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('unused', bx + 250, ry + 7); }
       });
 
       // 4. Strain, Filled Risk Bar & Engineer Stepper (by + 132 .. by + 168)
@@ -2875,15 +2941,17 @@ html, body {
     hitRegions.push({ kind: 'garage', team: ti, x: x0, y: y0, w: slot.gw, h: slot.gh });
 
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
-    const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' 🤖' + secReady(t) + ' 🃏' + t.hand.length;
+    const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '');
+    const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length;
 
     if (horiz) {
       // North Opponent Garage (620 x 124)
-      ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`${t.name} · ${spName}${badges}`, x0 + 10, y0 + 18);
-
+      const statTxt = `Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E  ·  ${assets}`;
       ctx.fillStyle = '#222'; ctx.font = '700 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + slot.gw - 10, y0 + 18);
+      const statW = ctx.measureText(statTxt).width;
+      ctx.fillText(statTxt, x0 + slot.gw - 10, y0 + 18);
+      ctx.fillStyle = t.col; ctx.textAlign = 'left';
+      fitText(ctx, `${t.name} · ${spName}${badges}`, x0 + 10, y0 + 18, slot.gw - 30 - statW, '800', 12);
 
       // 3 Recon Cards with Full 6-Stat Filled Bars (196 x 92 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
@@ -2894,12 +2962,14 @@ html, body {
     } else {
       // West / East Opponent Garages (236 x 360)
       ctx.fillStyle = t.col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`${t.name}${badges}`, x0 + 10, y0 + 18);
-      ctx.fillStyle = '#666'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(spName, x0 + slot.gw - 10, y0 + 18);
+      const head = `${t.name}${badges}`;
+      const headW = ctx.measureText(head).width;
+      ctx.fillText(head, x0 + 10, y0 + 18);
+      ctx.fillStyle = '#666'; ctx.textAlign = 'right';
+      fitText(ctx, spName, x0 + slot.gw - 10, y0 + 18, slot.gw - 28 - headW, '700', 10);
 
-      ctx.fillStyle = '#444'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`Fame ${t.fame}/${WIN_FAME}  ·  ${t.credits} Cr  ·  ${t.mechs}M / ${t.engPool}E`, x0 + 10, y0 + 32);
+      ctx.fillStyle = '#444'; ctx.textAlign = 'left';
+      fitText(ctx, `Fame ${t.fame}/${WIN_FAME} · ${t.credits} Cr · ${t.mechs}M/${t.engPool}E · ${assets}`, x0 + 10, y0 + 32, slot.gw - 20, '600', 10);
 
       // 3 Recon Cards with Full 6-Stat Filled Bars (216 x 98 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
@@ -2908,6 +2978,13 @@ html, body {
         drawCompactOpponentBay(ctx, slot, ti, t, t.robots[bIdx], bIdx, bx, by, bw, bh, now);
       }
     }
+  }
+
+  function fitText(ctx, text, x, y, maxW, weight, size) {
+    let s = size;
+    do { ctx.font = weight + ' ' + s + 'px system-ui, sans-serif'; s -= 0.5; } while (s > 7 && ctx.measureText(text).width > maxW);
+    if (ctx.measureText(text).width > maxW) { while (text.length > 3 && ctx.measureText(text + '…').width > maxW) text = text.slice(0, -1); text += '…'; }
+    ctx.fillText(text, x, y);
   }
 
   function drawCompactOpponentBay(ctx, slot, ti, t, r, bIdx, bx, by, bw, bh, now) {
@@ -3800,6 +3877,22 @@ html, body {
           }
         } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
           const item = G.pendingInstall.shift();
+          const note = weaponSwapNote(bot, LOTS[item.lot]);
+          if (note) {
+            G.pendingInstall.unshift(item);
+            if (G.swapAsk) return;
+            G.swapAsk = true;
+            ivModal('🔁 Swap weapon on ' + esc(bot.name) + '?', note, [{ label: 'Swap it', value: () => true }, { label: 'Pick another bay', secondary: true, value: () => false }]).then(ok => {
+              G.swapAsk = false;
+              if (!ok) return;
+              G.pendingInstall.shift();
+              const dest = applyLot(viewerSeat, item.lot, bot);
+              if (G.marketResults && item.idx != null && G.marketResults[item.idx]) G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
+              notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
+              updateHud();
+            });
+            return;
+          }
           const dest = applyLot(viewerSeat, item.lot, bot);
           if (G.marketResults && item.idx != null && G.marketResults[item.idx]) {
             G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
