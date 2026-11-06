@@ -314,6 +314,7 @@
     if (n === 2) return [[120, H / 2 - 80], [W - 120, H / 2 + 80]];
     if (n === 3) return [[120, 110], [W - 120, 110], [W / 2, H - 80]];
     if (teamMode) return [[110, 140], [110, H - 140], [W - 110, 140], [W - 110, H - 140]];
+    if (n > 4) return Array.from({ length: n }, (_, i) => { const a = Math.PI * 2 * i / n - Math.PI * 3 / 4; return [W / 2 + Math.cos(a) * (W / 2 - 110), H / 2 + Math.sin(a) * (H / 2 - 90)]; });   // 5+ free-for-all (e.g. 4 teams + the House Robot)
     return [[110, 100], [W - 110, H - 100], [W - 110, 100], [110, H - 100]];
   }
   // opts.teams: array of team ids per bot (default: everyone for themselves)
