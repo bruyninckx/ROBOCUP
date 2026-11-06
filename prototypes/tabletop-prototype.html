@@ -389,6 +389,10 @@ html, body {
 }
 #ivModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.25)}
 #ivModal[hidden]{display:none}
+#helpTip{position:fixed;z-index:10050;pointer-events:none;max-width:290px;background:#fffdf7;border:2px solid #111;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.22);padding:7px 10px;font:12px/1.4 system-ui,sans-serif;color:#222}
+#helpTip[hidden]{display:none}
+#helpTip .ht{font-weight:800;font-size:12.5px;margin-bottom:2px;color:#111}
+#helpTip i{color:#666}
 #scoutPanel{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.22)}
 #scoutPanel[hidden]{display:none}
 .sc-box{position:relative;background:#fffdf7;border:2.5px solid #111;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:14px 16px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;font:13px/1.45 system-ui,sans-serif;color:#111}
@@ -521,6 +525,8 @@ html, body {
     's1. Zippo':    { 's1. Scrapper': 0.62,  's1. Rattler': 0.695, 's1. Plinker': 0.34,  's1. Tin Can': 0.565, 's1. Sparky': 0.0,   's1. Lobster': 0.415, 's1. Grinder': 0.535, 's1. Top': 0.795 },
     's1. Top':      { 's1. Scrapper': 0.115, 's1. Rattler': 0.755, 's1. Plinker': 0.86,  's1. Tin Can': 0.805, 's1. Sparky': 0.02,  's1. Lobster': 0.33,  's1. Grinder': 0.98,  's1. Zippo': 0.205 },
   };
+  // Kev, 6 Nov: every team starts with ONE drafted robot (was 2); more come from New Robot lots in the Market
+  const STARTER_PICKS = 1;
   const SCRAP = { lv: L(1, 0, 1, 1, 1, 1, 1), range: 'mid', weapon: 'gun', cal: 'medium', mod: 'boom', helpers: [], eng: 0 };
   const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
 
@@ -635,7 +641,7 @@ html, body {
   let botSeq = 0;
 
   const cam = { x: 0, y: 40, zoom: 0.58, tx: 0, ty: 40, tzoom: 0.58, manualZoom: false };
-  const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false };
+  const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false, overCanvas: false, htmlHelp: null };
   let dragCard = null;
   let hitRegions = [];
   let weldSparks = [];
@@ -831,6 +837,116 @@ html, body {
     ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; fitText(ctx, '🎩 ' + c.text, x + w / 2, y + h / 2 + size * 0.36, w - 6, '800', size);
   }
 
+  /* ============================================================================
+   * HOVER HELP (Kev, 6 Nov): rest the mouse on a chip, tag, abbreviation or icon for ~0.35 s and a small box
+   * explains it. Canvas parts register help(x, y, w, h, title, body) while they draw (world coordinates, like
+   * hitRegions); HTML parts carry data-help="title|body". One tooltip (#helpTip) serves both.
+   * ============================================================================ */
+  let helpRegions = [];
+  const HELP_DELAY = 350;
+  const hov = { key: null, since: 0, shown: false };
+  function help(x, y, w, h, title, body) { helpRegions.push({ x, y, w, h, title, body }); }
+  function updateHelp(now) {
+    let tip = document.getElementById('helpTip');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'helpTip'; tip.hidden = true; document.body.appendChild(tip); }
+    let cand = null;
+    if (!dragCard && !mouse.down) {
+      if (mouse.htmlHelp) { const [t, ...b] = mouse.htmlHelp.split('|'); cand = { title: t, body: b.join('|') }; }
+      else if (mouse.overCanvas) for (let i = helpRegions.length - 1; i >= 0; i--) {
+        const r = helpRegions[i];
+        if (mouse.wx >= r.x && mouse.wx <= r.x + r.w && mouse.wy >= r.y && mouse.wy <= r.y + r.h) { cand = r; break; }
+      }
+    }
+    const key = cand ? cand.title + '\u0001' + cand.body : null;
+    if (key !== hov.key) { hov.key = key; hov.since = now; hov.shown = false; tip.hidden = true; return; }
+    if (!key || now - hov.since < HELP_DELAY) return;
+    if (!hov.shown) {
+      tip.innerHTML = (cand.title ? '<div class="ht">' + cand.title + '</div>' : '') + (cand.body ? '<div>' + cand.body + '</div>' : '');
+      tip.hidden = false; hov.shown = true;
+    }
+    const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = mouse.sx + pad, y = mouse.sy + pad + 4;
+    if (x + w > window.innerWidth - 8) x = mouse.sx - w - pad;
+    if (y + h > window.innerHeight - 8) y = mouse.sy - h - pad;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  }
+  const helpAttr = (title, body) => ' data-help="' + (title + '|' + body).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"';
+
+  // ---- help texts ----
+  const BAND_HELP = 'Bands: <b>Heavy fav</b> over 75% · <b>Favourite</b> 58–75% · <b>Even</b> 42–58% · <b>Underdog</b> 25–42% · <b>Heavy dog</b> under 25%.';
+  function helpBand(ti, r, p) {
+    const sc = scouted();
+    return ['🎩 Bookie vs the field' + (p == null ? '' : ': ' + bandOf(p).name + (sc ? ' (' + pctTxt(p) + ')' : '')),
+      'The bookie\'s chance for <b>' + esc(r.name) + '</b> against every robot of the other teams, simulated at full health with open parts only (face-down cards stay secret). ' + BAND_HELP +
+      (p == null ? '<br>Still working it out…' : '') + '<br><i>Click for the scout panel: each rival matchup, a scout (exact %) and sparring.</i>'];
+  }
+  function helpTagsTxt(tg, who) {
+    const row = (ks, lab, col) => ks.length ? '<span style="color:' + col + ';font-weight:800">' + lab + '</span> ' + ks.map(k => esc(clsName(k)) + ' ' + pctTxt(tg.vs ? tg.vs[k] : 0.5)).join(', ') + '<br>' : '';
+    return ['▲ strong vs / ▼ weak vs',
+      row(tg.strong, '▲ strong vs', '#17803a') + row(tg.weak, '▼ weak vs', '#d62828') +
+      'Weapon types ' + who + ' does well or badly against, measured in the Sim (% = average win chance). Counts its weapon plus what its armour card, module and drones add, and only names weapons on the table.'];
+  }
+  function helpLotTags(L) {
+    const o = lotTags(L, viewerSeat); if (!o) return null;
+    const vs = lotTags(L, null).vs || {}, isW = L.weapon || L.cal;
+    const f = k => esc(clsName(k)) + ' ' + (isW ? pctTxt(vs[k]) : (vs[k] >= 0 ? '+' : '') + Math.round(vs[k] * 100) + ' pts');
+    return ['▲ / ▼ ' + esc(L.name),
+      (o.strong.length ? '<b style="color:#17803a">▲ ' + (isW ? 'strong vs' : 'helps vs') + '</b> ' + o.strong.map(f).join(', ') + '<br>' : '') +
+      (o.weak.length ? '<b style="color:#d62828">▼ ' + (isW ? 'weak vs' : 'hurts vs') + '</b> ' + o.weak.map(f).join(', ') + '<br>' : '') +
+      (isW ? 'This weapon\'s average win chance against each weapon type on the table.' : 'How much this part changes the win chance against each weapon type (in win points).') + ' Measured in the Sim (docs/counter-tags.md).'];
+  }
+  const STAT_HELP = {
+    hp:     ['Health', 'How much damage it takes before it is knocked out.', ' HP'],
+    armor:  ['Armour', 'Flat damage removed from every hit. Heavy, so it slows the robot a little.', ' off each hit'],
+    speed:  ['Speed', 'How fast it drives.', ' px/s'],
+    turret: ['Turret', 'How fast the weapon turns to track a target.', '°/s'],
+    fp:     ['Firepower', 'Damage per second if every shot hits.', ' dmg/s'],
+    acc:    ['Accuracy', 'Chance that a shot lands.', '%'],
+    bullet: ['Velocity', 'Bullet speed: fast bullets are hard to dodge.', ' px/s'],
+  };
+  function helpStat(b, k) {
+    const H = STAT_HELP[k], lv = b.lv ? b.lv[k] || 0 : 0, off = (UNUSED_STATS[b.weapon] || []).includes(k);
+    const calF = k === 'turret' && b.weapon === 'gun' && b.cal && b.cal !== 'medium' ? Sim.CAL[b.cal].turret : 1;
+    return [H[0] + ' · level ' + lv + '/4', H[1] + ' Level ' + lv + ' = ' + Sim.LV[k][lv] + H[2] + '.' +
+      (calF !== 1 ? '<br><b>×' + calF + '</b>: a ' + b.cal + ' gun turns its turret ' + (calF < 1 ? 'slower' : 'faster') + ' than a medium gun.' : '') +
+      (off ? '<br><b>Unused</b>: ' + esc(wepName(b)) + ' ignores this stat, so points here are wasted.' : '')];
+  }
+  const STAT_GRID_HELP = ['Stats (bars = level 0–4)', '<b>ARM</b> armour · <b>SPD</b> speed · <b>TUR</b> turret turn speed · <b>FPW</b> firepower · <b>ACC</b> accuracy · <b>VEL</b> bullet velocity.'];
+  function helpStrain(b) {
+    const rk = Sim.riskOf(b), fr = Sim.frameOf(b);
+    return ['⚡ Strain ' + rk.strain + ' · ' + fr.name + ' frame',
+      'How hard the parts push the robot: ' + (rk.parts.filter(p => p.strain).map(p => esc(p.name) + ' ' + p.strain).join(', ') || 'nothing yet') + '.<br>' +
+      'More strain = more glitches and broken parts, and a bigger frame: +5% size per ⚡, so an easier target. Frames: Light 0–2 · Medium 3–4 · Heavy 5–6 · Titan 7+.'];
+  }
+  function helpRisk(b) {
+    const rk = Sim.riskOf(b);
+    return ['Glitch ' + Math.round(rk.glitch * 100) + '% · Break ' + Math.round(rk.anyBreak * 100) + '%',
+      '<b>Glitch</b>: chance of one short stall or jam during a fight.<br><b>Break</b>: chance that one of its parts breaks for the rest of the fight.<br>Engineers (👷) on the robot cut both: each one −40% glitch, half the break chance.'];
+  }
+  function helpLook(b) {
+    const fr = Sim.frameOf(b), d = Sim.DRIVES[b.drive] || Sim.DRIVES.wheels, hs = b.helpers || [];
+    return [fr.name + ' frame · ' + d.name, 'Size grows with strain (⚡' + fr.strain + '), so a bigger body is a bigger target. Drive: ' + esc(d.text) +
+      (hs.length ? '<br>Dots = helper drones: ' + hs.map(h => esc(Sim.HELPERS[h] ? Sim.HELPERS[h].name : h)).join(', ') + '.' : '')];
+  }
+  function helpName(t, r) {
+    const bits = [];
+    if (r.wins) bits.push('<b>★</b> = wins (each is a Fan token: +2 Cr appearance money).');
+    if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: 6 Cr appearance money.');
+    if (r.exhausted) bits.push('<b>😴</b> exhausted: can\'t fight this round.');
+    if (r.faceDown && r.faceDown.length) bits.push('<b>🂠×' + r.faceDown.length + '</b> face-down cards on it: hidden until its next fight.');
+    if (r.b.quirk && Sim.QUIRKS[r.b.quirk]) bits.push('<b>Quirk</b>: ' + esc(Sim.QUIRKS[r.b.quirk].name || r.b.quirk) + '.');
+    return [esc(r.name), (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite.'];
+  }
+  const PHASE_HELP = {
+    setup: 'Pick a sponsor and draft your starter robot.',
+    upkeep: 'Robots get ready, mechanics earn credits, repairs, engineers; scouting and sparring.',
+    intrigue: 'Teams take turns playing schemes (fame gates, backing, reactions) or cashing cards in.',
+    market: 'Sealed bids on 3 lots and the right to host. Ties: rebid, less fame wins.',
+    arena: 'The host invites two teams; each sends a robot.',
+    bets: 'Everyone bets on the fight at the bookie\'s odds.',
+    fight: 'The auto-battle. Live cards can be played into it.',
+    after: 'The host spares or scraps the loser; crates and recap.',
+  };
   /* ---------- the scout panel: click a 🎩 chip on any robot ---------- */
   let scoutOpen = null;
   function openScout(ti, r) { scoutOpen = { ti, r }; renderScout(true); }
@@ -846,7 +962,7 @@ html, body {
     el.dataset.key = key;
     const F = fieldOdds(ti, r.b), fr = Sim.frameOf(r.b), tg = tagsFor(ti, r.b, 3), sc = scouted();
     const all = Sim.tagsOf(r.b, 4), on = classesVs(ti), off = { strong: all.strong.filter(k => !on.includes(k)), weak: all.weak.filter(k => !on.includes(k)) };
-    const chip = p => { const c = oddsChip(p); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
+    const chip = p => { const c = oddsChip(p); return '<span class="sc-chip" style="background:' + c.col + '"' + helpAttr(p == null ? 'Bookie working…' : bandOf(p).name + (sc ? ' · ' + pctTxt(p) : ''), BAND_HELP) + '>' + esc(c.text) + '</span>'; };
     const canSpar = mine && G.phase === 'upkeep' && t.sparRound !== G.round && t.credits >= SPAR_PRICE && !r.exhausted;
     const helpers = (r.b.helpers || []).map(h => Sim.HELPERS[h] ? Sim.HELPERS[h].name : h);
     const parts = [wepName(r.b), r.b.arm && Sim.ARMOURS[r.b.arm] ? Sim.ARMOURS[r.b.arm].name : null, r.b.mod && Sim.MODS[r.b.mod] ? Sim.MODS[r.b.mod].name : null].concat(helpers.map(h => /drone/i.test(h) ? h : h + ' drone')).filter(Boolean);
@@ -923,7 +1039,7 @@ html, body {
   /* ---------- Top Bar & Prompt Bar ---------- */
   function updateHud() {
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
-    $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '">' + l + '</span>').join('');
+    $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '"' + helpAttr(l, PHASE_HELP[k] || '') + '>' + l + '</span>').join('');
     renderPromptBar();
     renderHand();
   }
@@ -948,7 +1064,7 @@ html, body {
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
-        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/3) — Draft Starter Robot ${pickNum} of 2:</b> Click 1 of the 3 stock <b>s1.</b> robots on the Arena Stage (11 pts, max Lv3, 1 Eng).</span>` +
+        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Click 1 of the 3 stock <b>s1.</b> robots on the Arena Stage (11 pts, max Lv3, 1 Eng).</span>` +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
         $('#pAct1').onclick = () => pickSetupStarter(Math.floor(rnd() * G.draftOffer.length));
       }
@@ -1106,13 +1222,20 @@ html, body {
                          c.target === 'rival' ? 'Drag to a rival garage' : c.target === 'any' ? 'Drag to any garage' : 'Drag onto the table';
       const gateTxt = c.gate === '▲' ? '▲ more fame' : c.gate === '▼' ? '▼ less fame' : need ? '★' + need : '';
 
+      const typeHelp = c.phase === 'fight' ? 'Live combat card: play it into a running fight (drag onto a robot or the floor).' :
+                       c.phase === 'later' ? 'Arena card: works around the fight (events, swaps, side bets). In this prototype you can only cash it in for now.' :
+                       c.phase === 'security' ? 'Security Bot: discard it to roll 4–6 and block a scheme, or install it in your garage as a lasting guard.' :
+                       c.t === 'F' ? 'Face-down card: put it on a robot without showing it. It stays hidden (the bookie can\'t see it) until that robot\'s next fight.' :
+                       c.t === 'R' ? 'Reaction: played in response, often outside your own turn (in a 5-second window).' : 'Scheme: played on your Intrigue turn.';
+      const gateHelp = c.gate === '▲' ? 'Only against a team with <b>more</b> fame than you.' : c.gate === '▼' ? 'Only against a team with <b>less</b> fame than you.' :
+                       'Fame gate: you need <b>' + need + ' fame</b> to play it. Short? Other teams can back you with their fame (you can offer credits).';
       el.innerHTML =
-        '<div class="hs-top"><span class="hs-badge">' + typeLbl + '</span>' +
-          (gateTxt ? '<span class="hs-need">' + gateTxt + '</span>' : '') + '</div>' +
+        '<div class="hs-top"><span class="hs-badge"' + helpAttr(typeLbl, typeHelp) + '>' + typeLbl + '</span>' +
+          (gateTxt ? '<span class="hs-need"' + helpAttr(gateTxt, gateHelp) + '>' + gateTxt + '</span>' : '') + '</div>' +
         '<div class="hs-art">' + c.icon + '</div>' +
         '<div class="hs-title">' + esc(c.name) + '</div>' +
         '<div class="hs-desc">' + esc(c.text) + '</div>' +
-        '<div class="hs-footer"><span class="hs-coin">🪙' + c.cash + '</span> ' + targetHint + '</div>';
+        '<div class="hs-footer"><span class="hs-coin"' + helpAttr('🪙 Cash value ' + c.cash, 'On your Intrigue turn you can cash this card in for ' + c.cash + ' credit' + (c.cash === 1 ? '' : 's') + ' instead of playing it.') + '>🪙' + c.cash + '</span> ' + targetHint + '</div>';
 
       slot.addEventListener('pointerenter', () => {
         stage.classList.add('open');
@@ -1182,7 +1305,7 @@ html, body {
         ...t, i, sponsor: null,
         fame: G0fame, credits: 8,
         mechs: 3,
-        engPool: 2, // 2 Engineers at start; 1 assigned to each drafted starter
+        engPool: 2, // 2 Engineers at start; 1 goes on the drafted starter, 1 free to assign
         hand: [], robots: [], tamper: {}, schemeLog: [], secBots: 1, exMechs: 0, exSec: 0, shill: 0
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
@@ -1190,7 +1313,7 @@ html, body {
       fight: null, over: false, crateChoices: null
     };
     setCameraGoal('compound');
-    notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft 2 <b>s1.</b> starter robots (Pick 1 of 3, twice)!', '#111');
+    notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (pick 1 of 3)!', '#111');
     updateHud();
   }
 
@@ -1229,7 +1352,7 @@ html, body {
       t.sponsor = i === viewerSeat ? mySp : rest[rIdx++];
       t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
     });
-    notify(`Signed with <b>${esc(SPONSORS[mySp].name)}</b> (${esc(SPONSORS[mySp].tag)}). Now draft your 1st <b>s1.</b> Starter Robot!`, me().col);
+    notify(`Signed with <b>${esc(SPONSORS[mySp].name)}</b> (${esc(SPONSORS[mySp].tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}<b>s1.</b> starter robot!`, me().col);
     G.setupStep = 'draft1';
     dealHumanStarterOffer();
     updateHud();
@@ -1256,7 +1379,7 @@ html, body {
       aiDraftOneStarter(aiT);
     }
 
-    if (G.setupStep === 'draft1') {
+    if (G.setupStep === 'draft1' && STARTER_PICKS > 1) {
       G.setupStep = 'draft2';
       dealHumanStarterOffer();
       updateHud();
@@ -1269,7 +1392,7 @@ html, body {
     for (const t of G.teams) {
       rebalanceAiEngineers(t);
     }
-    notify('<b>Opening Draft Complete!</b> All 4 garages have 2 <b>s1.</b> stock starters. Round 1 Upkeep begins.', '#111');
+    notify(`<b>Opening Draft Complete!</b> All 4 garages have ${STARTER_PICKS > 1 ? STARTER_PICKS + ' <b>s1.</b> stock starters' : 'one <b>s1.</b> stock starter'}. Round 1 Upkeep begins.`, '#111');
     startRound();
   }
 
@@ -2292,7 +2415,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud };
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -2539,6 +2662,7 @@ html, body {
     ctx.translate(-cam.x, -cam.y);
 
     hitRegions = [];
+    helpRegions = [];
 
     const L = getDynamicLayout(arenaExpand);
     const ax0 = L.ax - L.aw / 2, ay0 = L.ay - L.ah / 2;
@@ -2714,7 +2838,7 @@ html, body {
     // Step 2 & Step 3: Starter Deck Draft (Pick 1 of 3 twice, from the 9 s1. starters)
     const pickNum = G.setupStep === 'draft1' ? 1 : 2;
     ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(`STARTER DECK DRAFT (PICK ${pickNum} OF 2)  —  KEEP 1 OF 3 STOCK ROBOTS`, x0 + 12, y0 + 18.5);
+    ctx.fillText(STARTER_PICKS > 1 ? `STARTER DECK DRAFT (PICK ${pickNum} OF ${STARTER_PICKS})  —  KEEP 1 OF 3 STOCK ROBOTS` : 'STARTER DECK DRAFT  —  KEEP 1 OF 3 STOCK ROBOTS', x0 + 12, y0 + 18.5);
     ctx.fillStyle = '#555'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
     ctx.fillText('11 Stat Pts · Cap Lv3 · Stock Parts · 1 Eng', x0 + L.aw - 12, y0 + 18.5);
 
@@ -2921,6 +3045,7 @@ html, body {
     ctx.fillStyle = t.col;
     ctx.textAlign = 'left';
     fitText(ctx, `${t.name.toUpperCase()} (YOU)${statusBadge}`, x0 + 16, y0 + 26, 192, '900', 14.5);
+    help(x0 + 10, y0 + 6, 200, 30, esc(t.name) + ' (you)', (G.host === ti ? '<b>HOST</b>: you run this round\'s fight.<br>' : '') + (G.intrigueTurn === ti ? '<b>🕵️</b>: it\'s your Intrigue turn.<br>' : '') + '<b>🤖' + secReady(t) + '</b>: ready Security Bots in your garage. Each one rolls 4–6 to block a scheme aimed at you.');
 
     // 2. Sponsor Pill (x0 + 215, w: 235) — uses sp.name & sp.tag (no undefined!)
     const sp = t.sponsor ? SPONSORS[t.sponsor] : null;
@@ -2938,16 +3063,19 @@ html, body {
     if (canCycleSp) {
       hitRegions.push({ kind: 'sponsor_cycle', x: spX, y: spY, w: spW, h: spH });
     }
+    if (sp) help(spX, spY, spW, spH, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text) + (canCycleSp ? '<br><i>Click to switch (round 1 Upkeep only).</i>' : ''));
 
     // 3. Fame Bar (x0 + 468 .. x0 + 628)
     ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`FAME ${t.fame}/${WIN_FAME}`, x0 + 468, y0 + 25);
     drawBar(ctx, x0 + 542, y0 + 16, 84, 9, t.fame / WIN_FAME, t.col, '#e6e3da', 4);
+    help(x0 + 462, y0 + 8, 170, 26, 'Fame ' + t.fame + '/' + WIN_FAME, 'First team to ' + WIN_FAME + ' fame wins. You get fame from winning fights, hosting and Publicity cards. Many Intrigue cards need a minimum fame to play.');
 
     // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
     const fEng = freeEng(t);
     ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`CREDITS: ${t.credits} Cr     MECHS: ${t.mechs}     ENG: ${fEng}/${t.engPool} Free`, x0 + 644, y0 + 25);
+    help(x0 + 640, y0 + 8, 270, 26, 'Credits · Mechanics · Engineers', '<b>Cr</b> credits: for bids, repairs, bets, scouting and sparring.<br><b>MECHS</b>: each Mechanic earns 1 Cr per Upkeep (each robot costs 1 Cr upkeep).<br><b>ENG</b> free/total Engineers: put 0–3 on a robot with its − / + buttons to cut glitches and breaks.');
 
     // 5. Hire Engineer Button (x0 + 920, w: 112)
     const hireX = x0 + slot.gw - 126, hireY = y0 + 10, hireW = 110, hireH = 22;
@@ -2993,7 +3121,7 @@ html, body {
           ctx.fillText(`▲ DRAFT STARTER #${bIdx + 1} ON ARENA STAGE`, bx + bw / 2, by + bh / 2 - 4);
           ctx.fillStyle = '#555'; ctx.font = '600 11px system-ui, sans-serif';
           ctx.fillText('Pick 1 of the 3 s1. stock robots above', bx + bw / 2, by + bh / 2 + 14);
-        } else if (G.phase === 'setup' && bIdx < 2) {
+        } else if (G.phase === 'setup' && bIdx < STARTER_PICKS) {
           ctx.fillStyle = '#666'; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(`STARTER BAY #${bIdx + 1} (OPENING DRAFT)`, bx + bw / 2, by + bh / 2 - 4);
           ctx.fillStyle = '#888'; ctx.font = '600 11px system-ui, sans-serif';
@@ -3026,6 +3154,10 @@ html, body {
       ctx.strokeStyle = '#d0ccc0'; ctx.lineWidth = 1;
       ctx.strokeRect(px, py, ps, ps);
       drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
+      { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
+      { const hn = helpName(t, r); help(bx + 70, by + 8, 200, 20, hn[0], hn[1]); }
+      help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon. Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
+      help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 1 Cr per 20 damage.');
 
       // Clean geometric satellite dots for helper drones on the preview corner
       helpers.forEach((hk, hi) => {
@@ -3060,6 +3192,7 @@ html, body {
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(`Repair Hull −${r.dmg} HP (${repCost} Cr)`, actX + actW / 2, actY + 13.5);
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
+        help(actX, actY, actW, actH, 'Repair', 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr (1 Cr per 20 damage). Unrepaired damage stays for the next fight.');
       } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
         const nextLot = LOTS[G.pendingInstall[0].lot];
         const pv = lotPreview(r, nextLot), wasted = pv.startsWith('already');
@@ -3068,6 +3201,7 @@ html, body {
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
         fitText(ctx, `Fit ${nextLot.name}: ` + (sh ? '🎩 ' + sh + ' · ' : sh === null ? '🎩 … · ' : '') + pv, actX + actW / 2, actY + 13.5, actW - 8, '800', 10.5);
+        help(actX, actY, actW, actH, 'Fit ' + esc(nextLot.name) + ' on ' + esc(r.name), (sh ? '<b>🎩 ' + sh + '</b>: the bookie\'s band vs the field before→after (= means no change).<br>' : '') + 'In numbers: ' + esc(pv) + '.<br><i>Click to fit it here.</i>');
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
       } else if (G.phase === 'arena' && G.chooseMyBot) {
         ctx.fillStyle = r.exhausted ? '#999' : '#2a9d3a';
@@ -3080,6 +3214,8 @@ html, body {
         const fo = fieldOdds(ti, r.b);
         drawOddsChip(ctx, fo.p, actX, actY, 112, actH, 10.5);
         hitRegions.push({ kind: 'scout_chip', team: ti, robot: r, x: actX, y: actY, w: 112, h: actH });
+        { const hb = helpBand(ti, r, fo.p); help(actX, actY, 112, actH, hb[0], hb[1]); }
+        { const ht = helpTagsTxt(tagsFor(ti, r.b), 'this robot'); help(actX + 116, actY, actW - 116, actH, ht[0], ht[1]); }
         if (!drawTags(ctx, tagsFor(ti, r.b), actX + 120, actY + 14, actW - 122, 'left', 10.5)) {
           ctx.fillStyle = '#888'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('no clear counters', actX + 120, actY + 14);
         }
@@ -3099,6 +3235,7 @@ html, body {
         ctx.fillText(st.lbl, bx + 12, ry + 7.5);
         if (st.k === 'turret' && calF !== 1) { ctx.fillStyle = calF < 1 ? '#d62828' : '#2a9d3a'; ctx.font = '800 8.5px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('×' + calF, bx + 66, ry + 7.5); }
         drawBar(ctx, bx + 70, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
+        { const hs = helpStat(r.b, st.k); help(bx + 10, ry - 4, 160, 16, hs[0], hs[1]); }
       });
       STAT_BARS_RIGHT.forEach((st, idx) => {
         const ry = by + 76 + idx * 17;
@@ -3109,6 +3246,7 @@ html, body {
         drawBar(ctx, bx + 246, ry, 96, 8, lv / 4, t.col, '#e6e3da', 4);
         ctx.globalAlpha = 1;
         if (off) { ctx.fillStyle = '#999'; ctx.font = '700 8px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('unused', bx + 250, ry + 7); }
+        { const hs = helpStat(r.b, st.k); help(bx + 180, ry - 4, 165, 16, hs[0], hs[1]); }
       });
 
       // 4. Strain, Filled Risk Bar & Engineer Stepper (by + 132 .. by + 168)
@@ -3132,6 +3270,7 @@ html, body {
       ctx.fillStyle = riskCol; ctx.textAlign = 'right';
       fitText(ctx, `Glitch ${glitchPct}% · Break ${breakPct}%`, sbX + 214, sbY + 14, 206 - stW - 10, '700', 10);
       ctx.textAlign = 'left';
+      { const h1 = helpStrain(r.b), h2 = helpRisk(r.b); help(sbX, sbY, stW + 12, sbH, h1[0], h1[1]); help(sbX + stW + 12, sbY, 214 - stW - 12, sbH, h2[0], h2[1]); }
 
       // Clean Filled Reliability / Risk Bar
       drawBar(ctx, sbX + 8, sbY + 21, 206, 7, riskFrac, riskCol, '#e2dfd7', 0);
@@ -3158,6 +3297,7 @@ html, body {
       ctx.fillStyle = canPlus ? '#111' : '#999'; ctx.font = '800 13px system-ui, sans-serif';
       ctx.fillText('+', epX + eBtnW / 2, emY + 16);
       hitRegions.push({ kind: 'eng_plus', robot: r, x: epX, y: emY, w: eBtnW, h: eBtnH });
+      help(emX + eBtnW, emY, 52, eBtnH, '👷 ' + eng + ' Engineer' + (eng === 1 ? '' : 's') + ' on ' + esc(r.name), 'Each engineer (max 3) cuts the glitch chance by 40% and halves the break chance. Free engineers: ' + freeEng(t) + '. Use − / + to move them.');
 
       // 5. Bottom Tactical Controls Row (3 Non-Overlapping Pills, by + 175 .. by + 199)
       const btnY = by + 175, btnH = 24;
@@ -3169,6 +3309,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Range: ${r.b.range} ↻`, rngX + rngW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'range_toggle', robot: r, x: rngX, y: btnY, w: rngW, h: btnH });
+      help(rngX, btnY, rngW, btnH, 'Range: ' + r.b.range, 'The distance it tries to fight at: short 140 px, mid 250, long 380. Click to change.');
 
       // Pill 2: Secret Module (w: 136)
       const modX = bx + 110, modW = 136;
@@ -3177,6 +3318,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Mod: ${Sim.MODS[r.b.mod]?.name || 'None'} ↻`, modX + modW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'mod_cycle', robot: r, x: modX, y: btnY, w: modW, h: btnH });
+      help(modX, btnY, modW, btnH, 'Module: ' + esc(Sim.MODS[r.b.mod]?.name || 'none'), (Sim.MODS[r.b.mod] ? esc(Sim.MODS[r.b.mod].text) : 'No module fitted.') + '<br><i>Prototype shortcut: click to cycle modules.</i>');
 
       // Pill 3: Target Focus (w: 90)
       const foc = r.b.focus || 'main';
@@ -3187,6 +3329,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Aim: ${focLbl} ↻`, focX + focW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'focus_toggle', robot: r, x: focX, y: btnY, w: focW, h: btnH });
+      help(focX, btnY, focW, btnH, 'Aim: ' + focLbl, 'What it shoots first: the <b>Main</b> robot, enemy <b>Medics</b>, or enemy <b>Drones</b>. Click to change.');
     }
   }
 
@@ -3213,6 +3356,9 @@ html, body {
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
     const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '');
     const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length;
+    const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · <b>' + t.mechs + 'M</b> Mechanics (earn credits) / <b>' + t.engPool + 'E</b> Engineers (keep robots running) · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand.'];
+    const spHelp = t.sponsor && SPONSORS[t.sponsor] ? ['Sponsor: ' + esc(SPONSORS[t.sponsor].name), '<b>' + esc(SPONSORS[t.sponsor].tag) + '</b>: ' + esc(SPONSORS[t.sponsor].text)] : null;
+    const badgeHelp = G.host === ti || G.intrigueTurn === ti ? [esc(t.name), (G.host === ti ? '<b>[HOST]</b>: runs this round\'s fight. ' : '') + (G.intrigueTurn === ti ? '<b>🕵️</b>: it\'s their Intrigue turn.' : '')] : null;
 
     if (horiz) {
       // North Opponent Garage (620 x 124)
@@ -3222,6 +3368,8 @@ html, body {
       ctx.fillText(statTxt, x0 + slot.gw - 10, y0 + 18);
       ctx.fillStyle = t.col; ctx.textAlign = 'left';
       fitText(ctx, `${t.name} · ${spName}${badges}`, x0 + 10, y0 + 18, slot.gw - 30 - statW, '800', 12);
+      help(x0 + slot.gw - 10 - statW, y0 + 5, statW, 18, oppHelp[0], oppHelp[1]);
+      { const hh = spHelp || badgeHelp; if (hh) help(x0 + 6, y0 + 5, slot.gw - 24 - statW, 18, hh[0], hh[1] + (badgeHelp && spHelp ? '<br>' + badgeHelp[1] : '')); }
 
       // 3 Recon Cards with Full 6-Stat Filled Bars (196 x 92 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
@@ -3237,9 +3385,12 @@ html, body {
       ctx.fillText(head, x0 + 10, y0 + 18);
       ctx.fillStyle = '#666'; ctx.textAlign = 'right';
       fitText(ctx, spName, x0 + slot.gw - 10, y0 + 18, slot.gw - 28 - headW, '700', 10);
+      if (badgeHelp) help(x0 + 6, y0 + 5, headW + 8, 18, badgeHelp[0], badgeHelp[1]);
+      if (spHelp) help(x0 + headW + 18, y0 + 5, slot.gw - headW - 24, 18, spHelp[0], spHelp[1]);
 
       ctx.fillStyle = '#444'; ctx.textAlign = 'left';
       fitText(ctx, `Fame ${t.fame}/${WIN_FAME} · ${t.credits} Cr · ${t.mechs}M/${t.engPool}E · ${assets}`, x0 + 10, y0 + 32, slot.gw - 20, '600', 10);
+      help(x0 + 6, y0 + 23, slot.gw - 12, 14, oppHelp[0], oppHelp[1]);
 
       // 3 Recon Cards with Full 6-Stat Filled Bars (216 x 98 each)
       for (let bIdx = 0; bIdx < 3; bIdx++) {
@@ -3291,6 +3442,10 @@ html, body {
     ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
     ctx.strokeRect(px, py, ps, ps);
     drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54 * previewK(r.b));
+    { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
+    { const hn = helpName(t, r); help(bx + 38, by + 4, bw / 2 - 30, 14, hn[0], hn[1]); }
+    help(bx + bw / 2 + 8, by + 4, bw / 2 - 12, 14, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon and the distance it tries to fight at.');
+    help(bx + 38, by + 18, bw - 42, 14, 'Health ' + curHp + '/' + maxHp(r), 'Damage stays between fights until it is repaired.');
 
     // 2. Top-Right Name, Weapon/Range & Filled HP Bar (bx + 40 .. bx + bw - 6)
     ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
@@ -3324,6 +3479,7 @@ html, body {
       drawBar(ctx, rx + 24, ry, barW, 6.5, lv / 4, t.col, '#e6e3da', 4);
     });
 
+    help(bx + 4, by + 34, bw - 8, 38, STAT_GRID_HELP[0], STAT_GRID_HELP[1] + '<br>' + Sim.STATS.filter(k => k !== 'hp').map(k => STAT_HELP[k][0] + ' ' + (r.b.lv[k] || 0)).join(' · '));
     // 4. Bottom Recon Footer Strip: Strain, Engineers, Drones & Hidden Mod
     const fy = by + 74, fh = bh - 78;
     ctx.fillStyle = '#f3f1ea';
@@ -3333,11 +3489,14 @@ html, body {
     const riskCol = glitchPct < 15 ? '#2a9d3a' : glitchPct < 30 ? '#b45309' : '#d62828';
     ctx.fillStyle = riskCol; ctx.font = '700 8.5px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`STR ${rk.strain} (${rk.eng}E · ${glitchPct}%)`, bx + 8, fy + fh / 2 + 3);
+    { const h1 = helpStrain(r.b); help(bx + 4, fy, 82, fh, 'STR ' + rk.strain + ' (' + rk.eng + 'E · ' + glitchPct + '%)', '<b>STR</b> strain ⚡' + rk.strain + ' · <b>' + rk.eng + 'E</b> engineers on it · <b>' + glitchPct + '%</b> glitch chance per fight.<br>' + h1[1]); }
 
     // 🎩 bookie's band vs the field + tags (click the chip for the scout panel)
     const cw = 70, cx = bx + bw - 8 - cw, cy = fy + 2, ch = fh - 4;
     drawOddsChip(ctx, fieldOdds(ti, r.b).p, cx, cy, cw, ch, 8.5, true);
     hitRegions.push({ kind: 'scout_chip', team: ti, robot: r, x: cx, y: cy, w: cw, h: ch });
+    { const hb = helpBand(ti, r, fieldOdds(ti, r.b).p); help(cx, cy, cw, ch, hb[0], hb[1] + (scouted() ? '<br>Short names: H.fav · Fav · Even · Dog · H.dog.' : '')); }
+    { const ht = helpTagsTxt(tagsFor(ti, r.b), 'this robot'); help(bx + 86, fy, cx - bx - 88, fh, ht[0], ht[1]); }
     drawTags(ctx, tagsFor(ti, r.b), cx - 6, fy + fh / 2 + 3, bw - cw - 96, 'right', 8.5, 1);
   }
 
@@ -3564,8 +3723,11 @@ html, body {
       ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
       fitText(ctx, it.text, x + w / 2, y + 83, w - 10, '600', 10.5);
       drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 10, 'center', 9.5);
+      if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), esc(it.text) + '<br><b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
+      else if (k === 3) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
+      { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
-      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 112, w - 10, '800', 9); }
+      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 112, w - 10, '800', 9); help(x + 4, y + 103, w - 8, 13, 'Real numbers', esc(gain) + '<br>The stat on each of your robots before→after, one per robot (separated by /). "max" = already at level 4.'); }
       // 🎩 what the lot does to each of your robots' odds vs the field
       if (LOTS[it.id] && needsRobot(it.id)) {
         const sh = me().robots.map(r => [r, oddsShift(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
@@ -3573,6 +3735,7 @@ html, body {
         if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 166, w - 10, '800', 9.5);
         else if (!sh.length) fitText(ctx, '🎩 no robot can take it', x + w / 2, y + 166, w - 10, '800', 9.5);
         else sh.forEach(([r, v], j) => { ctx.fillStyle = v.endsWith('=') ? '#777' : '#1f6feb'; fitText(ctx, '🎩 ' + r.name.replace('s1. ', '') + ': ' + v, x + w / 2, y + 162 + (j - (sh.length - 1) / 2) * 10.5, w - 10, '800', 9.5); });
+        help(x + 4, y + 152, w - 8, 24, '🎩 What it does to your odds', 'The bookie\'s band vs the field for each of your robots, <b>before→after</b> fitting this lot. <b>=</b> means the band doesn\'t move. ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
       }
 
       const btnY = y + 122;
@@ -3619,6 +3782,7 @@ html, body {
       const st = Sim.strainOf(r.b).total;
       ctx.fillStyle = '#555'; ctx.font = '600 10.5px system-ui, sans-serif';
       ctx.fillText(`${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP  ·  ${buildText(r)}  ·  Strain ${st}`, x + w / 2, y + 39);
+      help(x + 10, y + 29, w - 20, 14, esc(r.name), 'Health now/max · weapon · preferred range' + ((r.b.helpers || []).length ? ' · drones' : '') + ' · strain ⚡' + st + ' (more strain: more glitches and a bigger target).');
 
       // Minimalist Odds Band Box + Visual Win-Probability Bar
       ctx.fillStyle = '#f4f2ec';
@@ -3631,8 +3795,10 @@ html, body {
       ctx.fillText(`${bd.name.toUpperCase()}  ·  Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 69);
 
       drawBar(ctx, x + 28, y + 79, w - 56, 8, F.p[s], T.col, '#e2dfd7', 4);
+      help(x + 16, y + 48, w - 32, 44, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie ran 40 fights of the two visible builds (with their current damage; face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar is the win chance.');
       // tags for this matchup first (the opponent's weapon), else vs the field
       const foeCls = Sim.classOf(F.robots[1 - s].b), mt = Sim.tagsOf(r.b, 3, [foeCls]);
+      { const ht = helpTagsTxt(mt.strong.length || mt.weak.length ? mt : tagsFor(ti, r.b), 'this robot'); if (mt.strong.length || mt.weak.length) ht[1] = 'This matchup: the opponent uses a <b>' + esc(clsName(foeCls)) + '</b>.<br>' + ht[1]; help(x + 16, y + 92, w - 32, 14, ht[0], ht[1]); }
       if (!drawTags(ctx, mt.strong.length || mt.weak.length ? mt : tagsFor(ti, r.b), x + w / 2, y + 100, w - 40, 'center', 10, 3)) {
         ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
         ctx.fillText('Bookie estimate (ignores face-down cards)', x + w / 2, y + 100);
@@ -3656,6 +3822,7 @@ html, body {
     ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(scouted() ? '🔭 Scouted: exact %' : `🔭 Hire a scout (${SCOUT_PRICE} Cr): exact %`, L.ax, ty + 14.5);
     if (!scouted()) hitRegions.push({ kind: 'buy_scout', x: tx, y: ty, w: tw, h: th });
+    help(tx, ty, tw, th, '🔭 Scout', scouted() ? 'You hired a scout this round: exact % everywhere until the round ends.' : 'Pay ' + SCOUT_PRICE + ' Cr: the exact % for every matchup until the end of the round, instead of the fuzzy bands.');
   }
 
   function drawAftermathOnArena(ctx, L) {
@@ -3992,6 +4159,9 @@ html, body {
   /* ---------- Pointer & Card Drop Interactions ---------- */
   window.addEventListener('pointermove', e => {
     mouse.sx = e.clientX; mouse.sy = e.clientY;
+    mouse.overCanvas = e.target && e.target.id === 'worldCv';
+    const hEl = e.target && e.target.closest ? e.target.closest('[data-help]') : null;
+    mouse.htmlHelp = hEl ? hEl.dataset.help : null;
     const w = screenToWorld(e.clientX, e.clientY);
     mouse.wx = w.x; mouse.wy = w.y;
 
@@ -4300,6 +4470,7 @@ html, body {
       }
     }
     renderWorld(now);
+    updateHelp(now);
   }
 
   /* ---------- Top Pill & Hand Controls ---------- */

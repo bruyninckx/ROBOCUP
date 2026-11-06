@@ -21,13 +21,13 @@ Everything on a robot is open information. Surprise comes only from face-down In
 
 ## 2. Components and setup
 
-Each team starts with 4 fame, 8 credits, 2 Scrap Bots, 3 Mechanics, 1 Security Bot and one sponsor.
+Each team starts with 4 fame, 8 credits, 1 robot, 3 Mechanics, 1 Security Bot and one sponsor (Kev, 6 Nov: one starting robot, was 2).
 
 | Component | Contents |
 | --- | --- |
 | Intrigue deck | 74 different cards, 185 copies, in 8 families (Contracts, Publicity, Smear, Sabotage, Corporate, Match-fixing, Security, Leverage) |
 | Market deck | 50 cards: 12 robots, 8 crew, 8 weapons, 4 armour, 6 modules, 6 helpers, 4 stat upgrades, 2 legendary |
-| Starter kit (per team) | 2 Scrap Bots (no quirk, stock autocannon, empty module slot), 3 Mechanics, 1 Security Bot (installed in the garage) |
+| Starter kit (per team) | 1 robot (a Scrap Bot, or in the tabletop prototype one drafted `s1.` starter: see 3, keep 1), 3 Mechanics, 1 Security Bot (installed in the garage) |
 | Sponsors | 6 sponsor cards, one rule each |
 | Scrap Crate | 7 salvage items for the loser of a fight |
 | Host token | Marks the host: hosts the fight and goes first in Intrigue |
