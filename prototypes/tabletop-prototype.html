@@ -1556,7 +1556,7 @@ html, body {
   function logRoom() { const c = document.getElementById('leftCol'); return c ? c.offsetWidth + 16 : 0; }
   function getCompoundZoom() {
     const sw = window.innerWidth, sh = window.innerHeight;
-    const fitW = (sw - 36 - logRoom()) / 1140;
+    const fitW = (sw - 36 - logRoom()) / (BOARD.W + 16);
     const fitH = (sh - 135) / 665;   // the top pill above, the hand tab below (layout check 6 Nov: 110 let the tab cover the bottom bay row)
     return Math.max(0.52, Math.min(1.7, Math.min(fitW, fitH)));   // layout check 6 Nov: was capped at 1.04, tiny on 2560+ screens
   }
@@ -1571,7 +1571,7 @@ html, body {
   function setCameraGoal(mode) {
     if (cam.manualZoom) return;
     if (mode === 'arena') {
-      cam.tzoom = getArenaZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = -18 / cam.tzoom;   // a little lower: the top pill is taller than the hand tab
+      const A = arenaCenter(1); cam.tzoom = getArenaZoom(); cam.tx = A.ax - logRoom() / 2 / cam.tzoom; cam.ty = A.ay - 18 / cam.tzoom;   // a little lower: the top pill is taller than the hand tab
     } else {
       cam.tzoom = getCompoundZoom(); cam.tx = -logRoom() / 2 / cam.tzoom; cam.ty = -10 / cam.tzoom;
     }
@@ -1804,7 +1804,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 repair-drone-visual';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 board-layout';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2159,7 +2159,7 @@ html, body {
       }
       const bf = o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // 🕴️ Fixer: +2 fame toward the gate
       notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
-      if (yes) got += bf;
+      if (yes) { got += bf; await boardFx({ kind: 'back', ti: o.i, label: 'BACKS YOU', sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -2173,7 +2173,7 @@ html, body {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
           (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
+      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); await sleep(950); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -2201,6 +2201,7 @@ html, body {
   }
   async function applyBlock(o, id, F, c, T) {
     const b = CARDS[id];
+    await boardFx({ kind: 'react', ti: o.i, card: id, label: b.name === 'Not My Robot' ? '🙅 NOT MY ROBOT' : '✋ BLOCKS IT' });
     removeFromHand(o, id); discardCard(id);
     if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); p.credits += payCr(o, 3); }
     if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
@@ -2221,6 +2222,7 @@ html, body {
         if (secReady(T) > 0) T.secBots--; else removeFromHand(T, 'security_bot');
         discardCard('security_bot');
         const roll = 1 + Math.floor(rnd() * 6);
+        await boardFx({ kind: 'roll', ti: T.i, roll, ok: roll >= (hasCrew(T, 'secchief') ? 3 : 4) });
         if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
         notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
       }
@@ -2380,6 +2382,7 @@ html, body {
   async function playScheme(F, id, T) {
     const c = CARDS[id];
     if (!LOGC.group) { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); }
+    await playFx(F, id, T);
     removeFromHand(F, id);
     const d = await defend(F, c, T);
     discardCard(id);
@@ -3104,6 +3107,7 @@ html, body {
           }
         }
         { const ph = playHead(o, 'botched_install', W); logBegin(ph[0], o.col, ph[1], ph[2]); }
+        await playFx(o, 'botched_install', W);
         notify('target: ' + lotRef(x.lot) + (thTxt ? ' (' + thTxt + ')' : ''));
         removeFromHand(o, 'botched_install');
         const d = await defend(o, CARDS.botched_install, W);
@@ -3232,6 +3236,7 @@ html, body {
         }
         if (!id) break;
         const ph = playHead(t, id, null); logBegin(ph[0], t.col, ph[1], ph[2]);
+        await playFx(t, id, null);
         removeFromHand(t, id); discardCard(id);
         if (id === 'grand_melee') { G.arenaEvent = { kind: 'ffa', by: ti, card: id }; notify('⚔️ Grand Melee: this round is a free-for-all for every team with a ready robot. The host gets +1 fame when it happens.'); }
         if (id === 'mirror') { G.arenaEvent = { kind: 'mirror', by: ti, card: id }; notify('🪞 Mirror: each invited robot fights as 2 copies; afterwards it keeps the damage of its healthiest copy.'); }
@@ -3488,6 +3493,7 @@ html, body {
       }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
       const ph = playHead(o, 'swap_the_entry', G.teams[pick.ti]); logBegin(ph[0], o.col, ph[1], ph[2]);
+      await playFx(o, 'swap_the_entry', G.teams[pick.ti]);
       notify(esc(G.teams[pick.ti].name) + ' now sends <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + '. The bets stand.');
       F.robots[pick.e] = pick.r;
       logEnd('landed');
@@ -3763,7 +3769,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -3801,23 +3807,141 @@ html, body {
   let arenaExpand = 0;
   const lerp = (a, b, u) => a + (b - a) * u;
 
+  // Kev, 6 Nov (board layout): the three rivals stand side by side as equal columns on the left of the top row,
+  // the arena pit on the right of it, your garage across the bottom. Nothing overlaps the arena any more.
+  //   top row y −322..38:  rivals 3 × 200 wide (gap 10) at x −627..−7 · arena 620 × 360 at x 7..627
+  //   bottom: your garage 1254 × 268 at y 68..336 (a row of coins sits above every team's box)
+  // In a fight the arena grows to the full 900 × 560 to the right and down (rivals stay put), and the camera follows it.
+  const BOARD = { W: 1254, x0: -627, top: -322, rivW: 200, rivGap: 10, rowH: 360, gap: 14, garH: 268 };
+  const arenaCenter = u => { const aw = lerp(620, Sim.W, u), ah = lerp(BOARD.rowH, Sim.H, u), ax0 = BOARD.x0 + 3 * BOARD.rivW + 2 * BOARD.rivGap + BOARD.gap; return { ax: ax0 + aw / 2, ay: BOARD.top + ah / 2, aw, ah }; };
   function getDynamicLayout(u) {
-    const aw = lerp(620, Sim.W, u);
-    const ah = lerp(220, Sim.H, u);
-    const ax = 0;
-    const ay = lerp(-68, 0, u);
-    // At u=0:
-    // - Central Stage spans x: -310 .. +310, y: -178 .. +42
-    // - North Opponent Garage (620x124) spans x: -310 .. +310, y: -318 .. -194 (16px corridor to -178)
-    // - West/East Opponent Garages (236x360) span x: -562 .. -326 and +326 .. +562, y: -318 .. +42 (top flush with North -318, bottom flush with Stage +42!)
-    // - South Command Garage (1124x268) spans x: -562 .. +562, y: +62 .. +330 (20px clear corridor below Stage & West/East!)
-    const slots = [
-      { pos: 0, dir: 'S', gx: 0,                  gy: lerp(196, 436, u),  gw: 1124, gh: 268, doorX: 0,       doorY: ay + ah / 2 },
-      { pos: 1, dir: 'W', gx: lerp(-444, -590, u), gy: lerp(-138, 0, u),  gw: 236,  gh: 360, doorX: -aw / 2, doorY: ay          },
-      { pos: 2, dir: 'N', gx: 0,                  gy: lerp(-256, -360, u),gw: 620,  gh: 124, doorX: 0,       doorY: ay - ah / 2 },
-      { pos: 3, dir: 'E', gx: lerp(444, 590, u),   gy: lerp(-138, 0, u),  gw: 236,  gh: 360, doorX: aw / 2,  doorY: ay          },
-    ];
+    const { ax, ay, aw, ah } = arenaCenter(u);
+    const garTop = BOARD.top + Math.max(BOARD.rowH, ah) + 30;   // room for your coin row above your garage
+    const slots = [{ pos: 0, dir: 'S', gx: 0, gy: garTop + BOARD.garH / 2, gw: BOARD.W, gh: BOARD.garH }];
+    for (let k = 0; k < 3; k++) slots.push({ pos: k + 1, dir: 'col', gx: BOARD.x0 + BOARD.rivW / 2 + k * (BOARD.rivW + BOARD.rivGap), gy: BOARD.top + BOARD.rowH / 2, gw: BOARD.rivW, gh: BOARD.rowH });
     return { ax, ay, aw, ah, slots };
+  }
+
+
+  /* ---------- Board moments (Kev, 6 Nov): like at a real table, a played card is shown big in the player's box for a
+     moment (the rest of the box darkens), an arrow points at the target, and blocks, Security Bot rolls and backing get
+     a short pop in the box of whoever does it. The game waits while it shows. ---------- */
+  const FX = [];
+  const FX_DUR = { play: 1500, react: 1150, roll: 1050, back: 950 };
+  function boardFx(o) {
+    if (!G || G.fast) return Promise.resolve();
+    o.t0 = performance.now(); o.dur = o.dur || FX_DUR[o.kind] || 1000; FX.push(o);
+    return new Promise(r => setTimeout(r, o.dur));
+  }
+  const playFx = (F, id, T) => boardFx({ kind: 'play', ti: F.i, card: id, tgt: T && T !== F ? T.i : null });
+  function boxOf(L, ti) { const sl = L.slots.find(x => x.pos === posOfTeam(ti)); return sl ? { x: sl.gx - sl.gw / 2, y: sl.gy - sl.gh / 2, w: sl.gw, h: sl.gh } : null; }
+  const CARD_COL = c => c.phase === 'fight' ? '#d99000' : c.phase === 'later' ? '#b45309' : c.phase === 'security' ? '#6d28d9' : c.t === 'F' ? '#1f6feb' : c.t === 'R' ? '#5b4bd6' : '#222';
+  function wrapLines(ctx, text, maxW, maxLines) {
+    const words = String(text).split(/\s+/), out = []; let line = '';
+    for (const wd of words) { const tr = line ? line + ' ' + wd : wd; if (ctx.measureText(tr).width > maxW && line) { out.push(line); line = wd; } else line = tr; }
+    if (line) out.push(line);
+    if (out.length > maxLines) { out.length = maxLines; out[maxLines - 1] = out[maxLines - 1].replace(/\s*\S*$/, '') + '…'; }
+    return out;
+  }
+  function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+  // a card face on the canvas (hidden = its back: a face-down card a rival played stays secret)
+  function drawCardFace(ctx, c, x, y, w, h, hidden) {
+    const col = CARD_COL(c), k = w / 150;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 18 * k; ctx.shadowOffsetY = 6 * k;
+    ctx.fillStyle = hidden ? '#1f2a44' : '#fffdf7'; rrect(ctx, x, y, w, h, 10 * k); ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2; rrect(ctx, x, y, w, h, 10 * k); ctx.stroke();
+    ctx.textAlign = 'center';
+    if (hidden) {
+      ctx.fillStyle = '#e8ecf6'; ctx.font = '900 ' + (13 * k) + 'px system-ui, sans-serif'; ctx.fillText('FACE-DOWN', x + w / 2, y + h / 2 - 4 * k);
+      ctx.font = '600 ' + (10 * k) + 'px system-ui, sans-serif'; ctx.fillText('secret until the fight', x + w / 2, y + h / 2 + 14 * k);
+      ctx.font = (34 * k) + 'px system-ui, sans-serif'; ctx.fillText('🂠', x + w / 2, y + h * 0.3);
+      ctx.restore(); return;
+    }
+    ctx.fillStyle = col; rrect(ctx, x, y, w, 24 * k, 10 * k); ctx.fill(); ctx.fillRect(x, y + 12 * k, w, 12 * k);
+    ctx.fillStyle = '#fff'; ctx.font = '900 ' + (10 * k) + 'px system-ui, sans-serif';
+    ctx.fillText(cardType(c).toUpperCase(), x + w / 2, y + 16 * k);
+    ctx.font = (34 * k) + 'px system-ui, sans-serif'; ctx.fillStyle = '#111'; ctx.fillText(c.icon || '🃏', x + w / 2, y + 66 * k);
+    ctx.fillStyle = '#111'; const nl = (() => { ctx.font = '900 ' + (14 * k) + 'px system-ui, sans-serif'; return wrapLines(ctx, c.name, w - 16 * k, 2); })();
+    nl.forEach((l, i) => ctx.fillText(l, x + w / 2, y + 96 * k + i * 16 * k));
+    ctx.fillStyle = '#444'; ctx.font = '600 ' + (10 * k) + 'px system-ui, sans-serif';
+    wrapLines(ctx, c.text, w - 18 * k, 5).forEach((l, i) => ctx.fillText(l, x + w / 2, y + 100 * k + nl.length * 16 * k + i * 13 * k));
+    ctx.restore();
+  }
+  function fxArrow(ctx, a, b, col, t) {
+    const ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2, ang = Math.atan2(by - ay, bx - ax);
+    const ex = bx - Math.cos(ang) * 30, ey = by - Math.sin(ang) * 30;
+    ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.setLineDash([16, 10]); ctx.lineDashOffset = -t * 0.12;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex - Math.cos(ang - 0.5) * 8, ey - Math.sin(ang - 0.5) * 8); ctx.lineTo(ex - Math.cos(ang + 0.5) * 8, ey - Math.sin(ang + 0.5) * 8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // 🪙 a row of coins above every team's box: its wealth at a glance (Kev, 6 Nov); +N / −N floats up when it changes
+  const purseSeen = {}, purseFx = [];
+  function drawPurse(ctx, t, B) {
+    const n = Math.max(0, t.credits), show = Math.min(n, 40), r = 5.5, avail = B.w - 64, step = show > 1 ? Math.min(12, avail / show) : 12;
+    const y = B.y - 9, x0 = B.x + 4 + r;
+    if (purseSeen[t.i] != null && purseSeen[t.i] !== n) purseFx.push({ ti: t.i, d: n - purseSeen[t.i], t0: performance.now() });
+    purseSeen[t.i] = n;
+    for (let k = 0; k < show; k++) {
+      const cx = x0 + k * step;
+      ctx.fillStyle = '#f2c230'; ctx.strokeStyle = '#8a6500'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(cx, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fbe08a'; ctx.beginPath(); ctx.arc(cx - 1.5, y - 1.5, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+    const tx = x0 + Math.max(0, show - 1) * step + r + 6;
+    ctx.fillStyle = n ? '#7a5b00' : '#999'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(n + ' Cr' + (n > show ? ' (40+)' : '') + (t.debt ? ' · owes ' + t.debt : ''), n ? tx : B.x + 4, y + 4);
+    help(B.x, y - 8, Math.max(60, tx - B.x + 40), 16, '🪙 ' + esc(t.name) + ': ' + n + ' credits', 'One coin per credit. Credits pay for bids, repairs, upkeep, bribes and bets.');
+    const now = performance.now();
+    for (let i = purseFx.length - 1; i >= 0; i--) {
+      const f = purseFx[i], age = now - f.t0; if (age > 1400) { purseFx.splice(i, 1); continue; }
+      if (f.ti !== t.i) continue;
+      ctx.save(); ctx.globalAlpha = Math.min(1, (1400 - age) / 400);
+      ctx.fillStyle = f.d > 0 ? '#2a9d3a' : '#d62828'; ctx.font = '900 15px system-ui, sans-serif';
+      ctx.fillText((f.d > 0 ? '+' : '−') + Math.abs(f.d) + ' Cr', tx + 36, y + 4 - age / 40);
+      ctx.restore();
+    }
+  }
+  function drawBoardFx(ctx, L) {
+    const now = performance.now();
+    for (let i = FX.length - 1; i >= 0; i--) if (now - FX[i].t0 > FX[i].dur) FX.splice(i, 1);
+    for (const f of FX) {
+      const B = boxOf(L, f.ti); if (!B) continue;
+      const T = G.teams[f.ti], t = now - f.t0, a = Math.min(1, t / 160, (f.dur - t) / 220), pop = 1 - Math.pow(1 - Math.min(1, t / 260), 3);
+      ctx.save(); ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = 'rgba(17, 17, 17, 0.55)'; ctx.fillRect(B.x, B.y, B.w, B.h);
+      ctx.strokeStyle = T.col; ctx.lineWidth = 4; ctx.strokeRect(B.x, B.y, B.w, B.h);
+      const label = (txt, y, col, size) => { ctx.font = '900 ' + size + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; const tw = ctx.measureText(txt).width; ctx.fillStyle = col; rrect(ctx, B.x + B.w / 2 - tw / 2 - 8, y - size, tw + 16, size + 8, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(txt, B.x + B.w / 2, y); };
+      if (f.kind === 'play' || f.kind === 'react') {
+        const c = CARDS[f.card]; if (!c) { ctx.restore(); continue; }
+        const big = f.kind === 'play', ch = Math.min(B.h - 64, big ? 230 : 170) * (0.75 + 0.25 * pop), cw = Math.min(ch * 0.68, B.w - 20), chh = cw / 0.68;
+        const cx = B.x + B.w / 2 - cw / 2, cy = B.y + B.h / 2 - chh / 2 + 4;
+        drawCardFace(ctx, c, cx, cy, cw, chh, c.t === 'F' && f.ti !== HS);
+        label(big ? '▶ ' + T.name.split(' ')[0].toUpperCase() + ' PLAYS' : (f.label || '✋ BLOCKS'), cy - 6, big ? T.col : '#d62828', 12);
+        if (f.tgt != null) label('→ ' + G.teams[f.tgt].name, cy + chh + 18, G.teams[f.tgt].col, 11);
+      } else if (f.kind === 'roll') {
+        const sz = 62 * (0.7 + 0.3 * pop), dx = B.x + B.w / 2 - sz / 2, dy = B.y + B.h / 2 - sz / 2 - 6;
+        const face = t < 450 ? 1 + Math.floor(t / 60) % 6 : f.roll;   // tumbles, then lands on the real roll
+        ctx.fillStyle = '#fff'; rrect(ctx, dx, dy, sz, sz, 12); ctx.fill(); ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; rrect(ctx, dx, dy, sz, sz, 12); ctx.stroke();
+        const pip = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[face];
+        ctx.fillStyle = '#111'; pip.forEach(([px, py]) => { ctx.beginPath(); ctx.arc(dx + sz / 2 + px * sz * 0.26, dy + sz / 2 + py * sz * 0.26, sz * 0.08, 0, Math.PI * 2); ctx.fill(); });
+        label('🤖 SECURITY BOT', dy - 8, '#6d28d9', 11);
+        if (t >= 450) label(f.ok ? 'BLOCKED!' : 'fails', dy + sz + 22, f.ok ? '#2a9d3a' : '#d62828', 13);
+      } else if (f.kind === 'back') {
+        const cy = B.y + B.h / 2;
+        ctx.font = (40 * (0.7 + 0.3 * pop)) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🤝', B.x + B.w / 2, cy + 6);
+        label(f.label || 'BACKS', cy - 34, T.col, 12);
+        if (f.sub) label(f.sub, cy + 34, '#111', 10.5);
+      }
+      ctx.restore();
+    }
+    for (const f of FX) if (f.kind === 'play' && f.tgt != null) {   // arrows on top of every box
+      const A = boxOf(L, f.ti), Bx = boxOf(L, f.tgt); if (!A || !Bx) continue;
+      const t = now - f.t0; ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, t / 200, (f.dur - t) / 220)); fxArrow(ctx, A, Bx, G.teams[f.ti].col, t); ctx.restore();
+    }
   }
 
   function teamAtPos(pos) { return (viewerSeat + pos) % 4; }
@@ -3866,6 +3990,18 @@ html, body {
     ctx.fillText('👷' + n, x + w / 2, y + 9.5 * k);
     ctx.textAlign = 'left';
     help(x, y, w, h, '👷 ' + n + ' Chief Engineer' + (n > 1 ? 's' : '') + ' on ' + esc(r.name), 'They go into its fights with it: each cuts its glitch chance by 40% and halves its break chance.');
+  }
+  // module badge, top-left of a robot picture (Kev, 6 Nov: like the 👷 badge)
+  const modIcon = k => { const id = Object.keys(LOTS).find(x => LOTS[x].mod === k); return id ? LOTS[id].icon : '⚙️'; };
+  function modBadge(ctx, r, xl, yt, k) {
+    const m = r.b && r.b.mod; if (!m || !Sim.MODS[m]) return;
+    const w = 17 * k, h = 15 * k, x = xl - 4 * k, y = yt - 5 * k;
+    ctx.fillStyle = '#e0ecff'; ctx.strokeStyle = '#1f4fa8'; ctx.lineWidth = 1;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6 * k); else ctx.rect(x, y, w, h); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#111'; ctx.font = (9.5 * k) + 'px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(modIcon(m), x + w / 2, y + 11 * k);
+    ctx.textAlign = 'left';
+    help(x, y, w, h, modIcon(m) + ' Module: ' + esc(Sim.MODS[m].name), esc(Sim.MODS[m].text || ''));
   }
   function drawRobotSprite(ctx, x, y, bodyA, turretA, col, b, hpFrac, name, modTag, stunned, overclocked, now, scale = 1, simBot = null) {
     // frame size grows with strain (Sim.frameOf), so loaded robots look (and are) bigger
@@ -4043,37 +4179,6 @@ html, body {
     for (let x = -900; x <= 900; x += 60) { ctx.beginPath(); ctx.moveTo(x, -660); ctx.lineTo(x, 660); ctx.stroke(); }
     for (let y = -660; y <= 660; y += 60) { ctx.beginPath(); ctx.moveTo(-900, y); ctx.lineTo(900, y); ctx.stroke(); }
 
-    // 1. Draw Corridors & Blast Doors connecting the 4 Garages to the Central Stage / Arena
-    const doorOpen = false;   // robots roll in from the arena's sides now (fight intro)
-    L.slots.forEach(slot => {
-      const ti = teamAtPos(slot.pos);
-      const isFighter = G.fight && G.fight.teams && G.fight.teams.includes(ti);
-      const openAmt = (doorOpen && isFighter) ? Math.sin(Math.min(1, G.fight.rollout * 1.8) * Math.PI) * 32 : 0;
-
-      ctx.fillStyle = '#eae6dc';
-      if (slot.dir === 'S' || slot.dir === 'N') {
-        const topY = slot.dir === 'S' ? slot.doorY : (slot.gy + slot.gh / 2);
-        const botY = slot.dir === 'S' ? (slot.gy - slot.gh / 2) : slot.doorY;
-        const ch = Math.max(0, botY - topY);
-        ctx.fillRect(-40, topY, 80, ch);
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 1.8;
-        ctx.strokeRect(-40, topY, 80, ch);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(-38 - openAmt, slot.doorY - 3, 37, 6);
-        ctx.fillRect(1 + openAmt, slot.doorY - 3, 37, 6);
-      } else {
-        const leftX = slot.dir === 'E' ? slot.doorX : (slot.gx + slot.gw / 2);
-        const rightX = slot.dir === 'E' ? (slot.gx - slot.gw / 2) : slot.doorX;
-        const cw = Math.max(0, rightX - leftX);
-        ctx.fillRect(leftX, slot.doorY - 40, cw, 80);
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 1.8;
-        ctx.strokeRect(leftX, slot.doorY - 40, cw, 80);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(slot.doorX - 3, slot.doorY - 38 - openAmt, 6, 37);
-        ctx.fillRect(slot.doorX - 3, slot.doorY + 1 + openAmt, 6, 37);
-      }
-    });
-
     // 2. Draw Central Pit / Stage (compact 620x210 when no fight is ongoing; expands to 900x560 during fights)
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(ax0, ay0, L.aw, L.ah);
@@ -4111,6 +4216,9 @@ html, body {
     } else {
       drawStandbyStage(ctx, L, now);
     }
+
+    if (G.phase !== 'fight') G.teams.forEach(t => { const B = boxOf(L, t.i); if (B) drawPurse(ctx, t, B); });
+    drawBoardFx(ctx, L);
 
     // Welding sparks FX in garages
     for (let i = weldSparks.length - 1; i >= 0; i--) {
@@ -4456,7 +4564,7 @@ html, body {
     // --- 3 Minimalist Robot Bay Cards (354 x 210 each inside 1124px South Garage) ---
     for (let bIdx = 0; bIdx < 3; bIdx++) {
       const bw = 354, bh = 210;
-      const bx = x0 + 16 + bIdx * 369;
+      const bx = x0 + 16 + (slot.gw - 1124) / 2 + bIdx * 369;   // bays centred in the wider board
       const by = y0 + 46;
       const r = t.robots[bIdx];
       const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
@@ -4514,6 +4622,7 @@ html, body {
       drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.95 * previewK(r.b));
       { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
       engBadge(ctx, r, px + ps, py, 1);
+      modBadge(ctx, r, px, py, 1);
       { const hn = helpName(t, r); help(bx + 70, by + 8, 200, 20, hn[0], hn[1]); }
       help(bx + bw - 90, by + 8, 80, 20, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon, for life: robots never swap weapons. ' + (Sim.wupOf(r.b) ? '<b>' + esc(Sim.WUPS[r.b.wup].name) + '</b>: ' + esc(Sim.WUPS[r.b.wup].text) + ' ' : 'Upgrade it with its own weapon upgrade from the Market. ') + 'Preferred distance: <b>' + r.b.range + '</b> (change it with the Range button).');
       help(bx + 70, by + 28, bw - 80, 14, 'Health ' + Math.max(0, maxHp(r) - r.dmg) + '/' + maxHp(r), 'Damage stays between fights. Repair in Upkeep: 0.7 Cr per 20 damage (about 1 Cr per 29), ×(1 + battle time / 60 s), rounded up. Battle time adds up over the robot\'s whole career.<br>' + wearTxt(r));
@@ -4808,6 +4917,7 @@ html, body {
     drawRobotSprite(ctx, px + ps / 2, py + ps / 2, -Math.PI / 2, -Math.PI / 2, t.col, r.b, hpFrac, null, null, false, false, now, 0.54 * previewK(r.b));
     { const hl = helpLook(r.b); help(px, py, ps, ps, hl[0], hl[1]); }
     engBadge(ctx, r, px + ps, py, 0.8);
+    modBadge(ctx, r, px, py, 0.8);
     { const hn = helpName(t, r); help(bx + 38, by + 4, bw / 2 - 30, 14, hn[0], hn[1]); }
     help(bx + bw / 2 + 8, by + 4, bw / 2 - 12, 14, esc(wepName(r.b)) + ' · ' + r.b.range + ' range', 'Its weapon and the distance it tries to fight at.');
     help(bx + 38, by + 18, bw - 42, 14, 'Health ' + curHp + '/' + maxHp(r), 'Damage stays between fights until it is repaired.<br>' + wearTxt(r));
@@ -5190,7 +5300,7 @@ html, body {
     const F = G.fight, mine = mySide(F);
     const maxB = betLimit(me());
     const n = F.nSides || 2, gap = 12;
-    const w = n === 2 ? 276 : n === 3 ? 214 : 170, h = 158;
+    const w = n === 2 ? 276 : n === 3 ? 196 : 146, h = 158;   // fits the 620-wide pit (board layout)
     const totalW = n * w + (n - 1) * gap, x0 = L.ax - totalW / 2;
     // format banner
     ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'center';

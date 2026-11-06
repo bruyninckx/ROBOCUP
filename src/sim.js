@@ -773,6 +773,13 @@
       // spinners keep their own charge-and-bounce rhythm: on them the Rammer Chip only adds wounded-target hunting
       // (with full pursuit a boosted spinner never left contact and won 100% of its fights)
       if (proc === 'rammer' && b.s.weapon !== 'spinner') want_r = 0;
+      // short-range brawlers shoulder-charge now and then (Kev, 6 Nov: robots should bump into each other)
+      if (b.s.range <= RANGES.short && !stalled) {
+        b.shoveCd = (b.shoveCd == null ? 2 + rng() * 2 : b.shoveCd) - dt;
+        if (b.shoveT > 0) b.shoveT -= dt;
+        else if (b.shoveCd <= 0 && adist < 200) { b.shoveT = 1.6; b.shoveCd = 3.5 + rng() * 2; }
+        if (b.shoveT > 0) want_r = 0;
+      }
       let mx, my;
       if (proc === 'zigzag') {
         // juke: flip the weave away from an incoming bullet, saw blade or a shell about to land close
@@ -819,10 +826,14 @@
         mx = Math.cos(toO) * radial + Math.cos(toO + Math.PI / 2) * b.strafe * 0.8;
         my = Math.sin(toO) * radial + Math.sin(toO + Math.PI / 2) * b.strafe * 0.8;
       }
+      if (b.shoveT > 0) {   // shoulder charge: straight at where the target will be
+        const toL = Math.atan2(anchor.y + (anchor.vy || 0) * 0.2 - b.y, anchor.x + (anchor.vx || 0) * 0.2 - b.x);
+        mx = Math.cos(toL) * 1.3; my = Math.sin(toL) * 1.3;
+      }
       for (const p of B.bots) {
         if (p === b || p.hp <= 0 || (p.helper && p.squad === b.squad)) continue;
         // robots that want contact (spinner, ready flipper, rammer) don't keep their distance from enemies
-        if (p.team !== b.team && (b.s.weapon === 'spinner' || (b.mod === 'flipper' && b.modCd <= 0) || proc === 'rammer')) continue;
+        if (p.team !== b.team && (b.s.weapon === 'spinner' || (b.mod === 'flipper' && b.modCd <= 0) || proc === 'rammer' || b.shoveT > 0)) continue;
         const sx = b.x - p.x, sy = b.y - p.y, sd = Math.hypot(sx, sy), RR = p.helper ? 32 : proc === 'kiter' && p.team !== b.team ? 95 : 60;
         if (sd < RR && sd > 0.01) { mx += sx / sd * (RR - sd) / 30; my += sy / sd * (RR - sd) / 30; }
       }
@@ -882,6 +893,26 @@
       if (b.tw && !b.twBroken) fireWeapon(B, b, b.tw, b.tw.s, o, dist, dt, oc, jammed, accE, fog);   // Twin Turret: second weapon at 60%
       b.hitT = Math.max(0, b.hitT - dt);
     }
+    // robots bump into each other (Kev, 6 Nov): bodies can't overlap; a robot driving into another bounces both apart,
+    // and the heavier frame (mass ~ size²) shoves the lighter one harder. No damage: a bump only moves them.
+    { const L = B.bots.filter(b => b.hp > 0 && !b.helper && !(b.air > 0));
+      for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+        const a = L[i], c = L[j];
+        let dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy);
+        const min = (a.size + c.size) / 2;
+        if (d >= min + 3) continue;
+        if (d < 0.01) { dx = 1; dy = 0; d = 1; }
+        const nx = dx / d, ny = dy / d, ma = a.size * a.size, mc = c.size * c.size, ov = Math.max(0, min - d);
+        a.x = zx(a.x - nx * ov * mc / (ma + mc)); a.y = zy(a.y - ny * ov * mc / (ma + mc));
+        c.x = zx(c.x + nx * ov * ma / (ma + mc)); c.y = zy(c.y + ny * ov * ma / (ma + mc));
+        const closing = ((a.vx || 0) - (c.vx || 0)) * nx + ((a.vy || 0) - (c.vy || 0)) * ny;
+        if (closing > 40 && B.t - Math.max(a.bumpAt || -9, c.bumpAt || -9) > 0.35) {
+          const v = Math.min(140, 50 + closing * 0.6), add = (e, k, sgn) => { const m = v * k * 2 * (e.kb || 1); e.kx = (e.kx || 0) + sgn * nx * m; e.ky = (e.ky || 0) + sgn * ny * m; const mg = Math.hypot(e.kx, e.ky); if (mg > 140) { e.kx *= 140 / mg; e.ky *= 140 / mg; } };
+          add(c, ma / (ma + mc), 1); add(a, mc / (ma + mc), -1);
+          a.bumpAt = c.bumpAt = B.t; a.shoveT = c.shoveT = 0;   // the charge ends on impact
+          B.fx.push({ k: 'flip', x: (a.x + c.x) / 2, y: (a.y + c.y) / 2, life: 0.2 });
+        }
+      } }
     for (let k = B.bullets.length - 1; k >= 0; k--) {
       const q = B.bullets[k];
       q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
