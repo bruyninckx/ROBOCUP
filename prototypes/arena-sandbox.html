@@ -13,7 +13,7 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -appl
 button, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--ink); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
 select { padding: 3px 6px; min-width: 0; }
 button:focus-visible, select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-canvas { display: block; width: 100%; height: auto; border: 1px solid var(--ink); background: var(--bg); }
+canvas { display: block; width: 100%; height: auto; border: 2px solid #2B2118; border-radius: 6px; background: #E4E1DA; }
 .robots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .rb { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
 .rb h2 { font-size: 15px; margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -92,8 +92,8 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     <span id="countWrap"><label for="count">Robots</label> <select id="count"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="6">6 (3 vs 3)</option><option value="8">8 (4 vs 4)</option></select></span>
     <button id="rand">Random squads</button>
     <label><input type="checkbox" id="hideMods"> Hide modules until they trigger</label>
-    <select id="mode" aria-label="Mode"><option value="squad" selected>Squadron battle</option><option value="ffa">Free-for-all</option><option value="team">Teams (blue vs red)</option></select>
-    <span id="cards"><label for="cardA" style="color:#1f6feb;font-weight:600">Blue</label> <select id="cardA"></select> <label for="cardB" style="color:#d62828;font-weight:600">Red</label> <select id="cardB"></select></span>
+    <select id="mode" aria-label="Mode"><option value="squad" selected>Squadron battle</option><option value="ffa">Free-for-all</option><option value="team">Teams (steel vs rust)</option></select>
+    <span id="cards"><label for="cardA" style="color:#3F78A8;font-weight:600">Steel</label> <select id="cardA"></select> <label for="cardB" style="color:#C8642B;font-weight:600">Rust</label> <select id="cardB"></select></span>
     <span class="msg" id="msg"></span>
   </div>
   <div class="panel" id="odds">
@@ -145,6 +145,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
 </div>
 
 <script src="../src/sim.js"></script>
+<script src="../src/sprites.js"></script>
 <script>
 (function () {
   'use strict';
@@ -208,8 +209,10 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     const id = card[side], ex = EXAMPLES[id][0], start = side === 'A' ? 0 : slotsA();
     ex.forEach((b, k) => { sel[start + k] = { name: EXNAME[id] + (ex.length > 1 ? ' ' + (k + 1) : ''), b: clone(b), ex: id }; });
   }
-  const FFA_COL = ['#1f6feb', '#d62828', '#2a9d3a', '#f08c00'];
-  const TEAM_COL = ['#1f6feb', '#d62828'];
+  // Kev, 6 Nov: Scrapyard robots (src/sprites.js) in the team palette: Steel, Rust, Moss, Plum
+  const P = RobotSprite.PALETTE, FFA_COL = [P.steel, P.rust, P.moss, P.plum, '#2E8C86', '#B8862B', '#6B6B6B', '#A34A5E'];
+  const TEAM_COL = [P.steel, P.rust];
+  const SIDE = ['Steel', 'Rust'];
   const colOf = i => teamMode() ? TEAM_COL[teamOf(i)] : FFA_COL[i];
 
   const robotsEl = document.getElementById('robots');
@@ -227,7 +230,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   function renderRobot(i) {
     const R = sel[i], b = R.b, C = cardOf(i);
     const pts = Sim.cost(b);
-    let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + (teamOf(i) ? 'red' : 'blue') + (mode === 'squad' ? ' · ' + C.name : ' team') + '</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
+    let h = '<h2><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + colOf(i) + '"></span>Robot ' + LET[i] + (teamMode() ? ' <span style="font-weight:400;color:var(--muted)">' + SIDE[teamOf(i)].toLowerCase() + (mode === 'squad' ? ' · ' + C.name : ' team') + '</span>' : '') + ' <select data-k="preset" aria-label="Preset">' +
       (ALL[R.name] || R.name === 'Custom' ? '' : opt(R.name, R.name, R.name)) + '<optgroup label="Presets">' + Object.keys(PRESETS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Starter deck">' + Object.keys(STARTERS).map(n => opt(n, n, R.name)).join('') + '</optgroup><optgroup label="Robot cards">' + Object.keys(CARDS).map(n => opt(n, n.slice(6), R.name)).join('') + '</optgroup>' + opt('Custom', 'Custom', R.name) + '</select>' +
       '<span class="pts' + (pts > C.points ? ' over' : '') + '">' + pts + ' / ' + C.points + ' points</span></h2>' +
       '<p class="desc">' + (ALL[R.name] ? ALL[R.name].d : R.ex ? 'Example ' + Sim.SQUADS[R.ex].name + ' robot found by the tuning simulations. Stats can go up to level ' + Sim.SQUADS[R.ex].cap + '.' : 'Your own build. Points over the budget are allowed here, just not fair.') + '</p>' +
@@ -359,9 +362,9 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     recapEl.hidden = true; recapEl.innerHTML = '';
     startOdds(builds);
     document.getElementById('msg').textContent = mode === 'squad'
-      ? 'Blue ' + Sim.SQUADS[card.A].name + ' (' + slotsA() + ')  vs  Red ' + Sim.SQUADS[card.B].name + ' (' + Sim.SQUADS[card.B].slots + ')'
+      ? 'Steel ' + Sim.SQUADS[card.A].name + ' (' + slotsA() + ')  vs  Red ' + Sim.SQUADS[card.B].name + ' (' + Sim.SQUADS[card.B].slots + ')'
       : teamMode()
-      ? 'Blue: ' + sel.slice(0, count / 2).map(r => r.name).join(', ') + '  vs  Red: ' + sel.slice(count / 2, count).map(r => r.name).join(', ')
+      ? 'Steel: ' + sel.slice(0, count / 2).map(r => r.name).join(', ') + '  vs  Rust: ' + sel.slice(count / 2, count).map(r => r.name).join(', ')
       : sel.slice(0, count).map(r => r.name).join(' vs ');
   }
 
@@ -386,7 +389,10 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     ctx.restore();
   }
   function draw() {
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#E4E1DA'; ctx.fillRect(0, 0, W, H);   // scrapyard concrete
+    ctx.strokeStyle = 'rgba(43, 33, 24, 0.06)'; ctx.lineWidth = 1;
+    for (let gx = 60; gx < W; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (let gy = 60; gy < H; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
     drawZone(ctx, B);
     // smoke clouds
     for (const sm of B.smokes) {
@@ -432,7 +438,13 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
       ctx.restore();
     }
     ctx.fillStyle = '#111111';
-    for (const q of B.bullets) { ctx.fillStyle = colOf(B.bots[q.owner].squad); ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.6 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill(); }
+    for (const q of B.bullets) {   // tracer streak + ink outline, bigger for heavy rounds (as in the tabletop)
+      const r = Math.min(7, 2.2 + Math.sqrt(q.dmg) * 0.75), sp = Math.hypot(q.vx || 0, q.vy || 0) || 1, tl = Math.min(34, 8 + r * 3.5);
+      ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(232, 197, 71, 0.6)'; ctx.lineWidth = r * 1.3;
+      ctx.beginPath(); ctx.moveTo(q.x - q.vx / sp * tl, q.y - q.vy / sp * tl); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.fillStyle = colOf(B.bots[q.owner].squad); ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
     // mortar shells: landing ring + shell in the air
     for (const q of B.shells) {
       const u = q.t / q.T;
@@ -460,53 +472,21 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     }
     for (const b of B.bots) {
       if (b.helper) { drawHelper(b); continue; }
-      ctx.save(); ctx.translate(b.x, b.y);
-      if (b.hp <= 0) {
-        ctx.rotate(b.body); ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 2; ctx.strokeRect(-b.size / 2, -b.size / 2, b.size, b.size);
-        ctx.beginPath(); ctx.moveTo(-b.size / 2, -b.size / 2); ctx.lineTo(b.size / 2, b.size / 2); ctx.moveTo(b.size / 2, -b.size / 2); ctx.lineTo(-b.size / 2, b.size / 2); ctx.stroke();
-        ctx.restore(); continue;
-      }
-      if (b.air > 0) { ctx.fillStyle = '#000000'; ctx.globalAlpha = 0.15; ctx.beginPath(); ctx.ellipse(0, b.size * 0.45, b.size * 0.55, b.size * 0.25, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; ctx.translate(0, -10); ctx.scale(1.15, 1.15); }
-      ctx.save(); ctx.rotate(b.body);
-      // drive: tracks = dark treads, omni = 4 corner wheels, boost = exhaust (flame while dashing)
-      const S2 = b.size / 2;
-      if (b.drive === 'tracks') { ctx.fillStyle = '#111111'; ctx.fillRect(-S2 - 2, -S2 - 4, b.size + 4, 5); ctx.fillRect(-S2 - 2, S2 - 1, b.size + 4, 5); }
-      else if (b.drive === 'omni') { ctx.fillStyle = '#111111'; for (const [ax, ay] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.beginPath(); ctx.arc(ax * S2, ay * S2, 4, 0, 7); ctx.fill(); } }
-      else if (b.drive === 'boost') { ctx.fillStyle = b.dashT > 0 ? '#f08c00' : '#111111'; ctx.fillRect(-S2 - (b.dashT > 0 ? 14 : 5), -4, b.dashT > 0 ? 14 : 5, 8); }
-      ctx.fillStyle = colOf(b.i); ctx.globalAlpha = b.hitT > 0 ? 0.45 : 1;
-      ctx.fillRect(-b.size / 2, -b.size / 2, b.size, b.size); ctx.globalAlpha = 1;
-      const ar = sel[b.i].b.lv.armor;
-      if (ar > 0) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; for (let k = 0; k < Math.min(ar, 4); k++) ctx.strokeRect(-b.size / 2 + 3 + k * 3, -b.size / 2 + 3 + k * 3, b.size - 6 - k * 6, b.size - 6 - k * 6); }
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(b.size / 2 - 5, -3, 3, 6);
-      ctx.restore();
-      ctx.rotate(b.turret);
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111111'; ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill();
-      const w = b.s.weapon, cal = b.s.cal;
-      if (w === 'spinner') {
-        ctx.rotate((b.spin || 0) - b.turret);
-        ctx.strokeStyle = '#111111'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, b.size * 0.7, 0, 7); ctx.stroke();
-        ctx.fillStyle = '#111111'; ctx.fillRect(-b.size * 0.77, -3, b.size * 1.54, 6);
-      }
-      else if (w === 'flame') { ctx.fillRect(0, -3.5, 18, 7); ctx.fillRect(14, -5, 5, 10); }
-      else if (w === 'saw') { ctx.fillRect(0, -4, 14, 8); ctx.beginPath(); ctx.arc(16, 0, 5, 0, 7); ctx.fill(); }
-      else if (w === 'mortar') ctx.fillRect(0, -5, 16, 10);
-      else if (w === 'laser') ctx.fillRect(0, -1.5, 24, 3);
-      else if (w === 'railgun') { ctx.fillRect(0, -4, 32, 2.5); ctx.fillRect(0, 1.5, 32, 2.5); }
-      else ctx.fillRect(0, cal === 'heavy' ? -4 : cal === 'rapid' ? -1.5 : -2.5, cal === 'heavy' ? 30 : cal === 'rapid' ? 22 : 26, cal === 'heavy' ? 8 : cal === 'rapid' ? 3 : 5);
-      ctx.restore();
+      // Scrapyard sprite (src/sprites.js): hull in the side's colour, damage marks, broken parts smoke, a wreck when destroyed
+      const air = b.air > 0;
+      if (air) { ctx.fillStyle = '#000000'; ctx.globalAlpha = 0.15; ctx.beginPath(); ctx.ellipse(b.x, b.y + b.size * 0.45, b.size * 0.55, b.size * 0.25, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.globalAlpha = b.hitT > 0 && b.hp > 0 ? 0.6 : 1;
+      RobotSprite.draw(ctx, b.x, b.y - (air ? 10 : 0), b.body, b.turret, colOf(b.i), Object.assign({}, sel[b.i].b, { size: b.size }), b.hp / b.s.hp, null, null, false, b.overclockT > 0, performance.now(), air ? 1.15 : 1, b);
+      ctx.globalAlpha = 1;
+      if (b.hp <= 0) continue;
       if (b.hp > 0) drawMod(b);
       ctx.fillStyle = colOf(b.i); ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(LET[b.i] + ' · ' + sel[b.i].name, b.x, b.y - b.size / 2 - 16);
+      const top = b.s.weapon === 'spinner' ? b.size * 0.95 : b.size * 0.62 + 4;
+      ctx.fillText(LET[b.i] + ' · ' + sel[b.i].name, b.x, b.y - top - 16);
       const bw = 44, frac = Math.max(0, b.hp / b.s.hp);
-      ctx.strokeStyle = colOf(b.i); ctx.lineWidth = 1; ctx.strokeRect(b.x - bw / 2, b.y - b.size / 2 - 11, bw, 5);
-      ctx.fillRect(b.x - bw / 2, b.y - b.size / 2 - 11, bw * frac, 5);
-    }
-    // broken parts: a thin trail of grey smoke
-    for (const b of B.bots) if (b.hp > 0 && b.broken && b.broken.length) {
-      ctx.fillStyle = '#8a8a8a';
-      for (let k = 0; k < 3; k++) { const u = (B.t * 0.9 + k / 3) % 1; ctx.globalAlpha = 0.45 * (1 - u); ctx.beginPath(); ctx.arc(b.x - 8 + Math.sin(u * 6 + k) * 4, b.y - 6 - u * 26, 3 + u * 5, 0, 7); ctx.fill(); }
-      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#2B2118'; ctx.fillRect(b.x - bw / 2 - 1, b.y - top - 12, bw + 2, 7);
+      ctx.fillStyle = '#f2f0ea'; ctx.fillRect(b.x - bw / 2, b.y - top - 11, bw, 5);
+      ctx.fillStyle = colOf(b.i); ctx.fillRect(b.x - bw / 2, b.y - top - 11, bw * frac, 5);
     }
     for (const b of B.bots) if (b.hp > 0 && b.burn > 0) {
       const fl = 6 + Math.sin(B.t * 30 + b.i) * 2;
@@ -546,7 +526,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     ctx.fillText(B.t.toFixed(1) + ' s', W - 50, 18);
     if (B.over) {
       ctx.fillStyle = '#111111'; ctx.font = '700 22px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(B.winner < 0 ? 'Draw' : teamMode() ? (B.winner === 0 ? 'Blue' : 'Red') + ' team wins' : LET[B.winner] + ' · ' + sel[B.winner].name + ' wins', W / 2, 40);
+      ctx.fillText(B.winner < 0 ? 'Draw' : teamMode() ? SIDE[B.winner] + ' team wins' : LET[B.winner] + ' · ' + sel[B.winner].name + ' wins', W / 2, 40);
       if (teamMode() && B.winner >= 0) {
         const mine = B.bots.filter(b => !b.helper && b.team === B.winner).length, theirs = B.bots.filter(b => !b.helper && b.team !== B.winner).length;
         if (mine < theirs) { ctx.fillStyle = '#b3261e'; ctx.font = '800 18px system-ui, sans-serif'; ctx.fillText(mine === 1 ? 'GIANT SLAYER! One robot beat ' + theirs + '.' : 'Outnumbered ' + mine + ' to ' + theirs + ' and still won!', W / 2, 66); }
@@ -558,7 +538,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   const statusEl = document.getElementById('status');
   function updateStatus() {
     const groups = [];
-    if (teamMode()) for (const t of [0, 1]) groups.push({ label: (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], bots: B.bots.filter(b => b.team === t) });
+    if (teamMode()) for (const t of [0, 1]) groups.push({ label: SIDE[t] + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], bots: B.bots.filter(b => b.team === t) });
     else for (const b of B.bots) if (!b.helper) groups.push({ label: LET[b.i] + ' ' + sel[b.i].name, col: colOf(b.i), bots: B.bots.filter(x => x.squad === b.i) });
     statusEl.innerHTML = groups.map(g => {
       const mains = g.bots.filter(b => !b.helper), helpers = g.bots.filter(b => b.helper);
@@ -614,7 +594,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
   let oddsJob = null, oddsKey = null, oddsGroups = [];
   const recapEl = document.getElementById('recap');
   function groupsNow() {
-    if (teamMode()) return [0, 1].map(t => ({ name: (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], idx: [...Array(count).keys()].filter(i => teamOf(i) === t) }));
+    if (teamMode()) return [0, 1].map(t => ({ name: SIDE[t] + (mode === 'squad' ? ' · ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'), col: TEAM_COL[t], idx: [...Array(count).keys()].filter(i => teamOf(i) === t) }));
     return [...Array(count).keys()].map(i => ({ name: LET[i] + ' ' + sel[i].name, col: colOf(i), idx: [i] }));
   }
   function startOdds(builds) {
@@ -775,7 +755,7 @@ ul.note { padding-left: 18px; display: grid; gap: 3px; }
     }).join('') + '</table></div>';
   }
   function renderRecap() {
-    const R = Sim.recap(B, i => LET[i] + ' ' + sel[i].name, t => (t ? 'Red' : 'Blue') + (mode === 'squad' ? ' ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'));
+    const R = Sim.recap(B, i => LET[i] + ' ' + sel[i].name, t => SIDE[t] + (mode === 'squad' ? ' ' + Sim.SQUADS[t ? card.B : card.A].name : ' team'));
     // upset: the winner was an underdog or long shot on the bookie's board
     let upset = '';
     if (B.winner >= 0 && oddsDone()) {
