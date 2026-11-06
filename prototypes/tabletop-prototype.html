@@ -585,7 +585,10 @@ html, body {
   const LIVE_KEYS = { 'Remote Trigger': 'trigger', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card' };
   const LIVE_TARGET = { trigger: 'bot', waypoint: 'arena', overclock: 'bot', field_eng: 'bot', oil_card: 'arena', emp_card: 'arena' };
   const LIVE_ICON = { trigger: '🎛️', waypoint: '📍', overclock: '🎯', field_eng: '👷', oil_card: '🛢️', emp_card: '🧲' };
-  const LATER = new Set(['Grand Melee', 'Unleash the House Robot', 'Swap the Entry', 'Hedge Bet', "Bookie's Friend", 'Mirror', 'Grand Final', 'Tag Team Licence']);
+  // Arena cards (Kev, 6 Nov): played in the Host step (after the host bid, before invites) or the Bets step, from the prompt.
+  // Grand Final and Tag Team Licence are Intrigue schemes that set up this round's fight.
+  const ARENA_STEP = { 'Grand Melee': 'host', 'Unleash the House Robot': 'host', 'Mirror': 'host', "Bookie's Friend": 'bets', 'Hedge Bet': 'bets', 'Swap the Entry': 'bets' };
+  const LATER = new Set(Object.keys(ARENA_STEP));
   const BLOCKERS = new Set(['Paid Off', 'Fall Guy', 'Firewall', 'PR Spin', 'Not My Robot', "Sponsor's Lawyers", 'Under the Radar', 'Overreach']);
   const TURN_REACTIONS = new Set(['Fire Sale', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Backup Restore']);
   const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory', 'Botched Install']);
@@ -601,7 +604,7 @@ html, body {
     const live = LIVE_KEYS[name], id = live || slugOf(name);
     const phase = live ? 'fight' : LATER.has(name) ? 'later' : (t === 'S' || t === 'F') ? 'intrigue' : name === 'Security Bot' ? 'security' : 'reaction';
     const target = live ? LIVE_TARGET[live] : ANY_T.includes(name) ? 'any' : RIVAL_T.includes(name) ? 'rival' : NONE_T.includes(name) ? 'none' : 'self';
-    CARDS[id] = { id, name, fam, t, gate, cash: +cash || 0, text, phase, target, icon: live ? LIVE_ICON[live] : FAM_ICON[fam] || '🃏',
+    CARDS[id] = { id, name, fam, t, gate, cash: +cash || 0, text, phase, step: ARENA_STEP[name] || null, target, icon: live ? LIVE_ICON[live] : FAM_ICON[fam] || '🃏',
       need: typeof gate === 'number' ? gate : 0, harmful: HARMFUL_FAMS.has(fam) || name === 'Smash and Grab' };
     for (let k = 0; k < copies; k++) DECK_TEMPLATE.push(id);
   }
@@ -881,6 +884,17 @@ html, body {
     if (scouted()) return pctTxt(a) + '→' + pctTxt(b);
     return bandOf(a) === bandOf(b) ? bandOf(a).short + ' =' : bandOf(a).short + '→' + bandOf(b).short;
   }
+  // the same, as display parts: text ("Heavy dog → Underdog"), short ("H.dog → Dog"), colour (better / same / worse)
+  function oddsShiftRaw(ti, r, L) {
+    const nb = lotBuild(r, L);
+    if (!nb) return undefined;
+    const a = fieldOdds(ti, r.b).p, b = fieldOdds(ti, nb).p;
+    if (a == null || b == null) return null;
+    const A = bandOf(a), Bd = bandOf(b), up = BANDS.indexOf(Bd) < BANDS.indexOf(A), same = A === Bd;
+    const col = same ? '#777' : up ? '#17803a' : '#d62828';
+    if (scouted()) return { text: pctTxt(a) + ' → ' + pctTxt(b), short: pctTxt(a) + '→' + pctTxt(b), col: b > a + 0.005 ? '#17803a' : b < a - 0.005 ? '#d62828' : '#777' };
+    return { text: same ? A.short + ' (no change)' : A.short + ' → ' + Bd.short, short: same ? BAND_ABBR[A.name] + ' =' : BAND_ABBR[A.name] + '→' + BAND_ABBR[Bd.name], col };
+  }
   // counter tags for a whole robot, or for one Market lot
   const clsShort = k => Sim.WEAPON_CLASSES[k] ? Sim.WEAPON_CLASSES[k].short : k;
   const clsName = k => Sim.WEAPON_CLASSES[k] ? Sim.WEAPON_CLASSES[k].name : k;
@@ -1085,10 +1099,10 @@ html, body {
     t.credits -= SPAR_PRICE; t.sparRound = G.round;
     closeScout();
     G.spar = { returnPhase: G.phase, prevFight: G.fight };
-    G.fight = { spar: true, sandbox: true, teams: [viewerSeat, T2.i], robots: [r, r2], bets: [] };
+    G.fight = { spar: true, sandbox: true, teams: [viewerSeat, T2.i], robots: [r, r2], sides: [0, 1], nSides: 2, format: 'duel', bets: [] };
     G.phase = 'fight';
     const F = G.fight;
-    F.B = Sim.newBattle([clone(r.b), clone(r2.b)], (rnd() * 4294967296) >>> 0);
+    { const m = buildBattle(F, (rnd() * 4294967296) >>> 0, true, true); F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds; F.entBot = [0, 1]; }
     F.rollout = 0; F.rolloutDone = false;
     notify('🥊 Sparring match: <b>' + esc(r.name) + '</b> vs ' + esc(T2.name) + '\'s <b>' + esc(r2.name) + '</b>. No damage, no fame.', t.col);
     setCameraGoal('arena');
@@ -1197,21 +1211,29 @@ html, body {
         $('#pAct1').onclick = () => resolveMarket(G.myBids);
       }
     } else if (G.phase === 'arena') {
-      if (G.chooseMyBot) {
-        pb.innerHTML = '<span>⚔️ <b>Invited to Fight!</b> Adjust your Engineers (👷) & Focus in the South Garage, then click a Bay\'s <b>Send to Pit</b> button.</span>' +
-          '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>';
-        $('#pAct1').onclick = declineInvite;
+      if (G.hostStep) {
+        pb.innerHTML = '<span>🏟️ <b>Host step:</b> the host may play Mirror or Unleash the House Robot, anyone may play Grand Melee…</span>';
+      } else if (G.chooseMyBot) {
+        const ev = G.fight && G.fight.format !== 'duel' && G.fight.format !== 'mirror';
+        pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Adjust your Engineers (👷) & Focus, then click a Bay\'s <b>Send to Pit</b> button.' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + '</span>' +
+          (ev ? '' : '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>');
+        if (!ev) $('#pAct1').onclick = declineInvite;
       } else if (G.host === viewerSeat) {
         const n = (G.pickTeams || []).length;
-        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked).</span>' +
+        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked)' + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
         $('#pAct1').onclick = () => invite(G.pickTeams.slice());
       }
     } else if (G.phase === 'bets') {
-      const b0 = G.myBet[0], b1 = G.myBet[1], lim = maxBetOf(t);
-      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a Fighter Card in the Arena to bet up to ' + lim + ' Cr (' + (b0 + b1) + ' Cr staked).</span>' +
-        '<button class="act" id="pAct1">Open Blast Doors & Fight! →</button>';
+      const lim = betLimit(t), staked = G.myBet.reduce((a, b) => a + b, 0);
+      const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
+      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side in the Arena to bet up to ' + lim + ' Cr (' + staked + ' Cr staked)' + (G.hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
+        (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
+        (can('hedge_bet') && !G.hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
+        '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock Bets & Fight! →</button>';
       $('#pAct1').onclick = lockBetsAndRollout;
+      if ($('#pBF')) $('#pBF').onclick = humanBookiesFriend;
+      if ($('#pHB')) $('#pHB').onclick = humanHedgeBet;
     } else if (G.phase === 'fight' && G.fight && G.fight.spar) {
       pb.innerHTML = '<span>🥊 <b>Sparring match:</b> ' + esc(G.fight.robots[0].name) + ' vs ' + esc(G.fight.robots[1].name) + '. A test fight: no damage, no fame, no cards.</span>' +
         '<button class="act secondary" id="pAct1">Skip</button>';
@@ -1305,14 +1327,14 @@ html, body {
       const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena' : c.phase === 'security' ? '🤖 Security' :
                       c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
       const targetHint = c.phase === 'security' ? 'Install: drag to your garage' :
-                         c.phase === 'later' ? 'Arena card: cash in for now' :
+                         c.phase === 'later' ? (c.step === 'host' ? 'Host step: play from the prompt' : 'Bets step: play from the prompt') :
                          c.phase === 'fight' ? (c.target === 'bot' ? 'Fight: drag to a robot' : 'Fight: drag to the floor') :
                          BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
                          c.target === 'rival' ? 'Drag to a rival garage' : c.target === 'any' ? 'Drag to any garage' : 'Drag onto the table';
       const gateTxt = c.gate === '▲' ? '▲ more fame' : c.gate === '▼' ? '▼ less fame' : need ? '★' + need : '';
 
       const typeHelp = c.phase === 'fight' ? 'Live combat card: play it into a running fight (drag onto a robot or the floor).' :
-                       c.phase === 'later' ? 'Arena card: works around the fight (events, swaps, side bets). In this prototype you can only cash it in for now.' :
+                       c.phase === 'later' ? (c.step === 'host' ? 'Arena card for the <b>Host step</b> (after the host bid, before invites): the prompt offers it then' + (c.name === 'Grand Melee' ? ' to everyone.' : ' to the host.') : 'Arena card for the <b>Bets step</b>: the prompt offers it while bets are open' + (c.name === 'Swap the Entry' ? ' (it plays right after bets are locked).' : '.')) + ' You can also cash it in on your Intrigue turn.' :
                        c.phase === 'security' ? 'Security Bot: discard it to roll 4–6 and block a scheme, or install it in your garage as a lasting guard.' :
                        c.t === 'F' ? 'Face-down card: put it on a robot without showing it. It stays hidden (the bookie can\'t see it) until that robot\'s next fight.' :
                        c.t === 'R' ? 'Reaction: played in response, often outside your own turn (in a 5-second window).' : 'Scheme: played on your Intrigue turn.';
@@ -1691,7 +1713,8 @@ html, body {
   /* ---------- card effects ---------- */
   function precheck(F, c, T) {
     const n = c.name;
-    if (c.phase === 'later') return 'This is an Arena card that arrives with event fights. Cash it in for now.';
+    if (c.phase === 'later') return 'Arena card: the prompt offers it in the ' + (c.step === 'host' ? 'Host step (after the host bid)' : 'Bets step') + '. Or cash it in now.';
+    if (n === 'Tag Team Licence' && !readyRobots(F).length) return 'You need a ready robot to team up.';
     if (WINDOW_ONLY.has(n) || BLOCKERS.has(n)) return 'This card plays automatically in a reaction window.';
     if (c.target === 'rival' && (!T || T === F)) return 'Drop it on a rival garage.';
     const need = { 'Public Demo': 3, 'Bribe Scandal': 3, 'Paparazzi': 3, 'Launch Party': 6, 'Joint Venture': 2 }[n];
@@ -1723,6 +1746,20 @@ html, body {
       : T.robots.length >= 3 || T.fame <= 2;
     if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
+  }
+  // Tag Team Licence: pick an ally; it may refuse for −1 fame
+  async function tagTeam(F, id) {
+    const others = G.teams.filter(o => o !== F && readyRobots(o).length);
+    if (!others.length) { notify('🤝 Tag Team: nobody has a ready robot to team up with.', F.col); return; }
+    let ally;
+    if (F.i === viewerSeat) ally = await ivModal('🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0);
+    else ally = others.filter(o => o !== leaderOf()).sort((a, b) => Math.max(...readyRobots(b).map(power)) - Math.max(...readyRobots(a).map(power)))[0] || others[0];
+    const yes = ally.i === viewerSeat
+      ? await ivModal('🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 8000, true)
+      : !(ally === leaderOf() && rnd() < 0.5);
+    if (!yes) { addFame(ally, -1); notify('✋ ' + nm(ally) + ' refuses the Tag Team (−1 fame). The fight stays a duel.', ally.col); return; }
+    G.nextEvent = { kind: 'tag', teams: [F.i, ally.i], by: F.i, card: id };
+    notify('🤝 Tag Team: ' + nm(F) + ' and ' + nm(ally) + ' fight together this round, 2v2.', F.col);
   }
   async function resolveScheme(F, id, T) {
     const c = CARDS[id], n = c.name, say = h => notify(h, F.col);
@@ -1774,6 +1811,8 @@ html, body {
       case 'Hostile Buyout': await hostileBuyout(F, T); break;
       case 'Shill Bidder': T.shill = (T.shill || 0) + 2; say('🏢 Shill Bidder: ' + nm(T) + '\'s bids count 2 lower this round.'); break;
       case 'Backup Restore': G.discard.splice(G.discard.indexOf('firewall'), 1); F.hand.push('firewall'); say('🛡️ ' + nm(F) + ' takes Firewall back from the discard pile.'); break;
+      case 'Grand Final': G.nextEvent = { kind: 'final', by: F.i, card: id }; say('🏆 Grand Final: this round\'s fight is 2v2, the two fame leaders vs the other two. Double fame.'); break;
+      case 'Tag Team Licence': await tagTeam(F, id); break;
       default: say('🃏 ' + esc(n) + ' has no effect yet.');
     }
     if (F.ivNmr) { F.ivNmr = false; if (c.harmful) { addFame(F, -1); notify('🙅 ' + nm(F) + ' loses 1 fame (Not My Robot).', F.col); } }
@@ -1847,6 +1886,8 @@ html, body {
   }
   function aiWants(F, c, T) {
     const n = c.name;
+    if (n === 'Grand Final') { const top = G.teams.slice().sort((a, b) => b.fame - a.fame).slice(0, 2); return top.includes(F) && readyRobots(F).length > 0; }
+    if (n === 'Tag Team Licence') return readyRobots(F).length > 0 && rnd() < 0.6;
     if (n === 'Robot Rights Protest' || n === 'Fire Sale' || n === 'Backup Restore') return false;
     if (c.fam === 'Smear' && T && T.fame < F.fame - 1) return false;
     if (n === 'Underdog Story') { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); return s[0] === F && s[1].fame > F.fame; }
@@ -2339,12 +2380,41 @@ html, body {
     A.wins = A.wins.filter(x => !x.botched);
   }
 
-  /* ---------- Phase 4: Host Invites ---------- */
-  function startArena() {
+  /* ---------- Phase 4: Host step, then invites ----------
+   * Kev, 6 Nov: Arena cards. The fight has a format: 'duel' (host invites 2), 'mirror' (duel, every robot fights as
+   * 2 copies), 'ffa' (Grand Melee: every team with a ready robot), '2v2' (Grand Final / Tag Team Licence). The House
+   * Robot can join any format. A fight has entrants (one team + robot each) on sides: F.teams[e], F.robots[e],
+   * F.sides[e]; bets, odds and the winner are per side. */
+  const HOUSE_BUILD = { lv: L(3, 2, 2, 2, 3, 2, 1), range: 'mid', weapon: 'gun', cal: 'heavy', mod: null, helpers: [], eng: 2 };
+  const HOUSE_COL = '#5b5b5b';
+  const FORMAT_NAME = { duel: 'Duel', mirror: 'Mirror duel', ffa: 'Free-for-all', '2v2': '2v2' };
+  const sideTeams = (F, sd) => F.teams.filter((_, e) => F.sides[e] === sd);
+  const sideName = (F, sd) => sd === 'house' || sd === 9 ? 'House Robot' : sideTeams(F, sd).map(ti => G.teams[ti].name).join(' + ');
+  const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
+  const sideLabel = (F, sd) => sideRobots(F, sd).map(r => r.name).join(' + ');
+  const mySide = F => { const e = F.teams.indexOf(viewerSeat); return e >= 0 ? F.sides[e] : -1; };
+  const fightTitle = F => (F.house ? '🏠 ' : '') + (FORMAT_NAME[F.format] || 'Duel');
+
+  async function startArena() {
     G.phase = 'arena';
     G.chooseMyBot = false;
+    G.fight = null;
     setCameraGoal('compound');
-    const H = G.host;
+    // the format this round: from an Intrigue event (Grand Final / Tag Team), then the Host step may change it
+    G.arenaEvent = G.nextEvent || null;
+    G.houseRobot = false;
+    G.hostStep = true; updateHud();
+    await hostStep();
+    G.hostStep = false;
+    const ev = G.arenaEvent, H = G.host;
+    if (ev && ev.kind === 'ffa') return invite(G.teams.map(t => t.i), G.teams.map((_, i) => i), 'ffa');
+    if (ev && (ev.kind === 'final' || ev.kind === 'tag')) {
+      let a = ev.kind === 'final' ? G.teams.slice().sort((x, y) => y.fame - x.fame || x.i - y.i).slice(0, 2).map(t => t.i) : ev.teams.slice();
+      const b = G.teams.map(t => t.i).filter(i => !a.includes(i));
+      return invite(a.concat(b), [0, 0, 1, 1], '2v2');
+    }
+    const fmt = ev && ev.kind === 'mirror' ? 'mirror' : 'duel';
+    G.pendingFormat = fmt;
     if (H === viewerSeat) {
       G.pickTeams = [];
       updateHud();
@@ -2361,29 +2431,68 @@ html, body {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = s[1].i;
     }
-    notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + '!', host.col);
-    invite([a, b]);
+    notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : '') + '!', host.col);
+    invite([a, b], [0, 1], fmt);
   }
 
-  function invite(pair) {
-    G.fight = { teams: pair, robots: [null, null] };
-    // a team with no ready robot must decline (−1 fame); a team with a ready robot steps in
-    pair.forEach((ti, s) => {
+  // Host step: the host may play Mirror or Unleash the House Robot, anyone may play Grand Melee (host first, then clockwise)
+  async function hostStep() {
+    const H = G.host;
+    const usable = (t, id) => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0) && (id === 'grand_melee' || t.i === H);
+    const fmtNow = () => G.arenaEvent ? ({ ffa: 'a free-for-all', mirror: 'a Mirror duel', final: 'the Grand Final (2v2)', tag: 'a Tag Team 2v2' })[G.arenaEvent.kind] : 'a duel';
+    for (const ti of [0, 1, 2, 3].map(k => (H + k) % 4)) {
       const t = G.teams[ti];
-      if (readyRobots(t).length) return;
+      for (;;) {
+        const active = { grand_melee: G.arenaEvent && G.arenaEvent.kind === 'ffa', mirror: G.arenaEvent && G.arenaEvent.kind === 'mirror', unleash_the_house_robot: G.houseRobot };
+        const opts = ['grand_melee', 'mirror', 'unleash_the_house_robot'].filter(id => usable(t, id) && !active[id]);   // nothing that is already in force
+        if (!opts.length) break;
+        let id = null;
+        if (ti === viewerSeat) {
+          id = await ivModal('🏟️ Host step', 'This round\'s fight is ' + fmtNow() + (G.houseRobot ? ' with the House Robot' : '') + '. ' + (ti === H ? 'You are the host. ' : '') + 'Play an Arena card?' +
+            opts.map(o => '<br>' + cardRef(o) + ': ' + esc(CARDS[o].text)).join(''),
+            opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(CARDS[o].name), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 12000, null);
+        } else {
+          const want = { grand_melee: ti === H ? 0.7 : 0.2, mirror: 0.45, unleash_the_house_robot: 0.5 };
+          id = opts.find(o => rnd() < want[o]) || null;
+        }
+        if (!id) break;
+        const ph = playHead(t, id, null); logBegin(ph[0], t.col, ph[1], ph[2]);
+        removeFromHand(t, id); discardCard(id);
+        if (id === 'grand_melee') { G.arenaEvent = { kind: 'ffa', by: ti, card: id }; notify('⚔️ Grand Melee: this round is a free-for-all for every team with a ready robot. The host gets +1 fame when it happens.'); }
+        if (id === 'mirror') { G.arenaEvent = { kind: 'mirror', by: ti, card: id }; notify('🪞 Mirror: each invited robot fights as 2 copies; afterwards it keeps the damage of its healthiest copy.'); }
+        if (id === 'unleash_the_house_robot') { G.houseRobot = true; notify('🏠 The House Robot joins this fight and attacks whoever is closest.'); }
+        logEnd('landed');
+        updateHud();
+        await sleep(350);
+      }
+    }
+  }
+
+  function invite(list, sides, format) {
+    format = format || G.pendingFormat || 'duel';
+    const teams = list.slice(), sd = (sides || list.map((_, i) => i)).slice();
+    // a team with no ready robot declines (−1 fame); in a duel a team with a ready robot steps in, in an event it just sits out
+    for (let e = teams.length - 1; e >= 0; e--) {
+      const t = G.teams[teams[e]];
+      if (readyRobots(t).length) continue;
       addFame(t, -1);
-      const repl = G.teams.filter(x => !pair.includes(x.i) && readyRobots(x).length)[0];
-      notify('😴 ' + nm(t) + ' has no ready robot and declines (−1 fame)' + (repl ? '; ' + nm(repl) + ' steps in.' : '.'), t.col);
-      if (repl) pair[s] = repl.i;
-    });
-    pair.forEach((ti, s) => {
+      const repl = format === 'duel' || format === 'mirror' ? G.teams.filter(x => !teams.includes(x.i) && readyRobots(x).length)[0] : null;
+      notify('😴 ' + nm(t) + ' has no ready robot and ' + (repl ? 'declines (−1 fame); ' + nm(repl) + ' steps in.' : 'sits out (−1 fame).'), t.col);
+      if (repl) teams[e] = repl.i; else { teams.splice(e, 1); sd.splice(e, 1); }
+    }
+    // renumber sides 0..n-1; an event left with one side is no fight
+    const used = [...new Set(sd)]; const sides2 = sd.map(x => used.indexOf(x));
+    if (used.length < 2) { notify('🏟️ Not enough teams with a ready robot: no fight this round.', '#b45309'); G.fight = null; G.phase = 'after'; G.awaitingJudgment = false; G.nextEvent = null; updateHud(); return; }
+    G.fight = { teams, robots: teams.map(() => null), sides: sides2, nSides: used.length, format, house: !!G.houseRobot, event: G.arenaEvent };
+    if (format === '2v2' || format === 'ffa') notify('🏟️ ' + fightTitle(G.fight) + ': ' + used.map((_, k) => esc(sideName(G.fight, k))).join(' vs ') + '.', '#111');
+    teams.forEach((ti, e) => {
       if (ti !== viewerSeat) {
         const t = G.teams[ti];
         rebalanceAiEngineers(t);
-        G.fight.robots[s] = readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
+        G.fight.robots[e] = readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
       }
     });
-    if (pair.includes(viewerSeat)) {
+    if (teams.includes(viewerSeat)) {
       G.chooseMyBot = true;
       updateHud();
     } else {
@@ -2392,84 +2501,180 @@ html, body {
   }
 
   function declineInvite() {
-    const t = me(), s = G.fight.teams.indexOf(viewerSeat);
+    const F = G.fight;
+    if (F.format !== 'duel' && F.format !== 'mirror') return;   // events can't be declined
+    const t = me(), s = F.teams.indexOf(viewerSeat);
     t.fame = Math.max(0, t.fame - 1);
-    const repl = G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat && readyRobots(x).length)[0] || G.teams.filter(x => !G.fight.teams.includes(x.i) && x.i !== viewerSeat)[0];
-    G.fight.teams[s] = repl.i;
-    G.fight.robots[s] = (readyRobots(repl).length ? readyRobots(repl) : repl.robots).slice().sort((a, b) => power(b) - power(a))[0];
+    const repl = G.teams.filter(x => !F.teams.includes(x.i) && x.i !== viewerSeat && readyRobots(x).length)[0] || G.teams.filter(x => !F.teams.includes(x.i) && x.i !== viewerSeat)[0];
+    F.teams[s] = repl.i;
+    F.robots[s] = (readyRobots(repl).length ? readyRobots(repl) : repl.robots).slice().sort((a, b) => power(b) - power(a))[0];
     G.chooseMyBot = false;
     notify('You declined (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
     afterChoose();
   }
 
+  // the battle for this fight: builds (copies for Mirror, the House Robot), sim teams, bot → entrant mapping
+  function buildBattle(F, seed, visible, noDamage) {
+    F.sides = F.sides || F.teams.map((_, i) => i); F.nSides = F.nSides || new Set(F.sides).size; F.format = F.format || 'duel';
+    const copies = F.format === 'mirror' ? 2 : 1, builds = [], botEnt = [], botName = [];
+    F.teams.forEach((ti, e) => {
+      const r = F.robots[e], b = visible ? clone(r.b) : fightBuild(ti, r);
+      for (let c = 0; c < copies; c++) { builds.push(clone(b)); botEnt.push(e); botName.push(r.name + (copies > 1 ? ' #' + (c + 1) : '')); }
+    });
+    const teamOpt = F.format === '2v2' || F.format === 'mirror' || (F.house && F.nSides === 2) ? botEnt.map(e => F.sides[e]) : null;
+    if (F.house) { builds.push(clone(HOUSE_BUILD)); botEnt.push(-1); botName.push('House Robot'); if (teamOpt) teamOpt.push(9); }
+    const B = Sim.newBattle(builds, seed, teamOpt ? { teams: teamOpt } : undefined);
+    if (!noDamage) B.bots.forEach((b, i) => { if (!b.helper && botEnt[i] >= 0) b.hp = Math.max(10, b.hp - F.robots[botEnt[i]].dmg); });
+    if (F.house) {   // the House Robot drops in at the top middle
+      const hb = B.bots[builds.length - 1]; hb.x = B.W / 2; hb.y = 70; hb.body = hb.turret = Math.PI / 2;
+      B.bots.filter(x => x.helper && x.owner === hb.i).forEach(x => { x.x = hb.x; x.y = hb.y + 30; });
+    }
+    return { B, builds, botEnt, botName, teamOpt };
+  }
+  // which side won: a side index, 'house', or -1 for a draw
+  function winSide(F, B, map) {
+    if (B.winner < 0) return -1;
+    if (map.teamOpt) return B.winner === 9 ? 'house' : B.winner;
+    const e = map.botEnt[B.winner];
+    return e == null || e < 0 ? 'house' : F.sides[e];
+  }
+
   function afterChoose() {
     G.chooseMyBot = false;
+    const F = G.fight;
     // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
-    G.fight.teams.forEach((ti, s) => { const T = G.teams[ti], r = G.fight.robots[s]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
-    // Bookie simulates 40 fights of the builds: all parts are open, only face-down Intrigue cards stay hidden
-    const [ra, rb] = G.fight.robots;
-    const visA = clone(ra.b), visB = clone(rb.b);
-    let w = 0; const N = 40;
+    F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; T.credits += r.wins >= favWins(T) ? 6 : 2 + 2 * r.wins; });
+    // Bookie simulates the visible builds: all parts are open, only face-down Intrigue cards stay hidden
+    const N = F.nSides === 2 && F.teams.length === 2 && !F.house && F.format === 'duel' ? 40 : 20;
+    const w = Array(F.nSides).fill(0);
     for (let k = 0; k < N; k++) {
-      const sw = k % 2;
-      const B = Sim.newBattle(sw ? [visB, visA] : [visA, visB], 7001 + k * 977);
-      B.bots[sw ? 1 : 0].hp = Math.max(10, B.bots[sw ? 1 : 0].hp - ra.dmg);
-      B.bots[sw ? 0 : 1].hp = Math.max(10, B.bots[sw ? 0 : 1].hp - rb.dmg);
-      while (!B.over) Sim.step(B, 1 / 30);
-      w += B.winner === (sw ? 1 : 0) ? 1 : B.winner === -1 ? 0.5 : 0;
+      let ws;
+      if (N === 40) {   // duel: swap sides every other fight
+        const sw = k % 2, G2 = { teams: sw ? F.teams.slice().reverse() : F.teams, robots: sw ? F.robots.slice().reverse() : F.robots, sides: [0, 1], nSides: 2, format: 'duel' };
+        const m = buildBattle(G2, 7001 + k * 977, true);
+        while (!m.B.over) Sim.step(m.B, 1 / 30);
+        ws = winSide(G2, m.B, m); if (sw && ws >= 0) ws = 1 - ws;
+      } else {
+        const m = buildBattle(F, 7001 + k * 977, true);
+        while (!m.B.over) Sim.step(m.B, 1 / 30);
+        ws = winSide(F, m.B, m);
+      }
+      if (ws === -1) w.forEach((_, i) => { w[i] += 1 / F.nSides; }); else if (ws !== 'house') w[ws] += 1;
     }
-    const p = Math.max(0.05, Math.min(0.95, w / N));
-    G.fight.p = [p, 1 - p];
-    G.fight.bands = [bandOf(p), bandOf(1 - p)];
-    G.fight.pay = G.fight.bands.map(bd => bd.pay);
+    F.p = w.map(x => Math.max(0.03, Math.min(0.95, x / N)));
+    F.bands = F.p.map(bandOf);
+    F.pay = F.bands.map(bd => bd.pay);
     startBets();
   }
 
   /* ---------- Phase 5: Bets on Arena Floor ---------- */
   function startBets() {
     G.phase = 'bets';
-    G.myBet = [0, 0];
+    G.myBet = Array(G.fight.nSides).fill(0);
+    G.hedge = false;
     setCameraGoal('compound');
     updateHud();
   }
+  // Bets-step arena cards for the human (buttons in the prompt)
+  function humanBookiesFriend() {
+    const t = me(), F = G.fight;
+    if (!removeFromHand(t, 'bookie_s_friend')) return;
+    discardCard('bookie_s_friend');
+    const rows = [];
+    F.teams.forEach((ti, e) => {
+      const r = F.robots[e];
+      (r.faceDown || []).forEach(x => rows.push('🂠 on <b>' + esc(r.name) + '</b> (' + esc(G.teams[ti].name) + '): ' + cardRef(x.id) + ', played by ' + esc(G.teams[x.from].name)));
+      (G.teams[ti].schemeLog || []).forEach(x => rows.push('🔧 on ' + esc(G.teams[ti].name) + '\'s garage: ' + cardRef(x.id) + ', played by ' + esc(G.teams[x.from].name)));
+    });
+    const ph = playHead(t, 'bookie_s_friend', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('you looked at ' + rows.length + ' hidden card' + (rows.length === 1 ? '' : 's') + ' in this fight'); logEnd('landed');
+    ivModal('🔍 Bookie\'s Friend', rows.length ? 'Hidden cards in this fight:<br>' + rows.join('<br>') : 'No face-down cards in this fight: the bookie\'s odds are honest.', [{ label: 'OK', value: () => null }]);
+    updateHud();
+  }
+  function humanHedgeBet() {
+    const t = me();
+    if (G.hedge || !removeFromHand(t, 'hedge_bet')) return;
+    discardCard('hedge_bet'); G.hedge = true;
+    const ph = playHead(t, 'hedge_bet', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('you may bet up to 4 Cr on any side this fight'); logEnd('landed');
+    updateHud();
+  }
+  const betLimit = t => t.i === viewerSeat && G.hedge ? Math.max(4, maxBetOf(t)) : maxBetOf(t);
 
-  function lockBetsAndRollout() {
+  async function lockBetsAndRollout() {
+    if (G.betsLocked) return;
+    G.betsLocked = true;
     const F = G.fight, t = me();
     F.bets = [];
-    if (G.myBet[0] || G.myBet[1]) {
-      const s = G.myBet[0] ? 0 : 1;
-      F.bets.push({ team: viewerSeat, side: s, amt: G.myBet[s] });
-      t.credits -= G.myBet[s];
-      notify('🎲 You bet ' + G.myBet[s] + ' Cr on <b>' + esc(F.robots[s].name) + '</b> (' + F.bands[s].name + ').', t.col);
+    const hs = G.myBet.findIndex(v => v > 0);
+    if (hs >= 0) {
+      F.bets.push({ team: viewerSeat, side: hs, amt: G.myBet[hs] });
+      t.credits -= G.myBet[hs];
+      notify('🎲 You bet ' + G.myBet[hs] + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
     }
     for (const T of G.teams) {
-      if (T.i === viewerSeat || T.credits < 2 || rnd() < 0.3) continue;
-      const own = F.teams.indexOf(T.i);
-      const side = own >= 0 ? own : (rnd() < F.p[0] ? 0 : 1);
+      if (T.i === viewerSeat || T.credits < 2) continue;
+      const own = F.teams.indexOf(T.i), fav = F.p.indexOf(Math.max(...F.p));
+      if (T.hand.includes('hedge_bet') && T.fame >= (CARDS.hedge_bet.need || 0) && rnd() < 0.5) {   // AI Hedge Bet: back the favourite, even against itself
+        removeFromHand(T, 'hedge_bet'); discardCard('hedge_bet');
+        const amt = Math.min(T.credits, 3 + Math.floor(rnd() * 2));
+        T.credits -= amt; F.bets.push({ team: T.i, side: fav, amt });
+        notify('🎲 <b>' + esc(T.name) + '</b> plays ' + cardRef('hedge_bet') + ' and bets ' + amt + ' Cr on <b>' + esc(sideLabel(F, fav)) + '</b> (' + F.pay[fav] + '×).', T.col);
+        continue;
+      }
+      if (rnd() < 0.3) continue;
+      let side = own >= 0 ? F.sides[own] : -1;
+      if (side < 0) { let x = rnd() * F.p.reduce((a, b) => a + b, 0); side = 0; for (let k = 0; k < F.p.length; k++) { x -= F.p[k]; if (x <= 0) { side = k; break; } } }
       const amt = Math.min(T.credits, 1 + Math.floor(rnd() * maxBetOf(T)));
       T.credits -= amt;
       F.bets.push({ team: T.i, side, amt });
-      notify(`🎲 <b>${esc(T.name)}</b> bet ${amt} Cr on <b>${esc(F.robots[side].name)}</b> (${F.pay[side]}×).`, T.col);
+      notify(`🎲 <b>${esc(T.name)}</b> bet ${amt} Cr on <b>${esc(sideLabel(F, side))}</b> (${F.pay[side]}×).`, T.col);
     }
+    updateHud();
+    await swapStep();
+    G.betsLocked = false;
     startFight();
   }
+  // Swap the Entry: after bets are placed, change which robot an invited team sends (bets and odds stay as they were)
+  async function swapStep() {
+    const F = G.fight;
+    const swaps = () => { const out = []; F.teams.forEach((ti, e) => { readyRobots(G.teams[ti]).filter(r => r !== F.robots[e]).forEach(r => out.push({ e, ti, r })); }); return out; };
+    for (const ti of [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat))) {
+      const o = G.teams[ti];
+      if (!o.hand.includes('swap_the_entry') || o.fame < (CARDS.swap_the_entry.need || 0)) continue;
+      const opts = swaps(); if (!opts.length) continue;
+      let pick = null;
+      if (ti === viewerSeat) {
+        pick = await ivModal('🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]), 8000, null);
+      } else if (rnd() < 0.4) {
+        const myBet = (F.bets.find(b => b.team === ti) || {}).side;
+        pick = opts.filter(x => x.ti !== ti && F.sides[x.e] !== myBet).sort((a, b) => power(a.r) - power(b.r))[0] || null;   // sabotage a rival side with its weakest robot
+        if (pick && power(pick.r) >= power(F.robots[pick.e])) pick = null;
+      }
+      if (!pick) continue;
+      removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
+      const ph = playHead(o, 'swap_the_entry', G.teams[pick.ti]); logBegin(ph[0], o.col, ph[1], ph[2]);
+      notify(esc(G.teams[pick.ti].name) + ' now sends <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + '. The bets stand.');
+      F.robots[pick.e] = pick.r;
+      logEnd('landed');
+      updateHud();
+    }
+  }
 
-  /* ---------- Phase 6: Garage Door Rollout + Auto-Zoom Fight ---------- */
+  /* ---------- Phase 6: roll-in, countdown and the fight ---------- */
   function startFight() {
     G.phase = 'fight';
     const F = G.fight;
-    const builds = F.teams.map((ti, s) => fightBuild(ti, F.robots[s]));
-    F.B = Sim.newBattle(builds, (rnd() * 4294967296) >>> 0);
-    F.B.bots.filter(b => !b.helper).forEach((b, s) => { b.hp = Math.max(10, b.hp - F.robots[s].dmg); });
-
+    const m = buildBattle(F, (rnd() * 4294967296) >>> 0, false);
+    F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds;
+    F.entBot = F.teams.map((_, e) => m.botEnt.indexOf(e));
     F.rollout = 0;
     F.rolloutDone = false;
+    if (F.format === 'ffa' && F.event && F.event.kind === 'ffa' && G.host >= 0) { addFame(G.teams[G.host], 1); notify('⚔️ Grand Melee happens: host ' + nm(G.teams[G.host]) + ' +1 fame.', G.teams[G.host].col); }
 
-    F.teams.forEach((ti, s) => {
-      const T = G.teams[ti];
-      for (const e of (F.robots[s].faceDown || []).concat(T.schemeLog)) {
-        const txt = e.from === ti ? '⚡ ' + CARDS[e.id].name.toUpperCase() + '!' : '🔧 SABOTAGED: ' + CARDS[e.id].name.toUpperCase() + '!';
-        F.B.banners.push({ x: F.B.bots[s].x, y: F.B.bots[s].y - 36, text: txt, col: e.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
+    F.teams.forEach((ti, e) => {
+      const T = G.teams[ti], b0 = F.B.bots[F.entBot[e]];
+      for (const x of (F.robots[e].faceDown || []).concat(T.schemeLog)) {
+        const txt = x.from === ti ? '⚡ ' + CARDS[x.id].name.toUpperCase() + '!' : '🔧 SABOTAGED: ' + CARDS[x.id].name.toUpperCase() + '!';
+        F.B.banners.push({ x: b0.x, y: b0.y - 36, text: txt, col: x.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
       }
     });
 
@@ -2480,18 +2685,18 @@ html, body {
   function stepAiCombatCards(F) {
     const B = F.B;
     if (F.spar || B.over || B.tick % 60 !== 0) return;
-    F.teams.forEach((ti, s) => {
+    F.teams.forEach((ti, e) => {
       if (ti === viewerSeat) return;
-      const T = G.teams[ti], b = B.bots[s];
+      const T = G.teams[ti], bi = F.entBot ? F.entBot[e] : e, b = B.bots[bi];
       if (!b || b.hp <= 0) return;
       const cIdx = T.hand.findIndex(id => CARDS[id].phase === 'fight' && T.fame >= (CARDS[id].need || 0));
       if (cIdx < 0 || B.rng() > 0.35) return;
       const id = T.hand.splice(cIdx, 1)[0];
       if (id === 'trigger' || id === 'overclock' || id === 'field_eng') {
-        Sim.queueCmd(B, { card: id, bot: s, by: T.name });
+        Sim.queueCmd(B, { card: id, bot: bi, by: T.name });
         notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
       } else if (id === 'oil_card' || id === 'emp_card') {
-        const foe = B.bots[1 - s];
+        const foe = B.bots.filter(x => !x.helper && x.hp > 0 && x.team !== b.team).sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y))[0];
         if (foe) {
           Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y, by: T.name });
           notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
@@ -2505,21 +2710,25 @@ html, body {
     if (G.fight && G.fight.spar) return endSpar();
     G.phase = 'after';
     setCameraGoal('compound');
-    const F = G.fight, B = F.B, w = B.winner;
-    F.recap = Sim.recap(B, i => F.robots[i] ? F.robots[i].name : ('Bot ' + (i + 1)));
+    const F = G.fight, B = F.B;
+    const map = { botEnt: F.botEnt || F.teams.map((_, i) => i), teamOpt: F.teamOpt };
+    const ws = winSide(F, B, map);
+    F.winSide = ws;
+    F.recap = Sim.recap(B, i => (F.botName && F.botName[i]) || (F.robots[i] ? F.robots[i].name : 'Bot ' + (i + 1)), t => sideName(F, t));
     { const tp = F.recap.turning; notify('🏁 ' + esc(F.recap.headline) + (tp ? '<br>⭐ Turning point at ' + tp.t + ' s' + (tp.line ? ': ' + esc(tp.line.detail || tp.line.text) : '') : '') + F.recap.lines.filter(l => l.k === 'card' && l !== (tp && tp.line)).map(l => '<br>' + l.t.toFixed(1) + ' s ' + esc(l.detail || l.text)).join(''), '#111'); }
-    if (w >= 0 && F.bands && F.bands[w] && F.bands[w].min < 0.85) {
-      F.recap.upset = `UPSET! Bookie had ${F.robots[w].name} as ${F.bands[w].name} (${F.pay[w]}×)!`;
-    }
+    if (ws >= 0 && F.bands && F.bands[ws] && F.bands[ws].min < 0.42) F.recap.upset = 'UPSET! Bookie had ' + sideLabel(F, ws) + ' as ' + F.bands[ws].name + ' (' + F.pay[ws] + '×)!';
+    G.nextEvent = null;
 
     if (F.sandbox) {
       G.awaitingJudgment = false;
       updateHud();
       return;
     }
-    B.bots.filter(b => !b.helper).forEach((b, s) => {
-      const r = F.robots[s];
-      r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) - Math.max(0, b.hp) * maxHp(r) / b.s.hp));
+    // damage: each robot keeps what its bot took (Mirror: its healthiest copy)
+    F.teams.forEach((ti, e) => {
+      const r = F.robots[e];
+      const left = B.bots.filter((b, i) => !b.helper && map.botEnt[i] === e).map(b => Math.max(0, b.hp) / b.s.hp);
+      r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) * (1 - Math.max(...left))));
     });
     for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
     F.robots.forEach(r => {
@@ -2528,23 +2737,27 @@ html, body {
       r.tamper = {}; r.faceDown = []; r.exhausted = true;
     });
 
-    if (w < 0) {
-      for (const x of F.bets) G.teams[x.team].credits += x.amt;
-      notify('Arena Draw! Bets refunded.', '#111');
+    if (ws === -1 || ws === 'house') {
+      for (const x of F.bets) { G.teams[x.team].credits += x.amt; x.payout = x.amt; }
+      notify(ws === 'house' ? '🏠 The House Robot wins! Nobody gets fame; bets refunded.' : 'Arena Draw! Bets refunded.', '#111');
       G.awaitingJudgment = false;
       updateHud();
       return;
     }
-    const W = F.teams[w], Lt = F.teams[1 - w], wr = F.robots[w], lr = F.robots[1 - w];
-    const wTeam = G.teams[W], lTeam = G.teams[Lt];
-    wTeam.fame += 1; wr.wins++;   // rulebook: no prize money, credits come from bets and appearance money
-    if (wr.wins === favWins(wTeam)) wTeam.fame += 1;
-    notify('🏆 <b>' + esc(wr.name) + '</b> (' + esc(wTeam.name) + ') wins! +1 Fame.', wTeam.col);
-    if (lr) lr.dmg = Math.max(lr.dmg, Math.round(maxHp(lr) / 2));   // rulebook: a spared loser keeps damage equal to half its health
+    const famePer = F.event && F.event.kind === 'final' ? 2 : 1;
+    const winners = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === ws);
+    const losers = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] !== ws);
+    winners.forEach(({ ti, e }) => {
+      const T = G.teams[ti], r = F.robots[e];
+      T.fame += famePer; r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
+      if (r.wins === favWins(T)) T.fame += 1;
+    });
+    notify('🏆 <b>' + esc(sideLabel(F, ws)) + '</b> (' + esc(sideName(F, ws)) + ') win' + (winners.length > 1 ? '' : 's') + '! +' + famePer + ' Fame' + (winners.length > 1 ? ' each' : '') + '.', G.teams[winners[0].ti].col);
+    losers.forEach(({ e }) => { const r = F.robots[e]; r.dmg = Math.max(r.dmg, Math.round(maxHp(r) / 2)); });   // a spared loser keeps half its health as damage
 
     for (const x of F.bets) {
-      if (x.side === w) {
-        const pay = Math.round(x.amt * F.pay[w]);
+      if (x.side === ws) {
+        const pay = Math.round(x.amt * F.pay[ws]);
         x.payout = pay;
         G.teams[x.team].credits += pay;
         notify('🪙 <b>' + esc(G.teams[x.team].name) + '</b> won ' + pay + ' Cr on their bet!', G.teams[x.team].col);
@@ -2555,23 +2768,35 @@ html, body {
         x.payout = 0;
       }
     }
-    F.winner = { team: W, robot: wr };
-    F.loser = { team: Lt, robot: lr };
-
-    // Loser gets consolation Scrap Crate (auto-applied)
-    if (lTeam.robots.includes(lr) && lr.dmg > 0) {
-      const patch = lTeam.sponsor === 'vulture' ? 50 : 30;
-      lr.dmg = Math.max(0, lr.dmg - patch);
-      F.loserCrateText = `Scrap Crate: −${patch} HP repaired`;
-      notify(`📦 <b>${esc(lTeam.name)}</b> opens a Scrap Crate: patched −${patch} dmg on ${esc(lr.name)}.`, lTeam.col);
-    } else {
-      const bonus = lTeam.sponsor === 'vulture' ? 4 : 2;
-      lTeam.credits += bonus;
-      F.loserCrateText = `Scrap Crate: +${bonus} Cr salvage`;
+    // the host judges one loser: in a duel the loser, in an event the first robot knocked out
+    let judged = losers[0];
+    if (losers.length > 1) {
+      const firstKo = B.log.find(ev => ev.k === 'ko' && map.botEnt[ev.who] >= 0 && F.sides[map.botEnt[ev.who]] !== ws);
+      if (firstKo) judged = losers.find(x => x.e === map.botEnt[firstKo.who]) || judged;
     }
+    F.winner = { team: winners[0].ti, robot: F.robots[winners[0].e] };
+    F.winners = winners.map(x => ({ team: x.ti, robot: F.robots[x.e] }));
+    F.loser = { team: judged.ti, robot: F.robots[judged.e] };
 
+    // every losing team opens a consolation Scrap Crate (auto-applied)
+    const crateTxt = [];
+    losers.forEach(({ ti, e }) => {
+      const lTeam = G.teams[ti], lr = F.robots[e];
+      if (lTeam.robots.includes(lr) && lr.dmg > 0) {
+        const patch = lTeam.sponsor === 'vulture' ? 50 : 30;
+        lr.dmg = Math.max(0, lr.dmg - patch);
+        crateTxt.push(lTeam.name.split(' ')[0] + ': −' + patch + ' HP');
+        notify(`📦 <b>${esc(lTeam.name)}</b> opens a Scrap Crate: patched −${patch} dmg on ${esc(lr.name)}.`, lTeam.col);
+      } else {
+        const bonus = lTeam.sponsor === 'vulture' ? 4 : 2;
+        lTeam.credits += bonus;
+        crateTxt.push(lTeam.name.split(' ')[0] + ': +' + bonus + ' Cr');
+      }
+    });
+    F.loserCrateText = 'Scrap Crate: ' + crateTxt.join(', ');
     F.winnerCrateText = 'Fan token +1';   // Winner's Crate cut (rulebook)
 
+    const Lt = judged.ti, lr = F.robots[judged.e], lTeam = G.teams[Lt];
     if (G.host === viewerSeat) {
       G.awaitingJudgment = true;
       updateHud();
@@ -2600,7 +2825,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -3137,19 +3362,16 @@ html, body {
 
     ctx.textAlign = 'center';
     if (G.phase === 'arena' && G.fight && G.fight.teams) {
-      // Show Invited Matchup Preview
-      const [ta, tb] = G.fight.teams.map(i => G.teams[i]);
+      // Show Invited Matchup Preview (any format: sides joined by VS, teams on a side by +)
+      const F = G.fight, n = F.nSides || 2;
       ctx.fillStyle = '#111'; ctx.font = '800 12px system-ui, sans-serif';
-      ctx.fillText('UPCOMING ARENA DUEL', cx, cy - 36);
-
-      ctx.font = '900 18px system-ui, sans-serif';
-      ctx.fillStyle = ta.col; ctx.textAlign = 'right';
-      ctx.fillText(ta.name.toUpperCase(), cx - 26, cy - 6);
-      ctx.fillStyle = '#888'; ctx.textAlign = 'center'; ctx.font = '800 13px system-ui, sans-serif';
-      ctx.fillText('VS', cx, cy - 7);
-      ctx.font = '900 18px system-ui, sans-serif';
-      ctx.fillStyle = tb.col; ctx.textAlign = 'left';
-      ctx.fillText(tb.name.toUpperCase(), cx + 26, cy - 6);
+      ctx.fillText('UPCOMING: ' + fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : ''), cx, cy - 36);
+      const parts = [];
+      for (let k = 0; k < n; k++) { if (k) parts.push({ t: ' VS ', c: '#888' }); sideTeams(F, k).forEach((ti, j) => { if (j) parts.push({ t: ' + ', c: '#888' }); parts.push({ t: G.teams[ti].name.toUpperCase(), c: G.teams[ti].col }); }); }
+      ctx.font = '900 ' + (n > 2 || F.format === '2v2' ? 14 : 18) + 'px system-ui, sans-serif';
+      const tw = parts.reduce((a, p) => a + ctx.measureText(p.t).width, 0);
+      let px = cx - tw / 2; ctx.textAlign = 'left';
+      parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 6); px += ctx.measureText(p.t).width; });
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#2a9d3a'; ctx.font = '800 12px system-ui, sans-serif';
@@ -3886,7 +4108,8 @@ html, body {
 
     // Kev, 6 Nov: the lots first, then hosting as its own sealed bid
     const items = G.marketStage === 'host' ? [{ id: 'host', k: 3, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
-    const w = 138, h = 178, gap = 12;
+    // Kev, 6 Nov: text must be readable: wider, taller tiles, bigger type, the bookie line in two parts
+    const w = 172, h = 200, gap = 12;
     const totalW = items.length * w + (items.length - 1) * gap;
     const startX = L.ax - totalW / 2, y = L.ay - h / 2;
     if (G.marketStage === 'host') {
@@ -3912,28 +4135,32 @@ html, body {
       ctx.textAlign = 'center';
       ctx.fillText(it.icon, x + w / 2, y + 40);
 
-      ctx.fillStyle = '#111'; ctx.font = '800 12.5px system-ui, sans-serif';
-      ctx.fillText(it.name, x + w / 2, y + 66);
+      ctx.fillStyle = '#111';
+      fitText(ctx, it.name, x + w / 2, y + 64, w - 12, '800', 14);
 
-      ctx.fillStyle = '#666'; ctx.font = '600 10.5px system-ui, sans-serif';
-      fitText(ctx, it.text, x + w / 2, y + 83, w - 10, '600', 10.5);
-      drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 10, 'center', 9.5);
+      ctx.fillStyle = '#555';
+      fitText(ctx, it.text, x + w / 2, y + 82, w - 12, '600', 11.5);
+      drawTags(ctx, lotTags(LOTS[it.id], viewerSeat), x + w / 2, y + 98, w - 12, 'center', 11.5);
       if (/Str/.test(it.text)) help(x + 4, y + 74, w - 8, 14, esc(it.name), (it.wup ? esc(Sim.WUPS[it.wup].text) + '<br>Robots keep their weapon for life; this upgrade only fits that weapon.<br>' : it.cal ? 'Changes a gun\'s calibre (guns only; robots never swap weapons).<br>' : esc(it.text) + '<br>') + '<b>Str</b> = strain ⚡ the part adds to the robot: more glitches and breaks, and a bigger frame.');
       else if (k === 3) help(x + 4, y + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
       { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, y + 89, w - 8, 13, hl[0], hl[1]); }
       const gain = lotGainShort(me(), LOTS[it.id] || it);
-      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 112, w - 10, '800', 9); help(x + 4, y + 103, w - 8, 13, 'Real numbers', esc(gain) + '<br>The stat on each of your robots before→after, one per robot (separated by /). "max" = already at level 4.'); }
+      if (gain) { ctx.fillStyle = '#1f6feb'; fitText(ctx, gain, x + w / 2, y + 113, w - 12, '800', 11); help(x + 4, y + 103, w - 8, 13, 'Real numbers', esc(gain) + '<br>The stat on each of your robots before→after, one per robot (separated by /). "max" = already at level 4.'); }
       // 🎩 what the lot does to each of your robots' odds vs the field
       if (LOTS[it.id] && needsRobot(it.id)) {
-        const sh = me().robots.map(r => [r, oddsShift(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
+        const sh = me().robots.map(r => [r, oddsShiftRaw(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
         ctx.fillStyle = '#444';
-        if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 166, w - 10, '800', 9.5);
-        else if (!sh.length) { ctx.fillStyle = '#b45309'; fitText(ctx, '✋ none of your robots can take it', x + w / 2, y + 166, w - 10, '800', 9.5); help(x + 4, y + 152, w - 8, 24, 'Not for your robots', 'Weapon upgrades only fit that weapon, and calibres only fit guns (robots keep their weapon for life). You can\'t bid on it, but ' + cardRef('botched_install') + ' can wreck a rival\'s install.'); }
-        else sh.forEach(([r, v], j) => { ctx.fillStyle = v.endsWith('=') ? '#777' : '#1f6feb'; fitText(ctx, '🎩 ' + r.name.replace('s1. ', '') + ': ' + v, x + w / 2, y + 162 + (j - (sh.length - 1) / 2) * 10.5, w - 10, '800', 9.5); });
-        help(x + 4, y + 152, w - 8, 24, '🎩 What it does to your odds', 'The bookie\'s band vs the field for each of your robots, <b>before→after</b> fitting this lot. <b>=</b> means the band doesn\'t move. ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
+        if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 176, w - 12, '800', 11);
+        else if (!sh.length) { ctx.fillStyle = '#b45309'; fitText(ctx, '✋ none of your robots can take it', x + w / 2, y + 176, w - 12, '800', 11); help(x + 4, y + 160, w - 8, 30, 'Not for your robots', 'Weapon upgrades only fit that weapon, and calibres only fit guns (robots keep their weapon for life). You can\'t bid on it, but ' + cardRef('botched_install') + ' can wreck a rival\'s install.'); }
+        else if (sh.length === 1) {
+          const [r, v] = sh[0];
+          ctx.fillStyle = '#666'; fitText(ctx, '🎩 ' + r.name, x + w / 2, y + 168, w - 12, '700', 10.5);
+          ctx.fillStyle = v.col; fitText(ctx, v.text, x + w / 2, y + 186, w - 12, '900', 12.5);
+        } else sh.forEach(([r, v], j) => { ctx.fillStyle = v.col; fitText(ctx, r.name.replace('s1. ', '') + ': ' + v.short, x + w / 2, y + 166 + j * 14, w - 12, '800', 11); });
+        help(x + 4, y + 156, w - 8, 40, '🎩 What it does to your odds', 'The bookie\'s band vs the field for each of your robots, <b>before→after</b> fitting this lot. <b>=</b> means the band doesn\'t move. ' + BAND_HELP + (scouted() ? '' : '<br>Exact % with a scout.'));
       }
 
-      const btnY = y + 122;
+      const btnY = y + 124;
       ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + 14, btnY, 28, 28);
       ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + 14, btnY, 28, 28);
       ctx.fillStyle = '#111'; ctx.font = '800 15px system-ui, sans-serif';
@@ -3955,15 +4182,23 @@ html, body {
   }
 
   function drawBettingOnArena(ctx, L) {
-    const F = G.fight, mine = F.teams.indexOf(viewerSeat);
-    const maxB = maxBetOf(me());
-    const w = 276, h = 166;
-    [-1, 1].forEach((dir, s) => {
-      const ti = F.teams[s], T = G.teams[ti], r = F.robots[s];
+    const F = G.fight, mine = mySide(F);
+    const maxB = betLimit(me());
+    const n = F.nSides || 2, gap = 12;
+    const w = n === 2 ? 276 : n === 3 ? 214 : 170, h = 158;
+    const totalW = n * w + (n - 1) * gap, x0 = L.ax - totalW / 2;
+    // format banner
+    ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    const banner = fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : '') + (F.format === 'mirror' ? ' — EVERY ROBOT FIGHTS AS 2 COPIES' : F.event && F.event.kind === 'final' ? ' — GRAND FINAL: DOUBLE FAME' : '');
+    ctx.fillText(banner, L.ax, L.ay - h / 2 - 8);
+    if (F.house) help(L.ax - 160, L.ay - h / 2 - 20, 320, 16, '🏠 House Robot', 'A neutral robot (heavy gun, armour 2) that attacks whoever is closest. If it is the last one standing nobody gets fame and bets are refunded. The bookie counts it in the odds.');
+    for (let s = 0; s < n; s++) {
+      const ents = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === s);
+      const T = G.teams[ents[0].ti], robots = ents.map(x => F.robots[x.e]);
       const bd = F.bands ? F.bands[s] : bandOf(F.p[s]);
-      const x = L.ax + (s === 0 ? -w - 12 : 12), y = L.ay - h / 2 - 10;
+      const x = x0 + s * (w + gap), y = L.ay - h / 2 - 1;
       const stake = G.myBet[s] || 0;
-      const lockedOut = mine >= 0 && mine !== s;
+      const lockedOut = mine >= 0 && mine !== s && !G.hedge;
 
       ctx.fillStyle = '#fcfbf9';
       ctx.fillRect(x, y, w, h);
@@ -3971,57 +4206,60 @@ html, body {
       ctx.lineWidth = stake > 0 ? 3 : 1.5;
       ctx.strokeRect(x, y, w, h);
 
-      ctx.fillStyle = T.col; ctx.font = '800 13.5px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`${T.name}: ${r.name}`, x + w / 2, y + 22);
+      ctx.textAlign = 'center';
+      if (ents.length === 1) {
+        ctx.fillStyle = T.col; fitText(ctx, `${T.name}: ${robots[0].name}`, x + w / 2, y + 22, w - 16, '800', 13.5);
+        const r = robots[0], st = Sim.strainOf(r.b).total;
+        ctx.fillStyle = '#555'; fitText(ctx, `${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP  ·  ${buildText(r)}  ·  Strain ${st}`, x + w / 2, y + 39, w - 16, '600', 10.5);
+        help(x + 10, y + 29, w - 20, 14, esc(r.name), 'Health now/max · weapon · preferred range' + ((r.b.helpers || []).length ? ' · drones' : '') + ' · strain ⚡' + st + ' (more strain: more glitches and a bigger target).');
+      } else {
+        ents.forEach((x2, j) => { ctx.fillStyle = G.teams[x2.ti].col; fitText(ctx, G.teams[x2.ti].name + ': ' + F.robots[x2.e].name + ' (' + Math.max(0, maxHp(F.robots[x2.e]) - F.robots[x2.e].dmg) + ' HP)', x + w / 2, y + 18 + j * 15, w - 16, '800', 11.5); });
+      }
 
-      const st = Sim.strainOf(r.b).total;
-      ctx.fillStyle = '#555'; ctx.font = '600 10.5px system-ui, sans-serif';
-      ctx.fillText(`${Math.max(0, maxHp(r) - r.dmg)}/${maxHp(r)} HP  ·  ${buildText(r)}  ·  Strain ${st}`, x + w / 2, y + 39);
-      help(x + 10, y + 29, w - 20, 14, esc(r.name), 'Health now/max · weapon · preferred range' + ((r.b.helpers || []).length ? ' · drones' : '') + ' · strain ⚡' + st + ' (more strain: more glitches and a bigger target).');
-
-      // Minimalist Odds Band Box + Visual Win-Probability Bar
+      // odds band + win-probability bar
       ctx.fillStyle = '#f4f2ec';
-      ctx.fillRect(x + 16, y + 48, w - 32, 58);
+      ctx.fillRect(x + 12, y + 48, w - 24, 58);
       ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1;
-      ctx.strokeRect(x + 16, y + 48, w - 32, 58);
-
-      ctx.fillStyle = '#111'; ctx.font = '900 14px system-ui, sans-serif';
+      ctx.strokeRect(x + 12, y + 48, w - 24, 58);
+      ctx.fillStyle = '#111';
       const exactStr = scouted() ? ` (${Math.round(F.p[s] * 100)}%)` : '';
-      ctx.fillText(`${bd.name.toUpperCase()}  ·  Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 69);
-
-      drawBar(ctx, x + 28, y + 79, w - 56, 8, F.p[s], T.col, '#e2dfd7', 4);
-      help(x + 16, y + 48, w - 32, 44, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie ran 40 fights of the two visible builds (with their current damage; face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar is the win chance.');
-      // tags for this matchup first (the opponent's weapon), else vs the field
-      const foeCls = Sim.classOf(F.robots[1 - s].b), mt = Sim.tagsOf(r.b, 3, [foeCls]);
-      { const ht = helpTagsTxt(mt.strong.length || mt.weak.length ? mt : tagsFor(ti, r.b), 'this robot'); if (mt.strong.length || mt.weak.length) ht[1] = 'This matchup: the opponent uses a <b>' + esc(clsName(foeCls)) + '</b>.<br>' + ht[1]; help(x + 16, y + 92, w - 32, 14, ht[0], ht[1]); }
-      if (!drawTags(ctx, mt.strong.length || mt.weak.length ? mt : tagsFor(ti, r.b), x + w / 2, y + 100, w - 40, 'center', 10, 3)) {
-        ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
-        ctx.fillText('Bookie estimate (ignores face-down cards)', x + w / 2, y + 100);
+      fitText(ctx, `${bd.name.toUpperCase()}  ·  Pays ${F.pay[s]}×${exactStr}`, x + w / 2, y + 69, w - 32, '900', 14);
+      drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, '#e2dfd7', 4);
+      help(x + 12, y + 48, w - 24, 44, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie ran the visible builds ' + (n === 2 && !F.house ? '40' : '20') + ' times (with their current damage; face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar is the win chance.');
+      // tags: for a one-robot side vs a one-robot foe, this matchup; else vs the field
+      if (ents.length === 1) {
+        const r = robots[0], foes = F.robots.filter((_, e) => F.sides[e] !== s);
+        const mt = foes.length === 1 ? Sim.tagsOf(r.b, 3, [Sim.classOf(foes[0].b)]) : { strong: [], weak: [] };
+        const tg = mt.strong.length || mt.weak.length ? mt : tagsFor(ents[0].ti, r.b);
+        { const ht = helpTagsTxt(tg, 'this robot'); if (mt.strong.length || mt.weak.length) ht[1] = 'This matchup: the opponent uses a <b>' + esc(clsName(Sim.classOf(foes[0].b))) + '</b>.<br>' + ht[1]; help(x + 12, y + 92, w - 24, 14, ht[0], ht[1]); }
+        if (!drawTags(ctx, tg, x + w / 2, y + 100, w - 40, 'center', 10, 3)) { ctx.fillStyle = '#666'; fitText(ctx, 'Bookie estimate (ignores face-down cards)', x + w / 2, y + 100, w - 30, '600', 9.5); }
+      } else {
+        ctx.fillStyle = '#666'; fitText(ctx, ents.length + ' robots on this side', x + w / 2, y + 100, w - 30, '700', 9.5);
       }
 
       if (lockedOut) {
-        ctx.fillStyle = '#999'; ctx.font = '700 11px system-ui, sans-serif';
-        ctx.fillText('(Cannot bet against your own robot)', x + w / 2, y + 138);
+        ctx.fillStyle = '#999'; fitText(ctx, '(Cannot bet against your own robot)', x + w / 2, y + 138, w - 20, '700', 11);
+        help(x + 10, y + 120, w - 20, 30, 'Your own fight', 'You can only bet on your own side, unless you play <b>Hedge Bet</b>.');
       } else {
         ctx.fillStyle = stake > 0 ? T.col : '#111';
-        ctx.fillRect(x + 28, y + 118, w - 56, 32);
-        ctx.fillStyle = '#fff'; ctx.font = '800 12px system-ui, sans-serif';
-        ctx.fillText(stake > 0 ? `Wager: ${stake} Cr → Win ${Math.round(stake * F.pay[s])} Cr` : `Click to Bet (0–${maxB} Cr)`, x + w / 2, y + 138);
+        ctx.fillRect(x + 20, y + 116, w - 40, 30);
+        ctx.fillStyle = '#fff';
+        fitText(ctx, stake > 0 ? `Wager: ${stake} Cr → Win ${Math.round(stake * F.pay[s])} Cr` : `Click to Bet (0–${maxB} Cr)`, x + w / 2, y + 135, w - 48, '800', 12);
         hitRegions.push({ kind: 'bet_card', side: s, x, y, w, h });
       }
-    });
+    }
 
-    const tx = L.ax - 85, ty = L.ay + h / 2 - 4, tw = 170, th = 22;
+    const tx = L.ax - 85, ty = L.ay + h / 2 + 3, tw = 170, th = 20;
     ctx.fillStyle = '#fff'; ctx.fillRect(tx, ty, tw, th);
     ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, tw, th);
     ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(scouted() ? '🔭 Scouted: exact %' : `🔭 Hire a scout (${SCOUT_PRICE} Cr): exact %`, L.ax, ty + 14.5);
+    ctx.fillText(scouted() ? '🔭 Scouted: exact %' : `🔭 Hire a scout (${SCOUT_PRICE} Cr): exact %`, L.ax, ty + 13.5);
     if (!scouted()) hitRegions.push({ kind: 'buy_scout', x: tx, y: ty, w: tw, h: th });
     help(tx, ty, tw, th, '🔭 Scout', scouted() ? 'You hired a scout this round: exact % everywhere until the round ends.' : 'Pay ' + SCOUT_PRICE + ' Cr: the exact % for every matchup until the end of the round, instead of the fuzzy bands.');
   }
 
   function drawAftermathOnArena(ctx, L) {
-    const F = G.fight, rec = F.recap;
+    const F = G.fight, rec = F && F.recap;
     if (!rec) return;
 
     const w = 596, h = 194;
@@ -4118,10 +4356,10 @@ html, body {
         ctx.fillStyle = '#999'; ctx.font = '600 10px system-ui, sans-serif'; ctx.textAlign = 'right';
         ctx.fillText('No Bet (0 Cr)', rx + rw, rowY);
       } else {
-        const botName = F.robots[bObj.side]?.name || 'Bot';
+        const botName = F.sides ? sideLabel(F, bObj.side) : (F.robots[bObj.side]?.name || 'Bot');
         const mult = F.pay ? F.pay[bObj.side] : 1;
-        const won = F.B && F.B.winner === bObj.side;
-        const draw = F.B && F.B.winner < 0;
+        const won = F.winSide === bObj.side;
+        const draw = F.winSide === -1 || F.winSide === 'house';
         const pay = draw ? bObj.amt : (bObj.payout || 0);
         const net = pay - bObj.amt;
 
@@ -4149,19 +4387,25 @@ html, body {
       ctx.fillStyle = '#f6f4ee'; ctx.fillRect(bx, by, bw, bh);
       ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
       const wT = G.teams[F.winner.team], lT = G.teams[F.loser.team];
-      ctx.fillStyle = wT.col; ctx.font = '800 9.5px system-ui, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(`🏆 ${wT.name}: +1 Fame · ${F.winnerCrateText || ''}`, bx + 6, by + 14);
-      ctx.fillStyle = lT.col; ctx.font = '700 9.5px system-ui, sans-serif';
-      ctx.fillText(`🔧 ${lT.name}: ${F.loserCrateText || 'Scrap Crate'}`, bx + 6, by + 29);
+      const fp = F.event && F.event.kind === 'final' ? 2 : 1, wNames = (F.winners || [F.winner]).map(x => G.teams[x.team].name).join(' + ');
+      const wLine = `🏆 ${wNames}: +${fp} Fame${(F.winners || []).length > 1 ? ' each' : ''} · ${F.winnerCrateText || ''}`, lLine = (F.winners || []).length > 1 || F.nSides > 2 ? `🔧 ${F.loserCrateText || 'Scrap Crate'}` : `🔧 ${lT.name}: ${F.loserCrateText || 'Scrap Crate'}`;
+      ctx.fillStyle = wT.col; ctx.textAlign = 'left'; fitText(ctx, wLine, bx + 6, by + 14, bw - 12, '800', 10);
+      ctx.fillStyle = lT.col; fitText(ctx, lLine, bx + 6, by + 29, bw - 12, '700', 10);
+      help(bx, by, bw, bh, 'Prizes', esc(wLine) + '<br>' + esc(lLine));
     }
   }
 
   function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, B = F.B, ax0 = -Sim.W / 2, ay0 = -Sim.H / 2;
-    const col = s => G.teams[F.teams[s]] ? G.teams[F.teams[s]].col : '#111';
+    // colours: a bot takes its entrant team's colour (House Robot grey); things with a sim team use that team's side
+    const colBot = i => { const e = F.botEnt ? F.botEnt[i] : i; return e == null || e < 0 ? HOUSE_COL : G.teams[F.teams[e]] ? G.teams[F.teams[e]].col : '#111'; };
+    const colTeam = t => { if (!F.teamOpt) return colBot(t); if (t === 9) return HOUSE_COL; const e = F.sides ? F.sides.indexOf(t) : t; return e >= 0 && G.teams[F.teams[e]] ? G.teams[F.teams[e]].col : '#111'; };
+    const colOf = x => x.team != null ? colTeam(x.team) : colBot(x.owner);
+    const sc = Math.min(Sim.W / B.W, Sim.H / B.H);   // bigger battles (5+ robots) get a bigger arena: draw it scaled down
 
     ctx.save();
     ctx.translate(ax0, ay0);
+    ctx.scale(sc, sc);
 
     // Zones (Oil Slicks, EMP Bombs)
     for (const z of B.zones) {
@@ -4183,7 +4427,7 @@ html, body {
       for (const w of B.walls) {
         ctx.save();
         ctx.translate(w.x, w.y); ctx.rotate(w.a || 0);
-        ctx.fillStyle = '#d6d3c9'; ctx.strokeStyle = col(w.team != null ? w.team : w.owner); ctx.lineWidth = 2;
+        ctx.fillStyle = '#d6d3c9'; ctx.strokeStyle = colOf(w); ctx.lineWidth = 2;
         ctx.fillRect(-(w.r || 22), -5, (w.r || 22) * 2, 10);
         ctx.strokeRect(-(w.r || 22), -5, (w.r || 22) * 2, 10);
         ctx.restore();
@@ -4201,12 +4445,12 @@ html, body {
       ctx.globalAlpha = 1;
     }
     for (const m of B.mines) {
-      ctx.fillStyle = col(m.team != null ? m.team : m.owner);
+      ctx.fillStyle = colOf(m);
       ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI * 2); ctx.fill();
     }
     for (const d of B.decoys) {
       ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.body);
-      ctx.strokeStyle = col(d.team != null ? d.team : d.owner); ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
+      ctx.strokeStyle = colOf(d); ctx.setLineDash([4, 3]); ctx.lineWidth = 2;
       ctx.strokeRect(-15, -15, 30, 30); ctx.restore();
     }
 
@@ -4214,7 +4458,7 @@ html, body {
     for (const b of B.bots) {
       if (!b.helper && b.hp > 0 && b.wpT > 0 && b.wpX != null) {
         ctx.save();
-        ctx.strokeStyle = col(b.team); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+        ctx.strokeStyle = colBot(b.helper ? b.owner : b.i); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.wpX, b.wpY); ctx.stroke();
         ctx.beginPath(); ctx.arc(b.wpX, b.wpY, 10, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
@@ -4223,11 +4467,11 @@ html, body {
 
     // Projectiles
     for (const q of B.bullets) {
-      ctx.fillStyle = col(q.team != null ? q.team : q.owner);
+      ctx.fillStyle = colOf(q);
       ctx.beginPath(); ctx.arc(q.x, q.y, Math.min(6, 1.8 + Math.sqrt(q.dmg) * 0.6), 0, Math.PI * 2); ctx.fill();
     }
     for (const q of B.saws) {
-      const c = col(q.team != null ? q.team : q.owner);
+      const c = colOf(q);
       ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(B.t * 25 + q.owner);
       ctx.fillStyle = c; ctx.beginPath();
       for (let k = 0; k < 16; k++) { const r = k % 2 ? 6 : 9.5, a = k * Math.PI / 8; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
@@ -4239,14 +4483,14 @@ html, body {
       const u = q.t / q.T;
       ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.arc(q.tx, q.ty, 45, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = col(q.team != null ? q.team : q.owner);
+      ctx.fillStyle = colOf(q);
       ctx.beginPath();
       ctx.arc(q.sx + (q.tx - q.sx) * u, q.sy + (q.ty - q.sy) * u - Math.sin(Math.PI * u) * 90, 5 + Math.sin(Math.PI * u) * 3, 0, Math.PI * 2);
       ctx.fill();
     }
     for (const b of B.bots) {
       if (b.beam && b.hp > 0) {
-        ctx.strokeStyle = col(b.team); ctx.lineWidth = 3;
+        ctx.strokeStyle = colBot(b.helper ? b.owner : b.i); ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(b.x + Math.cos(b.beamA) * 20, b.y + Math.sin(b.beamA) * 20);
         ctx.lineTo(b.x + Math.cos(b.beamA) * 280, b.y + Math.sin(b.beamA) * 280);
@@ -4273,16 +4517,18 @@ html, body {
     // Fight intro (Kev, 6 Nov): robots roll in through the side walls (team 0 from the left, the other from the
     // right) to their start spots, then stand still for a 3-2-1 countdown; nothing moves in the sim before that.
     const intro = !F.rolloutDone;
-    if (intro) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Sim.W, Sim.H); ctx.clip(); }
+    if (intro) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, B.W, B.H); ctx.clip(); }
     const ease = t => 1 - Math.pow(1 - t, 3);
     for (const b of B.bots) {
-      const side = b.team != null ? b.team : b.i;
+      const bc = colBot(b.helper ? b.owner : b.i);
       let rx = b.x, ry = b.y, bodyA = b.body, turA = b.turret;
       if (intro) {
-        const u = ease(Math.max(0, Math.min(1, F.rollout))), fromLeft = side % 2 === 0;
-        const sx = fromLeft ? -70 : Sim.W + 70;
-        rx = sx + (b.x - sx) * u;
-        const travel = fromLeft ? 0 : Math.PI, turnIn = Math.max(0, (u - 0.7) / 0.3);
+        // in through the nearest wall (the owner's, for drones)
+        const o = b.helper ? B.bots[b.owner] : b, u = ease(Math.max(0, Math.min(1, F.rollout)));
+        const dl = o.x, dr = B.W - o.x, dtp = o.y, dbt = B.H - o.y, mn = Math.min(dl, dr, dtp, dbt);
+        const sx = mn === dl ? -70 : mn === dr ? B.W + 70 : b.x, sy = mn === dtp ? -70 : mn === dbt ? B.H + 70 : b.y;
+        rx = sx + (b.x - sx) * u; ry = sy + (b.y - sy) * u;
+        const travel = Math.atan2(b.y - sy, b.x - sx), turnIn = Math.max(0, (u - 0.7) / 0.3);
         const da = Math.atan2(Math.sin(b.body - travel), Math.cos(b.body - travel));
         bodyA = travel + da * turnIn; turA = bodyA;
       }
@@ -4293,11 +4539,11 @@ html, body {
         ctx.save();
         ctx.translate(rx, ry);
         if (b.helper === 'spotter' || b.helper === 'jammer') {
-          ctx.strokeStyle = col(side); ctx.globalAlpha = 0.2; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = bc; ctx.globalAlpha = 0.2; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
           ctx.beginPath(); ctx.arc(0, 0, b.helper === 'spotter' ? 200 : 160, 0, Math.PI * 2); ctx.stroke();
           ctx.setLineDash([]); ctx.globalAlpha = 1;
         }
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = col(side); ctx.lineWidth = 2;
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = bc; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#111'; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(hd ? hd.icon : '•', 0, 3.5);
@@ -4311,7 +4557,7 @@ html, body {
       }
 
       const modTag = b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : '';   // parts are open (rulebook)
-      drawRobotSprite(ctx, rx, ry, bodyA, turA, col(side), F.robots[side].b, b.hp / b.s.hp, F.robots[side].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, intro ? Object.assign({}, b, { x: rx, y: ry }) : b);
+      drawRobotSprite(ctx, rx, ry, bodyA, turA, bc, F.builds ? F.builds[b.i] : F.robots[b.i].b, b.hp / b.s.hp, F.botName ? F.botName[b.i] : F.robots[b.i].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, intro ? Object.assign({}, b, { x: rx, y: ry }) : b);
 
       // Show active burning / broken parts status under robot
       const subTags = [];
@@ -4323,7 +4569,7 @@ html, body {
         ctx.fillText(subTags.join(' · '), rx, ry + 30);
       }
 
-      hitRegions.push({ kind: 'arena_bot', slot: side, x: ax0 + rx - 32, y: ay0 + ry - 32, w: 64, h: 64 });
+      hitRegions.push({ kind: 'arena_bot', slot: b.i, x: ax0 + (rx - 32) * sc, y: ay0 + (ry - 32) * sc, w: 64 * sc, h: 64 * sc });
     }
     if (intro) ctx.restore();
 
@@ -4349,7 +4595,7 @@ html, body {
       const frac = intro ? cd - Math.floor(cd) : 1 - flash / 0.9;
       const sc = 1 + 0.6 * Math.pow(1 - Math.min(1, frac * 2.5), 2);
       ctx.save();
-      ctx.translate(Sim.W / 2, Sim.H / 2);
+      ctx.translate(B.W / 2, B.H / 2);
       ctx.scale(sc, sc);
       ctx.globalAlpha = intro ? Math.min(1, (1 - frac) * 3) : Math.min(1, flash / 0.4);
       ctx.font = '900 ' + (intro ? 120 : 92) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -4358,7 +4604,7 @@ html, body {
       ctx.restore();
     } else if (intro) {
       ctx.fillStyle = '#555'; ctx.font = '800 14px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(F.spar ? '🥊 SPARRING MATCH' : 'ROBOTS ENTERING THE ARENA…', Sim.W / 2, Sim.H / 2);
+      ctx.fillText(F.spar ? '🥊 SPARRING MATCH' : (fightTitle(F) + ': ROBOTS ENTERING THE ARENA…').toUpperCase(), B.W / 2, B.H / 2);
     }
 
     ctx.restore();
@@ -4444,15 +4690,14 @@ html, body {
     } else if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
       const inArena = wx >= -Sim.W / 2 && wx <= Sim.W / 2 && wy >= -Sim.H / 2 && wy <= Sim.H / 2;
       if (!inArena) return false;
-      const localX = wx + Sim.W / 2, localY = wy + Sim.H / 2;
-
-      const B = G.fight.B;
+      const B = G.fight.B, dsc = Math.min(Sim.W / B.W, Sim.H / B.H);
+      const localX = (wx + Sim.W / 2) / dsc, localY = (wy + Sim.H / 2) / dsc;
       let nearSlot = 0, bestD = Infinity;
       B.bots.filter(b => !b.helper).forEach((b, s) => {
         const d = Math.hypot(b.x - localX, b.y - localY);
         if (d < bestD) { bestD = d; nearSlot = s; }
       });
-      const mySlot = G.fight.teams.indexOf(viewerSeat);
+      const myEnt = G.fight.teams.indexOf(viewerSeat), mySlot = myEnt >= 0 ? (G.fight.entBot ? G.fight.entBot[myEnt] : myEnt) : -1;
 
       t.hand.splice(dc.idx, 1);
       const cmd = {
@@ -4632,7 +4877,7 @@ html, body {
         updateHud(); return;
       }
 
-      if (r.kind === 'garage' && G.phase === 'arena' && G.host === viewerSeat && !G.chooseMyBot) {
+      if (r.kind === 'garage' && G.phase === 'arena' && G.host === viewerSeat && !G.chooseMyBot && !G.hostStep && !G.fight && G.pickTeams) {
         const k = G.pickTeams.indexOf(r.team);
         if (k >= 0) G.pickTeams.splice(k, 1);
         else if (G.pickTeams.length < 2) G.pickTeams.push(r.team);
@@ -4640,9 +4885,9 @@ html, body {
       }
 
       if (r.kind === 'bet_card') {
-        const other = 1 - r.side;
-        G.myBet[other] = 0;
-        const cap = maxBetOf(me());
+        if (G.betsLocked) return;
+        G.myBet = G.myBet.map((v, k) => k === r.side ? v : 0);
+        const cap = betLimit(me());
         const next = (G.myBet[r.side] + 1) % (cap + 1);
         G.myBet[r.side] = next <= me().credits ? next : 0;
         updateHud(); return;
@@ -4764,6 +5009,7 @@ html, body {
       sandbox: true,
       teams: [viewerSeat, foe],
       robots: [t.robots[0], G.teams[foe].robots[0]],
+      sides: [0, 1], nSides: 2, format: 'duel',
       bets: []
     };
     startFight();

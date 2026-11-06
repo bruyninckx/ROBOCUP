@@ -127,6 +127,10 @@ One fight per round, run by the host. Most fights are duels; about 1 in 4 should
 | Mirror (host only) | Each side picks one robot; it fights as 2–3 copies; afterwards the real robot keeps the damage of its healthiest surviving copy |
 | Unleash the House Robot (host only) | A neutral robot joins and attacks whoever is closest |
 
+**When the Arena cards are played (Kev, 6 Nov; built in the tabletop prototype).** Tag Team Licence and Grand Final are schemes on your Intrigue turn and set up this round's fight. Right after the host bid comes the **Host step**: the host may play Mirror or Unleash the House Robot, and any team may play Grand Melee (host first, then clockwise). In the **Bets step**, Bookie's Friend and Hedge Bet are played while bets are open, and Swap the Entry right after bets are locked (the bets and odds stay as they were). An Arena card can still be cashed in on your Intrigue turn instead.
+
+Prototype details: Mirror makes each robot fight as 2 copies. Grand Melee is a free-for-all for every team with a ready robot. In an event a team with no ready robot sits out (−1 fame) and events can't be declined. The House Robot (heavy gun, armour 2) drops in at the top: if it is the last one standing nobody gets fame and bets are refunded. In an event with several losers the host judges the first robot knocked out, and every losing team opens a Scrap Crate.
+
 **3. Invitations.** The host invites one team at a time until both sides are filled; the host may invite itself. A team that accepts picks the robot it sends. A team that declines loses 1 fame, and the host invites the next one. If every other team has been asked and a side is still open, the host must fill it. If only one team accepts, there's no fight this round. In a 2v2, the host invites four times (no team more than twice, no team asked again after declining) and pairs the teams.
 
 **4. Appearance money.** Each invited team gets 2 credits, plus 2 per Fan token on its robot (6 for a Fan Favourite).
