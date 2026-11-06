@@ -1827,7 +1827,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 secret-backing';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 backing-fixes';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2169,7 +2169,7 @@ html, body {
       { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
       { label: 'Cancel', secondary: true, value: () => null }]);
     if (!res) return false;
-    let got = 0, forced = false;
+    let got = 0, forced = false; const owed = [];   // Kev, 6 Nov: backers are only paid if the card really gets played
     for (const o of res.ask) {
       if (F.fame + got >= needOf(F, c)) break;
       let yes, B = null;
@@ -2178,27 +2178,35 @@ html, body {
         const d = await dealPanel({ title: '🤝 Ask ' + esc(o.name) + ' for backing', intro: 'Its <b>' + o.fame + ' fame</b> would count for this one card (you still need ' + (needOf(F, c) - F.fame - got) + '). What do you offer?', from: o, lock: 'Lock in & ask' });
         if (!d) continue;
         B = d.give; yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-        if (yes) transfer(F, o, B);
+        if (yes) owed.push([o, B]);
       }
       const bf = o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // 🕴️ Fixer: +2 fame toward the gate
       notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
       if (yes) { got += bf; await boardFx({ kind: 'back', ti: o.i, label: 'BACKS YOU', sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
     }
-    return F.fame + got >= needOf(F, c);
+    return settleBacking(F, c, got, owed);
+  }
+  // backing deals are paid only when the backing is enough; otherwise nobody pays and the card stays secret
+  function settleBacking(F, c, got, owed) {
+    const ok = F.fame + got >= needOf(F, c);
+    if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B); });
+    else if (owed.some(([, B]) => !bundleEmpty(B))) notify('not enough backing, so nobody gets paid', '#888');
+    return ok;
   }
   async function aiBacking(F, c, T) {
-    let got = 0;
+    let got = 0, promised = 0; const owed = [];
     for (const o of G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i)).sort((a, b) => b.fame - a.fame)) {
       if (F.fame + got >= needOf(F, c)) break;
-      const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - 3)) + (stashOf(F).length ? 1 : 0));
+      const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - promised - 3)) + (stashOf(F).length ? 1 : 0));
+      B.items = B.items.filter(id => !owed.some(([, b]) => b.items.includes(id)));   // a Stash part can only be promised once
       let yes;
       if (o.i === HS) {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
           (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-      if (yes) { transfer(F, o, B); got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
+      if (yes) { owed.push([o, B]); promised += B.cr || 0; got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
-    return F.fame + got >= needOf(F, c);
+    return settleBacking(F, c, got, owed);
   }
 
   /* ---------- defence: Security Bots (target only), then a reaction window for everyone ---------- */
@@ -2495,7 +2503,7 @@ html, body {
   }
   async function aiIntrigueTurn(F) {
     while (removeFromHand(F, 'security_bot')) F.secBots = (F.secBots || 0) + 1;   // install bots as garage assets
-    let plays = 0;
+    let plays = 0, askedBacking = false;
     const ids = F.hand.slice().sort((a, b) => AI_ORDER.indexOf(CARDS[a].fam) - AI_ORDER.indexOf(CARDS[b].fam));
     for (const id of ids) {
       if (plays >= 2) break;
@@ -2506,7 +2514,8 @@ html, body {
       if (!gateOk(c, F, T)) {
         // Kev, 6 Nov: only ask when the other teams' fame could close the gap (Red Rivets asked for 8 fame when all three rivals had 1)
         const gap = needOf(F, c) - F.fame, could = G.teams.filter(o => o !== F && o !== T).reduce((a, o) => a + o.fame + (hasCrew(o, 'fixer') ? 2 : 0), 0);
-        if (typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+        if (askedBacking || typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+        askedBacking = true;   // Kev, 6 Nov: one backing request per turn, not a string of them
         secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
         if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
       }
