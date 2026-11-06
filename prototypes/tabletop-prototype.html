@@ -413,6 +413,24 @@ html, body {
 #helpTip[hidden]{display:none}
 #helpTip .ht{font-weight:800;font-size:12.5px;margin-bottom:2px;color:#111}
 #helpTip i{color:#666}
+#dealModal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.25)}
+#dealModal[hidden]{display:none}
+.dl-box{width:min(640px,calc(100vw - 32px))}
+.dl-cols{display:flex;gap:12px;margin-top:8px}
+.dl-col{flex:1;min-width:0;border:1.5px solid #d5d1c7;border-radius:10px;padding:8px;background:#fff}
+.dl-h{font-weight:800;margin-bottom:6px}
+.dl-sub{font:800 10px system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#888;margin:8px 0 3px}
+.dl-cr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dl-cr button{width:26px;height:26px;border:1.5px solid #111;border-radius:6px;background:#fff;font:800 14px system-ui,sans-serif;cursor:pointer}
+.dl-zone{min-height:38px;border:1.5px dashed #cfcab9;border-radius:8px;padding:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.dl-zone.over{border-color:#1f6feb;background:#f0f6ff}
+.dl-stash{background:#f6f4ee}
+.dl-chip{border:1.5px solid #111;border-radius:999px;padding:2px 9px;font:700 12px system-ui,sans-serif;background:#fff;cursor:grab}
+.stashcard{background:rgba(255,253,247,.96);border:1.5px solid #111;border-radius:10px;font-size:12px;flex:0 0 auto}
+.st-list{padding:4px 6px 6px;display:flex;flex-direction:column;gap:3px}
+.st-row{display:flex;align-items:center;gap:5px}
+.st-row .lcard{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-row button{border:1.5px solid #111;border-radius:6px;background:#fff;font:800 10.5px system-ui,sans-serif;padding:1px 6px;cursor:pointer}
 #scoutPanel{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.22)}
 #scoutPanel[hidden]{display:none}
 .sc-box{position:relative;background:#fffdf7;border:2.5px solid #111;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:14px 16px;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;font:13px/1.45 system-ui,sans-serif;color:#111}
@@ -469,6 +487,7 @@ html, body {
 <!-- Dynamic Prompt Pill -->
 <div class="left-col" id="leftCol">
 <div class="prompt-bar" id="promptBar"></div>
+<div class="stashcard" id="stashCard"></div>
 
 <!-- Action log: scrollable, grouped by round/phase and action (hover anything for help) -->
 <div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Action log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">📜 Log</span><button id="lpToggle" title="Hide / show the log">–</button></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
@@ -1135,6 +1154,7 @@ html, body {
   /* ---------- Top Bar & Prompt Bar ---------- */
   function updateHud() {
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
+    renderStash();
     $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '"' + helpAttr(l, PHASE_HELP[k] || '') + '>' + l + '</span>').join('');
     renderPromptBar();
     renderHand();
@@ -1193,13 +1213,20 @@ html, body {
       } else if (G.marketResolved) {
         if (G.pendingInstall && G.pendingInstall.length) {
           const lot = LOTS[G.pendingInstall[0].lot];
-          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>.</span>';
+          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
+          $('#pAct1').onclick = () => { const it = G.pendingInstall.shift(); if (!it) return; const ok = toStash(t, it.lot); if (G.marketResults && G.marketResults[it.idx]) G.marketResults[it.idx].target = ok ? '📦 Kept in the Stash' : '🏦 Stash full: sold'; updateHud(); };
         } else {
           pb.innerHTML = G.hostResolved
             ? '<span>📦 <b>Market Results:</b> who won each lot and who hosts, and for how much.</span><button class="act" id="pAct1">Continue to Host Phase →</button>'
             : '<span>📦 <b>Auction Results:</b> lots are done. Next: a separate sealed bid for the right to host.</span><button class="act" id="pAct1">👑 Bid for Host →</button>';
           $('#pAct1').onclick = continueMarket;
         }
+      } else if (G.marketStage === 'open') {
+        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits and 📦 Stash parts with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + '</span>' +
+          G.teams.filter(o => o.i !== viewerSeat).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('') +
+          '<button class="act" id="pAct1"' + (G.openBusy ? ' disabled' : '') + '>Start the auction →</button>';
+        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
+        $('#pAct1').onclick = startLots;
       } else if (G.marketStage === 'host') {
         pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[3] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.</span>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
@@ -1220,9 +1247,14 @@ html, body {
         if (!ev) $('#pAct1').onclick = declineInvite;
       } else if (G.host === viewerSeat) {
         const n = (G.pickTeams || []).length;
-        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked)' + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
+        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
-        $('#pAct1').onclick = () => invite(G.pickTeams.slice());
+        $('#pAct1').onclick = () => {
+          const pk = G.pickTeams.slice(), H = G.teams[G.host];
+          (G.inviteOffers || []).forEach(o => { if ((o.want === 'in') === pk.includes(o.team)) { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays you ' + bundleText(o.B) + ' (' + (o.want === 'in' ? 'invited' : 'left out') + ').', G.teams[o.team].col); } });
+          G.inviteOffers = [];
+          invite(pk);
+        };
       }
     } else if (G.phase === 'bets') {
       const lim = betLimit(t), staked = G.myBet.reduce((a, b) => a + b, 0);
@@ -1244,11 +1276,14 @@ html, body {
       $('#pAct1').onclick = () => { if (G.fight?.B) { G.fight.rolloutDone = true; G.fight.rollout = 1; while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); } };
     } else if (G.phase === 'after') {
       if (G.awaitingJudgment && G.host === viewerSeat) {
-        const lr = G.fight.loser.robot;
-        pb.innerHTML = '<span>👑 <b>Host Judgment:</b> Decide the fate of defeated <b>' + esc(lr.name) + '</b>:</span>' +
+        const lr = G.fight.loser.robot, fo = G.fight.fateOffers || { spare: [], scrap: [] };
+        const ot = side => fo[side].length ? fo[side].map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B)).join(', ') : 'no offers';
+        pb.innerHTML = '<span>👑 <b>Host Judgment:</b> Decide the fate of defeated <b>' + esc(lr.name) + '</b>. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
           '<button class="act" id="pAct1">👍 Spare</button><button class="act secondary" id="pAct2" style="border-color:#ff6b6b;color:#ff9b9b">👎 Scrap</button>';
         $('#pAct1').onclick = () => resolveFate(false);
         $('#pAct2').onclick = () => resolveFate(true);
+      } else if (G.fateBusy) {
+        pb.innerHTML = '<span>👑 <b>Spare or scrap:</b> offers are going to the host…</span>';
       } else if (G.crateChoices && G.crateChoices.length) {
         pb.innerHTML = '<span>🎁 <b>Winner\'s Crate:</b> Click 1 of the 3 Prize Crates on the Arena floor to claim your reward!</span>';
       } else {
@@ -1577,13 +1612,149 @@ html, body {
       if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
       el.innerHTML = '<div class="iv-box"><h3>' + title + '</h3><div class="iv-body">' + html + '</div><div class="iv-btns">' +
         buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') +
-        '</div>' + (timeout ? '<div class="iv-timer"><i></i></div>' : '') + '</div>';
+        '</div></div>';
       el.hidden = false;
       let done = false, tm = null;
       const finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; res(v); };
       el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
-      if (timeout) { el.querySelector('.iv-timer i').style.animation = 'ivt ' + timeout + 'ms linear forwards'; tm = setTimeout(() => finish(typeof def === 'function' ? def(el) : def), timeout); }
+      // Kev, 6 Nov: no countdown bars, they put too much pressure on; every window waits for your answer
     });
+  }
+
+  /* ============================================================================
+   * STASH & DEALS (Kev, 6 Nov)
+   * Stash: every team keeps up to STASH_MAX spare parts (won lots no robot can take, or parts kept aside). Fit one
+   * when a robot can take it (Upkeep or Market), trade it, or sell it to the bank at half value. Open information.
+   * Deals: one offer panel for every moment where someone decides (backing, invites, spare/scrap, card threats,
+   * open-market trades). You move credits and Stash parts onto the table and press Lock in; no timers.
+   * AI teams value a bundle as credits + what each part is worth to them (the bookie's band jump on their robots).
+   * ============================================================================ */
+  const STASH_MAX = 4;
+  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return L.wup || L.helper ? 3 : 2; };
+  const bankHalf = id => Math.max(1, Math.floor(partValue(id) / 2));
+  const stashOf = t => (t.stash = t.stash || []);
+  function toStash(t, id, quiet) {
+    if (stashOf(t).length >= STASH_MAX) {
+      const g = bankHalf(id); t.credits += g;
+      notify('📦 ' + nm(t) + '\'s Stash is full: ' + lotRef(id) + ' goes to the bank for ' + g + ' Cr.', t.col);
+      return false;
+    }
+    t.stash.push(id);
+    if (!quiet) notify('📦 ' + lotRef(id) + ' goes into ' + nm(t) + '\'s Stash.', t.col);
+    return true;
+  }
+  function sellStash(t, k) {
+    const id = stashOf(t).splice(k, 1)[0]; if (!id) return;
+    const g = bankHalf(id); t.credits += g;
+    notify('🏦 ' + nm(t) + ' sells ' + lotRef(id) + ' to the bank for ' + g + ' Cr (half value).', t.col);
+    updateHud();
+  }
+  // what a part is worth to a team: its value plus the bookie's best gain on one of its robots; unusable = bank price
+  function partGain(t, id) {
+    let best = null;
+    for (const r of t.robots) {
+      if (!canFit(r, LOTS[id])) continue;
+      const nb = lotBuild(r, LOTS[id]); if (!nb) continue;
+      const a = fieldOdds(t.i, r.b).p, b = fieldOdds(t.i, nb).p;
+      const d = a != null && b != null ? b - a : 0.04;
+      if (!best || d > best.d) best = { r, a, b, d };
+    }
+    return best;
+  }
+  function partWorth(t, id) { const g = partGain(t, id); return g ? partValue(id) + Math.max(0, Math.round(g.d * 15)) : bankHalf(id); }
+  const bundleWorth = (t, B) => (B && B.cr || 0) + (B && B.items || []).reduce((a, id) => a + partWorth(t, id), 0);
+  const bundleEmpty = B => !B || (!B.cr && !(B.items || []).length);
+  const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : ''].concat((B.items || []).map(lotRef)).filter(Boolean).join(' + ');
+  function transfer(from, to, B) {
+    if (bundleEmpty(B)) return;
+    if (B.cr) to.credits += payCr(from, B.cr);
+    for (const id of B.items || []) { const k = stashOf(from).indexOf(id); if (k >= 0) { from.stash.splice(k, 1); toStash(to, id, true); } }
+  }
+  // a short "what it does for you" line for a part, seen from team t
+  function partForTxt(t, id) {
+    const g = partGain(t, id);
+    if (!g) return 'none of ' + (t.i === viewerSeat ? 'your' : esc(t.name) + '\'s') + ' robots can take it (bank: ' + bankHalf(id) + ' Cr)';
+    return '🎩 ' + esc(g.r.name) + ': ' + (g.a == null || g.b == null ? 'bookie working…' : bandOf(g.a).short + ' → ' + bandOf(g.b).short);
+  }
+  // AI: the bundle it would offer, worth about `want` to the receiver (credits first, then a part the receiver can use)
+  function aiBundle(t, to, want) {
+    const B = { cr: 0, items: [] };
+    const useful = stashOf(t).filter(id => partGain(to, id) && !partGain(t, id));
+    if (useful.length && want >= 2) { B.items.push(useful[0]); want -= partWorth(to, useful[0]); }
+    B.cr = Math.max(0, Math.min(Math.round(want), Math.max(0, t.credits - 1)));
+    return B;
+  }
+
+  /* ---------- the offer panel (human) ----------
+   * opts: { title, intro, give: true (you put things on the table), from: the other team, want: true (also ask for
+   * their credits / Stash parts, for trades), lock: label }. Resolves to { give: {cr, items}, want: {cr, items} } or null. */
+  function dealPanel(opts) {
+    return new Promise(res => {
+      const me_ = me(), O = opts.from;
+      const st = { give: { cr: 0, items: [] }, want: { cr: 0, items: [] } };
+      let el = document.getElementById('dealModal');
+      if (!el) { el = document.createElement('div'); el.id = 'dealModal'; document.body.appendChild(el); }
+      const chip = (id, side, zone) => '<span class="dl-chip" draggable="true" data-id="' + id + '" data-side="' + side + '" data-zone="' + zone + '"' +
+        helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>For you: ' + partForTxt(me_, id) + (O ? '<br>For ' + esc(O.name) + ': ' + partForTxt(O, id) : '') + '<br><i>Click or drag to move it.</i>') + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>';
+      const draw = () => {
+        const minus = (arr, rem) => { const x = arr.slice(); rem.forEach(id => { const k = x.indexOf(id); if (k >= 0) x.splice(k, 1); }); return x; };
+        const myLeft = minus(stashOf(me_), st.give.items), theirLeft = O ? minus(stashOf(O), st.want.items) : [];
+        const col = (title, side, who, left, onTable, cr, crMax) =>
+          '<div class="dl-col"><div class="dl-h">' + title + '</div>' +
+          '<div class="dl-cr"><button data-cr="' + side + '" data-d="-1">−</button><b>' + cr + ' Cr</b><button data-cr="' + side + '" data-d="1">+</button><span class="sc-note">of ' + crMax + '</span></div>' +
+          '<div class="dl-zone" data-drop="' + side + '" data-zone="table">' + (onTable.map(id => chip(id, side, 'table')).join('') || '<span class="sc-note">drop parts here</span>') + '</div>' +
+          '<div class="dl-sub">' + who + ' Stash</div><div class="dl-zone dl-stash" data-drop="' + side + '" data-zone="stash">' + (left.map(id => chip(id, side, 'stash')).join('') || '<span class="sc-note">empty</span>') + '</div></div>';
+        el.innerHTML = '<div class="iv-box dl-box"><h3>' + opts.title + '</h3><div class="iv-body">' + (opts.intro || '') + '</div><div class="dl-cols">' +
+          (opts.give !== false ? col(opts.want ? 'You give' : 'Your offer', 'give', 'Your', myLeft, st.give.items, st.give.cr, me_.credits) : '') +
+          (opts.want && O ? col('You get from ' + esc(O.name), 'want', esc(O.name.split(' ')[0]) + '\'s', theirLeft, st.want.items, st.want.cr, O.credits) : '') +
+          '</div><div class="sc-note" style="margin-top:6px">Nothing moves until you lock it in' + (O && O.i !== viewerSeat ? '; ' + esc(O.name) + ' then accepts or refuses' : '') + '.</div>' +
+          '<div class="iv-btns"><button class="primary" data-k="lock">🔒 ' + (opts.lock || 'Lock in offer') + '</button><button class="secondary" data-k="no">No deal</button></div></div>';
+        el.hidden = false;
+        el.querySelectorAll('[data-cr]').forEach(b => { b.onclick = () => { const S = b.dataset.cr, max = S === 'give' ? me_.credits : O.credits; st[S].cr = Math.max(0, Math.min(max, st[S].cr + +b.dataset.d)); draw(); }; });
+        const move = (id, side, zone) => { const L = st[side].items; if (zone === 'table') L.splice(L.indexOf(id), 1); else L.push(id); draw(); };
+        el.querySelectorAll('.dl-chip').forEach(c => {
+          c.onclick = () => move(c.dataset.id, c.dataset.side, c.dataset.zone);
+          c.ondragstart = e => { e.dataTransfer.setData('text/plain', c.dataset.id + '|' + c.dataset.side + '|' + c.dataset.zone); };
+        });
+        el.querySelectorAll('.dl-zone').forEach(z => {
+          z.ondragover = e => { e.preventDefault(); z.classList.add('over'); };
+          z.ondragleave = () => z.classList.remove('over');
+          z.ondrop = e => { e.preventDefault(); const [id, side, zone] = e.dataTransfer.getData('text/plain').split('|'); if (side === z.dataset.drop && zone !== z.dataset.zone) move(id, side, zone); else draw(); };
+        });
+        el.querySelector('[data-k="lock"]').onclick = () => { el.hidden = true; el.innerHTML = ''; res(st); };
+        el.querySelector('[data-k="no"]').onclick = () => { el.hidden = true; el.innerHTML = ''; res(null); };
+      };
+      draw();
+    });
+  }
+  // an AI offer to the human: accept or refuse (no timer)
+  function dealAsk(title, html) {
+    return ivModal(title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+  }
+
+  /* ---------- the Stash card in the left column ---------- */
+  function renderStash() {
+    let el = document.getElementById('stashCard');
+    if (!el || !G) return;
+    const t = me(), S = stashOf(t), canFitNow = G.phase === 'upkeep' || (G.phase === 'market' && !G.marketAuction);
+    const key = JSON.stringify([S, G.phase, !!G.marketAuction, t.robots.map(r => bKey(r.b)), SC.ver]);
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+    el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
+      (S.length ? '<div class="st-list">' + S.map((id, k) => {
+        const fits = t.robots.filter(r => canFit(r, LOTS[id]));
+        return '<div class="st-row"><span class="lcard"' + helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>' +
+          (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
+      }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty. Win a part none of your robots can take and it lands here.</div>');
+    el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => sellStash(t, +b.dataset.sell); });
+    el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
+      const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
+      const r = fits.length === 1 ? fits[0] : await ivModal('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));
+      if (!r || stashOf(t)[k] !== id) return;
+      t.stash.splice(k, 1); applyLot(viewerSeat, id, r);
+      notify('🔩 Fitted ' + lotRef(id) + ' from your Stash on ' + esc(r.name) + '.', t.col);
+      updateHud();
+    }; });
   }
 
   /* ---------- backing: other teams add their fame for one card ---------- */
@@ -1597,21 +1768,26 @@ html, body {
   async function humanBacking(c, T) {
     const F = me(), others = G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i));
     const seat = F.hand.includes('board_seat') && F.fame >= 5;
-    const html = 'You need <b>' + (needOf(F, c) - F.fame) + '</b> more fame for <b>' + esc(c.name) + '</b>' + (T && T !== F ? ' (target ' + nm(T) + ')' : '') +
-      '. Tick teams to ask; you may offer credits. Backers add their fame for this one card, and you don\'t have to tell them what it is.' +
-      others.map(o => '<label><input type="checkbox" data-o="' + o.i + '" checked> ' + nm(o) + ' (' + o.fame + ' fame) · offer <input type="number" min="0" max="' + F.credits + '" value="0" data-off="' + o.i + '" style="width:46px"> Cr</label>').join('') +
+    const html = 'You need <b>' + (needOf(F, c) - F.fame) + '</b> more fame for ' + cardRef(c.id) + (T && T !== F ? ' (target ' + nm(T) + ')' : '') +
+      '. Tick the teams to ask, one at a time. For each you can put credits and Stash parts on the table. Backers add their fame for this one card, and you don\'t have to tell them what it is.' +
+      others.map(o => '<label><input type="checkbox" data-o="' + o.i + '" checked> ' + nm(o) + ' (' + o.fame + ' fame)</label>').join('') +
       (seat ? '<label><input type="checkbox" id="ivSeat"> Use <b>Board Seat</b>: the first ticked team must back you</label>' : '');
     const res = await ivModal('🤝 Ask for backing', html, [
-      { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked).map(o => ({ o, off: Math.max(0, +el.querySelector('[data-off="' + o.i + '"]').value || 0) })), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
+      { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
       { label: 'Cancel', secondary: true, value: () => null }]);
     if (!res) return false;
     let got = 0, forced = false;
-    for (const { o, off } of res.ask) {
+    for (const o of res.ask) {
       if (F.fame + got >= needOf(F, c)) break;
-      let yes, paid = 0;
+      let yes, B = null;
       if (res.seat && !forced) { forced = yes = true; removeFromHand(F, 'board_seat'); discardCard('board_seat'); notify('⛓️ ' + cardRef('board_seat') + ': ' + nm(o) + ' must back with all its fame.', F.col); }
-      else { const o2 = Math.min(off, F.credits); yes = aiWillBack(o, F, T, c, o2); if (yes && o2) { paid = payCr(F, o2); o.credits += paid; } }
-      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + o.fame + ' fame' + (paid ? ', paid ' + paid + ' Cr' : '') + ').' : '✋ ' + nm(o) + ' refuses to back you.', o.col);
+      else {
+        const d = await dealPanel({ title: '🤝 Ask ' + esc(o.name) + ' for backing', intro: 'Its <b>' + o.fame + ' fame</b> would count for this one card (you still need ' + (needOf(F, c) - F.fame - got) + '). What do you offer?', from: o, lock: 'Lock in & ask' });
+        if (!d) continue;
+        B = d.give; yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
+        if (yes) transfer(F, o, B);
+      }
+      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + o.fame + ' fame' + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
       if (yes) got += o.fame;
     }
     return F.fame + got >= needOf(F, c);
@@ -1620,13 +1796,13 @@ html, body {
     let got = 0;
     for (const o of G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i)).sort((a, b) => b.fame - a.fame)) {
       if (F.fame + got >= needOf(F, c)) break;
-      const off = Math.min(2, Math.max(0, F.credits - 3));
+      const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - 3)) + (stashOf(F).length ? 1 : 0));
       let yes;
       if (o.i === viewerSeat) {
-        yes = await ivModal('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + (off ? ' and offers <b>' + off + ' Cr</b>' : '') +
-          '. Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.', [{ label: 'Back them', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 7000, false);
-      } else yes = aiWillBack(o, F, T, c, off);
-      if (yes) { const p = payCr(F, off); o.credits += p; got += o.fame; notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (p ? ' for ' + p + ' Cr' : '') + '.', o.col); }
+        yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
+          (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
+      } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
+      if (yes) { transfer(F, o, B); got += o.fame; notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
     return F.fame + got >= needOf(F, c);
   }
@@ -1754,9 +1930,18 @@ html, body {
     let ally;
     if (F.i === viewerSeat) ally = await ivModal('🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0);
     else ally = others.filter(o => o !== leaderOf()).sort((a, b) => Math.max(...readyRobots(b).map(power)) - Math.max(...readyRobots(a).map(power)))[0] || others[0];
-    const yes = ally.i === viewerSeat
-      ? await ivModal('🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 8000, true)
-      : !(ally === leaderOf() && rnd() < 0.5);
+    let yes;
+    if (ally.i === viewerSeat) {
+      const B = aiBundle(F, ally, 1);
+      yes = await ivModal('🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }]);
+      if (yes) transfer(F, ally, B);
+    } else {
+      yes = !(ally === leaderOf() && rnd() < 0.5);
+      if (!yes && F.i === viewerSeat) {   // sweeten the deal
+        const d = await dealPanel({ title: '🤝 ' + esc(ally.name) + ' hesitates', intro: nm(ally) + ' would rather not team up. Make it worth their while?', from: ally, lock: 'Lock in offer' });
+        if (d && !bundleEmpty(d.give) && bundleWorth(ally, d.give) >= 3) { transfer(F, ally, d.give); yes = true; notify('🤝 ' + nm(ally) + ' takes ' + bundleText(d.give) + ' and teams up.', ally.col); }
+      }
+    }
     if (!yes) { addFame(ally, -1); notify('✋ ' + nm(ally) + ' refuses the Tag Team (−1 fame). The fight stays a duel.', ally.col); return; }
     G.nextEvent = { kind: 'tag', teams: [F.i, ally.i], by: F.i, card: id };
     notify('🤝 Tag Team: ' + nm(F) + ' and ' + nm(ally) + ' fight together this round, 2v2.', F.col);
@@ -1988,9 +2173,55 @@ html, body {
     G.market = [G.lots.pop(), G.lots.pop(), G.lots.pop()];
     G.myBids = [0, 0, 0, 0];
     G.pendingInstall = [];
-    G.marketStage = 'lots'; G.hostResolved = false;   // Kev, 6 Nov: hosting is its own bid after the lots
+    G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
+    updateHud();
+    openMarketAI();
+  }
+  /* ---------- Market step 1: open market (Kev, 6 Nov) ----------
+   * Teams trade credits and Stash parts, and may sell Stash parts to the bank at half value. AI teams sell parts they
+   * can't use to teams that can, and make you offers; you can propose a trade to any team (it accepts if it gains). */
+  async function openMarketAI() {
+    G.openBusy = true; updateHud();
+    for (const A of G.teams) {
+      if (A.i === viewerSeat) continue;
+      for (const id of stashOf(A).slice()) {
+        if (partGain(A, id)) continue;                       // it can use it itself
+        const buyer = G.teams.filter(B => B !== A && partGain(B, id) && B.credits >= partValue(id)).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
+        if (!buyer) continue;
+        const price = partValue(id);
+        let yes;
+        if (buyer.i === viewerSeat) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>.<br>' + partForTxt(buyer, id));
+        else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
+        if (!yes) continue;
+        transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: [id] });
+        notify('🤝 ' + nm(buyer) + ' buys ' + lotRef(id) + ' from ' + nm(A) + ' for ' + price + ' Cr.', buyer.col);
+        updateHud();
+      }
+    }
+    // AI teams that can use a part in your Stash offer to buy it
+    for (const id of stashOf(me()).slice()) {
+      if (G.marketStage !== 'open') break;
+      const A = G.teams.filter(T => T.i !== viewerSeat && partGain(T, id) && T.credits >= partValue(id) + 1).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
+      if (!A || rnd() < 0.4) continue;
+      const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
+      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>.<br>For them: ' + partForTxt(A, id))) {
+        transfer(A, me(), { cr: price, items: [] }); transfer(me(), A, { cr: 0, items: [id] });
+        notify('🤝 You sell ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', me().col);
+      }
+    }
+    G.openBusy = false; updateHud();
+  }
+  async function humanTrade(O) {
+    const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits and Stash parts on both sides, then lock it in. ' + nm(O) + ' accepts if it comes out ahead.', from: O, want: true, lock: 'Lock in trade' });
+    if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
+    const gain = bundleWorth(O, d.give) - bundleWorth(O, d.want);
+    if (gain >= 1) {
+      transfer(me(), O, d.give); transfer(O, me(), d.want);
+      notify('🤝 Trade: you give ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', me().col);
+    } else notify('✋ ' + nm(O) + ' turns the trade down (you give ' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
     updateHud();
   }
+  function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the 3 lots.', '#111'); updateHud(); }
   function continueMarket() { if (G.hostResolved) startArena(); else startHostBid(); }
   function startHostBid() {
     G.marketStage = 'host'; G.marketResolved = false; G.myBids = [0, 0, 0, 0];
@@ -2014,7 +2245,11 @@ html, body {
     let budget = t.credits;
     return [0, 1, 2, 3].map(k => {
       if (k === 3) return 0;                               // hosting is a separate bid after the lots
-      if (!canTake(t, G.market[k])) return 0;              // no robot of ours can take this part
+      if (!canTake(t, G.market[k])) {                      // no robot of ours can take it: only as a cheap Stash buy (to trade, or to keep it from a rival)
+        const lead = leaderOf(), g = lead !== t ? partGain(lead, G.market[k]) : null;
+        const b = (g && g.d > 0.08) || rnd() < 0.2 ? Math.min(budget, 1 + (rnd() < 0.4 ? 1 : 0)) : 0;
+        budget -= b; return b;
+      }
       const want = k === 3 ? (t.fame >= 9 ? 3 : 1.5) + (t.sponsor === 'apex' ? 1.2 : 0)
                            : (G.market[k] === 'robot' && t.robots.length < 3 ? 4 : G.market[k] === 'eng' ? 3 : 2.2);
       let b = Math.round(want * (0.4 + rnd() * 1.1));
@@ -2026,7 +2261,7 @@ html, body {
 
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
-    if (k < 3 && !canTake(t, G.market[k])) return 0;
+    if (k < 3 && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
     const lotId = k < 3 ? G.market[k] : 'host';
     const maxWilling = k === 3
       ? (t.fame >= 9 ? 4.5 : 2.5) + (t.sponsor === 'apex' ? 1.5 : 0)
@@ -2318,7 +2553,8 @@ html, body {
     for (const x of A.wins) {
       if (x.team !== viewerSeat || !needsRobot(x.lot) || !canTake(me(), x.lot)) {
         const pickR = x.team === viewerSeat ? null : aiPickRobot(G.teams[x.team], x.lot);
-        const dest = needsRobot(x.lot) && !canTake(G.teams[x.team], x.lot) ? 'No robot can use it' : applyLot(x.team, x.lot, pickR);
+        const toBox = needsRobot(x.lot) && !canTake(G.teams[x.team], x.lot);
+        const dest = toBox ? (toStash(G.teams[x.team], x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold') : applyLot(x.team, x.lot, pickR);
         A.results[x.idx].target = dest;
       } else {
         A.results[x.idx].target = '▼ Click a Robot Bay below';
@@ -2355,11 +2591,33 @@ html, body {
       for (const oi of [viewerSeat].concat([0, 1, 2, 3].filter(i => i !== viewerSeat))) {
         const o = G.teams[oi];
         if (o === W || !o.hand.includes('botched_install') || o.fame < (CARDS.botched_install.need || 0)) continue;
-        const yes = oi === viewerSeat
-          ? await ivModal('🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr).',
-              [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }], 6000, false)
+        let yes = oi === viewerSeat
+          ? await ivModal('🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr). Or threaten it and ask for a payoff.',
+              [{ label: '🔧 Botch it', value: () => true }, { label: '💰 Demand a payoff', value: () => 'pay' }, { label: 'Let it go', secondary: true, value: () => false }])
           : (th && th.jump >= 1) || (W === leaderOf() && x.price >= 3 && rnd() < 0.6) || (!th && x.price >= 4 && rnd() < 0.5);
         if (!yes) continue;
+        // a threat first: pay off the holder and the card stays in its hand
+        const demand = Math.ceil(x.price / 2) + 1;
+        if (yes === 'pay') {
+          const d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want from ' + nm(W) + ' to leave its ' + lotRef(x.lot) + ' alone?', from: W, give: false, want: true, lock: 'Lock in demand' });
+          const ask = d && d.want;
+          if (ask && !bundleEmpty(ask) && bundleWorth(W, ask) <= partWorth(W, x.lot) + 1) { transfer(W, o, ask); notify('💰 ' + nm(W) + ' pays you ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
+          if (ask && !bundleEmpty(ask)) notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
+          yes = await ivModal('🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
+          if (!yes) continue;
+        } else if (oi !== viewerSeat) {
+          if (W.i === viewerSeat) {
+            const pay = await ivModal('💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
+            if (pay === 'pay' && me().credits >= demand) { transfer(W, o, { cr: demand, items: [] }); notify('💰 You pay ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
+            if (pay === 'deal') {
+              const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' });
+              if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves your ' + lotRef(x.lot) + ' alone.', o.col); break; }
+              notify('✋ ' + nm(o) + ' isn\'t bought off.', o.col);
+            }
+          } else if (W.credits >= demand + 1 && partWorth(W, x.lot) >= demand && rnd() < 0.5) {
+            transfer(W, o, { cr: demand, items: [] }); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + ' safe.', W.col); break;
+          }
+        }
         { const ph = playHead(o, 'botched_install', W); logBegin(ph[0], o.col, ph[1], ph[2]); }
         notify('target: ' + lotRef(x.lot) + (thTxt ? ' (' + thTxt + ')' : ''));
         removeFromHand(o, 'botched_install');
@@ -2416,16 +2674,40 @@ html, body {
     const fmt = ev && ev.kind === 'mirror' ? 'mirror' : 'duel';
     G.pendingFormat = fmt;
     if (H === viewerSeat) {
+      // AI teams may offer you a deal to be invited, or to be left out
+      G.inviteOffers = [];
+      for (const T of G.teams) {
+        if (T.i === H || !readyRobots(T).length) continue;
+        const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r.b).p;
+        const want = r.dmg >= maxHp(r) * 0.5 || (p != null && p <= 0.3) ? 'out' : p != null && p >= 0.55 ? 'in' : null;
+        if (want && rnd() < 0.55) { const B = aiBundle(T, G.teams[H], 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B)) G.inviteOffers.push({ team: T.i, want, B }); }
+      }
+      if (G.inviteOffers.length) notify('👑 Offers to you as host: ' + G.inviteOffers.map(o => nm(G.teams[o.team]) + ' ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(' · '), G.teams[H].col);
       G.pickTeams = [];
       updateHud();
       return;
     }
     const host = G.teams[H];
-    const others = G.teams.filter(t => t.i !== H);
+    let others = G.teams.filter(t => t.i !== H);
+    // you may offer the AI host a deal: invite me, or leave me out
+    let forceIn = false, forceOut = false;
+    if (readyRobots(me()).length) {
+      const pick = await ivModal('👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }]);
+      if (pick) {
+        const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' });
+        if (d && !bundleEmpty(d.give)) {
+          if (bundleWorth(host, d.give) >= 2) { transfer(me(), host, d.give); if (pick === 'in') forceIn = true; else forceOut = true; notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' and ' + (pick === 'in' ? 'invites you.' : 'leaves you out.'), host.col); }
+          else notify('✋ ' + nm(host) + ' turns down ' + bundleText(d.give) + '.', host.col);
+        }
+      }
+    }
+    if (forceOut) others = others.filter(t => t.i !== viewerSeat);
     let a, b;
     const best = readyRobots(host).sort((x, y) => power(y) - power(x))[0];
     const able = others.filter(t => readyRobots(t).length);
-    if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5 && able.length) {
+    if (forceIn) {
+      a = viewerSeat; b = (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5) ? H : (shuffle(able.filter(t => t.i !== viewerSeat))[0] || others.find(t => t.i !== viewerSeat)).i;
+    } else if (rnd() < 0.45 && best && best.dmg < maxHp(best) * 0.5 && able.length) {
       a = H; b = able.slice().sort((x, y) => y.fame - x.fame)[0].i;
     } else {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
@@ -2643,13 +2925,25 @@ html, body {
       const opts = swaps(); if (!opts.length) continue;
       let pick = null;
       if (ti === viewerSeat) {
-        pick = await ivModal('🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]), 8000, null);
+        pick = await ivModal('🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]));
+        if (pick && pick.ti !== viewerSeat) {
+          const how = await ivModal('🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
+          if (how === 'pay') {
+            const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' });
+            if (d && !bundleEmpty(d.want) && bundleWorth(W, d.want) <= 3) { transfer(W, o, d.want); notify('💰 ' + nm(W) + ' pays you ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
+            notify('✋ ' + nm(W) + ' won\'t pay. You swap.', W.col);
+          }
+        }
       } else if (rnd() < 0.4) {
         const myBet = (F.bets.find(b => b.team === ti) || {}).side;
         pick = opts.filter(x => x.ti !== ti && F.sides[x.e] !== myBet).sort((a, b) => power(a.r) - power(b.r))[0] || null;   // sabotage a rival side with its weakest robot
         if (pick && power(pick.r) >= power(F.robots[pick.e])) pick = null;
       }
       if (!pick) continue;
+      if (ti !== viewerSeat && pick.ti === viewerSeat) {   // the AI threatens you first
+        const pay = await ivModal('💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+        if (pay && me().credits >= 2) { transfer(me(), o, { cr: 2, items: [] }); notify('💰 You pay ' + nm(o) + ' 2 Cr to keep your line-up.', me().col); continue; }
+      }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
       const ph = playHead(o, 'swap_the_entry', G.teams[pick.ti]); logBegin(ph[0], o.col, ph[1], ph[2]);
       notify(esc(G.teams[pick.ti].name) + ' now sends <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + '. The bets stand.');
@@ -2796,20 +3090,45 @@ html, body {
     F.loserCrateText = 'Scrap Crate: ' + crateTxt.join(', ');
     F.winnerCrateText = 'Fan token +1';   // Winner's Crate cut (rulebook)
 
-    const Lt = judged.ti, lr = F.robots[judged.e], lTeam = G.teams[Lt];
-    if (G.host === viewerSeat) {
-      G.awaitingJudgment = true;
-      updateHud();
-    } else {
-      const lead = G.teams.slice().sort((a, b) => b.fame - a.fame)[0].i;
-      const scrap = G.host !== Lt && (Lt === lead ? rnd() < 0.7 : rnd() < 0.3) && lr.wins < favWins(lTeam);
-      resolveFate(scrap);
+    fateStep();
+  }
+
+  // Spare or scrap, with deals (Kev, 6 Nov): the loser's team pleads, rivals push to scrap; the host takes the offers of the side it picks
+  async function fateStep() {
+    const F = G.fight, H = G.teams[G.host], L = G.teams[F.loser.team], lr = F.loser.robot;
+    const canScrap = lr.wins < favWins(L) && G.host !== L.i;
+    F.fateOffers = { spare: [], scrap: [] };
+    G.fateBusy = true; updateHud();
+    for (const T of G.teams) {
+      if (T === H || T.i === viewerSeat) continue;
+      if (T === L) { const B = aiBundle(T, H, Math.min(T.credits - 1, 1 + 2 * lr.wins + (rnd() < 0.5 ? 1 : 0))); if (!bundleEmpty(B)) F.fateOffers.spare.push({ team: T.i, B }); }
+      else if (canScrap && L === leaderOf() && rnd() < 0.6) { const B = aiBundle(T, H, 1 + (rnd() < 0.5 ? 1 : 0)); if (!bundleEmpty(B)) F.fateOffers.scrap.push({ team: T.i, B }); }
     }
+    if (H.i !== viewerSeat && canScrap) {
+      const mine = L.i === viewerSeat;
+      const pick = mine ? 'spare' : await ivModal('👑 Spare or scrap?', 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>. Push the decision with a deal?',
+        [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }]);
+      if (pick) {
+        const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' });
+        if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: viewerSeat, B: d.give });
+      }
+    }
+    const offTxt = side => F.fateOffers[side].map(o => esc(G.teams[o.team].name) + ' ' + bundleText(o.B)).join(', ');
+    if (F.fateOffers.spare.length || F.fateOffers.scrap.length) notify('👑 Offers to the host: ' + [F.fateOffers.spare.length ? '👍 spare: ' + offTxt('spare') : '', F.fateOffers.scrap.length ? '👎 scrap: ' + offTxt('scrap') : ''].filter(Boolean).join(' · '), H.col);
+    G.fateBusy = false;
+    if (G.host === viewerSeat) { G.awaitingJudgment = true; updateHud(); return; }
+    const lead = leaderOf().i;
+    const base = canScrap && (L.i === lead ? rnd() < 0.7 : rnd() < 0.3);
+    const v = side => F.fateOffers[side].reduce((a, o) => a + bundleWorth(H, o.B), 0);
+    const score = (base ? 2 : 0) + v('scrap') - v('spare') - (base ? 0 : 1);
+    resolveFate(canScrap && score > 0);
   }
 
   function resolveFate(scrap) {
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
+    { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
+      offs.forEach(o => { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
       if (robot.wins >= favWins(T)) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
       T.robots.splice(T.robots.indexOf(robot), 1);
@@ -2825,7 +3144,7 @@ html, body {
   }
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, get helpRegions() { return helpRegions; }, worldToScreen };
+  window.ROBOCUS_DEBUG = { get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, get helpRegions() { return helpRegions; }, worldToScreen };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -3762,8 +4081,8 @@ html, body {
 
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
     const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '');
-    const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length;
-    const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · <b>' + t.mechs + 'M</b> Mechanics (earn credits) / <b>' + t.engPool + 'E</b> Engineers (keep robots running) · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand.'];
+    const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length + ' · 📦' + stashOf(t).length;
+    const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · <b>' + t.mechs + 'M</b> Mechanics (earn credits) / <b>' + t.engPool + 'E</b> Engineers (keep robots running) · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand · <b>📦' + stashOf(t).length + '</b> Stash: ' + (stashOf(t).length ? stashOf(t).map(id => esc(LOTS[id].name) + ' (' + partForTxt(me(), id) + ')').join(', ') : 'empty') + '.'];
     const spHelp = t.sponsor && SPONSORS[t.sponsor] ? ['Sponsor: ' + esc(SPONSORS[t.sponsor].name), '<b>' + esc(SPONSORS[t.sponsor].tag) + '</b>: ' + esc(SPONSORS[t.sponsor].text)] : null;
     const badgeHelp = G.host === ti || G.intrigueTurn === ti ? [esc(t.name), (G.host === ti ? '<b>[HOST]</b>: runs this round\'s fight. ' : '') + (G.intrigueTurn === ti ? '<b>🕵️</b>: it\'s their Intrigue turn.' : '')] : null;
 
@@ -4151,7 +4470,7 @@ html, body {
         const sh = me().robots.map(r => [r, oddsShiftRaw(viewerSeat, r, LOTS[it.id])]).filter(x => x[1] !== undefined);
         ctx.fillStyle = '#444';
         if (sh.some(x => x[1] === null)) fitText(ctx, '🎩 bookie working…', x + w / 2, y + 176, w - 12, '800', 11);
-        else if (!sh.length) { ctx.fillStyle = '#b45309'; fitText(ctx, '✋ none of your robots can take it', x + w / 2, y + 176, w - 12, '800', 11); help(x + 4, y + 160, w - 8, 30, 'Not for your robots', 'Weapon upgrades only fit that weapon, and calibres only fit guns (robots keep their weapon for life). You can\'t bid on it, but ' + cardRef('botched_install') + ' can wreck a rival\'s install.'); }
+        else if (!sh.length) { ctx.fillStyle = '#b45309'; fitText(ctx, '📦 none of your robots can take it', x + w / 2, y + 168, w - 12, '800', 10.5); ctx.fillStyle = '#666'; fitText(ctx, 'win it for your Stash (bank: ' + bankHalf(it.id) + ' Cr)', x + w / 2, y + 184, w - 12, '700', 10); help(x + 4, y + 158, w - 8, 34, 'Not for your robots', 'Weapon upgrades only fit that weapon, and calibres only fit guns (robots keep their weapon for life). You can still win it: it goes into your 📦 Stash, to trade in a deal, fit later on a new robot, or sell to the bank at half value (' + bankHalf(it.id) + ' Cr).'); }
         else if (sh.length === 1) {
           const [r, v] = sh[0];
           ctx.fillStyle = '#666'; fitText(ctx, '🎩 ' + r.name, x + w / 2, y + 168, w - 12, '700', 10.5);
@@ -4175,9 +4494,14 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '800 15px system-ui, sans-serif';
       ctx.fillText('+', x + w - 28, btnY + 19);
 
-      hitRegions.push({ kind: 'market_minus', idx: k, x: x + 14, y: btnY, w: 28, h: 28 });
-      hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 42, y: btnY, w: 28, h: 28 });
-      hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
+      if (G.marketStage === 'open') {   // preview: bidding opens after the open market
+        ctx.fillStyle = noFit ? '#efede7' : '#fcfbf9'; ctx.fillRect(x + 4, btnY - 4, w - 8, 36);
+        ctx.fillStyle = '#555'; fitText(ctx, '🔒 bids open after the open market', x + w / 2, btnY + 18, w - 20, '800', 10.5);
+      } else {
+        hitRegions.push({ kind: 'market_minus', idx: k, x: x + 14, y: btnY, w: 28, h: 28 });
+        hitRegions.push({ kind: 'market_plus',  idx: k, x: x + w - 42, y: btnY, w: 28, h: 28 });
+        hitRegions.push({ kind: 'market_tile',  idx: k, x, y, w, h });
+      }
     });
   }
 
@@ -4866,10 +5190,6 @@ html, body {
         G.myBids[r.idx] = Math.max(0, (G.myBids[r.idx] || 0) - 1);
         updateHud(); return;
       }
-      if ((r.kind === 'market_plus' || r.kind === 'market_tile') && r.idx < 3 && !canTake(me(), G.market[r.idx])) {
-        notify('⚠️ None of your robots can take ' + lotRef(G.market[r.idx]) + ', so you can\'t bid on it. Want to stop a rival getting it? Keep ' + cardRef('botched_install') + ' ready.', '#b45309');
-        return;
-      }
       if (r.kind === 'market_plus' || r.kind === 'market_tile') {
         const spent = r.idx === 3 ? G.myBids[3] : G.myBids.slice(0, 3).reduce((a, b) => a + b, 0);
         if (spent < me().credits) G.myBids[r.idx] = (G.myBids[r.idx] || 0) + 1;
@@ -4923,7 +5243,7 @@ html, body {
     const dt = Math.min(0.1, (now - lastT) / 1000);
     lastT = now;
 
-    if (G && !G.over) { scoutWork(G.phase === 'fight' ? 3 : 14); if (scoutOpen) renderScout(false); }
+    if (G && !G.over) { scoutWork(G.phase === 'fight' ? 3 : 14); if (scoutOpen) renderScout(false); if (G.phase === 'upkeep' || G.phase === 'market') renderStash(); }
     if (G && G.phase === 'fight' && G.fight && G.fight.B) {
       const F = G.fight, B = F.B;
       if (!F.rolloutDone) {
