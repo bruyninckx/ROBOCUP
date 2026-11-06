@@ -4,6 +4,8 @@ A 4-player online robot-fighting strategy game: a digital Robot Wars take on *Sp
 Teams run a garage, scheme against each other, bid on parts, bet on fights, and their robots auto-battle in a top-down arena.
 Goal: first team to 12 fame. About 2 hours per game, strategy + luck + banter.
 
+GitHub: https://github.com/bruyninckx/ROBOCUP
+
 ## Folder layout
 
 | Path | What it is |
@@ -13,6 +15,8 @@ Goal: first team to 12 fame. About 2 hours per game, strategy + luck + banter.
 | `src/sim.js` | The battle simulator (`Sim`): one shared copy, loaded by all three prototypes and the watchdog. Includes the live combat card commands (`Sim.queueCmd`). |
 | `tools/watchdog.js` | Combo watchdog: simulates thousands of random robots with the shared `Sim` (`src/sim.js`) and reports dominant builds, dead options, lopsided matchups, upset rate and synergies. Writes `docs/watchdog-report.md`. |
 | `docs/` | Design docs: game concept, balance findings, card ideas. Read these before changing rules. |
+| `docs/rulebook.md`, `docs/todo.md` | Rulebook draft and the open-holes checklist with all of Kev's decisions. |
+| `tools/economy-sim.py` | Economy / game-length sim (reads `tools/economy-cards.json`). |
 | `docs/archive/` | Older or rejected directions, kept for reference. |
 | `AGENTS.md` | Rules for AI coding assistants (Claude, Antigravity, ...) working in this folder. |
 | `PROGRESS.md` | Who works on what, plus a log of changes. Update it after every work session. |

@@ -6,3 +6,7 @@ desktop.ini
 .idea/
 node_modules/
 *.log
+
+# Reference photos of the physical Spartacus set (copyrighted, keep local)
+drive-download-*/
+drive-download-*.zip
