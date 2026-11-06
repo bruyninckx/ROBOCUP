@@ -1804,7 +1804,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 bid-buttons-log';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-06 repair-drone-visual';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3556,7 +3556,7 @@ html, body {
       bots: B.bots.filter(b => !b.helper).map((b, i) => ({ name: F.botName ? F.botName[i] : i, hp: Math.max(0, Math.round(b.hp)), max: Math.round(b.s.hp), broken: b.broken || [], crits: b.crits })),
       log: B.log.filter(ev => ['ko', 'card', 'break', 'glitch'].includes(ev.k)).slice(0, 40) });
     F.recap = Sim.recap(B, i => (F.botName && F.botName[i]) || (F.robots[i] ? F.robots[i].name : 'Bot ' + (i + 1)), t => sideName(F, t));
-    { const tp = F.recap.turning; notify('🏁 ' + esc(F.recap.headline) + (tp ? '<br>⭐ Turning point at ' + tp.t + ' s' + (tp.line ? ': ' + esc(tp.line.detail || tp.line.text) : '') : '') + F.recap.lines.filter(l => l.k === 'card' && l !== (tp && tp.line)).map(l => '<br>' + l.t.toFixed(1) + ' s ' + esc(l.detail || l.text)).join(''), '#111'); }
+    { const tp = F.recap.turning; notify('🏁 ' + esc(F.recap.headline) + (tp ? '<br>⭐ Turning point at ' + tp.t + ' s' + (tp.line ? ': ' + esc(tp.line.detail || tp.line.text) : '') : '') + F.recap.lines.filter(l => l.k === 'card' && l !== (tp && tp.line)).map(l => '<br>' + l.t.toFixed(1) + ' s ' + esc(l.detail || l.text)).join('') + (F.recap.summary || []).filter(x => /^Repair Drone/.test(x)).map(x => '<br>🔧 ' + esc(x)).join(''), '#111'); }
     if (ws >= 0 && F.bands && F.bands[ws] && F.bands[ws].min < 0.42) F.recap.upset = 'UPSET! Bookie had ' + sideLabel(F, ws) + ' as ' + F.bands[ws].name + ' (' + F.pay[ws] + '×)!';
     G.nextEvent = null;
 
@@ -5586,6 +5586,23 @@ html, body {
 
       const modTag = b.mod ? ' [' + Sim.MODS[b.mod].name + ']' : '';   // parts are open (rulebook)
       drawRobotSprite(ctx, rx, ry, bodyA, turA, bc, F.builds ? F.builds[b.i] : F.robots[b.i].b, b.hp / b.s.hp, F.botName ? F.botName[b.i] : F.robots[b.i].name, modTag, b.stun > 0, b.overclockT > 0, now, 1, intro ? Object.assign({}, b, { x: rx, y: ry }) : b);
+
+      // 🔧 Repair Drone (Kev, 6 Nov: it was invisible): a little drone circles the robot and beams green while it heals
+      if (b.mod === 'repair' && b.hp > 0) {
+        const healing = B.t > 0 && B.t - b.lastHit > 1.2 && b.hp < b.s.hp, da = B.t * 2.4 + b.i * 1.7, dr = 36;
+        const dx = rx + Math.cos(da) * dr, dy = ry + Math.sin(da) * dr;
+        if (healing) {
+          ctx.strokeStyle = 'rgba(42, 157, 58, 0.75)'; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]); ctx.lineDashOffset = -B.t * 40;
+          ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(rx, ry); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = '#2a9d3a'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('+', rx + Math.sin(B.t * 7) * 8, ry - 22 - (B.t * 30) % 12);
+        }
+        ctx.fillStyle = healing ? '#d8f5de' : '#f1efe8'; ctx.strokeStyle = '#2a9d3a'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(dx, dy, 8.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 1;   // rotor
+        const ra = B.t * 30; ctx.beginPath(); ctx.moveTo(dx - Math.cos(ra) * 10, dy - Math.sin(ra) * 10); ctx.lineTo(dx + Math.cos(ra) * 10, dy + Math.sin(ra) * 10); ctx.stroke();
+        ctx.fillStyle = '#2a9d3a'; ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🔧', dx, dy + 3.5);
+      }
 
       // Show active burning / broken parts status under robot
       const subTags = [];

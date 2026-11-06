@@ -1226,6 +1226,7 @@
     const per = f => teams.map(t => side(t) + ' ' + f(mains.filter(b => b.team === t))).join(' · ');
     summary.push('Crits: ' + per(ms => { const c = ms.reduce((a, b) => a + b.crits, 0); return c + (c ? ' (+' + Math.round(ms.reduce((a, b) => a + b.critDmg, 0)) + ' damage)' : ''); }));
     summary.push('Malfunctions: ' + per(ms => ms.filter(b => b.glitch && b.glitch.done).length) + '. Broken parts: ' + per(ms => ms.reduce((a, b) => a + (b.broken || []).length, 0)) + '.');
+    { const rep = mains.filter(b => b.mod === 'repair'); if (rep.length) summary.push('Repair Drone: ' + rep.map(b => nameOf(b.i) + ' healed ' + Math.round(b.healed || 0) + ' HP').join(' · ') + ' (it only heals after 1.2 s without being hit).'); }   // Kev, 6 Nov: the drone was invisible
     return { headline, turning, lines: keep, summary };
   }
 
