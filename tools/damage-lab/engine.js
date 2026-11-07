@@ -39,6 +39,7 @@
     standard: { label: 'Stock controller', strain: 0, d: 'Plain AI.' },
     zigzag: { label: 'Zigzag evasion chip', strain: 1, d: 'Weaves in on sharp diagonals and jukes incoming shots.' },
     kiter: { label: 'Kiter logic chip', strain: 1, d: 'Hit and run: backs off after every hit, gunners keep their distance.' },
+    flanker: { label: 'Flanker chip', strain: 1, d: 'Swings wide round the enemy weapon and goes for its sides and back: hits there do +25% (BACKSTAB!).' },
     rammer: { label: 'Rammer aggression chip', strain: 1, d: 'Chases with a lead, never backs off, high-speed rams hit hard and stun.' },
   };
   // modules from the Battleground (one per robot)
@@ -442,6 +443,12 @@
     if (part.kind === 'armour' && part.bumper) { const B = BUMPERS[part.bumper]; d *= SHARP[h.cause] ? B.sharpK : B.blunt; }
     const atk = h.src && h.src !== R ? h.src : null;
     if (atk) d *= (atk.over > 0 ? 1.8 : 1) * (atk.rage > 0 ? 1.4 : 1) * (atk.spotting ? 1.25 : 1) * (atk.boostK > 1 ? 1.15 : 1) * (atk.berserk > 0 ? 1.3 : 1);
+    // side / rear hits: tracked for every robot, +25% for the flanker chip
+    if (atk && !h.inner && h.blp && part.body === R.body && h.cause !== 'landing' && h.cause !== 'heat' && h.cause !== 'fire') {
+      const bx = h.blp[0], by = h.blp[1], rear = bx < -R.hl * 0.35, sideHit = Math.abs(by) > R.hw * 0.75 && bx < R.hl * 0.7;
+      if (rear || sideHit) { atk.stats.flankD = (atk.stats.flankD || 0) + d; if (atk.proc === 'flanker') { d *= 1.25; if (d >= 8 && S.t - (atk.lastBack || -9) > 1.2) { atk.lastBack = S.t; callout(S, rear ? 'BACKSTAB!' : 'FLANKED!', h.x, h.y, d >= 20); } } }
+      atk.stats.anyD = (atk.stats.anyD || 0) + d;
+    }
     if (R.quantumT > 0 && h.cause !== 'pit') { if (S.step % 10 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); return; }
     if (R.shield > 0 && h.cause !== 'heat' && h.cause !== 'fire') { const ab = Math.min(R.shield, d); R.shield -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.shield <= 0) { R.shieldT = 0; say(S, `${R.name}: shield popped`, R.id); } if (d <= 0) return; }
     if (R.eSh > 0 && atk && modOn(R)) { const ab = Math.min(R.eSh, d); R.eSh -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.eSh <= 0) say(S, `${R.name}: energy shield down`, R.id); R.lastHurt = S.t; if (d <= 0) return; }
@@ -873,6 +880,27 @@
       if (R.jukeCd > 0) R.jukeCd -= DT;
       if (R.juke > 0) { R.juke -= DT; tx = p.x + R.jukeDir[0] * 1.5; ty = p.y + R.jukeDir[1] * 1.5; speed = 1; }
     }
+    // flanker chip: circle round the enemy's front and strike its side or back.
+    // It circles against the enemy's turn (cuts behind it), and if it can't get round in 2.5 s it commits and charges in anyway.
+    if (R.proc === 'flanker' && E.alive && ok && !(R.kite > 0)) {
+      const ea = E.body.getAngle(), rel = wrap(Math.atan2(p.y - ep.y, p.x - ep.x) - ea), rel2 = Math.abs(rel), ew = E.body.getAngularVelocity();
+      const danger = frontTool(E.spec.weapon), arc = danger ? 1.3 : 0.9, rr = E.hl + R.hl + 0.55;
+      const ev2 = E.body.getLinearVelocity(), charge = (ev2.x * (p.x - ep.x) + ev2.y * (p.y - ep.y)) / dist; // enemy speed towards me
+      if (R.dodge > 0) { R.dodge -= DT; tx = p.x + R.dodgeDir[0] * 1.6; ty = p.y + R.dodgeDir[1] * 1.6; speed = 1; }
+      else if (R.commit > 0) { R.commit -= DT; tx = ep.x; ty = ep.y; speed = 1; }
+      else if (rel2 < arc && charge > 1.3 && dist < 1.9 && !(R.dodgeCd > 0)) { // it charges at me: sidestep at the last moment, it overshoots and shows its side
+        const sd = R.flankSide || (rel >= 0 ? 1 : -1), ux2 = (p.x - ep.x) / dist, uy2 = (p.y - ep.y) / dist;
+        R.dodge = 0.45; R.dodgeCd = 2.2; R.dodgeDir = [-uy2 * sd, ux2 * sd]; tx = p.x + R.dodgeDir[0] * 1.6; ty = p.y + R.dodgeDir[1] * 1.6; speed = 1; callout(S, 'SIDESTEP!', p.x, p.y, false);
+      }
+      else if (rel2 < arc && dist < 3.4) {
+        if (R.flankSide == null || S.step % 60 === 0) R.flankSide = Math.abs(ew) > 0.6 ? -Math.sign(ew) : (rel >= 0 ? 1 : -1);
+        R.flankT = (R.flankT || 0) + DT;
+        if (R.flankT > 3 && dist < 2) { R.flankT = 0; R.commit = 1.2; R.flankSide = -R.flankSide; }
+        const cur = Math.atan2(p.y - ep.y, p.x - ep.x), goal = cur + R.flankSide * 1.3, gr = melee ? Math.max(rr, Math.min(dist - 0.15, rr + 0.5)) : Math.max(2.2, dist);
+        tx = ep.x + Math.cos(goal) * gr; ty = ep.y + Math.sin(goal) * gr; speed = 1; R.flanking = 0.3;
+      } else { R.flankT = 0; if (melee) { const ef = E.body.getWorldVector(V(1, 0)); tx = ep.x + ev.x * 0.2 - ef.x * E.hl * 0.6; ty = ep.y + ev.y * 0.2 - ef.y * E.hl * 0.6; speed = 1; R.flanking = 0.3; } } // aim at its rear quarter so it can't turn its weapon round in time
+    }
+    if (R.flanking > 0) R.flanking -= DT; if (R.dodgeCd > 0) R.dodgeCd -= DT;
     // armed self-destruct: charge
     if (R.boomArm > 0 || R.berserk > 0) { tx = ep.x; ty = ep.y; speed = 1; }
     const HX = HALF - S.sq.x, HY = HALF - S.sq.y;
@@ -931,7 +959,7 @@
     if ((w === 'spinner' || w === 'flail') && ok && R.bladeW < R.bladeMax * 0.35 && dist < R.hl + E.hl + 1.0 && R.unstick <= 0 && !(R.backCool > 0)) { R.unstick = 0.9; R.backCool = 2.5; }
     // close in but nothing is happening (both shoving, no damage): back off and come in again
     const close = dist < R.hl + E.hl + 0.9; if (!close) R.closeSince = null; else if (R.closeSince == null) R.closeSince = S.t;
-    if (E.alive && close && S.t - Math.max(R.closeSince, R.lastHit || 0, E.lastHit || 0, R.reengaged || 0) > (R.proc === 'rammer' ? 3.5 : 2.5) && !(R.boomArm > 0) && !(R.berserk > 0) && R.unstick <= 0 && !R.grab && !(w === 'wedge')) { R.unstick = 0.7 + S.rng() * 0.4; R.reengaged = S.t; R.orbit = -R.orbit; }
+    if (E.alive && close && S.t - Math.max(R.closeSince, R.lastHit || 0, E.lastHit || 0, R.reengaged || 0) > (R.proc === 'rammer' ? 3.5 : R.proc === 'flanker' ? 1.8 : 2.5) && !(R.boomArm > 0) && !(R.berserk > 0) && R.unstick <= 0 && !R.grab && !(w === 'wedge')) { R.unstick = 0.7 + S.rng() * 0.4; R.reengaged = S.t; R.orbit = -R.orbit; }
     const effort = (Math.abs(L) + Math.abs(Rr)) / 2, wv = Math.abs(b.getAngularVelocity());
     if (R.unstick > 0) { R.unstick -= DT; L = -0.9 + (R.orbit > 0 ? 0.6 : 0); Rr = -0.9 + (R.orbit > 0 ? 0 : 0.6); }
     else if (effort > 0.45 && sp < 0.15 && wv < 0.4 && !R.grab) {
