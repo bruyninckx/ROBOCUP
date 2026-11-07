@@ -16,8 +16,8 @@
     "top": 1
    },
    "helpers": [],
-   "shape": "box",
-   "dmgK": 1.0
+   "shape": "chamfer",
+   "dmgK": 1
   },
   "Hornet": {
    "weapon": "spear",
@@ -36,7 +36,7 @@
    },
    "dmgK": 1.35,
    "helpers": [],
-   "shape": "box"
+   "shape": "wedge"
   },
   "Whirlwind": {
    "weapon": "spinner",
@@ -53,7 +53,7 @@
     "rear": 1,
     "top": 2
    },
-   "dmgK": 1.0,
+   "dmgK": 1.12,
    "helpers": [],
    "shape": "box"
   },
@@ -74,7 +74,7 @@
    },
    "dmgK": 0.75,
    "helpers": [],
-   "shape": "box"
+   "shape": "chamfer"
   },
   "Mauler": {
    "weapon": "flail",
@@ -91,9 +91,9 @@
     "rear": 0,
     "top": 1
    },
-   "dmgK": 1.0,
+   "dmgK": 1,
    "helpers": [],
-   "shape": "box"
+   "shape": "chamfer"
   },
   "Sawblast": {
    "weapon": "sawrocket",
@@ -111,7 +111,7 @@
     "top": 1
    },
    "helpers": [],
-   "shape": "box"
+   "shape": "wedge"
   },
   "Whaler": {
    "weapon": "harpoon",
@@ -133,36 +133,36 @@
   }
  },
  "seeds": [
-  901,
-  902,
-  903,
-  904,
-  905,
-  906,
-  907,
-  908,
-  909,
-  910,
-  911,
-  912,
-  913,
-  914,
-  915,
-  916,
-  917,
-  918,
-  919,
-  920,
-  921,
-  922,
-  923,
-  924,
-  925,
-  926,
-  927,
-  928,
-  929,
-  930
+  1201,
+  1202,
+  1203,
+  1204,
+  1205,
+  1206,
+  1207,
+  1208,
+  1209,
+  1210,
+  1211,
+  1212,
+  1213,
+  1214,
+  1215,
+  1216,
+  1217,
+  1218,
+  1219,
+  1220,
+  1221,
+  1222,
+  1223,
+  1224,
+  1225,
+  1226,
+  1227,
+  1228,
+  1229,
+  1230
  ],
  "arenas": [
   "open",
