@@ -86,3 +86,25 @@ Kev: more drama, crazier weapons, bumpers of different hardness, no hug fests; k
 
 Averages 44-57%. Strongest counters: Jouster beats Peppershot 86%, Snapjaw beats Jouster 83%, Haymaker loses to Jouster 20%, Rumbler loses to Thumper 22%. Median fight 55 s (middle half 36-78 s), 3-4% judges. Endings: chassis torn apart 29%, crippled count-out 23%, pit 13%, no drive 8%, upside down 5%, radio 5%, judges 4%, battery 1%.
 Knobs: global damage 0.68, spinner 1.15, drum 0.62, flipper 1.6, axe 0.75, crusher 1.5, gun 0.8, flame 0.72, glove 0.85, spear 0.9, flail 1.25. `node drama.js` prints first-hit time, parts lost and fight length per arena.
+
+## Battleground parts (8 Nov, second pass)
+Kev: bring the modules, drives and processors of the real Battleground (`docs/processors-and-drives.md`, `docs/upgrade-cards.md`) into the carnage and make 7 market robots with good, exciting fights. All of them are in the builder (Drive, Processor, Module) and have their own visuals.
+- **Drives:** 2 wheels, 4 wheels, plus tank tracks (one long track per side, 1.6x grip, 1.45x push, 0.84x top speed, half the knockback), omni wheels (slides sideways while facing the enemy, little side grip, 1.35x knockback) and overboost thrusters (rocket at the back: a 0.6 s dash every 4.5 s, turns at 72%). Tracks and the thruster are parts that can be shot off or blown.
+- **Processors:** stock, zigzag (weaves in on +-35 degree diagonals, jukes bullets), kiter (gunners keep their distance and back off; melee robots hit and run), rammer (chases with a 0.5 s lead, backs off later, a fast ram adds up to 22 damage, a shove and a 0.25 s stun).
+- **Modules** (an internal part: when it is destroyed the module is offline): energy shield (30 HP, recharges 8/s after 3 s), EMP (1.8 s stun within 1.5 m, every 10 s), grappling hook (yanks the enemy in from up to 3.2 m, every 6 s), jump jets (leaps 1.6 m clear, every 5 s), oil slick (puddles: grip x0.22 and spin), mine layer (max 3 mines, 22 damage from below), repair drone, self-destruct (below 30%: charges, 50 damage blast, blows its own armour and weapon off but survives), quantum shield (once, 3 s of no damage), smoke screen (guns spray x5, the enemy aims at a guess), pop-up flipper (14 damage, throw, 0.8 s stun, every 3 s).
+- **Strain:** chips and modules add strain as on the cards. Every strain point is a 0.4% chance per second of a malfunction: chip glitch, module offline for 3 s, or omni rollers / thrusters locked for 3 s.
+- Per-robot damage knob `dmgK` in the build (so the classic roster keeps its numbers). The 10 arcade robots from the first pass are kept as "Arcade classics".
+
+### Market roster (7 robots, 60 fights per matchup on seeds not used for tuning, open floor + centre pit)
+| Robot | Weapon | Build | Drive | Processor | Module | kg |
+|---|---|---|---|---|---|---|
+| Juggernaut | drum | medium, big battery, side 1 / rear 1 / top 1, steel | tracks | rammer | grappling hook | 94 |
+| Hornet | spear | medium, side 2 / rear 1 / top 1, steel, dmg x1.25 | thrusters | zigzag | jump jets | 91 |
+| Whirlwind | bar spinner | medium, hot motors, side 2 / rear 1 / top 2, steel, dmg x0.9 | 4 wheels | kiter (hit and run) | energy shield | 104 |
+| Brawler | boxing glove | heavy, side 3 / top 1, rubber, dmg x0.92 | 4 wheels | rammer | EMP | 109 |
+| Slick | medium gun | heavy, front 1 / side 1 / rear 1 / top 1, spring | omni | kiter | oil slick | 101 |
+| Hellfire | flamethrower | light, big battery, front 2 / side 1 / top 1, steel, dmg x1.25 | 4 wheels | zigzag | self-destruct | 79 |
+| Mauler | flail | light, big battery, front 1 / side 2 / top 1, spiked, dmg x0.9 | tracks | stock | repair drone | 94 |
+
+Averages 45-58% (Juggernaut 45, Hornet 48, Whirlwind 52, Brawler 49, Slick 58, Hellfire 48, Mauler 49). Hard counters: Hellfire beats Juggernaut 85%, Mauler beats Juggernaut 82%, Brawler beats Hellfire 82%, Slick beats Hellfire 82%, Juggernaut beats Brawler 77%. Median fight 62 s (middle half 43-89 s), 8% go to the judges. First hit after 1.4 s on open floor, 3.5 s in the pit arena; about 6-7 parts fly off per fight. Endings: chassis torn apart 24%, crippled count-out 24%, immobilised 23%, pit 16%, judges 8%, upside down 3%, radio 2%, battery 1%. Per fight on average: 1.9 grapples, 1.7 EMPs, 1 jump-jet escape, 0.6 strain malfunctions.
+Found while balancing: omni wheels on the bar spinner were far too strong (76% average: it always faced the enemy and bounced off to spin up again), so Whirlwind runs on 4 wheels and Slick (gunner) keeps the omni drive. The 20-fight search overfitted (score looked fine, holdout showed 35-76%), so the final numbers were set by hand on 40- and 60-fight holdouts. `node row.js market-final.json Name '{"dmgK":0.8}' 101 120` checks one robot's row.
