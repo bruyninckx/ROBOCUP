@@ -34,6 +34,7 @@ function moves(i) {
   out.push(['knob', k * 0.8], ['knob', k * 1.25]);
   const CH = ['light', 'medium', 'heavy'], ci = CH.indexOf(b.chassis);
   if (ci > 0) out.push(['chassis', CH[ci - 1]]); if (ci < 2) out.push(['chassis', CH[ci + 1]]);
+  for (const bk of Object.keys(L.BUMPERS)) if (bk !== (b.bumper || 'steel')) out.push(['bumper', bk]);
   out.push(['drive', b.drive === '2wd' ? '4wd' : '2wd'], ['motor', b.motor === 'std' ? 'hot' : 'std'], ['battery', b.battery === 'std' ? 'big' : 'std']);
   for (const a of ['side', 'rear', 'top', 'front']) { if (a === 'front' && frontTool) continue; const v = b.armour[a]; if (v > 0) out.push(['armour.' + a, v - 1]); if (v < 3) out.push(['armour.' + a, v + 1]); }
   return out;

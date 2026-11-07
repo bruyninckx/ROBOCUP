@@ -36,9 +36,10 @@ function summarise(builds, res) {
 }
 function score(s) {
   let e = 0;
-  for (const a of s.avg) e += Math.pow((a - 0.5) * 10, 2);                       // even win rates
-  for (const row of s.wr) for (const x of row) if (x != null) e += Math.max(0, Math.abs(x - 0.5) - 0.2) * 20; // hard counters beyond 75/25
-  e += Math.max(0, 55 - s.med) * 0.3 + Math.max(0, s.med - 100) * 0.3 + Math.max(0, s.timeouts - 0.12) * 30;
+  // drama-first: averages within about 44-56%, no matchup worse than 80/20, short violent fights (median 40-70 s), few judges
+  for (const a of s.avg) e += Math.pow(Math.max(0, Math.abs(a - 0.5) - 0.06) * 10, 2) * 3;
+  for (const row of s.wr) for (const x of row) if (x != null) e += Math.max(0, Math.abs(x - 0.5) - 0.3) * 20;
+  e += Math.max(0, 40 - s.med) * 0.3 + Math.max(0, s.med - 70) * 0.3 + Math.max(0, s.timeouts - 0.1) * 30;
   return e;
 }
 function print(names, s) {

@@ -110,7 +110,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       <div class="eyebrow"><b>BETA</b> ROBOCUS separate test arena</div>
       <h1>Damage Lab</h1>
     </div>
-    <p class="lede">Real physics and a part-by-part damage model: armour rips off, wheels fly away, motors burn out, weapons jam. Build two robots, hit Fight, watch what breaks.</p>
+    <p class="lede">Real physics, a part-by-part damage model and arcade chaos: armour rips off, wheels fly away, gloves punch robots across the arena, the walls close in. Build two robots, hit Fight, watch what breaks.</p>
   </header>
 
   <main class="lab">
@@ -142,7 +142,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   </main>
 
   <section class="card" aria-labelledby="mk-h">
-    <div class="bar" style="justify-content:space-between"><h2 id="mk-h">Market robots</h2><span class="small">Win % from 200 fights per matchup (open floor + centre pit, 3 min limit). Click a number to watch that fight.</span></div>
+    <div class="bar" style="justify-content:space-between"><h2 id="mk-h">Market robots</h2><span class="small">Win % per matchup (open floor + centre pit, 2 min limit, arena events and crates on). Click a number to watch that fight.</span></div>
     <div id="market"></div>
   </section>
 
@@ -155,7 +155,9 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       <li><b>Broken parts change how a robot drives.</b> A bent wheel wobbles and loses grip, a dead motor leaves a wheel freewheeling, a missing wheel makes that corner scrape and pull, a big hit can jam a motor on so the robot spins in circles. Lose all drive for 6 s, or limp about crippled without real movement for 12 s, and you are counted out.</li>
       <li><b>Heat and fire.</b> Motors heat up when they push without moving (hot-wound ones twice as fast) and cut power above 85°. Flames and the laser cook parts; a damaged or hot battery can catch fire.</li>
       <li><b>Flips.</b> Drums and flippers throw robots. Robots with a turret, axe or crusher on top land helpless on their back unless they can self-right (flipper, axe) or bash a wall to roll back. Hard landings damage wheels.</li>
-      <li><b>Same seed, same fight.</b> The sim is deterministic, so Replay shows exactly the same fight again. Time limit 3:00, then the judges score damage, parts ripped off and aggression.</li>
+      <li><b>Bumpers.</b> Every robot picks one shell for its armour plates: steel (tough, heavy), rubber (shrugs off rams and punches, blades cut through), spring (throws attackers back across the arena), spiked (hurts whoever rams it) or fibreglass (very light, shatters in a shower of shards).</li>
+      <li><b>Arcade rules.</b> Weapon hits throw robots around and parts fly far. Crates drop in now and then: nitro, overcharge (damage ×1.8), repair and shield. Every 15-20 s the arena strikes: walls close in, floor bumpers launch robots, or the ceiling hammer comes down on a red circle. Big hits fill the hype bar; full hype means 6 s of rage (harder hits, faster). The last 30 s are sudden death: the arena strikes every 7 s.</li>
+      <li><b>Same seed, same fight.</b> The sim is deterministic, so Replay shows exactly the same fight again. Time limit 2:00, then the judges score damage, parts ripped off and aggression.</li>
     </ul>
   </section>
 </div>
