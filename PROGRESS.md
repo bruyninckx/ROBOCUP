@@ -50,6 +50,8 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab: forklift now slides under robots; robots can land on their side (chance and outcome from their own build); centre pit removed, everything on open floor; market roster re-balanced to 48-52%, drone values and trial robots re-measured. Details in `docs/damage-lab.md`.
+
 - 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab: four more mechanical weapons: thwack tail (Thwacker), lifter fork (Forklift), battering ram (Ramrod), vertical disc (Vertigo). 46-54% vs the market roster. Details in `docs/damage-lab.md`.
 
 - 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab: four new mechanical weapons on real joints: shell spinner (Gyro), sweeper axe (Scythe), twin grinders (Mincer), clapper arms (Pincher). Trial robots at 49-57% vs the market roster, 14-17 big moments a minute. Details in `docs/damage-lab.md`.
