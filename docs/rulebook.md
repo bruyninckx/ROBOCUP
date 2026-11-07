@@ -1,163 +1,152 @@
-# ROBOCUS rulebook (draft v0.1)
+# ROBOCUS rulebook (v1.0, first published game)
 
-Draft v0.1, 5 Nov 2026 · Kev with Claude. Living version: https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv
+v1.0, 7 Nov 2026 · Kev with Claude. These are the rules of the game as published on GitHub Pages: `prototypes/tabletop-prototype.html` (play it at https://bruyninckx.github.io/ROBOCUP/). Where the game and this text disagree, the game wins; tell Claude. Living version: https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv
 
 ## 1. The game in one page
 
-Four robotics teams scheme, bid and fight until one reaches **12 fame**. ROBOCUS is *Spartacus: A Game of Blood & Treachery* rebuilt as a digital robot-fight game: online with friends, voice on Discord, about 2 hours.
+Four robotics teams scheme, bid and fight until one reaches **12 fame**. ROBOCUS is *Spartacus: A Game of Blood & Treachery* rebuilt as a digital robot-fight game: 1–4 people online (voice on Discord), the AI plays every empty seat, about 2 hours.
 
-Each round, teams play Intrigue cards against each other, bid blind for robots and parts, and then the host runs one fight. The fight is an auto-battle everyone watches and bets on. The bookie's odds come from simulating the robots everyone can see, so hidden sabotage makes them wrong.
+Each round, teams play Intrigue cards against each other, bid blind on robots and parts, and bid to host the fight. The host picks who fights, everyone bets, and the robots auto-battle while everyone watches. The bookie's odds come from simulating the robots everyone can see, so hidden sabotage makes them wrong.
 
 | You own | What it does |
 | --- | --- |
-| **Fame** | Your score, and the key to Intrigue cards: each card needs a minimum fame (its gate) |
-| **Credits** | Pay for bids, upkeep, repairs and bets |
-| **Robots** (2–3) | Each robot card is a full build with one quirk. Robots cost upkeep and fight in the arena |
-| **Parts** | Weapons, armour, modules, helper drones and stat upgrades fitted to robots |
-| **Crew** | Off-arena staff: Mechanics earn credits, others give powers |
-| **Intrigue hand** | Schemes, reactions and Security Bots |
+| **Fame** | Your score (1–12), and the key to Intrigue cards: each card needs a minimum fame (its gate) |
+| **Credits** | Pay for bids, repairs, bets, scouting and sparring |
+| **Robots** (1–3) | Each robot is a full build; Market robot cards also have one quirk. Robots cost upkeep and fight in the arena |
+| **Parts** | Weapon upgrades, calibres, armour, modules, helper drones and stat upgrades fitted to robots, or kept in your Stash |
+| **Crew** | Named cards: Mechanics earn credits, Chief Engineers keep robots reliable, specialists give powers |
+| **Intrigue hand** | Schemes, reactions, Arena cards, live combat cards and Security Bots |
 
 Everything on a robot is open information. Surprise comes only from face-down Intrigue cards.
 
-## 2. Components and setup
+## 2. Setup
 
-Each team starts with 4 fame, 8 credits, 1 robot, 3 Mechanics, 1 Chief Engineer, 1 Security Bot and one sponsor (Kev, 6 Nov: one starting robot, was 2; crew are named cards, see the Market crew lots).
+Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game: 7 is quick, 1 is long), **8 credits**, 3 Mechanics, 1 Chief Engineer and 1 Security Bot installed in its garage.
 
 | Component | Contents |
 | --- | --- |
-| Intrigue deck | 74 different cards, 185 copies, in 8 families (Contracts, Publicity, Smear, Sabotage, Corporate, Match-fixing, Security, Leverage) |
-| Market deck | 50 cards: 12 robots, 8 crew, 8 weapons, 4 armour, 6 modules, 6 helpers, 4 stat upgrades, 2 legendary |
-| Starter kit (per team) | 1 robot (a Scrap Bot, or in the tabletop prototype one drafted `s1.` starter: see 3, keep 1), 3 Mechanics, 1 Security Bot (installed in the garage) |
+| Intrigue deck | 75 different cards, 188 copies (28 of them Security Bots), in 8 families: Contracts 10, Publicity 15, Smear 11, Sabotage 10, Corporate 3, Match-fixing 15, Security 10, Leverage 1 |
+| Lot deck (Market) | 49 cards: 7 stat upgrades, 6 weapon upgrades, 3 gun calibres, 4 armour, 12 modules, 7 helper drones, 5 New Robot, 5 New Crew |
+| Robot deck | 11 Market robot cards, each with a quirk |
+| Legendaries | Railgunner (robot), Twin Turret, Quantum Shield: one copy each |
+| Starter deck | 9 stock `s1.` robots (11 stat points, levels up to 3, stock parts, 1 Chief Engineer) |
+| Crew deck | 10 crew cards: 2 Mechanics, 2 Chief Engineers, Accountant, Hacker, Market Analyst, Fixer, Security Chief, Repair Tech |
 | Sponsors | 6 sponsor cards, one rule each |
-| Scrap Crate | 7 salvage items for the loser of a fight |
-| Host token | Marks the host: hosts the fight and goes first in Intrigue |
+| Scrap Crate | 7 salvage items for the losers of a fight |
 
-**Setup**
+**Setup steps**
 
-1. Shuffle the Intrigue and Market decks.
-2. Each team takes its starter kit, 8 credits and 4 fame.
-3. Deal each team 2 sponsors; each keeps 1 secretly, then all reveal together.
-4. Pick the first host at random; the host token only sets turn order until the first host bid.
+1. **Sponsor:** each team is dealt 2 sponsors and keeps 1. People pick on their own screen; AI teams are dealt 2 of the rest and keep 1.
+2. **Starter draft:** one team at a time (people first, then the AI), each sees 3 `s1.` starters and keeps 1; the other two go back into the starter deck. The starter goes into bay 1 with its Chief Engineer.
 
-Fame always stays between 1 and 12. For a shorter or longer game, start at 7 fame (quick, under 2 hours) or 1 fame (long, 3+ hours), as in Spartacus.
+| Sponsor | Rule |
+| --- | --- |
+| Aegis Heavy | Repairs 25 damage on each robot for free every Upkeep |
+| Blackwire Syndicate | Draws 1 extra Intrigue card in Upkeep; Intrigue schemes need 2 less fame |
+| Sovereign Foundry | Starts with 4 Mechanics; wins every Market tie outright |
+| Apex Media | +2 credits when it hosts; Fan Favourite at 2 wins (not 3) |
+| Lucky Seven | Bets up to 5 credits; a losing bet refunds 1 credit |
+| Vulture Salvage | +2 credits whenever any robot is scrapped; keeps 2 Scrap Crate items |
 
 ## 3. A round
 
-Every round has the same four phases. A game runs about 10 rounds.
+A round has 7 steps (the bar at the top of the screen). A game runs about 8–12 rounds.
 
-1. **Upkeep:** ready your cards, collect income, pay upkeep and repairs.
-2. **Intrigue:** draw 3 Intrigue cards; in turn order, play schemes, cash in cards and use abilities.
-3. **Market:** trade freely, then bid blind on one lot per player, then bid for the host token.
-4. **Arena:** the host sets up one fight, everyone bets, the robots fight, the host spares or scraps the loser.
+1. **Upkeep:** robots and crew ready again, the ledger pays out, everyone draws 3 Intrigue cards, repairs and tunes robots.
+2. **Intrigue:** one turn each, last round's host first, then clockwise.
+3. **Market:** open market (trades), then sealed bids on 4 lots, then the separate host bid.
+4. **Host:** Arena cards that change the fight, then the host invites the fighters.
+5. **Bets:** the bookie sets the odds and everyone bets.
+6. **Fight:** the robots auto-battle; live combat cards can be played.
+7. **Fate:** the host spares or scraps each losing robot; losers open a Scrap Crate.
 
-At the end of the Intrigue, Market and Arena phases, check for a winner (section 9).
+The game checks for a winner after the Intrigue phase, after the Market and after the Fate step (section 9).
 
 ## 4. Upkeep
 
-All teams do Upkeep at the same time. The game does the bookkeeping.
+All teams do Upkeep at the same time; the game does the bookkeeping. Upkeep ends when every person has pressed **Done**.
 
-1. **Ready:** every exhausted robot, crew card and Security Bot asset turns ready again, unless a card keeps it out (for example Rogue Firmware: sits out the next fight).
-2. **Repairs:** pay 0.7 credits per 20 damage you want to repair (rounded up; Kev, 6 Nov: 30% cheaper) (times the robot's battle wear, see section 8), and half the bank value (minimum 1) per broken part. Damage you don't repair stays on the robot and it starts its next fight with less health. Repair Tech halves the cost; Aegis repairs 25 damage per robot for free.
-3. **Ledger:** gain 1 credit per ready Mechanic. Pay 1 credit per ready robot and 1 credit per 2 helper drones. The Accountant takes 1 off the bill for each robot after the first.
-4. **Can't pay:** scrap one robot of your choice for each credit you can't pay (Spartacus discards a gladiator). A team left without robots gets a free Scrap Bot. (Tabletop 6 Nov: the ledger is in the log every Upkeep; broken parts are repaired with the same Repair button as damage.)
-5. **Sparring match (optional, 2 credits, once a round):** pick one of your ready robots and any rival robot; they fight a test fight in the pit. Nothing carries over: no damage, no fame, no breaks, no cards played. It shows you how the matchup really plays out.
+1. **Ready:** every robot, crew card and Security Bot is ready again, unless a card keeps it out (Rogue Firmware: the robot sits out its next fight).
+2. **Ledger:** +1 credit per Mechanic, −1 credit per robot, −1 credit per 2 helper drones (the Accountant: only your first robot costs 1). The ledger is in the log.
+3. **Can't pay:** scrap one robot of your choice for each credit you can't pay. A team left without robots gets a free Scrap Bot.
+4. **Draw:** 3 Intrigue cards (Blackwire +1; a Tinker that sat out last round +1).
+5. **Repairs:** click a damaged robot to repair it to full health. Cost: 0.7 credits per 20 damage, times its battle wear (section 8), rounded up, plus each broken part (weapon 2, weapon upgrade 2, Twin Turret 3, drone 2, other parts 1). The Repair Tech halves the damage cost; Aegis repairs 25 damage per robot for free first.
+6. **Tune:** set each robot's Chief Engineers (0–3), range (short, mid, long) and target focus (main robot, medic drones, helper drones). Fit parts from your Stash.
+7. **Scout (1 credit, any time but a fight):** exact win % for every matchup until the end of the round, instead of the fuzzy bands.
+8. **Sparring match (2 credits, once a round):** one of your ready robots fights any rival robot in a test fight. Everyone watches; nothing carries over (no damage, no fame, no breaks, no cards).
 
 ## 5. Intrigue phase
 
-Every team draws 3 Intrigue cards. Then, starting with the host and going clockwise, each team takes one Intrigue turn. These rules copy Spartacus one to one.
+Starting with last round's host and going clockwise (round 1: the first team), each team takes one Intrigue turn. There are no timers.
 
 **Your turn.** In any order, you may:
 
-- **Cash in** any number of cards: discard them and take the credits printed on the coin.
-- **Use abilities** of your crew, sponsor and robot quirks that work in this phase.
-- **Play schemes**, one at a time.
+- **Play schemes**, one at a time: drag the card onto a garage (a rival's, or your own for cards that help you).
+- **Install Security Bots** from your hand in your garage.
+- **Cash in** cards: switch on cash-in mode and click cards to discard them for the credits on their coin.
 
-Your hand limit is 4 cards at fame 1–4, 5 at fame 5–8 and 6 at fame 9–12. You may go over it while drawing, but you must end your turn at or under it. Each turn has a soft 60-second timer: when it runs out, the other players can vote to end your turn.
+**Hand limit:** 4 cards at fame 1–4, 5 at fame 5–8, 6 at fame 9–12. At the end of your turn you cash in down to the limit (the cheapest cards are ticked for you).
 
-**Playing a scheme.** Your fame must be at least the card's gate (▲ = more fame than the target, ▼ = less). Name a target; it can be your own team. If nothing blocks it, the effect happens at once, you pay any cost, and the card is discarded.
+**Playing a scheme.** Your fame must be at least the card's gate (▲ = only against a team with more fame than you, ▼ = less). If nothing blocks it, the effect happens at once and the card is discarded.
 
-**Face-down cards** (Sabotage and Match-fixing cards marked face-down) go onto a robot without being shown. They stay hidden until they trigger in that robot's next fight. The bookie can't see them. The targeted team does see that a card was placed, and may spend Security Bots on it right away, blind.
+**Backing.** Short on fame? Ask other teams to back you, one at a time. Each backer adds its fame to yours for that one card; you don't have to say which card it is. You may offer credits and Stash parts; backers are paid only if the backing is enough and the card is really played. The Fixer counts +2 fame; Board Seat forces the first team you ask to back you.
 
-**Backing.** If your fame is too low, ask other teams to back you. Each backer adds its fame to yours for that one card. Backers can't pull out once they agree, and you don't have to tell them what the card does or tell the truth about it. Backing earns nothing by rule; teams make their own deals. The Fixer adds +2 toward the gate; Board Seat forces a team to back you with all its fame.
+**Defence.** When a harmful scheme targets you, your Security Bots roll first: each bot (installed or in hand) is spent and rolls a die, 4–6 blocks it (3–6 with a Security Chief), one roll per bot until one blocks. Then a **reaction window** opens for every team holding a blocking reaction (Paid Off, Fall Guy, Firewall, PR Spin, Not My Robot, Sponsor's Lawyers, Under the Radar, Overreach). A blocked scheme has no effect and is discarded. Pile-On can add −1 fame when a team loses fame.
 
-**Reactions** have their own gate, can't be backed, and can be played at any time, also outside your turn and outside this phase. A blocking reaction can stop any scheme, not just one aimed at you. Reactions can't be blocked unless a card says so (Firewall). A blocked scheme has no effect and no cost, and is discarded.
+**Face-down cards** (Sugar in the Tank, Smudged Lens, Secret Upgrade, Overclock) go onto a robot without being shown (🂠). They stay hidden, also from the bookie, until that robot's next fight starts.
 
-**Security Bots** only protect your own team. When a scheme targets you, discard a Security Bot and roll a die: 4–6 blocks it (3–6 with a Security Chief). You get one roll per Security Bot, and the bot is gone even if the roll fails. After a failed roll you may still block with a reaction. Bots in hand and bots installed as garage assets both count. Against a face-down card you roll blind, at the moment it is placed.
+**Ready and exhausted.** Some cards exhaust robots, crew or Security Bots. An exhausted robot can't fight this round; exhausted crew can't be used for card conditions. Everything readies in the next Upkeep.
 
-**Trading.** Intrigue cards never change hands. Credits may change hands at any time, and any promise can be made, but no deal is binding.
-
-**Ready and exhausted.** Some cards tell you to exhaust a robot or crew card. An exhausted card can't fight, earn income, count toward card conditions, be sold or traded, or be discarded. It readies again in the next Upkeep.
-
-**Live combat cards** (Match-fixing, marked Live) stay in your hand until a fight. You can play at most one per fight, after bets close.
+**Not played here:** Arena cards wait for the Host or Bets step, live combat cards for the fight, Botched Install for the Market. All of them can be cashed in on your turn instead.
 
 ## 6. Market phase
 
-The Market has three steps: open market, auction, host bid. Robots, crew, parts and Security Bot assets change hands only in this phase.
+Three steps. Robots, crew and Security Bots change hands only here.
 
-**1. Open market.** No turn order. (Tabletop, Kev 6 Nov: the deal panel trades credits, Stash parts, robots with their fitted parts (their Chief Engineers stay home), crew cards and installed Security Bots; only here, and a team always keeps one robot.) Teams buy, sell and trade robots, crew, parts and installed Security Bots with each other for credits or swaps, and may sell any of them to the bank for the card's printed value. Intrigue cards can't be traded or sold here. The step has a soft 90-second timer: it ends when nobody wants to trade any more, or when the others vote to move on after the timer. This is also when you fit or swap parts on your robots (section 8).
+**1. Open market.** No turn order. With the deal panel you trade credits, Stash parts, robots (with their fitted parts; Chief Engineers stay home), crew cards and installed Security Bots with any team; the other side accepts or refuses, nothing moves until then. A team always keeps at least one robot and has 3 bays. You can also sell Stash parts to the bank at half value. AI teams make offers too. The step ends when every person has pressed **Start the auction**.
 
-**Stash and deals (Kev, 6 Nov; built in the tabletop prototype).** Every team has a **Stash** of up to 4 spare parts, open for all to see: parts it won that no robot can take, or parts it keeps aside. A Stash part can be fitted when a robot can take it (Upkeep or Market), traded, or sold to the bank at **half value** (min 1 credit; drones and weapon upgrades are worth 3, other parts 2). A full Stash sells the next part at half value. **Deals** use one offer panel everywhere: you move credits and Stash parts onto the table and lock it in; the other side accepts or refuses, and nothing moves until then. Deals happen in the open market (trades both ways), when you ask for backing, when the host picks fighters (pay to be invited or to be left out; paid only if the host does it), when the host decides spare or scrap (the loser's team pleads, rivals push; the host takes the offers of the side it picks), for a Tag Team ally, and as card threats (pay off a Botched Install or Swap the Entry, or demand a payoff instead of playing it). Intrigue cards can't be traded. No timers on any decision window.
+**Stash.** Up to 4 spare parts per team, open for everyone to see: lots no robot could take, parts kept aside, swapped-out modules and armour. Fit a Stash part in Upkeep or the Market, trade it, or sell it to the bank (half value, minimum 1: drones and weapon upgrades are worth 3, legendaries 5, other parts 2). A full Stash sells the next part to the bank.
 
-**2. Auction.** Lay out one Market card per player (4 in the tabletop prototype). A **New Robot** card is a real robot from the starter deck, turned face up: everyone sees its stats, weapon, frame, counter tags and the bookie's band vs the field before bidding; an unsold robot goes back to the starter deck. In rounds 1–5 the Market always holds at least one robot (Kev, 6 Nov): if none is dealt, swap one card for the top robot card, so a team that lost robots can rebuild. Auction them one at a time:
+**2. Auction: 4 lots.** Four lots are laid out. A New Robot lot is a real robot, face up (stats, weapon, quirk, the bookie's band). In rounds 1–5 at least one lot is a robot. From round 2, every other round announces a legendary for the next round, where it takes the last lot.
 
-1. Every team bids credits in secret; bids are shown together.
-2. The highest bid pays the bank and takes the card. Everyone else keeps their credits.
-3. **Tie:** only the tied teams bid again in secret. Their first bids stay on the table and the second bid adds to it. Repeat until one total is highest.
-4. **Tie again with nobody adding:** the team with less fame wins. The game shows this as a warning before the rebid, so everyone knows what a standstill means.
-5. **All bids 0:** the auction fails and the card is discarded.
+1. Every team bids on all 4 lots at once, in secret, with at most the credits it has.
+2. Lots are resolved in order: the highest bid pays the bank and takes the lot; everyone else keeps their credits.
+3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any tie it is in, without a rebid. If a rebid ties again with nobody adding, the team with less fame wins.
+4. No bids: the lot goes back (an unsold robot to its deck, a legendary comes back later).
+5. **Botched Install:** before anything is fitted, a team holding Botched Install may wreck a rival's won part (normal defence applies; it can also demand a payoff instead). A botched part is scrapped; the winner gets half its bid back and the saboteur 1 credit.
+6. **Installs:** fit each won part on one of your robots that can take it, or keep it in your Stash. A swapped-out module or armour goes to the Stash. New crew joins your team.
 
-Sovereign Foundry wins any tie it's in, without a rebid. Legendary cards (Railgunner, Twin Turret, Quantum Shield) are announced one round before they come up, so teams can save (tabletop, 6 Nov: from round 2, every other round announces one for the next round, where it takes one of the lot slots; an unsold legendary comes back later). New Robot lots deal the Market robot cards (with their quirks), then `s1.` starters; a scrapped or unsold robot card goes back into the robot deck. The Market Analyst sees the next round's lots early.
-
-**3. Host bid.** Same rules as an auction; the winner takes the host token, hosts this round's fight and goes first in the next Intrigue phase. If every host bid is 0, a random bidder gets the token.
-
-**Robot-count wager (Kev, 6 Nov: 1 or 2).** With your host bid you also secretly name a robot count: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel (an event keeps its own format). Calling 2 costs the host 1 credit; each invited team sends up to 2 of its ready robots (a team with one robot fights 1 vs 2). If the fight ends up uneven, the host loses its +1 host fame that round. A team gains fame once however many of its robots win, and gets the 2-credit appearance money once.
+**3. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
 
 ## 7. Arena phase
 
-One fight per round, run by the host. Most fights are duels; about 1 in 4 should be an event.
+One fight per round. Most fights are duels; Arena cards turn them into events.
 
-**1. Honour to the host.** The host gains 1 fame.
+**1. Host step.** Starting with the host and going clockwise, teams may play Arena cards: the host may play **Mirror** (each robot fights as 2 copies; afterwards it keeps the damage of its healthiest copy) or **Unleash the House Robot** (a neutral heavy-gun robot drops in and attacks whoever is closest); any team may play **Grand Melee** (a free-for-all for every team with a ready robot; host +1 fame when it happens). Events set up on Intrigue turns also apply: **Tag Team Licence** (2v2, you pick your ally; refusing costs the ally 1 fame) and **Grand Final** (gate 10: the two fame leaders vs the other two, double fame).
 
-**2. Format.** The fight is a duel (one robot per side) unless something makes it an event. Events stack with no cap: a robot-count wager and any number of format cards can all apply to the same fight. When two of them set the same thing, such as how many robots each side sends, the one played last wins.
+**2. Invitations.** In a duel the host invites 2 teams (it may invite itself); other teams may offer the host a deal to be invited or left out, paid only if the host does it. Each invited person sends one of their ready robots. In a duel an invited team may decline for −1 fame and a team with a ready robot steps in. A team with no ready robot declines automatically (−1 fame); in an event it sits out. Events can't be declined. With fewer than 2 sides there is no fight this round.
 
-| Event | What changes |
-| --- | --- |
-| Robot-count wager of 2 or 3 | Each side may send up to that many robots |
-| Tag Team Licence | 2v2; the player picks an ally, who may refuse for −1 fame |
-| Grand Final (fame 10+) | 2v2: the two fame leaders against the other two; double fame for the winners |
-| Grand Melee | The host must run a free-for-all or team fight; host +1 fame if it happens |
-| Mirror (host only) | Each side picks one robot; it fights as 2–3 copies; afterwards the real robot keeps the damage of its healthiest surviving copy |
-| Unleash the House Robot (host only) | A neutral robot joins and attacks whoever is closest |
+**3. Appearance money.** Each invited team gets 2 credits, plus 2 per Fan token on its robot (6 for a Fan Favourite), once per team.
 
-**When the Arena cards are played (Kev, 6 Nov; built in the tabletop prototype).** Tag Team Licence and Grand Final are schemes on your Intrigue turn and set up this round's fight. Right after the host bid comes the **Host step**: the host may play Mirror or Unleash the House Robot, and any team may play Grand Melee (host first, then clockwise). In the **Bets step**, Bookie's Friend and Hedge Bet are played while bets are open, and Swap the Entry right after bets are locked (the bets and odds stay as they were). An Arena card can still be cashed in on your Intrigue turn instead.
+**4. Bets.** The bookie runs 20–40 simulated fights of the visible builds (face-down cards stay hidden) and shows each side in a band. Each team may bet 1–3 credits on one side (Lucky Seven: 5), but not against its own robot. Bets are shown to everyone when they lock. Bookie's Friend shows every face-down card in the fight; Hedge Bet allows up to 4 credits on any side; Swap the Entry is played right after bets lock and changes which robot a team sends (bets and odds stay). The Hacker and a Sniper's Scope each show one face-down card on a rival robot.
 
-Prototype details: Mirror makes each robot fight as 2 copies. Grand Melee is a free-for-all for every team with a ready robot. In an event a team with no ready robot sits out (−1 fame) and events can't be declined. The House Robot (heavy gun, armour 2) drops in at the top: if it is the last one standing nobody gets fame and bets are refunded. In an event with several losers the host judges **every** losing robot, one at a time, first knocked out first (each with its own offers); the host's own robot and Fan Favourites are safe. Every losing team opens a Scrap Crate.
+| Band | Win chance | A winning bet returns |
+| --- | --- | --- |
+| Heavy favourite | 75% and up | 1.33× the stake (1:3) |
+| Favourite | 58–75% | 1.5× (1:2) |
+| Even | 42–58% | 2× (1:1) |
+| Underdog | 25–42% | 3× (2:1) |
+| Heavy underdog | under 25% | 4× (3:1) |
 
-**3. Invitations.** The host invites one team at a time until both sides are filled; the host may invite itself. A team that accepts picks the robot it sends. A team that declines loses 1 fame, and the host invites the next one. If every other team has been asked and a side is still open, the host must fill it. If only one team accepts, there's no fight this round. In a 2v2, the host invites four times (no team more than twice, no team asked again after declining) and pairs the teams.
+A losing bet goes to the bank (Lucky Seven gets 1 credit back). A draw or a House Robot win refunds every bet. An Underdog or Heavy underdog win is an **UPSET!**
 
-**4. Appearance money.** Each invited team gets 2 credits, plus 2 per Fan token on its robot (6 for a Fan Favourite).
+**5. The fight.** Face-down cards and garage sabotage are revealed, the robots roll in, a 3-second countdown, then the auto-battle. Drag **live combat cards** from your hand into the fight: Remote Trigger, Pilot Waypoint, Target Overclock, Field Engineer, Oil Canister, EMP Grenade (as many as you hold and meet the gate for). After 60 seconds (+30 s per robot beyond two) sudden death starts: over 20 seconds the walls close in to a small box, then the floor overheats and every robot loses health faster and faster (armour doesn't help) until one side falls.
 
-**5. Bets.** The bookie simulates the visible builds and shows each side in one of 5 bands (a team that hired a scout this round also sees the exact %): heavy underdog (under 25% to win), underdog (25–42%), even (42–58%), favourite (58–75%), heavy favourite (over 75%). Every team may place bets of 1–3 credits each (Lucky Seven: up to 5). You can't bet against your own robot unless you play Hedge Bet.
+**6. Results.** Every team on the winning side gains **1 fame** (2 in a Grand Final), once per team, and no prize money. Each winning robot gets a Fan token; its 3rd (Apex: 2nd) makes it a **Fan Favourite**: +1 fame. A House Robot win or a draw gives nobody fame. Each fighter adds its seconds in the arena to its battle time (section 8). A spared loser keeps at most half its health as damage.
 
-| Bet | Pays |
-| --- | --- |
-| Win, heavy underdog | 3:1 |
-| Win, underdog | 2:1 |
-| Win, even | 1:1 |
-| Win, favourite | 1:2 |
-| Win, heavy favourite | 1:3 |
-| Close call: the winner ends below 25% health | 2:1 |
-| Scrapped: the host scraps the loser | 2:1 |
+**7. Fate: spare or scrap.** The host judges every losing robot, one at a time, first knocked out first. The losing team may offer the host a deal to spare it, rivals to scrap it; the host takes the offers of the side it picks. The host's own robot and Fan Favourites are always safe. A scrapped robot is gone with its parts (its card goes back to its deck); Vulture Salvage gets 2 credits; Blaze of Glory gives its owner +1 fame; a team left without robots gets a free Scrap Bot.
 
-Winning bets get their stake back plus the payout; losing bets go to the bank.
-
-**6. The fight.** Bets close, face-down cards stay hidden until they trigger, and the auto-battle runs. Each player may play one live combat card during it. The fight ends when one side has no working robots left. After 60 seconds (+30 s per robot beyond two), sudden death starts (built in the Sim, Kev 6 Nov): over 20 seconds the arena walls close in to a small box in the middle (240 × 190), pushing every robot together; then the floor overheats and every robot loses 1% of its max health per second, +1% more every second (armour doesn't help), until one side falls. There is no time limit any more; if every robot burns out on the same moment, the one with the most health left survives.
-
-**7. Results.** The winning team gains 1 fame and no prize money (as in Spartacus: credits come from bets and appearance money); in a team fight, every team with a winning robot gains 1 fame (once). The winning robot gets a Fan token; its third token makes it a Fan Favourite (+1 fame to its owner; losing a Fan Favourite costs 1 fame). Apex Media gets Fan Favourite on the second win.
-
-**8. Spare or scrap.** The host decides the loser's fate (with several losers, each losing robot in turn). **Spare:** the robot goes home with damage equal to half its health. **Scrap:** the robot goes to the Market discard and its bought parts go back to the owner's garage. Scrapping costs the host 1 fame per Fan token on the robot, and a Fan Favourite can't be scrapped. Teams may bribe the host. Vulture Salvage gets 2 credits whenever a robot is scrapped.
-
-**9. Scrap Crate.** After the spare/scrap decisions, each losing team draws 3 of the 7 Scrap Crate items and keeps 1 (Vulture Salvage keeps 2): Salvaged Plate / Hull / Servo / Gear / Sights (+1 armour / health / speed / turret / accuracy level, ⚡1, gone for good when it breaks; it goes on the losing robot, else another robot, else the Stash), Scrap Patch Kit (repair 30 damage) or Black-Box Tape (draw 1 Intrigue card, +1 credit). Built in the tabletop 6 Nov.
+**8. Scrap Crate.** Then each losing team draws 3 of the 7 Scrap Crate items and keeps 1 (Vulture Salvage keeps 2): Salvaged Plate, Hull, Servo, Gear or Sights (+1 armour, health, speed, turret or accuracy level, ⚡1, gone for good when it breaks; it goes on the losing robot, else another robot, else the Stash), Scrap Patch Kit (repair 30 damage) or Black-Box Tape (draw 1 Intrigue card, +1 credit).
 
 ## 8. Robots and parts
 
@@ -165,65 +154,48 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 | Slot | Limit | Notes |
 | --- | --- | --- |
-| Weapon | 1 | Twin Turret adds a second weapon slot at 60% firepower |
-| Armour | 1 |  |
-| Module | 1 |  |
-| Helper drones | up to 3 | Fortress: 4. Helpers shut down when their robot dies |
-| Stat upgrades | any, max level 4 per stat | Each one adds strain |
+| Weapon | 1, for life | Gun (medium, heavy, rapid or burst calibre), laser, mortar, saw blades, spinner, flamethrower, railgun. Twin Turret adds a second weapon at 60% firepower |
+| Weapon upgrade | 1 | Only for its weapon: Match-grade Barrel, Focusing Lens, Serrated Blade, Ricochet Rig, Napalm Mix, Cluster Shells |
+| Armour | 1 | Heat Shield, Ablative Plating, Reactive Spikes, Composite Mesh |
+| Module | 1 | 12 modules (shield, decoy, EMP, hook, flipper, mines, repair, self-destruct, smoke, reflective, jump jets, oil slick) plus the legendary Quantum Shield |
+| Helper drones | up to 3 | Medic, Waller, Spotter, Gun, Bodyguard, Jammer. Fortress: 4 |
+| Stat upgrades | max level 4 per stat | Tuned Engine, Turret Motor, Targeting Chip, Reinforced Hull |
 
-**Robot cards come pre-built.** Each robot card has its signature weapon, drive, processor and module, plus one quirk.
-
-- **No weapon swaps (Kev, 6 Nov):** a robot keeps its weapon for life; the weapon is its identity. Each weapon type has its own **weapon upgrade** (one slot, +1 ⚡) that makes it better at what it already does: Match-grade Barrel (guns), Focusing Lens (lasers), Serrated Blade (spinners), Ricochet Rig (saw blades), Napalm Mix (flamethrowers), Cluster Shells (mortars). Guns may also change calibre (rapid, heavy, burst). A part only fits robots with that weapon, and you can't bid on a part none of your robots can take. Want a different weapon: get another robot, or fit the Twin Turret (a second weapon at 60%).
-- **Module swap:** allowed, and the quirk stays. Calibre changes and weapon upgrades keep the quirk too.
-- **Drive and processor:** fixed. The Railgunner's railgun can't move to another robot.
-- **Spares:** a part you take off stays in your garage. Refit it later or sell it to the bank.
-- **Scrap Bots** have no quirk, so any part can go on them freely.
-
-**Strain and breaking.** Every part and upgrade shows its strain (⚡). Before a fight, each breakable part may break, more likely the more strain the robot carries: 5% per ⚡, halved by an assigned Chief Engineer. Only legendaries, parts with value 4–5 and salvaged Scrap Crate items can break. A broken part stops working and stays broken until you repair it in Upkeep for half its bank value (minimum 1 credit); a broken salvaged item is gone for good.
-
-**Damage and repair.** Damage stays on a robot between fights, so it starts its next fight with less health. Repair in Upkeep for 0.7 credits per 20 damage (Kev, 6 Nov: 30% cheaper than 1 credit), times the robot's **battle wear** (Kev, 6 Nov): every second it has ever fought adds to its **battle time**, and repairs cost ×(1 + battle time / 60 s), rounded up. Battle time accumulates over the robot's whole career and repairs never reset it (Kev, 6 Nov), so a veteran gets dearer and dearer to keep fixed: after about 60 seconds of fights (3–4 fights) its repairs cost double. A bought or traded robot keeps its battle time.
-
-**Size.** A robot's frame and hitbox grow 5% per ⚡ it carries, and Twin Turret adds +20% on top, which is easier to hit and easier to tell apart. Weapon reach doesn't grow: a bigger spinner or rammer is only a bigger target. Frame names for players: Light (0–2 ⚡), Medium (3–4), Heavy (5–6), Titan (7+).
-
-**Drives look different.** Wheels show 4 tyres, Tank Tracks show treads, Omni-Drive shows corner rollers, Overboost shows a rear thruster that flares when it dashes.
-
-**How strong is my robot? (Kev, 6 Nov)** Too many combinations to work out by hand, so the game tells you, with the bookie as your scout:
-
-- **Bookie chip (free, always on).** Every robot shows its band vs the field: the bookie's average chance against every robot of the other teams, in the same 5 bands as betting. When you fit a part, and on every Market lot, you see how the band moves (for example Even→Favourite). The bookie only sees open parts at full health; face-down cards stay hidden.
-- **Counter tags (free).** Every weapon and part shows ▲ strong vs / ▼ weak vs a weapon type, measured in the Sim (`docs/counter-tags.md`). A robot's tags add its armour card, module and drones to its weapon, and only name weapons that are on the table. On a bet card the tags are for that matchup.
-- **Scout (1 credit, any time but a fight):** the exact % for every matchup until the end of the round, instead of the fuzzy bands.
-- **Sparring match (2 credits, Upkeep):** see Upkeep step 5.
+- **No weapon swaps:** a robot keeps its weapon; a part only fits robots it suits. A gun may change calibre (the game warns which stats stop or start mattering). Want another weapon: get another robot, or fit the Twin Turret.
+- **Market robot cards** come pre-built with a drive and a processor (fixed) and a quirk: Juggernaut (Showstopper), Wasp (Hotshot), Sniper (Scope), Ricochet (Trick Shot), Brawler (Grudge), Artillery (Underrated), Hookshot (Sticky Fire), Turncoat (Treacherous), Slick (Fireproof), Fortress (Bastion), Tinker (Cunning); legendary Railgunner (Headline Act). A module swap keeps the quirk.
+- **Strain (⚡) and reliability.** Every part shows its strain. In a fight a robot can **malfunction** (8% per ⚡, ×0.6 per Chief Engineer on it, at most 90%) and each part can **break** (3.5% per ⚡ of that part, more when the robot carries over 4 ⚡, halved per Chief Engineer). A broken part stops working for the rest of the fight and stays broken until repaired in Upkeep; a broken salvaged item is gone for good. Each Chief Engineer works on one robot (max 3 per robot).
+- **Damage and battle wear.** Damage stays on a robot between fights. Every second a robot has ever fought adds to its battle time, and its repairs cost ×(1 + battle time / 60 s), for good: after about 60 seconds of fights its repairs cost double.
+- **Size.** A robot's frame grows with its strain: Light (0–2 ⚡), Medium (3–4), Heavy (5–6), Titan (7+). Bigger is easier to hit.
+- **How strong is my robot?** Every robot shows the bookie's band vs the field (its average chance against every robot of the other teams). Market lots show how a part would move that band. Counter tags show ▲ strong vs / ▼ weak vs weapon types, measured in the fight simulator. Scout and sparring: section 4.
 
 ## 9. Winning
 
-If exactly one team has 12 fame at the end of an Intrigue, Market or Arena phase, it wins. If more than one does, fight it out (Spartacus tie-break):
+The first team at **12 fame** when the game checks (after the Intrigue phase, after the Market and after the Fate step) wins. If more than one team is there, the one with the most fame wins; still tied, the one with the most credits. The host can start a rematch.
 
-- **2 teams at 12:** each sends one robot; the winner of the duel wins the game.
-- **3 teams at 12:** total the bank value of each team's robots and parts. The two lowest fight; the winner fights the third.
-- **4 teams at 12:** the two lowest totals fight and the two highest fight; the two winners fight for the game.
+## 10. Online play
 
-No reactions or live combat cards in a tie-break fight. This also settles a Grand Final that puts both leaders at 12 in one fight.
+- **Start:** the host clicks 🌐 Online → Host a game and sends the invite link. Players open it, type a name, pick a colour and press Ready. Seats nobody takes are played by the AI. A person's team carries their name.
+- **The host's browser runs the game.** Everyone else sees the same table from their own seat: own hand, own bids, own questions. Hidden from others: hand cards, deck order, sealed bids, face-down cards.
+- **Same time:** Upkeep, open market, bids, host bid, bets, robot picks and the next-round button wait until every person is done ("Waiting for …"). Intrigue turns and the starter draft go one person at a time.
+- **No timers.** If someone keeps the table waiting, the host gets 🔔 Nudge and ⏭ Skip buttons (Skip takes the default answer for that step).
+- **Drop-outs:** the game pauses until the player is back (same link, same name). The host can let the AI take the seat instead.
+- **Save:** the game saves at the start of every round; the host downloads it from the 🌐 badge (💾 Save game) and can load it in the lobby of a new room (same names get the same seats).
+- **Fights** run on every screen in sync; live combat cards land at the same moment for everyone.
 
-## 10. Gaps this draft found
+## 11. Not in the game yet (from draft v0.1)
 
-Writing the rules out turned up 12 open points, all settled on 5 Nov. The answers raised 3 smaller ones, settled the same day. Items marked *proposal* are filled in above with a first guess.
+These were in the 5 Nov draft but the published game does not do them. Kev to decide: build them, or drop them from the rules.
 
-- [x] **Hand limit:** 4 cards at fame 1–4, 5 at 5–8, 6 at 9–12
-- [x] **Starting Security Bots:** 1 per team, installed in the garage
-- [x] **Appearance money:** 2 credits per invited team, plus 2 per Fan token (6 for a Fan Favourite)
-- [x] **Winner's credits:** none; the winner gets 1 fame, like Spartacus
-- [x] **Bet payouts:** 3:1 for a heavy underdog down to 1:3 for a heavy favourite; Close call and Scrapped pay 2:1
-- [x] **Loser's damage:** a spared loser keeps damage equal to half its health
-- [x] **When parts can be fitted:** only in the open market
-- [x] **Broken parts:** stay broken until repaired
-- [x] **Stacking events:** allowed, no cap
-- [x] **Fight timeout:** sudden death after 60 seconds
-- [x] **Security Bots against face-down cards:** roll blind when the card is placed
-- [x] **Online timing:** soft timers (60 s per Intrigue turn, 90 s for the open market); the others can vote to move on
-- [x] **How sudden death works:** the arena shrinks step by step; robots outside the safe zone take damage
-- [x] **Stacked events that clash:** the event played last sets the disputed rule (e.g. robots per side)
-- [x] **Broken-part repair cost:** half the part's bank value, minimum 1 credit
+- **Close call and Scrapped bets** (2:1): only bets on a side exist.
+- **Fame cost for scrapping:** the draft charged the host 1 fame per Fan token on a scrapped robot, and losing a Fan Favourite cost its owner 1 fame. In the game a Fan Favourite simply can't be scrapped, and nothing else costs fame.
+- **Parts back after a scrap:** in the game a scrapped robot's parts are lost with it.
+- **Tie-break fights** at 12 fame: the game uses most fame, then most credits.
+- **One live combat card per fight:** the game has no limit.
+- **Invitations one team at a time** (and the 2v2 invite pairing): the host picks both teams at once.
+- **Fitting parts only in the open market** (Kev, 5 Nov): the game also lets you fit Stash parts in Upkeep.
+- **Selling robots and crew to the bank:** only Stash parts can be sold to the bank.
+- **Soft timers and voting to move on:** replaced by no timers plus the host's Nudge and Skip.
+- **Robot-count wager of 3** and the Mirror with 3 copies: the game uses 1–2 robots per side and 2 copies.
+- **Breaks only on legendaries and parts worth 4–5:** in the game every part can break, at a rate set by its strain.
 
-Still needs the sim: how fast the arena shrinks and how much damage the zone does.
-
-The Spartacus rules here come from the [Universal Head rules summary v4.1](https://www.orderofgamers.com/downloads/Spartacus_v4.1.pdf); the ROBOCUS rules come from the 5 Nov decisions in the to-do doc.
+The Spartacus rules come from the [Universal Head rules summary v4.1](https://www.orderofgamers.com/downloads/Spartacus_v4.1.pdf).

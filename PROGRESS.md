@@ -50,6 +50,7 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-07, Claude: rulebook v1.0 = the rules of the first published game (`docs/rulebook.md` and the living doc), checked against `prototypes/tabletop-prototype.html`; new sections Online play and "Not in the game yet" (11 draft rules the game doesn't do, for Kev to decide).
 - 2026-11-07, Claude: Kev's test: tablet on 5G + PC on Wi-Fi works; both on the same Wi-Fi didn't (direct link blocked by the router). Relay server added: Metered TURN credential (trial plan, 500 MB a month) in `src/net-config.js`; `&relay=1` in the URL forces the relay (to check it). A 6-round game sends about 3 MB to each player.
 - 2026-11-07, Claude: Kev's tablet stuck on "Connecting…". Fixed: a first link to the host that fails now ends with a message instead of hanging (15 s timeout, ICE failure watch), the join screen shows which step it is on, and there is an optional relay server (TURN) in the new `src/net-config.js` (Metered Open Relay free tier, or any TURN list) (`src/net.js`).
 - 2026-11-07, Claude (`main`): first real online test on GitHub Pages (two tabs over PeerJS: works). Fixes: the host's fights stopped when its tab was in the background (browsers stop drawing hidden tabs; a timer now keeps the game running), and opening a link to a room with no host froze the tab (the join screen retried in a loop) (`prototypes/tabletop-prototype.html`, `src/net.js`).
