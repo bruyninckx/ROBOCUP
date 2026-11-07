@@ -547,7 +547,11 @@ html, body {
   const $ = s => document.querySelector(s);
   const drawRobotSprite = RobotSprite.draw;   // the Scrapyard robot drawings live in src/sprites.js (shared with the arena sandbox)
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const rnd = Math.random, pick = a => a[Math.floor(rnd() * a.length)];
+  // game dice: seedable (?seed=N) so a game can be replayed (regression tests, save/rematch). Fights keep their own Sim seeds.
+  const GAME_SEED = (+new URLSearchParams(location.search).get('seed') >>> 0) || ((Math.random() * 4294967296) >>> 0);
+  let rndState = GAME_SEED;
+  const rnd = () => { rndState = (rndState + 0x6D2B79F5) >>> 0; let t = rndState; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const pick = a => a[Math.floor(rnd() * a.length)];
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const clone = o => JSON.parse(JSON.stringify(o));
   let WIN_FAME = 12, HOST_FAME = 1;   // pacing knobs (ROBOCUS_DEBUG.tune)
@@ -809,26 +813,70 @@ html, body {
   // HS = the seat a person plays (decisions); viewerSeat = whose view the table shows. Autopilot (analysis): HS = -1,
   // every team plays itself with the AI rules and the game runs without animations or waits (G.fast).
   let HS = 0;
-  const seatOrder = () => HS >= 0 ? [HS].concat([0, 1, 2, 3].filter(i => i !== HS)) : [0, 1, 2, 3];   // the person first (reaction windows)
+  // Multiplayer (Kev, 6 Nov): SEATS[i] = 'local' (the person at this screen), 'remote' (a player on another screen, via
+  // window.ROBOCUS_NET) or 'ai'. null = classic solo: only seat HS is a person. HS stays "the person at this screen"
+  // (drawing, the prompt bar); game logic asks isHuman(seat) and talks to that seat with askSeat().
+  let SEATS = null;
+  const isHuman = i => i != null && i >= 0 && (SEATS ? SEATS[i] === 'local' || SEATS[i] === 'remote' : i === HS);
+  const isRemote = i => !!SEATS && SEATS[i] === 'remote';
+  const seatOrder = () => [0, 1, 2, 3].filter(isHuman).concat([0, 1, 2, 3].filter(i => !isHuman(i)));   // people first (reaction windows)
   let botSeq = 0;
 
   const cam = { x: 0, y: 40, zoom: 0.58, tx: 0, ty: 40, tzoom: 0.58, manualZoom: false };
   const mouse = { sx: 0, sy: 0, wx: 0, wy: 0, down: false, overCanvas: false, htmlHelp: null };
   let dragCard = null;
+  let swapAsk = false;   // a local "are you sure" is open (install twin / calibre change)
   let hitRegions = [];
   let weldSparks = [];
 
-  // Multi-tab BroadcastChannel sync
-  const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('robocus_compound_v2') : null;
-  if (bc) {
-    bc.onmessage = ev => {
-      const msg = ev.data;
-      if (msg && msg.type === 'CARD_CMD' && G?.fight?.B && !G.fight.B.over) {
-        Sim.queueCmd(G.fight.B, msg.cmd);
-        notify(G.teams[msg.seat].name + ' played ' + msg.name + '!', G.teams[msg.seat].col);
-      }
-    };
+  /* ---------- Multiplayer pass B (Kev, 7 Nov) ----------
+   * NETROLE: null = solo on this screen, 'host' = this browser runs the game for remote players, 'client' = this
+   * browser only shows the host's game (it runs no game logic, every click becomes an action sent to the host).
+   * PS(seat) = per-seat state for steps everyone does at the same time (bids, bets, robot picks, crates…).
+   * act(name, …args) = a player's action: run here for the person at this screen (solo / host), or sent to the host.
+   * gather(seat, step, then) = "everyone is done": a simultaneous step goes on when every person has finished it. */
+  let NETROLE = null;
+  let netNames = [null, null, null, null], gameSeq = 0, netPaused = null, netTick = { fid: 0, tick: 0, at: 0 };
+  const BOT = /[?&]bot=1/.test(location.search);   // test bots: answer every question and play their seat on their own
+  let fightSeq = 0;
+  const isClient = () => NETROLE === 'client';
+  const humanSeats = () => [0, 1, 2, 3].filter(isHuman);
+  const isNetGame = () => !!SEATS;
+  const PS = (s = HS) => { if (!G || s == null || s < 0) return {}; if (!G.ps) G.ps = [{}, {}, {}, {}]; return G.ps[s] || (G.ps[s] = {}); };
+  const ACT = {};
+  let actSeat = null;   // the seat whose action the host is running right now (for personal log lines)
+  function act(name, ...args) {
+    if (isClient()) { if (window.ROBOCUS_NET) window.ROBOCUS_NET.sendAct(name, args); return; }
+    return runAct(HS, name, args);
   }
+  function runAct(S, name, args) {
+    const f = ACT[name];
+    if (!f || !G || S == null) return;   // S = -1: autopilot (no person), only the "go on" steps make sense
+    const prev = actSeat; actSeat = S;
+    if (isNetGame()) tlog('act', { seat: S, name, remote: isRemote(S) || undefined });
+    try { return f(S, ...(args || [])); }
+    catch (e) { ptError('action ' + name + ' failed: ' + e.message, e.stack); }
+    finally { actSeat = prev; if (G) updateHud(); }
+  }
+  let gatherThen = null;
+  function gather(S, step, then) {
+    const key = step + ':' + G.round;
+    if (!G.gather || G.gather.key !== key) { G.gather = { key, step, done: {} }; gatherThen = null; }
+    if (S != null && S >= 0) G.gather.done[S] = true;
+    gatherThen = then;
+    return recheckGather();
+  }
+  function recheckGather() {
+    if (!G || !G.gather || !gatherThen) return false;
+    if (!humanSeats().every(s => G.gather.done[s])) { updateHud(); return false; }
+    const f = gatherThen; G.gather = null; gatherThen = null; f(); return true;
+  }
+  const gatherWaiting = step => G && G.gather && G.gather.step === step ? humanSeats().filter(s => !G.gather.done[s]) : null;
+  const iWait = step => { const w = gatherWaiting(step); return !!w && !w.includes(HS); };   // this screen is done, others still busy
+  const waitTxt = step => { const w = gatherWaiting(step) || []; return 'Waiting for ' + (w.map(s => '<b style="color:' + G.teams[s].col + '">' + esc(seatName(s)) + '</b>').join(', ') || 'the others') + '…'; };
+  const seatName = s => (G && G.names && G.names[s]) || (G ? G.teams[s].name : 'seat ' + s);
+  // a log line only for the person who plays seat S (their "you" lines); everyone else's log skips it
+  function say(S, html, col) { notify(html, col, S); }
 
   /* ---------- action log (Kev, 6 Nov): kept for the whole game, scrollable, grouped ---------- */
   const LOGC = { key: null, group: null, max: 600, unread: 0 };
@@ -847,45 +895,82 @@ html, body {
     while (t.children.length > LOGC.max) t.removeChild(t.firstChild);
     logScroll();
   }
+  // Kev, 7 Nov (multiplayer): the log is a list of operations, so the host can send them to every screen.
+  // op: phase / msg / begin / end / head; a msg with `to` is a personal line, only shown to that seat.
+  const LOGOPS = [];
+  let logBase = 0;   // absolute index of LOGOPS[0] (old ops are dropped after 4000)
+  function logOp(op) {
+    LOGOPS.push(op);
+    if (LOGOPS.length > 4000) { const n = LOGOPS.length - 4000; LOGOPS.splice(0, n); logBase += n; }
+    logRender(op);
+  }
+  function logRender(op) {
+    if (op.o === 'phase') {
+      const d = document.createElement('div');
+      d.className = 'lp-phase'; d.textContent = op.text; d.dataset.help = op.text + '|' + (op.help || '');
+      logAppend(d); return;
+    }
+    if (op.o === 'msg') {
+      if (op.to != null && op.to !== HS) return;
+      const d = document.createElement('div');
+      if (LOGC.group) { d.className = 'lp-step'; d.innerHTML = op.html; LOGC.group.steps.appendChild(d); logUnread(); logScroll(); return; }
+      d.className = 'tick-msg';
+      if (op.col) d.style.borderLeftColor = op.col;
+      d.innerHTML = op.html;
+      logAppend(d); return;
+    }
+    if (op.o === 'begin') {
+      if (LOGC.group) LOGC.group = null;
+      const box = document.createElement('div'), h = document.createElement('div'), st = document.createElement('div');
+      box.className = 'lp-act'; if (op.col) box.style.borderLeftColor = op.col;
+      h.className = 'lp-ah'; h.innerHTML = op.html;
+      if (op.help) h.dataset.help = op.help;
+      st.className = 'lp-steps';
+      box.appendChild(h); box.appendChild(st);
+      logAppend(box);
+      LOGC.group = { box, head: h, steps: st, text: ptPlain(op.html), secret: op.secret };
+      return;
+    }
+    if (op.o === 'head') { const g = LOGC.group; if (g) { g.head.innerHTML = op.html; g.head.dataset.help = op.help || ''; g.text = ptPlain(op.html); g.secret = false; } return; }
+    if (op.o === 'end') {
+      const g = LOGC.group; if (!g) return;
+      LOGC.group = null;
+      if (op.result) { const b = document.createElement('span'); b.className = 'lp-res ' + (op.result === 'blocked' || op.result === 'failed' ? 'no' : 'ok'); b.textContent = op.result === 'blocked' ? '✋ blocked' : op.result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); logScroll(); }
+    }
+  }
+  // a fresh screen (a client that joins or rejoins) replays the whole list
+  function logReplay(ops) {
+    const t = logBox(); if (t) t.innerHTML = '';
+    LOGC.group = null; LOGC.unread = 0;
+    for (const op of ops) logRender(op);
+  }
   function logPhase() {
     if (!G) return;
     const key = G.round + '|' + G.phase;
     if (key === LOGC.key) return;
     LOGC.key = key;
-    const ph = PHASES.find(x => x[0] === G.phase), d = document.createElement('div');
-    d.className = 'lp-phase';
-    d.textContent = (G.phase === 'setup' ? 'Setup' : 'Round ' + G.round) + ' · ' + (ph ? ph[1].replace(/^\d+\.\s*/, '') : G.phase);
-    d.dataset.help = d.textContent + '|' + (PHASE_HELP[G.phase] || '');
-    logAppend(d);
+    const ph = PHASES.find(x => x[0] === G.phase);
+    const text = (G.phase === 'setup' ? 'Setup' : 'Round ' + G.round) + ' · ' + (ph ? ph[1].replace(/^\d+\.\s*/, '') : G.phase);
+    logOp({ o: 'phase', text, help: PHASE_HELP[G.phase] || '' });
   }
-  function notify(html, borderCol) {
-    tlog('msg', { text: ptPlain(html) });
+  function notify(html, borderCol, to) {
+    if (to == null || to === HS || !isNetGame()) tlog('msg', { text: ptPlain(html), to: to == null ? undefined : to });
+    if (isClient()) { logRender({ o: 'msg', html, col: borderCol }); return; }   // a client's log comes from the host; this is a local note
     logPhase();
-    const d = document.createElement('div');
-    if (LOGC.group) { d.className = 'lp-step'; d.innerHTML = html; LOGC.group.steps.appendChild(d); logUnread(); logScroll(); return; }
-    d.className = 'tick-msg';
-    if (borderCol) d.style.borderLeftColor = borderCol;
-    d.innerHTML = html;
-    logAppend(d);
+    logOp({ o: 'msg', html, col: borderCol, to: to == null || !isNetGame() ? undefined : to });
   }
   // one Intrigue play = one box: header (who plays what on whom), then every step under it, then ✓ / ✋
   function logBegin(headHtml, col, helpTitle, helpBody) {
+    if (isClient()) return;
     if (LOGC.group) logEnd();
     logPhase();
-    const box = document.createElement('div'), h = document.createElement('div'), st = document.createElement('div');
-    box.className = 'lp-act'; if (col) box.style.borderLeftColor = col;
-    h.className = 'lp-ah'; h.innerHTML = headHtml;
-    if (helpTitle) h.dataset.help = helpTitle + '|' + (helpBody || '');
-    st.className = 'lp-steps';
-    box.appendChild(h); box.appendChild(st);
-    logAppend(box);
-    LOGC.group = { box, head: h, steps: st, text: ptPlain(headHtml) };
+    logOp({ o: 'begin', html: headHtml, col, help: helpTitle ? helpTitle + '|' + (helpBody || '') : '' });
   }
+  function logRetitle(headHtml, helpTitle, helpBody) { logOp({ o: 'head', html: headHtml, help: helpTitle + '|' + (helpBody || '') }); }
   function logEnd(result) {
     const g = LOGC.group; if (!g) return;
-    LOGC.group = null;
     tlog('play', { text: g.text, result: result || null, steps: [...g.steps.children].map(x => ptPlain(x.innerHTML)) });
-    if (result) { const b = document.createElement('span'); b.className = 'lp-res ' + (result === 'blocked' || result === 'failed' ? 'no' : 'ok'); b.textContent = result === 'blocked' ? '✋ blocked' : result === 'failed' ? '✗ not played' : '✓ landed'; g.head.prepend(b); logScroll(); }
+    logOp({ o: 'end', result: result || null });
   }
 
   const cardType = c => c.phase === 'fight' ? '⚡ Live combat card' : c.phase === 'later' ? '🏟️ Arena card' : c.phase === 'security' ? '🤖 Security' :
@@ -903,10 +988,10 @@ html, body {
   // asking for backing keeps the card secret (Kev, 6 Nov): the log names it only once it is really played
   function secretHead(F, T) {
     logBegin('🤫 ' + nm(F) + ' asks for backing for a secret scheme' + (T && T !== F ? ' on ' + nm(T) : ''), F.col, '🤫 Secret scheme', 'A team that lacks the fame for a card asks the others to back it, without saying which card. If the backing is enough, the card is played and shown; if not, it stays secret in their hand.');
-    LOGC.group.secret = true;
+    if (LOGC.group) LOGC.group.secret = true;
   }
   function playHead(F, id, T) {
-    const c = CARDS[id], hidden = c.t === 'F' && F.i !== HS;
+    const c = CARDS[id], hidden = c.t === 'F' && (isNetGame() || F.i !== HS);   // a shared log (multiplayer) never names a face-down card
     const head = (hidden ? '🂠 ' : c.icon + ' ') + nm(F) + ' plays ' + (hidden ? 'a face-down card' : cardRef(id)) + (T && T !== F ? ' on ' + nm(T) : '');
     const h = hidden ? ['🂠 Face-down card', 'Put on a robot without showing it. It stays secret (the bookie can\'t see it) until that robot\'s next fight.'] : cardHelp(id);
     return [head, h[0], h[1] + SCHEME_STEPS];
@@ -1257,29 +1342,30 @@ html, body {
     el.querySelector('.sc-close').onclick = closeScout;
     el.onclick = e => { if (e.target === el) closeScout(); };
     const buy = el.querySelector('.sc-buy');
-    if (buy) buy.onclick = buyScout;
-    el.querySelectorAll('.sc-spar').forEach(b => { b.onclick = () => { const x = F.per[+b.dataset.k]; startSpar(r, x.T, x.r); }; });
+    if (buy) buy.onclick = () => act('buyScout');
+    el.querySelectorAll('.sc-spar').forEach(b => { b.onclick = () => { const x = F.per[+b.dataset.k]; closeScout(); act('spar', r.id, x.T.i, x.r.id); }; });
   }
-  function buyScout() {
-    const t = me();
-    if (scouted() || t.credits < SCOUT_PRICE || G.phase === 'fight') return;
+  function buyScout(S = HS) {
+    const t = G.teams[S];
+    if (t.scoutRound === G.round || t.credits < SCOUT_PRICE || G.phase === 'fight') return;
     t.credits -= SCOUT_PRICE; t.scoutRound = G.round;
-    notify('🔭 You hired a scout: exact bookie numbers for every matchup this round.', t.col);
+    say(S, '🔭 You hired a scout: exact bookie numbers for every matchup this round.', t.col);
     updateHud(); renderScout(true);
   }
   // sparring match (Upkeep, 2 Cr, once a round): a real Sim fight in the pit vs one rival robot, nothing carries over
-  function startSpar(r, T2, r2) {
-    const t = me();
-    if (G.phase !== 'upkeep' || t.sparRound === G.round || t.credits < SPAR_PRICE) return;
+  function startSpar(r, T2, r2, S = HS) {
+    const t = G.teams[S];
+    if (G.phase !== 'upkeep' || t.sparRound === G.round || t.credits < SPAR_PRICE || !t.robots.includes(r)) return;
     t.credits -= SPAR_PRICE; t.sparRound = G.round;
     closeScout();
     G.spar = { returnPhase: G.phase, prevFight: G.fight };
-    G.fight = { spar: true, sandbox: true, teams: [viewerSeat, T2.i], robots: [r, r2], sides: [0, 1], nSides: 2, format: 'duel', bets: [] };
+    G.fight = { spar: true, sandbox: true, teams: [S, T2.i], robots: [r, r2], sides: [0, 1], nSides: 2, format: 'duel', bets: [] };
     G.phase = 'fight';
     const F = G.fight;
-    { const m = buildBattle(F, (rnd() * 4294967296) >>> 0, true, true); F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds; F.entBot = [0, 1]; }
+    { const seed = (rnd() * 4294967296) >>> 0; F.fid = ++fightSeq; F.bb = { seed, visible: true, noDamage: true }; F.cmdLog = [];
+      const m = buildBattle(F, seed, true, true); F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds; F.entBot = [0, 1]; }
     F.rollout = 0; F.rolloutDone = false;
-    notify('🥊 Sparring match: <b>' + esc(r.name) + '</b> vs ' + esc(T2.name) + '\'s <b>' + esc(r2.name) + '</b>. No damage, no fame.', t.col);
+    notify('🥊 ' + nm(t) + '\'s sparring match: <b>' + esc(r.name) + '</b> vs ' + esc(T2.name) + '\'s <b>' + esc(r2.name) + '</b>. No damage, no fame.', t.col);
     setCameraGoal('arena');
     updateHud();
   }
@@ -1332,134 +1418,162 @@ html, body {
     const t = me();
     if (G.over) {
       const w = G.teams.slice().sort((a, b) => b.fame - a.fame)[0];
-      pb.innerHTML = '<span>🏆 <b>' + esc(w.name) + '</b> wins the Championship (' + w.fame + ' Fame)!</span><button class="act" id="pAct1">New Game</button>';
-      $('#pAct1').onclick = newGame;
+      pb.innerHTML = '<span>🏆 <b>' + esc(w.name) + '</b> wins the Championship (' + w.fame + ' Fame)!</span>' + (isClient() ? '<span class="sc-note">The host can start a rematch.</span>' : '<button class="act" id="pAct1">' + (isNetGame() ? '🔁 Rematch' : 'New Game') + '</button>');
+      if ($('#pAct1')) $('#pAct1').onclick = () => { if (isNetGame() && window.ROBOCUS_NET) window.ROBOCUS_NET.rematch(); else newGame(); };
       return;
     }
     if (G.phase === 'setup') {
-      if (G.setupStep === 'sponsor') {
+      if (G.setupStep === 'sponsor' && isNetGame() && PS().sponsor) {
+        const w = humanSeats().filter(h => !PS(h).sponsor);
+        pb.innerHTML = '<span>🏁 <b>Sponsor signed.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '…</span>';
+      } else if (G.setupStep === 'sponsor') {
         pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; click the one you keep (AI teams are dealt 2 of the rest and keep 1).</span>' +
-          '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select></label>' +
-          '<button class="act secondary" id="pAct1">Random Sponsor</button><button class="act" id="pAct2">Quick-Start →</button>';
-        $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
-        $('#pAct1').onclick = () => pickSetupSponsor(pick(G.sponsorDeal));
-        $('#pAct2').onclick = quickFinishSetup;
+          (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select></label>') +
+          '<button class="act secondary" id="pAct1">Random Sponsor</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
+        if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
+        $('#pAct1').onclick = () => act('pickSponsor', null);
+        if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
+      } else if (G.draftSeat != null && G.draftSeat !== HS) {
+        pb.innerHTML = '<span>🤖 <b>Starter draft:</b> <b style="color:' + G.teams[G.draftSeat].col + '">' + esc(seatName(G.draftSeat)) + '</b> is picking a starter robot…</span>';
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
         pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Click 1 of the 3 stock <b>s1.</b> robots on the Arena Stage (11 pts, max Lv3, 1 Eng).</span>` +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
-        $('#pAct1').onclick = () => pickSetupStarter(Math.floor(rnd() * G.draftOffer.length));
+        $('#pAct1').onclick = () => act('pickStarter', -1);
       }
       return;
     }
     if (G.phase === 'upkeep') {
-      pb.innerHTML = '<span>🔧 <b>Upkeep & Workshop:</b> Tune Engineers (👷), Target Focus & Range, repair damaged bots, or click a 🎩 bookie chip to scout and book a sparring match.</span>' +
-        '<button class="act" id="pAct1">Done → Intrigue</button>';
-      $('#pAct1').onclick = startIntrigue;
+      if (iWait('upkeep')) pb.innerHTML = '<span>🔧 <b>Upkeep:</b> you are done. ' + waitTxt('upkeep') + '</span>';
+      else {
+        pb.innerHTML = '<span>🔧 <b>Upkeep & Workshop:</b> Tune Engineers (👷), Target Focus & Range, repair damaged bots, or click a 🎩 bookie chip to scout and book a sparring match.</span>' +
+          '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
+        $('#pAct1').onclick = () => act('upkeepDone');
+      }
     } else if (G.phase === 'intrigue') {
       if (G.intrigueTurn === HS) {
         pb.innerHTML = '<span>🕵️ <b>Your turn:</b> ' + (G.cashMode ? 'click cards to cash them in for their 🪙 value.' : 'drag cards onto a garage. Hand limit ' + handLimit(t) + ' at the end of your turn.') + '</span>' +
           '<button class="act secondary" id="pAct1">' + (G.cashMode ? '✓ Done cashing' : '💰 Cash-in mode') + '</button><button class="act" id="pAct2"' + (G.ivBusy ? ' disabled' : '') + '>End turn →</button>';
-        $('#pAct1').onclick = () => { G.cashMode = !G.cashMode; updateHud(); };
-        $('#pAct2').onclick = () => { if (!G.ivBusy && G.endHumanTurn) G.endHumanTurn(); };
+        $('#pAct1').onclick = () => act('cashMode');
+        $('#pAct2').onclick = () => { if (!G.ivBusy) act('endTurn'); };
       } else {
         const it = G.teams[G.intrigueTurn];
-        pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
+        pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(isHuman(it.i) ? seatName(it.i) : it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
       }
     } else if (G.phase === 'market') {
       if (G.marketAuction && G.marketAuction.sabotageDone) {
         pb.innerHTML = '<span>🔧 <b>Lots won.</b> Before anything is fitted, teams holding <b>Botched Install</b> may wreck a rival\'s part…</span>';
       } else if (G.marketAuction && G.marketAuction.tie) {
-        const tie = G.marketAuction.tie;
+        const tie = G.marketAuction.tie, myAdd = (tie.add || {})[HS] || 0, maxMyAdd = (tie.maxAdd || {})[HS] || 0;
         const lotName = tie.k < NLOTS ? LOTS[G.market[tie.k]].name : 'Host the Fight';
         const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
-        pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${tie.myAdd}/${tie.maxMyAdd} Cr → Total ${tie.baseBid + tie.myAdd} Cr). ⚠️ If nobody adds, the team with less fame wins.</span>` +
-          `<button class="act" id="pAct1">Lock Rebid (+${tie.myAdd} Cr) →</button>`;
-        $('#pAct1').onclick = submitHumanRebid;
+        if (tieMine()) {
+          pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${myAdd}/${maxMyAdd} Cr → Total ${tie.baseBid + myAdd} Cr). ⚠️ If nobody adds, the team with less fame wins.</span>` +
+            `<button class="act" id="pAct1">Lock Rebid (+${myAdd} Cr) →</button>`;
+          $('#pAct1').onclick = () => act('rebidLock');
+        } else pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}:</b> ${esc(tiedNames)} rebid in secret…</span>`;
       } else if (G.marketResolved) {
-        if (G.pendingInstall && G.pendingInstall.length) {
-          const lot = LOTS[G.pendingInstall[0].lot];
+        const myInst = PS().install || [];
+        if (myInst.length) {
+          const lot = LOTS[myInst[0].lot];
           pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
-          $('#pAct1').onclick = () => { const it = G.pendingInstall.shift(); if (!it) return; const ok = toStash(t, it.lot); if (G.marketResults && G.marketResults[it.idx]) G.marketResults[it.idx].target = ok ? '📦 Kept in the Stash' : '🏦 Stash full: sold'; updateHud(); };
+          $('#pAct1').onclick = () => act('installKeep');
+        } else if (iWait(G.hostResolved ? 'mres2' : 'mres')) {
+          pb.innerHTML = '<span>📦 <b>Market Results.</b> ' + waitTxt(G.hostResolved ? 'mres2' : 'mres') + '</span>';
         } else {
           pb.innerHTML = G.hostResolved
             ? '<span>📦 <b>Market Results:</b> who won each lot and who hosts, and for how much.</span><button class="act" id="pAct1">Continue to Host Phase →</button>'
             : '<span>📦 <b>Auction Results:</b> lots are done. Next: a separate sealed bid for the right to host.</span><button class="act" id="pAct1">👑 Bid for Host →</button>';
-          $('#pAct1').onclick = continueMarket;
+          $('#pAct1').onclick = () => act('continueMarket');
         }
+      } else if (G.marketStage === 'open' && iWait('open')) {
+        pb.innerHTML = '<span>🤝 <b>Open market:</b> you are ready for the auction. ' + waitTxt('open') + ' You can still trade.</span>' +
+          G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '">🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('');
+        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
       } else if (G.marketStage === 'open') {
         pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits, 📦 Stash parts, robots, crew and Security Bots with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + legendNote() + '</span>' +
           G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('') +
           '<button class="act" id="pAct1"' + (G.openBusy ? ' disabled' : '') + '>Start the auction →</button>';
-        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => humanTrade(G.teams[+b.dataset.trade]); });
-        $('#pAct1').onclick = startLots;
+        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
+        $('#pAct1').onclick = () => act('startLots');
+      } else if (G.marketStage === 'host' && iWait('hostbid')) {
+        pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr). ' + waitTxt('hostbid') + '</span>';
       } else if (G.marketStage === 'host') {
-        const hc = G.myHostCount || 1;
-        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + (G.myBids[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
+        const hc = PS().hostCount || 1;
+        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
           '<button class="act secondary" id="pCount"' + helpAttr('🤖 Robot-count wager', 'Name 1 or 2 robots per side with your host bid. Only the winning host\'s count is used, and only for a normal duel (events keep their own format). 2 per side costs ' + WAGER_COST + ' Cr; each invited team sends up to 2 of its ready robots. If the fight ends up uneven (2 vs 1), you lose your +1 host fame that round.') + '>🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
-        $('#pCount').onclick = () => { G.myHostCount = hc === 2 ? 1 : 2; updateHud(); };
-        $('#pAct1').onclick = () => resolveHostBid(G.myBids[HOST_K] || 0);
+        $('#pCount').onclick = () => act('hostCount');
+        $('#pAct1').onclick = () => act('lockHost');
+      } else if (iWait('lots')) {
+        pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0) + ' Cr). ' + waitTxt('lots') + '</span>';
       } else {
-        const spent = (G.myBids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
+        const spent = (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
         pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click Blueprint Tiles in the Arena to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.' + legendNote() + '</span>' +
           '<button class="act" id="pAct1">Lock Bids →</button>';
-        $('#pAct1').onclick = () => resolveMarket(G.myBids);
+        $('#pAct1').onclick = () => act('lockBids');
       }
     } else if (G.phase === 'arena') {
       if (G.hostStep) {
         pb.innerHTML = '<span>🏟️ <b>Host step:</b> the host may play Mirror or Unleash the House Robot, anyone may play Grand Melee…</span>';
+      } else if (G.chooseMyBot && !PS().choose) {
+        const w = humanSeats().filter(h => PS(h).choose);
+        pb.innerHTML = '<span>⚔️ <b>Fighters:</b> waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the invited teams') + ' to send a robot…</span>';
       } else if (G.chooseMyBot) {
         const ev = G.fight && G.fight.format !== 'duel' && G.fight.format !== 'mirror';
         pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Adjust your Engineers (👷) & Focus, then click a Bay\'s <b>Send to Pit</b> button.' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + '</span>' +
           (ev ? '' : '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>');
-        if (!ev) $('#pAct1').onclick = declineInvite;
+        if (!ev) $('#pAct1').onclick = () => act('decline');
       } else if (G.host === HS) {
         const n = (G.pickTeams || []).length;
         pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
-        $('#pAct1').onclick = () => {
-          const pk = G.pickTeams.slice(), H = G.teams[G.host];
-          (G.inviteOffers || []).forEach(o => { if ((o.want === 'in') === pk.includes(o.team)) { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays you ' + bundleText(o.B) + ' (' + (o.want === 'in' ? 'invited' : 'left out') + ').', G.teams[o.team].col); } });
-          G.inviteOffers = [];
-          invite(pk);
-        };
+        $('#pAct1').onclick = () => act('invite');
+      } else if (G.host >= 0 && !G.fight) {
+        pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking the fighters…</span>';
       }
     } else if (G.phase === 'bets') {
-      const lim = betLimit(t), staked = G.myBet.reduce((a, b) => a + b, 0);
+      const lim = betLimit(t), myBet = PS().bet || [], staked = myBet.reduce((a, b) => a + b, 0);
       const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
-      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side in the Arena to bet up to ' + lim + ' Cr (' + staked + ' Cr staked)' + (G.hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
+      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side in the Arena to bet up to ' + lim + ' Cr (' + staked + ' Cr staked)' + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
-        (can('hedge_bet') && !G.hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
+        (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock Bets & Fight! →</button>';
-      $('#pAct1').onclick = lockBetsAndRollout;
-      if ($('#pBF')) $('#pBF').onclick = humanBookiesFriend;
-      if ($('#pHB')) $('#pHB').onclick = humanHedgeBet;
+      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr). ' + waitTxt('bets') + '</span>';
+      if ($('#pAct1')) $('#pAct1').onclick = () => act('lockBets');
+      if ($('#pBF')) $('#pBF').onclick = () => act('bookiesFriend');
+      if ($('#pHB')) $('#pHB').onclick = () => act('hedgeBet');
     } else if (G.phase === 'fight' && G.fight && G.fight.spar) {
       pb.innerHTML = '<span>🥊 <b>Sparring match:</b> ' + esc(G.fight.robots[0].name) + ' vs ' + esc(G.fight.robots[1].name) + '. A test fight: no damage, no fame, no cards.</span>' +
-        '<button class="act secondary" id="pAct1">Skip</button>';
-      $('#pAct1').onclick = () => { if (G.fight?.B) { G.fight.rolloutDone = true; G.fight.rollout = 1; while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); } };
+        (isClient() ? '' : '<button class="act secondary" id="pAct1">Skip</button>');
+      if ($('#pAct1')) $('#pAct1').onclick = () => act('skipFight');
     } else if (G.phase === 'fight') {
       pb.innerHTML = '<span>⚔️ <b>Live Auto-Battle:</b> Drag gold <b>Combat Cards</b> (Field Engineer, Trigger, Waypoint) into the Arena!</span>' +
-        '<button class="act secondary" id="pAct1">Skip</button>';
-      $('#pAct1').onclick = () => { if (G.fight?.B) { G.fight.rolloutDone = true; G.fight.rollout = 1; while (!G.fight.B.over) Sim.step(G.fight.B, 1 / 60); } };
+        (isClient() ? '' : '<button class="act secondary" id="pAct1">Skip</button>');
+      if ($('#pAct1')) $('#pAct1').onclick = () => act('skipFight');
     } else if (G.phase === 'after') {
       if (G.awaitingJudgment && G.host === HS) {
         const lr = G.fight.loser.robot, fo = G.fight.fateOffers || { spare: [], scrap: [] };
         const ot = side => fo[side].length ? fo[side].map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B)).join(', ') : 'no offers';
         pb.innerHTML = '<span>👑 <b>Host Judgment' + (G.fight.fateN > 1 ? ' (' + G.fight.fateI + ' of ' + G.fight.fateN + ')' : '') + ':</b> Decide the fate of ' + esc(G.teams[G.fight.loser.team].name) + '\'s defeated <b>' + esc(lr.name) + '</b>. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
           '<button class="act" id="pAct1">👍 Spare</button><button class="act secondary" id="pAct2" style="border-color:#ff6b6b;color:#ff9b9b">👎 Scrap</button>';
-        $('#pAct1').onclick = () => resolveFate(false);
-        $('#pAct2').onclick = () => resolveFate(true);
+        $('#pAct1').onclick = () => act('fate', false);
+        $('#pAct2').onclick = () => act('fate', true);
       } else if (G.fateBusy) {
         pb.innerHTML = '<span>👑 <b>Spare or scrap:</b> offers are going to the host…</span>';
-      } else if (G.crateChoices && G.crateChoices.items) {
+      } else if (G.awaitingJudgment) {
+        pb.innerHTML = '<span>👑 <b>Host ' + esc(seatName(G.host)) + '</b> decides: spare or scrap…</span>';
+      } else if (G.crateChoices && G.crateChoices.items && G.crateChoices.team === HS) {
         pb.innerHTML = '<span>📦 <b>Scrap Crate:</b> your robot lost. Click ' + (G.crateChoices.keep - G.crateChoices.picked.length) + ' of the 3 salvage items on the arena floor to keep.</span>';
+      } else if (G.crateChoices && G.crateChoices.items) {
+        pb.innerHTML = '<span>📦 <b>' + esc(seatName(G.crateChoices.team)) + '</b> opens a Scrap Crate…</span>';
+      } else if (iWait('next')) {
+        pb.innerHTML = '<span>🏁 <b>Aftermath:</b> ' + waitTxt('next') + '</span>';
       } else {
         pb.innerHTML = '<span>🏁 <b>Aftermath & Recap:</b> Review the fight log on the Arena board, or advance to the next round.</span>' +
           '<button class="act" id="pAct1">Next Round →</button>';
-        $('#pAct1').onclick = () => { G.round++; G.prevHost = G.host; G.host = -1; G.fight = null; startRound(); };
+        $('#pAct1').onclick = () => act('nextRound');
       }
     }
   }
@@ -1561,9 +1675,7 @@ html, body {
         if (!isCardPlayable(id)) return;
         e.preventDefault();
         if (G.cashMode && G.phase === 'intrigue' && G.intrigueTurn === HS) {
-          const g = cashIn(t, id);
-          notify('💰 Cashed in ' + cardRef(id) + ' for ' + g + ' Cr.', t.col);
-          updateHud();
+          act('cashIn', id);
           return;
         }
         const rect = el.getBoundingClientRect();
@@ -1616,7 +1728,7 @@ html, body {
   function newGame() {
     const G0fame = G && G.startFame || 4;
     ptNew();
-    { const t = document.getElementById('ticker'); if (t) t.innerHTML = ''; LOGC.key = null; LOGC.group = null; }
+    { const t = document.getElementById('ticker'); if (t) t.innerHTML = ''; LOGC.key = null; LOGC.group = null; logBase += LOGOPS.length; LOGOPS.length = 0; }
     G = {
       round: 1, phase: 'setup', setupStep: 'sponsor', host: -1,
       starterDeck: shuffle(Object.keys(STARTERS).slice()),
@@ -1635,6 +1747,8 @@ html, body {
       sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
     };
     G.teams.forEach(t => { crewProps(t); fameProps(t); t.mechs = 3; t.engPool = 1; });
+    G.gid = GAME_SEED.toString(36) + '-' + (++gameSeq);
+    if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); mpDealSponsors(); }   // a person's team carries their name
     setCameraGoal('compound');
     tlog('new_game', { startFame: G0fame, starterPicks: STARTER_PICKS, teams: G.teams.map(t => t.name) });
     notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (pick 1 of 3)!', '#111');
@@ -1668,24 +1782,79 @@ html, body {
     return chosen;
   }
 
+  // multiplayer: every person is dealt 2 sponsors (disjoint while the 6 last; overlaps are refilled when one is signed)
+  const mySponsorDeal = () => isNetGame() ? (PS().deal || []) : G.sponsorDeal;
+  function mpDealSponsors() {
+    const hs = humanSeats(); let pool = shuffle(SPONSOR_KEYS.filter(k => !G.sponsorDeal.includes(k)));
+    hs.forEach((s, n) => {
+      if (n === 0) { PS(s).deal = G.sponsorDeal.slice(); return; }
+      if (pool.length < 2) pool = pool.concat(shuffle(SPONSOR_KEYS.filter(k => !pool.includes(k))));
+      PS(s).deal = pool.splice(0, 2);
+    });
+  }
+  ACT.pickSponsor = (S, key) => {
+    if (G.phase !== 'setup' || G.setupStep !== 'sponsor' || !isHuman(S)) return;
+    if (!isNetGame()) { pickSetupSponsor(key || pick(G.sponsorDeal)); return; }
+    const P = PS(S); if (P.sponsor) return;
+    const deal = P.deal || [];
+    if (!deal.includes(key)) key = pick(deal);
+    P.sponsor = key;
+    say(S, 'Signed with <b>' + esc(SPONSORS[key].name) + '</b> (' + esc(SPONSORS[key].tag) + ').', G.teams[S].col);
+    notify(nm(G.teams[S]) + ' signs a sponsor.', G.teams[S].col);
+    const taken = humanSeats().map(h => PS(h).sponsor).filter(Boolean);
+    for (const h of humanSeats()) {   // someone else held the same contract: swap in a free one
+      const Q = PS(h); if (Q.sponsor || !Q.deal) continue;
+      Q.deal = Q.deal.map(k => taken.includes(k) ? (shuffle(SPONSOR_KEYS.filter(x => !taken.includes(x) && !Q.deal.includes(x)))[0] || k) : k);
+    }
+    if (humanSeats().every(h => PS(h).sponsor)) assignSponsors(h => PS(h).sponsor);
+  };
   function pickSetupSponsor(mySp) {
     if (G.phase !== 'setup' || G.setupStep !== 'sponsor') return;
     if (!G.sponsorDeal.includes(mySp)) mySp = G.sponsorDeal[0];
-    let free = SPONSOR_KEYS.filter(k => k !== mySp);
+    assignSponsors(() => mySp);
+  }
+  // the people's contracts are set; AI teams are dealt 2 of the rest and keep 1; then the starter draft
+  function assignSponsors(pickOf) {
+    let free = SPONSOR_KEYS.filter(k => !humanSeats().some(h => pickOf(h) === k));
     G.teams.forEach((t, i) => {
-      if (i === HS) t.sponsor = mySp;
+      if (isHuman(i)) t.sponsor = pickOf(i);
       else { const deal = shuffle(free.slice()).slice(0, 2); t.sponsor = pick(deal); free = free.filter(k => k !== t.sponsor); }   // AI: dealt 2 of the rest, keeps 1
       t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
     });
-    notify(`Signed with <b>${esc(SPONSORS[mySp].name)}</b> (${esc(SPONSORS[mySp].tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}<b>s1.</b> starter robot!`, me().col);
+    for (const h of humanSeats()) { const sp = SPONSORS[G.teams[h].sponsor]; say(h, `Signed with <b>${esc(sp.name)}</b> (${esc(sp.tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}<b>s1.</b> starter robot!`, G.teams[h].col); }
     G.setupStep = 'draft1';
-    dealHumanStarterOffer();
+    startDraftRound();
     updateHud();
   }
-
-  function pickSetupStarter(offerIdx) {
+  // the draft: people one at a time (seat order), then the AI teams
+  function startDraftRound() {
+    G.draftQueue = humanSeats();
+    nextDrafter();
+  }
+  function nextDrafter() {
+    G.draftSeat = G.draftQueue.length ? G.draftQueue.shift() : null;
+    if (G.draftSeat != null) { dealHumanStarterOffer(); updateHud(); return; }
+    for (const aiT of G.teams) {   // the AI teams draft their starter for this round (best average win rate vs table)
+      if (isHuman(aiT.i)) continue;
+      aiDraftOneStarter(aiT);
+    }
+    if (G.setupStep === 'draft1' && STARTER_PICKS > 1) {
+      G.setupStep = 'draft2';
+      startDraftRound();
+      updateHud();
+    } else {
+      finishSetupPhase();
+    }
+  }
+  ACT.pickStarter = (S, offerIdx) => {
+    if (G.phase !== 'setup' || G.draftSeat !== S) return;
+    if (offerIdx == null || offerIdx < 0) offerIdx = Math.floor(rnd() * G.draftOffer.length);
+    pickSetupStarter(offerIdx, S);
+  };
+  function pickSetupStarter(offerIdx, S = HS) {
     if (G.phase !== 'setup' || (G.setupStep !== 'draft1' && G.setupStep !== 'draft2')) return;
-    const t = me();
+    if (G.draftSeat != null && G.draftSeat !== S) return;
+    const t = G.teams[S];
     const chosen = G.draftOffer[offerIdx] || G.draftOffer[0];
     if (!chosen) return;
     const unpicked = G.draftOffer.filter((_, idx) => idx !== offerIdx);
@@ -1695,22 +1864,10 @@ html, body {
 
     t.robots.push(mkRobot(chosen, STARTERS[chosen].b));
     const bayIdx = t.robots.length - 1;
-    spawnWeldSparks(-370 + bayIdx * 369, 195);
-    notify(`🤖 Drafted <b>${esc(chosen)}</b> into Bay ${bayIdx + 1}!`, t.col);
-
-    // Other 3 AI teams draft their starter for this round (best average win rate vs table)
-    for (const aiT of G.teams) {
-      if (aiT.i === HS) continue;
-      aiDraftOneStarter(aiT);
-    }
-
-    if (G.setupStep === 'draft1' && STARTER_PICKS > 1) {
-      G.setupStep = 'draft2';
-      dealHumanStarterOffer();
-      updateHud();
-    } else {
-      finishSetupPhase();
-    }
+    if (S === HS) spawnWeldSparks(-370 + bayIdx * 369, 195);
+    say(S, `🤖 Drafted <b>${esc(chosen)}</b> into Bay ${bayIdx + 1}!`, t.col);
+    if (isNetGame()) notify('🤖 ' + nm(t) + ' drafts <b>' + esc(chosen) + '</b>.', t.col);
+    nextDrafter();
   }
 
   function finishSetupPhase() {
@@ -1722,20 +1879,20 @@ html, body {
   }
 
   function quickFinishSetup() {
-    if (G.phase !== 'setup') return;
+    if (G.phase !== 'setup' || isNetGame()) return;
     if (G.setupStep === 'sponsor') {
       pickSetupSponsor(pick(G.sponsorDeal));
     }
     while (G.phase === 'setup') {
-      pickSetupStarter(Math.floor(rnd() * G.draftOffer.length));
+      pickSetupStarter(Math.floor(rnd() * G.draftOffer.length), G.draftSeat != null ? G.draftSeat : HS);
     }
   }
-
   function soleLeader() { const top = Math.max(...G.teams.map(x => x.fame)), L = G.teams.filter(x => x.fame === top); return L.length === 1 ? L[0] : null; }
   function startRound() {
     G.phase = 'upkeep';
-    G.hostCount = 1; G.myHostCount = 1; G.hostFameGiven = 0;
-    G.crateChoices = null;
+    G.hostCount = 1; G.hostFameGiven = 0;
+    G.crateChoices = null; G.gather = null;
+    for (let s = 0; s < 4; s++) { const P = PS(s); P.hostCount = 1; P.choose = false; P.skipTurn = false; }
     setCameraGoal('compound');
     for (const t of G.teams) {
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
@@ -1762,7 +1919,7 @@ html, body {
       if (t.sponsor === 'blackwire') t.hand.push(draw1());
       for (const r of t.robots) if (quirkOf(r) === 'Cunning' && G.round > 1 && (r.lastFight || 0) < G.round - 1) { t.hand.push(draw1()); notify('✦ Cunning: ' + esc(r.name) + ' sat out last round, so ' + nm(t) + ' draws 1 extra Intrigue card.', t.col); }
 
-      if (t.i !== HS) {
+      if (!isHuman(t.i)) {
         for (const r of t.robots.slice().sort((a, b) => power(b) - power(a))) {
           const c = fixCost(r);
           if (c > 0 && c <= t.credits - 2) { t.credits -= c; r.dmg = 0; r.b.brk = []; }
@@ -1771,16 +1928,68 @@ html, body {
       }
     }
     notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics earned credits; check your Engineers & Strain.', '#111');
-    { const L0 = me().ledger; if (L0) notify('🧾 Your ledger: +' + L0.mechs + ' Mechanics, −' + L0.bots + ' robot upkeep' + (L0.drones ? ', −' + L0.drones + ' drone upkeep' : '') + ' = ' + (L0.net >= 0 ? '+' : '') + L0.net + ' Cr.', me().col); }
+    for (const h of humanSeats()) { const L0 = G.teams[h].ledger; if (L0) say(h, '🧾 Your ledger: +' + L0.mechs + ' Mechanics, −' + L0.bots + ' robot upkeep' + (L0.drones ? ', −' + L0.drones + ' drone upkeep' : '') + ' = ' + (L0.net >= 0 ? '+' : '') + L0.net + ' Cr.', G.teams[h].col); }
     updateHud();
     settleDebts();
   }
+  /* ---------- workshop actions (garage bays): a person tunes their own robots ---------- */
+  const myBot = (S, id) => G.teams[S].robots.find(r => String(r.id) === String(id)) || null;
+  ACT.upkeepDone = S => { if (G.phase === 'upkeep' && !G.debtBusy) gather(S, 'upkeep', startIntrigue); };
+  ACT.engMinus = (S, rid) => { const b = myBot(S, rid); if (b && (b.b.eng || 0) > 0) b.b.eng--; };
+  ACT.engPlus = (S, rid) => { const t = G.teams[S], b = myBot(S, rid); if (b && (b.b.eng || 0) < 3 && freeEng(t) > 0) b.b.eng = (b.b.eng || 0) + 1; };
+  ACT.range = (S, rid) => { const b = myBot(S, rid), order = ['short', 'mid', 'long']; if (b) b.b.range = order[(order.indexOf(b.b.range) + 1) % 3]; };
+  ACT.focus = (S, rid) => { const b = myBot(S, rid), order = ['main', 'medics', 'helpers']; if (b) b.b.focus = order[(order.indexOf(b.b.focus || 'main') + 1) % 3]; };
+  ACT.modCycle = (S, rid) => { const b = myBot(S, rid), mods = [null, ...Object.keys(Sim.MODS)]; if (b) b.b.mod = mods[(mods.indexOf(b.b.mod || null) + 1) % mods.length]; };
+  ACT.hireEng = S => {
+    const t = G.teams[S];
+    if (t.credits < 3 || t.engPool >= 6) return;
+    t.credits -= 3; t.engPool++;
+    const needBot = t.robots.slice().sort((a, b) => Sim.strainOf(b.b).total - Sim.strainOf(a.b).total).find(x => (x.b.eng || 0) < 3);
+    if (needBot) needBot.b.eng = (needBot.b.eng || 0) + 1;
+    say(S, 'Hired an Engineer (+1 Engineer Pool).', t.col);
+  };
+  ACT.repair = (S, rid) => {
+    const t = G.teams[S], bot = myBot(S, rid);
+    if (!bot || G.phase !== 'upkeep') return;
+    const cost = fixCost(bot);
+    if (cost > 0 && t.credits >= cost) { t.credits -= cost; bot.dmg = 0; bot.b.brk = []; notify('🔧 ' + nm(t) + ' repairs <b>' + esc(bot.name) + '</b> to full HP.', t.col); }
+  };
+  // a won part on one of your bays (twin: the second weapon; the calibre warning was confirmed on that screen)
+  ACT.install = (S, rid, twinKey) => {
+    const t = G.teams[S], bot = myBot(S, rid), P = PS(S);
+    if (G.phase !== 'market' || !bot || !(P.install || []).length) return;
+    const item = P.install[0], L = LOTS[item.lot];
+    if (!canFit(bot, L)) { say(S, '⚠️ ' + lotRef(item.lot) + ' doesn\'t fit ' + esc(bot.name) + ' (' + esc(wepName(bot.b)) + ').', '#b45309'); return; }
+    if (L.twin && !twinKey) return;
+    P.install.shift();
+    const dest = applyLot(S, item.lot, bot, twinKey);
+    if (G.marketResults && item.idx != null && G.marketResults[item.idx]) G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
+    notify(L.twin ? '🌟 ' + nm(t) + ' installs the Twin Turret on ' + esc(bot.name) + ': ' + Sim.TWIN_WEAPONS[twinKey] + ' at 60%.' : '🔩 ' + nm(t) + ' installs <b>' + esc(L.name) + '</b> on ' + esc(bot.name) + '.', t.col);
+  };
+  ACT.installKeep = S => {
+    const P = PS(S), t = G.teams[S];
+    const it = (P.install || []).shift(); if (!it) return;
+    const ok = toStash(t, it.lot);
+    if (G.marketResults && G.marketResults[it.idx]) G.marketResults[it.idx].target = ok ? '📦 Kept in the Stash' : '🏦 Stash full: sold';
+  };
+  ACT.sellStash = (S, k) => sellStash(G.teams[S], k);
+  ACT.fitStash = (S, k, id, rid, twinKey) => {
+    const t = G.teams[S], r = myBot(S, rid);
+    const canFitNow = G.phase === 'upkeep' || (G.phase === 'market' && !G.marketAuction);
+    if (!r || !canFitNow || stashOf(t)[k] !== id || !canFit(r, LOTS[id]) || (LOTS[id].twin && !twinKey)) return;
+    t.stash.splice(k, 1); applyLot(S, id, r, twinKey);
+    notify('🔩 ' + nm(t) + ' fits ' + lotRef(id) + ' from its Stash on ' + esc(r.name) + '.', t.col);
+  };
+  ACT.buyScout = S => buyScout(S);
+  ACT.spar = (S, rid, ti2, rid2) => { const r = myBot(S, rid), x = robotById(rid2); if (r && x && x.T.i === ti2) startSpar(r, x.T, x.r, S); };
+
   // Can't pay (rulebook 4): scrap one robot of your choice for each credit you can't pay
   async function settleDebts() {
+    G.debtBusy = true;
     for (const t of G.teams) {
       while (t.debt > 0 && t.robots.length) {
         let r;
-        if (t.i === HS) r = await ivModal('🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })));
+        if (isHuman(t.i)) r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })));
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
         t.robots.splice(t.robots.indexOf(r), 1); t.debt--; returnStarter(r.name);
@@ -1790,6 +1999,8 @@ html, body {
       }
       t.debt = 0;
     }
+    G.debtBusy = false;
+    roundSave();
     updateHud();
   }
 
@@ -1817,7 +2028,14 @@ html, body {
   function removeFromHand(t, id) { const k = t.hand.indexOf(id); if (k >= 0) t.hand.splice(k, 1); return k >= 0; }
 
   /* small modal: buttons [{label, value(el), secondary}], optional timeout (ms) and default value */
+  // one modal at a time: a second question waits until the first is answered (multiplayer: questions can overlap)
+  let modalChain = Promise.resolve(), dealChain = Promise.resolve();
   function ivModal(title, html, buttons, timeout, def) {
+    const p = modalChain.then(() => ivModal0(title, html, buttons, timeout, def));
+    modalChain = p.catch(() => null);
+    return p;
+  }
+  function ivModal0(title, html, buttons, timeout, def) {
     return new Promise(res => {
       let el = document.getElementById('ivModal');
       if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
@@ -1828,8 +2046,23 @@ html, body {
       let done = false, tm = null;
       const finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; res(v); };
       el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
+      el._finish = () => finish(def);   // closed from outside (the host cancelled the question)
+      if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) bs[Math.floor(Math.random() * bs.length)].click(); }, 60 + Math.random() * 120);
       // Kev, 6 Nov: no countdown bars, they put too much pressure on; every window waits for your answer
     });
+  }
+  // inputs (checkboxes, text) of a modal, in document order, so a remote answer can be replayed on the host
+  const modalInputs = el => [...el.querySelectorAll('input,textarea,select')].map(x => x.type === 'checkbox' || x.type === 'radio' ? x.checked : x.value);
+  const applyInputs = (el, vals) => [...el.querySelectorAll('input,textarea,select')].forEach((x, k) => { if (!vals || vals[k] === undefined) return; if (x.type === 'checkbox' || x.type === 'radio') x.checked = !!vals[k]; else x.value = vals[k]; });
+  // ask the person who plays `seat`, on their own screen. Same buttons as ivModal; for a remote seat the host sends
+  // title/html/labels, gets back {k: button index, inputs}, and runs that button's value() on a hidden copy of the modal.
+  function askSeat(seat, title, html, buttons, timeout, def) {
+    const N = window.ROBOCUS_NET;
+    if (isRemote(seat) && N) return N.ask(seat, { title, html, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
+      const el = document.createElement('div'); el.innerHTML = html; applyInputs(el, a && a.inputs);
+      const b = a && buttons[a.k]; return b ? b.value(el) : def;
+    });
+    return ivModal(title, html, buttons, timeout, def);
   }
 
   /* ============================================================================
@@ -1839,7 +2072,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2026-11-06 card-analysis';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2026-11-07 mp-online';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2068,9 +2301,19 @@ html, body {
   /* ---------- the offer panel (human) ----------
    * opts: { title, intro, give: true (you put things on the table), from: the other team, want: true (also ask for
    * their credits / Stash parts, for trades), lock: label }. Resolves to { give: {cr, items}, want: {cr, items} } or null. */
-  function dealPanel(opts) {
+  function dealPanel(opts, seat = HS) {
+    const N = window.ROBOCUS_NET;
+    if (isRemote(seat) && N) {   // the panel opens on that player's screen; the host gets back what they locked in
+      const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null });
+      return N.deal(seat, o).then(st => st && st.give ? st : null);
+    }
+    const p = dealChain.then(() => dealPanel0(opts, seat));
+    dealChain = p.catch(() => null);
+    return p;
+  }
+  function dealPanel0(opts, seat) {
     return new Promise(res => {
-      const me_ = me(), O = opts.from;
+      const me_ = G.teams[seat] || me(), O = opts.from;
       const st = { give: { cr: 0, sec: 0, items: [] }, want: { cr: 0, sec: 0, items: [] } };
       let el = document.getElementById('dealModal');
       if (!el) { el = document.createElement('div'); el.id = 'dealModal'; document.body.appendChild(el); }
@@ -2129,11 +2372,13 @@ html, body {
         el.querySelector('[data-k="no"]').onclick = () => { el.hidden = true; el.innerHTML = ''; tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, locked: false }); res(null); };
       };
       draw();
+      el._finish = () => { el.hidden = true; el.innerHTML = ''; res(null); };
+      if (BOT) setTimeout(() => { const b = el.querySelector('[data-k="no"]'); if (b && !window.__noBot) b.click(); }, 80);
     });
   }
   // an AI offer to the human: accept or refuse (no timer)
-  function dealAsk(title, html) {
-    return ivModal(title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+  function dealAsk(title, html, seat = HS) {
+    return askSeat(seat, title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
   }
 
   /* ---------- the Stash card in the left column ---------- */
@@ -2150,15 +2395,13 @@ html, body {
         return '<div class="st-row"><span class="lcard"' + helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>' +
           (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty. Win a part none of your robots can take and it lands here.</div>');
-    el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => sellStash(t, +b.dataset.sell); });
+    el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => act('sellStash', +b.dataset.sell); });
     el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
       const r = fits.length === 1 ? fits[0] : await ivModal('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));
       if (!r || stashOf(t)[k] !== id) return;
       let tk = null; if (LOTS[id].twin) { tk = await askTwin(r); if (!tk || stashOf(t)[k] !== id) return; }
-      t.stash.splice(k, 1); applyLot(viewerSeat, id, r, tk);
-      notify('🔩 Fitted ' + lotRef(id) + ' from your Stash on ' + esc(r.name) + '.', t.col);
-      updateHud();
+      act('fitStash', k, id, r.id, tk);
     }; });
   }
 
@@ -2170,14 +2413,14 @@ html, body {
     if (F === lead || F.fame >= 9) return off >= 3 && rnd() < 0.4;
     return rnd() < 0.15 + 0.25 * off;
   }
-  async function humanBacking(c, T) {
-    const F = me(), others = G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i));
+  async function humanBacking(c, T, S = HS) {
+    const F = G.teams[S], others = G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i));
     const seat = F.hand.includes('board_seat') && F.fame >= 5;
     const html = 'You need <b>' + (needOf(F, c) - F.fame) + '</b> more fame for ' + cardRef(c.id) + (T && T !== F ? ' (target ' + nm(T) + ')' : '') +
       '. Tick the teams to ask, one at a time. For each you can put credits and Stash parts on the table. Backers add their fame for this one card, and you don\'t have to tell them what it is.' +
       others.map(o => '<label><input type="checkbox" data-o="' + o.i + '" checked> ' + nm(o) + ' (' + o.fame + ' fame)</label>').join('') +
       (seat ? '<label><input type="checkbox" id="ivSeat"> Use <b>Board Seat</b>: the first ticked team must back you</label>' : '');
-    const res = await ivModal('🤝 Ask for backing', html, [
+    const res = await askSeat(S, '🤝 Ask for backing', html, [
       { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
       { label: 'Cancel', secondary: true, value: () => null }]);
     if (!res) return false;
@@ -2187,14 +2430,17 @@ html, body {
       let yes, B = null;
       if (res.seat && !forced) { forced = yes = true; removeFromHand(F, 'board_seat'); discardCard('board_seat'); notify('⛓️ ' + cardRef('board_seat') + ': ' + nm(o) + ' must back with all its fame.', F.col); }
       else {
-        const d = await dealPanel({ title: '🤝 Ask ' + esc(o.name) + ' for backing', intro: 'Its <b>' + o.fame + ' fame</b> would count for this one card (you still need ' + (needOf(F, c) - F.fame - got) + '). What do you offer?', from: o, lock: 'Lock in & ask' });
+        const d = await dealPanel({ title: '🤝 Ask ' + esc(o.name) + ' for backing', intro: 'Its <b>' + o.fame + ' fame</b> would count for this one card (you still need ' + (needOf(F, c) - F.fame - got) + '). What do you offer?', from: o, lock: 'Lock in & ask' }, S);
         if (!d) continue;
-        B = d.give; yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
+        B = d.give;
+        yes = isHuman(o.i)   // another person decides for itself
+          ? await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '.<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.', o.i)
+          : aiWillBack(o, F, T, c, bundleWorth(o, B));
         if (yes) owed.push([o, B]);
       }
       const bf = o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // 🕴️ Fixer: +2 fame toward the gate
-      notify(yes ? '🤝 ' + nm(o) + ' backs you (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back you' + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
-      if (yes) { got += bf; await boardFx({ kind: 'back', ti: o.i, label: 'BACKS YOU', sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
+      notify(yes ? '🤝 ' + nm(o) + ' backs ' + nm(F) + ' (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back ' + nm(F) + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
+      if (yes) { got += bf; await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
     }
     return settleBacking(F, c, got, owed);
   }
@@ -2212,9 +2458,9 @@ html, body {
       const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - promised - 3)) + (stashOf(F).length ? 1 : 0));
       B.items = B.items.filter(id => !owed.some(([, b]) => b.items.includes(id)));   // a Stash part can only be promised once
       let yes;
-      if (o.i === HS) {
+      if (isHuman(o.i)) {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
-          (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.');
+          (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.', o.i);
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
       if (yes) { owed.push([o, B]); promised += B.cr || 0; got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
@@ -2279,8 +2525,8 @@ html, body {
       const opts = blockOptions(o, F, c, T);
       if (!opts.length) continue;
       let use = null;
-      if (oi === HS) {
-        use = await ivModal('⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
+      if (isHuman(oi)) {
+        use = await askSeat(oi, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
           opts.map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id })).concat([{ label: 'Let it through', secondary: true, value: () => null }]), 5000, null);
       } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
       if (!use) continue;
@@ -2296,8 +2542,8 @@ html, body {
     for (const oi of seatOrder()) {
       const o = G.teams[oi];
       if (o === X || !o.hand.includes('pile_on') || o.fame <= X.fame) continue;
-      const yes = oi === HS
-        ? await ivModal('⏱️ Pile-On?', nm(X) + ' just lost fame. Play <b>Pile-On</b> so they lose 1 more?', [{ label: 'Pile on', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
+      const yes = isHuman(oi)
+        ? await askSeat(oi, '⏱️ Pile-On?', nm(X) + ' just lost fame. Play <b>Pile-On</b> so they lose 1 more?', [{ label: 'Pile on', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
         : (X === leaderOf() && rnd() < 0.7);
       if (yes) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' plays ' + cardRef('pile_on') + ': ' + nm(X) + ' loses 1 more fame.', o.col); break; }
     }
@@ -2325,8 +2571,8 @@ html, body {
     return null;
   }
   async function jointVenture(F, T) {
-    const ask = async X => X.i === HS
-      ? await ivModal('🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, true)
+    const ask = async X => isHuman(X.i)
+      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, true)
       : rnd() < 0.65;
     const a = await ask(F), b = await ask(T);
     if (a && b) { F.credits += 5; T.credits += 5; notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
@@ -2335,8 +2581,8 @@ html, body {
   }
   async function hostileBuyout(F, T) {
     const r = T.robots.slice().sort((a, b) => power(a) - power(b))[0];
-    const sell = T.i === HS
-      ? await ivModal('🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
+    const sell = isHuman(T.i)
+      ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
       : T.robots.length >= 3 || T.fame <= 2;
     if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; r.b.eng = 0; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
@@ -2346,17 +2592,17 @@ html, body {
     const others = G.teams.filter(o => o !== F && readyRobots(o).length);
     if (!others.length) { notify('🤝 Tag Team: nobody has a ready robot to team up with.', F.col); return; }
     let ally;
-    if (F.i === HS) ally = await ivModal('🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0);
+    if (isHuman(F.i)) ally = await askSeat(F.i, '🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0);
     else ally = others.filter(o => o !== leaderOf()).sort((a, b) => Math.max(...readyRobots(b).map(power)) - Math.max(...readyRobots(a).map(power)))[0] || others[0];
     let yes;
-    if (ally.i === HS) {
+    if (isHuman(ally.i)) {
       const B = aiBundle(F, ally, 1);
-      yes = await ivModal('🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }]);
+      yes = await askSeat(ally.i, '🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }]);
       if (yes) transfer(F, ally, B);
     } else {
       yes = !(ally === leaderOf() && rnd() < 0.5);
-      if (!yes && F.i === HS) {   // sweeten the deal
-        const d = await dealPanel({ title: '🤝 ' + esc(ally.name) + ' hesitates', intro: nm(ally) + ' would rather not team up. Make it worth their while?', from: ally, lock: 'Lock in offer' });
+      if (!yes && isHuman(F.i)) {   // sweeten the deal
+        const d = await dealPanel({ title: '🤝 ' + esc(ally.name) + ' hesitates', intro: nm(ally) + ' would rather not team up. Make it worth their while?', from: ally, lock: 'Lock in offer' }, F.i);
         if (d && !bundleEmpty(d.give) && bundleWorth(ally, d.give) >= 3) { transfer(F, ally, d.give); yes = true; notify('🤝 ' + nm(ally) + ' takes ' + bundleText(d.give) + ' and teams up.', ally.col); }
       }
     }
@@ -2428,8 +2674,8 @@ html, body {
     const c = CARDS[id];
     if (!LOGC.group) { const ph = playHead(F, id, T); logBegin(ph[0], F.col, ph[1], ph[2]); }
     else if (LOGC.group.secret) {   // backed: now the card is played, and shown
-      const ph = playHead(F, id, T), g = LOGC.group;
-      g.head.innerHTML = ph[0]; g.head.dataset.help = ph[1] + '|' + ph[2]; g.text = ptPlain(ph[0]); g.secret = false;
+      const ph = playHead(F, id, T);
+      logRetitle(ph[0], ph[1], ph[2]);
     }
     await playFx(F, id, T);
     removeFromHand(F, id);
@@ -2455,7 +2701,7 @@ html, body {
       const ids = t.hand.slice().sort((a, b) => (keep(a) - keep(b)) || ((CARDS[a].phase === 'later' ? -1 : 0) - (CARDS[b].phase === 'later' ? -1 : 0)) || CARDS[a].cash - CARDS[b].cash);
       got.push(CARDS[ids[0]].name + ' +' + cashIn(t, ids[0]));
     }
-    if (got.length && t.i === HS) notify('💰 Hand limit ' + lim + ': cashed in ' + got.join(', ') + ' Cr.', t.col);
+    if (got.length && isHuman(t.i)) say(t.i, '💰 Hand limit ' + lim + ': cashed in ' + got.join(', ') + ' Cr.', t.col);
   }
 
   /* hand limit for the human: a warning popup, the cheapest cards are pre-ticked, you may pick others or go back */
@@ -2473,14 +2719,14 @@ html, body {
         'Tick <b>' + over + '</b> card' + (over > 1 ? 's' : '') + ' to cash in. The cheapest ones are ticked for you.' +
         '<div class="iv-list">' + t.hand.map((id, k) => '<label><input type="checkbox" data-k="' + k + '"' + (pre.has(k) ? ' checked' : '') + '> ' +
           CARDS[id].icon + ' ' + esc(CARDS[id].name) + ' <span class="hs-coin">🪙' + CARDS[id].cash + '</span></label>').join('') + '</div>';
-      const pick = await ivModal('💰 Over your hand limit', html, [
+      const pick = await askSeat(t.i, '💰 Over your hand limit', html, [
         { label: 'Cash in ticked cards', value: el => [...el.querySelectorAll('input[data-k]')].filter(x => x.checked).map(x => +x.dataset.k) },
         { label: '← Back to my turn', secondary: true, value: () => null }]);
       if (!pick) return false;
-      if (pick.length < over) { notify('⚠️ Tick at least ' + over + ' card' + (over > 1 ? 's' : '') + '.', '#b45309'); pick.forEach(k => pre.add(k)); continue; }
+      if (pick.length < over) { say(t.i, '⚠️ Tick at least ' + over + ' card' + (over > 1 ? 's' : '') + '.', '#b45309'); pick.forEach(k => pre.add(k)); continue; }
       const ids = pick.map(k => t.hand[k]), got = [];
       for (const id of ids) got.push(CARDS[id].name + ' +' + cashIn(t, id));
-      notify('💰 Cashed in ' + got.join(', ') + ' Cr.', t.col);
+      say(t.i, '💰 Cashed in ' + got.join(', ') + ' Cr.', t.col);
       return true;
     }
   }
@@ -2552,10 +2798,11 @@ html, body {
     for (let k = 0; k < 4; k++) {
       const ti = (first + k) % 4, T = G.teams[ti];
       G.intrigueTurn = ti; G.cashMode = false; updateHud();
-      if (ti === HS) {
+      if (isHuman(ti)) {
         for (;;) {
-          await new Promise(res => { G.endHumanTurn = res; });
+          if (!PS(ti).skipTurn && isHuman(ti)) await new Promise(res => { G.endHumanTurn = res; });
           G.endHumanTurn = null;
+          if (PS(ti).skipTurn || !isHuman(ti)) { PS(ti).skipTurn = false; endTurnHandLimit(T); break; }   // the host skipped this player (or the AI took over)
           if (await humanHandLimit(T)) break;
           updateHud();
         }
@@ -2571,24 +2818,34 @@ html, body {
   }
   function startIntrigue() { runIntrigue(); }
 
-  async function humanPlay(id, toTeam) {
-    if (G.ivBusy || G.phase !== 'intrigue' || G.intrigueTurn !== HS) return false;
-    const F = me(), c = CARDS[id];
+  ACT.play = (S, id, toTeam) => { humanPlay(id, toTeam, S); };
+  ACT.endTurn = S => { if (G.phase === 'intrigue' && G.intrigueTurn === S && !G.ivBusy && G.endHumanTurn) G.endHumanTurn(); };
+  ACT.cashMode = S => { if (G.phase === 'intrigue' && G.intrigueTurn === S) G.cashMode = !G.cashMode; };
+  ACT.cashIn = (S, id) => {
+    const t = G.teams[S];
+    if (!(G.cashMode && G.phase === 'intrigue' && G.intrigueTurn === S && !G.ivBusy) || !t.hand.includes(id)) return;
+    const g = cashIn(t, id);
+    say(S, '💰 Cashed in ' + cardRef(id) + ' for ' + g + ' Cr.', t.col);
+  };
+  async function humanPlay(id, toTeam, S = HS) {
+    if (G.ivBusy || G.phase !== 'intrigue' || G.intrigueTurn !== S) return false;
+    const F = G.teams[S], c = CARDS[id];
+    if (!c || !F.hand.includes(id)) return false;
     let T = toTeam != null ? G.teams[toTeam] : null;
     if (id === 'security_bot') {
-      if (toTeam !== HS) return false;
+      if (toTeam !== S) return false;
       removeFromHand(F, id); F.secBots = (F.secBots || 0) + 1;
-      notify('🤖 You install a Security Bot in your garage.', F.col); updateHud(); return true;
+      notify('🤖 ' + nm(F) + ' installs a Security Bot in its garage.', F.col); updateHud(); return true;
     }
     if (c.target === 'self') T = F; else if (c.target === 'none') T = null; else if (c.target === 'any' && !T) T = F;
     const pre = precheck(F, c, T);
-    if (pre) { notify('⚠️ ' + pre, '#b45309'); return false; }
+    if (pre) { say(S, '⚠️ ' + pre, '#b45309'); return false; }
     G.ivBusy = true; updateHud();
     try {
       if (!gateOk(c, F, T)) {
-        if (typeof c.gate !== 'number') { notify('⚠️ ' + cardRef(id) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
-        secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, you have ' + F.fame + ': asking for backing');
-        if (!(await humanBacking(c, T))) { notify('not enough backing: the card stays secret in your hand'); logEnd('failed'); return false; }
+        if (typeof c.gate !== 'number') { say(S, '⚠️ ' + cardRef(id) + ' needs ' + (c.gate === '▲' ? 'more' : 'less') + ' fame than its target.', '#b45309'); return false; }
+        secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
+        if (!(await humanBacking(c, T, S))) { notify('not enough backing: the card stays secret in the hand'); logEnd('failed'); return false; }
       }
       await playScheme(F, id, T);
     } finally { G.ivBusy = false; updateHud(); }
@@ -2621,8 +2878,7 @@ html, body {
       G.legendNext = G.legends.pop();
       notify('🌟 <b>Next round\'s Market:</b> ' + lotRef(G.legendNext) + ' (legendary). Save your credits!', '#b45309');
     }
-    G.myBids = zeroBids();
-    G.pendingInstall = [];
+    for (let s = 0; s < 4; s++) { PS(s).bids = zeroBids(); PS(s).install = []; }
     G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
     updateHud();
     openMarketAI();
@@ -2633,14 +2889,14 @@ html, body {
   async function openMarketAI() {
     G.openBusy = true; updateHud();
     for (const A of G.teams) {
-      if (A.i === HS) continue;
+      if (isHuman(A.i)) continue;
       for (const id of stashOf(A).slice()) {
         if (partGain(A, id)) continue;                       // it can use it itself
         const buyer = G.teams.filter(B => B !== A && partGain(B, id) && B.credits >= partValue(id)).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
         if (!buyer) continue;
         const price = partValue(id);
         let yes;
-        if (buyer.i === HS) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>.<br>' + partForTxt(buyer, id));
+        if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>.<br>' + partForTxt(buyer, id), buyer.i);
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
         if (!yes) continue;
         transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: [id] });
@@ -2651,14 +2907,14 @@ html, body {
     // Kev, 6 Nov ("improve AI play"; AI teams never offered robots): a team with a spare robot sells its weakest to a
     // team that is down to one robot, when it is short of credits or has a full garage
     for (const A of G.teams) {
-      if (A.i === HS || G.marketStage !== 'open' || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
+      if (isHuman(A.i) || G.marketStage !== 'open' || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
       const spare = A.robots.slice().sort((x, y) => power(x) - power(y))[0];
       const buyer = G.teams.filter(Bt => Bt !== A && Bt.robots.length <= 1).sort((x, y) => y.credits - x.credits)[0];
       if (!buyer) continue;
       const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
       if (buyer.credits < price) continue;
       let yes;
-      if (buyer.i === HS) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + esc(wepName(spare.b)) + ', ' + Math.max(0, maxHp(spare) - spare.dmg) + '/' + maxHp(spare) + ' HP) for <b>' + price + ' Cr</b>. You have only one robot.');
+      if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + esc(wepName(spare.b)) + ', ' + Math.max(0, maxHp(spare) - spare.dmg) + '/' + maxHp(spare) + ' HP) for <b>' + price + ' Cr</b>. You have only one robot.', buyer.i);
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
       transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
@@ -2666,33 +2922,56 @@ html, body {
       updateHud();
     }
     // AI teams that can use a part in your Stash offer to buy it
-    for (const id of HS >= 0 ? stashOf(me()).slice() : []) {
+    for (const P of G.teams.filter(T => isHuman(T.i))) for (const id of stashOf(P).slice()) {
       if (G.marketStage !== 'open') break;
-      const A = G.teams.filter(T => T.i !== HS && partGain(T, id) && T.credits >= partValue(id) + 1).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
+      const A = G.teams.filter(T => !isHuman(T.i) && partGain(T, id) && T.credits >= partValue(id) + 1).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
       if (!A || rnd() < 0.4) continue;
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
-      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>.<br>For them: ' + partForTxt(A, id))) {
-        transfer(A, me(), { cr: price, items: [] }); transfer(me(), A, { cr: 0, items: [id] });
-        notify('🤝 You sell ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', me().col);
+      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>.<br>For them: ' + partForTxt(A, id), P.i)) {
+        transfer(A, P, { cr: price, items: [] }); transfer(P, A, { cr: 0, items: [id] });
+        notify('🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
       }
     }
     G.openBusy = false; updateHud();
   }
-  async function humanTrade(O) {
-    const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + ' accepts if it comes out ahead. Robots, crew and Security Bots only change hands here, in the open market.', from: O, want: true, assets: true, lock: 'Lock in trade' });
-    if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
-    const gain = bundleWorth(O, d.give) - bundleWorth(O, d.want);
-    if (d.want.items.some(x => x.startsWith('R:')) && O.robots.length - d.want.items.filter(x => x.startsWith('R:')).length + d.give.items.filter(x => x.startsWith('R:')).length < 1) { notify('✋ ' + nm(O) + ' must keep a robot.', O.col); return; }
-    if (gain >= 1) {
-      transfer(me(), O, d.give); transfer(O, me(), d.want);
-      notify('🤝 Trade: you give ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', me().col);
-    } else notify('✋ ' + nm(O) + ' turns the trade down (you give ' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
-    updateHud();
+  ACT.trade = (S, oi) => { if (G.phase === 'market' && G.marketStage === 'open' && oi !== S && G.teams[oi]) humanTrade(G.teams[oi], S); };
+  async function humanTrade(O, S = HS) {
+    const Me = G.teams[S];
+    if (Me.trading) return; Me.trading = true;
+    try {
+      const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + (isHuman(O.i) ? ' then accepts or refuses.' : ' accepts if it comes out ahead.') + ' Robots, crew and Security Bots only change hands here, in the open market.', from: O, want: true, assets: true, lock: 'Lock in trade' }, S);
+      if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
+      if (d.want.items.some(x => x.startsWith('R:')) && O.robots.length - d.want.items.filter(x => x.startsWith('R:')).length + d.give.items.filter(x => x.startsWith('R:')).length < 1) { say(S, '✋ ' + nm(O) + ' must keep a robot.', O.col); return; }
+      const yes = isHuman(O.i)
+        ? await dealAsk('🤝 Trade offer from ' + esc(Me.name), nm(Me) + ' offers <b>' + bundleText(d.give) + '</b> for your <b>' + bundleText(d.want) + '</b>.', O.i)
+        : bundleWorth(O, d.give) - bundleWorth(O, d.want) >= 1;
+      if (G.phase !== 'market' || G.marketStage !== 'open') { say(S, '⌛ Too late: the open market is closed.', '#b45309'); return; }
+      if (yes) {
+        transfer(Me, O, d.give); transfer(O, Me, d.want);
+        notify('🤝 Trade: ' + nm(Me) + ' gives ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', Me.col);
+      } else notify('✋ ' + nm(O) + ' turns down ' + nm(Me) + '\'s trade (' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
+    } finally { Me.trading = false; updateHud(); }
   }
+  ACT.startLots = S => { if (G.phase === 'market' && G.marketStage === 'open' && !G.openBusy) gather(S, 'open', startLots); };
+  ACT.bid = (S, k, kind) => {
+    if (G.phase !== 'market' || G.marketAuction || G.marketResolved || iDone(S)) return;
+    if (k === HOST_K ? G.marketStage !== 'host' : G.marketStage !== 'lots' || k < 0 || k >= NLOTS) return;
+    const P = PS(S), b = P.bids || (P.bids = zeroBids()), t = G.teams[S];
+    if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); return; }
+    const spent = k === HOST_K ? b[HOST_K] : b.slice(0, NLOTS).reduce((a, x) => a + x, 0);
+    if (spent < t.credits) b[k] = (b[k] || 0) + 1;
+    else if (kind === 'tile') b[k] = 0;
+  };
+  ACT.lockBids = S => { if (G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved) gather(S, 'lots', () => resolveMarket()); };
+  ACT.hostCount = S => { if (G.phase === 'market' && G.marketStage === 'host' && !iDone(S)) PS(S).hostCount = (PS(S).hostCount || 1) === 2 ? 1 : 2; };
+  ACT.lockHost = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) gather(S, 'hostbid', () => resolveHostBid()); };
+  ACT.continueMarket = S => { if (G.phase === 'market' && G.marketResolved && !(PS(S).install || []).length) gather(S, G.hostResolved ? 'mres2' : 'mres', continueMarket); };
+  // this seat already locked the current simultaneous step
+  const iDone = S => !!(G.gather && G.gather.done[S]);
   function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the ' + NLOTS + ' lots.', '#111'); updateHud(); }
   function continueMarket() { if (G.hostResolved) startArena(); else startHostBid(); }
   function startHostBid() {
-    G.marketStage = 'host'; G.marketResolved = false; G.myBids = zeroBids();
+    G.marketStage = 'host'; G.marketResolved = false; for (let s = 0; s < 4; s++) PS(s).bids = zeroBids();
     notify('👑 <b>Host bid:</b> every team bids in secret for the right to host this round.', '#111');
     updateHud();
   }
@@ -2701,10 +2980,10 @@ html, body {
     const want = (t.fame >= 9 ? 3 : 1.5) + (t.sponsor === 'apex' ? 1.2 : 0);
     return Math.max(0, Math.min(Math.round(want * (0.4 + rnd() * 1.1)), t.credits, Math.ceil(t.credits * 0.6)));
   }
-  function resolveHostBid(myBid) {
+  function resolveHostBid() {
     if (G.marketAuction) return;
-    G.hostCounts = G.teams.map(t => t.i === HS ? (G.myHostCount || 1) : aiHostCount(t));
-    const all = G.teams.map(t => { const b = zeroBids(); b[HOST_K] = Math.min(t.credits, t.i === HS ? myBid : aiHostBid(t)); return b; });
+    G.hostCounts = G.teams.map(t => isHuman(t.i) ? (PS(t.i).hostCount || 1) : aiHostCount(t));
+    const all = G.teams.map(t => { const b = zeroBids(); b[HOST_K] = Math.min(t.credits, isHuman(t.i) ? ((PS(t.i).bids || [])[HOST_K] || 0) : aiHostBid(t)); return b; });
     G.teams.forEach((t, i) => { if (t.shill && all[i][HOST_K]) all[i][HOST_K] = Math.max(0, all[i][HOST_K] - t.shill); });
     G.marketAuction = { all, initialAll: all.map(b => b.slice()), rebidAdds: G.teams.map(zeroBids), curK: HOST_K, lastK: HOST_K, hostOnly: true, wins: [], results: [], tie: null };
     stepMarketAuction();
@@ -2934,9 +3213,9 @@ html, body {
     return `Fitted on ${r.name}`;
   }
 
-  function resolveMarket(myBids) {
+  function resolveMarket() {
     if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
-    const all = G.teams.map(t => t.i === HS ? myBids.slice() : aiBids(t));
+    const all = G.teams.map(t => isHuman(t.i) ? (PS(t.i).bids || zeroBids()).slice() : aiBids(t));
     G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
     all.forEach(b => { b[HOST_K] = 0; });
     G.marketAuction = {
@@ -2951,13 +3230,21 @@ html, body {
     stepMarketAuction();
   }
 
+  // a tie with people in it: each tied person sets how much to add on top, then locks it in
+  const tieMine = (S = HS) => { const T = G.marketAuction && G.marketAuction.tie; return !!T && T.waitingHuman && (T.waiting || []).includes(S); };
+  ACT.rebidAdj = (S, d) => { if (!tieMine(S)) return; const T = G.marketAuction.tie; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, (T.add[S] || 0) + d)); };
+  ACT.rebidLock = S => {
+    if (!tieMine(S)) return;
+    const T = G.marketAuction.tie; T.waiting = T.waiting.filter(x => x !== S);
+    if (!T.waiting.filter(isHuman).length) submitHumanRebid();
+  };
   function submitHumanRebid() {
     const A = G.marketAuction;
     if (!A || !A.tie) return;
-    const { k, teams, baseBid, myAdd } = A.tie;
+    const { k, teams, baseBid } = A.tie, addOf = A.tie.add || {};
     const adds = [];
     teams.forEach(ti => {
-      const add = ti === HS ? myAdd : aiRebid(G.teams[ti], k, baseBid, availForRebid(ti, k));
+      const add = isHuman(ti) ? Math.min(addOf[ti] || 0, availForRebid(ti, k)) : aiRebid(G.teams[ti], k, baseBid, availForRebid(ti, k));
       A.all[ti][k] += add;
       A.rebidAdds[ti][k] += add;
       adds.push(add);
@@ -3053,13 +3340,14 @@ html, body {
       }
 
       // Start or continue Spartacus Rebid among tied contenders!
-      if (contenders.includes(HS)) {
+      if (contenders.some(isHuman)) {
+        const maxAdd = {}; contenders.filter(isHuman).forEach(ti => { maxAdd[ti] = availForRebid(ti, k); });
         A.tie = {
           k,
           teams: contenders,
           baseBid: mx,
-          myAdd: 0,
-          maxMyAdd: availForRebid(HS, k),
+          add: {}, maxAdd,
+          waiting: contenders.filter(isHuman),
           waitingHuman: true,
           lastMaxAdd: null
         };
@@ -3108,10 +3396,10 @@ html, body {
       botchedWindow(A).catch(e => console.error(e)).then(() => { G.ivBusy = false; stepMarketAuction(); });
       return;
     }
-    G.pendingInstall = A.wins.filter(x => x.team === HS && needsRobot(x.lot) && canTake(me(), x.lot));
+    for (const h of humanSeats()) PS(h).install = A.wins.filter(x => x.team === h && needsRobot(x.lot) && canTake(G.teams[h], x.lot));
     for (const x of A.wins) {
-      if (x.team !== HS || !needsRobot(x.lot) || !canTake(me(), x.lot)) {
-        const pickR = x.team === HS ? null : aiPickRobot(G.teams[x.team], x.lot);
+      if (!isHuman(x.team) || !needsRobot(x.lot) || !canTake(G.teams[x.team], x.lot)) {
+        const pickR = isHuman(x.team) ? null : aiPickRobot(G.teams[x.team], x.lot);
         const toBox = needsRobot(x.lot) && !canTake(G.teams[x.team], x.lot);
         const dest = toBox ? (toStash(G.teams[x.team], x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold') : applyLot(x.team, x.lot, pickR);
         A.results[x.idx].target = dest;
@@ -3151,8 +3439,8 @@ html, body {
       for (const oi of seatOrder()) {
         const o = G.teams[oi];
         if (o === W || !o.hand.includes('botched_install') || o.fame < (CARDS.botched_install.need || 0)) continue;
-        let yes = oi === HS
-          ? await ivModal('🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr). Or threaten it and ask for a payoff.',
+        let yes = isHuman(oi)
+          ? await askSeat(oi, '🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr). Or threaten it and ask for a payoff.',
               [{ label: '🔧 Botch it', value: () => true }, { label: '💰 Demand a payoff', value: () => 'pay' }, { label: 'Let it go', secondary: true, value: () => false }])
           : (th && th.jump >= 1) || (W === leaderOf() && x.price >= 3 && rnd() < 0.6) || (!th && x.price >= 4 && rnd() < 0.5);
         if (!yes) continue;
@@ -3163,12 +3451,12 @@ html, body {
           const ask = d && d.want;
           if (ask && !bundleEmpty(ask) && bundleWorth(W, ask) <= partWorth(W, x.lot) + 1) { transfer(W, o, ask); notify('💰 ' + nm(W) + ' pays you ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
           if (ask && !bundleEmpty(ask)) notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
-          yes = await ivModal('🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
+          yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
           if (!yes) continue;
-        } else if (oi !== HS) {
-          if (W.i === HS) {
-            const pay = await ivModal('💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
-            if (pay === 'pay' && me().credits >= demand) { transfer(W, o, { cr: demand, items: [] }); notify('💰 You pay ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
+        } else if (!isHuman(oi)) {
+          if (isHuman(W.i)) {
+            const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
+            if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
             if (pay === 'deal') {
               const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' });
               if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves your ' + lotRef(x.lot) + ' alone.', o.col); break; }
@@ -3248,11 +3536,11 @@ html, body {
       else notify('🤖 Host ' + nm(G.teams[H]) + ' can\'t pay ' + WAGER_COST + ' Cr for 2 per side: it stays a duel.', G.teams[H].col);
     }
     G.pendingFormat = fmt;
-    if (H === HS) {
+    if (isHuman(H)) {
       // AI teams may offer you a deal to be invited, or to be left out
       G.inviteOffers = [];
       for (const T of G.teams) {
-        if (T.i === H || !readyRobots(T).length) continue;
+        if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
         const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r.b).p;
         const want = r.dmg >= maxHp(r) * 0.5 || (p != null && p <= 0.3) ? 'out' : p != null && p >= 0.55 ? 'in' : null;
         if (want && rnd() < 0.55) { const B = aiBundle(T, G.teams[H], 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B)) G.inviteOffers.push({ team: T.i, want, B }); }
@@ -3265,18 +3553,19 @@ html, body {
     const host = G.teams[H];
     let others = G.teams.filter(t => t.i !== H);
     // you may offer the AI host a deal: invite me, or leave me out
-    let forceIn = false, forceOut = false;
-    if (HS >= 0 && readyRobots(me()).length) {
-      const pick = await ivModal('👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }]);
-      if (pick) {
-        const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' });
-        if (d && !bundleEmpty(d.give)) {
-          if (bundleWorth(host, d.give) >= 2) { transfer(me(), host, d.give); if (pick === 'in') forceIn = true; else forceOut = true; notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' and ' + (pick === 'in' ? 'invites you.' : 'leaves you out.'), host.col); }
-          else notify('✋ ' + nm(host) + ' turns down ' + bundleText(d.give) + '.', host.col);
-        }
+    let forceIn = -1; const forceOut = new Set();
+    for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
+      const Me = G.teams[h];
+      if (!readyRobots(Me).length) continue;
+      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }]);
+      if (!pick || (pick === 'in' && forceIn >= 0)) continue;
+      const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' }, h);
+      if (d && !bundleEmpty(d.give)) {
+        if (bundleWorth(host, d.give) >= 2) { transfer(Me, host, d.give); if (pick === 'in') forceIn = h; else forceOut.add(h); notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' from ' + nm(Me) + ' and ' + (pick === 'in' ? 'invites it.' : 'leaves it out.'), host.col); }
+        else notify('✋ ' + nm(host) + ' turns down ' + nm(Me) + '\'s ' + bundleText(d.give) + '.', host.col);
       }
     }
-    if (forceOut) others = others.filter(t => t.i !== HS);
+    others = others.filter(t => !forceOut.has(t.i));
     let a, b;
     // Kev, 6 Nov ("improve AI play"): the host weighs the matchups instead of picking at random.
     // 2 per side: only teams that can field 2 (an uneven fight costs the host its fame)
@@ -3285,9 +3574,9 @@ html, body {
     const strong = T => readyRobots(T).slice().sort((x, y) => power(y) - power(x)).slice(0, 2);
     const mine = able.map(T => ({ T, p: (bestVs(host, strong(T)) || { p: 0 }).p })).sort((x, y) => y.p - x.p);
     const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && mine[0].p >= 0.55 && rnd() < 0.85;
-    if (forceIn) {
-      const vsMe = (bestVs(host, strong(me())) || { p: 0 }).p;
-      a = viewerSeat; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== HS).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== HS)).i;
+    if (forceIn >= 0) {
+      const vsMe = (bestVs(host, strong(G.teams[forceIn])) || { p: 0 }).p;
+      a = forceIn; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== forceIn).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== forceIn)).i;
     } else if (fightSelf) {
       a = H; b = mine[0].T.i;   // its best matchup (ties: whoever has more fame)
     } else if (able.length >= 2) {
@@ -3315,8 +3604,8 @@ html, body {
         const opts = ['grand_melee', 'mirror', 'unleash_the_house_robot'].filter(id => usable(t, id) && !active[id]);   // nothing that is already in force
         if (!opts.length) break;
         let id = null;
-        if (ti === HS) {
-          id = await ivModal('🏟️ Host step', 'This round\'s fight is ' + fmtNow() + (G.houseRobot ? ' with the House Robot' : '') + '. ' + (ti === H ? 'You are the host. ' : '') + 'Play an Arena card?' +
+        if (isHuman(ti)) {
+          id = await askSeat(ti, '🏟️ Host step', 'This round\'s fight is ' + fmtNow() + (G.houseRobot ? ' with the House Robot' : '') + '. ' + (ti === H ? 'You are the host. ' : '') + 'Play an Arena card?' +
             opts.map(o => '<br>' + cardRef(o) + ': ' + esc(CARDS[o].text)).join(''),
             opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(CARDS[o].name), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 12000, null);
         } else {
@@ -3355,7 +3644,7 @@ html, body {
     G.fight = { teams, robots: teams.map(() => null), sides: sides2, nSides: used.length, format, house: !!G.houseRobot, event: G.arenaEvent };
     if (format === '2v2' || format === 'ffa') notify('🏟️ ' + fightTitle(G.fight) + ': ' + used.map((_, k) => esc(sideName(G.fight, k))).join(' vs ') + '.', '#111');
     teams.forEach((ti, e) => {
-      if (ti !== HS) {
+      if (!isHuman(ti)) {
         const t = G.teams[ti];
         rebalanceAiEngineers(t);
         const foes = teams.filter((x, k) => sides2[k] !== sides2[e]).flatMap(x => readyRobots(G.teams[x]).slice().sort((p, q) => power(q) - power(p)).slice(0, 1));
@@ -3363,25 +3652,54 @@ html, body {
         G.fight.robots[e] = (pick && pick.r) || readyRobots(t).filter(r => r.dmg < maxHp(r)).sort((a, b) => power(b) - power(a))[0] || readyRobots(t)[0] || t.robots[0];
       }
     });
-    if (teams.includes(HS)) {
+    const people = teams.filter(isHuman);
+    if (people.length) {
+      for (const h of people) PS(h).choose = true;
       G.chooseMyBot = true;
       updateHud();
     } else {
       afterChoose();
     }
   }
+  ACT.pickTeam = (S, ti) => {
+    if (!(G.phase === 'arena' && G.host === S && !G.chooseMyBot && !G.hostStep && !G.fight && G.pickTeams)) return;
+    const k = G.pickTeams.indexOf(ti);
+    if (k >= 0) G.pickTeams.splice(k, 1);
+    else if (G.pickTeams.length < 2) G.pickTeams.push(ti);
+  };
+  ACT.invite = S => {
+    if (!(G.phase === 'arena' && G.host === S && !G.fight && G.pickTeams && G.pickTeams.length === 2)) return;
+    const pk = G.pickTeams.slice(), H = G.teams[G.host];
+    (G.inviteOffers || []).forEach(o => { if ((o.want === 'in') === pk.includes(o.team)) { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (o.want === 'in' ? 'invited' : 'left out') + ').', G.teams[o.team].col); } });
+    G.inviteOffers = [];
+    G.pickTeams = null;
+    invite(pk);
+  };
+  // an invited person sends one of its ready robots; the fight goes on when every invited person has
+  ACT.sendBot = (S, rid) => {
+    const F = G.fight, bot = myBot(S, rid);
+    if (G.phase !== 'arena' || !F || !PS(S).choose || !bot) return;
+    if (bot.exhausted) { say(S, '😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
+    const e = F.teams.indexOf(S); if (e < 0) return;
+    F.robots[e] = bot; PS(S).choose = false;
+    notify('🤖 ' + nm(G.teams[S]) + ' sends <b>' + esc(bot.name) + '</b>.', G.teams[S].col);
+    if (!humanSeats().some(h => PS(h).choose)) afterChoose();
+  };
+  ACT.decline = S => { if (G.phase === 'arena' && G.fight && PS(S).choose) declineInvite(S); };
 
-  function declineInvite() {
+  function declineInvite(S = HS) {
     const F = G.fight;
     if (F.format !== 'duel' && F.format !== 'mirror' && F.format !== 'double') return;   // events can't be declined
-    const t = me(), s = F.teams.indexOf(viewerSeat);
+    const t = G.teams[S], s = F.teams.indexOf(S);
+    if (s < 0) return;
     t.fame = Math.max(0, t.fame - 1);
-    const repl = G.teams.filter(x => !F.teams.includes(x.i) && x.i !== HS && readyRobots(x).length)[0] || G.teams.filter(x => !F.teams.includes(x.i) && x.i !== HS)[0];
+    const free = x => !F.teams.includes(x.i) && x.i !== S;
+    const repl = G.teams.filter(x => free(x) && !isHuman(x.i) && readyRobots(x).length)[0] || G.teams.filter(x => free(x) && readyRobots(x).length)[0] || G.teams.filter(free)[0];
     F.teams[s] = repl.i;
     F.robots[s] = (readyRobots(repl).length ? readyRobots(repl) : repl.robots).slice().sort((a, b) => power(b) - power(a))[0];
-    G.chooseMyBot = false;
-    notify('You declined (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
-    afterChoose();
+    PS(S).choose = false;
+    notify(nm(t) + ' declines the invite (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
+    if (!humanSeats().some(h => PS(h).choose)) afterChoose();
   }
 
   // the battle for this fight: builds (copies for Mirror, the House Robot), sim teams, bot → entrant mapping
@@ -3413,6 +3731,7 @@ html, body {
 
   async function afterChoose() {
     G.chooseMyBot = false;
+    for (let s = 0; s < 4; s++) PS(s).choose = false;
     const F = G.fight;
     if (F && F.format === 'double' && !F.seconds) await addSeconds(F);
     await treacherousStep(F);
@@ -3452,7 +3771,7 @@ html, body {
       const cands = readyRobots(T).filter(r => r !== first && r.dmg < maxHp(r));
       if (!cands.length) continue;
       let r2;
-      if (T.i === HS) r2 = await ivModal('🤖🤖 Second robot?', 'The host called <b>2 robots per side</b>. Send a second robot with ' + esc(first.name) + '?', cands.map(r => ({ label: '🤖 ' + esc(r.name) + ' (' + Math.max(0, maxHp(r) - r.dmg) + ' HP)', value: () => r })).concat([{ label: 'Just one', secondary: true, value: () => null }]));
+      if (isHuman(T.i)) r2 = await askSeat(T.i, '🤖🤖 Second robot?', 'The host called <b>2 robots per side</b>. Send a second robot with ' + esc(first.name) + '?', cands.map(r => ({ label: '🤖 ' + esc(r.name) + ' (' + Math.max(0, maxHp(r) - r.dmg) + ' HP)', value: () => r })).concat([{ label: 'Just one', secondary: true, value: () => null }]));
       else r2 = cands.sort((a, b) => power(b) - power(a))[0];
       if (r2) { F.teams.push(T.i); F.robots.push(r2); F.sides.push(F.sides[e]); }
     }
@@ -3469,7 +3788,7 @@ html, body {
       if (F.sides.filter(x => x === F.sides[e]).length < 2) continue;   // switching would leave its side empty (a 2v2 where a team sat out)
       const mine = F.sides[e], pw = sd => F.robots.reduce((a, x, k) => a + (k !== e && F.sides[k] === sd ? power(x) - x.dmg / 10 : 0), 0);
       let go;
-      if (T.i === HS) go = await ivModal('✦ Treacherous', esc(r.name) + ' may switch to the other side of this 2v2 (3 against 1). Your team gets fame if its new side wins.', [{ label: 'Switch sides', value: () => true }, { label: 'Stay', secondary: true, value: () => false }]);
+      if (isHuman(T.i)) go = await askSeat(T.i, '✦ Treacherous', esc(r.name) + ' may switch to the other side of this 2v2 (3 against 1). Your team gets fame if its new side wins.', [{ label: 'Switch sides', value: () => true }, { label: 'Stay', secondary: true, value: () => false }]);
       else go = pw(1 - mine) > pw(mine) * 1.15;
       if (go) { F.sides[e] = 1 - mine; notify('✦ Treacherous: ' + esc(r.name) + ' (' + nm(T) + ') switches sides!', T.col); }
     }
@@ -3477,27 +3796,39 @@ html, body {
   /* ---------- Phase 5: Bets on Arena Floor ---------- */
   function startBets() {
     G.phase = 'bets';
-    G.myBet = Array(G.fight.nSides).fill(0);
-    G.hedge = false;
+    for (let s = 0; s < 4; s++) { PS(s).bet = Array(G.fight.nSides).fill(0); PS(s).hedge = false; }
     setCameraGoal('compound');
     updateHud();
     // ✦ Scope (Sniper): its owner sees one face-down card on a rival robot in this fight
     const F = G.fight;
-    if (HS >= 0 && hasCrew(me(), 'hacker')) {   // 💻 Hacker: one face-down card on a rival robot in this fight
-      const mySd = F.teams.includes(viewerSeat) ? F.sides[F.teams.indexOf(viewerSeat)] : -1;
+    for (const h of humanSeats()) {
+    if (hasCrew(G.teams[h], 'hacker')) {   // 💻 Hacker: one face-down card on a rival robot in this fight
+      const mySd = F.teams.includes(h) ? F.sides[F.teams.indexOf(h)] : -1;
       const seen = []; F.robots.forEach((x, k) => { if (F.sides[k] !== mySd) (x.faceDown || []).forEach(c => seen.push({ x, c })); });
-      if (seen.length) { const h = seen[Math.floor(rnd() * seen.length)]; ivModal('💻 Hacker', 'Your Hacker gets into ' + esc(h.x.name) + '\'s systems: face-down ' + cardRef(h.c.id) + ' (played by ' + esc(G.teams[h.c.from].name) + ').', [{ label: 'OK', value: () => null }]); }
+      if (seen.length) { const hc = seen[Math.floor(rnd() * seen.length)]; askSeat(h, '💻 Hacker', 'Your Hacker gets into ' + esc(hc.x.name) + '\'s systems: face-down ' + cardRef(hc.c.id) + ' (played by ' + esc(G.teams[hc.c.from].name) + ').', [{ label: 'OK', value: () => null }]); }
     }
     F.robots.forEach((r, e) => {
-      if (quirkOf(r) !== 'Scope' || F.teams[e] !== HS) return;
+      if (quirkOf(r) !== 'Scope' || F.teams[e] !== h) return;
       const seen = []; F.robots.forEach((x, k) => { if (F.sides[k] !== F.sides[e]) (x.faceDown || []).forEach(c => seen.push({ x, c })); });
       const pick_ = seen.length ? seen[Math.floor(rnd() * seen.length)] : null;
-      ivModal('✦ Scope', pick_ ? 'Your Sniper spots a face-down card on <b>' + esc(pick_.x.name) + '</b>: ' + cardRef(pick_.c.id) + ' (played by ' + esc(G.teams[pick_.c.from].name) + ').' : 'Your Sniper checks the rival robots: no face-down cards on them.', [{ label: 'OK', value: () => null }]);
+      askSeat(h, '✦ Scope', pick_ ? 'Your Sniper spots a face-down card on <b>' + esc(pick_.x.name) + '</b>: ' + cardRef(pick_.c.id) + ' (played by ' + esc(G.teams[pick_.c.from].name) + ').' : 'Your Sniper checks the rival robots: no face-down cards on them.', [{ label: 'OK', value: () => null }]);
     });
+    }
   }
   // Bets-step arena cards for the human (buttons in the prompt)
-  function humanBookiesFriend() {
-    const t = me(), F = G.fight;
+  ACT.bookiesFriend = S => { if (G.phase === 'bets' && !G.betsLocked) humanBookiesFriend(S); };
+  ACT.hedgeBet = S => { if (G.phase === 'bets' && !G.betsLocked) humanHedgeBet(S); };
+  ACT.bet = (S, side) => {
+    if (G.phase !== 'bets' || G.betsLocked || iDone(S)) return;
+    const P = PS(S), t = G.teams[S];
+    if (!P.bet || side < 0 || side >= P.bet.length) return;
+    P.bet = P.bet.map((v, k) => k === side ? v : 0);
+    const cap = betLimit(t), next = (P.bet[side] + 1) % (cap + 1);
+    P.bet[side] = next <= t.credits ? next : 0;
+  };
+  ACT.lockBets = S => { if (G.phase === 'bets' && !G.betsLocked) gather(S, 'bets', lockBetsAndRollout); };
+  function humanBookiesFriend(S = HS) {
+    const t = G.teams[S], F = G.fight;
     if (!removeFromHand(t, 'bookie_s_friend')) return;
     discardCard('bookie_s_friend');
     const rows = [];
@@ -3506,32 +3837,35 @@ html, body {
       (r.faceDown || []).forEach(x => rows.push('🂠 on <b>' + esc(r.name) + '</b> (' + esc(G.teams[ti].name) + '): ' + cardRef(x.id) + ', played by ' + esc(G.teams[x.from].name)));
       (G.teams[ti].schemeLog || []).forEach(x => rows.push('🔧 on ' + esc(G.teams[ti].name) + '\'s garage: ' + cardRef(x.id) + ', played by ' + esc(G.teams[x.from].name)));
     });
-    const ph = playHead(t, 'bookie_s_friend', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('you looked at ' + rows.length + ' hidden card' + (rows.length === 1 ? '' : 's') + ' in this fight'); logEnd('landed');
-    ivModal('🔍 Bookie\'s Friend', rows.length ? 'Hidden cards in this fight:<br>' + rows.join('<br>') : 'No face-down cards in this fight: the bookie\'s odds are honest.', [{ label: 'OK', value: () => null }]);
+    const ph = playHead(t, 'bookie_s_friend', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('looked at ' + rows.length + ' hidden card' + (rows.length === 1 ? '' : 's') + ' in this fight'); logEnd('landed');
+    askSeat(S, '🔍 Bookie\'s Friend', rows.length ? 'Hidden cards in this fight:<br>' + rows.join('<br>') : 'No face-down cards in this fight: the bookie\'s odds are honest.', [{ label: 'OK', value: () => null }]);
     updateHud();
   }
-  function humanHedgeBet() {
-    const t = me();
-    if (G.hedge || !removeFromHand(t, 'hedge_bet')) return;
-    discardCard('hedge_bet'); G.hedge = true;
-    const ph = playHead(t, 'hedge_bet', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('you may bet up to 4 Cr on any side this fight'); logEnd('landed');
+  function humanHedgeBet(S = HS) {
+    const t = G.teams[S];
+    if (PS(S).hedge || !removeFromHand(t, 'hedge_bet')) return;
+    discardCard('hedge_bet'); PS(S).hedge = true;
+    const ph = playHead(t, 'hedge_bet', null); logBegin(ph[0], t.col, ph[1], ph[2]); notify('may bet up to 4 Cr on any side this fight'); logEnd('landed');
     updateHud();
   }
-  const betLimit = t => t.i === HS && G.hedge ? Math.max(4, maxBetOf(t)) : maxBetOf(t);
+  const betLimit = t => isHuman(t.i) && PS(t.i).hedge ? Math.max(4, maxBetOf(t)) : maxBetOf(t);
 
   async function lockBetsAndRollout() {
     if (G.betsLocked) return;
     G.betsLocked = true;
-    const F = G.fight, t = me();
+    const F = G.fight;
     F.bets = [];
-    const hs = G.myBet.findIndex(v => v > 0);
-    if (hs >= 0) {
-      F.bets.push({ team: viewerSeat, side: hs, amt: G.myBet[hs] });
-      t.credits -= G.myBet[hs];
-      notify('🎲 You bet ' + G.myBet[hs] + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
+    for (const h of humanSeats()) {
+      const t = G.teams[h], mb = PS(h).bet || [], hs = mb.findIndex(v => v > 0);
+      if (hs < 0) continue;
+      const amt = Math.min(mb[hs], t.credits);
+      F.bets.push({ team: h, side: hs, amt });
+      t.credits -= amt;
+      if (isNetGame()) notify('🎲 <b>' + esc(t.name) + '</b> bets ' + amt + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
+      else notify('🎲 You bet ' + amt + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
     }
     for (const T of G.teams) {
-      if (T.i === HS || T.credits < 2) continue;
+      if (isHuman(T.i) || T.credits < 2) continue;
       const own = F.teams.indexOf(T.i), fav = F.p.indexOf(Math.max(...F.p));
       if (T.hand.includes('hedge_bet') && T.fame >= (CARDS.hedge_bet.need || 0) && rnd() < 0.5) {   // AI Hedge Bet: back the favourite, even against itself
         removeFromHand(T, 'hedge_bet'); discardCard('hedge_bet');
@@ -3562,10 +3896,10 @@ html, body {
       if (!o.hand.includes('swap_the_entry') || o.fame < (CARDS.swap_the_entry.need || 0)) continue;
       const opts = swaps(); if (!opts.length) continue;
       let pick = null;
-      if (ti === HS) {
-        pick = await ivModal('🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]));
-        if (pick && pick.ti !== HS) {
-          const how = await ivModal('🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
+      if (isHuman(ti)) {
+        pick = await askSeat(ti, '🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]));
+        if (pick && pick.ti !== ti) {
+          const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
           if (how === 'pay') {
             const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' });
             if (d && !bundleEmpty(d.want) && bundleWorth(W, d.want) <= 3) { transfer(W, o, d.want); notify('💰 ' + nm(W) + ' pays you ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
@@ -3578,9 +3912,9 @@ html, body {
         if (pick && power(pick.r) >= power(F.robots[pick.e])) pick = null;
       }
       if (!pick) continue;
-      if (ti !== HS && pick.ti === HS) {   // the AI threatens you first
-        const pay = await ivModal('💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
-        if (pay && me().credits >= 2) { transfer(me(), o, { cr: 2, items: [] }); notify('💰 You pay ' + nm(o) + ' 2 Cr to keep your line-up.', me().col); continue; }
+      if (!isHuman(ti) && isHuman(pick.ti)) {   // the AI threatens you first
+        const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+        { const P = G.teams[pick.ti]; if (pay && P.credits >= 2) { transfer(P, o, { cr: 2, items: [] }); notify('💰 ' + nm(P) + ' pays ' + nm(o) + ' 2 Cr to keep its line-up.', P.col); continue; } }
       }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
       const ph = playHead(o, 'swap_the_entry', G.teams[pick.ti]); logBegin(ph[0], o.col, ph[1], ph[2]);
@@ -3596,7 +3930,9 @@ html, body {
   function startFight() {
     G.phase = 'fight';
     const F = G.fight;
-    const m = buildBattle(F, (rnd() * 4294967296) >>> 0, false);
+    const seed = (rnd() * 4294967296) >>> 0;
+    F.fid = ++fightSeq; F.bb = { seed, visible: false, noDamage: false }; F.cmdLog = [];   // what a client needs to run the same fight
+    const m = buildBattle(F, seed, false);
     F.B = m.B; F.botEnt = m.botEnt; F.botName = m.botName; F.teamOpt = m.teamOpt; F.builds = m.builds;
     F.entBot = F.teams.map((_, e) => m.botEnt.indexOf(e));
     tlog('fight_start', { format: F.format, house: !!F.house, event: F.event ? F.event.kind : null, sides: F.sides, p: F.p, bands: (F.bands || []).map(b => b.name),
@@ -3605,35 +3941,75 @@ html, body {
     F.rolloutDone = false;
     if (F.format === 'ffa' && F.event && F.event.kind === 'ffa' && G.host >= 0) { addFame(G.teams[G.host], 1); notify('⚔️ Grand Melee happens: host ' + nm(G.teams[G.host]) + ' +1 fame.', G.teams[G.host].col); }
 
-    F.teams.forEach((ti, e) => {
-      const T = G.teams[ti], b0 = F.B.bots[F.entBot[e]];
-      for (const x of (F.robots[e].faceDown || []).concat(T.schemeLog)) {
-        const txt = x.from === ti ? '⚡ ' + CARDS[x.id].name.toUpperCase() + '!' : '🔧 SABOTAGED: ' + CARDS[x.id].name.toUpperCase() + '!';
-        F.B.banners.push({ x: b0.x, y: b0.y - 36, text: txt, col: x.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
-      }
-    });
+    fightBanners(F);
+    fightAiRng = Sim.mkRng((seed ^ 0x5bd1e995) >>> 0);
 
     setCameraGoal('arena');
     updateHud();
   }
 
+  // face-down cards and garage sabotage are revealed when the fight starts (host and clients both show them)
+  function fightBanners(F) {
+    F.teams.forEach((ti, e) => {
+      const T = G.teams[ti], b0 = F.B.bots[F.entBot[e]];
+      if (!b0) return;
+      for (const x of (F.robots[e].faceDown || []).concat(T.schemeLog || [])) {
+        if (!CARDS[x.id]) continue;
+        const txt = x.from === ti ? '⚡ ' + CARDS[x.id].name.toUpperCase() + '!' : '🔧 SABOTAGED: ' + CARDS[x.id].name.toUpperCase() + '!';
+        F.B.banners.push({ x: b0.x, y: b0.y - 36, text: txt, col: x.from === ti ? '#2a9d3a' : '#d62828', life: 2.6 });
+      }
+    });
+  }
+  // a live combat card into the running fight: every screen applies it at the same sim tick (multiplayer: a short
+  // lead so it reaches the other screens first). The list stays on the fight, so a late screen can replay it.
+  const CMD_LEAD = 15;
+  let fightAiRng = Math.random;
+  function fightCmd(F, cmd) {
+    cmd.tick = F.B.tick + (isNetGame() ? CMD_LEAD : 1);
+    (F.cmdLog = F.cmdLog || []).push(cmd);
+    Sim.queueCmd(F.B, cmd);
+  }
+  ACT.combatCard = (S, id, bot, x, y) => {
+    const F = G.fight, t = G.teams[S], c = CARDS[id];
+    if (G.phase !== 'fight' || !F || !F.B || F.spar || F.B.over || !c || c.phase !== 'fight' || !t.hand.includes(id) || t.fame < (c.need || 0)) return;
+    removeFromHand(t, id);
+    fightCmd(F, { card: id, by: t.name, bot, x, y });
+    { const st = cst(id, S); st.played++; st.landed++; }
+    if (isNetGame()) notify('🃏 <b>' + esc(t.name) + '</b> played ' + cardRef(id) + '!', t.col); else notify('🃏 You played ' + cardRef(id) + '!', t.col);
+  };
+  ACT.skipFight = S => {
+    const F = G.fight;
+    if (G.phase !== 'fight' || !F || !F.B || isRemote(S)) return;
+    F.rolloutDone = true; F.rollout = 1; F.skipped = true;
+    while (!F.B.over) Sim.step(F.B, 1 / 60);
+  };
+  // a short fingerprint of how a fight ended (host vs client check)
+  function fightHash(B) {
+    let h = B.tick >>> 0;
+    for (const b of B.bots) h = (Math.imul(h, 31) + Math.round(Math.max(0, b.hp) * 10)) >>> 0;
+    return h + ':' + B.winner;
+  }
+  ACT.nextRound = S => {
+    if (G.phase !== 'after' || G.awaitingJudgment || G.fateBusy || G.crateChoices || G.over) return;
+    gather(S, 'next', () => { G.round++; G.prevHost = G.host; G.host = -1; G.fight = null; startRound(); });
+  };
   function stepAiCombatCards(F) {
     const B = F.B;
     if (F.spar || B.over || B.tick % 60 !== 0) return;
     F.teams.forEach((ti, e) => {
-      if (ti === HS) return;
+      if (isHuman(ti)) return;
       const T = G.teams[ti], bi = F.entBot ? F.entBot[e] : e, b = B.bots[bi];
       if (!b || b.hp <= 0) return;
       const cIdx = T.hand.findIndex(id => CARDS[id].phase === 'fight' && T.fame >= (CARDS[id].need || 0));
-      if (cIdx < 0 || B.rng() > 0.35) return;
+      if (cIdx < 0 || fightAiRng() > 0.35) return;   // its own dice, not the fight's (the other screens can't see the AI's hand)
       const id = T.hand.splice(cIdx, 1)[0];
       if (id === 'trigger' || id === 'overclock' || id === 'field_eng') {
-        Sim.queueCmd(B, { card: id, bot: bi, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
+        fightCmd(F, { card: id, bot: bi, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
         notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
       } else if (id === 'oil_card' || id === 'emp_card') {
         const foe = B.bots.filter(x => !x.helper && x.hp > 0 && x.team !== b.team).sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y))[0];
         if (foe) {
-          Sim.queueCmd(B, { card: id, x: foe.x, y: foe.y, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
+          fightCmd(F, { card: id, x: foe.x, y: foe.y, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
           notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
         }
       }
@@ -3648,7 +4024,7 @@ html, body {
     const F = G.fight, B = F.B;
     const map = { botEnt: F.botEnt || F.teams.map((_, i) => i), teamOpt: F.teamOpt };
     const ws = winSide(F, B, map);
-    F.winSide = ws;
+    F.winSide = ws; F.hash = fightHash(B);
     tlog('fight_end', { sandbox: !!F.sandbox, winSide: ws, time: Math.round(B.t * 10) / 10, timeout: !!B.timeout, p: F.p,
       bots: B.bots.filter(b => !b.helper).map((b, i) => ({ name: F.botName ? F.botName[i] : i, hp: Math.max(0, Math.round(b.hp)), max: Math.round(b.s.hp), broken: b.broken || [], crits: b.crits })),
       log: B.log.filter(ev => ['ko', 'card', 'break', 'glitch'].includes(ev.k)).slice(0, 40) });
@@ -3669,7 +4045,7 @@ html, body {
         const ko = idx.map(i => { const k = B.log.find(ev => ev.k === 'ko' && ev.who === i); return k ? k.t : B.t; });
         const sec = Math.max(...ko); r.wear = (r.wear || 0) + sec;
         tlog('wear', { robot: r.name, add: Math.round(sec * 10) / 10, wear: Math.round(r.wear), mult: +wearMult(r).toFixed(2) });
-        if (ti === HS) notify('⏱ <b>' + esc(r.name) + '</b> fought ' + Math.round(sec) + ' s: battle time ' + Math.round(r.wear) + ' s, its repairs now cost ×' + wearMult(r).toFixed(2) + ' (for good).', G.teams[ti].col); }
+        if (isHuman(ti)) say(ti, '⏱ <b>' + esc(r.name) + '</b> fought ' + Math.round(sec) + ' s: battle time ' + Math.round(r.wear) + ' s, its repairs now cost ×' + wearMult(r).toFixed(2) + ' (for good).', G.teams[ti].col); }
       const left = B.bots.filter((b, i) => !b.helper && map.botEnt[i] === e).map(b => Math.max(0, b.hp) / b.s.hp);
       r.dmg = Math.min(maxHp(r), Math.round(maxHp(r) * (1 - Math.max(...left))));
       // Kev, 6 Nov: parts that broke stay broken until repaired in Upkeep; salvaged parts that broke are gone for good
@@ -3769,23 +4145,24 @@ html, body {
     F.fateOffers = { spare: [], scrap: [] };
     G.fateBusy = true; updateHud();
     for (const T of G.teams) {
-      if (T === H || T.i === HS) continue;
+      if (T === H || isHuman(T.i)) continue;
       if (T === L) { const B = aiBundle(T, H, Math.min(T.credits - 1, 1 + 2 * lr.wins + (rnd() < 0.5 ? 1 : 0))); if (!bundleEmpty(B)) F.fateOffers.spare.push({ team: T.i, B }); }
       else if (canScrap && L === leaderOf() && rnd() < 0.6) { const B = aiBundle(T, H, 1 + (rnd() < 0.5 ? 1 : 0)); if (!bundleEmpty(B)) F.fateOffers.scrap.push({ team: T.i, B }); }
     }
-    if (HS >= 0 && H.i !== HS && canScrap) {
-      const mine = L.i === HS;
-      const pick = mine ? 'spare' : await ivModal('👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
+    for (const h of humanSeats()) {
+      if (h === H.i || !canScrap) continue;
+      const mine = L.i === h;
+      const pick = mine ? 'spare' : await askSeat(h, '👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
         [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }]);
       if (pick) {
-        const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' });
-        if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: viewerSeat, B: d.give });
+        const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' }, h);
+        if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: h, B: d.give });
       }
     }
     const offTxt = side => F.fateOffers[side].map(o => esc(G.teams[o.team].name) + ' ' + bundleText(o.B)).join(', ');
     if (F.fateOffers.spare.length || F.fateOffers.scrap.length) notify('👑 Offers to the host: ' + [F.fateOffers.spare.length ? '👍 spare: ' + offTxt('spare') : '', F.fateOffers.scrap.length ? '👎 scrap: ' + offTxt('scrap') : ''].filter(Boolean).join(' · '), H.col);
     G.fateBusy = false;
-    if (G.host === HS) { G.awaitingJudgment = true; updateHud(); return; }
+    if (isHuman(G.host)) { G.awaitingJudgment = true; updateHud(); return; }
     const lead = leaderOf().i;
     const base = canScrap && (L.i === lead ? rnd() < 0.7 : rnd() < 0.3);
     const v = side => F.fateOffers[side].reduce((a, o) => a + bundleWorth(H, o.B), 0);
@@ -3793,6 +4170,7 @@ html, body {
     resolveFate(canScrap && score > 0);
   }
 
+  ACT.fate = (S, scrap) => { if (G.phase === 'after' && G.awaitingJudgment && G.host === S) resolveFate(!!scrap); };
   function resolveFate(scrap, safeWhy) {
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
@@ -3843,10 +4221,11 @@ html, body {
       return tg ? partWorth(T, id) - 0.5 : 0.5; };
     return opts.slice().sort((a, b) => score(b) - score(a));
   }
-  function humanCratePick(id) {
+  ACT.crate = (S, id) => humanCratePick(id, S);
+  function humanCratePick(id, S = HS) {
     const CC = G.crateChoices;
-    if (!CC || !CC.items || CC.picked.includes(id) || !CC.items.includes(id)) return;
-    CC.picked.push(id); crateGive(me(), CC.robot, id);
+    if (!CC || !CC.items || CC.team !== S || CC.picked.includes(id) || !CC.items.includes(id)) return;
+    CC.picked.push(id); crateGive(G.teams[S], CC.robot, id);
     if (CC.picked.length >= CC.keep) { G.crateChoices = null; nextCrate(); } else updateHud();
   }
   function nextCrate() {
@@ -3854,10 +4233,271 @@ html, body {
     if (!F || !F.crateQueue || !F.crateQueue.length) { G.crateChoices = null; checkWin(); updateHud(); return; }
     const { team, robot } = F.crateQueue.shift(), T = G.teams[team], keep = T.sponsor === 'vulture' ? 2 : 1;
     const opts = shuffle(CRATE_ITEMS.slice()).slice(0, 3);
-    if (team === HS) { G.crateChoices = { items: opts, robot, keep, picked: [] }; updateHud(); return; }
+    if (isHuman(team)) { G.crateChoices = { items: opts, robot, keep, picked: [], team }; updateHud(); return; }
     aiCratePick(T, robot, opts).slice(0, keep).forEach(id => crateGive(T, robot, id));
     nextCrate();
   }
+
+  /* ============================================================================
+   * MULTIPLAYER GLUE (Kev, 7 Nov): what src/net.js talks to (window.ROBOCUS_GAME).
+   * Host: runs the game, sends each seat a filtered snapshot (snapFor), the log, board moments and the fight tick.
+   * Client: shows the snapshots (applySnap), runs the same fight from the seed, sends its clicks as actions.
+   * ============================================================================ */
+  const dynLots = () => { const o = {}; for (const k in LOTS) if (k.startsWith('robot:') || k.startsWith('crew:')) o[k] = LOTS[k]; return o; };
+  // what one seat may see: other hands and the decks are hidden cards; others' sealed bids and per-seat state are blank
+  function snapFor(s) {
+    if (!G) return null;
+    const fightPhase = G.phase === 'fight', analyst = s >= 0 && hasCrew(G.teams[s], 'analyst');
+    const tie = G.marketAuction && G.marketAuction.tie;
+    return JSON.stringify(G, function (k, v) {
+      if (typeof v === 'function') return true;
+      if (this === G) {
+        if (k === 'cstat') return undefined;
+        if (k === 'deck' || k === 'robotDeck' || k === 'crewDeck' || k === 'starterDeck' || k === 'legends') return Array.isArray(v) ? v.map(() => '?') : v;
+        if (k === 'lots') return Array.isArray(v) ? v.map((x, i) => analyst && i >= v.length - NLOTS ? x : '?') : v;
+        if (k === 'ps') return v.map((p, i) => i === s ? p : {});
+      }
+      if (G.fight && this === G.fight && (k === 'B' || k === 'introT' || k === 'rollout' || k === 'countdown' || k === 'rolloutDone' || k === 'fightFlash')) return undefined;
+      if (k === 'hand' && this && this.robots && typeof this.i === 'number' && this.i !== s) return v.map(() => '?');
+      if (G.marketAuction && this === G.marketAuction && (k === 'all' || k === 'initialAll' || k === 'rebidAdds')) return v.map((row, i) => i === s ? row : row.map(() => 0));
+      if (tie && this === tie && (k === 'add' || k === 'maxAdd')) { const o = {}; if (v[s] != null) o[s] = v[s]; return o; }
+      if (!fightPhase && k === 'faceDown' && Array.isArray(v)) return v.map(x => x.from === s ? x : { from: x.from, id: 'hidden' });
+      if (!fightPhase && k === 'tamper' && this && this.b) return {};
+      return v;
+    });
+  }
+  function relink(g) {   // a snapshot has copies; point the fight's robots back at the teams' robots
+    const byId = {}; g.teams.forEach(t => t.robots.forEach(r => { byId[r.id] = r; }));
+    const L = r => r && byId[r.id] ? byId[r.id] : r;
+    const F = g.fight;
+    if (F) {
+      if (F.robots) F.robots = F.robots.map(L);
+      for (const k of ['loser', 'winner']) if (F[k] && F[k].robot) F[k].robot = L(F[k].robot);
+      for (const k of ['winners', 'fateQueue', 'crateQueue']) if (F[k]) F[k].forEach(x => { if (x.robot) x.robot = L(x.robot); });
+    }
+    if (g.crateChoices && g.crateChoices.robot) g.crateChoices.robot = L(g.crateChoices.robot);
+  }
+  let clientFight = null, desyncs = 0, resims = 0;
+  function applySnap(m) {
+    const old = G, g = JSON.parse(m.g);
+    SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null;
+    if (m.win) WIN_FAME = m.win; if (m.hostFame != null) HOST_FAME = m.hostFame;
+    Object.assign(LOTS, m.lotsDyn || {});
+    relink(g);
+    if (!old || old.gid !== g.gid) { ptNew(); if (PT.game) { PT.game.net = 'client'; PT.game.seat = m.seat; } }
+    G = g;
+    if (scoutOpen) { const x = robotById(scoutOpen.r.id); if (x) scoutOpen.r = x.r; else scoutOpen = null; }
+    clientFightSync(old);
+    const fk = x => x ? x.phase + '|' + (x.fight && x.fight.fid) : '';
+    if (fk(old) !== fk(G)) setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound');
+    updateHud();
+  }
+  function clientFightSync(oldG) {
+    const F = G.fight;
+    if (!F || !F.bb || !F.fid) { clientFight = null; return; }
+    const OF = oldG && oldG.fight;
+    if (clientFight && clientFight.fid === F.fid) {
+      F.B = clientFight.B; Object.assign(F, clientFight.map);
+      if (OF && OF.fid === F.fid) for (const k of ['introT', 'rollout', 'countdown', 'rolloutDone', 'fightFlash']) if (k in OF) F[k] = OF[k];
+    } else {
+      if (G.phase !== 'fight') { clientFight = null; return; }   // the fight was over before this screen saw it
+      const m = buildBattle(F, F.bb.seed, F.bb.visible, F.bb.noDamage);
+      clientFight = { fid: F.fid, B: m.B, map: { botEnt: m.botEnt, botName: m.botName, teamOpt: m.teamOpt, builds: m.builds, entBot: F.spar ? [0, 1] : F.teams.map((_, e) => m.botEnt.indexOf(e)) }, cmdN: 0, checked: false };
+      F.B = m.B; Object.assign(F, clientFight.map);
+      fightBanners(F);
+      F.rollout = 0; F.rolloutDone = false;
+      tlog('fight_start', { fid: F.fid, format: F.format, spar: !!F.spar, entrants: F.teams.map((ti, e) => ({ team: ti, robot: F.robots[e] && F.robots[e].name })) });
+    }
+    const log = F.cmdLog || [];
+    for (let i = clientFight.cmdN; i < log.length; i++) {
+      if (log[i].tick <= clientFight.B.tick) { resimFight(F); break; }   // it came in late: replay the fight with every card
+      Sim.queueCmd(clientFight.B, log[i]);
+    }
+    clientFight.cmdN = log.length;
+    if (F.skipped && !clientFight.B.over) { F.rolloutDone = true; F.rollout = 1; let g = 0; while (!clientFight.B.over && g++ < 300000) Sim.step(clientFight.B, 1 / 60); }
+    if (G.phase !== 'fight' && F.hash && !clientFight.checked) {   // the host's fight is over: finish ours and compare
+      clientFight.checked = true;
+      const B = clientFight.B; let g = 0;
+      F.rolloutDone = true; F.rollout = 1;
+      while (!B.over && g++ < 300000) Sim.step(B, 1 / 60);
+      const h = fightHash(B);
+      tlog('fight_end', { fid: F.fid, hash: h, host: F.hash, same: h === F.hash });
+      if (h !== F.hash) { desyncs++; tlog('desync', { fid: F.fid, mine: h, host: F.hash }); console.warn('ROBOCUS fight desync', h, F.hash); }
+    }
+  }
+  function resimFight(F) {
+    resims++;
+    const target = clientFight.B.tick, m = buildBattle(F, F.bb.seed, F.bb.visible, F.bb.noDamage);
+    for (const c of F.cmdLog || []) Sim.queueCmd(m.B, c);
+    while (m.B.tick < target && !m.B.over) Sim.step(m.B, 1 / 60);
+    clientFight.B = F.B = m.B; clientFight.cmdN = (F.cmdLog || []).length;
+  }
+
+  /* ---------- save (Kev, 7 Nov): kept at the start of every round, once Upkeep's debts are settled ---------- */
+  let SAVE = null;
+  function saveState() {
+    const g = JSON.parse(JSON.stringify(G, function (k, v) { if (typeof v === 'function') return undefined; if (G.fight && this === G.fight && k === 'B') return undefined; return v; }));
+    return { v: 1, build: BUILD, at: new Date().toISOString(), G: g, rnd: rndState, lotsDyn: dynLots(), seq: { botSeq, crewSeq, crewLotSeq, fightSeq }, WIN_FAME, HOST_FAME, CATCHUP, names: netNames.slice() };
+  }
+  function roundSave() { if (!G || G.fast || G.phase !== 'upkeep') return; try { SAVE = JSON.stringify(saveState()); } catch (e) { console.warn('save failed', e); } }
+  function loadState(o) {
+    G = o.G; rndState = o.rnd >>> 0;
+    Object.assign(LOTS, o.lotsDyn || {});
+    ({ botSeq, crewSeq, crewLotSeq, fightSeq } = Object.assign({ botSeq, crewSeq, crewLotSeq, fightSeq }, o.seq || {}));
+    if (o.WIN_FAME) WIN_FAME = o.WIN_FAME; if (o.HOST_FAME != null) HOST_FAME = o.HOST_FAME; if (o.CATCHUP) CATCHUP = o.CATCHUP;
+    G.gather = null; G.endHumanTurn = null; G.ivBusy = false; G.debtBusy = false; G.fast = false;
+    if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { t.player = netNames[i] || undefined; if (netNames[i]) t.name = netNames[i]; }); }
+    LOGC.key = null; logPhase();
+    notify('💾 <b>Saved game loaded</b> (round ' + G.round + ', saved ' + esc(String(o.at || '').slice(0, 16).replace('T', ' ')) + ').', '#111');
+    setCameraGoal('compound');
+    updateHud();
+  }
+  function downloadText(name, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function saveFile() {
+    if (!SAVE) roundSave();
+    if (!SAVE) { notify('💾 Nothing to save yet: the game is saved at the start of each round.', '#b45309'); return false; }
+    const o = JSON.parse(SAVE);
+    downloadText('robocus-save-r' + o.G.round + '-' + o.at.replace(/[:.]/g, '-').slice(0, 16) + '.json', SAVE);
+    notify('💾 Saved the game as it was at the start of round ' + o.G.round + '.', '#111');
+    return true;
+  }
+
+  /* ---------- the host's nudge / skip: a seat that keeps everyone waiting gets the default for what it is asked ---------- */
+  function seatBusyWith(s) {   // what the game waits for from this seat right now (for the host's banner), or null
+    if (!G || !isHuman(s) || G.over) return null;
+    if (G.phase === 'setup') return G.setupStep === 'sponsor' ? (!isNetGame() || !PS(s).sponsor ? 'sponsor' : null) : (G.draftSeat === s ? 'draft' : null);
+    if (G.phase === 'intrigue') return G.intrigueTurn === s ? 'intrigue turn' : null;
+    if (G.marketAuction && G.marketAuction.tie && tieMine(s)) return 'rebid';
+    if ((PS(s).install || []).length) return 'install';
+    if (PS(s).choose) return 'robot pick';
+    if (G.awaitingJudgment && G.host === s) return 'spare/scrap';
+    if (G.crateChoices && G.crateChoices.team === s) return 'crate';
+    if (G.phase === 'arena' && G.host === s && G.pickTeams && !G.fight && !G.hostStep) return 'invites';
+    const step = gatherStep();
+    if (step && !(G.gather && G.gather.key === step[0] + ':' + G.round && G.gather.done[s])) return step[0];
+    return null;
+  }
+  function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
+    if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
+    if (G.phase === 'market' && !G.marketAuction) {
+      if (G.marketResolved) return [G.hostResolved ? 'mres2' : 'mres', 'continueMarket'];
+      if (G.marketStage === 'open' && !G.openBusy) return ['open', 'startLots'];
+      if (G.marketStage === 'lots') return ['lots', 'lockBids'];
+      if (G.marketStage === 'host') return ['hostbid', 'lockHost'];
+    }
+    if (G.phase === 'bets' && !G.betsLocked) return ['bets', 'lockBets'];
+    if (G.phase === 'after' && !G.awaitingJudgment && !G.fateBusy && !G.crateChoices && !G.over) return ['next', 'nextRound'];
+    return null;
+  }
+  function skipSeat(s) {
+    if (!G || !isHuman(s)) return;
+    if (window.ROBOCUS_NET) window.ROBOCUS_NET.cancelSeat(s);   // its open questions and deal panels get their default answer
+    const P = PS(s);
+    if (G.phase === 'setup') { if (G.setupStep === 'sponsor' && isNetGame() && !P.sponsor) runAct(s, 'pickSponsor', [null]); else if (G.draftSeat === s) runAct(s, 'pickStarter', [-1]); return; }
+    if (G.phase === 'intrigue' && G.intrigueTurn === s) { P.skipTurn = true; if (G.endHumanTurn && !G.ivBusy) G.endHumanTurn(); return; }
+    if (tieMine(s)) { runAct(s, 'rebidLock', []); return; }
+    if ((P.install || []).length) { while ((P.install || []).length) { const it = P.install[0], r = aiPickRobot(G.teams[s], it.lot); if (r && !LOTS[it.lot].twin) runAct(s, 'install', [r.id]); else if (r) runAct(s, 'install', [r.id, aiTwinPick(s, r)]); else runAct(s, 'installKeep', []); if (P.install[0] === it) runAct(s, 'installKeep', []); } return; }
+    if (P.choose) { const r = readyRobots(G.teams[s]).sort((a, b) => power(b) - power(a))[0]; if (r) runAct(s, 'sendBot', [r.id]); else runAct(s, 'decline', []); return; }
+    if (G.awaitingJudgment && G.host === s) { runAct(s, 'fate', [false]); return; }
+    if (G.crateChoices && G.crateChoices.team === s) { const CC = G.crateChoices; for (const id of aiCratePick(G.teams[s], CC.robot, CC.items)) { if (G.crateChoices !== CC) break; runAct(s, 'crate', [id]); } return; }
+    if (G.phase === 'arena' && G.host === s && G.pickTeams && !G.fight && !G.hostStep) {
+      const opts = G.teams.filter(t => readyRobots(t).length).sort((a, b) => b.fame - a.fame).map(t => t.i);
+      G.pickTeams = opts.slice(0, 2); if (G.pickTeams.length === 2) runAct(s, 'invite', []); return;
+    }
+    const step = gatherStep(); if (step) runAct(s, step[1], []);
+  }
+  function seatToAI(s) {   // the host lets the AI play a seat whose person left
+    if (!SEATS || SEATS[s] !== 'remote') return;
+    skipSeat(s);
+    SEATS[s] = 'ai'; netNames[s] = null; if (G.names) G.names[s] = null; delete G.teams[s].player;
+    notify('🤖 The AI now plays ' + nm(G.teams[s]) + '.', G.teams[s].col);
+    if (G.phase === 'intrigue' && G.intrigueTurn === s && G.endHumanTurn) G.endHumanTurn();
+    if (G.phase === 'arena' && G.chooseMyBot && !humanSeats().some(h => PS(h).choose)) afterChoose();
+    if (tieMine(s) || (G.marketAuction && G.marketAuction.tie && G.marketAuction.tie.waitingHuman && !G.marketAuction.tie.waiting.some(isHuman))) submitHumanRebid();
+    recheckGather();
+    updateHud();
+  }
+
+  /* ---------- test bots (?bot=1): a seat that plays itself with simple rules, through the same actions ---------- */
+  let botBusy = false;
+  function botStep() {
+    if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
+    if (document.getElementById('ivModal') && !document.getElementById('ivModal').hidden) return;
+    if (document.getElementById('dealModal') && !document.getElementById('dealModal').hidden) return;
+    const t = me(), P = PS(), R = Math.random;
+    const busy = seatBusyWith(HS);
+    if (G.phase === 'fight' && G.fight && G.fight.B && G.fight.rolloutDone && !G.fight.B.over && !G.fight.spar && R() < (window.__botCombat || 0.02)) {
+      const id = t.hand.find(x => CARDS[x] && CARDS[x].phase === 'fight' && t.fame >= (CARDS[x].need || 0));
+      if (id) { const e = G.fight.teams.indexOf(HS), slot = e >= 0 ? G.fight.entBot[e] : 0, b = G.fight.B.bots[slot] || G.fight.B.bots[0]; if (isClient()) t.hand.splice(t.hand.indexOf(id), 1); act('combatCard', id, slot, b.x, b.y); }
+      return;
+    }
+    if (!busy) return;
+    if (busy === 'sponsor') return act('pickSponsor', null);
+    if (busy === 'draft') return act('pickStarter', -1);
+    if (busy === 'intrigue turn') {
+      if (G.ivBusy) return;
+      if (!P.botPlayed && R() < 0.5) {
+        P.botPlayed = true;
+        const id = t.hand.find(x => isCardPlayable(x) && CARDS[x].phase === 'intrigue');
+        if (id) { const c = CARDS[id], foe = G.teams.filter(o => o.i !== HS).sort((a, b) => b.fame - a.fame)[0]; return act('play', id, c.target === 'self' || c.target === 'none' ? HS : foe.i); }
+      }
+      P.botPlayed = false; return act('endTurn');
+    }
+    if (busy === 'rebid') { if (R() < 0.5) act('rebidAdj', 1); return act('rebidLock'); }
+    if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id, LOTS[it.lot].twin ? 'gun' : undefined) : act('installKeep'); }
+    if (busy === 'robot pick') { const r = readyRobots(t)[0]; return r ? act('sendBot', r.id) : act('decline'); }
+    if (busy === 'spare/scrap') return act('fate', R() < 0.4);
+    if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
+    if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o.length) return act('pickTeam', o[Math.floor(R() * o.length)]); return act('invite'); }
+    if (busy === 'lots' && !P.botBid) { P.botBid = true; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
+    if (busy === 'hostbid' && !P.botHost) { P.botHost = true; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
+    if (busy === 'bets' && !P.botBet && G.fight) { P.botBet = true; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); return; }
+    if (busy === 'lots' || busy === 'hostbid' || busy === 'bets') { P.botBid = P.botHost = P.botBet = false; }
+    const step = gatherStep(); if (step) act(step[1]);
+  }
+  if (BOT) setInterval(() => { try { botStep(); } catch (e) { console.warn('bot', e); } }, 120);
+
+  window.ROBOCUS_GAME = {
+    get G() { return G; }, get HS() { return HS; }, get role() { return NETROLE; }, get SEATS() { return SEATS; }, BOT,
+    TEAMS, seatName,
+    // host
+    startHost(o) {   // o: { seat, seats: ['local'|'remote'|'ai' ×4], names, startFame, seed, save }
+      NETROLE = 'host'; SEATS = o.seats.slice(); HS = viewerSeat = o.seat; netNames = o.names.slice();
+      if (o.seed) rndState = o.seed >>> 0;
+      if (o.save) loadState(o.save);
+      else { if (G) G.startFame = o.startFame || 4; newGame(); }
+      if (PT.game) { PT.game.net = 'host'; PT.game.seat = HS; PT.game.names = netNames.slice(); }
+      const sel = document.getElementById('seatSel'); if (sel) sel.style.display = 'none';
+      updateHud();
+    },
+    rematch() { if (NETROLE !== 'host') return; G.startFame = G.startFame || 4; newGame(); updateHud(); },
+    snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
+    snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, paused: netPaused }),
+    runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman,
+    fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.B && G.fight.rolloutDone ? { fid: G.fight.fid, tick: G.fight.B.tick } : null,
+    setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
+    setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
+    saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
+    // client
+    becomeClient(seat) { NETROLE = 'client'; HS = viewerSeat = seat; const sel = document.getElementById('seatSel'); if (sel) sel.style.display = 'none'; },
+    applySnap,
+    applyLog(m) {   // { base, ops, end, full }
+      if (m.full) { LOGOPS.length = 0; logBase = m.base; LOGOPS.push(...m.ops); logReplay(LOGOPS); return; }
+      for (const op of m.ops) { LOGOPS.push(op); logRender(op); if (op.o === 'msg' && (op.to == null || op.to === HS)) tlog('msg', { text: ptPlain(op.html) }); }
+    },
+    showFx(o) { o.t0 = performance.now(); FX.push(o); },
+    setTick(t) { netTick = { fid: t.fid, tick: t.tick, at: performance.now() }; },
+    showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
+      return ivModal(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })));
+    },
+    showDeal(o) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null })); },
+    closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } },
+    notify, get desyncs() { return desyncs; }, get resims() { return resims; }
+  };
 
   /* test hook for automated play-throughs (read-only use) */
   window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, drawRobotSprite, TEAMS, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
@@ -3921,7 +4561,8 @@ html, body {
   const FX_DUR = { play: 4000, react: 3650, roll: 1550, back: 1450 };   // Kev, 6 Nov: each 0.5 s slower, cards 2 s longer still
   function boardFx(o) {
     if (!G || G.fast) return Promise.resolve();
-    o.t0 = performance.now(); o.dur = o.dur || FX_DUR[o.kind] || 1000; FX.push(o);
+    o.t0 = performance.now(); o.dur = BOT ? 150 : o.dur || FX_DUR[o.kind] || 1000; FX.push(o);   // test bots don't wait for the show
+    if (NETROLE === 'host' && window.ROBOCUS_NET) window.ROBOCUS_NET.fx(o);   // every screen shows the moment
     return new Promise(r => setTimeout(r, o.dur));
   }
   const playFx = (F, id, T) => { if (['botched_install', 'swap_the_entry', 'grand_melee', 'mirror', 'unleash_the_house_robot'].includes(id)) { const st = cst(id, F.i); st.played++; st.landed++; } return boardFx({ kind: 'play', ti: F.i, card: id, tgt: T && T !== F ? T.i : null }); };
@@ -4252,7 +4893,14 @@ html, body {
       const cw = 250, ch = 110, gapX = 16, gapY = 8;
       const startX = cx - (2 * cw + gapX) / 2, startY = y0 + 44;
 
-      G.sponsorDeal.forEach((spKey, idx) => {
+      if (isNetGame() && PS().sponsor) {
+        ctx.fillStyle = '#111'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('You signed with ' + SPONSORS[PS().sponsor].name + '.', cx, cy - 6);
+        ctx.fillStyle = '#666'; ctx.font = '700 11px system-ui, sans-serif';
+        ctx.fillText('Waiting for the other players to sign…', cx, cy + 16);
+        return;
+      }
+      mySponsorDeal().forEach((spKey, idx) => {
         const sp = SPONSORS[spKey];
         const col = idx % 2, row = 0;
         const bx = startX + col * (cw + gapX), by = startY + row * (ch + gapY);
@@ -4299,6 +4947,10 @@ html, body {
 
     const cw = 192, ch = 180, gap = 10;
     const startX = cx - (3 * cw + 2 * gap) / 2, by = y0 + 33;
+    if (G.draftSeat != null && G.draftSeat !== HS) {   // multiplayer: someone else is drafting; show their offer, not clickable
+      ctx.fillStyle = G.teams[G.draftSeat].col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(seatName(G.draftSeat).toUpperCase() + ' IS DRAFTING…', cx, by + ch + 20);
+    }
 
     (G.draftOffer || []).forEach((sName, idx) => {
       const def = STARTERS[sName];
@@ -4383,7 +5035,7 @@ html, body {
       ctx.fillStyle = '#ffffff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Draft ${sName} (Bay ${pickNum}) →`, bx + cw / 2, by + 165);
 
-      hitRegions.push({ kind: 'setup_draft', idx, x: bx, y: by, w: cw, h: ch });
+      if (G.draftSeat == null || G.draftSeat === HS) hitRegions.push({ kind: 'setup_draft', idx, x: bx, y: by, w: cw, h: ch });
     });
   }
 
@@ -4420,7 +5072,7 @@ html, body {
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#2a9d3a'; ctx.font = '800 12px system-ui, sans-serif';
-      ctx.fillText(G.chooseMyBot ? '▼ Click "Send to Pit" on one of your Robot Bays below' : 'Preparing fighters...', cx, cy + 24);
+      ctx.fillText(PS().choose ? '▼ Click "Send to Pit" on one of your Robot Bays below' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing fighters...', cx, cy + 24);
     } else if (G.phase === 'arena' && G.host === HS) {
       ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
       ctx.fillText('YOU ARE ARENA HOST — CLICK ANY 2 GARAGES TO INVITE', cx, cy - 14);
@@ -4640,8 +5292,8 @@ html, body {
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
         help(actX, actY, actW, actH, 'Repair', (r.dmg > 0 ? 'Fix all ' + r.dmg + ' damage for ' + repCost + ' Cr: 0.7 Cr per 20 damage' + (repairK(r) < 1 ? ' (half: your Repair Tech)' : '') + ', more the longer it has fought.<br>' + wearTxt(r) + '<br>' : '') +
           (nBrk ? '<b>Broken parts</b> (they stay broken until repaired, half their bank value each): ' + r.b.brk.map(k => esc(brkName(r, k)) + ' ' + (BRK_COST[k.split(':')[0]] || 1) + ' Cr').join(', ') + '.<br>' : '') + 'Battle time is never reset: veterans cost more to fix. Unrepaired damage and broken parts stay for the next fight.');
-      } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
-        const nextLot = LOTS[G.pendingInstall[0].lot];
+      } else if (G.phase === 'market' && (PS().install || []).length) {
+        const nextLot = LOTS[PS().install[0].lot];
         const pv = lotPreview(r, nextLot), wasted = !canFit(r, nextLot);
         const sh = oddsShift(viewerSeat, r, nextLot);
         ctx.fillStyle = wasted ? '#999' : '#1f6feb';
@@ -4650,7 +5302,7 @@ html, body {
         fitText(ctx, `Fit ${nextLot.name}: ` + (sh ? '🎩 ' + sh + ' · ' : sh === null ? '🎩 … · ' : '') + pv, actX + actW / 2, actY + 13.5, actW - 8, '800', 10.5);
         help(actX, actY, actW, actH, 'Fit ' + esc(nextLot.name) + ' on ' + esc(r.name), (sh ? '<b>🎩 ' + sh + '</b>: the bookie\'s band vs the field before→after (= means no change).<br>' : '') + 'In numbers: ' + esc(pv) + '.<br><i>Click to fit it here.</i>');
         hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
-      } else if (G.phase === 'arena' && G.chooseMyBot) {
+      } else if (G.phase === 'arena' && PS().choose) {
         ctx.fillStyle = r.exhausted ? '#999' : '#2a9d3a';
         ctx.fillRect(actX, actY, actW, actH);
         ctx.fillStyle = '#fff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
@@ -4970,7 +5622,8 @@ html, body {
       ctx.fillText(`⚔️ TIE-BREAK REBID ON ${items.find(it => it.k === tie.k).name.toUpperCase()} (${tiedNames} @ ${tie.baseBid} Cr)`, x0 + 12, y0 + 19);
 
       ctx.fillStyle = '#333'; ctx.font = '700 10px system-ui, sans-serif'; ctx.textAlign = 'right';
-      ctx.fillText(`Unspent Available: ${tie.maxMyAdd} Cr`, x0 + L.aw - 12, y0 + 19);
+      const myAdd = (tie.add || {})[HS] || 0, maxMyAdd = (tie.maxAdd || {})[HS] || 0;
+      if (tieMine()) ctx.fillText(`Unspent Available: ${maxMyAdd} Cr`, x0 + L.aw - 12, y0 + 19);
 
       const w = 142, h = 180, gap = 10;
       const totalW = items.length * w + (items.length - 1) * gap;
@@ -4994,6 +5647,17 @@ html, body {
           ctx.fillText(`${it.icon} ${it.name}`, x + w / 2, cy + 72);
           ctx.fillStyle = '#666'; ctx.font = '600 9.5px system-ui, sans-serif';
           ctx.fillText(it.text, x + w / 2, cy + 90);
+        } else if (k === tie.k && !tieMine()) {
+          ctx.fillStyle = '#fffdf7'; ctx.fillRect(x, cy, w, h);
+          ctx.strokeStyle = '#d99000'; ctx.lineWidth = 2.5; ctx.strokeRect(x, cy, w, h);
+          ctx.fillStyle = '#d99000'; ctx.fillRect(x, cy, w, 22);
+          ctx.fillStyle = '#fff'; ctx.font = '900 10px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`⚔️ TIE AT ${tie.baseBid} Cr!`, x + w / 2, cy + 14.5);
+          ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif';
+          ctx.fillText(`${it.icon} ${it.name}`, x + w / 2, cy + 40);
+          ctx.fillStyle = '#555'; ctx.font = '700 9.5px system-ui, sans-serif';
+          ctx.fillText(`Tied: ${tiedNames}`, x + w / 2, cy + 62);
+          ctx.fillText(tie.teams.includes(HS) ? 'Rebid locked: waiting…' : 'Secret rebid…', x + w / 2, cy + 84);
         } else if (k === tie.k) {
           // Active Tie-Break Rebid Card!
           ctx.fillStyle = '#fffdf7'; ctx.fillRect(x, cy, w, h);
@@ -5008,7 +5672,7 @@ html, body {
           ctx.fillStyle = '#555'; ctx.font = '700 9px system-ui, sans-serif';
           ctx.fillText(`Tied: ${tiedNames}`, x + w / 2, cy + 55);
           ctx.fillStyle = '#b45309'; ctx.font = '800 10px system-ui, sans-serif';
-          ctx.fillText(`Your Total: ${tie.baseBid + tie.myAdd} Cr`, x + w / 2, cy + 71);
+          ctx.fillText(`Your Total: ${tie.baseBid + myAdd} Cr`, x + w / 2, cy + 71);
 
           // Stepper: [−] +N Cr [+]
           const btnY = cy + 80;
@@ -5018,7 +5682,7 @@ html, body {
           ctx.fillText('−', x + 25, btnY + 18);
 
           ctx.fillStyle = '#1f6feb'; ctx.font = '900 13px system-ui, sans-serif';
-          ctx.fillText(`+${tie.myAdd} Cr`, x + w / 2, btnY + 18);
+          ctx.fillText(`+${myAdd} Cr`, x + w / 2, btnY + 18);
 
           ctx.fillStyle = '#f2efe8'; ctx.fillRect(x + w - 38, btnY, 26, 26);
           ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; ctx.strokeRect(x + w - 38, btnY, 26, 26);
@@ -5036,7 +5700,7 @@ html, body {
           hitRegions.push({ kind: 'rebid_submit', x: x + 10, y: sbY, w: w - 20, h: sbH });
 
           ctx.fillStyle = '#666'; ctx.font = '600 8.5px system-ui, sans-serif';
-          ctx.fillText(`Max +${tie.maxMyAdd} Cr unspent`, x + w / 2, cy + 156);
+          ctx.fillText(`Max +${maxMyAdd} Cr unspent`, x + w / 2, cy + 156);
         } else {
           // Future lot waiting in queue
           ctx.fillStyle = '#f6f4ee'; ctx.fillRect(x, cy, w, h);
@@ -5062,9 +5726,10 @@ html, body {
       ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
       ctx.fillText('MARKET AUCTION RESULTS  —  WHO GOT WHAT & FOR HOW MUCH', x0 + 12, y0 + 19);
 
-      const waitingInstall = G.pendingInstall && G.pendingInstall.length > 0;
+      const myInst = PS().install || [];
+      const waitingInstall = myInst.length > 0;
       if (waitingInstall) {
-        const nextLot = LOTS[G.pendingInstall[0].lot];
+        const nextLot = LOTS[myInst[0].lot];
         ctx.fillStyle = '#1f6feb'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'right';
         ctx.fillText(`▼ Click a Robot Bay below to fit ${nextLot.name}`, x0 + L.aw - 12, y0 + 19);
       } else {
@@ -5115,7 +5780,7 @@ html, body {
         fitText(ctx, res.text, x + w / 2, cy + 71, w - 8, '600', 9.5);
 
         // 4. Destination / Installed-On Pill
-        const isPendingHere = waitingInstall && G.pendingInstall[0].idx === k;
+        const isPendingHere = waitingInstall && myInst[0].idx === k;
         ctx.fillStyle = isPendingHere ? '#e8f1ff' : '#f2efe8';
         ctx.fillRect(x + 8, cy + 77, w - 16, 18);
         ctx.strokeStyle = isPendingHere ? '#1f6feb' : '#d5d1c7';
@@ -5165,7 +5830,7 @@ html, body {
 
     items.forEach((it, j) => {
       const k = it.k, x = startX + j * (w + gap);
-      const bid = G.myBids[k] || 0;
+      const bid = (PS().bids || [])[k] || 0;
 
       const noFit = k < NLOTS && !canTake(me(), it.id);
       ctx.fillStyle = k === HOST_K ? '#fffdf5' : noFit ? '#efede7' : '#fcfbf9';
@@ -5290,8 +5955,8 @@ html, body {
       const T = G.teams[ents[0].ti], robots = ents.map(x => F.robots[x.e]);
       const bd = F.bands ? F.bands[s] : bandOf(F.p[s]);
       const x = x0 + s * (w + gap), y = L.ay - h / 2 - 1;
-      const stake = G.myBet[s] || 0;
-      const lockedOut = mine >= 0 && mine !== s && !G.hedge;
+      const stake = (PS().bet || [])[s] || 0;
+      const lockedOut = mine >= 0 && mine !== s && !PS().hedge;
 
       ctx.fillStyle = '#fcfbf9';
       ctx.fillRect(x, y, w, h);
@@ -5366,7 +6031,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.textAlign = 'center';
       fitText(ctx, `📦 SCRAP CRATE for ${CC.robot.name}: keep ${CC.keep - CC.picked.length} of these`, L.ax, y + 22, 600, '900', 14);
       CC.items.forEach((lotId, k) => {
-        const lot = LOTS[lotId], taken = CC.picked.includes(lotId), tg = crateTarget(me(), CC.robot, lotId);
+        const lot = LOTS[lotId], taken = CC.picked.includes(lotId), tg = crateTarget(G.teams[CC.team != null ? CC.team : HS], CC.robot, lotId);
         const cw = 180, ch = 148;
         const cx = L.ax - 282 + k * 192, cTop = y + 34;
         ctx.fillStyle = '#fcfbf9'; ctx.fillRect(cx, cTop, cw, ch);
@@ -5384,7 +6049,7 @@ html, body {
         ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui, sans-serif';
         ctx.fillText(taken ? 'Taken' : 'Keep this', cx + cw / 2, cTop + 125);
         help(cx, cTop, cw, ch, lot.icon + ' ' + esc(lot.name), esc(lot.text) + (lot.salv ? '<br>A salvaged part adds +1 to that stat level and ⚡1 strain. If it breaks in a fight it is gone for good.' : ''));
-        if (!taken) hitRegions.push({ kind: 'crate_pick', lot: lotId, x: cx, y: cTop, w: cw, h: ch });
+        if (!taken && (CC.team == null || CC.team === HS)) hitRegions.push({ kind: 'crate_pick', lot: lotId, x: cx, y: cTop, w: cw, h: ch });
       });
       return;
     }
@@ -5843,7 +6508,7 @@ html, body {
     if (G.phase === 'intrigue' && G.intrigueTurn === HS && c.phase !== 'fight') {
       const gHit = hitRegions.find(r => r.kind === 'garage' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
       if ((c.target === 'rival' || c.target === 'any' || c.phase === 'security') && !gHit) return false;
-      humanPlay(dc.id, gHit ? gHit.team : null);
+      act('play', dc.id, gHit ? gHit.team : null);
       return true;
     } else if (G.phase === 'fight' && c.phase === 'fight' && G.fight?.B && !G.fight.B.over && G.fight.rolloutDone) {
       const fr = battleFrame(getDynamicLayout(arenaExpand));
@@ -5858,16 +6523,8 @@ html, body {
       });
       const myEnt = G.fight.teams.indexOf(viewerSeat), mySlot = myEnt >= 0 ? (G.fight.entBot ? G.fight.entBot[myEnt] : myEnt) : -1;
 
-      t.hand.splice(dc.idx, 1);
-      const cmd = {
-        card: dc.id, by: t.name,
-        bot: c.target === 'arena' ? (mySlot >= 0 ? mySlot : nearSlot) : nearSlot,
-        x: localX,
-        y: localY
-      };
-      Sim.queueCmd(B, cmd);
-      if (bc) bc.postMessage({ type: 'CARD_CMD', seat: viewerSeat, cmd, name: c.name });
-      notify('🃏 You played ' + cardRef(dc.id) + '!', t.col);
+      if (isClient()) t.hand.splice(dc.idx, 1);   // shown at once; the host's state follows
+      act('combatCard', dc.id, c.target === 'arena' ? (mySlot >= 0 ? mySlot : nearSlot) : nearSlot, localX, localY);
       return true;
     }
     return false;
@@ -5885,12 +6542,12 @@ html, body {
       if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
 
       if (r.kind === 'setup_sponsor') {
-        pickSetupSponsor(r.spKey);
+        act('pickSponsor', r.spKey);
         return;
       }
 
       if (r.kind === 'setup_draft') {
-        pickSetupStarter(r.idx);
+        act('pickStarter', r.idx);
         return;
       }
 
@@ -5904,162 +6561,55 @@ html, body {
         return;
       }
 
-      if (r.kind === 'hire_eng') {
-        const t = me();
-        if (t.credits >= 3 && t.engPool < 6) {
-          t.credits -= 3;
-          t.engPool++;
-          const needBot = t.robots.slice().sort((a, b) => Sim.strainOf(b.b).total - Sim.strainOf(a.b).total).find(x => (x.b.eng || 0) < 3);
-          if (needBot) needBot.b.eng = (needBot.b.eng || 0) + 1;
-          notify('Hired an Engineer (+1 Engineer Pool).', t.col);
-          updateHud();
-        }
-        return;
-      }
-
-      if (r.kind === 'eng_minus') {
-        const bot = r.robot;
-        if ((bot.b.eng || 0) > 0) {
-          bot.b.eng--;
-          updateHud();
-        }
-        return;
-      }
-
+      if (r.kind === 'hire_eng') { act('hireEng'); return; }
+      if (r.kind === 'eng_minus') { act('engMinus', r.robot.id); return; }
       if (r.kind === 'eng_plus') {
-        const t = me(), bot = r.robot;
-        if ((bot.b.eng || 0) < 3 && freeEng(t) > 0) {
-          bot.b.eng = (bot.b.eng || 0) + 1;
-          spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
-          updateHud();
-        }
-        return;
+        if ((r.robot.b.eng || 0) < 3 && freeEng(me()) > 0) spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
+        act('engPlus', r.robot.id); return;
       }
-
-      if (r.kind === 'range_toggle') {
-        const bot = r.robot, order = ['short', 'mid', 'long'];
-        bot.b.range = order[(order.indexOf(bot.b.range) + 1) % 3];
-        updateHud();
-        return;
-      }
-
-      if (r.kind === 'mod_cycle') {
-        const bot = r.robot, mods = [null, ...Object.keys(Sim.MODS)];
-        const curIdx = mods.indexOf(bot.b.mod || null);
-        bot.b.mod = mods[(curIdx + 1) % mods.length];
-        updateHud();
-        return;
-      }
-
-      if (r.kind === 'focus_toggle') {
-        const bot = r.robot, order = ['main', 'medics', 'helpers'];
-        bot.b.focus = order[(order.indexOf(bot.b.focus || 'main') + 1) % 3];
-        updateHud();
-        return;
-      }
+      if (r.kind === 'range_toggle') { act('range', r.robot.id); return; }
+      if (r.kind === 'mod_cycle') { act('modCycle', r.robot.id); return; }
+      if (r.kind === 'focus_toggle') { act('focus', r.robot.id); return; }
 
       if (r.kind === 'bay_action' || (r.kind === 'bay' && r.team === HS)) {
-        const t = me(), bot = r.robot;
+        const t = me(), bot = r.robot, inst = PS().install || [];
         if (G.phase === 'upkeep') {
           const cost = fixCost(bot);
-          if (cost > 0 && t.credits >= cost) {
-            t.credits -= cost; bot.dmg = 0; bot.b.brk = [];
-            spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
-            notify('🔧 Repaired <b>' + esc(bot.name) + '</b> to full HP.', t.col);
-            updateHud();
-          }
-        } else if (G.phase === 'market' && G.pendingInstall && G.pendingInstall.length) {
-          if (!canFit(bot, LOTS[G.pendingInstall[0].lot])) { notify('⚠️ ' + lotRef(G.pendingInstall[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ' (' + esc(wepName(bot.b)) + ').', '#b45309'); return; }
-          if (LOTS[G.pendingInstall[0].lot].twin) {
-            if (G.swapAsk) return; G.swapAsk = true;
-            askTwin(bot).then(k => { G.swapAsk = false; if (!k) return; const item = G.pendingInstall.shift(); const dest = applyLot(viewerSeat, item.lot, bot, k);
-              if (G.marketResults && item.idx != null && G.marketResults[item.idx]) G.marketResults[item.idx].target = dest; notify('🌟 Installed the Twin Turret on ' + esc(bot.name) + ': ' + Sim.TWIN_WEAPONS[k] + ' at 60%.', t.col); updateHud(); });
-            return;
-          }
-          const item = G.pendingInstall.shift();
-          const note = weaponSwapNote(bot, LOTS[item.lot]);
+          if (cost > 0 && t.credits >= cost) { spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2); act('repair', bot.id); }
+        } else if (G.phase === 'market' && inst.length) {
+          const L0 = LOTS[inst[0].lot];
+          if (!canFit(bot, L0)) { notify('⚠️ ' + lotRef(inst[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ' (' + esc(wepName(bot.b)) + ').', '#b45309'); return; }
+          if (swapAsk) return;
+          if (L0.twin) { swapAsk = true; askTwin(bot).then(k => { swapAsk = false; if (k) act('install', bot.id, k); }); return; }
+          const note = weaponSwapNote(bot, L0);
           if (note) {
-            G.pendingInstall.unshift(item);
-            if (G.swapAsk) return;
-            G.swapAsk = true;
-            ivModal('🔁 Change calibre on ' + esc(bot.name) + '?', note, [{ label: 'Change it', value: () => true }, { label: 'Pick another bay', secondary: true, value: () => false }]).then(ok => {
-              G.swapAsk = false;
-              if (!ok) return;
-              G.pendingInstall.shift();
-              const dest = applyLot(viewerSeat, item.lot, bot);
-              if (G.marketResults && item.idx != null && G.marketResults[item.idx]) G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
-              notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
-              updateHud();
-            });
+            swapAsk = true;
+            ivModal('🔁 Change calibre on ' + esc(bot.name) + '?', note, [{ label: 'Change it', value: () => true }, { label: 'Pick another bay', secondary: true, value: () => false }]).then(ok => { swapAsk = false; if (ok) act('install', bot.id); });
             return;
-          }
-          const dest = applyLot(viewerSeat, item.lot, bot);
-          if (G.marketResults && item.idx != null && G.marketResults[item.idx]) {
-            G.marketResults[item.idx].target = dest || `Fitted on ${bot.name}`;
           }
           spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
-          notify('🔩 Installed <b>' + esc(LOTS[item.lot].name) + '</b> on ' + esc(bot.name) + '.', t.col);
-          updateHud();
-        } else if (G.phase === 'arena' && G.chooseMyBot) {
+          act('install', bot.id);
+        } else if (G.phase === 'arena' && PS().choose) {
           if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
-          const s = G.fight.teams.indexOf(viewerSeat);
-          G.fight.robots[s] = bot;
-          afterChoose();
+          act('sendBot', bot.id);
         }
         return;
       }
 
-      if (r.kind === 'market_continue') {
-        continueMarket();
-        return;
-      }
+      if (r.kind === 'market_continue') { act('continueMarket'); return; }
+      if (r.kind === 'rebid_minus') { act('rebidAdj', -1); return; }
+      if (r.kind === 'rebid_plus') { act('rebidAdj', 1); return; }
+      if (r.kind === 'rebid_submit') { act('rebidLock'); return; }
+      if (r.kind === 'market_minus') { act('bid', r.idx, 'minus'); return; }
+      if (r.kind === 'market_plus' || r.kind === 'market_tile') { act('bid', r.idx, r.kind === 'market_tile' ? 'tile' : 'plus'); return; }
 
-      if (r.kind === 'rebid_minus' && G.marketAuction?.tie) {
-        G.marketAuction.tie.myAdd = Math.max(0, G.marketAuction.tie.myAdd - 1);
-        updateHud();
-        return;
-      }
-      if (r.kind === 'rebid_plus' && G.marketAuction?.tie) {
-        G.marketAuction.tie.myAdd = Math.min(G.marketAuction.tie.maxMyAdd, G.marketAuction.tie.myAdd + 1);
-        updateHud();
-        return;
-      }
-      if (r.kind === 'rebid_submit' && G.marketAuction?.tie) {
-        submitHumanRebid();
-        return;
-      }
+      if (r.kind === 'garage' && G.phase === 'arena' && G.host === HS && !G.chooseMyBot && !G.hostStep && !G.fight && G.pickTeams) { act('pickTeam', r.team); return; }
+      if (r.kind === 'bet_card') { act('bet', r.side); return; }
 
-      if (r.kind === 'market_minus') {
-        G.myBids[r.idx] = Math.max(0, (G.myBids[r.idx] || 0) - 1);
-        updateHud(); return;
-      }
-      if (r.kind === 'market_plus' || r.kind === 'market_tile') {
-        const spent = r.idx === HOST_K ? G.myBids[HOST_K] : G.myBids.slice(0, NLOTS).reduce((a, b) => a + b, 0);
-        if (spent < me().credits) G.myBids[r.idx] = (G.myBids[r.idx] || 0) + 1;
-        else if (r.kind === 'market_tile') G.myBids[r.idx] = 0;
-        updateHud(); return;
-      }
-
-      if (r.kind === 'garage' && G.phase === 'arena' && G.host === HS && !G.chooseMyBot && !G.hostStep && !G.fight && G.pickTeams) {
-        const k = G.pickTeams.indexOf(r.team);
-        if (k >= 0) G.pickTeams.splice(k, 1);
-        else if (G.pickTeams.length < 2) G.pickTeams.push(r.team);
-        updateHud(); return;
-      }
-
-      if (r.kind === 'bet_card') {
-        if (G.betsLocked) return;
-        G.myBet = G.myBet.map((v, k) => k === r.side ? v : 0);
-        const cap = betLimit(me());
-        const next = (G.myBet[r.side] + 1) % (cap + 1);
-        G.myBet[r.side] = next <= me().credits ? next : 0;
-        updateHud(); return;
-      }
-
-      if (r.kind === 'buy_scout') { buyScout(); return; }
+      if (r.kind === 'buy_scout') { act('buyScout'); return; }
       if (r.kind === 'scout_chip') { openScout(r.team, r.robot); return; }
 
-      if (r.kind === 'crate_pick') { humanCratePick(r.lot); return; }
+      if (r.kind === 'crate_pick') { act('crate', r.lot); return; }
     }
   });
 
@@ -6080,8 +6630,13 @@ html, body {
     if (G && !G.over) { scoutWork(G.phase === 'fight' ? 3 : 14); if (scoutOpen) renderScout(false); if (G.phase === 'upkeep' || G.phase === 'market') renderStash(); }
     if (G && G.phase === 'fight' && G.fight && G.fight.B) {
       const F = G.fight, B = F.B;
-      if (G.fast && !B.over) { F.rolloutDone = true; F.rollout = 1; let guard = 0; while (!B.over && guard++ < 200000) { try { stepAiCombatCards(F); Sim.step(B, 1 / 60); } catch (e) { ptError('Sim crashed (fast): ' + e.message, e.stack); B.over = true; B.winner = -1; } } }
-      if (!F.rolloutDone) {
+      const held = !!netPaused;   // multiplayer: someone dropped out, everyone's fight waits
+      const cl = isClient();
+      if (cl && !F.rolloutDone && netTick.fid === F.fid && netTick.tick > 0) { F.rolloutDone = true; F.rollout = 1; F.countdown = null; F.fightFlash = 0.9; accT = 0; updateHud(); }   // the host's fight already runs
+      if (held) accT = 0;
+      else if (G.fast && !B.over) { F.rolloutDone = true; F.rollout = 1; let guard = 0; while (!B.over && guard++ < 200000) { try { stepAiCombatCards(F); Sim.step(B, 1 / 60); } catch (e) { ptError('Sim crashed (fast): ' + e.message, e.stack); B.over = true; B.winner = -1; } } }
+      if (held) { /* paused */ }
+      else if (!F.rolloutDone) {
         // intro: wait for the arena to open up, roll in (1.6 s), then a 3 s countdown; the sim stays frozen until "FIGHT!"
         const T_OPEN = 0.6, T_ROLL = 1.6, T_COUNT = 3;
         F.introT = (F.introT || 0) + Math.min(dt, 0.1);
@@ -6095,8 +6650,13 @@ html, body {
       } else {
         if (F.fightFlash > 0) F.fightFlash = Math.max(0, F.fightFlash - dt);
         if (!B.over) accT += dt; else accT = 0;
+        if (cl && netTick.fid === F.fid && !B.over) {   // stay on the host's clock: catch up when behind, hold when ahead
+          const target = netTick.tick + Math.min(90, (performance.now() - netTick.at) * 0.06);
+          let n = 0; while (B.tick < target - 8 && !B.over && n++ < 900) Sim.step(B, 1 / 60);
+          if (B.tick > target + 12) accT = 0;
+        }
         while (accT >= 1 / 60 && !B.over) {
-          try { stepAiCombatCards(F); Sim.step(B, 1 / 60); }
+          try { if (!cl) stepAiCombatCards(F); Sim.step(B, 1 / 60); }
           catch (e) {   // a Sim bug must not repeat every frame: record it and end the fight on health
             ptError('Sim crashed mid-fight: ' + e.message, e.stack);
             const sc = {}; B.bots.forEach(b => { if (!b.helper) sc[b.team] = (sc[b.team] || 0) + Math.max(0, b.hp) / b.s.hp; });
@@ -6106,7 +6666,7 @@ html, body {
           }
           accT -= 1 / 60;
         }
-        if (B.over) {
+        if (B.over && !cl) {
           finishWait += dt;
           if (finishWait > (G.fast ? 0 : 1.4)) {
             finishWait = 0;
@@ -6190,5 +6750,6 @@ html, body {
   requestAnimationFrame(loop);
 })();
 </script>
+<script src="../src/net.js"></script>
 </body>
 </html>

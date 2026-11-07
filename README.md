@@ -25,6 +25,19 @@ GitHub: https://github.com/bruyninckx/ROBOCUP
 
 No build step. Double-click an `.html` file in `prototypes/` to open it in a browser.
 
+## Online play (tabletop prototype)
+
+`prototypes/tabletop-prototype.html` plays online with friends (2–4 people; the AI plays empty seats). Plan and rules: `docs/multiplayer-plan.md`.
+
+1. Click **🌐 Online** in the top bar, then **Host a game**. Copy the invite link and send it (Discord).
+2. Friends open the link, type a name, pick a colour and press **Ready**. Press **Start game**.
+3. Keep the host tab open: the host's browser runs the game. A player who drops out comes back with the same link and the same name; meanwhile the game pauses (the host can let the AI take the seat).
+4. The host's 🌐 badge has **💾 Save game** (taken at the start of each round). Load it in the lobby of a new room; the same names get the same seats.
+
+Online play needs the page on the web (GitHub Pages: Settings → Pages → Deploy from branch `main`, folder `/`; then the link is `https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-prototype.html`) and internet (PeerJS, WebRTC). For testing on one PC, tick **Local test** in the 🌐 menu and open the link in more tabs of the same browser (no internet needed).
+
+Checks (Node.js + Playwright): `node tools/seed-check.js 7` (same seed, same solo game), `node tools/mp-test.js 3 5 20 1` (a host and 3 bot players in 4 tabs play a whole game, including a drop-out, a skip, a player leaving and a save/load).
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):
