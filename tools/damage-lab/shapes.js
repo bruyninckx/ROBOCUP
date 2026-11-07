@@ -5,7 +5,7 @@ const names = Object.keys(L.PRESETS).filter(k => L.PRESETS[k].market), shapes = 
 (async () => {
   const builds = names.map(n => ({ preset: n })), pairs = [], meta = [];
   for (let i = 0; i < names.length; i++) for (const sh of shapes) { const idx = builds.length; builds.push({ preset: names[i], shape: sh }); meta.push({ idx, i, sh }); for (let j = 0; j < names.length; j++) if (j !== i) pairs.push([idx, j]); }
-  const s = await M.evaluate(builds, { seeds, arenas: ['open', 'pit'], pairs });
+  const s = await M.evaluate(builds, { seeds, arenas: ['open'], pairs });
   for (let i = 0; i < names.length; i++) {
     const row = meta.filter(m => m.i === i).map(m => { const v = s.wr[m.idx].filter(x => x != null); return `${m.sh} ${Math.round(v.reduce((a, b) => a + b, 0) / v.length * 100)}%`; });
     console.log(names[i].padEnd(11), '(now ' + L.PRESETS[names[i]].shape + ')', row.join('  '));

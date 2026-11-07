@@ -25,7 +25,7 @@ for (const r of M) {
   if (P.battery === 'std') add('battery', 'big', 'big battery', { battery: 'big' });
   for (const pr of Object.keys(L.PROCS)) if (pr !== P.proc) add('chip', pr, L.PROCS[pr].label, { proc: pr });
 }
-const jobs = []; vars.forEach((v, vi) => { for (const o of M) if (o !== v.robot) for (const s of seeds) for (const a of ['open', 'pit']) jobs.push([vi, o, s, a]); });
+const jobs = []; vars.forEach((v, vi) => { for (const o of M) if (o !== v.robot) for (const s of seeds) for (const a of ['open']) jobs.push([vi, o, s, a]); });
 console.error(vars.length, 'variants', jobs.length, 'fights');
 const W = 2, chunks = Array.from({ length: W }, (_, k) => jobs.filter((_, n) => n % W === k)), t0 = Date.now();
 Promise.all(chunks.map(c => new Promise((ok, bad) => { const w = new Worker(__filename, { workerData: { jobs: c, vars } }); w.on('message', ok); w.on('error', bad); }))).then(rs => {

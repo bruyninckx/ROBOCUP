@@ -17,7 +17,7 @@ if (!isMainThread) {
   return;
 }
 async function evaluate(builds, opts = {}) {
-  const seeds = opts.seeds || [1, 2, 3, 4, 5, 6, 7, 8], arenas = opts.arenas || ['open', 'pit'], tune = opts.tune || {};
+  const seeds = opts.seeds || [1, 2, 3, 4, 5, 6, 7, 8], arenas = opts.arenas || ['open'], tune = opts.tune || {};
   const pairs = opts.pairs || (() => { const p = []; for (let i = 0; i < builds.length; i++) for (let j = i + 1; j < builds.length; j++) p.push([i, j]); return p; })();
   const jobs = []; for (const [i, j] of pairs) for (const s of seeds) for (const a of arenas) jobs.push([i, j, s, a]);
   const W = opts.workers || 2, chunks = Array.from({ length: W }, (_, k) => jobs.filter((_, n) => n % W === k));

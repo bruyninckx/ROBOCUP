@@ -6,7 +6,7 @@ for (const r of NEW) {
   let w = 0, n = 0, T = [], by = {}, big = 0, ko = {}, per = {};
   for (const o of M) { let wo = 0;
     for (let k = 0; k < N; k++) {
-      const seed = (+process.env.SEED0 || 9001) + k, swap = k % 2 === 1, arena = k % 4 < 2 ? 'open' : 'pit';
+      const seed = (+process.env.SEED0 || 9001) + k, swap = k % 2 === 1, arena = 'open';
       const A = { preset: r, name: 'A' }, B = { preset: o, name: 'B' };
       const S = L.create(swap ? { a: B, b: A, seed, arena } : { a: A, b: B, seed, arena });
       let bigs = 0; while (!S.over && S.t < 200) { L.step(S); for (const f of S.fx) if (f.type === 'callout' && f.big) bigs++; S.fx.length = 0; }

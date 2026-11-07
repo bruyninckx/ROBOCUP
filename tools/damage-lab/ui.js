@@ -13,7 +13,7 @@
   const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86', module: '#47A8FF', thruster: '#FF8A2A' };
   const MOD_ICON = { shield: ['S', '#47A8FF'], emp: ['E', '#7FD4FF'], grapple: ['G', '#C9A227'], jets: ['J', '#FF8A2A'], oil: ['O', '#3B3530'], mines: ['M', '#D24B3A'], repair: ['+', '#4CC26A'], boom: ['!', '#E0402B'], quantum: ['Q', '#F2C94C'], smoke: ['~', '#9A958C'], popper: ['P', '#D9B43A'] };
   const $ = id => document.getElementById(id);
-  const st = { mode: '1v1', spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }, { preset: 'Whirlwind' }, { preset: 'Mauler' }], seed: 7, arena: 'pit', speed: 1, drama: true, paused: false };
+  const st = { mode: '1v1', spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }, { preset: 'Whirlwind' }, { preset: 'Mauler' }], seed: 7, arena: 'open', speed: 1, drama: true, paused: false };
   let S = null, reported = false, logN = 0;
 
   // ---------- builder ----------
@@ -270,18 +270,20 @@
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
-    let sc = 1 + air * 0.28, alpha = 1;
+    const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R);
+    let sc = 1 + air * 0.28 + (carried ? 0.1 : 0), alpha = 1;
     if (R.inPit) { const k = Math.min(1, (S.t - R.inPit) / 0.8); sc = 1 - k * 0.65; alpha = 1 - k * 0.7; }
-    const so = 0.05 + air * 0.35;
+    const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0);
     R.trailPts = R.trailPts || []; if (frameN % 2 === 0) { R.trailPts.push([p.x, p.y, a]); if (R.trailPts.length > 7) R.trailPts.shift(); }
     const vel = b.getLinearVelocity(), fast = Math.hypot(vel.x, vel.y) > 3.5 || R.airborne > 0;
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
-    const mine = R.parts.filter(q => q.attached && q.body === b);
+    const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
     ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
     ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
+    if (R.onSide > 0) { const rk = Math.sin(performance.now() / 90 + R.id) * 0.06; ctx.translate(0, R.sideDir * R.hw * 0.45); ctx.rotate(rk); ctx.scale(1, 0.48); } // lying on its side: seen edge-on, rocking
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
@@ -683,7 +685,7 @@
       if (R.inPit && S.t - R.inPit > 0.8) continue;
       const p = R.body.getPosition(), [sx, sy] = toScreen(p.x, p.y - R.hl - 0.42);
       const chips = [];
-      if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
+      if (R.onSide > 0) chips.push('ON ITS SIDE'); if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
       if (R.wmotor && R.wmotor.jam > 0) chips.push('JAMMED'); if (R.slots.some(q => q.motor.stuck > 0)) chips.push('MOTOR STUCK'); if (R.slots.some(q => q.motor.heat > 85 && q.motor.hp > 0)) chips.push('OVERHEAT');
       if (R.snagged) chips.push('STUCK!');
       if (R.fried) chips.push('BRAIN FRIED'); else if (R.chipExposed) chips.push('CHIP EXPOSED'); if (R.chipFreeze > 0) chips.push('REBOOTING'); if (R.crossed > 0) chips.push('WIRES CROSSED'); if (R.berserk > 0) chips.push('BERSERK'); if (R.misfire > 0) chips.push('MISFIRE'); if (R.jammed > 0) chips.push('JAMMED');
@@ -725,6 +727,7 @@
     for (const d of S.debris) drawDebris(d);
     // robot in the air is drawn last
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
+    for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
     drawEwalls(); drawDrones();
     for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }

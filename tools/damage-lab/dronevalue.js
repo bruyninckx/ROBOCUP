@@ -10,7 +10,7 @@ const drones = process.env.DRONES ? process.env.DRONES.split(',') : Object.keys(
     const idx = builds.length; builds.push(k ? { preset: names[i], helpers: [k] } : { preset: names[i] }); meta.push({ idx, i, k });
     for (let j = 0; j < names.length; j++) if (j !== i) pairs.push([idx, j]);
   }
-  const s = await M.evaluate(builds, { seeds, arenas: ['open', 'pit'], pairs });
+  const s = await M.evaluate(builds, { seeds, arenas: ['open'], pairs });
   const res = {};
   for (const m of meta) { const v = names.map((_, j) => j).filter(j => j !== m.i).map(j => s.wr[m.idx][j]); res[(m.k || 'none') + '|' + names[m.i]] = v.reduce((a, b) => a + b, 0) / v.length; }
   const table = {}; for (const k of drones) { const d = names.map(n => Math.round((res[k + '|' + n] - res['none|' + n]) * 100)); table[k] = { avg: Math.round(d.reduce((a, b) => a + b, 0) / d.length), per: Object.fromEntries(names.map((n, i) => [n, d[i]])) }; }

@@ -128,11 +128,10 @@
     sawrocket: { big: { label: 'Big saw', br: 0.19, mass: 6.5, dm: 2.5, d: 'Bigger blade: more reach and rim speed, slower to spin up.' } },
   };
   const design = s => (DESIGNS[s.weapon] && DESIGNS[s.weapon][s.wd]) || {};
-  const ARENAS = {
+  const ARENAS = { // the centre pit was removed (Kev, 8 Nov): every arena is open floor now
     open: { label: 'Open floor', pit: false, saws: [], spikes: false },
-    pit: { label: 'Centre pit', pit: true, saws: [], spikes: false },
     saws: { label: 'Floor saws', pit: false, saws: [[-1.7, -1.7], [1.7, 1.7], [-1.7, 1.7], [1.7, -1.7]], spikes: false },
-    killbox: { label: 'Killbox (pit, saws, spiked walls)', pit: true, saws: [[0, -2.5], [0, 2.5]], spikes: true },
+    killbox: { label: 'Killbox (saws, spiked walls)', pit: false, saws: [[0, -2.5], [0, 2.5]], spikes: true },
   };
   const PIT = 0.65; // half size of the centre pit
   // bumpers: the material of the armour plates. blunt / sharp = damage taken from blunt / sharp hits
@@ -154,21 +153,21 @@
     Juggernaut: { weapon: 'drum', chassis: 'medium', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'rammer', mod: 'grapple', armour: { front: 0, side: 1, rear: 1, top: 1 }, helpers: [], shape: 'chamfer', dmgK: 1, market: true },
     Hornet: { weapon: 'spear', chassis: 'medium', drive: 'boost', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'jets', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.35, helpers: [], shape: 'wedge', market: true },
     Whirlwind: { weapon: 'spinner', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'shield', armour: { front: 0, side: 2, rear: 1, top: 2 }, dmgK: 1.12, helpers: [], shape: 'box', market: true },
-    Brawler: { weapon: 'glove', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'rubber', proc: 'rammer', mod: 'emp', armour: { front: 0, side: 3, rear: 0, top: 1 }, dmgK: 0.75, helpers: [], shape: 'chamfer', market: true },
+    Brawler: { weapon: 'glove', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'rubber', proc: 'rammer', mod: 'emp', armour: { front: 0, side: 3, rear: 0, top: 1 }, dmgK: 0.65, helpers: [], shape: 'chamfer', market: true },
     Slick: { weapon: 'medium', chassis: 'heavy', drive: 'omni', motor: 'std', battery: 'std', bumper: 'spring', proc: 'kiter', mod: 'oil', armour: { front: 1, side: 1, rear: 1, top: 1 }, classic: true, retired: true },
     Hellfire: { weapon: 'flame', chassis: 'light', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'zigzag', mod: 'boom', armour: { front: 2, side: 1, rear: 0, top: 1 }, dmgK: 1.25, classic: true, retired: true },
-    Mauler: { weapon: 'flail', chassis: 'light', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'spiked', proc: 'standard', mod: 'repair', armour: { front: 1, side: 2, rear: 0, top: 1 }, dmgK: 1, helpers: [], shape: 'chamfer', market: true },
+    Mauler: { weapon: 'flail', chassis: 'light', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'spiked', proc: 'standard', mod: 'repair', armour: { front: 1, side: 2, rear: 0, top: 1 }, dmgK: 1.12, helpers: [], shape: 'chamfer', market: true },
     Rocketeer: { weapon: 'rocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, trial: true },
-    Sawblast: { weapon: 'sawrocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'wedge', market: true },
-    Whaler: { weapon: 'harpoon', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'round', market: true },
-    Thwacker: { weapon: 'tail', chassis: 'medium', drive: '2wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 2, side: 2, rear: 0, top: 1 }, dmgK: 3.8, trial: true },
-    Forklift: { weapon: 'lifter', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 3.0, trial: true },
-    Ramrod: { weapon: 'batram', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 0.75, trial: true },
-    Vertigo: { weapon: 'vdisc', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 0.75, trial: true },
-    Gyro: { weapon: 'shell', chassis: 'medium', drive: '2wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 0, rear: 0, top: 1 }, dmgK: 1.3, trial: true },
-    Scythe: { weapon: 'sweeper', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.15, trial: true },
-    Mincer: { weapon: 'twinsaw', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.7, trial: true },
-    Pincher: { weapon: 'clapper', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.5, trial: true },
+    Sawblast: { weapon: 'sawrocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, helpers: [], dmgK: 1.12, shape: 'wedge', market: true },
+    Whaler: { weapon: 'harpoon', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, helpers: [], dmgK: 1.8, shape: 'round', market: true },
+    Thwacker: { weapon: 'tail', chassis: 'medium', drive: '2wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 2, side: 2, rear: 0, top: 1 }, dmgK: 5, trial: true },
+    Forklift: { weapon: 'lifter', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 2, trial: true },
+    Ramrod: { weapon: 'batram', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.1, trial: true },
+    Vertigo: { weapon: 'vdisc', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 0.95, trial: true },
+    Gyro: { weapon: 'shell', chassis: 'medium', drive: '2wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 0, rear: 0, top: 1 }, dmgK: 1.1, trial: true },
+    Scythe: { weapon: 'sweeper', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.2, trial: true },
+    Mincer: { weapon: 'twinsaw', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.55, trial: true },
+    Pincher: { weapon: 'clapper', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.8, trial: true },
     Grindstone: { weapon: 'buzzsaw', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'spiked', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, trial: true },
     Buzzkill: { weapon: 'spinner', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'spiked', armour: { front: 0, side: 3, rear: 1, top: 2 }, classic: true },
     Rumbler: { weapon: 'drum', chassis: 'heavy', drive: '2wd', motor: 'std', battery: 'big', bumper: 'steel', armour: { front: 0, side: 2, rear: 1, top: 1 }, classic: true },
@@ -223,10 +222,10 @@
   // ---------- world ----------
   function create(opts) {
     const S = {
-      t: 0, step: 0, rng: mkRng(opts.seed || 1), seed: opts.seed || 1, arenaKey: opts.arena || 'open', arena: ARENAS[opts.arena || 'open'],
+      t: 0, step: 0, rng: mkRng(opts.seed || 1), seed: opts.seed || 1, arenaKey: ARENAS[opts.arena] ? opts.arena : 'open', arena: ARENAS[opts.arena] || ARENAS.open, // old configs may still say 'pit': that is open floor now
       world: pl.World({ gravity: V(0, 0) }), robots: [], debris: [], projs: [], shells: [], discs: [], hitQ: [], contactQ: [], beginQ: [],
       fx: [], log: [], over: false, result: null, timeLimit: opts.timeLimit || 120, countdown: opts.countdown == null ? 0 : opts.countdown,
-      sawState: [], slowmo: 0, oils: [], mines: [], smokes: [], snags: [],
+      sawState: [], slowmo: 0, oils: [], mines: [], smokes: [], snags: [], rng2: mkRng(((opts.seed || 1) * 7919 + 13) >>> 0),
     };
     const world = S.world;
     // walls
@@ -255,6 +254,8 @@
       for (const [x1, x2] of [[ua, ub], [ub, ua]]) if (x1.part && x1.part.noHit && x2.part && x2.part.robot === x1.part.noHit && S.t < x1.part.noHitT) { c.setEnabled(false); return; }
       if ((ua.drone && ((ub.part && !ub.part.attached) || ub.disc)) || (ub.drone && ((ua.part && !ua.part.attached) || ua.disc))) { c.setEnabled(false); return; }
       const ra = ua.part && ua.part.attached ? ua.part.robot : null, rb = ub.part && ub.part.attached ? ub.part.robot : null;
+      // lifter forks are low: they slide under robots on the ground instead of bumping into them
+      if (ra && rb && ra !== rb && ((ua.part.key === 'lifter' && rb.airborne <= 0) || (ub.part.key === 'lifter' && ra.airborne <= 0))) { c.setEnabled(false); return; }
       if ((ra && ra.airborne > 0.12 && ub.part && !ub.part.attached) || (rb && rb.airborne > 0.12 && ua.part && !ua.part.attached)) c.setEnabled(false);
     });
     const r = S.rng;
@@ -396,13 +397,14 @@
       noDrive: 0, turretA: ang, cool: 0, gas: 12, swing: 0, grab: null, drumE: 0, bladeW: 0, beam: null, flameOn: 0, orbit: id ? 1 : -1, mortarAim: null,
     };
     const parts = R.parts;
+    const hpK = spec.hpK || 1; // power level knob (2.0 tiers): multiplies every part's HP
     const addPart = (key, label, kind, verts, o) => {
       const ar = area(verts), mass = o.mass;
       const fx = (o.body || body).createFixture({ shape: pl.Polygon(verts.map(p => V(p[0], p[1]))), density: mass / ar, friction: o.friction == null ? 0.45 : o.friction, restitution: o.rest == null ? 0.15 : o.rest, filterGroupIndex: group });
-      const part = { key, label, kind, verts, home: verts.map(q => q.slice()), outline: subdivide(verts), dents: [], scratches: [], fx, body: o.body || body, robot: R, attached: true, hp: o.hp, maxHp: o.hp, heat: 0, thr: o.thr || 0, sharp: o.sharp == null ? 0.35 : o.sharp, tough: o.tough || 1, mass, state: '', jam: 0, z: o.z || 0 };
+      const part = { key, label, kind, verts, home: verts.map(q => q.slice()), outline: subdivide(verts), dents: [], scratches: [], fx, body: o.body || body, robot: R, attached: true, hp: o.hp * hpK, maxHp: o.hp * hpK, heat: 0, thr: o.thr || 0, sharp: o.sharp == null ? 0.35 : o.sharp, tough: o.tough || 1, mass, state: '', jam: 0, z: o.z || 0 };
       fx.setUserData({ part }); parts.push(part); return part;
     };
-    const addInt = (key, label, lp, hp, o = {}) => { const p = Object.assign({ key, label, kind: 'internal', lp, hp, maxHp: hp, heat: 0, robot: R, attached: true, state: '', jam: 0, stuck: 0, stuckDir: 1 }, o); R.internals.push(p); return p; };
+    const addInt = (key, label, lp, hp, o = {}) => { hp *= hpK; const p = Object.assign({ key, label, kind: 'internal', lp, hp, maxHp: hp, heat: 0, robot: R, attached: true, state: '', jam: 0, stuck: 0, stuckDir: 1 }, o); R.internals.push(p); return p; };
     // internals first (their mass goes into the chassis)
     const bat = BATTERIES[spec.battery];
     R.battery = addInt('battery', 'Battery', [-0.45 * hl, 0.2 * hw], bat.hp);
@@ -580,7 +582,31 @@
     if (spec.drive === 'boost') R.thruster = addInt('thruster', 'Thruster', [-0.75 * hl, 0], 40);
     if (R.mod !== 'none') R.module = addInt('module', R.M.label, [-0.1 * hl, 0.3 * hw], 40, { top: true });
     R.massStart = body.getMass();
+    R.prof = sideProfile(R, spec);
     return R;
+  }
+  // how a robot behaves when it lands on its side, worked out from its own build:
+  // width (wheels and plates), a height estimate (frame + top-mounted gear), how top-heavy it is, and the hull shape
+  function sideProfile(R, spec) {
+    let wy = 0; for (const q of R.parts) if (q.body === R.body) for (const v of q.verts) wy = Math.max(wy, Math.abs(v[1]));
+    const Wd = wy * 2, W = R.W, a = spec.armour;
+    const H = { light: 0.16, medium: 0.2, heavy: 0.24 }[spec.chassis] + (W.cat === 'top' ? 0.1 : 0) + 0.02 * a.top + (spec.weapon === 'shell' ? 0.06 : 0);
+    const topMass = a.top * 4 + (W.cat === 'top' ? W.mass : 0) + (R.module ? 3 : 0), topK = topMass / R.body.getMass();
+    const shapeK = spec.weapon === 'shell' ? 0.3 : { box: 1, chamfer: 0.55, wedge: 0.45, round: 0.12 }[spec.shape] || 1, hr = clamp(H / Wd * 3, 0.4, 1.4); // a shell spinner is round from the outside
+    const selfRight = spec.weapon === 'flipper' || spec.weapon === 'hammer';
+    return {
+      W: Wd, H, topK: Math.round(topK * 100) / 100,
+      pSide: clamp(0.32 * shapeK * hr, 0.03, 0.45), // chance a hard landing ends on its side
+      pUp: selfRight ? 1 : clamp(0.78 - topK * 2.2 + (spec.shape === 'round' ? 0.2 : 0), 0.25, 0.97), // chance it drops back onto its wheels (else onto its back)
+      tSide: selfRight ? 0.5 : 0.6 + 2.2 * shapeK * clamp(hr, 0.5, 1.3), // how long it balances on its side
+    };
+  }
+  function sideSettle(S, R, knocked) {
+    const P = R.prof, up = S.rng2() < P.pUp * (knocked ? 0.7 : 1), p = R.body.getPosition();
+    R.onSide = 0; R.flipped = up ? R.sidePrevFlip : !R.sidePrevFlip;
+    S.fx.push({ type: 'thud', x: p.x, y: p.y, power: 0.3 });
+    say(S, up ? `${R.name} drops back onto its wheels` : R.flipped ? `${R.name} topples over onto its back` + (R.W.invert ? ', keeps driving' : '') : `${R.name} topples back onto its wheels`, R.id, !up);
+    if (!up) callout(S, 'TOPPLED!', p.x, p.y, false);
   }
 
   // ---------- helpers on robots ----------
@@ -590,6 +616,7 @@
   function weaponOk(R) {
     if (!R.alive) return false;
     if (R.flipped && !R.W.invert) return false;
+    if (R.onSide > 0 && R.spec.weapon !== 'shell') return false;
     if (R.wmotor && R.wmotor.hp <= 0) return false;
     if (R.turret && R.turret.hp <= 0) return false;
     if (R.arm && R.arm.hp <= 0) return false;
@@ -642,6 +669,7 @@
     if (R.eSh > 0 && atk && modOn(R)) { const ab = Math.min(R.eSh, d); R.eSh -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.eSh <= 0) say(S, `${R.name}: energy shield down`, R.id); R.lastHurt = S.t; if (d <= 0) return; }
     if (atk && R.drones.length && !h.inner) { const bg = R.drones.find(q => q.alive && q.key === 'bodyguard' && !(q.off > 0)); if (bg) { const bp = bg.body.getPosition(), rp0 = R.body.getPosition(); if (Math.hypot(bp.x - rp0.x, bp.y - rp0.y) < R.hl + 0.9) { const ab = d * 0.4; d -= ab; damageDrone(S, bg, ab, atk, bp.x, bp.y); bg.hitT = 0.12; } } }
     if (atk || h.cause === 'heat' || h.cause === 'fire') R.lastHurt = S.t;
+    if (R.onSide > 0 && atk && d > 10 && R.alive) sideSettle(S, R, true);
     // the lid takes the overhead hits and gets rattled by big hits on the chassis
     if (R.lid.attached && R.alive && !h.inner && (h.top ? (part.kind === 'chassis' || part.kind === 'internal') : part.kind === 'chassis' && d >= 9)) {
       const ld = d * (h.top ? 0.6 : 0.3); if (h.top) d -= ld; lidHit(S, R, ld, h);
@@ -1036,6 +1064,7 @@
   function drive(S, R) {
     const b = R.body, m = b.getMass(), fwd = b.getWorldVector(V(1, 0)), right = b.getWorldVector(V(0, 1));
     let ground = R.airborne > 0 ? 0 : R.lifted > 0 ? 0.25 : 1;
+    if (R.onSide > 0) ground *= R.spec.weapon === 'shell' ? 0.5 : 0.22; // only the edge of the wheels touches the floor
     const onBack = R.flipped && !R.W.invert && !R.W.invertDrive; // lying on its back, wheels spin in the air
     const n = R.slots.length, load = m * G / n;
     const pw = R.alive ? power(R) : 0, mot = MOTORS[R.spec.motor];
@@ -1102,6 +1131,7 @@
     R.ctl.S = 0; R.ctl.dash = false;
     if (!R.alive) { R.ctl.L = R.ctl.R = 0; return; }
     if (R.stun > 0) { R.ctl.L = R.ctl.R = 0; return; }
+    if (R.onSide > 0) { const t = Math.sin(S.t * 9 + R.id) > 0 ? 1 : -1; R.ctl.L = t; R.ctl.R = -t; return; } // rocks itself, trying to fall back
     let ep = E.body.getPosition(), ev = E.body.getLinearVelocity();
     // the enemy is hidden in its own smoke: aim at a guess
     if (!R.spotting && S.smokes.some(c => c.owner === E && Math.hypot(ep.x - c.x, ep.y - c.y) < c.r)) { if (!R.fog || S.step % 60 === 0) R.fog = [(S.rng() - 0.5) * 1.6, (S.rng() - 0.5) * 1.6]; ep = V(ep.x + R.fog[0], ep.y + R.fog[1]); ev = V(0, 0); }
@@ -1401,8 +1431,9 @@
         return;
       }
       if (!on || R.cool > 0 || !E.alive) return;
-      const pts = [front(0.3, R.hw * 0.55), front(0.3, -R.hw * 0.55), front(0.2, 0)];
-      const tgt = pts.map(q => topPartAt(S, q.x, q.y, R)).find(Boolean);
+      // lift when a robot sits over the forks (at least halfway up them)
+      const pts = [front(0.2, R.hw * 0.55), front(0.2, -R.hw * 0.55), front(0.32, R.hw * 0.55), front(0.32, -R.hw * 0.55)];
+      const tgt = pts.map(q => topPartAt(S, q.x, q.y, R)).find(q => q && q.robot !== R);
       if (tgt && tgt.robot.airborne <= 0 && tgt.robot.alive) {
         const T = tgt.robot;
         if (tgt.key === 'blade' && T.bladeW > 25 || tgt.key === 'drum' && T.drumE > 0.4 || tgt.key === 'vdisc' && T.vE > 0.4) { R.cool = 0.8; return; } // spinning weapons knock the forks away
@@ -1847,11 +1878,15 @@
             for (let i = 0; i < n; i++) { const cand = R.parts.filter(p => p.attached && p.body === R.body); const p = cand[Math.floor(S.rng() * cand.length)]; if (p) { const c0 = centroid(p.verts), w0 = R.body.getWorldPoint(V(c0[0], c0[1])); hit(S, p, hard * 22, { cause: 'landing', src: R.enemy, lp: c0, blp: c0, x: w0.x, y: w0.y }); } }
             S.fx.push({ type: 'thud', x: R.body.getPosition().x, y: R.body.getPosition().y, power: hard });
           }
-          if (S.rng() < (R.flipChance || 0)) { R.flipped = !R.flipped; if (R.flipped) say(S, `${R.name} lands upside down` + (R.W.invert ? ', keeps driving' : R.W.invertDrive ? ', drives on but the weapon points at the floor' : ', weapon is useless now'), R.id, true); }
+          if (hard > 0.2 && R.alive && !(R.onSide > 0) && S.rng2() < R.prof.pSide) { // lands on its side: balances, rocks a bit, then falls one way or the other
+            R.onSide = R.prof.tSide * (0.7 + 0.6 * S.rng2()); R.sideDir = S.rng2() < 0.5 ? 1 : -1; R.sidePrevFlip = R.flipped;
+            const pp = R.body.getPosition(); callout(S, 'ON ITS SIDE!', pp.x, pp.y, false); say(S, `${R.name} lands on its side`, R.id);
+          } else if (S.rng() < (R.flipChance || 0)) { R.flipped = !R.flipped; if (R.flipped) say(S, `${R.name} lands upside down` + (R.W.invert ? ', keeps driving' : R.W.invertDrive ? ', drives on but the weapon points at the floor' : ', weapon is useless now'), R.id, true); }
           R.airMax = 0; R.flipChance = 0;
         }
       }
       if (R.lifted > 0) R.lifted -= DT;
+      if (R.onSide > 0 && R.airborne <= 0) { R.onSide -= DT; if (S.step % 18 === 0) R.body.applyAngularImpulse((S.rng2() - 0.5) * 6, true); if (R.onSide <= 0 && R.alive) sideSettle(S, R, false); }
       // pit
       if (S.arena.pit && R.airborne <= 0 && !R.inPit) {
         const p = R.body.getPosition();
@@ -2012,9 +2047,9 @@
 
   function run(opts, maxT = 200) { const S = create(Object.assign({ countdown: 0 }, opts)); while (!S.over && S.t < maxT) { step(S); S.fx.length = 0; } return S; }
 
-  const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,72,60,17,25,78,85],[28,null,35,53,60,33,47],[40,65,null,87,48,52,15],[83,47,13,null,65,57,43],[75,40,52,35,null,42,45],[22,67,48,43,58,null,40],[15,53,85,57,55,60,null]],"fights":60};
+  const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,70,62,18,17,55,88],[30,null,40,75,53,42,62],[38,60,null,72,60,42,28],[82,25,28,null,62,52,42],[83,47,40,38,null,33,43],[45,58,58,48,67,null,37],[12,38,72,58,57,63,null]],"fights":60}; // open floor only (8 Nov: pit removed)
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
-  const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":15,"per":{"Juggernaut":25,"Hornet":17,"Whirlwind":10,"Brawler":12,"Mauler":8,"Sawblast":28,"Whaler":8}},"gunner":{"avg":9,"per":{"Juggernaut":4,"Hornet":3,"Whirlwind":12,"Brawler":6,"Mauler":8,"Sawblast":18,"Whaler":13}},"laser":{"avg":12,"per":{"Juggernaut":17,"Hornet":2,"Whirlwind":10,"Brawler":10,"Mauler":10,"Sawblast":16,"Whaler":16}},"booster":{"avg":9,"per":{"Juggernaut":1,"Hornet":-1,"Whirlwind":16,"Brawler":19,"Mauler":-3,"Sawblast":28,"Whaler":2}},"blocker":{"avg":3,"per":{"Juggernaut":6,"Hornet":-6,"Whirlwind":8,"Brawler":8,"Mauler":-2,"Sawblast":3,"Whaler":7}},"bodyguard":{"avg":6,"per":{"Juggernaut":21,"Hornet":0,"Whirlwind":-2,"Brawler":3,"Mauler":4,"Sawblast":12,"Whaler":4}},"waller":{"avg":11,"per":{"Juggernaut":7,"Hornet":2,"Whirlwind":6,"Brawler":8,"Mauler":16,"Sawblast":21,"Whaler":18}},"spotter":{"avg":9,"per":{"Juggernaut":18,"Hornet":5,"Whirlwind":13,"Brawler":6,"Mauler":5,"Sawblast":14,"Whaler":4}},"jammer":{"avg":9,"per":{"Juggernaut":22,"Hornet":3,"Whirlwind":-8,"Brawler":8,"Mauler":10,"Sawblast":12,"Whaler":16}}}};
-  const API = { DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
+  const API = { sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
