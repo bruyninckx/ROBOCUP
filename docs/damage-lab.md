@@ -201,3 +201,14 @@ Kev: which upgrades are useful (armour, chips, weapon)? Dream: upgrade the main 
   - Big battery: +3.5 average, -6 to +10.
   - Helper drones (earlier table): +3 to +15.
 - Full numbers: `tools/damage-lab/upgrades-results.json`.
+
+## New mechanical weapons (8 Nov)
+Kev: figure out more different mechanical weapons. Four new ones, each a real body on a motorised joint, so the physics does the hitting (trial robots in the preset list):
+- **Shell spinner** (Gyro): the whole outer shell spins round the robot on a joint. The shell is sized to cover everything bolted to the chassis and carries two teeth. No front or back; it is the armour too (240 HP). Slow to spin up, every hit spins it down.
+- **Sweeper axe** (Scythe): a 0.62 m axe on a pivot at the nose, swings across the front like a wiper (22 rad/s) while anything is in reach. Can snag in the other robot.
+- **Twin grinders** (Mincer): two saws on the front corners spinning inwards; the edge drags the victim into the gap. Both saws in the same robot = MINCED!
+- **Clapper arms** (Pincher): two arms on the front corners slam shut from the sides, squeeze for 1.8 s while the robot drives its victim to a hazard, then let go with a shove (TOSSED!).
+- Per-robot damage knob (`dmgK`, like the market robots): Gyro 1.3, Scythe 1.15, Mincer 1.7, Pincher 1.5.
+- `node newweap.js 10` (vs the 7 market robots, 70 fights each, fresh seeds 9201+): Gyro 57% (49 s median, 16.7 big moments/min), Scythe 49% (53 s, 15.6), Mincer 56% (61 s, 13.8), Pincher 51% (68 s, 15.8). The market robots score 16-26 big moments/min, the old guns about 13.
+- Worst matchups: Gyro and Pincher vs Whaler (10% / 0%: the harpoon reels them in), Scythe vs Juggernaut (10%), Mincer vs Brawler (20%).
+- 1v1 fights of all existing robots unchanged (same seeds, same fights).
