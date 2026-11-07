@@ -357,7 +357,7 @@
       if (d >= 16 && !h.inner && h.x != null) callout(S, CALL[k] || 'SMASH!', h.x, h.y, d >= 30);
     }
     if (h.lp && part.kind !== 'internal') addDent(part, h.lp, d);
-    if (d >= 18) S.fx.push({ type: 'bigHit', x: h.x, y: h.y, power: d });
+    if (d >= 18) { let fx0 = h.x, fy0 = h.y; if (fx0 == null || fy0 == null) { const q = R.body.getPosition(); fx0 = q.x; fy0 = q.y; } S.fx.push({ type: 'bigHit', x: fx0, y: fy0, power: d }); }
     // damage travels inwards
     const pen = h.noPen ? 0 : h.pen == null ? 1 : h.pen;
     const toInternal = (amt) => {
@@ -1186,7 +1186,7 @@
           const hard = R.airMax;
           if (hard > 0.35) {
             const n = 1 + Math.floor(S.rng() * 2);
-            for (let i = 0; i < n; i++) { const cand = R.parts.filter(p => p.attached && p.body === R.body); const p = cand[Math.floor(S.rng() * cand.length)]; if (p) hit(S, p, hard * 22, { cause: 'landing', src: R.enemy, lp: centroid(p.verts), blp: centroid(p.verts) }); }
+            for (let i = 0; i < n; i++) { const cand = R.parts.filter(p => p.attached && p.body === R.body); const p = cand[Math.floor(S.rng() * cand.length)]; if (p) { const c0 = centroid(p.verts), w0 = R.body.getWorldPoint(V(c0[0], c0[1])); hit(S, p, hard * 22, { cause: 'landing', src: R.enemy, lp: c0, blp: c0, x: w0.x, y: w0.y }); } }
             S.fx.push({ type: 'thud', x: R.body.getPosition().x, y: R.body.getPosition().y, power: hard });
           }
           if (S.rng() < (R.flipChance || 0)) { R.flipped = !R.flipped; if (R.flipped) say(S, `${R.name} lands upside down` + (R.W.invert ? ', keeps driving' : R.W.invertDrive ? ', drives on but the weapon points at the floor' : ', weapon is useless now'), R.id, true); }

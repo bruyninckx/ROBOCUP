@@ -711,6 +711,8 @@
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
     if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
+    for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) if (!Number.isFinite(cam[k])) cam[k] = k.endsWith('z') ? 1 : 0; // never lose the arena to a bad number
+    if (!Number.isFinite(shake)) shake = 0;
     shake *= Math.exp(-rdt * 8);
     if (S) {
       for (const R of S.robots) R.drumSpin = (R.drumSpin || 0) + (R.drumE || 0) * rdt * ts * 3;
