@@ -125,3 +125,25 @@ Kev: helper drones as upgrades (not in the market deck) that can turn a battle, 
 - **Top plate**: every robot has a lid over its electronics (18 HP + 26 per top armour level). Overhead hits put 60% into the lid, big chassis hits (9+) rattle it for 30% extra; below 40% it rattles loose, at 0 it flies off as debris ("LID OFF!"): top armour no longer counts and the processor chip is exposed (35% of damage going inside now hits the chip, overhead hits go straight for it).
 - **Processor chip** (30 HP, only reachable once the lid is gone). Every hit on it (2.2 s cooldown) rolls one effect: chip glitch (steering haywire), REBOOTING (frozen 1-2.5 s, weapon dead), WIRES CROSSED (controls reversed), BERSERK (charges straight in, never backs off, +30% damage), MISFIRE (weapon flickers on and off). At 0 HP: BRAIN FRIED, the robot limps on backup control (60% speed, wanders, stock AI, module and drones dead).
 - In 42 market fights: lid off 22 times, berserk 8, crossed wires 4, reboot 4, brain fried 5. The market table barely moved (44-57%, median 63 s, 10% judges); it is updated on the page.
+
+## Flanker chip (8 Nov, experiment)
+Kev: a real flanker processor that tries to hit the sides of other robots. New processor `flanker` in the builder (1 strain):
+- While it is in the enemy's front arc (wider against front weapons: spinner, drum, flipper, glove, spear, crusher, wedge) it circles round at close range, against the direction the enemy is turning, to get behind its weapon.
+- When the enemy charges at it, it sidesteps at the last moment ("SIDESTEP!"): the enemy overshoots and shows its side.
+- From the side or the back it goes in, aiming at the enemy's rear quarter so the enemy can't turn its weapon round in time. Hits on sides and back do +25% ("FLANKED!", "BACKSTAB!").
+- If it can't get round in 3 s it commits and charges straight in for 1.2 s, then tries the other way round. It backs off to re-flank sooner than other chips (1.8 s of shoving instead of 2.5 s).
+- Every robot now tracks how much of its damage lands on the enemy's sides and back.
+
+Experiment (`node flank.js 501 504`): each market robot with its own chip vs with the flanker chip, 48 fights against the other six:
+
+| Robot | Own chip: wins, side/back share | Flanker: wins, side/back share |
+|---|---|---|
+| Juggernaut (drum) | 46%, 29% | 48%, 23% |
+| Hornet (spear) | 54%, 25% | 63%, 46% |
+| Whirlwind (spinner) | 40%, 22% | 67%, 31% |
+| Brawler (glove) | 48%, 59% | 48%, 48% |
+| Slick (gun) | 54%, 17% | 44%, 30% |
+| Hellfire (flame) | 48%, 43% | 50%, 43% |
+| Mauler (flail) | 58%, 34% | 54%, 34% |
+
+It shines on the spear (almost half its damage goes into sides and back, fights over in 39 s) and the bar spinner (+27 win points: too strong as it stands). Pushing weapons (drum, glove) do worse: they want to face the enemy and shove, and Juggernaut's grappling hook keeps pulling flankers back in front of it. On the gunner it hits more sides but loses its kiting distance. The market robots keep their own chips; the flanker is a builder option for now.
