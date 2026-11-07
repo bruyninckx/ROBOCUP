@@ -6626,7 +6626,14 @@ html, body {
     requestAnimationFrame(loop);
     const dt = Math.min(0.1, (now - lastT) / 1000);
     lastT = now;
-
+    update(dt);
+    renderWorld(now);
+    updateHelp(now);
+  }
+  // Kev, 7 Nov (online test): a browser stops drawing a tab that isn't on screen, and the fight stopped with it
+  // (the host's fight runs everyone's game). A timer keeps the game going in a background tab.
+  setInterval(() => { const now = performance.now(); if (now - lastT > 300) { const dt = Math.min(2, (now - lastT) / 1000); lastT = now; update(dt); } }, 250);
+  function update(dt) {
     if (G && !G.over) { scoutWork(G.phase === 'fight' ? 3 : 14); if (scoutOpen) renderScout(false); if (G.phase === 'upkeep' || G.phase === 'market') renderStash(); }
     if (G && G.phase === 'fight' && G.fight && G.fight.B) {
       const F = G.fight, B = F.B;
@@ -6639,7 +6646,7 @@ html, body {
       else if (!F.rolloutDone) {
         // intro: wait for the arena to open up, roll in (1.6 s), then a 3 s countdown; the sim stays frozen until "FIGHT!"
         const T_OPEN = 0.6, T_ROLL = 1.6, T_COUNT = 3;
-        F.introT = (F.introT || 0) + Math.min(dt, 0.1);
+        F.introT = (F.introT || 0) + Math.min(dt, 0.5);
         F.rollout = Math.max(0, Math.min(1, (F.introT - T_OPEN) / T_ROLL));
         F.countdown = F.introT >= T_OPEN + T_ROLL ? F.introT - T_OPEN - T_ROLL : null;
         if (F.countdown != null && F.countdown >= T_COUNT) {
@@ -6653,6 +6660,7 @@ html, body {
         if (cl && netTick.fid === F.fid && !B.over) {   // stay on the host's clock: catch up when behind, hold when ahead
           const target = netTick.tick + Math.min(90, (performance.now() - netTick.at) * 0.06);
           let n = 0; while (B.tick < target - 8 && !B.over && n++ < 900) Sim.step(B, 1 / 60);
+          if (B.tick < target - 8) accT = 0;   // still behind: catch up over the next frames
           if (B.tick > target + 12) accT = 0;
         }
         while (accT >= 1 / 60 && !B.over) {
@@ -6675,8 +6683,6 @@ html, body {
         }
       }
     }
-    renderWorld(now);
-    updateHelp(now);
   }
 
   /* ---------- Top Pill & Hand Controls ---------- */

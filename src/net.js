@@ -351,10 +351,12 @@
       el.innerHTML = '<div class="nl-box"><h3>🌐 Join room <span class="nl-code">' + esc(room) + '</span></h3>' + (err ? '<div style="color:#b45309;font-weight:700">' + esc(err) + '</div>' : '') +
         '<div class="nl-row">Your name <input type="text" id="nlName" value="' + esc(C.name) + '" maxlength="20" placeholder="e.g. Kev"><button id="nlJoin">Join</button></div>' +
         '<div class="nl-note">Rejoining a game? Use the same name as before.</div><div class="nl-row"><button class="sec" id="nlSolo">Play solo instead</button></div></div>';
-      const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note">Connecting…</div>'); T.ready.then(hello).catch(e => drawJoin('Could not connect: ' + (e.message || e.type || e))); };
+      const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note">Connecting…</div>');
+        T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
+          drawJoin(/unavailable|could not connect/i.test(String(e && (e.type || e.message))) ? 'No game in room ' + room + ' right now. Check the code, or ask the host to open the game first.' : 'Could not connect: ' + (e.message || e.type || e)); }); };
       $('#nlJoin').onclick = go; $('#nlName').onkeydown = e => { if (e.key === 'Enter') go(); };
       $('#nlSolo').onclick = () => { location.href = location.href.split('?')[0]; };
-      if (C.name && qs.get('name')) go();
+      if (C.name && qs.get('name') && !err && !C.autoTried) { C.autoTried = true; go(); }   // only once: a failed join must not retry in a loop
     }
     function drawClientLobby() {
       const st = C.lobby; if (!st) return;
