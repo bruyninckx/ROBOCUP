@@ -224,6 +224,8 @@
     if (part.key === 'wedge') return '#7D8078';
     if (part.key === 'drum') return '#8C8F86';
     if (part.key === 'jaws') return '#6F7369';
+    if (part.key === 'lifter') return '#D9B43A';
+    if (part.key === 'vdisc') return '#C9CBC4';
     return STEEL_D;
   }
   function decorate(part, R, i) {
@@ -442,6 +444,19 @@
       const bp = q.body.getPosition(), cp = R.body.getWorldPoint(planck.Vec2(R.hl - 0.04, q.mount[1])); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke();
       drawBuzz(q, { buzzW: q.spin, buzzMax: R.buzzMax, buzzR: 0.12 });
     }
+    if (R.tails) {
+      ctx.strokeStyle = '#4A4540'; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath(); const r0 = R.body.getWorldPoint(planck.Vec2(-R.hl - 0.02, 0)); ctx.moveTo(r0.x, r0.y);
+      for (const q of R.tails) { if (!q.attached) break; const c = q.body.getPosition(); ctx.lineTo(c.x, c.y); } ctx.stroke(); ctx.lineCap = 'butt';
+      for (const q of R.tails) if (q.attached) onBody(q, () => { drawPart(q, q.label === 'Tail mace' ? '#5B5E57' : '#8C8F86', R, decorate(q, R, 0)); if (q.label === 'Tail mace') { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; for (const [x, y, dx, dy] of [[-0.03, -0.08, 0, -0.06], [-0.03, 0.08, 0, 0.06], [-0.13, 0, -0.06, 0], [0.04, -0.05, 0.04, -0.04], [0.04, 0.05, 0.04, 0.04]]) { ctx.beginPath(); ctx.moveTo(x - 0.02, y); ctx.lineTo(x + dx, y + dy); ctx.lineTo(x + 0.02, y); ctx.closePath(); ctx.fill(); ctx.stroke(); } } });
+    }
+    if (R.ramHead && R.ramHead.attached) {
+      const a1 = R.body.getWorldPoint(planck.Vec2(R.hl - 0.05, 0)), a2 = R.ramHead.body.getPosition(); ctx.strokeStyle = '#4A4540'; ctx.lineWidth = 0.09; ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke(); ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = 0.04; ctx.stroke();
+      onBody(R.ramHead, () => { drawPart(R.ramHead, '#6F7369', R, decorate(R.ramHead, R, 0)); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; for (const y of [-0.1, 0, 0.1]) { ctx.beginPath(); ctx.moveTo(0.12, y - 0.03); ctx.lineTo(0.2, y); ctx.lineTo(0.12, y + 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } });
+    }
+    if (R.spec.weapon === 'vdisc' && R.tool && R.tool.attached) { // motion stripes on the spinning disc
+      const e = R.vE || 0; if (e > 0.15) { ctx.save(); const p0 = R.body.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(R.body.getAngle()); ctx.strokeStyle = `rgba(60,55,50,${0.3 + 0.5 * e})`; ctx.lineWidth = PX * 2; const ph = (performance.now() / (60 - 40 * e)) % 1; for (let k = 0; k < 4; k++) { const x = R.hl + 0.01 + ((k / 4 + ph) % 1) * 0.32; ctx.beginPath(); ctx.moveTo(x, -0.035); ctx.lineTo(x + 0.03, 0.035); ctx.stroke(); } ctx.restore(); }
+    }
+    if (R.carry) { const p0 = R.carry.robot.body.getPosition(); ctx.strokeStyle = 'rgba(232,197,71,0.8)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.arc(p0.x, p0.y, R.carry.robot.hl + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); }
     if (R.claps) for (const q of R.claps) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = HAZ; ctx.fillRect(0.38, -0.05, 0.1, 0.1); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.strokeRect(0.38, -0.05, 0.1, 0.1); bolt(0, 0); });
   }
   function drawBlade(part, R) {

@@ -103,6 +103,10 @@
     sweeper: { label: 'Sweeper axe', cat: 'front', mass: 11, invert: true, d: 'Long axe on a pivot at the nose that swings across the front like a wiper: catches robots that try to get round the side.' },
     twinsaw: { label: 'Twin grinders', cat: 'front', mass: 12, invert: true, d: 'Two saws on the front corners spinning inwards: they suck whatever touches them into the gap and grind it from both sides.' },
     clapper: { label: 'Clapper arms', cat: 'front', mass: 13, invert: true, d: 'Two big arms on the front corners slam shut from the sides, squeeze, and hold on while the robot drags its victim to a hazard.' },
+    tail: { label: 'Thwack tail', cat: 'rear', mass: 10, invert: true, d: 'A jointed tail with a spiked mace on the end. Up close the robot spins on the spot and the tail whips round.' },
+    lifter: { label: 'Lifter fork', cat: 'front', mass: 9, invert: true, d: 'Two low forks slide under the enemy, lift it off its wheels, carry it to a hazard and tip it over.' },
+    batram: { label: 'Battering ram', cat: 'front', mass: 16, invert: true, d: 'A heavy spiked ram head on a rail: fires forward when something is in reach, and keeps sliding forward on its own weight when the robot stops hard.' },
+    vdisc: { label: 'Vertical disc', cat: 'front', mass: 13, invert: true, d: 'A heavy disc spinning upright on the nose: hits from below and throws robots high in the air. Needs lining up, and the kick bounces itself back too.' },
     harpoon: { label: 'Harpoon gun', cat: 'top', mass: 9, invert: false, harpoon: true, d: 'Spears the enemy on a rope, reels it in and swings it round into the walls. The rope can snap.' },
     rapid: { label: 'Rapid gun', cat: 'top', mass: 7, invert: false, gun: { rate: 8, dmg: 2.4, speed: 26, spread: 0.07, range: 3.2, r: 0.025, kick: 1.5 }, d: 'Bullet hose. Armour shrugs most of it off.' },
     medium: { label: 'Medium gun', cat: 'top', mass: 8, invert: false, gun: { rate: 2, dmg: 8, speed: 22, spread: 0.035, range: 3.6, r: 0.035, kick: 7 }, d: 'All-rounder. Real slugs: they ricochet off walls and shove robots.' },
@@ -139,9 +143,9 @@
     spiked: { label: 'Spiked plate', hpK: 0.9, thrK: 1, massK: 1.2, rest: 0.2, blunt: 1, sharpK: 1, d: 'Whoever rams it gets hurt.' },
     fibre: { label: 'Fibreglass shell', hpK: 0.55, thrK: 0.5, massK: 0.35, rest: 0.3, blunt: 1.2, sharpK: 1.2, d: 'Very light (faster robot), shatters in a shower of shards.' },
   };
-  const SHARP = { shell: 1, sweeper: 1, twinsaw: 1, buzzsaw: 1, harpoon: 1, spinner: 1, saw: 1, spear: 1, spikes: 1, floorsaw: 1, flame: 1, laser: 1, crusher: 1, flail: 1 };
+  const SHARP = { vdisc: 1, shell: 1, sweeper: 1, twinsaw: 1, buzzsaw: 1, harpoon: 1, spinner: 1, saw: 1, spear: 1, spikes: 1, floorsaw: 1, flame: 1, laser: 1, crusher: 1, flail: 1 };
   const frontTool = w => WEAPONS[w].cat === 'front' || w === 'spinner';
-  const CALL = { shell: 'SPUN OUT!', sweeper: 'SWEPT!', twinsaw: 'MINCED!', clapper: 'CLAMPED!', buzzsaw: 'GRIND!', rocket: 'KABOOM!', harpoon: 'HOOKED!', spinner: 'SHREDDED!', flail: 'WRECKED!', glove: 'KAPOW!', spear: 'SKEWERED!', hammer: 'BONK!', drum: 'LAUNCHED!', crusher: 'CRUNCH!', slam: 'INTO THE WALL!', spikeplate: 'OUCH!', heavy: 'BOOM!', mortar: 'BOOM!', ceiling: 'FLATTENED!', saw: 'SLICED!' };
+  const CALL = { tail: 'THWACK!', lifter: 'LIFTED!', batram: 'BATTERED!', vdisc: 'SKY HIGH!', shell: 'SPUN OUT!', sweeper: 'SWEPT!', twinsaw: 'MINCED!', clapper: 'CLAMPED!', buzzsaw: 'GRIND!', rocket: 'KABOOM!', harpoon: 'HOOKED!', spinner: 'SHREDDED!', flail: 'WRECKED!', glove: 'KAPOW!', spear: 'SKEWERED!', hammer: 'BONK!', drum: 'LAUNCHED!', crusher: 'CRUNCH!', slam: 'INTO THE WALL!', spikeplate: 'OUCH!', heavy: 'BOOM!', mortar: 'BOOM!', ceiling: 'FLATTENED!', saw: 'SLICED!' };
   function callout(S, text, x, y, big) { if (!big && S.t - (S.lastCall == null ? -9 : S.lastCall) < 0.7) return; S.lastCall = S.t; S.fx.push({ type: 'callout', text, x, y, big: !!big }); }
 
   // The 7 market robots: Battleground drives, processors and modules mixed into the arcade rules (8 Nov, 60 fights per matchup on fresh seeds, open floor + centre pit, see docs/damage-lab.md).
@@ -157,6 +161,10 @@
     Rocketeer: { weapon: 'rocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, trial: true },
     Sawblast: { weapon: 'sawrocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'wedge', market: true },
     Whaler: { weapon: 'harpoon', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'round', market: true },
+    Thwacker: { weapon: 'tail', chassis: 'medium', drive: '2wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 2, side: 2, rear: 0, top: 1 }, dmgK: 3.8, trial: true },
+    Forklift: { weapon: 'lifter', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 3.0, trial: true },
+    Ramrod: { weapon: 'batram', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 0.75, trial: true },
+    Vertigo: { weapon: 'vdisc', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 0.75, trial: true },
     Gyro: { weapon: 'shell', chassis: 'medium', drive: '2wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 0, rear: 0, top: 1 }, dmgK: 1.3, trial: true },
     Scythe: { weapon: 'sweeper', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.15, trial: true },
     Mincer: { weapon: 'twinsaw', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.7, trial: true },
@@ -534,6 +542,34 @@
         q.sep = true; q.side = sg; R.claps.push(q);
       }
       R.wmotor = addInt('wmotor', 'Arm hydraulics', [0.3 * hl, 0], 40);
+    } else if (w === 'tail') {
+      // three segments on hinges off the back, the last one carries the mace
+      R.tails = []; let prev = body, ax = -hl - 0.02;
+      const segs = [[0.3, 0.03, 1.5, 70, 0.5, 'Tail root'], [0.3, 0.03, 1.5, 70, 0.5, 'Tail middle'], [0.26, 0.09, 6, 120, 1.9, 'Tail mace']];
+      segs.forEach(([len, hw2, ms, hp, sh, lb], k) => {
+        const c = body.getWorldPoint(V(ax - len / 2, 0)), sb = S.world.createBody({ type: 'dynamic', position: c, angle: ang, bullet: k === 2, angularDamping: 0.2, linearDamping: 0.2 });
+        const vs = k === 2 ? [[len / 2, -0.03], [-len / 2 + 0.1, -hw2], [-len / 2, -0.04], [-len / 2, 0.04], [-len / 2 + 0.1, hw2], [len / 2, 0.03]] : rect(0, 0, len / 2, hw2);
+        const q = addPart('tail', lb, 'weapon', vs, { mass: ms, hp, sharp: sh, tough: 0.3, rest: 0.3, friction: 0.4, body: sb, z: 2 });
+        q.home = vs.map(v => [v[0] + ax - len / 2, v[1]]);
+        q.joint = S.world.createJoint(pl.RevoluteJoint({ enableLimit: true, lowerAngle: k ? -1.0 : -1.2, upperAngle: k ? 1.0 : 1.2, referenceAngle: 0 }, prev, sb, body.getWorldPoint(V(ax, 0))));
+        q.sep = true; if (R.tails.length) R.tails[R.tails.length - 1].child = q; R.tails.push(q); prev = sb; ax -= len;
+      });
+      R.tailLen = -ax - hl;
+    } else if (w === 'lifter') {
+      R.forks = [];
+      for (const sg of [-1, 1]) { const q = addPart('lifter', sg < 0 ? 'Left fork' : 'Right fork', 'weapon', [[hl, sg * hw * 0.55 - 0.035], [hl + 0.34, sg * hw * 0.55 - 0.025], [hl + 0.36, sg * hw * 0.55], [hl + 0.34, sg * hw * 0.55 + 0.025], [hl, sg * hw * 0.55 + 0.035]], { mass: 4, hp: 120, sharp: 0.3, tough: 0.3, friction: 0.05, z: 2 }); R.forks.push(q); }
+      R.wmotor = addInt('wmotor', 'Lift ram', [0.3 * hl, 0], 40); R.carry = null;
+    } else if (w === 'batram') {
+      const gx = hl + 0.12, rb = S.world.createBody({ type: 'dynamic', position: body.getWorldPoint(V(gx, 0)), angle: ang, linearDamping: 0.3, angularDamping: 2 });
+      const hv = [[-0.1, -0.16], [0.08, -0.16], [0.13, -0.06], [0.14, 0], [0.13, 0.06], [0.08, 0.16], [-0.1, 0.16]];
+      R.ramHead = addPart('batram', 'Ram head', 'weapon', hv, { mass: 12, hp: 210, sharp: 0.9, tough: 0.2, rest: 0.25, body: rb, z: 2 });
+      R.ramHead.home = hv.map(v => [v[0] + gx, v[1]]);
+      R.rjoint = S.world.createJoint(pl.PrismaticJoint({ enableLimit: true, lowerTranslation: 0, upperTranslation: 0.38, enableMotor: true, maxMotorForce: 600, motorSpeed: -2 }, body, rb, body.getWorldPoint(V(gx, 0)), body.getWorldVector(V(1, 0))));
+      R.ramHead.sep = true; R.ramHead.joint = R.rjoint; R.ramHead.jname = 'rjoint';
+      R.wmotor = addInt('wmotor', 'Ram cylinder', [0.3 * hl, 0], 40);
+    } else if (w === 'vdisc') {
+      R.tool = addPart('vdisc', 'Vertical disc', 'weapon', rect(hl + 0.16, 0, 0.17, 0.04), { mass: 10, hp: 140, sharp: 2.2, tough: 0.3, z: 2 });
+      R.wmotor = addInt('wmotor', 'Disc motor', [0.62 * hl, 0], 40); R.vE = 0;
     } else if (w === 'hammer') {
       R.arm = addInt('arm', 'Axe arm', [0, 0], 75, { top: true });
       R.wmotor = addInt('wmotor', 'Arm actuator', [-0.3 * hl, -0.2 * hw], 40);
@@ -565,6 +601,9 @@
     if (R.sweep && !alivePart(R.sweep)) return false;
     if (R.twins && !R.twins.some(alivePart)) return false;
     if (R.claps && !R.claps.some(alivePart)) return false;
+    if (R.tails && !R.tails.every(alivePart)) return false;
+    if (R.forks && !R.forks.some(alivePart)) return false;
+    if (R.ramHead && !alivePart(R.ramHead)) return false;
     if (R.stun > 0 || R.chipFreeze > 0 || R.misfireOff) return false;
     return true;
   }
@@ -760,7 +799,9 @@
       for (let f = b.getFixtureList(); f; f = f.getNext()) f.setFilterData({ groupIndex: 0, categoryBits: 1, maskBits: 0xffff });
       b.setLinearDamping(1.0); b.setAngularDamping(0.8); b.setBullet(true);
       const v = b.getLinearVelocity(); b.setLinearVelocity(V(v.x + kick[0] * 1.5, v.y + kick[1] * 1.5));
-      S.debris.push(part); S.fx.push({ type: 'detach', x: b.getPosition().x, y: b.getPosition().y }); return;
+      S.debris.push(part); S.fx.push({ type: 'detach', x: b.getPosition().x, y: b.getPosition().y });
+      if (part.child && part.child.attached) detach(S, part.child, kick);
+      return;
     }
     if (part.key === 'blade' || part.key === 'ball' || part.key === 'glove' || part.key === 'buzz') { // separate body already
       const jk = { blade: 'joint', ball: 'rope', glove: 'gjoint', buzz: 'bjoint' }[part.key];
@@ -794,7 +835,7 @@
     S.fx.push({ type: 'ko', robot: R.id });
   }
 
-  const CAUSES = { shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
+  const CAUSES = { tail: 'thwack tail', lifter: 'lifter fork', batram: 'battering ram', vdisc: 'vertical disc', shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
   const causeLabel = c => CAUSES[c] || c || 'hit';
 
   // ---------- contacts -> damage ----------
@@ -878,7 +919,7 @@
     const blp = px.attached && px.body === px.robot.body ? [lp.x, lp.y] : null;
     let dir = null; if (uy.part && uy.part.body) { const v = uy.part.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)); const L = Math.hypot(v.x, v.y) || 1; dir = [v.x / L, v.y / L]; }
     // arcade knockback: weapon hits throw the victim
-    if (src && px.attached && (cause === 'spinner' || cause === 'flail' || cause === 'spear' || cause === 'shell' || cause === 'sweeper') && J > 12 && uy.part && uy.part.body) {
+    if (src && px.attached && (cause === 'spinner' || cause === 'flail' || cause === 'spear' || cause === 'shell' || cause === 'sweeper' || cause === 'tail' || cause === 'batram') && J > 12 && uy.part && uy.part.body) {
       const tb = px.robot.body, tp = tb.getWorldCenter(), spp = uy.part.body.getWorldCenter(); let kx = tp.x - spp.x, ky = tp.y - spp.y; const kl = Math.hypot(kx, ky) || 1;
       const mag = Math.min(140, J * 0.8) * ARC.knock; knock(px.robot, kx / kl * mag, ky / kl * mag, tp);
       if (mag > 40) { px.robot.airborne = Math.max(px.robot.airborne, 0.15); px.robot.airMax = Math.max(px.robot.airMax, 0.15); px.robot.thrownBy = src; }
@@ -890,7 +931,7 @@
       const close = (vs.x - vt.x) * ux + (vs.y - vt.y) * uy2;
       if (close > 1.6) { src.ramCd = 1.8; d += Math.min(22, 5 + close * 4); knock(px.robot, ux * 55, uy2 * 55); px.robot.stun = Math.max(px.robot.stun, 0.25); S.fx.push({ type: 'punch', x: c.x, y: c.y, power: 20 }); callout(S, 'RAMMED!', c.x, c.y, close > 3); }
     }
-    hit(S, px, d, { src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' ? 1.3 : 0.8, ignoreThr: cause === 'spear' });
+    hit(S, px, d, { src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' || cause === 'tail' ? 1.3 : cause === 'batram' ? 1.2 : 0.8, ignoreThr: cause === 'spear' });
   }
 
   // begin-contacts: drum kicks and saw discs
@@ -905,6 +946,7 @@
           const db = u.drone.body, dp = db.getPosition(), va = db.getLinearVelocity(), vb = o.part.body.getLinearVelocityFromWorldPoint(dp), rs = Math.hypot(vb.x - va.x, vb.y - va.y);
           if (rs > 1.2) { damageDrone(S, u.drone, Math.min(60, rs * 2.6 * Math.max(0.5, o.part.sharp)), o.part.robot, dp.x, dp.y); db.applyLinearImpulse(V((vb.x - va.x) * db.getMass() * 0.8, (vb.y - va.y) * db.getMass() * 0.8), dp, true); S.fx.push({ type: 'spark', x: dp.x, y: dp.y, power: 20 }); }
         }
+        if (u.part && u.part.attached && u.part.key === 'vdisc' && o.part && o.part.attached && o.part.robot !== u.part.robot) vertKick(S, u.part.robot, o.part);
         if (u.part && u.part.attached && u.part.key === 'drum' && o.part && o.part.attached && o.part.robot !== u.part.robot) drumKick(S, u.part.robot, o.part);
       }
     }
@@ -931,6 +973,21 @@
     const lp = target.body.getLocalPoint(q);
     hit(S, target, 22, { src: R, cause: 'glove', lp: [lp.x, lp.y], blp: target.body === T.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, dir: [fwd.x, fwd.y], pen: 0.9 });
     S.fx.push({ type: 'punch', x: q.x, y: q.y, power: 30 });
+  }
+  // vertical disc: hits from below, throws the victim high and flips it; the kick bounces the vert back too
+  function vertKick(S, R, target) {
+    if (!weaponOk(R) || R.vE < 0.35 || R.cool > 0) return;
+    const T = target.robot, e = R.vE, b = R.body, fwd = b.getWorldVector(V(1, 0)), mRatio = clamp(b.getMass() / T.body.getMass(), 0.5, 1.6);
+    const dk = target.key === 'wedge' || target.key === 'flipper' || target.key === 'lifter' ? 0.6 : 1; // low plates get under the disc
+    const imp = 55 * e * mRatio * dk;
+    knock(T, fwd.x * imp, fwd.y * imp); T.body.applyAngularImpulse((S.rng() - 0.5) * 40 * e, true);
+    launch(S, T, (0.3 + 0.5 * e * mRatio) * dk, R); T.flipChance = Math.max(T.flipChance || 0, 0.35 + 0.4 * e);
+    b.applyLinearImpulse(V(-fwd.x * imp * 0.6, -fwd.y * imp * 0.6), b.getWorldCenter(), true); launch(S, R, 0.1 + 0.15 * e, null);
+    const p = target.body.getWorldCenter(), lp = target.body.getLocalPoint(p);
+    hit(S, target, 36 * e * dk, { src: R, cause: 'vdisc', lp: [lp.x, lp.y], blp: target.body === T.body ? [lp.x, lp.y] : null, x: p.x, y: p.y, dir: [fwd.x, fwd.y], pen: 1.3 });
+    R.vE -= 0.85; R.cool = 0.3;
+    S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 55 });
+    if (e > 0.7) callout(S, 'SKY HIGH!', p.x, p.y, true);
   }
   function drumKick(S, R, target) {
     if (!weaponOk(R) || R.drumE < 0.3 || R.cool > 0) return;
@@ -1067,12 +1124,12 @@
     } else if (w === 'spinner' || w === 'flail' || w === 'shell') {
       const spun = R.bladeW / R.bladeMax;
       if (ok && spun < 0.65 && dist < 2.6) { [tx, ty] = orbitPt(2.4); }
-    } else if (w === 'wedge' || (w === 'crusher' && R.grab) || (w === 'clapper' && R.clampT > 0)) {
+    } else if (w === 'wedge' || (w === 'crusher' && R.grab) || (w === 'clapper' && R.clampT > 0) || (w === 'lifter' && R.carry)) {
       // push the victim towards the closest hazard (pit, saw, or the wall)
       const hz = nearestHazard(S, ep.x, ep.y);
       const hx = hz[0] - ep.x, hy = hz[1] - ep.y, hl = Math.hypot(hx, hy) || 1;
       if (dist < 1.4) { tx = ep.x + hx / hl * 1.2; ty = ep.y + hy / hl * 1.2; }
-      if ((w === 'crusher' && R.grab) || (w === 'clapper' && R.clampT > 0)) { tx = p.x + hx / hl * 2; ty = p.y + hy / hl * 2; }
+      if ((w === 'crusher' && R.grab) || (w === 'clapper' && R.clampT > 0) || (w === 'lifter' && R.carry)) { tx = p.x + hx / hl * 2; ty = p.y + hy / hl * 2; }
     }
     // kiter chip on a melee robot: hit and run
     if (R.kiteCd > 0) R.kiteCd -= DT;
@@ -1178,6 +1235,8 @@
       const pinning = dist < R.hl + E.hl + 0.6 && Math.abs(err) < 0.6;
       if (R.stuckT > (pinning ? 2 : 1)) { R.unstick = 0.6 + S.rng() * 0.5; R.stuckT = 0; R.orbit = -R.orbit; }
     } else R.stuckT = Math.max(0, R.stuckT - DT * 0.5);
+    // thwack tail: spin on the spot when the enemy is in reach of the tail
+    if (w === 'tail' && weaponOk(R) && E.alive && dist < R.hl + R.tailLen + E.hl + 0.8 && !(R.unstick > 0)) { const rel2 = wrap(Math.atan2(dy, dx) - a), fc = 0.45 * Math.cos(rel2) * (dist > R.hl + R.tailLen * 0.7 + E.hl ? 1 : -0.4); L = clamp(R.orbit * 0.85 + fc, -1, 1); Rr = clamp(-R.orbit * 0.85 + fc, -1, 1); R.thwack = 0.2; } // spin, and creep towards the enemy (back off when it is inside the tail)
     // a damaged radio scrambles the commands
     if (R.radio.hp / R.radio.maxHp < 0.45 && S.rng() < 0.004) R.glitch = 0.5 + S.rng();
     if (R.fried) { if (!R.wander || S.step % 240 === 0) R.wander = [S.rng() * 0.8 - 0.2, S.rng() * 0.8 - 0.2]; if (S.step % 480 < 200) [L, Rr] = R.wander; L *= 0.6; Rr *= 0.6; }
@@ -1318,6 +1377,43 @@
     const fwd = b.getWorldVector(V(1, 0)), pos = b.getPosition();
     const front = (dx, dy) => b.getWorldPoint(V(R.hl + dx, dy));
     const mf0 = R.wmotor ? (R.wmotor.hp > 0 ? (R.wmotor.hp / R.wmotor.maxHp < 0.4 ? 0.6 : 1) : 0) : 1;
+    if (w === 'vdisc') { if (ok) R.vE = Math.min(1, R.vE + DT / 3.0 * jk * Math.min(1, pw) * mf0); else R.vE = Math.max(0, R.vE - DT / 3); return; }
+    if (w === 'tail') return; // the tail is passive: the robot spins (see think)
+    if (w === 'batram') {
+      const J = R.rjoint; if (!J) return;
+      if (R.punching > 0) { R.punching -= DT; if (R.punching <= 0) { J.setMotorSpeed(-2); J.setMaxMotorForce(600); } }
+      if (!ok || R.cool > 0 || !E.alive || R.punching > 0) return;
+      const pts = [front(0.3, 0), front(0.5, 0), front(0.62, 0), front(0.5, 0.15), front(0.5, -0.15)];
+      if (pts.some(q => topPartAt(S, q.x, q.y, R))) { J.setMotorSpeed(9 * Math.min(1, pw) * mf0); J.setMaxMotorForce(9000); R.punching = 0.16; R.cool = 1.4; b.applyLinearImpulse(V(-fwd.x * 40, -fwd.y * 40), b.getWorldCenter(), true); }
+      return;
+    }
+    if (w === 'lifter') {
+      const on = ok && mf0 > 0;
+      if (R.carry) {
+        const g = R.carry, T = g.robot; g.t -= DT; T.lifted = Math.max(T.lifted, 0.12);
+        if (g.t <= 0 || !on || !T.alive || T.inPit) {
+          if (g.joint) S.world.destroyJoint(g.joint); R.carry = null; R.cool = 1.6;
+          if (on && T.alive && !T.inPit) { // tip it over
+            knock(T, fwd.x * 85, fwd.y * 85); T.body.applyAngularImpulse((S.rng() - 0.5) * 30, true);
+            launch(S, T, 0.45, R); T.flipChance = 0.8; const tp = T.body.getPosition(); callout(S, 'TIPPED OVER!', tp.x, tp.y, true); say(S, `${R.name} tips ${T.name} over`, R.id);
+          }
+        }
+        return;
+      }
+      if (!on || R.cool > 0 || !E.alive) return;
+      const pts = [front(0.3, R.hw * 0.55), front(0.3, -R.hw * 0.55), front(0.2, 0)];
+      const tgt = pts.map(q => topPartAt(S, q.x, q.y, R)).find(Boolean);
+      if (tgt && tgt.robot.airborne <= 0 && tgt.robot.alive) {
+        const T = tgt.robot;
+        if (tgt.key === 'blade' && T.bladeW > 25 || tgt.key === 'drum' && T.drumE > 0.4 || tgt.key === 'vdisc' && T.vE > 0.4) { R.cool = 0.8; return; } // spinning weapons knock the forks away
+        if (T.body.getMass() > b.getMass() * 1.35) { T.lifted = Math.max(T.lifted, 0.5); R.cool = 1.2; return; } // too heavy: only lifts a corner
+        const q = front(0.2, 0), joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 5, dampingRatio: 0.7 }, b, T.body, q));
+        R.carry = { robot: T, joint, t: 2.4 }; T.lifted = 0.5;
+        hit(S, tgt, 6, { src: R, cause: 'lifter', x: q.x, y: q.y, lp: [0, 0] });
+        callout(S, 'LIFTED!', q.x, q.y, false); say(S, `${R.name} lifts ${T.name} off its wheels`, R.id);
+      }
+      return;
+    }
     if (w === 'shell') {
       if (R.sjoint) {
         R.sjoint.setMotorSpeed(ok ? R.bladeMax * mf0 * Math.min(1, pw) * (R.rage > 0 ? 1.15 : 1) : 0); R.sjoint.setMaxMotorTorque(ok ? 30 * jk * Math.min(1, pw) : 1);
@@ -1759,7 +1855,7 @@
       // pit
       if (S.arena.pit && R.airborne <= 0 && !R.inPit) {
         const p = R.body.getPosition();
-        if (Math.abs(p.x) < PIT && Math.abs(p.y) < PIT) { R.inPit = S.t; R.body.setLinearVelocity(V(0, 0)); R.body.setAngularVelocity(0); R.body.setType('static'); if (R.blade) { R.blade.body.setType('static'); } if (R.ball) { R.ball.body.setType('static'); R.flailArm.setType('static'); } for (const q of R.parts) if (q.sep && q.attached) q.body.setType('static'); ko(S, R, 'fell into the pit'); }
+        if (Math.abs(p.x) < PIT && Math.abs(p.y) < PIT) { R.inPit = S.t; R.body.setLinearVelocity(V(0, 0)); R.body.setAngularVelocity(0); R.body.setType('static'); if (R.blade) { R.blade.body.setType('static'); } if (R.ball) { R.ball.body.setType('static'); R.flailArm.setType('static'); } for (const q of R.parts) if (q.sep && q.attached) q.body.setType('static'); for (const Q of S.robots) if (Q.carry && (Q.carry.robot === R || Q === R)) { if (Q.carry.joint) S.world.destroyJoint(Q.carry.joint); Q.carry = null; } ko(S, R, 'fell into the pit'); }
       }
       // count-out: no way left to drive
       if (R.alive && R.flipped && !R.W.invert && R.airborne <= 0 && !(R.spec.weapon === 'hammer' && R.wmotor.hp > 0) && S.rng() < (R.spec.shape === 'round' ? 0.8 : R.spec.shape === 'chamfer' ? 0.3 : 0.12) * DT) { R.flipped = false; R.airborne = 0.25; say(S, R.spec.shape === 'round' ? `${R.name} rolls its round shell back over` : `${R.name} wriggles back onto its wheels`, R.id); }
