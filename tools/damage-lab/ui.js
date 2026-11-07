@@ -19,10 +19,11 @@
     battery: Object.entries(L.BATTERIES).map(([k, v]) => [k, v.label]),
     bumper: Object.entries(L.BUMPERS).map(([k, v]) => [k, v.label]),
     proc: Object.entries(L.PROCS).map(([k, v]) => [k, v.label]),
+    shape: Object.entries(L.SHAPES).map(([k, v]) => [k, v.label]),
     mod: Object.entries(L.MODULES).map(([k, v]) => [k, v.label]),
   };
-  const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers', proc: 'Processor', mod: 'Module' };
-  const FIELDS = ['weapon', 'chassis', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
+  const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers', proc: 'Processor', mod: 'Module', shape: 'Hull' };
+  const FIELDS = ['weapon', 'chassis', 'shape', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
   function fullSpec(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
   const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain + (sp.helpers || []).length;
@@ -31,13 +32,13 @@
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
     const pl = keys => keys.map(k => [k, `${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()})`]);
     const all = Object.keys(L.PRESETS), cur = s.custom ? '' : s.preset;
-    const presetOpts = `<optgroup label="Market robots (balanced)">${opt(pl(all.filter(k => L.PRESETS[k].market)), cur)}</optgroup><optgroup label="Arcade classics (8 Nov roster)">${opt(pl(all.filter(k => L.PRESETS[k].classic)), cur)}</optgroup><optgroup label="Test builds (not balanced)">${opt(pl(all.filter(k => !L.PRESETS[k].market && !L.PRESETS[k].classic)), cur)}</optgroup>`;
+    const presetOpts = `<optgroup label="Market robots (balanced)">${opt(pl(all.filter(k => L.PRESETS[k].market)), cur)}</optgroup><optgroup label="New weapon trials">${opt(pl(all.filter(k => L.PRESETS[k].trial)), cur)}</optgroup><optgroup label="Older robots (earlier rosters, retired)">${opt(pl(all.filter(k => L.PRESETS[k].classic)), cur)}</optgroup><optgroup label="Test builds (not balanced)">${opt(pl(all.filter(k => !L.PRESETS[k].market && !L.PRESETS[k].classic && !L.PRESETS[k].trial)), cur)}</optgroup>`;
     const frontTool = L.frontTool(sp.weapon);
     el.innerHTML = `
       <div class="bot-head"><div><div class="team">${TEAM[i].name}</div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
       <div class="grid2" style="grid-template-columns:1fr"><label for="pre${i}">Preset<select id="pre${i}">${s.custom ? '<option value="" selected>Custom build</option>' : ''}${presetOpts}</select></label></div>
       <div class="grid2">${FIELDS.map(f => `<label for="${f}${i}">${LBL[f]}<select id="${f}${i}" data-f="${f}">${opt(OPTS[f], sp[f])}</select></label>`).join('')}</div>
-      <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
+      <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${sp.shape && sp.shape !== 'box' ? ` ${L.SHAPES[sp.shape].label}: ${L.SHAPES[sp.shape].d}` : ''}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
       <div class="arm">${['front', 'side', 'rear', 'top'].map(a => `<label for="ar${a}${i}">${a} armour<select id="ar${a}${i}" data-a="${a}"${a === 'front' && frontTool ? ' disabled title="The front tool is the front armour"' : ''}>${[0, 1, 2, 3].map(n => `<option value="${n}"${n === sp.armour[a] ? ' selected' : ''}>${a === 'front' && frontTool ? 'tool' : n === 0 ? 'none' : n}</option>`).join('')}</select></label>`).join('')}</div>
       <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
       <div class="grid2 drones">${[0, 1, 2].map(k => `<label for="hp${k}${i}">Drone ${k + 1}<select id="hp${k}${i}" data-h="${k}"><option value="">none</option>${Object.entries(L.HELPERS).map(([key, v]) => `<option value="${key}"${(sp.helpers || [])[k] === key ? ' selected' : ''}>${v.label}</option>`).join('')}</select></label>`).join('')}</div>
@@ -139,6 +140,9 @@
       else if (e.type === 'slam') { shake = Math.min(0.35, shake + 0.25); hitStop = Math.max(hitStop, 0.12); flash = Math.max(flash, 0.2); for (let i = 0; i < 16; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 0.4) * 2.2, vy: Math.sin(i * 0.4) * 2.2, life: 0.9, max: 0.9, s: 0.2 }); shards(e.x, e.y, 14); }
       else if (e.type === 'pickup') { for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 0.4, max: 0.4, col: CRATE_COL[e.kind] }); } spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.4, max: 0.4, s: 0.2, col: CRATE_COL[e.kind] }); }
       else if (e.type === 'emp') { shake = Math.min(0.2, shake + 0.06); flash = Math.max(flash, 0.08); for (const s2 of [0.2, 0.5, 0.8]) spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3 + s2 * 0.3, max: 0.3 + s2 * 0.3, s: s2, col: '#7FD4FF' }); for (let i = 0; i < 20; i++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 4, vy: Math.sin(a) * 4, life: 0.35, max: 0.35, col: '#BFEAFF' }); } }
+      else if (e.type === 'ricochet') sparks(e.x, e.y, 10);
+      else if (e.type === 'rtrail') { spawn({ t: 'smoke', x: e.x, y: e.y, vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2, life: 0.9, max: 1.2, s: 0.05, dark: false }); }
+      else if (e.type === 'launch') { for (let i = 0; i < 6; i++) smoke(e.x, e.y, false, 0.06); sparks(e.x, e.y, 10); }
       else if (e.type === 'ewall') { spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.35, max: 0.35, s: 0.2, col: '#7FD1CC' }); }
       else if (e.type === 'chipzap') { const R = S.robots[e.robot], q = R.body.getPosition(); R.zap = 0.5; for (let k = 0; k < 12; k++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: q.x, y: q.y, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3, life: 0.3, max: 0.3, col: '#9BE38A' }); } }
       else if (e.type === 'chipfry') { const q = S.robots[e.robot].body.getPosition(); for (let k = 0; k < 10; k++) smoke(q.x, q.y, true, 0.08); sparks(q.x, q.y, 30); }
@@ -297,6 +301,8 @@
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
     ctx.restore();
     if (R.blade && R.blade.attached && !R.inPit) drawBlade(R.blade, R);
+    if (R.buzz && R.buzz.attached && !R.inPit) { const bp = R.buzz.body.getPosition(), cp = R.body.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.buzz, R); }
+    if (R.tether && !R.inPit) { const T = R.tether, a1 = R.body.getPosition(), a2 = T.body.getWorldPoint(planck.Vec2(T.lp[0], T.lp[1])); ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.018; ctx.setLineDash([0.04, 0.03]); ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'butt'; ctx.save(); ctx.translate(a2.x, a2.y); ctx.rotate(Math.atan2(a2.y - a1.y, a2.x - a1.x)); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.moveTo(0.06, 0); ctx.lineTo(-0.04, -0.04); ctx.lineTo(-0.02, 0); ctx.lineTo(-0.04, 0.04); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
     if (R.flailArm && !R.inPit) { drawFlail(R); if (R.ball && R.ball.attached) drawBall(R.ball); }
     // power-up and rage effects
     if (!R.inPit) {
@@ -319,18 +325,30 @@
     ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2;
     for (let t = 0.08; t < 0.95; t += 0.14) { ctx.beginPath(); if (lx) { const x = x0 + (x1 - x0) * t, y = out < 0 ? y0 : y1; ctx.moveTo(x - 0.025, y); ctx.lineTo(x, y + out * 0.06); ctx.lineTo(x + 0.025, y); } else { const y = y0 + (y1 - y0) * t, x = out < 0 ? x0 : x1; ctx.moveTo(x, y - 0.025); ctx.lineTo(x + out * 0.06, y); ctx.lineTo(x, y + 0.025); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
   }
-  function drawGlove(R) {
-    const hl = R.hl, k = R.punch > 0 ? Math.sin(Math.PI * (1 - R.punch / 0.22)) : 0, ext = 0.06 + k * 0.38, gx = hl + 0.12 + ext;
-    ctx.strokeStyle = '#4A4540'; ctx.lineWidth = PX * 3; ctx.beginPath();
-    for (let j = 0; j < 4; j++) { const xa = hl + 0.1 + ext * j / 4, xb = hl + 0.1 + ext * (j + 1) / 4; ctx.moveTo(xa, -0.06); ctx.lineTo(xb, 0.06); ctx.moveTo(xa, 0.06); ctx.lineTo(xb, -0.06); }
-    ctx.stroke();
-    ctx.save(); ctx.translate(gx, 0); const sc = 1 + k * 0.25; ctx.scale(sc, sc);
+  function gloveShape(sc) {
     ctx.fillStyle = '#D33A2C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4 / sc;
     ctx.beginPath(); ctx.ellipse(0.05, 0, 0.1, 0.13, 0, 0, 6.29); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.ellipse(0.02, -0.12, 0.05, 0.035, 0.5, 0, 6.29); ctx.fill(); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(0.08, -0.04, 0.03, 0.05, 0, 0, 6.29); ctx.fill();
     ctx.fillStyle = '#F2EEE6'; ctx.fillRect(-0.06, -0.1, 0.04, 0.2); ctx.strokeRect(-0.06, -0.1, 0.04, 0.2);
+  }
+  function drawBuzz(part, R) {
+    const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? Math.abs(R.buzzW || 0) / (R.buzzMax || 110) : 0;
+    ctx.save(); ctx.translate(p.x, p.y);
+    if (w > 0.3) { ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(0, 0, 0.17, 0, 6.29); ctx.fill(); }
+    ctx.rotate(a); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
+    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125; k ? ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : ctx.moveTo(Math.cos(t) * r, Math.sin(t) * r); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#6F7169'; ctx.beginPath(); ctx.arc(0, 0, 0.04, 0, 6.29); ctx.fill(); ctx.stroke();
+    if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.5 * w})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.09, k * 2.1, k * 2.1 + 1.2); ctx.stroke(); } }
     ctx.restore();
+  }
+  function drawGlove(R) {
+    const hl = R.hl, ext = R.gjoint ? Math.max(0, R.gjoint.getJointTranslation()) : 0, gx = hl + 0.09 + ext, k = Math.min(1, ext / 0.5);
+    ctx.strokeStyle = '#4A4540'; ctx.lineWidth = PX * 3; ctx.beginPath();
+    for (let j = 0; j < 4; j++) { const xa = hl + 0.1 + ext * j / 4, xb = hl + 0.1 + ext * (j + 1) / 4; ctx.moveTo(xa, -0.06); ctx.lineTo(xb, 0.06); ctx.moveTo(xa, 0.06); ctx.lineTo(xb, -0.06); }
+    ctx.stroke();
+    ctx.save(); ctx.translate(gx - 0.03, 0); const sc = 1 + k * 0.15; ctx.scale(sc, sc); gloveShape(sc); ctx.restore();
   }
   function drawFlail(R) {
     if (!R.flailArm) return;
@@ -405,6 +423,8 @@
     const b = d.body, p = b.getPosition(), a = b.getAngle(), v = b.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
     if (sp > 2) { ctx.strokeStyle = `rgba(255,240,210,${Math.min(0.5, sp / 12)})`; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x - v.x * 0.07, p.y - v.y * 0.07); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.lineCap = 'butt'; }
     if (d.key === 'blade') { drawBlade(d, null); return; }
+    if (d.key === 'buzz') { drawBuzz(d, null); return; }
+    if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
@@ -505,7 +525,21 @@
   }
   function drawProjectiles() {
     ctx.lineCap = 'round';
-    for (const p of S.projs) { ctx.strokeStyle = p.cause === 'heavy' ? '#FF9A3C' : '#FFE58A'; ctx.lineWidth = p.r * 1.6; ctx.beginPath(); ctx.moveTo(p.x - p.vx * 0.012, p.y - p.vy * 0.012); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+    for (const p of S.projs) {
+      if (p.dead) continue;
+      const a = Math.atan2(p.vy, p.vx);
+      if (p.rocket) {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
+        for (let k = 0; k < 3; k++) { ctx.fillStyle = `rgba(255,${150 + Math.random() * 80},40,${0.8 - k * 0.2})`; ctx.beginPath(); ctx.arc(-0.1 - k * 0.04 - Math.random() * 0.03, 0, 0.03 - k * 0.006, 0, 6.29); ctx.fill(); }
+        ctx.fillStyle = '#E4E1DA'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.moveTo(0.08, 0); ctx.lineTo(0.04, -0.03); ctx.lineTo(-0.08, -0.03); ctx.lineTo(-0.08, 0.03); ctx.lineTo(0.04, 0.03); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#D33A2C'; ctx.beginPath(); ctx.moveTo(0.08, 0); ctx.lineTo(0.04, -0.03); ctx.lineTo(0.04, 0.03); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#6F7169'; ctx.fillRect(-0.09, -0.05, 0.04, 0.1);
+        ctx.restore(); continue;
+      }
+      if (p.harpoon) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(0, 0); ctx.stroke(); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.moveTo(0.07, 0); ctx.lineTo(-0.03, -0.04); ctx.lineTo(-0.01, 0); ctx.lineTo(-0.03, 0.04); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); const o = p.owner.body.getPosition(); ctx.strokeStyle = 'rgba(59,47,34,0.8)'; ctx.lineWidth = 0.015; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(p.x, p.y); ctx.stroke(); continue; }
+      ctx.strokeStyle = p.cause === 'heavy' ? 'rgba(255,154,60,0.6)' : 'rgba(255,229,138,0.6)'; ctx.lineWidth = p.r * 1.4; ctx.beginPath(); ctx.moveTo(p.x - p.vx * 0.018, p.y - p.vy * 0.018); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.fillStyle = p.cause === 'heavy' ? '#3A3530' : '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.29); ctx.fill(); ctx.stroke();
+    }
     ctx.lineCap = 'butt';
     for (const s of S.shells) {
       const k = s.t / s.T, x = s.x0 + (s.x1 - s.x0) * k, y = s.y0 + (s.y1 - s.y0) * k, h = 4 * k * (1 - k);
@@ -592,6 +626,7 @@
       const chips = [];
       if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
       if (R.wmotor && R.wmotor.jam > 0) chips.push('JAMMED'); if (R.slots.some(q => q.motor.stuck > 0)) chips.push('MOTOR STUCK'); if (R.slots.some(q => q.motor.heat > 85 && q.motor.hp > 0)) chips.push('OVERHEAT');
+      if (R.snagged) chips.push('STUCK!');
       if (R.fried) chips.push('BRAIN FRIED'); else if (R.chipExposed) chips.push('CHIP EXPOSED'); if (R.chipFreeze > 0) chips.push('REBOOTING'); if (R.crossed > 0) chips.push('WIRES CROSSED'); if (R.berserk > 0) chips.push('BERSERK'); if (R.misfire > 0) chips.push('MISFIRE'); if (R.jammed > 0) chips.push('JAMMED');
       if (R.stun > 0) chips.push('STUNNED'); if (R.malf > 0) chips.push('MALFUNCTION'); if (R.quantumT > 0) chips.push('QUANTUM'); if (R.boomArm > 0) chips.push('SELF-DESTRUCT'); if (R.oiled > 0) chips.push('OILED');
       if (R.nitro > 0) chips.push('NITRO'); if (R.over > 0) chips.push('OVERCHARGE'); if (R.shield > 0) chips.push('SHIELD');
@@ -633,6 +668,7 @@
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
     for (const R of order) drawRobot(R, R.id);
     drawEwalls(); drawDrones();
+    for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }
     drawWalls();
     drawProjectiles();
     drawParticles();

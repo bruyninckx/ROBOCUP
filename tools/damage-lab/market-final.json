@@ -1,49 +1,4 @@
 {
- "tune": {
-  "drum": 0.62,
-  "spear": 0.9,
-  "spinner": 1.15,
-  "glove": 0.85,
-  "medium": 0.8,
-  "flame": 0.72,
-  "flail": 1.25
- },
- "arenas": [
-  "open",
-  "pit"
- ],
- "seeds": [
-  301,
-  302,
-  303,
-  304,
-  305,
-  306,
-  307,
-  308,
-  309,
-  310,
-  311,
-  312,
-  313,
-  314,
-  315,
-  316,
-  317,
-  318,
-  319,
-  320,
-  321,
-  322,
-  323,
-  324,
-  325,
-  326,
-  327,
-  328,
-  329,
-  330
- ],
  "robots": {
   "Juggernaut": {
    "weapon": "drum",
@@ -59,7 +14,10 @@
     "side": 1,
     "rear": 1,
     "top": 1
-   }
+   },
+   "helpers": [],
+   "shape": "box",
+   "dmgK": 1.0
   },
   "Hornet": {
    "weapon": "spear",
@@ -76,7 +34,9 @@
     "rear": 1,
     "top": 1
    },
-   "dmgK": 1.25
+   "dmgK": 1.35,
+   "helpers": [],
+   "shape": "box"
   },
   "Whirlwind": {
    "weapon": "spinner",
@@ -93,7 +53,9 @@
     "rear": 1,
     "top": 2
    },
-   "dmgK": 0.9
+   "dmgK": 1.0,
+   "helpers": [],
+   "shape": "box"
   },
   "Brawler": {
    "weapon": "glove",
@@ -110,40 +72,9 @@
     "rear": 0,
     "top": 1
    },
-   "dmgK": 0.92
-  },
-  "Slick": {
-   "weapon": "medium",
-   "chassis": "heavy",
-   "drive": "omni",
-   "motor": "std",
-   "battery": "std",
-   "bumper": "spring",
-   "proc": "kiter",
-   "mod": "oil",
-   "armour": {
-    "front": 1,
-    "side": 1,
-    "rear": 1,
-    "top": 1
-   }
-  },
-  "Hellfire": {
-   "weapon": "flame",
-   "chassis": "light",
-   "drive": "4wd",
-   "motor": "std",
-   "battery": "big",
-   "bumper": "steel",
-   "proc": "zigzag",
-   "mod": "boom",
-   "armour": {
-    "front": 2,
-    "side": 1,
-    "rear": 0,
-    "top": 1
-   },
-   "dmgK": 1.25
+   "dmgK": 0.75,
+   "helpers": [],
+   "shape": "box"
   },
   "Mauler": {
    "weapon": "flail",
@@ -160,8 +91,81 @@
     "rear": 0,
     "top": 1
    },
-   "dmgK": 0.9
+   "dmgK": 1.0,
+   "helpers": [],
+   "shape": "box"
+  },
+  "Sawblast": {
+   "weapon": "sawrocket",
+   "chassis": "medium",
+   "drive": "4wd",
+   "motor": "std",
+   "battery": "std",
+   "bumper": "steel",
+   "proc": "zigzag",
+   "mod": "none",
+   "armour": {
+    "front": 0,
+    "side": 2,
+    "rear": 1,
+    "top": 1
+   },
+   "helpers": [],
+   "shape": "box"
+  },
+  "Whaler": {
+   "weapon": "harpoon",
+   "chassis": "heavy",
+   "drive": "tracks",
+   "motor": "std",
+   "battery": "std",
+   "bumper": "steel",
+   "proc": "standard",
+   "mod": "none",
+   "armour": {
+    "front": 1,
+    "side": 2,
+    "rear": 1,
+    "top": 1
+   },
+   "helpers": [],
+   "shape": "round"
   }
  },
- "score": 5.57
+ "seeds": [
+  901,
+  902,
+  903,
+  904,
+  905,
+  906,
+  907,
+  908,
+  909,
+  910,
+  911,
+  912,
+  913,
+  914,
+  915,
+  916,
+  917,
+  918,
+  919,
+  920,
+  921,
+  922,
+  923,
+  924,
+  925,
+  926,
+  927,
+  928,
+  929,
+  930
+ ],
+ "arenas": [
+  "open",
+  "pit"
+ ]
 }
