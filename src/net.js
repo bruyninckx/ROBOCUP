@@ -8,6 +8,7 @@
  *      …?room=ABCDE&net=local                       same, between tabs of this browser
  *      …?room=ABCDE&host=1                          host that room (the 🌐 button does this for you)
  *      test options: &name=Ann  &bot=1 (plays itself)  &autostart=N (host starts when N players are ready)  &seed=N
+ *                    &relay=1 (connect only through the relay server in src/net-config.js, to check it works)
  * Talks to the game through window.ROBOCUS_GAME (prototypes/tabletop-prototype.html). */
 (function () {
   'use strict';
@@ -68,6 +69,7 @@
       T.relay = hasRelay(list);
       stage('reaching the matchmaking server');
       const opts = { config: { iceServers: list } };
+      if (qs.get('relay') === '1') opts.config.iceTransportPolicy = 'relay';   // test: only the relay, never a direct link
       const peer = isHost ? new Peer(ID_PREFIX + room.toLowerCase(), opts) : new Peer(opts);
       T.peer = peer;
       peer.on('error', e => { if (T.onerror) T.onerror(e); rej(e); });
