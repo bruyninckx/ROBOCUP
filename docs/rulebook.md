@@ -43,9 +43,9 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 | --- | --- |
 | Aegis Heavy | Repairs 25 damage on each robot for free every Upkeep |
 | Blackwire Syndicate | Draws 1 extra Intrigue card in Upkeep; Intrigue schemes need 2 less fame |
-| Sovereign Foundry | Starts with 4 Mechanics; wins every Market tie outright |
+| Sovereign Foundry | Starts with 4 Mechanics; wins every Market lot tie outright (not the host bid) |
 | Apex Media | +2 credits when it hosts; Fan Favourite at 2 wins (not 3) |
-| Lucky Seven | Bets up to 5 credits; a losing bet refunds 1 credit |
+| Lucky Seven | Bets up to 5 credits; a winning bet pays one band better (Even pays like Underdog); a losing bet refunds 1 credit |
 | Vulture Salvage | +2 credits whenever any robot is scrapped; keeps 2 Scrap Crate items |
 
 ## 3. A round
@@ -111,12 +111,12 @@ Three steps. Robots, crew and Security Bots change hands only here.
 
 1. Every team bids on all 4 lots at once, in secret, with at most the credits it has.
 2. Lots are resolved in order: the highest bid pays the bank and takes the lot; everyone else keeps their credits.
-3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any tie it is in, without a rebid. If a rebid ties again with nobody adding, the team with less fame wins.
+3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any lot tie it is in, without a rebid (not the host bid). If a rebid ties again with nobody adding, the team with less fame wins.
 4. No bids: the lot goes back (an unsold robot to its deck, a legendary comes back later).
 5. **Botched Install:** before anything is fitted, a team holding Botched Install may wreck a rival's won part (normal defence applies; it can also demand a payoff instead). A botched part is scrapped; the winner gets half its bid back and the saboteur 1 credit.
 6. **Installs:** fit each won part on one of your robots that can take it, or keep it in your Stash. A swapped-out module or armour goes to the Stash. New crew joins your team.
 
-**3. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
+**3. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once, unless it is the sole fame leader (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
 
 ## 7. Arena phase
 
@@ -138,7 +138,7 @@ One fight per round. Most fights are duels; Arena cards turn them into events.
 | Underdog | 25–42% | 3× (2:1) |
 | Heavy underdog | under 25% | 4× (3:1) |
 
-A losing bet goes to the bank (Lucky Seven gets 1 credit back). A draw or a House Robot win refunds every bet. An Underdog or Heavy underdog win is an **UPSET!**
+A losing bet goes to the bank (Lucky Seven gets 1 credit back; its winning bets pay one band better). A draw or a House Robot win refunds every bet. An Underdog or Heavy underdog win is an **UPSET!**
 
 **5. The fight.** Face-down cards and garage sabotage are revealed, the robots roll in, a 3-second countdown, then the auto-battle. Drag **live combat cards** from your hand into the fight: Remote Trigger, Pilot Waypoint, Target Overclock, Field Engineer, Oil Canister, EMP Grenade (as many as you hold and meet the gate for). After 60 seconds (+30 s per robot beyond two) sudden death starts: over 20 seconds the walls close in to a small box, then the floor overheats and every robot loses health faster and faster (armour doesn't help) until one side falls.
 

@@ -1,4 +1,4 @@
-1 setup Opening Setup: Choose your Team Sponsor on the Arena Stage, then draft your s1. starter robot (pick 1 of 3)!
+1 setup Opening Setup: Choose your Team Sponsor on the Arena Stage, then draft your s1. starter robot (you get 2 and keep 1, everyone at the same time)!
 1 setup Signed with Sovereign Foundry (Deep Pockets). Now draft your s1. starter robot!
 1 setup 🤖 Your 2 starters: s1. Zippo or s1. Sparky. Keep 1; everyone picks at the same time.
 1 setup 🤖 You keep s1. Zippo. It is revealed when everyone has picked.
@@ -29,13 +29,14 @@
 1 market ⚖️ Rebid stalemate on Host the Fight at 2 Cr — Moss Gears wins (Low-Fame Tiebreak)!
 1 market 👑 Moss Gears is Arena Host for 2 Cr (+1 Fame).
 1 arena 👑 Host Moss Gears invites Rust Rivets vs Plum Ohms!
+1 bets 🎲 You bet 1 Cr on s1. Top (Heavy underdog).
 1 bets 🎲 Rust Rivets bet 3 Cr on s1. Top (4×).
 1 bets 🎲 Moss Gears bet 4 Cr on Sniper (1.33×).
 1 bets 🎲 Plum Ohms bet 2 Cr on Sniper (1.33×).
 1 after 🏁 Sniper wins in 9.6 s. Led from start to finish.
 1 after ⚠️ s1. Top: Spinner blade broke and stays broken until repaired in Upkeep.
 1 after 🏆 Sniper (Plum Ohms) wins! +1 Fame.
-1 after 🪙 Moss Gears won 5 Cr on their bet!
+1 after 🪙 Moss Gears won 6 Cr on their bet!
 1 after 🪙 Plum Ohms won 3 Cr on their bet!
 1 after 👑 Offers to the host: 👍 spare: Rust Rivets 1 Cr
 1 after 👎 Host scrapped s1. Top!
@@ -48,8 +49,6 @@
 2 intrigue 🤖 Moss Gears's Security Bot rolls 3: not enough.
 2 intrigue 🂠 Plum Ohms puts a face-down card on a robot of Moss Gears.
 2 intrigue 🔧 Plum Ohms poaches a Mechanic from Moss Gears.
-2 intrigue needs 12 fame, has 4: asks for backing
-2 intrigue not enough backing: the card stays secret in the hand
 2 intrigue 💰 Cashed in Swap the Entry +2 Cr.
 2 market 🌟 Next round's Market: Railgunner (legendary). Save your credits!
 2 market 📦 Auction: sealed bids on the 4 lots.
@@ -63,16 +62,22 @@
 2 market 👑 Plum Ohms is Arena Host for 2 Cr (+1 Fame).
 2 arena 👑 Host Plum Ohms invites Plum Ohms vs Steel Bolts!
 2 arena 🤖 Steel Bolts sends s1. Zippo.
+2 bets 🎲 You bet 1 Cr on Sniper (Heavy favourite).
 2 bets 🎲 Plum Ohms bet 1 Cr on Sniper (1.33×).
 2 after 🏁 Sniper wins in 7.8 s. Led from start to finish.
 2 after ⏱ s1. Zippo fought 8 s: battle time 8 s, its repairs now cost ×1.13 (for good).
 2 after 🏆 Sniper (Plum Ohms) wins! +1 Fame.
+2 after 🪙 Steel Bolts won 1 Cr on their bet!
 2 after 🪙 Plum Ohms won 1 Cr on their bet!
 2 after 👍 Host spared s1. Zippo.
 2 after 📦 Steel Bolts opens a Scrap Crate: Scrap Patch Kit (Patched s1. Zippo).
 3 upkeep Round 3 Upkeep: Mechanics earned credits; check your Engineers & Strain.
 3 upkeep 🧾 Your ledger: +3 Mechanics, −1 robot upkeep = +2 Cr.
 3 intrigue 💼 Plum Ohms salvages +3 Cr.
+3 intrigue needs 12 fame, has 4: asks for backing
+3 intrigue not enough backing: the card stays secret in the hand
+3 intrigue needs 12 fame, has 4: asks for backing
+3 intrigue not enough backing: the card stays secret in the hand
 3 intrigue 💰 Cashed in Joint Venture +2, Target Overclock +1, Overclock +1 Cr.
 3 intrigue needs 12 fame, has 5: asks for backing
 3 intrigue 🤝 Steel Bolts backs Rust Rivets.
@@ -87,13 +92,12 @@
 3 market 📦 Plum Ohms won Juggernaut (6 Cr).
 3 market 📦 Moss Gears won Repair Tech (3 Cr).
 3 market 📦 Moss Gears won Waller Drone (3 Cr).
-3 market 📦 Moss Gears won Railgunner (3 Cr).
+3 market 📦 Moss Gears won Railgunner (4 Cr).
 3 market 👑 Host bid: every team bids in secret for the right to host this round.
 3 market ⚖️ Rebid stalemate on Host the Fight at 2 Cr — Rust Rivets wins (Low-Fame Tiebreak)!
 3 market 👑 Rust Rivets is Arena Host for 2 Cr (+1 Fame).
 3 arena 👑 Host Rust Rivets invites Rust Rivets vs Steel Bolts!
 3 arena 🤖 Steel Bolts sends s1. Zippo.
-3 bets 🎲 You bet 1 Cr on s1. Zippo (Heavy underdog).
 3 bets 🎲 Rust Rivets bet 3 Cr on Ricochet (1.33×).
 3 bets 🎲 Plum Ohms bet 3 Cr on Ricochet (1.33×).
 3 after 🏁 Ricochet wins in 8.1 s. Led from start to finish.
@@ -112,182 +116,125 @@
 4 intrigue 💼 Crunch Week: Moss Gears exhausts 3 crew and bots for +3 Cr.
 4 intrigue 🤖 Steel Bolts's Security Bot rolls 4 and blocks it!
 4 intrigue 🂠 Plum Ohms puts a face-down card on a robot of Rust Rivets.
-4 intrigue 💰 Cashed in Tag Team Licence +2, Poached Mechanic +1, Hedge Bet +1 Cr.
+4 intrigue ✋ Rust Rivets refuses the Tag Team (−1 fame). The fight stays a duel.
+4 intrigue 💰 Cashed in Poached Mechanic +1, Hedge Bet +1 Cr.
 4 market 🌟 Next round's Market: Twin Turret (legendary). Save your credits!
 4 market 📦 Auction: sealed bids on the 4 lots.
-4 market ⚔️ Plum Ohms won the tie-break rebid on Security Chief (3 Cr total)!
-4 market ⚔️ Rust Rivets won the tie-break rebid on Fixer (4 Cr total)!
-4 market 📦 Plum Ohms won Security Chief (3 Cr).
-4 market 📦 Moss Gears won Bodyguard Drone (3 Cr).
-4 market 📦 Rust Rivets won Fixer (4 Cr).
-4 market 📦 Rust Rivets won Tinker (2 Cr).
+4 market ⚔️ Rust Rivets won the tie-break rebid on Bodyguard Drone (4 Cr total)!
+4 market 📦 Moss Gears won Security Chief (3 Cr).
+4 market 📦 Rust Rivets won Bodyguard Drone (4 Cr).
+4 market 📦 Plum Ohms won Fixer (3 Cr).
+4 market 📦 Rust Rivets won Tinker (3 Cr).
 4 market 👑 Host bid: every team bids in secret for the right to host this round.
-4 market ⚖️ Rebid stalemate on Host the Fight at 2 Cr — Moss Gears wins (Low-Fame Tiebreak)!
-4 market 👑 Moss Gears is Arena Host for 2 Cr (+1 Fame).
-4 market 🤖🤖 Moss Gears's robot count: 2 per side (if this round is a normal duel). Each invited team sends up to 2 robots.
-4 arena 🤖 Host Moss Gears can't pay 1 Cr for 2 per side: it stays a duel.
-4 arena 👑 Host Moss Gears invites Moss Gears vs Steel Bolts!
+4 market ⚖️ Rebid stalemate on Host the Fight at 2 Cr — Rust Rivets wins (Low-Fame Tiebreak)!
+4 market 👑 Rust Rivets is Arena Host for 2 Cr (+1 Fame).
+4 market 🤖🤖 Rust Rivets's robot count: 2 per side (if this round is a normal duel). Each invited team sends up to 2 robots.
+4 arena 🤖 Host Rust Rivets can't pay 1 Cr for 2 per side: it stays a duel.
+4 arena 👑 Host Rust Rivets invites Rust Rivets vs Steel Bolts!
 4 arena 🤖 Steel Bolts sends Scrapbot.
-4 bets 🎲 Rust Rivets bet 3 Cr on Railgunner (1.33×).
-4 bets 🎲 Plum Ohms bet 2 Cr on Railgunner (1.33×).
-4 after 🏁 Railgunner wins in 6.6 s. Led from start to finish.
-4 after ⏱ Scrapbot fought 7 s: battle time 7 s, its repairs now cost ×1.11 (for good).
-4 after ✦ Headline Act: the Railgunner fought, so host Moss Gears gains +1 extra fame.
-4 after 🏆 Railgunner (Moss Gears) wins! +1 Fame.
+4 bets 🎲 You bet 1 Cr on Scrapbot (Heavy underdog).
+4 bets 🎲 Rust Rivets bet 3 Cr on Ricochet (1.33×).
+4 bets 🎲 Plum Ohms bet 3 Cr on Ricochet (1.33×).
+4 after 🏁 Ricochet wins in 6.0 s. Led from start to finish.
+4 after ⏱ Scrapbot fought 6 s: battle time 6 s, its repairs now cost ×1.10 (for good).
+4 after 🏆 Ricochet (Rust Rivets) wins! +1 Fame.
 4 after 🪙 Rust Rivets won 4 Cr on their bet!
-4 after 🪙 Plum Ohms won 3 Cr on their bet!
-4 after 👎 Host scrapped Scrapbot!
-4 after 📦 Steel Bolts opens a Scrap Crate: Scrap Patch Kit (+1 Cr (nothing to patch)).
+4 after 🪙 Plum Ohms won 4 Cr on their bet!
+4 after 👍 Host spared Scrapbot.
+4 after 📦 Steel Bolts opens a Scrap Crate: Black-Box Tape (+1 Intrigue card, +1 Cr).
 5 upkeep ✦ Cunning: Tinker sat out last round, so Rust Rivets draws 1 extra Intrigue card.
 5 upkeep Round 5 Upkeep: Mechanics earned credits; check your Engineers & Strain.
 5 upkeep 🧾 Your ledger: +3 Mechanics, −1 robot upkeep = +2 Cr.
-5 intrigue 🤖 Moss Gears's Security Bot rolls 1: not enough.
-5 intrigue 🔧 Loose Bolts: Railgunner takes 30 lasting damage.
-5 intrigue 📣 Roadshow fizzles: Moss Gears needs 3 ready robots.
-5 intrigue 💰 Cashed in Bankrupt! +1, Pilot Waypoint +1 Cr.
-5 intrigue needs 12 fame, has 7: asks for backing
-5 intrigue 🤝 Moss Gears backs Rust Rivets for 2 Cr.
-5 intrigue 📣 Co-Branding: Rust Rivets and Steel Bolts +1 fame.
+5 intrigue 🤖 Plum Ohms's Security Bot rolls 3: not enough.
+5 intrigue 🙅 Plum Ohms: "Not my robot!" The scheme now targets Moss Gears; if it lands, Rust Rivets loses 1 fame.
 5 intrigue 🂠 Rust Rivets puts a face-down card on a robot of Moss Gears.
+5 intrigue 🙅 Rust Rivets loses 1 fame (Not My Robot).
+5 intrigue 🛡️ Plum Ohms blocks it with PR Spin!
+5 intrigue 🔧 Loose Bolts: Sniper takes 30 lasting damage.
+5 intrigue 📣 Fan Meet: Plum Ohms +1 fame.
+5 intrigue 📣 Roadshow: Plum Ohms +2 fame.
+5 intrigue 💰 Cashed in Bankrupt! +1, Pilot Waypoint +1, Mirror +2 Cr.
 5 market 🌟 Legendary in the Market: Twin Turret (one copy).
-5 market 🤝 Rust Rivets sells its robot Ricochet to Steel Bolts for 10 Cr.
-5 market 🤝 Plum Ohms sells its robot s1. Rattler to Rust Rivets for 2 Cr.
+5 market 🤝 Moss Gears sells its robot s1. Scrapper to Steel Bolts for 6 Cr.
+5 market 🤝 Plum Ohms sells its robot s1. Rattler to Moss Gears for 5 Cr.
 5 market 📦 Auction: sealed bids on the 4 lots.
-5 market ⚔️ Plum Ohms won the tie-break rebid on Brawler (5 Cr total)!
+5 market ⚔️ Rust Rivets won the tie-break rebid on EMP Module (4 Cr total)!
 5 market 📦 Plum Ohms won Brawler (5 Cr).
-5 market 📦 Steel Bolts won Focusing Lens (1 Cr).
-5 market 📦 Plum Ohms won EMP Module (3 Cr).
-5 market 📦 Rust Rivets won Twin Turret (7 Cr).
-5 market 📦 Focusing Lens goes into Steel Bolts's Stash.
-5 market 📦 Jump Jets goes into Plum Ohms's Stash.
+5 market 📦 Plum Ohms won Focusing Lens (1 Cr).
+5 market 📦 Rust Rivets won EMP Module (4 Cr).
+5 market 📦 Plum Ohms won Twin Turret (3 Cr).
+5 market 📦 Focusing Lens goes into Plum Ohms's Stash.
+5 market 📦 Mine Layer goes into Rust Rivets's Stash.
 5 market 👑 Host bid: every team bids in secret for the right to host this round.
-5 market 👑 Moss Gears is Arena Host for 2 Cr (+1 Fame).
-5 arena 👑 Host Moss Gears invites Moss Gears vs Plum Ohms!
-5 bets 🎲 You bet 1 Cr on s1. Scrapper (Heavy underdog).
-5 bets 🎲 Rust Rivets bet 2 Cr on Sniper (1.33×).
-5 bets 🎲 Moss Gears bet 2 Cr on s1. Scrapper (4×).
-5 after 🏁 Sniper wins in 12.4 s. Led from start to finish.
-5 after 🔥 Overclock wears s1. Scrapper: 20 lasting damage.
-5 after 🏆 Sniper (Plum Ohms) wins! +1 Fame.
-5 after 🪙 Rust Rivets won 3 Cr on their bet!
-5 after 🛡️ s1. Scrapper (Moss Gears) is safe: it is the host's own robot.
-5 after 📦 Moss Gears opens a Scrap Crate: Salvaged Sights (Salvaged Sights on s1. Scrapper).
+5 market 👑 Plum Ohms is Arena Host for 2 Cr (no host fame: fame leader).
+5 arena 👑 Host Plum Ohms invites Plum Ohms vs Steel Bolts!
+5 arena 🤖 Steel Bolts sends Scrapbot.
+5 bets 🎲 You bet 1 Cr on Juggernaut (Heavy favourite).
+5 bets 🎲 Moss Gears bet 2 Cr on Juggernaut (1.33×).
+5 bets 🎲 Plum Ohms bet 2 Cr on Juggernaut (1.33×).
+5 after 🏁 Juggernaut wins in 5.1 s. Led from start to finish.
+5 after ⏱ Scrapbot fought 5 s: battle time 11 s, its repairs now cost ×1.19 (for good).
+5 after 🏆 Juggernaut (Plum Ohms) wins! +1 Fame.
+5 after 🪙 Steel Bolts won 1 Cr on their bet!
+5 after 🪙 Moss Gears won 3 Cr on their bet!
+5 after 🪙 Plum Ohms won 3 Cr on their bet!
+5 after 👎 Host scrapped Scrapbot!
+5 after 📦 Steel Bolts opens a Scrap Crate: Salvaged Gear (Salvaged Gear on s1. Scrapper).
 6 upkeep ✦ Cunning: Tinker sat out last round, so Rust Rivets draws 1 extra Intrigue card.
 6 upkeep Round 6 Upkeep: Mechanics earned credits; check your Engineers & Strain.
-6 upkeep 🧾 Your ledger: +3 Mechanics, −2 robot upkeep = +1 Cr.
-6 intrigue 🛡️ Plum Ohms blocks it with PR Spin!
-6 intrigue 🏆 Grand Final: this round's fight is 2v2, the two fame leaders vs the other two. Double fame.
-6 intrigue needs 10 fame, has 9: asks for backing
-6 intrigue 🤝 Rust Rivets backs Plum Ohms (Fixer +2 fame) for 3 Cr.
-6 intrigue 🔧 Coolant Leak: 2 of Moss Gears's robots are exhausted this round.
-6 intrigue 💼 Crunch Week: Plum Ohms exhausts 6 crew and bots for +6 Cr.
-6 intrigue 📣 Fan Meet fizzles: Moss Gears needs 2 ready robots.
-6 intrigue 💰 Cashed in Pile-On +2 Cr.
-6 intrigue 🔧 Tax Audit: Moss Gears pays 1 Cr to the bank.
-6 intrigue 💼 Overtime: Rust Rivets +5 Cr.
+6 upkeep 🧾 Your ledger: +3 Mechanics, −1 robot upkeep = +2 Cr.
+6 intrigue 🤖 Rust Rivets's Security Bot rolls 1: not enough.
+6 intrigue 🤖 Rust Rivets's Security Bot rolls 2: not enough.
+6 intrigue 🤖 Rust Rivets's Security Bot rolls 2: not enough.
+6 intrigue 🤖 Rust Rivets's Security Bot rolls 3: not enough.
+6 intrigue 🤖 Rust Rivets's Security Bot rolls 3: not enough.
+6 intrigue 🔧 Coolant Leak: 2 of Rust Rivets's robots are exhausted this round.
+6 intrigue 💼 Crunch Week: Plum Ohms exhausts 5 crew and bots for +5 Cr.
+6 intrigue 💼 Steel Bolts sells its Mechanic's contract for +4 Cr.
+6 intrigue 💰 Cashed in Pile-On +2, Board Seat +2 Cr.
+6 intrigue needs 12 fame, has 7: asks for backing
+6 intrigue 🤝 Plum Ohms backs Rust Rivets (Fixer +2 fame).
+6 intrigue 📣 Co-Branding: Rust Rivets and Steel Bolts +1 fame.
+6 intrigue 💼 Overtime: Rust Rivets +4 Cr.
+6 intrigue 📣 Team-Building: Moss Gears exhausts 4 crew, +2 fame.
+6 intrigue needs 12 fame, has 8: asks for backing
+6 intrigue 🤝 Plum Ohms backs Moss Gears (Fixer +2 fame) for 2 Cr.
+6 intrigue 🤝 Joint Venture: both commit, Moss Gears and Steel Bolts each net +5 Cr.
 6 market 🌟 Next round's Market: Quantum Shield (legendary). Save your credits!
 6 market 📦 Auction: sealed bids on the 4 lots.
-6 market ⚔️ Rust Rivets won the tie-break rebid on Smoke Screen (4 Cr total)!
-6 market ⚔️ Plum Ohms won the tie-break rebid on Flipper (4 Cr total)!
-6 market 📦 Rust Rivets won Smoke Screen (4 Cr).
-6 market 📦 Plum Ohms won Medic Drone (3 Cr).
-6 market 📦 Plum Ohms won Flipper (4 Cr).
-6 market 📦 Rust Rivets won Gun Drone (1 Cr).
-6 market 📦 Flipper goes into Rust Rivets's Stash.
-6 market 📦 EMP Module goes into Plum Ohms's Stash.
+6 market ⚖️ Rebid stalemate on Smoke Screen at 3 Cr — Rust Rivets wins (Low-Fame Tiebreak)!
+6 market 📦 Rust Rivets won Smoke Screen (3 Cr).
+6 market 📦 Moss Gears won Medic Drone (2 Cr).
+6 market 📦 Moss Gears won Flipper (3 Cr).
+6 market 📦 Plum Ohms won Gun Drone (3 Cr).
+6 market 📦 EMP Module goes into Rust Rivets's Stash.
+6 market 📦 Reflective Plating goes into Moss Gears's Stash.
 6 market 👑 Host bid: every team bids in secret for the right to host this round.
-6 market ⚖️ Tie on Host the Fight at 1 Cr — Steel Bolts wins outright (Sovereign Foundry)!
-6 market 👑 Steel Bolts is Arena Host for 1 Cr (+1 Fame).
-6 arena 😴 Moss Gears has no ready robot and sits out (−1 fame).
-6 arena 🏟️ 2v2: Plum Ohms vs Steel Bolts + Rust Rivets.
-6 arena 🤖 Steel Bolts sends Scrapbot.
-6 bets 🎲 Rust Rivets bet 3 Cr on Scrapbot + Tinker (1.33×).
-6 bets 🎲 Plum Ohms plays Hedge Bet and bets 3 Cr on Scrapbot + Tinker (1.33×).
-6 after 🏁 Steel Bolts + Rust Rivets wins in 5.9 s, 2 of 2 robots left. Led from start to finish.
-6 after ⏱ Scrapbot fought 6 s: battle time 6 s, its repairs now cost ×1.10 (for good).
-6 after 🏆 Scrapbot + Tinker (Steel Bolts + Rust Rivets) win! +2 Fame each.
-6 after 🪙 Rust Rivets won 4 Cr on their bet!
-6 after 🪙 Plum Ohms won 4 Cr on their bet!
-6 after 🛡️ Sniper (Plum Ohms) is safe: a Fan Favourite can't be scrapped.
-6 after 📦 Plum Ohms opens a Scrap Crate: Salvaged Sights (Salvaged Sights on Juggernaut).
-6 after 📦 Plum Ohms opens a Scrap Crate: Salvaged Gear (Salvaged Gear on Sniper).
+6 market 👑 Moss Gears is Arena Host for 2 Cr (+1 Fame).
+6 arena 👑 Host Moss Gears invites Moss Gears vs Steel Bolts!
+6 arena 🤖 Steel Bolts sends s1. Scrapper.
+6 bets 🎲 You bet 1 Cr on s1. Scrapper (Heavy underdog).
+6 bets 🎲 Rust Rivets bet 1 Cr on Railgunner (1.33×).
+6 bets 🎲 Moss Gears bet 4 Cr on Railgunner (1.33×).
+6 fight 🃏 Moss Gears played Field Engineer!
+6 after 🏁 Railgunner wins in 12.3 s. Led from start to finish. / 0.0 s 🃏 Field Engineer (Moss Gears) on Railgunner: +18 HP, no breaks for 12 s (was at 85 HP)
+6 after ⏱ s1. Scrapper fought 12 s: battle time 12 s, its repairs now cost ×1.21 (for good).
+6 after 🔥 Overclock wears s1. Scrapper: 20 lasting damage.
+6 after ✦ Headline Act: the Railgunner fought, so host Moss Gears gains +1 extra fame.
+6 after 🏆 Railgunner (Moss Gears) wins! +1 Fame.
+6 after 🪙 Rust Rivets won 1 Cr on their bet!
+6 after 🪙 Moss Gears won 6 Cr on their bet!
+6 after 👍 Host spared s1. Scrapper.
+6 after 📦 Steel Bolts opens a Scrap Crate: Salvaged Servo (Salvaged Servo on s1. Scrapper).
+7 upkeep ✦ Cunning: Tinker sat out last round, so Rust Rivets draws 1 extra Intrigue card.
 7 upkeep Round 7 Upkeep: Mechanics earned credits; check your Engineers & Strain.
-7 upkeep 🧾 Your ledger: +3 Mechanics, −2 robot upkeep = +1 Cr.
-7 upkeep 🧾 Moss Gears can't pay its upkeep and scraps s1. Scrapper.
-7 upkeep 🧾 Moss Gears can't pay its upkeep and scraps Railgunner.
-7 upkeep 🤖 Moss Gears gets a free Scrap Bot.
-7 intrigue 🤖 Rust Rivets's Security Bot rolls 6 and blocks it!
-7 intrigue 📣 Launch Party: Rust Rivets +1 fame (everyone else got 2 Cr).
-7 intrigue 💰 Cashed in Board Seat +2 Cr.
-7 intrigue 🛡️ Steel Bolts blocks it with PR Spin!
-7 intrigue 💼 Rust Rivets sells its Mechanic's contract for +4 Cr.
-7 intrigue 💼 Moss Gears draws 2 Intrigue cards.
-7 intrigue 🤖 Rust Rivets's Security Bot rolls 3: not enough.
-7 intrigue 🤖 Rust Rivets's Security Bot rolls 3: not enough.
-7 intrigue 🤖 Rust Rivets's Security Bot rolls 1: not enough.
+7 upkeep 🧾 Your ledger: +2 Mechanics, −1 robot upkeep = +1 Cr.
+7 intrigue 🛡️ Plum Ohms blocks it with PR Spin!
+7 intrigue 🤖 Rust Rivets's Security Bot rolls 2: not enough.
 7 intrigue 🛡️ Rust Rivets blocks it with Sponsor's Lawyers!
-7 market 🌟 Legendary in the Market: Quantum Shield (one copy).
-7 market 🤝 Steel Bolts buys Ricochet Rig from Rust Rivets for 3 Cr.
-7 market 📦 Auction: sealed bids on the 4 lots.
-7 market ⚔️ Rust Rivets won the tie-break rebid on Mine Layer (4 Cr total)!
-7 market ⚖️ Rebid stalemate on Energy Shield at 3 Cr — Moss Gears wins (Low-Fame Tiebreak)!
-7 market 📦 Rust Rivets won Mine Layer (4 Cr).
-7 market 📦 Moss Gears won Energy Shield (3 Cr).
-7 market 📦 Rust Rivets won Jump Jets (3 Cr).
-7 market 📦 Plum Ohms won Quantum Shield (5 Cr).
-7 market 📦 Smoke Screen goes into Rust Rivets's Stash.
-7 market 📦 Self-Destruct goes into Moss Gears's Stash.
-7 market 📦 Mine Layer goes into Rust Rivets's Stash.
-7 market 📦 Flipper goes into Plum Ohms's Stash.
-7 market 👑 Host bid: every team bids in secret for the right to host this round.
-7 market 👑 Plum Ohms is Arena Host for 3 Cr (+1 Fame).
-7 market 🤖🤖 Plum Ohms's robot count: 2 per side (if this round is a normal duel). Each invited team sends up to 2 robots.
-7 arena 🤖🤖 Host Plum Ohms pays 1 Cr: this fight is 2 robots per side.
-7 arena 👑 Host Plum Ohms invites Plum Ohms vs Steel Bolts (up to 2 robots each)!
-7 arena 🤖 Steel Bolts sends Scrapbot.
-7 arena 🤖🤖 Double duel: Plum Ohms 2 vs Steel Bolts 1 robots.
-7 arena ⚖️ Uneven fight (2 vs 1): host Plum Ohms loses its +1 host fame this round.
-7 bets 🎲 You bet 1 Cr on Scrapbot (Heavy underdog).
-7 bets 🎲 Rust Rivets bet 3 Cr on Sniper + Juggernaut (1.33×).
-7 bets 🎲 Plum Ohms bet 1 Cr on Sniper + Juggernaut (1.33×).
-7 after 🏁 Plum Ohms + Plum Ohms wins in 5.7 s, 2 of 2 robots left. Led from start to finish.
-7 after ⏱ Scrapbot fought 6 s: battle time 12 s, its repairs now cost ×1.19 (for good).
-7 after 🏆 Sniper + Juggernaut (Plum Ohms + Plum Ohms) win! +1 Fame each.
-7 after 🪙 Rust Rivets won 4 Cr on their bet!
-7 after 🪙 Plum Ohms won 1 Cr on their bet!
-7 after 👎 Host scrapped Scrapbot!
-7 after 📦 Steel Bolts opens a Scrap Crate: Salvaged Servo (Salvaged Servo on Ricochet).
-8 upkeep ✦ Cunning: Tinker sat out last round, so Rust Rivets draws 1 extra Intrigue card.
-8 upkeep Round 8 Upkeep: Mechanics earned credits; check your Engineers & Strain.
-8 upkeep 🧾 Your ledger: +3 Mechanics, −1 robot upkeep = +2 Cr.
-8 intrigue 💼 Consulting: Plum Ohms +10 Cr.
-8 intrigue 🤖 Rust Rivets's Security Bot rolls 1: not enough.
-8 intrigue 🗞️ Paparazzi: Rust Rivets −1 fame.
-8 intrigue 💰 Cashed in Botched Install +1 Cr.
-8 intrigue 💼 Overtime: Rust Rivets +4 Cr.
-8 intrigue 📣 Press Tour: Moss Gears +1 fame.
-8 intrigue needs 12 fame, has 10: asks for backing
-8 intrigue not enough backing: the card stays in hand
-8 intrigue 💼 Moss Gears closes a scrap deal: +5 Cr.
-8 market 🌟 Next round's Market: Railgunner (legendary). Save your credits!
-8 market 🤝 Plum Ohms sells its robot Brawler to Steel Bolts for 6 Cr.
-8 market 📦 Auction: sealed bids on the 4 lots.
-8 market ⚔️ Rust Rivets won the tie-break rebid on Tuned Engine (4 Cr total)!
-8 market 📦 Rust Rivets won Tuned Engine (4 Cr).
-8 market 📦 Plum Ohms won Chief Engineer (3 Cr).
-8 market 📦 Rust Rivets won Burst Gun (3 Cr).
-8 market 📦 Plum Ohms won Slick (6 Cr).
-8 market 👑 Host bid: every team bids in secret for the right to host this round.
-8 market 👑 Rust Rivets is Arena Host for 4 Cr (+1 Fame).
-8 arena 👑 Host Rust Rivets invites Rust Rivets vs Moss Gears!
-8 bets 🎲 Rust Rivets bet 1 Cr on Tinker (1.33×).
-8 bets 🎲 Moss Gears bet 4 Cr on Scrapbot (4×).
-8 bets 🎲 Plum Ohms bet 3 Cr on Tinker (1.33×).
-8 fight 🃏 Rust Rivets played EMP Grenade!
-8 after 🏁 Tinker wins in 4.0 s. Led from start to finish. / 0.0 s 🃏 EMP Grenade (Rust Rivets): EMP on the floor
-8 after 🏆 Tinker (Rust Rivets) wins! +1 Fame.
-8 after 🪙 Rust Rivets won 1 Cr on their bet!
-8 after 🪙 Plum Ohms won 4 Cr on their bet!
-8 after 👑 Offers to the host: 👍 spare: Moss Gears 1 Cr
-8 after 🤝 Moss Gears pays the host 1 Cr (spare).
-8 after 👍 Host spared Scrapbot.
+7 intrigue 💼 Overtime: Plum Ohms +5 Cr.
+7 intrigue 💼 Plum Ohms closes a scrap deal: +5 Cr.
+7 intrigue 🗞️ Bribe Scandal: Moss Gears −1 fame.
+7 intrigue 📣 Launch Party: Plum Ohms +1 fame (everyone else got 2 Cr).
+7 intrigue 📣 Fan Meet: Rust Rivets +1 fame.
+7 intrigue 💼 Rust Rivets draws 2 Intrigue cards.

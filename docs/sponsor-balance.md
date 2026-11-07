@@ -15,14 +15,22 @@ A third run (Apex +1 Cr instead of +2) changed nothing (45%): the credits are no
 
 **The real finding is hosting.** The team that hosts most wins most: hosting is +1 fame every round plus picking the fights, and it is cheap (bids of 1–3 Cr). Whoever bids hardest for host (the AI with Apex, or Sovereign through ties) gets ahead. People will find this quickly.
 
-## Proposals (not applied: Kev to decide)
+## Done (Kev, 7 Nov)
 
-| Change | Kind | Effect on multiplayer |
+1. **Sovereign Foundry** wins Market lot ties outright, but not host-bid ties.
+2. **Lucky Seven**: winning bets pay one band better (Even pays like Underdog, Heavy underdog stays 3:1); lost bets still refund 1.
+3. **Hosting**: a sole fame leader gets no host fame (the `CATCHUP.leaderhost` switch, now on by default).
+4. **AI**: values hosting the same with every sponsor (the Apex-only bid bonus is gone).
+
+Check after the changes, 320 AI games (same seeds as the first run):
+
+| Sponsor | Before | After |
 | --- | --- | --- |
-| Sovereign Foundry wins Market lot ties, but not host-bid ties | Rule number | None (same version for everyone) |
-| Lucky Seven: winning bets pay one band better (an Even bet pays like an Underdog), lost bets refund 1 | Rule | None |
-| Aegis Heavy: free repair 40 damage per robot (was 25), or 25 + one broken part | Rule number | None |
-| Hosting: no host fame for a sole fame leader (switch already in the game: `CATCHUP.leaderhost`) | Rule switch | None |
-| AI: value hosting the same with every sponsor (remove the Apex-only bid bonus) | AI only | None |
+| Aegis Heavy | 17% | 29% |
+| Apex Media | 47% | 28% |
+| Sovereign Foundry | 31% | 25% |
+| Lucky Seven | 11% | 23% |
+| Blackwire Syndicate | 27% | 23% |
+| Vulture Salvage | 20% | 23% |
 
-Each needs one more 300-game run to check the new numbers together.
+All within ±6 points of a fair 25%; host fame per game is now 1.1–1.3 for every sponsor (was 0.6–3.3). Game length unchanged (median 6 rounds, 5–8). Not changed: Aegis (it no longer looks weak once hosting is fair). Effect online: none (rule numbers on the host's side; everyone on the same version).
