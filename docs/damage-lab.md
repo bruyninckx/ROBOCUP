@@ -1,4 +1,13 @@
-# Damage Lab (beta sandbox)
+# ROBOCUS 2.0: Damage Lab (beta)
+
+**ROBOCUS 2.0** (Kev, 7 Nov 2026): this physics-based Damage Lab is the start of the next version of ROBOCUS. File paths keep the `damage-lab` name so existing links keep working.
+
+### Browser feasibility check (7 Nov)
+- Sim cost: avg 0.06 ms per step at 120 steps/s (42 market fights, 3 helper drones each, killbox arena): under 1% of one CPU core in real time. Worst single step 14 ms (rare pile-up).
+- Download: page 248 KB + planck.js 297 KB, about 0.55 MB.
+- Deterministic: same seed, same fight (within one JS engine).
+- Bottleneck is rendering on phones (particles, canvas size), not physics: cap particles, lower pixel ratio on small screens.
+- Multiplayer: don't run lockstep across different browsers (float maths can differ). Run each fight once (Node server running this engine, or the host) and stream it or share seed + loadouts as a replay. Fits the card layer: inputs = builds, drones, arena, seed; outputs = winner, damage, highlights.
 
 Separate test arena with a much deeper, visual damage model. Not connected to the main game or `src/sim.js`.
 
