@@ -166,3 +166,10 @@ Big moments per minute against the roster (6 fights per opponent): Whaler 26, Sa
 Market table (60 fights per matchup on fresh seeds, open floor + centre pit): Juggernaut 56, Hornet 44, Whirlwind 47, Brawler 49, Mauler 49, Sawblast 52, Whaler 53. Median fight 56 s, 8% judges. Hard counters: Juggernaut beats Whaler 93% (the drum flips it), Whaler beats Whirlwind 88%, Brawler beats Juggernaut 80%, Whirlwind beats Brawler 78%. Knobs: Juggernaut and Whirlwind and Mauler dmg x1.0, Hornet x1.35, Brawler x0.75.
 Drone values were measured again for the new roster (+3 blocker to +15 medic); medic on Sawblast and Juggernaut (+28/+25) and booster on Sawblast (+28) are the best fits.
 `node excite.js Name,Name 6` prints win %, big moments per minute, parts per fight, throws, length and first hit against the roster.
+
+## Hull shapes on the market robots (8 Nov)
+Kev: give the market robots their own silhouettes, see if it has any effect.
+- Experiment (`node shapes.js 1001 1025`, each robot in each hull vs the roster, 300 fights per cell): box / chamfer / wedge / round win %. Juggernaut 53/56/57/56, Hornet 46/41/46/44, Whirlwind 48/40/45/42, Brawler 54/51/55/52, Mauler 44/45/44/41, Sawblast 50/50/50/46, Whaler 48/53/46/52. So the hull matters little (within about 4 points, close to the noise) except the bar spinner, which is clearly best as a box (the square nose keeps the bar clear).
+- Armour plates now follow the hull (bevelled ends on chamfered and round hulls, swept-back side plates and a narrow front plate on the wedge), so the silhouettes really show.
+- Picked: Juggernaut chamfered, Hornet wedge nose, Whirlwind box, Brawler chamfered, Mauler chamfered, Sawblast wedge nose, Whaler round shell. Whirlwind damage x1.12 to make up for its drop.
+- Market table after the change (60 fights per matchup, fresh seeds): Juggernaut 56, Hornet 43, Whirlwind 51, Brawler 51, Mauler 48, Sawblast 46, Whaler 54. Median fight 54 s, 6% judges.
