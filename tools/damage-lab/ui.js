@@ -312,6 +312,7 @@
     if (R.buzz && R.buzz.attached && !R.inPit) { const bp = R.buzz.body.getPosition(), cp = R.body.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.buzz, R); }
     if (R.tether && !R.inPit) { const T = R.tether, a1 = R.body.getPosition(), a2 = T.body.getWorldPoint(planck.Vec2(T.lp[0], T.lp[1])); ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.035; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.018; ctx.setLineDash([0.04, 0.03]); ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'butt'; ctx.save(); ctx.translate(a2.x, a2.y); ctx.rotate(Math.atan2(a2.y - a1.y, a2.x - a1.x)); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.moveTo(0.06, 0); ctx.lineTo(-0.04, -0.04); ctx.lineTo(-0.02, 0); ctx.lineTo(-0.04, 0.04); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
     if (R.flailArm && !R.inPit) { drawFlail(R); if (R.ball && R.ball.attached) drawBall(R.ball); }
+    if (!R.inPit) drawMech(R, i);
     // power-up and rage effects
     if (!R.inPit) {
       const t = performance.now() / 1000;
@@ -416,6 +417,33 @@
     }
     if (R.wmotor && R.wmotor.jam > 0) { ctx.fillStyle = HAZ; ctx.font = '600 0.09px IBM Plex Mono, monospace'; ctx.textAlign = 'center'; }
   }
+  // the new mechanical weapons (separate bodies on joints)
+  function onBody(part, f) { const b = part.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); f(); ctx.restore(); }
+  function drawShell(part, R, i) {
+    const rad = Math.max(...part.verts.map(v => Math.hypot(v[0], v[1]))), w = R ? R.bladeW / R.bladeMax : 0, col = R ? TC(i) : PAL.steel;
+    onBody(part, () => {
+      ctx.fillStyle = '#9A9C94'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      for (const sg of [1, -1]) { ctx.beginPath(); ctx.moveTo(sg * (rad - 0.04), -sg * 0.05); ctx.lineTo(sg * (rad + 0.07), -sg * 0.025); ctx.lineTo(sg * (rad + 0.07), sg * 0.025); ctx.lineTo(sg * (rad - 0.04), sg * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
+      ctx.fillStyle = R && R.alive ? col.col : '#4A4540'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.62, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.stroke();
+      ctx.fillStyle = R && R.alive ? col.dark : '#3A3530'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.22, 0, 6.29); ctx.fill(); ctx.stroke();
+      for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283; bolt(Math.cos(t) * rad * 0.8, Math.sin(t) * rad * 0.8); }
+    });
+    if (w > 0.25) { const p = part.body.getPosition(); ctx.strokeStyle = `rgba(255,255,255,${w * 0.55})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { const a0 = part.body.getAngle() + k * 2.1; ctx.beginPath(); ctx.arc(p.x, p.y, rad + 0.04, a0, a0 + 0.9 * w); ctx.stroke(); } }
+  }
+  function drawMech(R, i) {
+    if (R.shell && R.shell.attached) drawShell(R.shell, R, i);
+    if (R.sweep && R.sweep.attached) {
+      const pv = R.body.getWorldPoint(planck.Vec2(R.hl + 0.04, 0)), w = Math.abs(R.sweep.body.getAngularVelocity() - R.body.getAngularVelocity());
+      if (w > 6) { const a = R.sweep.body.getAngle(); ctx.fillStyle = 'rgba(220,222,215,0.25)'; ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.arc(pv.x, pv.y, 0.64, a - Math.sign(R.armSide) * 0.6, a, R.armSide < 0); ctx.closePath(); ctx.fill(); }
+      onBody(R.sweep, () => { drawPart(R.sweep, '#B9BBB4', R, decorate(R.sweep, R, 0)); ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0, 0, 0.045, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.strokeStyle = INK; ctx.stroke(); });
+    }
+    if (R.twins) for (const q of R.twins) if (q.attached) {
+      const bp = q.body.getPosition(), cp = R.body.getWorldPoint(planck.Vec2(R.hl - 0.04, q.mount[1])); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke();
+      drawBuzz(q, { buzzW: q.spin, buzzMax: R.buzzMax, buzzR: 0.12 });
+    }
+    if (R.claps) for (const q of R.claps) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = HAZ; ctx.fillRect(0.38, -0.05, 0.1, 0.1); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.strokeRect(0.38, -0.05, 0.1, 0.1); bolt(0, 0); });
+  }
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
@@ -435,6 +463,8 @@
     if (d.key === 'buzz') { drawBuzz(d, null); return; }
     if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }
+    if (d.key === 'shell') { drawShell(d, null, 0); return; }
+    if (d.key === 'twinsaw') { drawBuzz(d, { buzzW: 0, buzzMax: 100, buzzR: 0.12 }); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
     const fill = d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
