@@ -147,3 +147,22 @@ Experiment (`node flank.js 501 504`): each market robot with its own chip vs wit
 | Mauler (flail) | 58%, 34% | 54%, 34% |
 
 It shines on the spear (almost half its damage goes into sides and back, fights over in 39 s) and the bar spinner (+27 win points: too strong as it stands). Pushing weapons (drum, glove) do worse: they want to face the enemy and shove, and Juggernaut's grappling hook keeps pulling flankers back in front of it. On the gunner it hits more sides but loses its kiting distance. The market robots keep their own chips; the flanker is a builder option for now.
+
+## Physical weapons, snags, hull shapes and a new roster (8 Nov, fourth pass)
+Kev: guns and the boxing glove are boring to watch (no fun interaction); try projectile guns, a small front saw with a slow rocket, more movement and mechanical interaction; the spear getting stuck in Whirlwind's bar was great, and robots don't have to be boxes.
+- **Real bullets**: every shot is now a physics body. Slugs ricochet off walls (2 bounces, 75% damage per bounce), shove robots (medium gun kick 7, cannon 45 plus a small lift), push debris, and are stopped by drones, energy walls and other robots in the way.
+- **Rocket pod** (new weapon): 4 s reload, the rocket launches slowly, accelerates to 13 m/s and homes in a little, so it can be dodged or knocked off course; it explodes on anything (22 damage blast, 0.95 m radius, throws robots).
+- **Buzzsaw + rocket pod** (new): a small 0.14 m saw on the nose that spins at 110 rad/s, grinds whatever it touches, flings it sideways along its edge, sprays debris and bogs down while it bites; plus a rocket pod (5 s reload, 15 damage). Also as a plain **Buzzsaw**.
+- **Harpoon gun** (new): fires a harpoon on a rope (real rope joint). It reels the victim in fast, circles, and after 2.4 s flings it at the nearest wall or the pit ("HOOKED!", "FLUNG!"); the rope snaps under too much force.
+- **Boxing glove** is now a real piston: the glove is its own body on a sliding joint that shoots out 0.5 m, hits whatever is there (and can be hit and ripped off), and pulls back.
+- **Snags**: when two weapons hit hard they can lock together for 1.4-2.8 s (spear in a spinner bar or saw: 50%; spear into anything: 25%; other weapon pairs 6%). A jammed spinning part stops dead. Both robots then tug and twist; if the weld is pulled too hard the weaker part is "WRENCHED!" (26 damage), otherwise "UNSTUCK!". About one snag per fight.
+- **Hull shapes** (builder: Hull): box, chamfered (corners cut, glancing hits, rolls back over a bit easier), wedge nose (narrow pointed front), round shell (eight-sided, rolls back onto its wheels when flipped).
+
+### Roster change
+Slick (gun) and Hellfire (flamethrower) leave the market: Slick was the least exciting robot (9 big moments per minute) and the flamethrower lost 95% against the new ranged weapons. They stay in the builder under "Older robots". In: **Sawblast** (buzzsaw + rocket pod, medium, 4 wheels, zigzag) and **Whaler** (harpoon, heavy, tank tracks, round shell). Rocketeer (rocket pod) and Grindstone (buzzsaw only) are trial builds.
+
+Big moments per minute against the roster (6 fights per opponent): Whaler 26, Sawblast 24, Rocketeer 23, Brawler 20 (was 17 before the piston), Juggernaut 18, Hornet 18, Whirlwind 17, Mauler 16; Slick 13 and Hellfire 13 for comparison.
+
+Market table (60 fights per matchup on fresh seeds, open floor + centre pit): Juggernaut 56, Hornet 44, Whirlwind 47, Brawler 49, Mauler 49, Sawblast 52, Whaler 53. Median fight 56 s, 8% judges. Hard counters: Juggernaut beats Whaler 93% (the drum flips it), Whaler beats Whirlwind 88%, Brawler beats Juggernaut 80%, Whirlwind beats Brawler 78%. Knobs: Juggernaut and Whirlwind and Mauler dmg x1.0, Hornet x1.35, Brawler x0.75.
+Drone values were measured again for the new roster (+3 blocker to +15 medic); medic on Sawblast and Juggernaut (+28/+25) and booster on Sawblast (+28) are the best fits.
+`node excite.js Name,Name 6` prints win %, big moments per minute, parts per fight, throws, length and first hit against the roster.
