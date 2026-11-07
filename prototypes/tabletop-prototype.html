@@ -562,7 +562,7 @@ html, body {
   /* AI versions (Kev, 7 Nov): AIV[team] = 1 (the AI as it was) or 2 (better decisions, driven by the numbers in AIP[team]).
    * Real games use AI_DEFAULT; the benchmark (tools/ai-bench.js) mixes versions and parameter sets to measure them. */
   // tuned by self-play 7 Nov (docs/ai-v2.md): hosting is worth more (3 → 6 Cr per host fame), parts less (partK 1 → 0.5)
-  const AI_PARAMS = { hostFame: 6, hostNoise: 0.25, reserve: 2, bidNoise: 0.25, partK: 0.5, betEdge: 0.05, betK: 0.5, feHp: 0.55, scrapThreat: 2, playMax: 2 };
+  const AI_PARAMS = { hostFame: 6, hostNoise: 0.25, reserve: 2, bidNoise: 0.25, partK: 0.5, betEdge: 0.05, betK: 0.5, feHp: 0.55, scrapThreat: 2, playMax: 2, playMin: 1 };
   let AI_DEFAULT = 2;
   let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS));
   // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
@@ -1402,6 +1402,8 @@ html, body {
 
   // card statistics for analysis (tools/pace.js reads G.cstat): drawn / played / landed / blocked / cashed, and what a landed card changed
   function cst(id, ti) { G.cstat = G.cstat || {}; const s = G.cstat[id] = G.cstat[id] || { drawn: 0, played: 0, landed: 0, blocked: 0, cashed: 0, selfCr: 0, selfFame: 0, otherCr: 0, otherFame: 0, by: [0, 0, 0, 0] }; if (ti != null) s.by[ti]++; return s; }
+  // per team: played / landed / cashed (tools/game-sim-report.js --cards uses them for the win share of teams that played a card)
+  function cstBy(id, ti, k) { if (ti == null || ti < 0) return; const s = cst(id); s[k + 'By'] = s[k + 'By'] || [0, 0, 0, 0]; s[k + 'By'][ti]++; }
   function draw1() {
     { const top = G.deck.length ? G.deck[G.deck.length - 1] : null; if (top) cst(top).drawn++; }
     if (!G.deck.length) { G.deck = shuffle(G.discard.length ? G.discard.splice(0) : DECK_TEMPLATE.slice()); notify('🔀 The Intrigue deck is reshuffled.', '#111'); }
@@ -2548,7 +2550,7 @@ html, body {
   async function applyBlock(o, id, F, c, T) {
     const b = CARDS[id];
     await boardFx({ kind: 'react', ti: o.i, card: id, label: b.name === 'Not My Robot' ? '🙅 NOT MY ROBOT' : '✋ BLOCKS IT' });
-    { const st = cst(id, o.i); st.played++; st.landed++; }
+    { const st = cst(id, o.i); cstBy(id, o.i, 'played'); st.played++; st.landed++; }
     removeFromHand(o, id); discardCard(id);
     if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); p.credits += payCr(o, 3); }
     if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
@@ -2570,7 +2572,7 @@ html, body {
         discardCard('security_bot');
         const roll = 1 + Math.floor(rnd() * 6);
         await boardFx({ kind: 'roll', ti: T.i, roll, ok: roll >= (hasCrew(T, 'secchief') ? 3 : 4) });
-        { const st = cst('security_bot', T.i); st.played++; st[roll >= (hasCrew(T, 'secchief') ? 3 : 4) ? 'landed' : 'blocked']++; }
+        { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[roll >= (hasCrew(T, 'secchief') ? 3 : 4) ? 'landed' : 'blocked']++; }
         if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
         notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
       }
@@ -2738,7 +2740,7 @@ html, body {
     removeFromHand(F, id);
     const d = await defend(F, c, T);
     discardCard(id);
-    const st = cst(id, F.i); st.played++; st[d.blocked ? 'blocked' : 'landed']++;
+    const st = cst(id, F.i); cstBy(id, F.i, 'played'); st.played++; st[d.blocked ? 'blocked' : 'landed']++; if (!d.blocked) cstBy(id, F.i, 'landed');
     const before = G.teams.map(t => [t.credits, t.fame]);
     if (!d.blocked) await resolveScheme(F, id, d.T);
     G.teams.forEach((t, k) => { const dc = t.credits - before[k][0], df = t.fame - before[k][1]; if (t === F) { st.selfCr += dc; st.selfFame += df; } else { st.otherCr += dc; st.otherFame += df; } });
@@ -2748,7 +2750,7 @@ html, body {
   }
   function cashIn(t, id) {
     if (!removeFromHand(t, id)) return 0;
-    discardCard(id); t.credits += CARDS[id].cash; cst(id, t.i).cashed++;
+    discardCard(id); t.credits += CARDS[id].cash; cst(id, t.i).cashed++; cstBy(id, t.i, 'cashed');
     return CARDS[id].cash;
   }
   function endTurnHandLimit(t) {
@@ -2796,6 +2798,70 @@ html, body {
     }
   }
 
+
+  /* ---------- AI v2 card play ('ivplay', 7 Nov card pass; docs/card-play.md) ----------
+   * Instead of a fixed family order: every playable card gets a value in credits (fame at the AI's host-fame rate,
+   * harm to a rival weighted by how close that rival is to winning, times the chance it gets past Security Bots),
+   * the best card is played first and the values are worked out again after each play (so a Security Override
+   * opens the way for the next attack). Cards worth less than about a credit stay in hand. */
+  const aiThreat = (F, T) => {
+    if (!T || T === F) return 0;
+    const fs = G.teams.map(t => t.fame), mx = Math.max(...fs), mn = Math.min(...fs);
+    let th = 0.35 + 0.65 * (mx > mn ? (T.fame - mn) / (mx - mn) : 0.5);
+    if (T.fame >= WIN_FAME - 2) th *= 1.5; if (T.fame >= WIN_FAME - 1) th *= 1.5;
+    return th;
+  };
+  const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F) return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
+  function aiCardValue(F, c, T) {
+    const P = aiP(F), fc = P.hostFame * (F.fame >= WIN_FAME - 2 ? 1.6 : 1), n = c.name, th = aiThreat(F, T), harm = fc * th;
+    const lowO = lowestOther([F.i, T ? T.i : -1]), myFame = k => k * fc, foeFame = k => k * harm;
+    const winsNow = k => F.fame + k >= WIN_FAME ? 40 : 0;   // a card that wins the game is worth everything
+    let v = 0;
+    switch (n) {
+      case 'Public Demo': v = myFame(1) + winsNow(1) - 3; break;
+      case 'Launch Party': v = myFame(1) + winsNow(1) - 6; break;
+      case 'Fan Meet': case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': case 'Museum Donation': case 'Press Tour': v = myFame(1) + winsNow(1); break;
+      case 'Team-Building Day': { const k = Math.min(2, Math.floor(readyCrew(F) / 2)); v = myFame(k) + winsNow(k) - k * 0.5; break; }
+      case 'Roadshow': case 'Underdog Story': v = myFame(2) + winsNow(2); break;
+      case 'Co-Branding Deal': v = myFame(1) + winsNow(1) - fc * aiThreat(F, lowestOther([F.i])); break;
+      case 'Hype Reel': v = 2; break;
+      case 'Grand Melee': v = 1; break;
+      case 'Bribe Scandal': case 'Paparazzi': v = foeFame(1) - 3; break;
+      case 'Inside Leak': v = foeFame(1) - 2; break;
+      case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': v = foeFame(1); break;
+      case 'Smear Campaign': v = foeFame(2); break;
+      case 'Rival Sponsor': v = foeFame(1) - fc * aiThreat(F, lowO); break;
+      case 'Overtime Shift': v = readyCrew(F); break;
+      case 'Consulting Gig': v = 2 * readyCrew(F); break;
+      case 'Scrapyard Salvage': v = 3; break;
+      case 'Scrap Deal': v = 5; break;
+      case 'Industry Insider': v = 3; break;
+      case 'Headhunter Fee': v = 2; break;
+      case 'Crunch Week': v = (readyCrew(F) + secReady(F)) * 0.6; break;
+      case 'Joint Venture': v = 2.5; break;
+      case 'Smash and Grab': v = Math.min(3, T ? T.credits : 0) * (1 + 0.3 * th); break;
+      case 'Tax Audit': v = Math.min(5, T ? T.credits : 0) * th * 0.7; break;
+      case 'Poached Mechanic': v = 3 * th; break;
+      case 'Loose Bolts': case 'EMP the Garage': case 'Sugar in the Tank': case 'Smudged Lens': v = 2.2 * th; break;
+      case 'Rogue Firmware': case 'Coolant Leak': v = 3 * th; break;
+      case 'Security Override': { const more = F.hand.some(x => x !== 'security_override' && CARDS[x].harmful); v = (more ? 2.2 : 0.6) * secReady(T) * th - secReady(T) * 0.5; return v; }   // can't be blocked usefully: value is opening the way
+      case 'Asset Strip': v = Math.min(3, secReady(T)) * 1.2 * (0.5 + th); break;
+      case 'Hostile Buyout': v = 2; break;
+      case 'Shill Bidder': v = 1.5; break;
+      case 'Secret Upgrade': case 'Overclock': v = readyRobots(F).length ? 2 : 0; break;
+      case 'Tag Team Licence': case 'Grand Final': v = 2; break;
+      default: v = 1;
+    }
+    return v * aiLandP(F, c, T);
+  }
+  // the rival to aim a harmful card at: most threat × chance to get through
+  function aiBestTarget(F, c) {
+    const T0 = aiTarget(F, c);
+    if (c.target !== 'rival' || ['Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Joint Venture'].includes(c.name)) return T0;
+    const opts = G.teams.filter(o => o !== F && !precheck(F, c, o) && (c.gate !== '▲' || o.fame < F.fame));
+    if (!opts.length) return T0;
+    return opts.map(o => ({ o, v: aiCardValue(F, c, o) })).sort((a, b) => b.v - a.v)[0].o;
+  }
   /* ---------- AI Intrigue turn ---------- */
   const AI_ORDER = ['Smear', 'Publicity', 'Sabotage', 'Corporate', 'Contracts', 'Match-fixing', 'Security', 'Leverage'];
   function aiTarget(F, c) {
@@ -2832,7 +2898,29 @@ html, body {
   async function aiIntrigueTurn(F) {
     while (removeFromHand(F, 'security_bot')) F.secBots = (F.secBots || 0) + 1;   // install bots as garage assets
     let plays = 0, askedBacking = false;
-    const ids = F.hand.slice().sort((a, b) => AI_ORDER.indexOf(CARDS[a].fam) - AI_ORDER.indexOf(CARDS[b].fam));
+    if (aiV2(F, 'ivplay')) {   // value order, worked out again after every play
+      const tried = new Set();
+      while (plays < aiP(F).playMax) {
+        const opts = F.hand.filter((x, k) => F.hand.indexOf(x) === k && !tried.has(x)).map(id => {
+          const c = CARDS[id]; if (!(c.phase === 'intrigue' || TURN_REACTIONS.has(c.name))) return null;
+          const T = aiBestTarget(F, c); if (T === undefined || precheck(F, c, T) || !aiWants(F, c, T)) return null;
+          return { id, c, T, v: aiCardValue(F, c, T) };
+        }).filter(x => x && x.v >= aiP(F).playMin).sort((a, b) => b.v - a.v);
+        if (!opts.length) break;
+        const { id, c, T } = opts[0]; tried.add(id);
+        if (!gateOk(c, F, T)) {
+          const gap = needOf(F, c) - F.fame, could = G.teams.filter(o => o !== F && o !== T).reduce((a, o) => a + o.fame + (hasCrew(o, 'fixer') ? 2 : 0), 0);
+          if (askedBacking || typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+          askedBacking = true;
+          secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
+          if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
+        }
+        await sleep(450);
+        await playScheme(F, id, T);
+        plays++;
+      }
+    }
+    const ids = aiV2(F, 'ivplay') ? [] : F.hand.slice().sort((a, b) => AI_ORDER.indexOf(CARDS[a].fam) - AI_ORDER.indexOf(CARDS[b].fam));
     for (const id of ids) {
       if (plays >= (aiV2(F, 'play') ? aiP(F).playMax : 2)) break;
       const c = CARDS[id];
@@ -4183,7 +4271,7 @@ html, body {
     if (G.phase !== 'fight' || !F || !F.B || F.spar || F.B.over || !c || c.phase !== 'fight' || !t.hand.includes(id) || t.fame < (c.need || 0)) return;
     removeFromHand(t, id);
     fightCmd(F, { card: id, by: t.name, bot, x, y });
-    { const st = cst(id, S); st.played++; st.landed++; }
+    { const st = cst(id, S); cstBy(id, S, 'played'); st.played++; st.landed++; }
     if (isNetGame()) notify('🃏 <b>' + esc(t.name) + '</b> played ' + cardRef(id) + '!', t.col); else notify('🃏 You played ' + cardRef(id) + '!', t.col);
   };
   ACT.skipFight = S => {
@@ -4230,7 +4318,7 @@ html, body {
       for (const id of T.hand.filter(x => CARDS[x] && CARDS[x].phase === 'fight' && T.fame >= (CARDS[x].need || 0))) {
         const m = aiCardMoment(F, T, b, id); if (!m) continue;
         removeFromHand(T, id); F.aiCardTick[ti] = B.tick;
-        fightCmd(F, Object.assign({ card: id, by: T.name }, m)); { const st = cst(id, T.i); st.played++; st.landed++; }
+        fightCmd(F, Object.assign({ card: id, by: T.name }, m)); { const st = cst(id, T.i); cstBy(id, T.i, 'played'); st.played++; st.landed++; }
         notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
         break;
       }
@@ -4244,12 +4332,12 @@ html, body {
       if (cIdx < 0 || fightAiRng() > 0.35) return;   // its own dice, not the fight's (the other screens can't see the AI's hand)
       const id = T.hand.splice(cIdx, 1)[0];
       if (id === 'trigger' || id === 'overclock' || id === 'field_eng') {
-        fightCmd(F, { card: id, bot: bi, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
+        fightCmd(F, { card: id, bot: bi, by: T.name }); { const st = cst(id, T.i); cstBy(id, T.i, 'played'); st.played++; st.landed++; }
         notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
       } else if (id === 'oil_card' || id === 'emp_card') {
         const foe = B.bots.filter(x => !x.helper && x.hp > 0 && x.team !== b.team).sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y))[0];
         if (foe) {
-          fightCmd(F, { card: id, x: foe.x, y: foe.y, by: T.name }); { const st = cst(id, T.i); st.played++; st.landed++; }
+          fightCmd(F, { card: id, x: foe.x, y: foe.y, by: T.name }); { const st = cst(id, T.i); cstBy(id, T.i, 'played'); st.played++; st.landed++; }
           notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
         }
       }
@@ -4809,7 +4897,7 @@ html, body {
     if (NETROLE === 'host' && window.ROBOCUS_NET) window.ROBOCUS_NET.fx(o);   // every screen shows the moment
     return new Promise(r => setTimeout(r, o.dur));
   }
-  const playFx = (F, id, T) => { if (['botched_install', 'swap_the_entry', 'grand_melee', 'mirror', 'unleash_the_house_robot'].includes(id)) { const st = cst(id, F.i); st.played++; st.landed++; } return boardFx({ kind: 'play', ti: F.i, card: id, tgt: T && T !== F ? T.i : null }); };
+  const playFx = (F, id, T) => { if (['botched_install', 'swap_the_entry', 'grand_melee', 'mirror', 'unleash_the_house_robot'].includes(id)) { const st = cst(id, F.i); cstBy(id, F.i, 'played'); st.played++; st.landed++; } return boardFx({ kind: 'play', ti: F.i, card: id, tgt: T && T !== F ? T.i : null }); };
   function boxOf(L, ti) { const sl = L.slots.find(x => x.pos === posOfTeam(ti)); return sl ? { x: sl.gx - sl.gw / 2, y: sl.gy - sl.gh / 2, w: sl.gw, h: sl.gh } : null; }
   const CARD_COL = c => c.phase === 'fight' ? '#d99000' : c.phase === 'later' ? '#b45309' : c.phase === 'security' ? '#6d28d9' : c.t === 'F' ? '#1f6feb' : c.t === 'R' ? '#5b4bd6' : '#222';
   function wrapLines(ctx, text, maxW, maxLines) {

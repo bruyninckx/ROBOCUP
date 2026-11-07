@@ -75,6 +75,7 @@ Or one setting at a time, then compare any runs side by side:
 ```
 node tools/game-sim.js --tag=start1 --games=200 --par=16 --start=1 --win=12
 node tools/game-sim-report.js start4_win12 start1 [--cards]     # --cards adds every card: drawn / played / landed / blocked / cashed per game
+node tools/card-report.js start4_win12                          # per card: played %, cashed %, lands %, fame/credits per play, win share of teams that played it
 ```
 
 The report shows: rounds (mean, median, spread), Intrigue cards drawn and the share of the deck seen, cash-ins, attacks and how often they land, Security Bot rolls, fights, live cards per fight, auction cards won and their price, credits held, Market spend, bets, win share per seat and fame by source. To compare the game before and after a change: run the same command on each branch with different tags (the `sims` folder is not committed).
