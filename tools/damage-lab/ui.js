@@ -4,9 +4,10 @@
   const L = window.DamageLab;
   const TEAM = [{ name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' }];
   const INK = '#2B2118', STEEL = '#9A9C94', STEEL_D = '#6F7169', RUBBER = '#2A2622', HAZ = '#E8C547';
-  const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86' };
+  const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86', module: '#47A8FF', thruster: '#FF8A2A' };
+  const MOD_ICON = { shield: ['S', '#47A8FF'], emp: ['E', '#7FD4FF'], grapple: ['G', '#C9A227'], jets: ['J', '#FF8A2A'], oil: ['O', '#3B3530'], mines: ['M', '#D24B3A'], repair: ['+', '#4CC26A'], boom: ['!', '#E0402B'], quantum: ['Q', '#F2C94C'], smoke: ['~', '#9A958C'], popper: ['P', '#D9B43A'] };
   const $ = id => document.getElementById(id);
-  const st = { spec: [{ preset: 'Haymaker' }, { preset: 'Buzzkill' }], seed: 7, arena: 'pit', speed: 1, drama: true, paused: false };
+  const st = { spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }], seed: 7, arena: 'pit', speed: 1, drama: true, paused: false };
   let S = null, reported = false, logN = 0;
 
   // ---------- builder ----------
@@ -17,22 +18,26 @@
     motor: Object.entries(L.MOTORS).map(([k, v]) => [k, v.label]),
     battery: Object.entries(L.BATTERIES).map(([k, v]) => [k, v.label]),
     bumper: Object.entries(L.BUMPERS).map(([k, v]) => [k, v.label]),
+    proc: Object.entries(L.PROCS).map(([k, v]) => [k, v.label]),
+    mod: Object.entries(L.MODULES).map(([k, v]) => [k, v.label]),
   };
-  const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers' };
+  const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers', proc: 'Processor', mod: 'Module' };
+  const FIELDS = ['weapon', 'chassis', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
   function fullSpec(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
+  const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain;
   function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset; }
   function buildCard(i) {
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
     const pl = keys => keys.map(k => [k, `${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()})`]);
     const all = Object.keys(L.PRESETS), cur = s.custom ? '' : s.preset;
-    const presetOpts = `<optgroup label="Market robots (balanced)">${opt(pl(all.filter(k => L.PRESETS[k].market)), cur)}</optgroup><optgroup label="Test builds (not balanced)">${opt(pl(all.filter(k => !L.PRESETS[k].market)), cur)}</optgroup>`;
+    const presetOpts = `<optgroup label="Market robots (balanced)">${opt(pl(all.filter(k => L.PRESETS[k].market)), cur)}</optgroup><optgroup label="Arcade classics (8 Nov roster)">${opt(pl(all.filter(k => L.PRESETS[k].classic)), cur)}</optgroup><optgroup label="Test builds (not balanced)">${opt(pl(all.filter(k => !L.PRESETS[k].market && !L.PRESETS[k].classic)), cur)}</optgroup>`;
     const frontTool = L.frontTool(sp.weapon);
     el.innerHTML = `
       <div class="bot-head"><div><div class="team">${TEAM[i].name}</div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
       <div class="grid2" style="grid-template-columns:1fr"><label for="pre${i}">Preset<select id="pre${i}">${s.custom ? '<option value="" selected>Custom build</option>' : ''}${presetOpts}</select></label></div>
-      <div class="grid2">${['weapon', 'chassis', 'drive', 'motor', 'battery', 'bumper'].map(f => `<label for="${f}${i}">${LBL[f]}<select id="${f}${i}" data-f="${f}">${opt(OPTS[f], sp[f])}</select></label>`).join('')}</div>
-      <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}</span></p>
+      <div class="grid2">${FIELDS.map(f => `<label for="${f}${i}">${LBL[f]}<select id="${f}${i}" data-f="${f}">${opt(OPTS[f], sp[f])}</select></label>`).join('')}</div>
+      <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
       <div class="arm">${['front', 'side', 'rear', 'top'].map(a => `<label for="ar${a}${i}">${a} armour<select id="ar${a}${i}" data-a="${a}"${a === 'front' && frontTool ? ' disabled title="The front tool is the front armour"' : ''}>${[0, 1, 2, 3].map(n => `<option value="${n}"${n === sp.armour[a] ? ' selected' : ''}>${a === 'front' && frontTool ? 'tool' : n === 0 ? 'none' : n}</option>`).join('')}</select></label>`).join('')}</div>
       <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
       <details id="pd${i}" open><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
@@ -130,6 +135,10 @@
       else if (e.type === 'piston') { shake = Math.min(0.25, shake + 0.1); for (let i = 0; i < 10; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.5, vy: Math.sin(i) * 1.5, life: 0.7, max: 0.7, s: 0.15 }); spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.4, max: 0.4, s: 0.3, col: '#E8C547' }); }
       else if (e.type === 'slam') { shake = Math.min(0.35, shake + 0.25); hitStop = Math.max(hitStop, 0.12); flash = Math.max(flash, 0.2); for (let i = 0; i < 16; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 0.4) * 2.2, vy: Math.sin(i * 0.4) * 2.2, life: 0.9, max: 0.9, s: 0.2 }); shards(e.x, e.y, 14); }
       else if (e.type === 'pickup') { for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 0.4, max: 0.4, col: CRATE_COL[e.kind] }); } spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.4, max: 0.4, s: 0.2, col: CRATE_COL[e.kind] }); }
+      else if (e.type === 'emp') { shake = Math.min(0.2, shake + 0.06); flash = Math.max(flash, 0.08); for (const s2 of [0.2, 0.5, 0.8]) spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3 + s2 * 0.3, max: 0.3 + s2 * 0.3, s: s2, col: '#7FD4FF' }); for (let i = 0; i < 20; i++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 4, vy: Math.sin(a) * 4, life: 0.35, max: 0.35, col: '#BFEAFF' }); } }
+      else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
+      else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
+      else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
       else if (e.type === 'ko') { shake = Math.min(0.2, shake + 0.08); if (st.drama) { slowT = 1.2; const R = S.robots[e.robot], p = R.body.getPosition(); cam.tx = p.x * 0.6; cam.ty = p.y * 0.6; cam.tz = 1.5; } }
     }
@@ -200,7 +209,12 @@
   }
   function decorate(part, R, i) {
     return () => {
-      if (part.kind === 'wheel') wheelTread(part, part.slot ? part.slot.spin : part.spin || 0);
+      if (part.kind === 'wheel') {
+        wheelTread(part, part.slot ? part.slot.spin : part.spin || 0);
+        const dk = R.spec.drive, [x0, y0, x1, y1] = bbox(part.verts);
+        if (dk === 'tracks') { ctx.fillStyle = '#6F7169'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; const r = (y1 - y0) * 0.38; for (const xx of [x0 + r * 1.3, (x0 + x1) / 2, x1 - r * 1.3]) { ctx.beginPath(); ctx.arc(xx, (y0 + y1) / 2, r, 0, 6.29); ctx.fill(); ctx.stroke(); } }
+        else if (dk === 'omni') { ctx.strokeStyle = '#9A9C94'; ctx.lineWidth = PX * 2.2; const sp = part.slot ? part.slot.spin : 0, st = 0.03, off = ((sp * 0.05) % st + st) % st; for (let x = x0 - st + off; x < x1 + st; x += st) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x + (y1 - y0) * 0.8, y1); ctx.stroke(); } }
+      }
       else if (part.kind === 'armour') {
         const [x0, y0, x1, y1] = bbox(part.verts), lx = x1 - x0 > y1 - y0, bk = part.bumper || 'steel';
         if (bk === 'rubber') { ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = PX * 2; for (let t = 0; t < 1; t += 0.08) { ctx.beginPath(); if (lx) { ctx.moveTo(x0 + (x1 - x0) * t, y0); ctx.lineTo(x0 + (x1 - x0) * t, y1); } else { ctx.moveTo(x0, y0 + (y1 - y0) * t); ctx.lineTo(x1, y0 + (y1 - y0) * t); } ctx.stroke(); } }
@@ -254,10 +268,12 @@
     for (const kind of order) for (const q of mine) if (q.kind === kind) drawPart(q, fillFor(q, R, i), R, decorate(q, R, i));
     for (const q of mine) if (q.kind === 'armour' && q.bumper === 'spiked') spikesOn(q);
     if (R.spec.weapon === 'glove' && R.tool && R.tool.attached) drawGlove(R);
+    if (R.thruster) { const ok = R.thruster.hp > 0; ctx.fillStyle = ok ? '#5C5650' : '#1C1813'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.09, 0.09]) { ctx.beginPath(); ctx.moveTo(-R.hl + 0.02, y - 0.05); ctx.lineTo(-R.hl - 0.08, y - 0.065); ctx.lineTo(-R.hl - 0.08, y + 0.065); ctx.lineTo(-R.hl + 0.02, y + 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); if (ok) { ctx.fillStyle = R.dashT > 0 ? '#FFD27A' : '#2B2118'; ctx.fillRect(-R.hl - 0.082, y - 0.04, 0.012, 0.08); } } }
     if (!R.flipped) {
       const C = R.chassis, [x0, y0, x1, y1] = bbox(C.home);
       for (const [bx, by] of [[x0 + 0.035, y0 + 0.035], [x1 - 0.035, y0 + 0.035], [x0 + 0.035, y1 - 0.035], [x1 - 0.035, y1 - 0.035]]) bolt(bx, by);
       drawTop(R, i);
+      if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
     ctx.restore();
     if (R.blade && R.blade.attached && !R.inPit) drawBlade(R.blade, R);
@@ -268,7 +284,13 @@
       if (R.shield > 0) { ctx.strokeStyle = `rgba(71,168,255,${0.5 + (R.shieldFlash > 0 ? 0.5 : 0.2 * Math.sin(t * 8))})`; ctx.fillStyle = 'rgba(71,168,255,0.12)'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.32, 0, 6.29); ctx.fill(); ctx.stroke(); }
       if (R.rage > 0) { ctx.strokeStyle = `rgba(255,60,30,${0.45 + 0.3 * Math.sin(t * 14)})`; ctx.lineWidth = PX * 5; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.22 + 0.03 * Math.sin(t * 20), 0, 6.29); ctx.stroke(); if (Math.random() < 0.5) fire(p.x + (Math.random() - 0.5) * 0.6, p.y + (Math.random() - 0.5) * 0.6); }
       if (R.over > 0) { ctx.strokeStyle = `rgba(178,102,255,${0.6 + 0.3 * Math.sin(t * 18)})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.12, t * 3, t * 3 + 6.29); ctx.stroke(); ctx.setLineDash([]); }
-      if ((R.nitro > 0 || R.dashFx > 0) && Math.random() < 0.9) { const back = b.getWorldPoint(planck.Vec2(-R.hl - 0.05, (Math.random() - 0.5) * 0.3)), f = b.getWorldVector(planck.Vec2(-1, 0)); spawn({ t: 'fire', x: back.x, y: back.y, vx: f.x * 3 + (Math.random() - 0.5), vy: f.y * 3 + (Math.random() - 0.5), life: 0.25, max: 0.25, s: 0.06, grow: true }); }
+      if (R.eSh > 0) { const k = R.eSh / R.eShMax; ctx.strokeStyle = `rgba(120,220,255,${0.25 + 0.5 * k + (R.shieldFlash > 0 ? 0.3 : 0)})`; ctx.lineWidth = PX * 2; ctx.beginPath(); for (let k2 = 0; k2 <= 6; k2++) { const an = a + k2 / 6 * 6.283, rr2 = R.hl + 0.27; k2 ? ctx.lineTo(p.x + Math.cos(an) * rr2, p.y + Math.sin(an) * rr2) : ctx.moveTo(p.x + Math.cos(an) * rr2, p.y + Math.sin(an) * rr2); } ctx.stroke(); ctx.fillStyle = `rgba(120,220,255,${0.06 * k})`; ctx.fill(); }
+      if (R.quantumT > 0) { ctx.strokeStyle = `rgba(242,201,76,${0.6 + 0.4 * Math.sin(t * 25)})`; ctx.fillStyle = 'rgba(242,201,76,0.18)'; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.3, 0, 6.29); ctx.fill(); ctx.stroke(); }
+      if (R.stun > 0) { ctx.strokeStyle = '#9BE3FF'; ctx.lineWidth = PX * 2; ctx.beginPath(); for (let k2 = 0; k2 < 5; k2++) { const an = Math.random() * 6.28, r1 = R.hl * 0.4, r2 = R.hl + 0.15; ctx.moveTo(p.x + Math.cos(an) * r1, p.y + Math.sin(an) * r1); ctx.lineTo(p.x + Math.cos(an + 0.3) * (r1 + r2) / 2, p.y + Math.sin(an - 0.2) * (r1 + r2) / 2); ctx.lineTo(p.x + Math.cos(an) * r2, p.y + Math.sin(an) * r2); } ctx.stroke(); }
+      if (R.boomArm > 0) { ctx.strokeStyle = Math.sin(t * (10 + (4 - R.boomArm) * 8)) > 0 ? '#FF3B2B' : '#FFE14D'; ctx.lineWidth = PX * 5; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.18, 0, 6.29); ctx.stroke(); if (Math.random() < 0.4) sparks(p.x, p.y, 6); }
+      if (R.healing && Math.random() < 0.15) spawn({ t: 'spark', x: p.x + (Math.random() - 0.5) * 0.5, y: p.y + (Math.random() - 0.5) * 0.5, vx: 0, vy: -0.6, life: 0.6, max: 0.6, col: '#4CC26A' });
+      if (R.grappleFx > 0) { const E = R.enemy.body.getPosition(); ctx.strokeStyle = '#2B2118'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 4, PX * 3]); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(E.x, E.y); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = '#C9A227'; ctx.lineWidth = PX * 1.5; ctx.stroke(); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(E.x, E.y, 0.05, 0, 6.29); ctx.fill(); }
+      if ((R.nitro > 0 || R.dashFx > 0 || R.dashT > 0) && Math.random() < 0.9) { const back = b.getWorldPoint(planck.Vec2(-R.hl - 0.05, (Math.random() - 0.5) * 0.3)), f = b.getWorldVector(planck.Vec2(-1, 0)); spawn({ t: 'fire', x: back.x, y: back.y, vx: f.x * 3 + (Math.random() - 0.5), vy: f.y * 3 + (Math.random() - 0.5), life: 0.25, max: 0.25, s: 0.06, grow: true }); }
     }
   }
   function spikesOn(q) {
@@ -383,6 +405,8 @@
   }
   function drawCratesAndWarnings() {
     const t = performance.now() / 1000;
+    for (const o of S.oils) { const k = Math.min(1, o.life / 1.5); ctx.fillStyle = `rgba(18,14,10,${0.75 * k})`; ctx.beginPath(); ctx.ellipse(o.x, o.y, o.r, o.r * 0.82, o.x * 3, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(120,110,160,${0.25 * k})`; ctx.beginPath(); ctx.ellipse(o.x - o.r * 0.25, o.y - o.r * 0.2, o.r * 0.35, o.r * 0.15, 0.5, 0, 6.29); ctx.fill(); }
+    for (const m of S.mines) { ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(m.x, m.y, 0.07, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = m.arm > 0 ? '#E8C547' : (Math.sin(t * 10 + m.x) > 0 ? '#FF3B2B' : '#5A1A12'); ctx.beginPath(); ctx.arc(m.x, m.y, 0.025, 0, 6.29); ctx.fill(); ctx.strokeStyle = m.owner.id ? '#C8642B' : '#3F78A8'; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.arc(m.x, m.y, 0.1, 0, 6.29); ctx.stroke(); }
     for (const c of S.crates) {
       const age = S.t - c.t0, drop = Math.max(0, 1 - age / 0.5), sc = 1 + drop * 2.5, bob = Math.sin(t * 4) * 0.02;
       ctx.fillStyle = `rgba(20,14,8,${0.3 * (1 - drop)})`; ctx.beginPath(); ctx.ellipse(c.x + 0.05, c.y + 0.07, 0.2, 0.12, 0, 0, 6.29); ctx.fill();
@@ -520,6 +544,7 @@
       const chips = [];
       if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
       if (R.wmotor && R.wmotor.jam > 0) chips.push('JAMMED'); if (R.slots.some(q => q.motor.stuck > 0)) chips.push('MOTOR STUCK'); if (R.slots.some(q => q.motor.heat > 85 && q.motor.hp > 0)) chips.push('OVERHEAT');
+      if (R.stun > 0) chips.push('STUNNED'); if (R.malf > 0) chips.push('MALFUNCTION'); if (R.quantumT > 0) chips.push('QUANTUM'); if (R.boomArm > 0) chips.push('SELF-DESTRUCT'); if (R.oiled > 0) chips.push('OILED');
       if (R.nitro > 0) chips.push('NITRO'); if (R.over > 0) chips.push('OVERCHARGE'); if (R.shield > 0) chips.push('SHIELD');
       if (!R.alive) chips.length = 0;
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -561,6 +586,7 @@
     drawWalls();
     drawProjectiles();
     drawParticles();
+    for (const c of S.smokes) { const k = Math.min(1, c.life / 1), g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r); g.addColorStop(0, `rgba(175,170,160,${0.85 * k})`); g.addColorStop(0.7, `rgba(165,160,150,${0.6 * k})`); g.addColorStop(1, 'rgba(160,155,145,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 6.29); ctx.fill(); }
     tags();
     drawCalls();
     hud();
@@ -683,7 +709,7 @@
     }
     stepParticles(rdt * (ts || (hitStop > 0 ? 0 : 0)));
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
-    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; }
+    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
     shake *= Math.exp(-rdt * 8);
     if (S) {
@@ -699,7 +725,7 @@
     const n = T.names, w = T.wins;
     const avg = w.map(r => Math.round(r.filter(x => x != null).reduce((a, b) => a + b, 0) / (r.length - 1)));
     const cell = (v, i, j) => v == null ? '<td class="self">–</td>' : `<td><button type="button" class="mcell" data-i="${i}" data-j="${j}" style="--k:${(v - 50) / 50}" aria-label="${n[i]} versus ${n[j]}: ${n[i]} wins ${v}%">${v}</button></td>`;
-    const notes = n.map((name, i) => { const r = w[i].map((v, j) => [v, j]).filter(x => x[0] != null).sort((a, b) => b[0] - a[0]); const b = L.PRESETS[name]; return `<li><b>${name}</b> <span class="small">${L.WEAPONS[b.weapon].label.toLowerCase()} · ${L.CHASSIS[b.chassis].label.toLowerCase()} · ${L.weightOf(b)} kg</span><br>Beats ${n[r[0][1]]} (${r[0][0]}%), struggles vs ${n[r[r.length - 1][1]]} (${r[r.length - 1][0]}%)</li>`; }).join('');
+    const notes = n.map((name, i) => { const r = w[i].map((v, j) => [v, j]).filter(x => x[0] != null).sort((a, b) => b[0] - a[0]); const b = L.PRESETS[name]; return `<li><b>${name}</b> <span class="small">${L.WEAPONS[b.weapon].label.toLowerCase()} · ${L.CHASSIS[b.chassis].label.toLowerCase()} · ${L.DRIVES[b.drive || '2wd'].label.replace(/ \(.*/, '').toLowerCase()} · ${(L.PROCS[b.proc || 'standard']).label.toLowerCase()} · ${L.MODULES[b.mod || 'none'].label.toLowerCase()} · ${L.weightOf(b)} kg</span><br>Beats ${n[r[0][1]]} (${r[0][0]}%), struggles vs ${n[r[r.length - 1][1]]} (${r[r.length - 1][0]}%)</li>`; }).join('');
     el.innerHTML = `<div class="tblwrap"><table class="mtab"><thead><tr><th scope="col"><span class="small">row beats column</span></th>${n.map(x => `<th scope="col">${x}</th>`).join('')}<th scope="col">avg</th></tr></thead><tbody>${n.map((x, i) => `<tr><th scope="row">${x}</th>${w[i].map((v, j) => cell(v, i, j)).join('')}<td class="avg">${avg[i]}</td></tr>`).join('')}</tbody></table></div><ul class="mnotes">${notes}</ul>`;
     el.querySelectorAll('.mcell').forEach(bn => bn.onclick = () => { st.spec[0] = { preset: n[+bn.dataset.i] }; st.spec[1] = { preset: n[+bn.dataset.j] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }

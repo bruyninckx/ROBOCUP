@@ -1,1 +1,167 @@
-{"tune": {"dmg": 0.68, "spinner": 1.15, "drum": 0.62, "flipper": 1.6, "hammer": 0.75, "crusher": 1.5, "medium": 0.8, "flame": 0.72, "glove": 0.85, "spear": 0.9, "flail": 1.25}, "arenas": ["open", "pit"], "seeds": [301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320], "robots": {"Buzzkill": {"weapon": "spinner", "chassis": "medium", "drive": "4wd", "motor": "hot", "battery": "std", "armour": {"front": 0, "side": 3, "rear": 1, "top": 2}, "bumper": "spiked"}, "Rumbler": {"weapon": "drum", "chassis": "heavy", "drive": "2wd", "motor": "std", "battery": "big", "armour": {"front": 0, "side": 2, "rear": 1, "top": 1}, "bumper": "steel"}, "Popcorn": {"weapon": "flipper", "chassis": "light", "drive": "4wd", "motor": "std", "battery": "std", "armour": {"front": 0, "side": 2, "rear": 2, "top": 2}, "bumper": "steel"}, "Thumper": {"weapon": "hammer", "chassis": "medium", "drive": "4wd", "motor": "std", "battery": "big", "armour": {"front": 2, "side": 2, "rear": 0, "top": 2}, "bumper": "spiked"}, "Snapjaw": {"weapon": "crusher", "chassis": "medium", "drive": "4wd", "motor": "std", "battery": "std", "armour": {"front": 0, "side": 3, "rear": 0, "top": 1}, "bumper": "steel"}, "Peppershot": {"weapon": "medium", "chassis": "medium", "drive": "4wd", "motor": "std", "battery": "std", "armour": {"front": 1, "side": 2, "rear": 1, "top": 1}, "bumper": "steel"}, "Blowtorch": {"weapon": "flame", "chassis": "light", "drive": "4wd", "motor": "std", "battery": "big", "armour": {"front": 2, "side": 1, "rear": 0, "top": 1}, "bumper": "steel"}, "Haymaker": {"weapon": "glove", "chassis": "medium", "drive": "4wd", "motor": "std", "battery": "std", "bumper": "rubber", "armour": {"front": 0, "side": 2, "rear": 1, "top": 1}}, "Jouster": {"weapon": "spear", "chassis": "medium", "drive": "2wd", "motor": "hot", "battery": "std", "bumper": "fibre", "armour": {"front": 0, "side": 2, "rear": 1, "top": 1}}, "Wrecker": {"weapon": "flail", "chassis": "medium", "drive": "4wd", "motor": "std", "battery": "big", "bumper": "spiked", "armour": {"front": 1, "side": 3, "rear": 0, "top": 2}}}, "score": 8.667777777777781}
+{
+ "tune": {
+  "drum": 0.62,
+  "spear": 0.9,
+  "spinner": 1.15,
+  "glove": 0.85,
+  "medium": 0.8,
+  "flame": 0.72,
+  "flail": 1.25
+ },
+ "arenas": [
+  "open",
+  "pit"
+ ],
+ "seeds": [
+  301,
+  302,
+  303,
+  304,
+  305,
+  306,
+  307,
+  308,
+  309,
+  310,
+  311,
+  312,
+  313,
+  314,
+  315,
+  316,
+  317,
+  318,
+  319,
+  320,
+  321,
+  322,
+  323,
+  324,
+  325,
+  326,
+  327,
+  328,
+  329,
+  330
+ ],
+ "robots": {
+  "Juggernaut": {
+   "weapon": "drum",
+   "chassis": "medium",
+   "drive": "tracks",
+   "motor": "std",
+   "battery": "big",
+   "bumper": "steel",
+   "proc": "rammer",
+   "mod": "grapple",
+   "armour": {
+    "front": 0,
+    "side": 1,
+    "rear": 1,
+    "top": 1
+   }
+  },
+  "Hornet": {
+   "weapon": "spear",
+   "chassis": "medium",
+   "drive": "boost",
+   "motor": "std",
+   "battery": "std",
+   "bumper": "steel",
+   "proc": "zigzag",
+   "mod": "jets",
+   "armour": {
+    "front": 0,
+    "side": 2,
+    "rear": 1,
+    "top": 1
+   },
+   "dmgK": 1.25
+  },
+  "Whirlwind": {
+   "weapon": "spinner",
+   "chassis": "medium",
+   "drive": "4wd",
+   "motor": "hot",
+   "battery": "std",
+   "bumper": "steel",
+   "proc": "kiter",
+   "mod": "shield",
+   "armour": {
+    "front": 0,
+    "side": 2,
+    "rear": 1,
+    "top": 2
+   },
+   "dmgK": 0.9
+  },
+  "Brawler": {
+   "weapon": "glove",
+   "chassis": "heavy",
+   "drive": "4wd",
+   "motor": "std",
+   "battery": "std",
+   "bumper": "rubber",
+   "proc": "rammer",
+   "mod": "emp",
+   "armour": {
+    "front": 0,
+    "side": 3,
+    "rear": 0,
+    "top": 1
+   },
+   "dmgK": 0.92
+  },
+  "Slick": {
+   "weapon": "medium",
+   "chassis": "heavy",
+   "drive": "omni",
+   "motor": "std",
+   "battery": "std",
+   "bumper": "spring",
+   "proc": "kiter",
+   "mod": "oil",
+   "armour": {
+    "front": 1,
+    "side": 1,
+    "rear": 1,
+    "top": 1
+   }
+  },
+  "Hellfire": {
+   "weapon": "flame",
+   "chassis": "light",
+   "drive": "4wd",
+   "motor": "std",
+   "battery": "big",
+   "bumper": "steel",
+   "proc": "zigzag",
+   "mod": "boom",
+   "armour": {
+    "front": 2,
+    "side": 1,
+    "rear": 0,
+    "top": 1
+   },
+   "dmgK": 1.25
+  },
+  "Mauler": {
+   "weapon": "flail",
+   "chassis": "light",
+   "drive": "tracks",
+   "motor": "std",
+   "battery": "big",
+   "bumper": "spiked",
+   "proc": "standard",
+   "mod": "repair",
+   "armour": {
+    "front": 1,
+    "side": 2,
+    "rear": 0,
+    "top": 1
+   },
+   "dmgK": 0.9
+  }
+ },
+ "score": 5.57
+}

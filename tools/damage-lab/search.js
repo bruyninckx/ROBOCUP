@@ -5,7 +5,7 @@ const [inF, outF] = process.argv.slice(2);
 const cfg = JSON.parse(fs.readFileSync(inF, 'utf8'));
 const names = Object.keys(cfg.robots); let builds = names.map(k => cfg.robots[k]);
 const tune = Object.assign({}, cfg.tune);
-for (const b of builds) if (tune[b.weapon] == null) tune[b.weapon] = 1;
+for (const b of builds) if (tune[b.weapon] == null) tune[b.weapon] = L.TUNE[b.weapon] != null ? L.TUNE[b.weapon] : 1;
 const seeds = cfg.seeds, arenas = cfg.arenas;
 const cache = new Map(); // pair key -> results
 const key = (i, j) => JSON.stringify([builds[i], builds[j], tune[builds[i].weapon], tune[builds[j].weapon], tune.dmg]);
@@ -30,19 +30,20 @@ function summ(res) { // reuse market.js summarise via a fake evaluate result
 const clone = o => JSON.parse(JSON.stringify(o));
 function moves(i) {
   const b = builds[i], out = [], w = b.weapon, frontTool = L.WEAPONS[w].cat !== 'top';
-  const k = tune[w];
-  out.push(['knob', k * 0.8], ['knob', k * 1.25]);
+  const k = b.dmgK || 1;
+  out.push(['dmgK', k * 0.8], ['dmgK', k * 1.25]);
   const CH = ['light', 'medium', 'heavy'], ci = CH.indexOf(b.chassis);
   if (ci > 0) out.push(['chassis', CH[ci - 1]]); if (ci < 2) out.push(['chassis', CH[ci + 1]]);
   for (const bk of Object.keys(L.BUMPERS)) if (bk !== (b.bumper || 'steel')) out.push(['bumper', bk]);
-  out.push(['drive', b.drive === '2wd' ? '4wd' : '2wd'], ['motor', b.motor === 'std' ? 'hot' : 'std'], ['battery', b.battery === 'std' ? 'big' : 'std']);
+  if (cfg.drives) for (const d of Object.keys(L.DRIVES)) if (d !== b.drive) out.push(['drive', d]);
+  out.push(['motor', b.motor === 'std' ? 'hot' : 'std'], ['battery', b.battery === 'std' ? 'big' : 'std']);
   for (const a of ['side', 'rear', 'top', 'front']) { if (a === 'front' && frontTool) continue; const v = b.armour[a]; if (v > 0) out.push(['armour.' + a, v - 1]); if (v < 3) out.push(['armour.' + a, v + 1]); }
   return out;
 }
 function apply(i, m) {
   const [f, v] = m;
   if (f === 'knob') { tune[builds[i].weapon] = +v.toFixed(3); return true; }
-  const b = clone(builds[i]); if (f.startsWith('armour.')) b.armour[f.slice(7)] = v; else b[f] = v;
+  const b = clone(builds[i]); if (f === 'dmgK') { b.dmgK = +v.toFixed(3); builds[i] = b; return true; } if (f.startsWith('armour.')) b.armour[f.slice(7)] = v; else b[f] = v;
   if (L.weightOf(b) > 120) return false;
   builds[i] = b; return true;
 }
