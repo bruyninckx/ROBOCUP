@@ -13,7 +13,7 @@ for (const tag of tags) {
   const rounds = ok.map(r => r.round);
   const sumC = (r, pred, k) => Object.entries(r.cstat).filter(([id]) => r.cash[id] && pred(r.cash[id], id)).reduce((a, [, s]) => a + (s[k] || 0), 0);
   const intr = c => !c.live, live = c => c.live, harm = c => c.harmful && !c.live;
-  const drawn = ok.map(r => sumC(r, intr, 'drawn') + sumC(r, live, 'drawn'));
+  const drawn = ok.map(r => sumC(r, c => !c.auction, 'drawn'));   // Intrigue deck only (auction cards are counted when won)
   const cashCr = ok.map(r => Object.entries(r.cstat).reduce((a, [id, s]) => a + (r.cash[id] ? s.cashed * r.cash[id].cash : 0), 0));
   const fights = ok.map(r => r.fights), liveP = ok.map(r => sumC(r, live, 'played'));
   const atkL = ok.map(r => sumC(r, harm, 'landed')), atkB = ok.map(r => sumC(r, harm, 'blocked'));

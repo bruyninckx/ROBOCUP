@@ -64,6 +64,21 @@ node tools/seed-check.js 7                             # same seed, same solo ga
 node tools/mp-test.js 3 5 20 1                         # host + 3 bot players in tabs, with drop-outs and a save/load
 ```
 
+**Whole-game simulations (start fame, fame to win, Intrigue, auction).** One command runs 4 settings (start fame 4 and 1, win at 12 and 16) and writes `sims\report.txt`:
+
+```
+tools\run-sims.cmd 200          # 200 games per setting, one per CPU core (add a 2nd number to choose how many at once)
+```
+
+Or one setting at a time, then compare any runs side by side:
+
+```
+node tools/game-sim.js --tag=start1 --games=200 --par=16 --start=1 --win=12
+node tools/game-sim-report.js start4_win12 start1 [--cards]     # --cards adds every card: drawn / played / landed / blocked / cashed per game
+```
+
+The report shows: rounds (mean, median, spread), Intrigue cards drawn and the share of the deck seen, cash-ins, attacks and how often they land, Security Bot rolls, fights, live cards per fight, auction cards won and their price, credits held, Market spend, bets, win share per seat and fame by source. To compare the game before and after a change: run the same command on each branch with different tags (the `sims` folder is not committed).
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):

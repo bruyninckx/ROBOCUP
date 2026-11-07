@@ -41,7 +41,7 @@ fs.mkdirSync(OUTD, { recursive: true });
         const betCr = fights.reduce((a, f) => a + (f.bets || []).reduce((s, x) => s + (x && (x.amt || x.amount) || 0), 0), 0);
         const auctions = ev.filter(e => e.k === 'card_auction');
         return { over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
-          fameBy: G.teams.map(t => t.fameBy || {}), ups, cstat: G.cstat || {}, cash: Object.fromEntries(Object.keys(G.cstat || {}).map(id => [id, C[id] ? { cash: C[id].cash, fam: C[id].fam, name: C[id].name, live: C[id].phase === 'fight', harmful: !!C[id].harmful } : null])),
+          fameBy: G.teams.map(t => t.fameBy || {}), ups, cstat: G.cstat || {}, cash: Object.fromEntries(Object.keys(G.cstat || {}).map(id => [id, C[id] ? { cash: C[id].cash, fam: C[id].fam, name: C[id].name, live: C[id].phase === 'fight', harmful: !!C[id].harmful, auction: !!C[id].auction } : null])),
           deckSize: D.DECK().length, fights: fights.length, fightCards: fends.map(f => (f.log || []).filter(x => x.k === 'card').length),
           formats: fights.map(f => f.format), marketCr: market, betCr, hostBids: ev.filter(e => e.k === 'host_bid').length,
           auctions: auctions.map(a => ({ cards: a.cards, wins: a.wins })), errs: D.PT.errs };
