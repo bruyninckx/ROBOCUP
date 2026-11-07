@@ -41,8 +41,21 @@
     peerLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = PEERJS; s.onload = () => res(window.Peer); s.onerror = () => rej(new Error('could not load PeerJS (no internet?)')); document.head.appendChild(s); });
     return peerLib;
   }
+  // ICE servers: Google STUN by default; a relay (TURN) from src/net-config.js when set up (see README "Online play")
+  let iceCache = null;
+  function iceServers() {
+    if (iceCache) return iceCache;
+    const C = window.ROBOCUS_NET_CONFIG || {};
+    const stun = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }];
+    iceCache = (C.metered && C.metered.app && C.metered.apiKey
+      ? fetch('https://' + C.metered.app + '.metered.live/api/v1/turn/credentials?apiKey=' + encodeURIComponent(C.metered.apiKey)).then(r => r.ok ? r.json() : []).catch(() => [])
+      : Promise.resolve([])).then(extra => stun.concat(Array.isArray(extra) ? extra : [], C.iceServers || []));
+    return iceCache;
+  }
+  const hasRelay = list => list.some(x => /^turns?:/.test([].concat(x.urls || [])[0] || ''));
   function peerTransport(room, isHost) {
-    const T = { id: isHost ? 'host' : null, onmsg: null, onlink: null };
+    const T = { id: isHost ? 'host' : null, onmsg: null, onlink: null, onstage: null };
+    const stage = t => { T.stageText = t; if (T.onstage) T.onstage(t); };
     const conns = {};
     const wire = (c, from) => {
       conns[from] = c;
@@ -50,8 +63,12 @@
       c.on('close', () => { if (conns[from] === c) delete conns[from]; if (T.onlink) T.onlink(from, false); });
       c.on('error', () => {});
     };
-    T.ready = loadPeerJs().then(Peer => new Promise((res, rej) => {
-      const peer = isHost ? new Peer(ID_PREFIX + room.toLowerCase()) : new Peer();
+    stage('loading the network library');
+    T.ready = loadPeerJs().then(Peer => iceServers().then(list => new Promise((res, rej) => {
+      T.relay = hasRelay(list);
+      stage('reaching the matchmaking server');
+      const opts = { config: { iceServers: list } };
+      const peer = isHost ? new Peer(ID_PREFIX + room.toLowerCase(), opts) : new Peer(opts);
       T.peer = peer;
       peer.on('error', e => { if (T.onerror) T.onerror(e); rej(e); });
       peer.on('open', pid => {
@@ -61,15 +78,18 @@
           let busy = null;
           T.connect = () => busy || (busy = new Promise((ok, no) => {
             if (peer.disconnected) { try { peer.reconnect(); } catch (e) {} }
+            stage('opening a link to the host' + (T.relay ? ' (relay on)' : ''));
             const c = peer.connect(ID_PREFIX + room.toLowerCase(), { reliable: true });
-            const tm = setTimeout(() => { busy = null; no(new Error('no answer from the host')); }, 8000);
-            c.on('open', () => { clearTimeout(tm); busy = null; wire(c, 'host'); ok(); });
+            const fail = why => { clearTimeout(tm); busy = null; try { c.close(); } catch (e) {} const err = new Error(why); err.type = 'ice'; no(err); };
+            const tm = setTimeout(() => fail('no direct link to the host after 15 s'), 15000);
+            const watch = setInterval(() => { const pc = c.peerConnection; if (pc && (pc.iceConnectionState === 'failed' || pc.connectionState === 'failed')) { clearInterval(watch); fail('the direct link to the host failed'); } }, 500);
+            c.on('open', () => { clearTimeout(tm); clearInterval(watch); busy = null; wire(c, 'host'); ok(); });
           }));
-          T.connect().then(res);
+          T.connect().then(res, rej);   // a first link that fails must end "Connecting…" with a message, not hang
         }
       });
       peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
-    }));
+    })));
     T.send = (to, d) => { if (to) { const c = conns[to]; if (c && c.open) c.send(d); } else Object.values(conns).forEach(c => { if (c.open) c.send(d); }); };
     T.close = () => { try { T.peer.destroy(); } catch (e) {} };
     return T;
@@ -351,9 +371,14 @@
       el.innerHTML = '<div class="nl-box"><h3>🌐 Join room <span class="nl-code">' + esc(room) + '</span></h3>' + (err ? '<div style="color:#b45309;font-weight:700">' + esc(err) + '</div>' : '') +
         '<div class="nl-row">Your name <input type="text" id="nlName" value="' + esc(C.name) + '" maxlength="20" placeholder="e.g. Kev"><button id="nlJoin">Join</button></div>' +
         '<div class="nl-note">Rejoining a game? Use the same name as before.</div><div class="nl-row"><button class="sec" id="nlSolo">Play solo instead</button></div></div>';
-      const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note">Connecting…</div>');
-        T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
-          drawJoin(/unavailable|could not connect/i.test(String(e && (e.type || e.message))) ? 'No game in room ' + room + ' right now. Check the code, or ask the host to open the game first.' : 'Could not connect: ' + (e.message || e.type || e)); }); };
+      const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note" id="nlStage">Connecting… ' + esc(T.stageText || '') + '</div>');
+        T.onstage = t => { const n = $('#nlStage'); if (n) n.textContent = 'Connecting… ' + t; };
+        T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.onstage = t => { T.stageText = t; T.relay = T2.relay; if (T.onstage) T.onstage(t); }; T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
+          const ty = String(e && (e.type || e.message));
+          drawJoin(/unavailable|could not connect/i.test(ty) ? 'No game in room ' + room + ' right now. Check the code, or ask the host to open the game first.'
+            : e && e.type === 'ice' ? 'Found the game, but ' + e.message + '. Some networks (mobile data, some routers and work Wi-Fi) block direct links between devices' + (T.relay ? ', even with the relay.' : '. A relay server fixes this (ask the host: README, "Online play").') + ' Try again, or try another network.'
+            : /network|server-error|socket/i.test(ty) ? 'Could not reach the matchmaking server (' + esc(ty) + '). Check the internet connection.'
+            : 'Could not connect: ' + (e.message || e.type || e)); }); };
       $('#nlJoin').onclick = go; $('#nlName').onkeydown = e => { if (e.key === 'Enter') go(); };
       $('#nlSolo').onclick = () => { location.href = location.href.split('?')[0]; };
       if (C.name && qs.get('name') && !err && !C.autoTried) { C.autoTried = true; go(); }   // only once: a failed join must not retry in a loop
@@ -393,8 +418,17 @@
     $('#nlClose').onclick = closeLobby;
   }
 
+  // optional src/net-config.js (relay server settings); missing is fine
+  let cfgLoaded = false;
+  function loadConfig(then) {
+    if (cfgLoaded || window.ROBOCUS_NET_CONFIG) return then();
+    cfgLoaded = true;
+    const sc = document.createElement('script'); sc.src = '../src/net-config.js';
+    sc.onload = sc.onerror = () => then(); document.head.appendChild(sc);
+  }
   function boot() {
     if (!GAME()) { setTimeout(boot, 50); return; }
+    if (!cfgLoaded) { loadConfig(boot); return; }
     const room = (qs.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const mode = qs.get('net') === 'local' ? 'local' : 'peer';
     if (!room) { badge('🌐 Online', openOnlineMenu); return; }
