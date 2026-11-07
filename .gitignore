@@ -13,3 +13,4 @@ drive-download-*.zip
 
 # test tool installs
 package-lock.json
+sims/
