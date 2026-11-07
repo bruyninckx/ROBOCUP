@@ -50,6 +50,8 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-07, Claude (branch `claude/damage-lab`): **ROBOCUS 2.0** (Kev): the Damage Lab line is now the start of the next version. Page title and docs renamed; file paths unchanged. Browser feasibility check: sim under 1% of a CPU core, about 0.55 MB download, deterministic per seed; rendering on phones and the multiplayer fight runner are the work ahead. Details in `docs/damage-lab.md`.
+
 - 2026-11-08, Claude (branch `claude/damage-lab`): Damage Lab market robots get their own hull silhouettes (armour plates follow the hull now). Hull shape barely changes win rates (within about 4 points) except the bar spinner, which is best as a box. Roster 43-56%. Details in `docs/damage-lab.md`.
 - 2026-11-08, Claude (branch `claude/damage-lab`): Damage Lab: physical bullets (ricochet, knockback), rocket pod, buzzsaw + rocket pod, harpoon gun (rope swing and fling), piston boxing glove, weapon snags (stuck / wrenched), hull shapes (chamfer, wedge, round). Roster: Slick and Hellfire retired, Sawblast and Whaler in (44-56% over 60 fights per matchup, 16-26 big moments per minute vs about 13 before). Details in `docs/damage-lab.md`.
 - 2026-11-08, Claude (branch `claude/damage-lab`): Damage Lab flanker chip (circles round the enemy weapon, sidesteps charges, +25% on side and back hits). Experiment: great on the spear (Hornet 54% to 63%, 46% of its damage on sides/back) and too strong on the bar spinner (Whirlwind 40% to 67%); worse on pushers (drum, glove). Market robots keep their own chips. Details in `docs/damage-lab.md`.
