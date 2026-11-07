@@ -581,16 +581,17 @@ html, body {
     's1. Zippo':    { b: { lv: L(0, 3, 3, 2, 3, 0, 0), range: 'short', weapon: 'flame',   cal: 'medium', mod: null, helpers: [], eng: 1 }, d: 'Armoured fast flamethrower. Burns spinners & rapid guns; melts to lasers.' },
     's1. Top':      { b: { lv: L(2, 3, 3, 0, 3, 0, 0), range: 'short', weapon: 'spinner', cal: 'medium', mod: null, helpers: [], eng: 1 }, d: 'Armoured contact spinner. Wrecks saws & long guns; loses to lasers & Scrapper.' },
   };
+  // measured 7 Nov 2026 with the current src/sim.js: 200 duels per pair (sides swapped, real 1/60 s steps, 1 Chief Engineer)
   const SMATRIX = {
-    's1. Scrapper': { 's1. Rattler': 0.555, 's1. Plinker': 0.658, 's1. Tin Can': 0.48,  's1. Sparky': 0.265, 's1. Lobster': 0.735, 's1. Grinder': 0.665, 's1. Zippo': 0.38,  's1. Top': 0.885 },
-    's1. Rattler':  { 's1. Scrapper': 0.445, 's1. Plinker': 0.535, 's1. Tin Can': 0.18,  's1. Sparky': 1.0,   's1. Lobster': 0.89,  's1. Grinder': 0.55,  's1. Zippo': 0.305, 's1. Top': 0.245 },
-    's1. Plinker':  { 's1. Scrapper': 0.342, 's1. Rattler': 0.465, 's1. Tin Can': 0.52,  's1. Sparky': 0.98,  's1. Lobster': 0.425, 's1. Grinder': 0.408, 's1. Zippo': 0.66,  's1. Top': 0.14  },
-    's1. Tin Can':  { 's1. Scrapper': 0.52,  's1. Rattler': 0.82,  's1. Plinker': 0.48,  's1. Sparky': 0.753, 's1. Lobster': 0.433, 's1. Grinder': 0.258, 's1. Zippo': 0.435, 's1. Top': 0.195 },
-    's1. Sparky':   { 's1. Scrapper': 0.735, 's1. Rattler': 0.0,   's1. Plinker': 0.02,  's1. Tin Can': 0.247, 's1. Lobster': 0.52,  's1. Grinder': 0.155, 's1. Zippo': 1.0,   's1. Top': 0.98  },
-    's1. Lobster':  { 's1. Scrapper': 0.265, 's1. Rattler': 0.11,  's1. Plinker': 0.575, 's1. Tin Can': 0.567, 's1. Sparky': 0.48,  's1. Grinder': 0.775, 's1. Zippo': 0.585, 's1. Top': 0.67  },
-    's1. Grinder':  { 's1. Scrapper': 0.335, 's1. Rattler': 0.45,  's1. Plinker': 0.592, 's1. Tin Can': 0.742, 's1. Sparky': 0.845, 's1. Lobster': 0.225, 's1. Zippo': 0.465, 's1. Top': 0.02  },
-    's1. Zippo':    { 's1. Scrapper': 0.62,  's1. Rattler': 0.695, 's1. Plinker': 0.34,  's1. Tin Can': 0.565, 's1. Sparky': 0.0,   's1. Lobster': 0.415, 's1. Grinder': 0.535, 's1. Top': 0.795 },
-    's1. Top':      { 's1. Scrapper': 0.115, 's1. Rattler': 0.755, 's1. Plinker': 0.86,  's1. Tin Can': 0.805, 's1. Sparky': 0.02,  's1. Lobster': 0.33,  's1. Grinder': 0.98,  's1. Zippo': 0.205 },
+    's1. Scrapper': { 's1. Rattler': 0.47, 's1. Plinker': 0.7, 's1. Tin Can': 0.535, 's1. Sparky': 0.228, 's1. Lobster': 0.765, 's1. Grinder': 0.915, 's1. Zippo': 0.345, 's1. Top': 0.88 },
+    's1. Rattler': { 's1. Scrapper': 0.53, 's1. Plinker': 0.495, 's1. Tin Can': 0.185, 's1. Sparky': 0.99, 's1. Lobster': 0.93, 's1. Grinder': 0.495, 's1. Zippo': 0.28, 's1. Top': 0.095 },
+    's1. Plinker': { 's1. Scrapper': 0.3, 's1. Rattler': 0.505, 's1. Tin Can': 0.525, 's1. Sparky': 0.96, 's1. Lobster': 0.545, 's1. Grinder': 0.525, 's1. Zippo': 0.75, 's1. Top': 0.15 },
+    's1. Tin Can': { 's1. Scrapper': 0.465, 's1. Rattler': 0.815, 's1. Plinker': 0.475, 's1. Sparky': 0.795, 's1. Lobster': 0.415, 's1. Grinder': 0.338, 's1. Zippo': 0.502, 's1. Top': 0.145 },
+    's1. Sparky': { 's1. Scrapper': 0.772, 's1. Rattler': 0.01, 's1. Plinker': 0.04, 's1. Tin Can': 0.205, 's1. Lobster': 0.66, 's1. Grinder': 0.17, 's1. Zippo': 1.0, 's1. Top': 0.945 },
+    's1. Lobster': { 's1. Scrapper': 0.235, 's1. Rattler': 0.07, 's1. Plinker': 0.455, 's1. Tin Can': 0.585, 's1. Sparky': 0.34, 's1. Grinder': 0.76, 's1. Zippo': 0.57, 's1. Top': 0.475 },
+    's1. Grinder': { 's1. Scrapper': 0.085, 's1. Rattler': 0.505, 's1. Plinker': 0.475, 's1. Tin Can': 0.662, 's1. Sparky': 0.83, 's1. Lobster': 0.24, 's1. Zippo': 0.33, 's1. Top': 0.0 },
+    's1. Zippo': { 's1. Scrapper': 0.655, 's1. Rattler': 0.72, 's1. Plinker': 0.25, 's1. Tin Can': 0.498, 's1. Sparky': 0.0, 's1. Lobster': 0.43, 's1. Grinder': 0.67, 's1. Top': 0.655 },
+    's1. Top': { 's1. Scrapper': 0.12, 's1. Rattler': 0.905, 's1. Plinker': 0.85, 's1. Tin Can': 0.855, 's1. Sparky': 0.055, 's1. Lobster': 0.525, 's1. Grinder': 1.0, 's1. Zippo': 0.345 },
   };
   // Kev, 6 Nov: every team starts with ONE drafted robot (was 2); more come from New Robot lots in the Market
   const STARTER_PICKS = 1;
@@ -1433,12 +1434,13 @@ html, body {
         if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
         $('#pAct1').onclick = () => act('pickSponsor', null);
         if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
-      } else if (G.draftSeat != null && G.draftSeat !== HS) {
-        pb.innerHTML = '<span>🤖 <b>Starter draft:</b> <b style="color:' + G.teams[G.draftSeat].col + '">' + esc(seatName(G.draftSeat)) + '</b> is picking a starter robot…</span>';
+      } else if (PS().draftPick || !PS().draftOffer) {
+        const w = humanSeats().filter(h => PS(h).draftOffer && !PS(h).draftPick);
+        pb.innerHTML = '<span>🤖 <b>Starter picked' + (PS().draftPick ? ': ' + esc(PS().draftPick) : '') + '.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '… All picks are revealed together.</span>';
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
-        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Click 1 of the 3 stock <b>s1.</b> robots on the Arena Stage (11 pts, max Lv3, 1 Eng).</span>` +
+        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Click 1 of your 2 stock <b>s1.</b> robots on the Arena Stage (11 pts, max Lv3, 1 Eng). Everyone picks at the same time; all picks are revealed together.</span>` +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
         $('#pAct1').onclick = () => act('pickStarter', -1);
       }
@@ -1751,7 +1753,7 @@ html, body {
     if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); mpDealSponsors(); }   // a person's team carries their name
     setCameraGoal('compound');
     tlog('new_game', { startFame: G0fame, starterPicks: STARTER_PICKS, teams: G.teams.map(t => t.name) });
-    notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (pick 1 of 3)!', '#111');
+    notify('<b>Opening Setup:</b> Choose your Team Sponsor on the Arena Stage, then draft your <b>s1.</b> starter robot (you get 2 and keep 1, everyone at the same time)!', '#111');
     updateHud();
   }
 
@@ -1826,48 +1828,55 @@ html, body {
     startDraftRound();
     updateHud();
   }
-  // the draft: people one at a time (seat order), then the AI teams
+  // Starter draft (Kev, 7 Nov: option A): every team is dealt 2 starters at the same time and keeps 1 in secret;
+  // all picks are revealed together, so nobody can pick a counter to what is already on the table (36% of starter
+  // matchups are 80/20 or worse). AI teams keep the one with the better average. The unpicked go back to the deck.
+  const DRAFT_DEAL = 2;
   function startDraftRound() {
-    G.draftQueue = humanSeats();
-    nextDrafter();
-  }
-  function nextDrafter() {
-    G.draftSeat = G.draftQueue.length ? G.draftQueue.shift() : null;
-    if (G.draftSeat != null) { dealHumanStarterOffer(); updateHud(); return; }
-    for (const aiT of G.teams) {   // the AI teams draft their starter for this round (best average win rate vs table)
-      if (isHuman(aiT.i)) continue;
-      aiDraftOneStarter(aiT);
+    const order = seatOrder();
+    for (const ti of order) {
+      if (G.starterDeck.length < DRAFT_DEAL) {
+        const taken = new Set(G.teams.flatMap(t => t.robots.map(r => r.name)).concat(order.flatMap(x => PS(x).draftOffer || [])));
+        G.starterDeck.push(...shuffle(Object.keys(STARTERS).filter(k => !taken.has(k) && !G.starterDeck.includes(k))));
+      }
+      shuffle(G.starterDeck);
+      const P = PS(ti);
+      P.draftOffer = G.starterDeck.splice(0, Math.min(DRAFT_DEAL, G.starterDeck.length));
+      P.draftPick = isHuman(ti) ? null : P.draftOffer.slice().sort((x, y) => starterOverallAvg(y) - starterOverallAvg(x))[0];
     }
-    if (G.setupStep === 'draft1' && STARTER_PICKS > 1) {
-      G.setupStep = 'draft2';
-      startDraftRound();
-      updateHud();
-    } else {
-      finishSetupPhase();
-    }
+    G.draftOffer = []; G.draftSeat = null;
+    for (const h of humanSeats()) say(h, '🤖 Your 2 starters: <b>' + PS(h).draftOffer.map(esc).join('</b> or <b>') + '</b>. Keep 1; everyone picks at the same time.', G.teams[h].col);
+    updateHud();
+    if (!humanSeats().length) revealDraft();
   }
+  const myDraftOffer = () => PS().draftOffer || [];
   ACT.pickStarter = (S, offerIdx) => {
-    if (G.phase !== 'setup' || G.draftSeat !== S) return;
-    if (offerIdx == null || offerIdx < 0) offerIdx = Math.floor(rnd() * G.draftOffer.length);
+    const P = PS(S);
+    if (G.phase !== 'setup' || (G.setupStep !== 'draft1' && G.setupStep !== 'draft2') || !P.draftOffer || P.draftPick) return;
+    if (offerIdx == null || offerIdx < 0 || offerIdx >= P.draftOffer.length) offerIdx = Math.floor(rnd() * P.draftOffer.length);
     pickSetupStarter(offerIdx, S);
   };
   function pickSetupStarter(offerIdx, S = HS) {
-    if (G.phase !== 'setup' || (G.setupStep !== 'draft1' && G.setupStep !== 'draft2')) return;
-    if (G.draftSeat != null && G.draftSeat !== S) return;
-    const t = G.teams[S];
-    const chosen = G.draftOffer[offerIdx] || G.draftOffer[0];
-    if (!chosen) return;
-    const unpicked = G.draftOffer.filter((_, idx) => idx !== offerIdx);
-    G.starterDeck.push(...unpicked);
+    const P = PS(S);
+    if (G.phase !== 'setup' || !P.draftOffer || P.draftPick) return;
+    P.draftPick = P.draftOffer[offerIdx] || P.draftOffer[0];
+    say(S, '🤖 You keep <b>' + esc(P.draftPick) + '</b>. It is revealed when everyone has picked.', G.teams[S].col);
+    if (isNetGame()) notify(nm(G.teams[S]) + ' has picked a starter.', G.teams[S].col);
+    if (humanSeats().every(h => PS(h).draftPick)) revealDraft();
+  }
+  function revealDraft() {
+    for (const t of G.teams) {
+      const P = PS(t.i), chosen = P.draftPick || (P.draftOffer || [])[0];
+      if (!chosen) continue;
+      t.robots.push(mkRobot(chosen, STARTERS[chosen].b));
+      G.starterDeck.push(...P.draftOffer.filter(x => x !== chosen));
+      if (t.i === HS) spawnWeldSparks(-370 + (t.robots.length - 1) * 369, 195);
+      notify('🤖 ' + nm(t) + ' drafts <b>' + esc(chosen) + '</b>.', t.col);
+      P.draftOffer = null; P.draftPick = null;
+    }
     shuffle(G.starterDeck);
-    G.draftOffer = [];
-
-    t.robots.push(mkRobot(chosen, STARTERS[chosen].b));
-    const bayIdx = t.robots.length - 1;
-    if (S === HS) spawnWeldSparks(-370 + bayIdx * 369, 195);
-    say(S, `🤖 Drafted <b>${esc(chosen)}</b> into Bay ${bayIdx + 1}!`, t.col);
-    if (isNetGame()) notify('🤖 ' + nm(t) + ' drafts <b>' + esc(chosen) + '</b>.', t.col);
-    nextDrafter();
+    if (G.setupStep === 'draft1' && STARTER_PICKS > 1) { G.setupStep = 'draft2'; startDraftRound(); updateHud(); }
+    else finishSetupPhase();
   }
 
   function finishSetupPhase() {
@@ -1884,7 +1893,9 @@ html, body {
       pickSetupSponsor(pick(G.sponsorDeal));
     }
     while (G.phase === 'setup') {
-      pickSetupStarter(Math.floor(rnd() * G.draftOffer.length), G.draftSeat != null ? G.draftSeat : HS);
+      const P = PS(HS);
+      if (!P.draftOffer || P.draftPick) break;
+      pickSetupStarter(Math.floor(rnd() * P.draftOffer.length), HS);
     }
   }
   function soleLeader() { const top = Math.max(...G.teams.map(x => x.fame)), L = G.teams.filter(x => x.fame === top); return L.length === 1 ? L[0] : null; }
@@ -4369,7 +4380,7 @@ html, body {
   /* ---------- the host's nudge / skip: a seat that keeps everyone waiting gets the default for what it is asked ---------- */
   function seatBusyWith(s) {   // what the game waits for from this seat right now (for the host's banner), or null
     if (!G || !isHuman(s) || G.over) return null;
-    if (G.phase === 'setup') return G.setupStep === 'sponsor' ? (!isNetGame() || !PS(s).sponsor ? 'sponsor' : null) : (G.draftSeat === s ? 'draft' : null);
+    if (G.phase === 'setup') return G.setupStep === 'sponsor' ? (!isNetGame() || !PS(s).sponsor ? 'sponsor' : null) : (PS(s).draftOffer && !PS(s).draftPick ? 'draft' : null);
     if (G.phase === 'intrigue') return G.intrigueTurn === s ? 'intrigue turn' : null;
     if (G.marketAuction && G.marketAuction.tie && tieMine(s)) return 'rebid';
     if ((PS(s).install || []).length) return 'install';
@@ -4397,7 +4408,7 @@ html, body {
     if (!G || !isHuman(s)) return;
     if (window.ROBOCUS_NET) window.ROBOCUS_NET.cancelSeat(s);   // its open questions and deal panels get their default answer
     const P = PS(s);
-    if (G.phase === 'setup') { if (G.setupStep === 'sponsor' && isNetGame() && !P.sponsor) runAct(s, 'pickSponsor', [null]); else if (G.draftSeat === s) runAct(s, 'pickStarter', [-1]); return; }
+    if (G.phase === 'setup') { if (G.setupStep === 'sponsor' && isNetGame() && !P.sponsor) runAct(s, 'pickSponsor', [null]); else if (PS(s).draftOffer && !PS(s).draftPick) runAct(s, 'pickStarter', [-1]); return; }
     if (G.phase === 'intrigue' && G.intrigueTurn === s) { P.skipTurn = true; if (G.endHumanTurn && !G.ivBusy) G.endHumanTurn(); return; }
     if (tieMine(s)) { runAct(s, 'rebidLock', []); return; }
     if ((P.install || []).length) { while ((P.install || []).length) { const it = P.install[0], r = aiPickRobot(G.teams[s], it.lot); if (r && !LOTS[it.lot].twin) runAct(s, 'install', [r.id]); else if (r) runAct(s, 'install', [r.id, aiTwinPick(s, r)]); else runAct(s, 'installKeep', []); if (P.install[0] === it) runAct(s, 'installKeep', []); } return; }
@@ -4938,23 +4949,25 @@ html, body {
       return;
     }
 
-    // Step 2 & Step 3: Starter Deck Draft (Pick 1 of 3 twice, from the 9 s1. starters)
+    // Step 2 & Step 3: Starter Deck Draft (keep 1 of 2, in secret, from the 9 s1. starters)
     const pickNum = G.setupStep === 'draft1' ? 1 : 2;
     ctx.fillStyle = '#111'; ctx.font = '900 11px system-ui, sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(STARTER_PICKS > 1 ? `STARTER DECK DRAFT (PICK ${pickNum} OF ${STARTER_PICKS})  —  KEEP 1 OF 3 STOCK ROBOTS` : 'STARTER DECK DRAFT  —  KEEP 1 OF 3 STOCK ROBOTS', x0 + 12, y0 + 18.5);
+    ctx.fillText(STARTER_PICKS > 1 ? `STARTER DECK DRAFT (PICK ${pickNum} OF ${STARTER_PICKS})  —  KEEP 1 OF 2, IN SECRET` : 'STARTER DECK DRAFT  —  KEEP 1 OF 2, IN SECRET (REVEALED TOGETHER)', x0 + 12, y0 + 18.5);
     ctx.fillStyle = '#555'; ctx.font = '700 9.5px system-ui, sans-serif'; ctx.textAlign = 'right';
     ctx.fillText('11 Stat Pts · Cap Lv3 · Stock Parts · 1 Eng', x0 + L.aw - 12, y0 + 18.5);
 
+    const offer = myDraftOffer(), picked = PS().draftPick;
     const cw = 192, ch = 180, gap = 10;
-    const startX = cx - (3 * cw + 2 * gap) / 2, by = y0 + 33;
-    if (G.draftSeat != null && G.draftSeat !== HS) {   // multiplayer: someone else is drafting; show their offer, not clickable
-      ctx.fillStyle = G.teams[G.draftSeat].col; ctx.font = '800 12px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(seatName(G.draftSeat).toUpperCase() + ' IS DRAFTING…', cx, by + ch + 20);
+    const startX = cx - (offer.length * cw + (offer.length - 1) * gap) / 2, by = y0 + 33;
+    if (picked) {
+      ctx.fillStyle = '#111'; ctx.font = '800 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('You keep ' + picked + '.', cx, by + ch + 20);
     }
 
-    (G.draftOffer || []).forEach((sName, idx) => {
+    offer.forEach((sName, idx) => {
       const def = STARTERS[sName];
       if (!def) return;
+      if (picked && sName !== picked) ctx.globalAlpha = 0.35;
       const b = def.b;
       const bx = startX + idx * (cw + gap);
       const hov = mouse.wx >= bx && mouse.wx <= bx + cw && mouse.wy >= by && mouse.wy <= by + ch;
@@ -5035,7 +5048,8 @@ html, body {
       ctx.fillStyle = '#ffffff'; ctx.font = '800 10.5px system-ui, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`Draft ${sName} (Bay ${pickNum}) →`, bx + cw / 2, by + 165);
 
-      if (G.draftSeat == null || G.draftSeat === HS) hitRegions.push({ kind: 'setup_draft', idx, x: bx, y: by, w: cw, h: ch });
+      if (!picked) hitRegions.push({ kind: 'setup_draft', idx, x: bx, y: by, w: cw, h: ch });
+      ctx.globalAlpha = 1;
     });
   }
 
@@ -5215,7 +5229,7 @@ html, body {
           ctx.fillStyle = t.col; ctx.font = '900 13px system-ui, sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(`▲ DRAFT STARTER #${bIdx + 1} ON ARENA STAGE`, bx + bw / 2, by + bh / 2 - 4);
           ctx.fillStyle = '#555'; ctx.font = '600 11px system-ui, sans-serif';
-          ctx.fillText('Pick 1 of the 3 s1. stock robots above', bx + bw / 2, by + bh / 2 + 14);
+          ctx.fillText('Pick 1 of your 2 s1. stock robots above', bx + bw / 2, by + bh / 2 + 14);
         } else if (G.phase === 'setup' && bIdx < STARTER_PICKS) {
           ctx.fillStyle = '#666'; ctx.font = '800 12.5px system-ui, sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(`STARTER BAY #${bIdx + 1} (OPENING DRAFT)`, bx + bw / 2, by + bh / 2 - 4);

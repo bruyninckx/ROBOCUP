@@ -67,7 +67,7 @@ const { chromium } = require('playwright');
     await h2.waitForTimeout(500);
     const c2 = await ctx.newPage(); await c2.goto('file://' + process.cwd() + '/prototypes/tabletop-prototype.html?net=local&room=' + room2 + '&name=P1&bot=1');
     await h2.waitForTimeout(2500);
-    await h2.click('#nlStart'); await h2.waitForTimeout(2500);
+    await h2.waitForSelector('#nlStart:not([disabled])', { timeout: 15000 }); await h2.click('#nlStart'); await h2.waitForTimeout(2500);   // the player may need a moment to be ready
     const r = await h2.evaluate(() => { const G = window.ROBOCUS_GAME.G; return { round: G.round, phase: G.phase, seats: window.ROBOCUS_GAME.SEATS }; });
     const rc = await c2.evaluate(() => { const G = window.ROBOCUS_GAME.G; return { round: G.round, phase: G.phase, seat: window.ROBOCUS_GAME.HS }; });
     console.log('chaos: loaded save ->', JSON.stringify(r), 'client', JSON.stringify(rc));

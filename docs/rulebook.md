@@ -37,7 +37,7 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 **Setup steps**
 
 1. **Sponsor:** each team is dealt 2 sponsors and keeps 1. People pick on their own screen; AI teams are dealt 2 of the rest and keep 1.
-2. **Starter draft:** one team at a time (people first, then the AI), each sees 3 `s1.` starters and keeps 1; the other two go back into the starter deck. The starter goes into bay 1 with its Chief Engineer.
+2. **Starter draft:** every team is dealt 2 `s1.` starters at the same time and keeps 1 in secret; all picks are revealed together, so nobody can pick a counter to what the others took (the AI keeps the one with the better average). The other goes back into the starter deck. The starter goes into bay 1 with its Chief Engineer. Starter matchups: `docs/starter-balance.md`.
 
 | Sponsor | Rule |
 | --- | --- |
