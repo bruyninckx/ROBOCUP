@@ -223,3 +223,16 @@ Kev: add them as well (thwack tail, lifter fork, battering ram, vertical disc). 
 - vs the 7 market robots (70 fights each, seeds 9201+): Thwacker 46% (42 s, 15.7 big moments/min), Forklift 50% (68 s, 17.1), Ramrod 51% (55 s, 17.2), Vertigo 54% (66 s, 17.9).
 - Worst matchups: Thwacker vs Whaler 10%, Forklift vs Whaler 0%, Ramrod vs Brawler 0% (rubber bumper eats the ram).
 - Note: the battering ram's internal key is `batram` (`ram` is the existing name for body-on-body rams).
+
+## Forklift fix, robots on their side, pit removed (8 Nov)
+- **Forklift** (Kev: it does not go under a robot): the forks used to be solid, so they bumped into the other robot and lifts only happened from the very tips. Now the forks slide under any robot on the ground (contact disabled), and it lifts when a robot sits at least halfway up the forks. Forks are drawn under the other robots; a carried robot is drawn raised.
+- **On its side** (Kev: robots that land on their side, move a little, then fall over, depending on their physics body). After a hard landing a robot can come down on its side. Worked out per robot from its own build (`sideProfile`): width over wheels and plates, a height estimate (frame + top-mounted weapon + top armour), how top-heavy it is (top armour, turret weapons, module mass over total mass) and the hull (box 1, chamfer 0.55, wedge 0.45, round 0.12; a shell spinner counts as round-ish).
+  - Chance to land on its side 3-45% (Rocketeer 30%, Whirlwind 22%, Whaler 4%).
+  - It balances for 0.6-3 s, rocking, scooting on the edge of its wheels (22% grip) with the weapon off (a shell spinner keeps spinning).
+  - Then it drops back onto its wheels with chance 25-97% (top-heavy robots topple onto their back more often), or straight away when hit hard (more likely to topple). Flippers and axes push themselves back up.
+  - It has its own random stream, so fights only change from the first side landing on. About 1.8 side landings per fight; market win rates moved within noise.
+- **Pit removed** (Kev): no centre pit any more, the Killbox keeps its saws and spiked walls; every harness script runs on open floor. Old configs that ask for 'pit' get open floor.
+- Market roster re-balanced on open floor (60 fights per matchup, seeds 1301-1360): without the pit Whaler fell to 25% (its harpoon fling used to end in the pit), so Whaler `dmgK` 1.8; Brawler 0.65; Mauler and Sawblast 1.12. Now Juggernaut 52, Hornet 50, Whirlwind 50, Brawler 48, Mauler 48, Sawblast 52, Whaler 50. Median fight 67 s, 9% judges.
+- Drone values on open floor (each market robot + 1 drone, 120 fights): medic +28, waller +18, jammer +16, laser/booster/spotter +15, gunner +14, bodyguard +11, blocker +7.
+- Trial robots re-tuned on open floor (`dmgK`): Gyro 1.1, Scythe 1.2, Mincer 1.55, Pincher 1.8, Thwacker 5, Forklift 2, Ramrod 1.1, Vertigo 0.95 → 41-63% vs the market roster (70 fights each; noise about ±7).
+- New `hpK` spec field (multiplies every part's HP) for the 2.0 tier analysis.
