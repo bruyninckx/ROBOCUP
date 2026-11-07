@@ -302,15 +302,15 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // The 7 market robots: Battleground drives, processors and modules mixed into the arcade rules (8 Nov, 60 fights per matchup on fresh seeds, open floor + centre pit, see docs/damage-lab.md).
   // classic = the 10 arcade robots of the first arcade pass (8 Nov, no modules). The rest are test builds, not balanced.
   const PRESETS = {
-    Juggernaut: { weapon: 'drum', chassis: 'medium', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'rammer', mod: 'grapple', armour: { front: 0, side: 1, rear: 1, top: 1 }, helpers: [], shape: 'box', dmgK: 1, market: true },
-    Hornet: { weapon: 'spear', chassis: 'medium', drive: 'boost', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'jets', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.35, helpers: [], shape: 'box', market: true },
-    Whirlwind: { weapon: 'spinner', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'shield', armour: { front: 0, side: 2, rear: 1, top: 2 }, dmgK: 1, helpers: [], shape: 'box', market: true },
-    Brawler: { weapon: 'glove', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'rubber', proc: 'rammer', mod: 'emp', armour: { front: 0, side: 3, rear: 0, top: 1 }, dmgK: 0.75, helpers: [], shape: 'box', market: true },
+    Juggernaut: { weapon: 'drum', chassis: 'medium', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'rammer', mod: 'grapple', armour: { front: 0, side: 1, rear: 1, top: 1 }, helpers: [], shape: 'chamfer', dmgK: 1, market: true },
+    Hornet: { weapon: 'spear', chassis: 'medium', drive: 'boost', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'jets', armour: { front: 0, side: 2, rear: 1, top: 1 }, dmgK: 1.35, helpers: [], shape: 'wedge', market: true },
+    Whirlwind: { weapon: 'spinner', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'shield', armour: { front: 0, side: 2, rear: 1, top: 2 }, dmgK: 1.12, helpers: [], shape: 'box', market: true },
+    Brawler: { weapon: 'glove', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'rubber', proc: 'rammer', mod: 'emp', armour: { front: 0, side: 3, rear: 0, top: 1 }, dmgK: 0.75, helpers: [], shape: 'chamfer', market: true },
     Slick: { weapon: 'medium', chassis: 'heavy', drive: 'omni', motor: 'std', battery: 'std', bumper: 'spring', proc: 'kiter', mod: 'oil', armour: { front: 1, side: 1, rear: 1, top: 1 }, classic: true, retired: true },
     Hellfire: { weapon: 'flame', chassis: 'light', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'zigzag', mod: 'boom', armour: { front: 2, side: 1, rear: 0, top: 1 }, dmgK: 1.25, classic: true, retired: true },
-    Mauler: { weapon: 'flail', chassis: 'light', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'spiked', proc: 'standard', mod: 'repair', armour: { front: 1, side: 2, rear: 0, top: 1 }, dmgK: 1, helpers: [], shape: 'box', market: true },
+    Mauler: { weapon: 'flail', chassis: 'light', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'spiked', proc: 'standard', mod: 'repair', armour: { front: 1, side: 2, rear: 0, top: 1 }, dmgK: 1, helpers: [], shape: 'chamfer', market: true },
     Rocketeer: { weapon: 'rocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'kiter', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, trial: true },
-    Sawblast: { weapon: 'sawrocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'box', market: true },
+    Sawblast: { weapon: 'sawrocket', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'zigzag', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'wedge', market: true },
     Whaler: { weapon: 'harpoon', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, helpers: [], shape: 'round', market: true },
     Grindstone: { weapon: 'buzzsaw', chassis: 'medium', drive: '4wd', motor: 'std', battery: 'std', bumper: 'spiked', proc: 'rammer', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, trial: true },
     Buzzkill: { weapon: 'spinner', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'spiked', armour: { front: 0, side: 3, rear: 1, top: 2 }, classic: true },
@@ -534,11 +534,15 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const BK = BUMPERS[spec.bumper] ? spec.bumper : 'steel', BB = BUMPERS[BK];
     const amat = lvl => ({ hp: 30 * lvl * BB.hpK, thr: 3 * lvl * BB.thrK, rest: BB.rest, sharp: BK === 'spiked' ? 1.6 : 0.35 });
     if (a.side > 0) for (const side of [-1, 1]) {
-      const t = plate(a.side), yy = side * (hw + 0.15 + t / 2);
-      addPart('armour', (side < 0 ? 'Left' : 'Right') + ' armour', 'armour', rect(0, yy, hl * 0.97, t / 2), Object.assign({ mass: 3.5 * a.side * BB.massK }, amat(a.side)));
+      // plates follow the hull: bevelled ends on chamfered and round hulls, a swept-back front on the wedge
+      const t = plate(a.side), yi = side * (hw + 0.15), yo = side * (hw + 0.15 + t), L = hl * 0.97, sh = spec.shape;
+      const eB = sh === 'chamfer' ? hw * 0.35 : sh === 'round' ? hw * 0.6 : 0, eF = sh === 'wedge' ? hl * 0.75 : eB;
+      const pv = [[-L, yi], [L, yi], [L - eF, yo], [-L + eB, yo]]; if (side > 0) pv.reverse();
+      addPart('armour', (side < 0 ? 'Left' : 'Right') + ' armour', 'armour', pv, Object.assign({ mass: 3.5 * a.side * BB.massK }, amat(a.side)));
     }
-    if (a.rear > 0) { const t = plate(a.rear); addPart('armour', 'Rear armour', 'armour', rect(-hl - t / 2, 0, t / 2, hw + 0.15), Object.assign({ mass: 2.5 * a.rear * BB.massK }, amat(a.rear))); }
-    if (a.front > 0) { const t = plate(a.front); addPart('armour', 'Front armour', 'armour', rect(hl + t / 2, 0, t / 2, hw + 0.15), Object.assign({ mass: 2.5 * a.front * BB.massK }, amat(a.front))); }
+    const bev = spec.shape === 'chamfer' ? hw * 0.3 : spec.shape === 'round' ? hw * 0.55 : 0;
+    if (a.rear > 0) { const t = plate(a.rear), W2 = hw + 0.15; addPart('armour', 'Rear armour', 'armour', [[-hl, -W2], [-hl, W2], [-hl - t, W2 - bev], [-hl - t, -W2 + bev]].reverse(), Object.assign({ mass: 2.5 * a.rear * BB.massK }, amat(a.rear))); }
+    if (a.front > 0) { const t = plate(a.front), W2 = spec.shape === 'wedge' ? hw * 0.5 : hw + 0.15; addPart('armour', 'Front armour', 'armour', [[hl, -W2], [hl + t, -W2 + bev], [hl + t, W2 - bev], [hl, W2]], Object.assign({ mass: 2.5 * a.front * BB.massK }, amat(a.front))); }
     R.topArmour = a.top; R.bumper = BK;
     // top plate (lid) over the electronics: rattles loose under hits; when it flies off the processor chip is exposed
     { const lv = hullVerts(spec.shape, hl * 0.72, hw * 0.78).map(q => [q[0] - 0.05 * hl, q[1]]); R.lid = { key: 'lid', label: 'Top plate', kind: 'lid', verts: lv, home: lv.map(q => q.slice()), outline: subdivide(lv), dents: [], scratches: [], body, robot: R, attached: true, hp: 18 + 26 * a.top, maxHp: 18 + 26 * a.top, heat: 0, state: '' }; }
@@ -1864,7 +1868,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
 
   function run(opts, maxT = 200) { const S = create(Object.assign({ countdown: 0 }, opts)); while (!S.over && S.t < maxT) { step(S); S.fx.length = 0; } return S; }
 
-  const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,72,58,20,27,65,93],[28,null,33,65,47,35,53],[42,67,null,78,45,40,12],[80,35,22,null,67,50,42],[73,53,55,33,null,33,45],[35,65,60,50,67,null,37],[7,47,88,58,55,63,null]],"fights":60};
+  const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,72,60,17,25,78,85],[28,null,35,53,60,33,47],[40,65,null,87,48,52,15],[83,47,13,null,65,57,43],[75,40,52,35,null,42,45],[22,67,48,43,58,null,40],[15,53,85,57,55,60,null]],"fights":60};
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":15,"per":{"Juggernaut":25,"Hornet":17,"Whirlwind":10,"Brawler":12,"Mauler":8,"Sawblast":28,"Whaler":8}},"gunner":{"avg":9,"per":{"Juggernaut":4,"Hornet":3,"Whirlwind":12,"Brawler":6,"Mauler":8,"Sawblast":18,"Whaler":13}},"laser":{"avg":12,"per":{"Juggernaut":17,"Hornet":2,"Whirlwind":10,"Brawler":10,"Mauler":10,"Sawblast":16,"Whaler":16}},"booster":{"avg":9,"per":{"Juggernaut":1,"Hornet":-1,"Whirlwind":16,"Brawler":19,"Mauler":-3,"Sawblast":28,"Whaler":2}},"blocker":{"avg":3,"per":{"Juggernaut":6,"Hornet":-6,"Whirlwind":8,"Brawler":8,"Mauler":-2,"Sawblast":3,"Whaler":7}},"bodyguard":{"avg":6,"per":{"Juggernaut":21,"Hornet":0,"Whirlwind":-2,"Brawler":3,"Mauler":4,"Sawblast":12,"Whaler":4}},"waller":{"avg":11,"per":{"Juggernaut":7,"Hornet":2,"Whirlwind":6,"Brawler":8,"Mauler":16,"Sawblast":21,"Whaler":18}},"spotter":{"avg":9,"per":{"Juggernaut":18,"Hornet":5,"Whirlwind":13,"Brawler":6,"Mauler":5,"Sawblast":14,"Whaler":4}},"jammer":{"avg":9,"per":{"Juggernaut":22,"Hornet":3,"Whirlwind":-8,"Brawler":8,"Mauler":10,"Sawblast":12,"Whaler":16}}}};
   const API = { SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
