@@ -182,3 +182,22 @@ Kev: give the market robots their own silhouettes, see if it has any effect.
 - Armour plates now follow the hull (bevelled ends on chamfered and round hulls, swept-back side plates and a narrow front plate on the wedge), so the silhouettes really show.
 - Picked: Juggernaut chamfered, Hornet wedge nose, Whirlwind box, Brawler chamfered, Mauler chamfered, Sawblast wedge nose, Whaler round shell. Whirlwind damage x1.12 to make up for its drop.
 - Market table after the change (60 fights per matchup, fresh seeds): Juggernaut 56, Hornet 43, Whirlwind 51, Brawler 51, Mauler 48, Sawblast 46, Whaler 54. Median fight 54 s, 6% judges.
+
+## 2v2 and free-for-all (7 Nov)
+Kev: include 2v2 and FFA in the Damage Lab for now.
+- Mode buttons next to the arena select: 1v1 / 2v2 / FFA. 4 robot cards; in 2v2 robots 1 & 3 are team Steel (blues), 2 & 4 team Rust (oranges). FFA: one robot per corner, last one standing.
+- Engine (`create({ mode, robots: [...] })`): each robot has a team; every 0.5 s it picks a target (closest, sticks to its pick, likes a wounded one, turns on whoever just hit it, in 2v2 helps a teammate under attack). It keeps its target while it holds someone (jaws, harpoon rope, snag). Friendly fire does 35% (`ARC.ff`). KOs are credited to the last robot that hit within 6 s. Time: judges add damage, parts ripped off, 40 per KO and 30 for still standing.
+- 1v1 is bit-identical to before (same fights on the same seeds), so the market and drone tables still hold.
+- `node multi.js ffa 40` / `node multi.js 2v2 40`: random market lineups. FFA median 88 s, 12% judges; 2v2 median 67 s, 25% judges. FFA wins (25% = even): Brawler 34, Whirlwind 33, Juggernaut 29, Whaler 23, Mauler 21, Sawblast 13, Hornet 11. Fast hit-and-run robots suffer in a crowd. Not balanced yet.
+
+## What upgrades are worth (7 Nov)
+Kev: which upgrades are useful (armour, chips, weapon)? Dream: upgrade the main weapon (bigger spear, fancier blade) as a real design that gives an edge, without tuning engine numbers.
+- New: weapon designs (Mk II), shape and mass only, no damage numbers touched. Spinner: long bar / heavy bar. Spear: long lance / heavy pike. Drum: big / wide. Glove: long piston / big glove. Flail: long chain / heavy ball. Buzzsaw: big saw. Picker "Weapon design" on each card.
+- Test (`node upgrades.js 12`, then holdout seeds 7001-7024 on the 15 biggest effects): each market robot + one upgrade vs the other six stock robots, same seeds as its stock self. Win-point change, first run / holdout:
+  - Weapon designs: no reliable edge. Heavy bar +10 / +2, heavy pike -2 / +2, big glove +3 / +1, heavy ball +4 / -2, big saw +4 / +1. Long designs are traps: long bar -1 / -11, long lance -12 / 0, long piston -10 / -2. Extra mass slows the robot and eats the gain; more reach mostly gives the other robot leverage.
+  - Processor chip fit is the biggest lever: Whirlwind flanker +14 / +12, Mauler flanker +13 / +11, Hornet with the stock controller instead of zigzag +15 / +20 (zigzag holds the spear back), Brawler flanker -20 / -11. Same chip, opposite effect on another robot.
+  - Motors: hot-wound on Brawler +10 / +17 (a pusher lives on power), small or negative elsewhere (Hornet -8).
+  - Armour: +1 side armour is the steadiest plate (+5.6 average, never below 0 in the first run; Mauler +10 / +6, Juggernaut +8 / -1). Top and rear armour depend on the robot (-12 to +10).
+  - Big battery: +3.5 average, -6 to +10.
+  - Helper drones (earlier table): +3 to +15.
+- Full numbers: `tools/damage-lab/upgrades-results.json`.
