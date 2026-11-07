@@ -25,8 +25,8 @@
   const FIELDS = ['weapon', 'chassis', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
   function fullSpec(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
-  const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain;
-  function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset; }
+  const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain + (sp.helpers || []).length;
+  function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
   function buildCard(i) {
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
     const pl = keys => keys.map(k => [k, `${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()})`]);
@@ -40,9 +40,12 @@
       <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
       <div class="arm">${['front', 'side', 'rear', 'top'].map(a => `<label for="ar${a}${i}">${a} armour<select id="ar${a}${i}" data-a="${a}"${a === 'front' && frontTool ? ' disabled title="The front tool is the front armour"' : ''}>${[0, 1, 2, 3].map(n => `<option value="${n}"${n === sp.armour[a] ? ' selected' : ''}>${a === 'front' && frontTool ? 'tool' : n === 0 ? 'none' : n}</option>`).join('')}</select></label>`).join('')}</div>
       <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
+      <div class="grid2 drones">${[0, 1, 2].map(k => `<label for="hp${k}${i}">Drone ${k + 1}<select id="hp${k}${i}" data-h="${k}"><option value="">none</option>${Object.entries(L.HELPERS).map(([key, v]) => `<option value="${key}"${(sp.helpers || [])[k] === key ? ' selected' : ''}>${v.label}</option>`).join('')}</select></label>`).join('')}</div>
+      ${(sp.helpers || []).length ? `<p class="wdesc small">${sp.helpers.map(key => `<b>${L.HELPERS[key].label}:</b> ${L.HELPERS[key].d}`).join(' ')}</p>` : '<p class="wdesc small">Helper drones are upgrades on top of a build (not in the market deck): up to 3, each adds 1 strain.</p>'}
       <details id="pd${i}" open><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
-    $('pre' + i).onchange = e => { if (!e.target.value) return; st.spec[i] = { preset: e.target.value }; buildCard(i); restart(); };
+    $('pre' + i).onchange = e => { if (!e.target.value) return; st.spec[i] = { preset: e.target.value, helpers: (s.helpers || []).slice() }; buildCard(i); restart(); };
     el.querySelectorAll('[data-f]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i); st.spec[i] = Object.assign({}, cur, { [sel.dataset.f]: sel.value, custom: true, preset: s.preset }); buildCard(i); restart(); });
+    el.querySelectorAll('[data-h]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i), hs = [0, 1, 2].map(k => $('hp' + k + i).value).filter(Boolean); st.spec[i] = s.custom ? Object.assign({}, cur, { helpers: hs, custom: true, preset: s.preset }) : { preset: s.preset, helpers: hs }; buildCard(i); restart(); });
     el.querySelectorAll('[data-a]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i); cur.armour[sel.dataset.a] = +sel.value; st.spec[i] = Object.assign({}, cur, { custom: true, preset: s.preset }); buildCard(i); restart(); });
     const kg = L.weightOf(sp), k = $('kg' + i);
     k.textContent = kg + ' kg'; k.classList.toggle('over', kg > 120); k.title = kg > 120 ? 'Over the 120 kg class limit (the lab does not stop you)' : 'Heavyweight class limit: 120 kg';
@@ -136,6 +139,9 @@
       else if (e.type === 'slam') { shake = Math.min(0.35, shake + 0.25); hitStop = Math.max(hitStop, 0.12); flash = Math.max(flash, 0.2); for (let i = 0; i < 16; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 0.4) * 2.2, vy: Math.sin(i * 0.4) * 2.2, life: 0.9, max: 0.9, s: 0.2 }); shards(e.x, e.y, 14); }
       else if (e.type === 'pickup') { for (let i = 0; i < 16; i++) { const a = i / 16 * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 2.5, vy: Math.sin(a) * 2.5, life: 0.4, max: 0.4, col: CRATE_COL[e.kind] }); } spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.4, max: 0.4, s: 0.2, col: CRATE_COL[e.kind] }); }
       else if (e.type === 'emp') { shake = Math.min(0.2, shake + 0.06); flash = Math.max(flash, 0.08); for (const s2 of [0.2, 0.5, 0.8]) spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3 + s2 * 0.3, max: 0.3 + s2 * 0.3, s: s2, col: '#7FD4FF' }); for (let i = 0; i < 20; i++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(a) * 4, vy: Math.sin(a) * 4, life: 0.35, max: 0.35, col: '#BFEAFF' }); } }
+      else if (e.type === 'ewall') { spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.35, max: 0.35, s: 0.2, col: '#7FD1CC' }); }
+      else if (e.type === 'chipzap') { const R = S.robots[e.robot], q = R.body.getPosition(); R.zap = 0.5; for (let k = 0; k < 12; k++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: q.x, y: q.y, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3, life: 0.3, max: 0.3, col: '#9BE38A' }); } }
+      else if (e.type === 'chipfry') { const q = S.robots[e.robot].body.getPosition(); for (let k = 0; k < 10; k++) smoke(q.x, q.y, true, 0.08); sparks(q.x, q.y, 30); }
       else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
@@ -154,6 +160,7 @@
         if (R.inPit) break;
         if ((q.hp <= 0 && q.key !== 'arm') || q.heat > 60) { if (Math.random() < dt * (q.hp <= 0 ? 4 : 6)) { const p = wp(q.lp); smoke(p.x, p.y, q.hp <= 0, 0.05); } }
       }
+      if (R.chipExposed && !R.inPit) { const q = wp(R.chipPart.lp); if (R.chipPart.hp <= 0) { if (Math.random() < dt * 6) smoke(q.x, q.y, true, 0.05); } else if (Math.random() < dt * 1.5) sparks(q.x, q.y, 3); }
       if (R.battery.fire && !R.inPit) { const p = wp(R.battery.lp); for (let i = 0; i < 2; i++) if (Math.random() < dt * 30) fire(p.x + (Math.random() - 0.5) * 0.12, p.y + (Math.random() - 0.5) * 0.12); if (Math.random() < dt * 8) smoke(p.x, p.y, true, 0.08); }
       for (const p of R.parts) if (p.attached && p.hp / p.maxHp < 0.3 && Math.random() < dt * 2 && !R.inPit) { const c = L.centroid(p.verts), w = p.body.getWorldPoint(planck.Vec2(c[0], c[1])); smoke(w.x, w.y, false, 0.04); if (Math.random() < 0.3) sparks(w.x, w.y, 4); }
       for (const s of R.slots) if (s.motor.stuck > 0 && Math.random() < dt * 10) { const p = wp(s.lp); sparks(p.x, p.y, 5); }
@@ -272,6 +279,19 @@
     if (!R.flipped) {
       const C = R.chassis, [x0, y0, x1, y1] = bbox(C.home);
       for (const [bx, by] of [[x0 + 0.035, y0 + 0.035], [x1 - 0.035, y0 + 0.035], [x0 + 0.035, y1 - 0.035], [x1 - 0.035, y1 - 0.035]]) bolt(bx, by);
+      if (R.lid.attached) {
+        const lo = R.lid.state === 'loose' ? Math.sin(performance.now() / 25) * 0.008 : 0; ctx.save(); ctx.translate(lo, -lo);
+        drawPart(R.lid, R.alive ? TEAM[i].dark : '#4A4540', R, () => { ctx.fillStyle = 'rgba(255,255,255,0.1)'; const [x0, y0, x1] = bbox(R.lid.home); ctx.fillRect(x0, y0, x1 - x0, 0.03); });
+        const [x0, y0, x1, y1] = bbox(R.lid.home); for (const [bx, by] of [[x0 + 0.03, y0 + 0.03], [x1 - 0.03, y0 + 0.03], [x0 + 0.03, y1 - 0.03], [x1 - 0.03, y1 - 0.03]]) if (!(R.lid.state === 'loose' && bx > 0 && by < 0)) bolt(bx, by);
+        ctx.restore();
+      } else {
+        const [cx, cy] = R.chipPart.lp, dead = R.chipPart.hp <= 0, z = (R.zap || 0) > 0;
+        ctx.fillStyle = '#17120D'; ctx.fillRect(-R.hl * 0.7, -R.hw * 0.75, R.hl * 1.35, R.hw * 1.5);
+        ctx.strokeStyle = '#C9A227'; ctx.lineWidth = PX * 1.4; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(cx - 0.09, cy + k * 0.022); ctx.lineTo(cx + 0.09, cy + k * 0.022); ctx.moveTo(cx + k * 0.022, cy - 0.09); ctx.lineTo(cx + k * 0.022, cy + 0.09); ctx.stroke(); }
+        ctx.fillStyle = dead ? '#2B2620' : z ? '#E8FFF0' : '#2F8A4A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.fillRect(cx - 0.06, cy - 0.06, 0.12, 0.12); ctx.strokeRect(cx - 0.06, cy - 0.06, 0.12, 0.12);
+        if (!dead) { ctx.fillStyle = Math.sin(performance.now() / 90) > 0 ? '#9BE38A' : '#2F8A4A'; ctx.fillRect(cx - 0.02, cy - 0.02, 0.04, 0.04); }
+        for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
+      }
       drawTop(R, i);
       if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
@@ -388,9 +408,37 @@
     if (d.key === 'ball') { drawBall(d); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
-    const fill = d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
+    const fill = d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
     drawPart(d, fill, d.robot, d.kind === 'wheel' ? () => wheelTread(d, d.spin || 0) : null);
     ctx.restore();
+  }
+  function drawEwalls() {
+    for (const w of S.ewalls) {
+      const k = Math.min(1, w.life / 0.6), fl = w.life < 0.8 && Math.sin(performance.now() / 40) > 0 ? 0.4 : 1;
+      ctx.save(); ctx.translate(w.x, w.y); ctx.rotate(w.a); ctx.globalAlpha = k * fl;
+      ctx.fillStyle = 'rgba(127,209,204,0.35)'; ctx.fillRect(-0.05, -0.5, 0.1, 1); ctx.strokeStyle = '#BFF5F0'; ctx.lineWidth = PX * 2.5; ctx.strokeRect(-0.035, -0.5, 0.07, 1);
+      ctx.strokeStyle = 'rgba(191,245,240,0.6)'; ctx.lineWidth = PX; for (let y = -0.45; y < 0.5; y += 0.1) { ctx.beginPath(); ctx.moveTo(-0.035, y); ctx.lineTo(0.035, y + 0.05); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+  function drawDrones() {
+    const t = performance.now() / 1000;
+    for (const d of S.drones) {
+      if (!d.alive) continue;
+      const p = d.body.getPosition(), H = d.H, r = H.r * 1.45, off = d.off > 0 || !d.owner.alive || d.owner.fried || d.owner.chipFreeze > 0 || d.owner.stun > 0, team = TEAM[d.owner.id];
+      if (d.beam) { const B = d.beam; ctx.lineCap = 'round'; if (B.heal) { ctx.strokeStyle = 'rgba(76,194,106,0.55)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 5, PX * 4]); ctx.lineDashOffset = -t * 40 * PX; ctx.beginPath(); ctx.moveTo(B.x0, B.y0); ctx.lineTo(B.x1, B.y1); ctx.stroke(); ctx.setLineDash([]); } else { ctx.strokeStyle = 'rgba(255,60,40,0.35)'; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(B.x0, B.y0); ctx.lineTo(B.x1, B.y1); ctx.stroke(); ctx.strokeStyle = '#FFD9D0'; ctx.lineWidth = 0.01; ctx.stroke(); if (Math.random() < 0.3) sparks(B.x1, B.y1, 2); } ctx.lineCap = 'butt'; }
+      const hov = H.physical ? 0.04 : 0.16;
+      ctx.fillStyle = 'rgba(20,14,8,0.22)'; ctx.beginPath(); ctx.arc(p.x + hov, p.y + hov, r * 1.1, 0, 6.29); ctx.fill();
+      ctx.save(); ctx.translate(p.x, p.y);
+      if (!H.physical) for (let k = 0; k < 4; k++) { const a = k * 1.571 + 0.785, ax = Math.cos(a) * r * 1.15, ay = Math.sin(a) * r * 1.15; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(ax, ay); ctx.stroke(); ctx.fillStyle = 'rgba(200,200,190,0.35)'; ctx.beginPath(); ctx.ellipse(ax, ay, r * 0.55, r * 0.14, d.spin + k, 0, 6.29); ctx.fill(); }
+      ctx.beginPath(); if (H.physical) { for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283 + 0.39; k ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); } else ctx.arc(0, 0, r * 0.7, 0, 6.29);
+      ctx.fillStyle = d.hitT > 0 ? '#FFF4D6' : off ? '#6F7169' : H.col; ctx.fill(); ctx.lineWidth = PX * 2.4; ctx.strokeStyle = team.col; ctx.stroke();
+      ctx.fillStyle = off ? '#3a3530' : '#fff'; ctx.font = `700 ${r * 0.9}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(H.ic, 0, r * 0.05);
+      const f = d.hp / d.maxHp; if (f < 1) { ctx.strokeStyle = f > 0.5 ? '#79B46A' : f > 0.25 ? '#E0B848' : '#E06A58'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r * 1.35, -1.57, -1.57 + 6.283 * f); ctx.stroke(); if (f < 0.35 && Math.random() < 0.1) smoke(p.x, p.y, true, 0.04); }
+      if (d.key === 'booster' && !off && Math.random() < 0.6) { const fv = d.owner.body.getWorldVector(planck.Vec2(-1, 0)); spawn({ t: 'fire', x: p.x + fv.x * r, y: p.y + fv.y * r, vx: fv.x * 2.5, vy: fv.y * 2.5, life: 0.2, max: 0.2, s: 0.04, grow: true }); }
+      if (off && Math.random() < 0.05) sparks(p.x, p.y, 3);
+      ctx.restore();
+    }
   }
   function drawWalls() {
     const moving = S.evt && S.evt.type === 'walls', t = performance.now() / 1000;
@@ -544,6 +592,7 @@
       const chips = [];
       if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
       if (R.wmotor && R.wmotor.jam > 0) chips.push('JAMMED'); if (R.slots.some(q => q.motor.stuck > 0)) chips.push('MOTOR STUCK'); if (R.slots.some(q => q.motor.heat > 85 && q.motor.hp > 0)) chips.push('OVERHEAT');
+      if (R.fried) chips.push('BRAIN FRIED'); else if (R.chipExposed) chips.push('CHIP EXPOSED'); if (R.chipFreeze > 0) chips.push('REBOOTING'); if (R.crossed > 0) chips.push('WIRES CROSSED'); if (R.berserk > 0) chips.push('BERSERK'); if (R.misfire > 0) chips.push('MISFIRE'); if (R.jammed > 0) chips.push('JAMMED');
       if (R.stun > 0) chips.push('STUNNED'); if (R.malf > 0) chips.push('MALFUNCTION'); if (R.quantumT > 0) chips.push('QUANTUM'); if (R.boomArm > 0) chips.push('SELF-DESTRUCT'); if (R.oiled > 0) chips.push('OILED');
       if (R.nitro > 0) chips.push('NITRO'); if (R.over > 0) chips.push('OVERCHARGE'); if (R.shield > 0) chips.push('SHIELD');
       if (!R.alive) chips.length = 0;
@@ -583,6 +632,7 @@
     // robot in the air is drawn last
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
     for (const R of order) drawRobot(R, R.id);
+    drawEwalls(); drawDrones();
     drawWalls();
     drawProjectiles();
     drawParticles();
@@ -596,6 +646,9 @@
   // ---------- side panel ----------
   function hpCol(f) { return f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--bad)'; }
   function partState(p, R) {
+    if (p.kind === 'lid') return !p.attached ? ['flew off', 'bad'] : p.state === 'loose' ? ['loose', 'warn'] : ['ok', ''];
+    if (p.kind === 'drone') return !p.attached ? ['shot down', 'bad'] : p.off ? ['offline', 'warn'] : p.hp / p.maxHp < 0.4 ? ['damaged', 'warn'] : ['ok', ''];
+    if (p.key === 'chip' && p.hp > 0) return R.chipExposed ? (p.hp / p.maxHp < 0.5 ? ['sparking', 'bad'] : ['exposed', 'warn']) : ['covered', ''];
     if (p.kind === 'internal') {
       if (p.hp <= 0) return ['dead', 'bad'];
       if (p.key === 'battery' && p.fire) return ['on fire', 'bad'];
@@ -612,7 +665,8 @@
   function sidePanel(i) {
     const R = S.robots[i], list = $('pl' + i);
     if (!list) return;
-    const rows = R.parts.concat(R.internals).map(p => {
+    const extra = [R.lid].concat(R.drones.map(d => ({ label: d.H.label, hp: Math.max(0, d.hp), maxHp: d.maxHp, kind: 'drone', attached: d.alive, off: d.off > 0 })));
+    const rows = R.parts.concat(extra, R.internals).map(p => {
       const f = Math.max(0, p.hp / p.maxHp), [s, c] = partState(p, R);
       return `<div class="prow"><span>${p.label}</span><span class="hpb"><i style="width:${(f * 100).toFixed(0)}%;background:${hpCol(f)}"></i></span><span class="st ${c}">${s}</span></div>`;
     });
@@ -709,7 +763,7 @@
     }
     stepParticles(rdt * (ts || (hitStop > 0 ? 0 : 0)));
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
-    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; }
+    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
     for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) if (!Number.isFinite(cam[k])) cam[k] = k.endsWith('z') ? 1 : 0; // never lose the arena to a bad number
     if (!Number.isFinite(shake)) shake = 0;
@@ -732,6 +786,16 @@
     el.querySelectorAll('.mcell').forEach(bn => bn.onclick = () => { st.spec[0] = { preset: n[+bn.dataset.i] }; st.spec[1] = { preset: n[+bn.dataset.j] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }
   marketTable();
+  // what each helper drone is worth: click a cell to watch that robot with that drone
+  (function droneTable() {
+    const el = $('market'); if (!el || !L.DRONE_VALUE) return;
+    const T = L.DRONE_VALUE.drones, n = L.MARKET_TABLE.names, keys = Object.keys(T).sort((a, b) => T[b].avg - T[a].avg);
+    const box = document.createElement('div');
+    box.innerHTML = `<h3 class="dvh">Helper drones (upgrades, not in the market deck)</h3><p class="small">Win points a drone adds when you bolt it onto a market robot (that robot + 1 drone vs the other six, ${L.DRONE_VALUE.fights} fights each). Click a number to watch it.</p>
+      <div class="tblwrap"><table class="mtab"><thead><tr><th scope="col">drone</th>${n.map(x => `<th scope="col">${x}</th>`).join('')}<th scope="col">avg</th></tr></thead><tbody>${keys.map(k => `<tr><th scope="row" title="${L.HELPERS[k].d}">${L.HELPERS[k].label}</th>${n.map((x, j) => { const v = T[k].per[x]; return `<td><button type="button" class="mcell dcell" data-r="${x}" data-k="${k}" style="--k:${Math.max(-1, Math.min(1, v / 30))}" aria-label="${x} with ${L.HELPERS[k].label}: ${v >= 0 ? '+' : ''}${v} win points">${v >= 0 ? '+' : ''}${v}</button></td>`; }).join('')}<td class="avg">+${T[k].avg}</td></tr>`).join('')}</tbody></table></div>`;
+    el.appendChild(box);
+    box.querySelectorAll('.dcell').forEach(bn => bn.onclick = () => { const r = bn.dataset.r, others = n.filter(x => x !== r); st.spec[0] = { preset: r, helpers: [bn.dataset.k] }; st.spec[1] = { preset: others[Math.floor(Math.random() * others.length)] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+  })();
   buildCard(0); buildCard(1); paintFloor(); resize(); start();
   requestAnimationFrame(frame);
   // after the fight the sim keeps running so debris settles; we keep stepping until 4 s after the end
