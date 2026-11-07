@@ -10,3 +10,6 @@ node_modules/
 # Reference photos of the physical Spartacus set (copyrighted, keep local)
 drive-download-*/
 drive-download-*.zip
+
+# test tool installs
+package-lock.json

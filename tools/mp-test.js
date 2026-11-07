@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
   const errs = [];
-  const open = async (q, tag) => { const p = await ctx.newPage(); p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' @' + (e.stack || '').split('\n')[1])); p.on('console', m => { if (m.type() === 'error' || /desync/.test(m.text())) errs.push(tag + ' console: ' + m.text()); }); await p.goto(base + q); return p; };
+  const open = async (q, tag) => { const p = await ctx.newPage(); p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' @' + (e.stack || '').split('\n').slice(1, 5).map(x => x.trim().replace(/\(file:.*?html[^:]*:/, '(:')).join(' < '))); p.on('console', m => { if (m.type() === 'error' || /desync/.test(m.text())) errs.push(tag + ' console: ' + m.text()); }); await p.goto(base + q); return p; };
   const host = await open('&host=1&name=Host&autostart=' + N + '&seed=' + seed, 'host');
   const clients = [];
   for (let k = 0; k < N; k++) clients.push(await open('&name=P' + (k + 1), 'P' + (k + 1)));

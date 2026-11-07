@@ -42,6 +42,28 @@ If a player stays on "Connecting…" or gets "no direct link to the host", their
 
 Checks (Node.js + Playwright): `node tools/seed-check.js 7` (same seed, same solo game), `node tools/mp-test.js 3 5 20 1` (a host and 3 bot players in 4 tabs play a whole game, including a drop-out, a skip, a player leaving and a save/load).
 
+## Running the test tools on your own PC (faster)
+
+The AI-only test games run one game per CPU core, so a PC with many cores is much faster than the cloud sandbox (2 cores). A graphics card doesn't help: the game is ordinary JavaScript.
+
+One-time setup, in a terminal (PowerShell) in the ROBOCUS folder:
+
+```
+winget install OpenJS.NodeJS.LTS        # or download Node.js LTS from nodejs.org
+npm install
+npx playwright install chromium
+```
+
+Then, for example (the second number = games at the same time; use about your core count minus 2):
+
+```
+node tools/ai-bench.js 300 12 v2 v1                    # new AI (1 team) vs old AI (3 teams): above 25% = better
+node tools/ai-bench.js 200 12 v2:hostFame=8 v2         # try one AI setting against the current AI
+node tools/sponsor-check.js 320 12                     # win share per sponsor (fair = 25%)
+node tools/seed-check.js 7                             # same seed, same solo game
+node tools/mp-test.js 3 5 20 1                         # host + 3 bot players in tabs, with drop-outs and a save/load
+```
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):

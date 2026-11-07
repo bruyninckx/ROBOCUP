@@ -1,0 +1,8 @@
+{
+  "name": "robocus-tools",
+  "private": true,
+  "description": "Test tools for the ROBOCUS prototypes (tools/*.js). The game itself needs no install.",
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

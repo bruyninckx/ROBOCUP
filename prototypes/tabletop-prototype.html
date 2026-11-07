@@ -555,6 +555,15 @@ html, body {
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const clone = o => JSON.parse(JSON.stringify(o));
   let WIN_FAME = 12, HOST_FAME = 1;   // pacing knobs (ROBOCUS_DEBUG.tune)
+  /* AI versions (Kev, 7 Nov): AIV[team] = 1 (the AI as it was) or 2 (better decisions, driven by the numbers in AIP[team]).
+   * Real games use AI_DEFAULT; the benchmark (tools/ai-bench.js) mixes versions and parameter sets to measure them. */
+  // tuned by self-play 7 Nov (docs/ai-v2.md): hosting is worth more (3 → 6 Cr per host fame), parts less (partK 1 → 0.5)
+  const AI_PARAMS = { hostFame: 6, hostNoise: 0.25, reserve: 2, bidNoise: 0.25, partK: 0.5, betEdge: 0.05, betK: 0.5, feHp: 0.55, scrapThreat: 2, playMax: 2 };
+  let AI_DEFAULT = 2;
+  let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS));
+  // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
+  const aiV2 = (t, f) => (AIV[t.i] || 1) >= 2 && !(f && (aiP(t).off || []).includes(f));
+  const aiP = t => AIP[t.i] || AI_PARAMS;
   let CATCHUP = { leaderhost: 1 };     // catch-up rules: purse / leaderhost / cards. Kev, 7 Nov: leaderhost on (a sole fame leader gets no host fame)
 
   const L = (hp, armor, speed, turret, fp, acc, bullet) => ({ hp, armor, speed, turret, fp, acc, bullet });
@@ -2728,16 +2737,24 @@ html, body {
     if (over <= 0) return true;
     const pre = new Set(cashOrder(t).slice(0, over));
     for (;;) {
+      const hand0 = t.hand.slice();   // the hand as shown in the question
       const html = '⚠️ You hold <b>' + t.hand.length + '</b> cards and your hand limit is <b>' + lim + '</b> (fame ' + t.fame + '). ' +
         'Tick <b>' + over + '</b> card' + (over > 1 ? 's' : '') + ' to cash in. The cheapest ones are ticked for you.' +
         '<div class="iv-list">' + t.hand.map((id, k) => '<label><input type="checkbox" data-k="' + k + '"' + (pre.has(k) ? ' checked' : '') + '> ' +
           CARDS[id].icon + ' ' + esc(CARDS[id].name) + ' <span class="hs-coin">🪙' + CARDS[id].cash + '</span></label>').join('') + '</div>';
-      const pick = await askSeat(t.i, '💰 Over your hand limit', html, [
-        { label: 'Cash in ticked cards', value: el => [...el.querySelectorAll('input[data-k]')].filter(x => x.checked).map(x => +x.dataset.k) },
-        { label: '← Back to my turn', secondary: true, value: () => null }]);
+      // 7 Nov: no plays or cash-ins while this question is open (a late click over the network changed the hand and crashed the host)
+      G.ivBusy = true; updateHud();
+      let pick;
+      try {
+        pick = await askSeat(t.i, '💰 Over your hand limit', html, [
+          { label: 'Cash in ticked cards', value: el => [...el.querySelectorAll('input[data-k]')].filter(x => x.checked).map(x => +x.dataset.k) },
+          { label: '← Back to my turn', secondary: true, value: () => null }]);
+      } finally { G.ivBusy = false; updateHud(); }
       if (!pick) return false;
+      if (t.hand.length <= handLimit(t)) return true;
+      if (t.hand.join() !== hand0.join()) return humanHandLimit(t);   // the hand changed anyway: ask again
       if (pick.length < over) { say(t.i, '⚠️ Tick at least ' + over + ' card' + (over > 1 ? 's' : '') + '.', '#b45309'); pick.forEach(k => pre.add(k)); continue; }
-      const ids = pick.map(k => t.hand[k]), got = [];
+      const ids = pick.map(k => hand0[k]).filter(Boolean), got = [];
       for (const id of ids) got.push(CARDS[id].name + ' +' + cashIn(t, id));
       say(t.i, '💰 Cashed in ' + got.join(', ') + ' Cr.', t.col);
       return true;
@@ -2782,7 +2799,7 @@ html, body {
     let plays = 0, askedBacking = false;
     const ids = F.hand.slice().sort((a, b) => AI_ORDER.indexOf(CARDS[a].fam) - AI_ORDER.indexOf(CARDS[b].fam));
     for (const id of ids) {
-      if (plays >= 2) break;
+      if (plays >= (aiV2(F, 'play') ? aiP(F).playMax : 2)) break;
       const c = CARDS[id];
       if (!F.hand.includes(id) || !(c.phase === 'intrigue' || TURN_REACTIONS.has(c.name))) continue;
       const T = aiTarget(F, c);
@@ -2989,7 +3006,14 @@ html, body {
     updateHud();
   }
   // AI host bid: what it is worth to this team, from the credits left after the lots
+  // v2: hosting is worth its fame (none for a sole leader) plus picking the fights; everything when it wins the game
+  function aiHostValue(t) {
+    const P = aiP(t), fame = CATCHUP.leaderhost && soleLeader() === t ? 0 : HOST_FAME;
+    if (fame && t.fame + fame >= WIN_FAME) return t.credits;
+    return P.hostFame * fame + 1;
+  }
   function aiHostBid(t) {
+    if (aiV2(t, 'host')) { const P = aiP(t); return Math.max(0, Math.min(Math.round(aiHostValue(t) * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0))); }
     const want = t.fame >= 9 ? 3 : 1.5;   // Kev, 7 Nov: no Apex-only bonus (it made AI Apex host most rounds and win 47%)
     return Math.max(0, Math.min(Math.round(want * (0.4 + rnd() * 1.1)), t.credits, Math.ceil(t.credits * 0.6)));
   }
@@ -3002,7 +3026,27 @@ html, body {
     stepMarketAuction();
   }
 
+  // v2: a part is worth its value plus the bookie's gain on the robot it fits (partWorth); robots and crew as before
+  function aiLotValue(t, id) {
+    const L = LOTS[id]; if (!L) return 0;
+    if (L.robot) return robotWant(t, id, L.legend ? 6 : 4);
+    if (L.crew) return crewWant(t, L.crew);
+    if (L.crewLot) return 2.5;
+    if (!canTake(t, id)) return 0;
+    return partWorth(t, id) * aiP(t).partK;
+  }
   function aiBids(t) {
+    if (aiV2(t, 'bids')) {
+      const P = aiP(t); let budget = Math.max(0, t.credits - P.reserve - Math.min(2, Math.round(aiHostValue(t) / 2)));
+      const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
+      const bids = zeroBids();
+      for (const { k, v } of order) {
+        if (v <= 0.5) continue;
+        const b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
+        bids[k] = b; budget -= b;
+      }
+      return bids;
+    }
     let budget = t.credits;
     return zeroBids().map((_, k) => {
       if (k === HOST_K) return 0;                          // hosting is a separate bid after the lots
@@ -3029,6 +3073,10 @@ html, body {
   }
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
+    if (aiV2(t, k === HOST_K ? 'host' : 'bids')) {   // v2: add up to what the lot is worth to it, no more
+      const worth = k === HOST_K ? aiHostValue(t) : aiLotValue(t, G.market[k]);
+      return Math.max(0, Math.min(maxAdd, Math.round(worth - curBid)));
+    }
     if (k < NLOTS && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
     const lotId = k < NLOTS ? G.market[k] : 'host';
     const maxWilling = k === HOST_K
@@ -3888,6 +3936,22 @@ html, body {
         notify('🎲 <b>' + esc(T.name) + '</b> plays ' + cardRef('hedge_bet') + ' and bets ' + amt + ' Cr on <b>' + esc(sideLabel(F, fav)) + '</b> (' + F.pay[fav] + '×).', T.col);
         continue;
       }
+      if (aiV2(T, 'bets')) {   // v2: bet only where the bookie's payout beats its own estimate of the win chance
+        const P = aiP(T), mySide = own >= 0 ? F.sides[own] : -1;
+        const est = F.p.map((p, sd) => {   // what it knows and the bookie doesn't: its own face-down cards
+          let q = p;
+          F.robots.forEach((r, e) => { (r.faceDown || []).forEach(x => { if (x.from !== T.i) return; const good = x.id === 'secret_upgrade' || x.id === 'overclock_fd'; q += (F.sides[e] === sd ? 1 : -1) * (good ? 0.1 : -0.1); }); });
+          return Math.max(0.02, Math.min(0.98, q));
+        });
+        const sides = mySide >= 0 ? [mySide] : est.map((_, sd) => sd);
+        const best = sides.map(sd => ({ sd, ev: est[sd] * payFor(T, F, sd) })).sort((a, b) => b.ev - a.ev)[0];
+        if (!best || best.ev < 1 + P.betEdge) continue;
+        const amt = Math.max(1, Math.min(maxBetOf(T), T.credits - P.reserve, Math.round((best.ev - 1) * 10 * P.betK)));
+        if (amt < 1 || T.credits - amt < 0) continue;
+        T.credits -= amt; F.bets.push({ team: T.i, side: best.sd, amt });
+        notify(`🎲 <b>${esc(T.name)}</b> bet ${amt} Cr on <b>${esc(sideLabel(F, best.sd))}</b> (${F.pay[best.sd]}×).`, T.col);
+        continue;
+      }
       if (rnd() < 0.3) continue;
       let side = own >= 0 ? F.sides[own] : -1;
       if (side < 0) { let x = rnd() * F.p.reduce((a, b) => a + b, 0); side = 0; for (let k = 0; k < F.p.length; k++) { x -= F.p[k]; if (x <= 0) { side = k; break; } } }
@@ -4007,11 +4071,42 @@ html, body {
     if (G.phase !== 'after' || G.awaitingJudgment || G.fateBusy || G.crateChoices || G.over) return;
     gather(S, 'next', () => { G.round++; G.prevHost = G.host; G.host = -1; G.fight = null; startRound(); });
   };
+  // v2: play a live card when it does something: Field Engineer when hurt or glitching, Overclock and Remote Trigger
+  // when a rival is close, EMP / Oil on rivals with its own robot clear of the blast
+  function aiCardMoment(F, T, b, id) {
+    const B = F.B, P = aiP(T), foes = B.bots.filter(x => !x.helper && x.hp > 0 && x.team !== b.team);
+    if (!foes.length) return null;
+    const d = x => Math.hypot(x.x - b.x, x.y - b.y), near = foes.slice().sort((p, q) => d(p) - d(q))[0];
+    if (id === 'field_eng') return b.hp / b.s.hp < P.feHp || b.glitchT > 0 ? { bot: B.bots.indexOf(b) } : null;
+    if (id === 'overclock' || id === 'trigger') return d(near) < 220 && b.hp / b.s.hp > 0.25 ? { bot: B.bots.indexOf(b) } : null;
+    if (id === 'emp_card' || id === 'oil_card') {
+      const r = id === 'emp_card' ? 110 : 80;
+      const spot = foes.map(f => ({ f, n: foes.filter(g => Math.hypot(g.x - f.x, g.y - f.y) < r).length })).sort((p, q) => q.n - p.n || p.f.hp - q.f.hp)[0];
+      if (!spot || Math.hypot(spot.f.x - b.x, spot.f.y - b.y) < r + 15) return null;   // its own robot would be hit too
+      return { x: spot.f.x, y: spot.f.y };
+    }
+    return null;
+  }
   function stepAiCombatCards(F) {
     const B = F.B;
-    if (F.spar || B.over || B.tick % 60 !== 0) return;
+    if (F.spar || B.over) return;
+    if (B.tick % 15 === 0) F.teams.forEach((ti, e) => {
+      const T = G.teams[ti];
+      F.aiCardTick = F.aiCardTick || {};
+      if (isHuman(ti) || !aiV2(T, 'cards') || (F.aiCardTick[ti] != null && B.tick - F.aiCardTick[ti] < 180)) return;   // at most one card every 3 s
+      const bi = F.entBot ? F.entBot[e] : e, b = B.bots[bi];
+      if (!b || b.hp <= 0) return;
+      for (const id of T.hand.filter(x => CARDS[x] && CARDS[x].phase === 'fight' && T.fame >= (CARDS[x].need || 0))) {
+        const m = aiCardMoment(F, T, b, id); if (!m) continue;
+        removeFromHand(T, id); F.aiCardTick[ti] = B.tick;
+        fightCmd(F, Object.assign({ card: id, by: T.name }, m)); { const st = cst(id, T.i); st.played++; st.landed++; }
+        notify('🃏 <b>' + esc(T.name) + '</b> played ' + cardRef(id) + '!', T.col);
+        break;
+      }
+    });
+    if (B.tick % 60 !== 0) return;
     F.teams.forEach((ti, e) => {
-      if (isHuman(ti)) return;
+      if (isHuman(ti) || aiV2(G.teams[ti], 'cards')) return;
       const T = G.teams[ti], bi = F.entBot ? F.entBot[e] : e, b = B.bots[bi];
       if (!b || b.hp <= 0) return;
       const cIdx = T.hand.findIndex(id => CARDS[id].phase === 'fight' && T.fame >= (CARDS[id].need || 0));
@@ -4178,7 +4273,8 @@ html, body {
     G.fateBusy = false;
     if (isHuman(G.host)) { G.awaitingJudgment = true; updateHud(); return; }
     const lead = leaderOf().i;
-    const base = canScrap && (L.i === lead ? rnd() < 0.7 : rnd() < 0.3);
+    // v2: scrap a robot of a team that is a fame threat to the host (close to it or ahead), spare the others
+    const base = canScrap && (aiV2(H, 'fate') ? (L.fame >= H.fame - aiP(H).scrapThreat || L.i === lead) && rnd() < 0.85 : (L.i === lead ? rnd() < 0.7 : rnd() < 0.3));
     const v = side => F.fateOffers[side].reduce((a, o) => a + bundleWorth(H, o.B), 0);
     const score = (base ? 2 : 0) + v('scrap') - v('spare') - (base ? 0 : 1);
     resolveFate(canScrap && score > 0);
@@ -4466,7 +4562,7 @@ html, body {
     if (busy === 'robot pick') { const r = readyRobots(t)[0]; return r ? act('sendBot', r.id) : act('decline'); }
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
     if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
-    if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o.length) return act('pickTeam', o[Math.floor(R() * o.length)]); return act('invite'); }
+    if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); const o2 = o.length ? o : G.teams.map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o2.length) return act('pickTeam', o2[Math.floor(R() * o2.length)]); return act('invite'); }
     if (busy === 'lots' && !P.botBid) { P.botBid = true; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
     if (busy === 'hostbid' && !P.botHost) { P.botHost = true; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
     if (busy === 'bets' && !P.botBet && G.fight) { P.botBet = true; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); return; }
@@ -4514,7 +4610,8 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, drawRobotSprite, TEAMS, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
+  window.ROBOCUS_DEBUG = { get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, weaponSwapNote, LOTS, SC, fieldOdds, oddsShift, openScout, closeScout, buyScout, startSpar, scoutWork, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, humanCratePick, settleDebts, MARKET_ROBOTS, aiTwinPick, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, drawRobotSprite, TEAMS, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+    ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -6644,6 +6741,7 @@ html, body {
     const dt = Math.min(0.1, (now - lastT) / 1000);
     lastT = now;
     update(dt);
+    if (window.__noRender && G && G.fast) return;   // AI-only test games: no drawing (2× faster)
     renderWorld(now);
     updateHelp(now);
   }
