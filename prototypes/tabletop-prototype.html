@@ -82,6 +82,9 @@ html, body {
   color: var(--muted);
   transition: all .2s ease;
 }
+.win-watch { font-size: 11.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #fde8e8; color: #b42318; border: 1px solid #f3b4b4; white-space: nowrap; cursor: help; }
+.win-watch.one { background: #b42318; color: #fff; border-color: #b42318; animation: winPulse 1.4s ease-in-out infinite; }
+@keyframes winPulse { 50% { box-shadow: 0 0 0 4px rgba(180,35,24,.25); } }
 .phase-steps span.on {
   background: var(--ink);
   color: #fff;
@@ -491,6 +494,7 @@ html, body {
   <span class="brand">ROBOCUs</span>
   <span id="roundBadge" style="font-weight:800;font-size:12px">R1</span>
   <div class="phase-steps" id="phaseSteps"></div>
+  <span id="winWatch" class="win-watch" hidden></span>
   <select class="seat-select" id="seatSel" title="Switch perspective (or open multiple tabs)">
     <option value="0">Seat: Steel Bolts</option>
     <option value="1">Seat: Rust Rivets</option>
@@ -773,7 +777,11 @@ html, body {
     return c;
   }
   const crewRef = k => '<span class="lcard"' + helpAttr(CREW[k].icon + ' ' + CREW[k].name, esc(CREW[k].text)) + '>' + esc(CREW[k].name) + '</span>';
-  const crewIcons = t => '🔧' + t.mechs + ' 👷' + t.engPool + (freeEng(t) ? ' (' + freeEng(t) + ' free)' : '') + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('');
+  const crewIcons = t => '🔧' + t.mechs + ' 👷' + t.engPool + (freeEng(t) ? ' (' + freeEng(t) + ' free)' : '') + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('') + (exCrew(t) ? ' · 😴' + exCrew(t) : '');
+  // Kev, 7 Nov: make exhausted crew, Security Bots and robots obvious (they are back in the next Upkeep)
+  const exCrew = t => Math.min(t.crew.length, t.exMechs || 0);
+  const secTxt = t => '🤖' + secReady(t) + ((t.exSec || 0) > 0 ? '/' + (t.secBots || 0) + ' 😴' : '');
+  const EXH_HELP = '<b>😴 Exhausted</b>: used up this round by a card (Crunch Week, Press Tour, Team-Building Day, Coolant Leak, Rogue Firmware…) or by fighting. Exhausted robots can\'t fight; exhausted crew don\'t count for cards that need ready crew (and Mechanics still earn); exhausted Security Bots can\'t roll. Everything is ready again in the next Upkeep (Rogue Firmware: the robot sits out one more fight).';
   const crewHelp = t => t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text) + (k === 'chief' ? ' ' + engWhere(t) : '')).join('<br>') : 'No crew.';
   const engWhere = t => { const on = t.robots.filter(r => r.b.eng > 0).map(r => esc(r.name) + ' 👷' + r.b.eng); return 'Now on: ' + (on.length ? on.join(', ') : 'no robot') + (freeEng(t) ? ' · ' + freeEng(t) + ' free' : '') + '.'; };
   function crewLot(k) {
@@ -1417,8 +1425,31 @@ html, body {
     renderStash();
     ptPhase();
     $('#phaseSteps').innerHTML = PHASES.map(([k, l]) => '<span class="' + (G.phase === k ? 'on' : '') + '"' + helpAttr(l, PHASE_HELP[k] || '') + '>' + l + '</span>').join('');
+    renderWinWatch();
     renderPromptBar();
     renderHand();
+  }
+  /* ---------- Close to winning (Kev, 7 Nov: "it is not very clear when this happens") ----------
+   * A red pill in the top bar for every team 2 or 1 fame from winning, and one log line when a team gets there.
+   * The game only ends at its checkpoints (WIN_CHECKS); reaching the fame elsewhere (e.g. during Intrigue) is not a win yet. */
+  const WIN_CHECKS = 'The game checks for a winner at the end of the Intrigue phase (after all 4 turns), after the Market auction, after the host bid, and after each spare/scrap decision and Scrap Crate. A team that reaches the fame mid-Intrigue can still be pushed back down before the check. Most fame wins; tied: most credits.';
+  const winWays = 'any +1 fame ends it: winning the host bid, winning a fight, or a Publicity card';
+  function renderWinWatch() {
+    const el = $('#winWatch'); if (!el || !G || G.phase === 'setup') { if (el) el.hidden = true; return; }
+    const close = G.teams.filter(t => !G.over && t.fame >= WIN_FAME - 2).sort((a, b) => b.fame - a.fame);
+    if (!G.over && !isClient()) {   // one log line each time a team gets closer (again)
+      G.winWarn = G.winWarn || [9, 9, 9, 9];
+      G.teams.forEach(t => {
+        const d = Math.max(0, WIN_FAME - t.fame);
+        if (d <= 2 && d >= 1 && d < G.winWarn[t.i]) notify(d === 1 ? '🚨 <b>' + esc(t.name) + '</b> is <b>1 fame from winning</b> (' + t.fame + '/' + WIN_FAME + '): ' + winWays + '.' : '⚠️ <b>' + esc(t.name) + '</b> is <b>2 fame from winning</b> (' + t.fame + '/' + WIN_FAME + ').', t.col);
+        G.winWarn[t.i] = d;
+      });
+    }
+    if (!close.length) { el.hidden = true; return; }
+    const one = close.some(t => t.fame >= WIN_FAME - 1);
+    el.hidden = false; el.className = 'win-watch' + (one ? ' one' : '');
+    el.innerHTML = '🏁 ' + close.map(t => '<span style="color:' + (one ? '#fff' : t.col) + '">' + esc(t.name.split(' ')[0]) + (t.i === HS ? ' (you)' : '') + ' ' + t.fame + '/' + WIN_FAME + '</span>').join(' · ');
+    el.setAttribute('data-help', '🏁 Close to winning|' + close.map(t => '<b>' + esc(t.name) + '</b>: ' + (WIN_FAME - t.fame > 0 ? (WIN_FAME - t.fame) + ' fame to go' : 'at ' + WIN_FAME + ', wins at the next check')).join('<br>') + '<br><br>' + WIN_CHECKS);
   }
 
   const analystNote = () => {
@@ -5316,7 +5347,7 @@ html, body {
         drawBar(ctx, x0 + 280, ry + 2, 230, 10, tm.fame / WIN_FAME, tm.col, '#ebe8df', 12);
 
         ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'right';
-        ctx.fillText(`${tm.fame}/12  ·  ${tm.credits} Cr`, x0 + L.aw - 24, ry + 11);
+        ctx.fillText(`${tm.fame}/${WIN_FAME}  ·  ${tm.credits} Cr`, x0 + L.aw - 24, ry + 11);
       });
     }
 
@@ -5361,7 +5392,7 @@ html, body {
 
     // --- Clean Non-Overlapping Command Header Row (y0 + 5 .. y0 + 42) ---
     // 1. Left: Team Name (x0 + 16 .. x0 + 175)
-    const statusBadge = (G.host === ti ? ' · HOST' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' 🤖' + secReady(t);
+    const statusBadge = (G.host === ti ? ' · HOST' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '') + ' ' + secTxt(t);
     ctx.fillStyle = t.col;
     ctx.textAlign = 'left';
     fitText(ctx, `${t.name.toUpperCase()} (YOU)${statusBadge}`, x0 + 16, y0 + 26, 192, '900', 14.5);
@@ -5389,7 +5420,7 @@ html, body {
     ctx.fillStyle = '#111'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`FAME ${t.fame}/${WIN_FAME}`, x0 + 468, y0 + 25);
     drawBar(ctx, x0 + 542, y0 + 16, 84, 9, t.fame / WIN_FAME, t.col, '#e6e3da', 4);
-    help(x0 + 462, y0 + 8, 170, 26, 'Fame ' + t.fame + '/' + WIN_FAME, 'First team to ' + WIN_FAME + ' fame wins. You get fame from winning fights, hosting and Publicity cards. Many Intrigue cards need a minimum fame to play.');
+    help(x0 + 462, y0 + 8, 170, 26, 'Fame ' + t.fame + '/' + WIN_FAME, 'First team to ' + WIN_FAME + ' fame wins. You get fame from winning fights, hosting and Publicity cards. Many Intrigue cards need a minimum fame to play.<br><br>' + WIN_CHECKS);
 
     // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
     const fEng = freeEng(t);
@@ -5399,8 +5430,9 @@ html, body {
     help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, repairs, bets, scouting and sparring. Each Mechanic earns 1 Cr per Upkeep; each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '') + '.');
     // 5. Crew cards (Kev, 6 Nov: named crew; new crew comes from the Market)
     ctx.fillStyle = '#111'; ctx.textAlign = 'left';
-    fitText(ctx, 'CREW: ' + crewIcons(t), x0 + 760, y0 + 25, slot.gw - 760 - 14, '800', 11.5);
-    help(x0 + 756, y0 + 8, slot.gw - 760 - 10, 26, '👥 Your crew (' + t.crew.length + ')', crewHelp(t) + '<br>🔧 Mechanics · 👷 free/total Chief Engineers (put 0–3 on a robot with its − / + buttons). New crew comes from <b>New Crew</b> lots in the Market; trade crew in the open market.');
+    if (exCrew(t)) ctx.fillStyle = '#b45309';
+    fitText(ctx, 'CREW: ' + crewIcons(t).replace(' · 😴' + exCrew(t), '') + (exCrew(t) ? '  ·  😴 ' + exCrew(t) + ' of ' + t.crew.length + ' exhausted' : ''), x0 + 760, y0 + 25, slot.gw - 760 - 14, '800', 11.5);
+    help(x0 + 756, y0 + 8, slot.gw - 760 - 10, 26, '👥 Your crew (' + t.crew.length + (exCrew(t) ? ', ' + exCrew(t) + ' exhausted' : '') + ')', crewHelp(t) + '<br>🔧 Mechanics · 👷 free/total Chief Engineers (put 0–3 on a robot with its − / + buttons). New crew comes from <b>New Crew</b> lots in the Market; trade crew in the open market.<br><br>' + EXH_HELP);
 
     // Header Bottom Divider
     ctx.strokeStyle = '#e5e1d7'; ctx.lineWidth = 1;
@@ -5648,6 +5680,7 @@ html, body {
       ctx.fillText(`Aim: ${focLbl} ↻`, focX + focW / 2, btnY + 15.5);
       hitRegions.push({ kind: 'focus_toggle', robot: r, x: focX, y: btnY, w: focW, h: btnH });
       help(focX, btnY, focW, btnH, 'Aim: ' + focLbl, 'What it shoots first: the <b>Main</b> robot, enemy <b>Medics</b>, or enemy <b>Drones</b>. Click to change.');
+      if (!inArenaNow) drawExhaustedOverlay(ctx, r, bx, by, bw, bh, false);
     }
   }
 
@@ -5673,7 +5706,7 @@ html, body {
 
     const spName = t.sponsor && SPONSORS[t.sponsor] ? SPONSORS[t.sponsor].name : 'Sponsor Draft...';
     const badges = (G.host === ti ? ' [HOST]' : '') + (G.intrigueTurn === ti ? ' 🕵️' : '');
-    const assets = '🤖' + secReady(t) + ' · 🃏' + t.hand.length + ' · 📦' + stashOf(t).length;
+    const assets = secTxt(t) + ' · 🃏' + t.hand.length + ' · 📦' + stashOf(t).length;
     const oppHelp = ['Fame · Cr · M/E · 🤖 · 🃏', '<b>Fame ' + t.fame + '/' + WIN_FAME + '</b> (first to ' + WIN_FAME + ' wins) · <b>' + t.credits + ' Cr</b> credits · crew: ' + crewHelp(t).replace(/<br>/g, ' · ') + ' · <b>🤖' + secReady(t) + '</b> ready Security Bots (block schemes) · <b>🃏' + t.hand.length + '</b> Intrigue cards in hand · <b>📦' + stashOf(t).length + '</b> Stash: ' + (stashOf(t).length ? stashOf(t).map(id => esc(LOTS[id].name) + ' (' + partForTxt(me(), id) + ')').join(', ') : 'empty') + '.'];
     const spHelp = t.sponsor && SPONSORS[t.sponsor] ? ['Sponsor: ' + esc(SPONSORS[t.sponsor].name), '<b>' + esc(SPONSORS[t.sponsor].tag) + '</b>: ' + esc(SPONSORS[t.sponsor].text)] : null;
     const badgeHelp = G.host === ti || G.intrigueTurn === ti ? [esc(t.name), (G.host === ti ? '<b>[HOST]</b>: runs this round\'s fight. ' : '') + (G.intrigueTurn === ti ? '<b>🕵️</b>: it\'s their Intrigue turn.' : '')] : null;
@@ -5726,6 +5759,18 @@ html, body {
     ctx.fillText(text, x, y);
   }
 
+  // a washed-out card with a clear banner: this robot can't fight this round
+  function drawExhaustedOverlay(ctx, r, bx, by, bw, bh, small) {
+    if (!r || !r.exhausted) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(236,233,225,0.62)'; ctx.fillRect(bx + 1, by + 1, bw - 2, bh - 2);
+    const h = small ? 18 : 26, y = by + bh / 2 - h / 2;
+    ctx.fillStyle = 'rgba(120,53,15,0.92)'; ctx.fillRect(bx + 1, y, bw - 2, h);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    fitText(ctx, '😴 EXHAUSTED · ' + (r.sitOut > 0 ? (small ? 'out next fight too' : 'sits out its next fight too') : small ? 'out this round' : "can't fight this round · ready next Upkeep"), bx + bw / 2, y + h / 2 + (small ? 4 : 5), bw - 12, '900', small ? 10 : 13);
+    ctx.restore();
+    help(bx, y, bw, h, '😴 ' + esc(r.name) + ' is exhausted', EXH_HELP);
+  }
   function drawCompactOpponentBay(ctx, slot, ti, t, r, bIdx, bx, by, bw, bh, now) {
     const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
     ctx.fillStyle = r ? '#fcfbf9' : '#f5f3ec';
@@ -5818,6 +5863,7 @@ html, body {
     { const hb = helpBand(ti, r, fieldOdds(ti, r.b).p); help(cx, cy, cw, ch, hb[0], hb[1] + (scouted() ? '<br>Short names: H.fav · Fav · Even · Dog · H.dog.' : '')); }
     { const ht = helpTagsTxt(tagsFor(ti, r.b), 'this robot'); help(bx + 86, fy, cx - bx - 88, fh, ht[0], ht[1]); }
     drawTags(ctx, tagsFor(ti, r.b), cx - 6, fy + fh / 2 + 3, bw - cw - 96, 'right', 8.5, 1);
+    drawExhaustedOverlay(ctx, r, bx, by, bw, bh, true);
   }
 
   function drawMarketOnArena(ctx, L) {

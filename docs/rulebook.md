@@ -173,7 +173,7 @@ A robot has 7 stats from 0 to 4 (health, armour, speed, turret turn, firepower, 
 
 ## 9. Winning
 
-The first team at **12 fame** when the game checks (after the Intrigue phase, after the Market and after the Fate step) wins. If more than one team is there, the one with the most fame wins; still tied, the one with the most credits. The host can start a rematch.
+The first team at **12 fame** when the game checks wins. The checks: at the end of the Intrigue phase (after all 4 turns, so a team that gets there mid-Intrigue can still be pushed back), after the Market auction, after the host bid, and after each spare/scrap decision and Scrap Crate. A red 🏁 pill in the top bar shows every team 2 or 1 fame from winning (the log says so too). If more than one team is there, the one with the most fame wins; still tied, the one with the most credits. The host can start a rematch.
 
 ## 10. Online play
 
