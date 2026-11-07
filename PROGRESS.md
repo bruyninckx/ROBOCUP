@@ -50,6 +50,8 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-07, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab gets 2v2 and free-for-all (4 robots, target picking, friendly fire 35%, credited KOs; 1v1 unchanged) and weapon designs (Mk II: shape and mass only). Upgrade test: weapon designs give no reliable edge (long ones are traps), chip fit is the biggest lever (+12 to +20 or -11 to -20 depending on the robot), hot motors help pushers, side armour is the steadiest plate. Details in `docs/damage-lab.md`, numbers in `tools/damage-lab/upgrades-results.json`.
+
 - 2026-11-07, Claude (branch `claude/damage-lab`): **ROBOCUS 2.0** (Kev): the Damage Lab line is now the start of the next version. Page title and docs renamed; file paths unchanged. Browser feasibility check: sim under 1% of a CPU core, about 0.55 MB download, deterministic per seed; rendering on phones and the multiplayer fight runner are the work ahead. Details in `docs/damage-lab.md`.
 
 - 2026-11-08, Claude (branch `claude/damage-lab`): Damage Lab market robots get their own hull silhouettes (armour plates follow the hull now). Hull shape barely changes win rates (within about 4 points) except the bar spinner, which is best as a box. Roster 43-56%. Details in `docs/damage-lab.md`.
