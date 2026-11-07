@@ -212,3 +212,14 @@ Kev: figure out more different mechanical weapons. Four new ones, each a real bo
 - `node newweap.js 10` (vs the 7 market robots, 70 fights each, fresh seeds 9201+): Gyro 57% (49 s median, 16.7 big moments/min), Scythe 49% (53 s, 15.6), Mincer 56% (61 s, 13.8), Pincher 51% (68 s, 15.8). The market robots score 16-26 big moments/min, the old guns about 13.
 - Worst matchups: Gyro and Pincher vs Whaler (10% / 0%: the harpoon reels them in), Scythe vs Juggernaut (10%), Mincer vs Brawler (20%).
 - 1v1 fights of all existing robots unchanged (same seeds, same fights).
+
+## Four more mechanical weapons (8 Nov)
+Kev: add them as well (thwack tail, lifter fork, battering ram, vertical disc). Trial robots:
+- **Thwack tail** (Thwacker): three hinged segments off the back with a 6 kg spiked mace. Up close the robot spins on the spot and creeps towards the enemy, the tail whips round. Lose a segment and everything behind it comes off.
+- **Lifter fork** (Forklift): two low forks; when something is on them it gets welded on and lifted off its wheels (no grip), carried 2.4 s towards the nearest hazard, then tipped over (high flip chance). Spinning weapons knock the forks away; robots over 1.35x its weight only get a corner lifted.
+- **Battering ram** (Ramrod): a 12 kg spiked head on a rail (prismatic joint, 0.38 m). Fires forward when something is in reach; held back only lightly, so a hard stop lets it slide forward on its own weight.
+- **Vertical disc** (Vertigo): an upright disc on the nose, spins up in 3 s, hits from below: throws the victim high and often flips it; the kick bounces the vert back (and sometimes over: it works upside down). Wedges, flippers and forks get under it (60%).
+- `dmgK`: Thwacker 3.8 (the whip itself is weak, the mace only reaches about 9 m/s), Forklift 3.0, Ramrod 0.75, Vertigo 0.75.
+- vs the 7 market robots (70 fights each, seeds 9201+): Thwacker 46% (42 s, 15.7 big moments/min), Forklift 50% (68 s, 17.1), Ramrod 51% (55 s, 17.2), Vertigo 54% (66 s, 17.9).
+- Worst matchups: Thwacker vs Whaler 10%, Forklift vs Whaler 0%, Ramrod vs Brawler 0% (rubber bumper eats the ram).
+- Note: the battering ram's internal key is `batram` (`ram` is the existing name for body-on-body rams).
