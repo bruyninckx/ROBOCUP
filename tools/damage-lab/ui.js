@@ -2,12 +2,18 @@
 (function () {
   'use strict';
   const L = window.DamageLab;
-  const TEAM = [{ name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' }];
+  // robot colours: 1v1 and FFA use one colour per robot; in 2v2 robots 0 & 2 are team Steel (blues), 1 & 3 team Rust (oranges)
+  const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
+    moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
+    teal: { name: 'Steel', col: '#2E8F9E', dark: '#1F6470', light: '#6CC0CC' }, red: { name: 'Rust', col: '#B8423A', dark: '#80281F', light: '#E07C72' } };
+  const curMode = () => S && S.multi ? S.mode : st.mode;
+  const TC = i => (curMode() === '2v2' ? [PAL.steel, PAL.rust, PAL.teal, PAL.red] : [PAL.steel, PAL.rust, PAL.moss, PAL.violet])[i] || PAL.steel;
+  const nBots = () => st.mode === '1v1' ? 2 : 4;
   const INK = '#2B2118', STEEL = '#9A9C94', STEEL_D = '#6F7169', RUBBER = '#2A2622', HAZ = '#E8C547';
   const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86', module: '#47A8FF', thruster: '#FF8A2A' };
   const MOD_ICON = { shield: ['S', '#47A8FF'], emp: ['E', '#7FD4FF'], grapple: ['G', '#C9A227'], jets: ['J', '#FF8A2A'], oil: ['O', '#3B3530'], mines: ['M', '#D24B3A'], repair: ['+', '#4CC26A'], boom: ['!', '#E0402B'], quantum: ['Q', '#F2C94C'], smoke: ['~', '#9A958C'], popper: ['P', '#D9B43A'] };
   const $ = id => document.getElementById(id);
-  const st = { spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }], seed: 7, arena: 'pit', speed: 1, drama: true, paused: false };
+  const st = { mode: '1v1', spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }, { preset: 'Whirlwind' }, { preset: 'Mauler' }], seed: 7, arena: 'pit', speed: 1, drama: true, paused: false };
   let S = null, reported = false, logN = 0;
 
   // ---------- builder ----------
@@ -27,26 +33,28 @@
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
   function fullSpec(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
   const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain + (sp.helpers || []).length;
-  function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
+  function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + (s.wd && s.wd !== 'std' ? ' Mk II' : '') + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
   function buildCard(i) {
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
+    el.style.borderTopColor = TC(i).col;
     const pl = keys => keys.map(k => [k, `${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()})`]);
     const all = Object.keys(L.PRESETS), cur = s.custom ? '' : s.preset;
     const presetOpts = `<optgroup label="Market robots (balanced)">${opt(pl(all.filter(k => L.PRESETS[k].market)), cur)}</optgroup><optgroup label="New weapon trials">${opt(pl(all.filter(k => L.PRESETS[k].trial)), cur)}</optgroup><optgroup label="Older robots (earlier rosters, retired)">${opt(pl(all.filter(k => L.PRESETS[k].classic)), cur)}</optgroup><optgroup label="Test builds (not balanced)">${opt(pl(all.filter(k => !L.PRESETS[k].market && !L.PRESETS[k].classic && !L.PRESETS[k].trial)), cur)}</optgroup>`;
     const frontTool = L.frontTool(sp.weapon);
     el.innerHTML = `
-      <div class="bot-head"><div><div class="team">${TEAM[i].name}</div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
+      <div class="bot-head"><div><div class="team" style="color:${TC(i).col}">${st.mode === '2v2' ? 'Team ' + TC(i).name + (i > 1 ? ' · robot 2' : ' · robot 1') : st.mode === 'ffa' ? TC(i).name + ' · free-for-all' : TC(i).name}</div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
       <div class="grid2" style="grid-template-columns:1fr"><label for="pre${i}">Preset<select id="pre${i}">${s.custom ? '<option value="" selected>Custom build</option>' : ''}${presetOpts}</select></label></div>
-      <div class="grid2">${FIELDS.map(f => `<label for="${f}${i}">${LBL[f]}<select id="${f}${i}" data-f="${f}">${opt(OPTS[f], sp[f])}</select></label>`).join('')}</div>
-      <p class="wdesc">${L.WEAPONS[sp.weapon].d} <span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${sp.shape && sp.shape !== 'box' ? ` ${L.SHAPES[sp.shape].label}: ${L.SHAPES[sp.shape].d}` : ''}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
+      <div class="grid2">${FIELDS.map(f => `<label for="${f}${i}">${LBL[f]}<select id="${f}${i}" data-f="${f}">${opt(OPTS[f], sp[f])}</select></label>`).join('')}${L.DESIGNS[sp.weapon] ? `<label for="wd${i}">Weapon design<select id="wd${i}" data-w="1">${opt([['std', 'Stock']].concat(Object.entries(L.DESIGNS[sp.weapon]).map(([k, v]) => [k, v.label + ' (Mk II)'])), sp.wd)}</select></label>` : ''}</div>
+      <p class="wdesc">${L.WEAPONS[sp.weapon].d} ${sp.wd !== 'std' && L.DESIGNS[sp.weapon] ? `<b>${L.DESIGNS[sp.weapon][sp.wd].label}:</b> ${L.DESIGNS[sp.weapon][sp.wd].d} ` : ''}<span class="small">${L.BUMPERS[sp.bumper || 'steel'].label}: ${L.BUMPERS[sp.bumper || 'steel'].d}${sp.shape && sp.shape !== 'box' ? ` ${L.SHAPES[sp.shape].label}: ${L.SHAPES[sp.shape].d}` : ''}${L.DRIVES[sp.drive].d ? ` ${L.DRIVES[sp.drive].label}: ${L.DRIVES[sp.drive].d}` : ''}${sp.proc !== 'standard' ? ` ${L.PROCS[sp.proc].label}: ${L.PROCS[sp.proc].d}` : ''}${sp.mod !== 'none' ? ` ${L.MODULES[sp.mod].label}: ${L.MODULES[sp.mod].d}` : ''}${strainOf(sp) ? ` <b>Strain ${'⚡'.repeat(strainOf(sp))}</b> (malfunctions)` : ''}</span></p>
       <div class="arm">${['front', 'side', 'rear', 'top'].map(a => `<label for="ar${a}${i}">${a} armour<select id="ar${a}${i}" data-a="${a}"${a === 'front' && frontTool ? ' disabled title="The front tool is the front armour"' : ''}>${[0, 1, 2, 3].map(n => `<option value="${n}"${n === sp.armour[a] ? ' selected' : ''}>${a === 'front' && frontTool ? 'tool' : n === 0 ? 'none' : n}</option>`).join('')}</select></label>`).join('')}</div>
       <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
       <div class="grid2 drones">${[0, 1, 2].map(k => `<label for="hp${k}${i}">Drone ${k + 1}<select id="hp${k}${i}" data-h="${k}"><option value="">none</option>${Object.entries(L.HELPERS).map(([key, v]) => `<option value="${key}"${(sp.helpers || [])[k] === key ? ' selected' : ''}>${v.label}</option>`).join('')}</select></label>`).join('')}</div>
       ${(sp.helpers || []).length ? `<p class="wdesc small">${sp.helpers.map(key => `<b>${L.HELPERS[key].label}:</b> ${L.HELPERS[key].d}`).join(' ')}</p>` : '<p class="wdesc small">Helper drones are upgrades on top of a build (not in the market deck): up to 3, each adds 1 strain.</p>'}
-      <details id="pd${i}" open><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
+      <details id="pd${i}"${st.mode === '1v1' ? ' open' : ''}><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
     $('pre' + i).onchange = e => { if (!e.target.value) return; st.spec[i] = { preset: e.target.value, helpers: (s.helpers || []).slice() }; buildCard(i); restart(); };
     el.querySelectorAll('[data-f]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i); st.spec[i] = Object.assign({}, cur, { [sel.dataset.f]: sel.value, custom: true, preset: s.preset }); buildCard(i); restart(); });
-    el.querySelectorAll('[data-h]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i), hs = [0, 1, 2].map(k => $('hp' + k + i).value).filter(Boolean); st.spec[i] = s.custom ? Object.assign({}, cur, { helpers: hs, custom: true, preset: s.preset }) : { preset: s.preset, helpers: hs }; buildCard(i); restart(); });
+    el.querySelectorAll('[data-w]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i); st.spec[i] = s.custom ? Object.assign({}, cur, { wd: sel.value, custom: true, preset: s.preset }) : { preset: s.preset, helpers: (s.helpers || []).slice(), wd: sel.value }; buildCard(i); restart(); });
+    el.querySelectorAll('[data-h]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i), hs = [0, 1, 2].map(k => $('hp' + k + i).value).filter(Boolean); st.spec[i] = s.custom ? Object.assign({}, cur, { helpers: hs, custom: true, preset: s.preset }) : { preset: s.preset, helpers: hs, wd: s.wd }; buildCard(i); restart(); });
     el.querySelectorAll('[data-a]').forEach(sel => sel.onchange = () => { const cur = fullSpec(i); cur.armour[sel.dataset.a] = +sel.value; st.spec[i] = Object.assign({}, cur, { custom: true, preset: s.preset }); buildCard(i); restart(); });
     const kg = L.weightOf(sp), k = $('kg' + i);
     k.textContent = kg + ' kg'; k.classList.toggle('over', kg > 120); k.title = kg > 120 ? 'Over the 120 kg class limit (the lab does not stop you)' : 'Heavyweight class limit: 120 kg';
@@ -206,7 +214,7 @@
     ctx.fillStyle = '#8C8F86'; ctx.fillRect((x0 + x1) / 2 - len * 0.12, (y0 + y1) / 2 - (y1 - y0) * 0.18, len * 0.24, (y1 - y0) * 0.36);
   }
   function fillFor(part, R, i) {
-    if (part.kind === 'chassis') return R.flipped ? '#4A4540' : R.alive ? TEAM[i].col : TEAM[i].dark;
+    if (part.kind === 'chassis') return R.flipped ? '#4A4540' : R.alive ? TC(i).col : TC(i).dark;
     if (part.kind === 'wheel') return RUBBER;
     if (part.kind === 'armour') return { rubber: '#34302C', spring: '#D4AF37', spiked: '#8E9088', fibre: 'rgba(79,163,160,0.85)' }[part.bumper] || STEEL;
     if (part.key === 'spear') return '#C9CBC4';
@@ -237,8 +245,8 @@
       else if (part.key === 'ball') { ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(-0.03, -0.03, 0.04, 0, 6.29); ctx.fill(); }
       else if (part.kind === 'chassis') {
         const [x0, y0, x1, y1] = bbox(part.home);
-        if (!R.flipped) { ctx.strokeStyle = TEAM[i].dark; ctx.lineWidth = PX * 1.6; ctx.strokeRect(x0 + 0.06, y0 + 0.06, x1 - x0 - 0.12, y1 - y0 - 0.12); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(x0, y0, x1 - x0, 0.05); }
-        else { ctx.fillStyle = TEAM[i].dark; ctx.fillRect(x0 + 0.05, -0.04, x1 - x0 - 0.1, 0.08); }
+        if (!R.flipped) { ctx.strokeStyle = TC(i).dark; ctx.lineWidth = PX * 1.6; ctx.strokeRect(x0 + 0.06, y0 + 0.06, x1 - x0 - 0.12, y1 - y0 - 0.12); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(x0, y0, x1 - x0, 0.05); }
+        else { ctx.fillStyle = TC(i).dark; ctx.fillRect(x0 + 0.05, -0.04, x1 - x0 - 0.1, 0.08); }
         // torn holes show what's inside
         const holes = part.dents.filter(d => d.a > 11).sort((a, b) => b.a - a.a).slice(0, 4);
         if (part.hp / part.maxHp < 0.6) for (const d of holes) {
@@ -265,7 +273,7 @@
     const so = 0.05 + air * 0.35;
     R.trailPts = R.trailPts || []; if (frameN % 2 === 0) { R.trailPts.push([p.x, p.y, a]); if (R.trailPts.length > 7) R.trailPts.shift(); }
     const vel = b.getLinearVelocity(), fast = Math.hypot(vel.x, vel.y) > 3.5 || R.airborne > 0;
-    if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TEAM[i].light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
+    if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b);
     // shadow
     ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
@@ -285,7 +293,7 @@
       for (const [bx, by] of [[x0 + 0.035, y0 + 0.035], [x1 - 0.035, y0 + 0.035], [x0 + 0.035, y1 - 0.035], [x1 - 0.035, y1 - 0.035]]) bolt(bx, by);
       if (R.lid.attached) {
         const lo = R.lid.state === 'loose' ? Math.sin(performance.now() / 25) * 0.008 : 0; ctx.save(); ctx.translate(lo, -lo);
-        drawPart(R.lid, R.alive ? TEAM[i].dark : '#4A4540', R, () => { ctx.fillStyle = 'rgba(255,255,255,0.1)'; const [x0, y0, x1] = bbox(R.lid.home); ctx.fillRect(x0, y0, x1 - x0, 0.03); });
+        drawPart(R.lid, R.alive ? TC(i).dark : '#4A4540', R, () => { ctx.fillStyle = 'rgba(255,255,255,0.1)'; const [x0, y0, x1] = bbox(R.lid.home); ctx.fillRect(x0, y0, x1 - x0, 0.03); });
         const [x0, y0, x1, y1] = bbox(R.lid.home); for (const [bx, by] of [[x0 + 0.03, y0 + 0.03], [x1 - 0.03, y0 + 0.03], [x0 + 0.03, y1 - 0.03], [x1 - 0.03, y1 - 0.03]]) if (!(R.lid.state === 'loose' && bx > 0 && by < 0)) bolt(bx, by);
         ctx.restore();
       } else {
@@ -335,6 +343,7 @@
   function drawBuzz(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? Math.abs(R.buzzW || 0) / (R.buzzMax || 110) : 0;
     ctx.save(); ctx.translate(p.x, p.y);
+    const bk = R && R.buzzR ? R.buzzR / 0.14 : 1; ctx.scale(bk, bk);
     if (w > 0.3) { ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(0, 0, 0.17, 0, 6.29); ctx.fill(); }
     ctx.rotate(a); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
     for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125; k ? ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : ctx.moveTo(Math.cos(t) * r, Math.sin(t) * r); }
@@ -344,11 +353,11 @@
     ctx.restore();
   }
   function drawGlove(R) {
-    const hl = R.hl, ext = R.gjoint ? Math.max(0, R.gjoint.getJointTranslation()) : 0, gx = hl + 0.09 + ext, k = Math.min(1, ext / 0.5);
+    const gk = R.gloveK || 1, hl = R.hl, ext = R.gjoint ? Math.max(0, R.gjoint.getJointTranslation()) : 0, gx = hl + 0.09 * gk + ext, k = Math.min(1, ext / (R.stroke || 0.5));
     ctx.strokeStyle = '#4A4540'; ctx.lineWidth = PX * 3; ctx.beginPath();
     for (let j = 0; j < 4; j++) { const xa = hl + 0.1 + ext * j / 4, xb = hl + 0.1 + ext * (j + 1) / 4; ctx.moveTo(xa, -0.06); ctx.lineTo(xb, 0.06); ctx.moveTo(xa, 0.06); ctx.lineTo(xb, -0.06); }
     ctx.stroke();
-    ctx.save(); ctx.translate(gx - 0.03, 0); const sc = 1 + k * 0.15; ctx.scale(sc, sc); gloveShape(sc); ctx.restore();
+    ctx.save(); ctx.translate(gx - 0.03 * gk, 0); const sc = (1 + k * 0.15) * gk; ctx.scale(sc, sc); gloveShape(sc); ctx.restore();
   }
   function drawFlail(R) {
     if (!R.flailArm) return;
@@ -363,10 +372,10 @@
     }
   }
   function drawBall(part) {
-    const b = part.body, p = b.getPosition(), a = b.getAngle();
+    const b = part.body, p = b.getPosition(), a = b.getAngle(), q = (part.robot && part.robot.ballK) || 1, r1 = 0.1 * q, r2 = 0.17 * q;
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
     ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4;
-    for (let k = 0; k < 8; k++) { const t = k / 8 * 6.28; ctx.beginPath(); ctx.moveTo(Math.cos(t - 0.25) * 0.1, Math.sin(t - 0.25) * 0.1); ctx.lineTo(Math.cos(t) * 0.17, Math.sin(t) * 0.17); ctx.lineTo(Math.cos(t + 0.25) * 0.1, Math.sin(t + 0.25) * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    for (let k = 0; k < 8; k++) { const t = k / 8 * 6.28; ctx.beginPath(); ctx.moveTo(Math.cos(t - 0.25) * r1, Math.sin(t - 0.25) * r1); ctx.lineTo(Math.cos(t) * r2, Math.sin(t) * r2); ctx.lineTo(Math.cos(t + 0.25) * r1, Math.sin(t + 0.25) * r1); ctx.closePath(); ctx.fill(); ctx.stroke(); }
     drawPart(part, '#5B5E57', part.robot, decorate(part, part.robot, 0));
     ctx.restore();
   }
@@ -445,7 +454,7 @@
     const t = performance.now() / 1000;
     for (const d of S.drones) {
       if (!d.alive) continue;
-      const p = d.body.getPosition(), H = d.H, r = H.r * 1.45, off = d.off > 0 || !d.owner.alive || d.owner.fried || d.owner.chipFreeze > 0 || d.owner.stun > 0, team = TEAM[d.owner.id];
+      const p = d.body.getPosition(), H = d.H, r = H.r * 1.45, off = d.off > 0 || !d.owner.alive || d.owner.fried || d.owner.chipFreeze > 0 || d.owner.stun > 0, team = TC(d.owner.id);
       if (d.beam) { const B = d.beam; ctx.lineCap = 'round'; if (B.heal) { ctx.strokeStyle = 'rgba(76,194,106,0.55)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 5, PX * 4]); ctx.lineDashOffset = -t * 40 * PX; ctx.beginPath(); ctx.moveTo(B.x0, B.y0); ctx.lineTo(B.x1, B.y1); ctx.stroke(); ctx.setLineDash([]); } else { ctx.strokeStyle = 'rgba(255,60,40,0.35)'; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(B.x0, B.y0); ctx.lineTo(B.x1, B.y1); ctx.stroke(); ctx.strokeStyle = '#FFD9D0'; ctx.lineWidth = 0.01; ctx.stroke(); if (Math.random() < 0.3) sparks(B.x1, B.y1, 2); } ctx.lineCap = 'butt'; }
       const hov = H.physical ? 0.04 : 0.16;
       ctx.fillStyle = 'rgba(20,14,8,0.22)'; ctx.beginPath(); ctx.arc(p.x + hov, p.y + hov, r * 1.1, 0, 6.29); ctx.fill();
@@ -588,18 +597,22 @@
     ctx.fillStyle = 'rgba(43,33,24,0.85)'; ctx.fillRect(W / 2 - 46 * s, 8 * s, 92 * s, 30 * s);
     ctx.fillStyle = '#F6F2EA'; ctx.font = `600 ${18 * s}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${m}:${String(sec).padStart(2, '0')}`, W / 2, 23 * s);
     for (const R of S.robots) {
-      const i = R.id, x = i ? W - 12 * s - 200 * s : 12 * s, f = integrity(R);
+      const i0 = R.id, i = S.multi ? (R.home[0] > 0 ? 1 : 0) : i0, bot = S.multi && R.home[1] > 0; // i = right side
+      if (bot) { ctx.save(); ctx.translate(0, W - 60 * s); }
+      const x = i ? W - 12 * s - 200 * s : 12 * s, f = integrity(R);
+      if (S.multi && !R.alive) ctx.globalAlpha = 0.55;
       ctx.fillStyle = 'rgba(43,33,24,0.85)'; ctx.fillRect(x, 8 * s, 200 * s, 30 * s);
-      ctx.fillStyle = TEAM[i].light; ctx.font = `400 ${15 * s}px "Saira Stencil One", Impact, sans-serif`; ctx.textAlign = i ? 'right' : 'left'; ctx.fillText(R.name, i ? x + 192 * s : x + 8 * s, 18 * s);
+      ctx.fillStyle = TC(i0).light; ctx.font = `400 ${15 * s}px "Saira Stencil One", Impact, sans-serif`; ctx.textAlign = i ? 'right' : 'left'; ctx.fillText(R.name, i ? x + 192 * s : x + 8 * s, 18 * s);
       ctx.fillStyle = '#4A443D'; ctx.fillRect(x + 8 * s, 28 * s, 184 * s, 5 * s);
       ctx.fillStyle = f > 0.5 ? '#79B46A' : f > 0.25 ? '#E0B848' : '#E06A58'; const bw = 184 * s * f; ctx.fillRect(i ? x + 192 * s - bw : x + 8 * s, 28 * s, bw, 5 * s);
-      ctx.font = `600 ${10 * s}px IBM Plex Mono, monospace`; ctx.fillStyle = '#CFC6B7'; ctx.textAlign = i ? 'left' : 'right'; ctx.fillText(`${R.stats.lost.length} parts lost`, i ? x + 8 * s : x + 192 * s, 18 * s);
+      ctx.font = `600 ${10 * s}px IBM Plex Mono, monospace`; ctx.fillStyle = '#CFC6B7'; ctx.textAlign = i ? 'left' : 'right'; ctx.fillText(S.multi && !R.alive ? 'OUT' : S.multi && R.stats.kos ? `${R.stats.kos} KO · ${R.stats.lost.length} lost` : `${R.stats.lost.length} parts lost`, i ? x + 8 * s : x + 192 * s, 18 * s);
       // hype meter: full = rage
       const hy = R.rage > 0 ? 1 : (R.hype || 0) / 100;
       ctx.fillStyle = 'rgba(43,33,24,0.85)'; ctx.fillRect(x, 40 * s, 200 * s, 10 * s);
       ctx.fillStyle = '#4A443D'; ctx.fillRect(i ? x + 48 * s : x + 8 * s, 43 * s, 144 * s, 4 * s);
       ctx.fillStyle = R.rage > 0 ? (Math.sin(performance.now() / 60) > 0 ? '#FF5A3C' : '#FFB03C') : '#E8C547'; const hw = 144 * s * hy; ctx.fillRect(i ? x + 192 * s - hw : x + 8 * s, 43 * s, hw, 4 * s);
       ctx.font = `600 ${8 * s}px IBM Plex Mono, monospace`; ctx.fillStyle = R.rage > 0 ? '#FF8A5C' : '#CFC6B7'; ctx.textAlign = i ? 'left' : 'right'; ctx.fillText(R.rage > 0 ? 'RAGE!' : 'HYPE', i ? x + 8 * s : x + 192 * s, 45.5 * s);
+      ctx.globalAlpha = 1; if (bot) ctx.restore();
     }
     if (S.t > S.timeLimit - 30 && !S.over && S.countdown <= 0) { ctx.fillStyle = Math.sin(performance.now() / 120) > 0 ? '#FF5A3C' : HAZ; ctx.font = `400 ${13 * s}px "Saira Stencil One", Impact, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('SUDDEN DEATH', W / 2, 48 * s); }
     if (S.countdown > 0) {
@@ -611,11 +624,12 @@
       const R = S.robots[S.result.winner];
       const by = W * 0.24; ctx.fillStyle = 'rgba(43,33,24,0.82)'; ctx.fillRect(0, by - 52 * s, W, 104 * s);
       ctx.textAlign = 'center'; ctx.fillStyle = S.result.how === 'KO' ? HAZ : '#F6F2EA'; ctx.font = `400 ${46 * s}px "Saira Stencil One", Impact, sans-serif`;
-      ctx.fillText(S.result.how === 'KO' ? 'KNOCKOUT' : 'TIME', W / 2, by - 16 * s);
-      ctx.fillStyle = TEAM[R.id].light; ctx.font = `600 ${15 * s}px IBM Plex Sans, sans-serif`; ctx.fillText(`${R.name} wins`, W / 2, by + 22 * s);
+      ctx.fillText(S.result.how === 'KO' ? (S.multi ? (S.mode === '2v2' ? 'TEAM WINS' : 'LAST ONE STANDING') : 'KNOCKOUT') : 'TIME', W / 2, by - 16 * s);
+      const wn = S.multi && S.mode === '2v2' ? S.result.winners.map(k => S.robots[k].name).join(' & ') + ' win' : `${R.name} wins`;
+      ctx.fillStyle = TC(R.id).light; ctx.font = `600 ${15 * s}px IBM Plex Sans, sans-serif`; ctx.fillText(wn, W / 2, by + 22 * s);
     }
-    if (slowT > 0 && !S.over) { ctx.fillStyle = HAZ; ctx.font = `600 ${12 * s}px IBM Plex Mono, monospace`; ctx.textAlign = 'left'; ctx.fillText('SLOW-MO', 12 * s, W - 16 * s); }
-    if (st.paused) { ctx.fillStyle = '#F6F2EA'; ctx.font = `600 ${13 * s}px IBM Plex Mono, monospace`; ctx.textAlign = 'right'; ctx.fillText('PAUSED · space to go', W - 12 * s, W - 16 * s); }
+    if (slowT > 0 && !S.over) { ctx.fillStyle = HAZ; ctx.font = `600 ${12 * s}px IBM Plex Mono, monospace`; ctx.textAlign = S.multi ? 'center' : 'left'; ctx.fillText('SLOW-MO', S.multi ? W / 2 : 12 * s, S.multi ? W - 34 * s : W - 16 * s); }
+    if (st.paused) { ctx.fillStyle = '#F6F2EA'; ctx.font = `600 ${13 * s}px IBM Plex Mono, monospace`; ctx.textAlign = S.multi ? 'center' : 'right'; ctx.fillText('PAUSED · space to go', S.multi ? W / 2 : W - 12 * s, W - 16 * s); }
     ctx.restore();
   }
   function tags() {
@@ -736,7 +750,7 @@
     const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 8;
     while (logN < S.log.length) {
       const e = S.log[logN++], li = document.createElement('li'); if (e.big) li.className = 'big';
-      li.innerHTML = `<time>${fmtT(e.t)}</time><span class="dot" style="background:${e.side != null ? TEAM[e.side].col : 'var(--muted)'}"></span><span></span>`;
+      li.innerHTML = `<time>${fmtT(e.t)}</time><span class="dot" style="background:${e.side != null ? TC(e.side).col : 'var(--muted)'}"></span><span></span>`;
       li.lastChild.textContent = e.text; ol.appendChild(li);
     }
     if (atBottom) box.scrollTop = box.scrollHeight;
@@ -746,13 +760,13 @@
     const r = S.result, el = $('report');
     const card = R => {
       const by = Object.entries(R.stats.dealtBy).sort((a, b) => b[1] - a[1]), mx = by.length ? by[0][1] : 1;
-      return `<div class="card"><div class="team" style="color:${TEAM[R.id].col}">${TEAM[R.id].name}${R.id === r.winner ? ' · winner' : ''}</div><h3>${R.name}</h3>
-        <div class="kv"><span>Damage dealt</span><b>${Math.round(R.stats.dealt)}</b><span>Damage taken</span><b>${Math.round(R.stats.taken)}</b><span>Biggest hit</span><b>${Math.round(R.stats.biggest)} (${L.causeLabel(R.stats.biggestBy)})</b><span>Aggression</span><b>${(R.stats.aggr || 0).toFixed(0)} s</b><span>Weight left</span><b>${Math.round(R.body.getMass())} of ${Math.round(R.massStart)} kg</b><span>Result</span><b>${R.alive ? 'still running' : R.ko}</b></div>
-        ${by.length ? `<div class="causes">${by.map(([k, v]) => `<div><span>${L.causeLabel(k)}</span><i style="width:${(v / mx * 100).toFixed(0)}%;background:${TEAM[R.id].col}"></i><b class="kg">${Math.round(v)}</b></div>`).join('')}</div>` : ''}
+      return `<div class="card"><div class="team" style="color:${TC(R.id).col}">${S.multi ? (S.mode === '2v2' ? 'Team ' + TC(R.id).name : '#' + (r.order.indexOf(R.id) + 1)) : TC(R.id).name}${(S.multi ? r.winners.includes(R.id) : R.id === r.winner) ? ' · winner' : ''}</div><h3>${R.name}</h3>
+        <div class="kv">${S.multi ? `<span>Knockouts</span><b>${R.stats.kos || 0}</b><span>Knocked out by</span><b>${R.alive ? 'still standing' : R.koBy ? R.koBy.name : 'the arena'}</b>` : ''}<span>Damage dealt</span><b>${Math.round(R.stats.dealt)}</b><span>Damage taken</span><b>${Math.round(R.stats.taken)}</b><span>Biggest hit</span><b>${Math.round(R.stats.biggest)} (${L.causeLabel(R.stats.biggestBy)})</b><span>Aggression</span><b>${(R.stats.aggr || 0).toFixed(0)} s</b><span>Weight left</span><b>${Math.round(R.body.getMass())} of ${Math.round(R.massStart)} kg</b><span>Result</span><b>${R.alive ? 'still running' : R.ko}</b></div>
+        ${by.length ? `<div class="causes">${by.map(([k, v]) => `<div><span>${L.causeLabel(k)}</span><i style="width:${(v / mx * 100).toFixed(0)}%;background:${TC(R.id).col}"></i><b class="kg">${Math.round(v)}</b></div>`).join('')}</div>` : ''}
         <div class="small">Parts lost (${R.stats.lost.length})</div>
         ${R.stats.lost.length ? `<ol class="lost">${R.stats.lost.map(q => `<li>${fmtT(q.t)} ${q.label}: ${L.causeLabel(q.cause)}${q.by ? ' by ' + q.by : ''}</li>`).join('')}</ol>` : '<div class="small">Nothing. Clean.</div>'}</div>`;
     };
-    el.innerHTML = `<div class="bar" style="justify-content:space-between"><h2>Damage report</h2><span class="small">Seed ${S.seed} · ${L.ARENAS[S.arenaKey].label} · ${fmtT(r.t)}</span></div><div class="rep-head">${escapeHtml(r.text)}</div><div class="rep-grid">${card(S.robots[0])}${card(S.robots[1])}</div>
+    el.innerHTML = `<div class="bar" style="justify-content:space-between"><h2>Damage report</h2><span class="small">Seed ${S.seed} · ${L.ARENAS[S.arenaKey].label} · ${fmtT(r.t)}</span></div><div class="rep-head">${escapeHtml(r.text)}</div><div class="rep-grid">${(S.multi ? r.order.map(k => S.robots[k]) : S.robots).map(card).join('')}</div>
       <div class="bar"><button type="button" id="rpAgain">Replay this fight</button><button type="button" id="rpNew">Next fight (new seed)</button></div>`;
     $('reportCard').hidden = false;
     $('rpAgain').onclick = () => start(); $('rpNew').onclick = newSeed;
@@ -761,13 +775,19 @@
 
   // ---------- control ----------
   function start() {
-    const a = Object.assign(fullSpec(0), { name: nameOf(0) }), b = Object.assign(fullSpec(1), { name: nameOf(1) });
-    if (a.name === b.name) b.name += ' II';
-    S = L.create({ a, b, seed: st.seed, arena: st.arena, countdown: 2.99 });
+    const n = nBots(), specs = [], seen = {};
+    for (let i = 0; i < n; i++) { const sp = Object.assign(fullSpec(i), { name: nameOf(i) }); seen[sp.name] = (seen[sp.name] || 0) + 1; if (seen[sp.name] > 1) sp.name += ' ' + ['', 'II', 'III', 'IV'][seen[sp.name] - 1]; if (st.mode === '2v2') sp.team = i % 2; specs.push(sp); }
+    S = n > 2 ? L.create({ mode: st.mode, robots: specs, seed: st.seed, arena: st.arena, countdown: 2.99 }) : L.create({ a: specs[0], b: specs[1], seed: st.seed, arena: st.arena, countdown: 2.99 });
     reported = false; logN = 0; parts = []; calls = []; hitStop = 0; flash = 0; decalReset(); $('log').innerHTML = ''; $('reportCard').hidden = true;
     cam.x = cam.y = cam.tx = cam.ty = 0; cam.z = cam.tz = 1; slowT = 0; shake = 0;
-    sidePanel(0); sidePanel(1);
+    for (let i = 0; i < 4; i++) { const el = $('bot' + i); if (el) el.hidden = i >= n; }
+    for (let i = 0; i < n; i++) sidePanel(i);
   }
+  function setMode(m) {
+    st.mode = m; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === m)));
+    S = null; for (let i = 0; i < nBots(); i++) buildCard(i); start();
+  }
+  document.querySelectorAll('[data-mode]').forEach(bn => bn.onclick = () => setMode(bn.dataset.mode));
   function restart() { start(); }
   function newSeed() { st.seed = 1 + Math.floor(Math.random() * 99999); $('seed').value = st.seed; start(); }
   $('fight').onclick = () => { st.paused = false; $('pause').setAttribute('aria-pressed', 'false'); $('pause').textContent = 'Pause'; start(); };
@@ -807,7 +827,7 @@
     if (S) {
       for (const R of S.robots) R.drumSpin = (R.drumSpin || 0) + (R.drumE || 0) * rdt * ts * 3;
       draw(); pushLog();
-      if (frameN % 8 === 0) { sidePanel(0); sidePanel(1); }
+      if (frameN % 8 === 0) for (let i = 0; i < S.robots.length; i++) sidePanel(i);
     }
     requestAnimationFrame(frame);
   }
@@ -819,7 +839,7 @@
     const cell = (v, i, j) => v == null ? '<td class="self">–</td>' : `<td><button type="button" class="mcell" data-i="${i}" data-j="${j}" style="--k:${(v - 50) / 50}" aria-label="${n[i]} versus ${n[j]}: ${n[i]} wins ${v}%">${v}</button></td>`;
     const notes = n.map((name, i) => { const r = w[i].map((v, j) => [v, j]).filter(x => x[0] != null).sort((a, b) => b[0] - a[0]); const b = L.PRESETS[name]; return `<li><b>${name}</b> <span class="small">${L.WEAPONS[b.weapon].label.toLowerCase()} · ${L.CHASSIS[b.chassis].label.toLowerCase()} · ${L.DRIVES[b.drive || '2wd'].label.replace(/ \(.*/, '').toLowerCase()} · ${(L.PROCS[b.proc || 'standard']).label.toLowerCase()} · ${L.MODULES[b.mod || 'none'].label.toLowerCase()} · ${L.weightOf(b)} kg</span><br>Beats ${n[r[0][1]]} (${r[0][0]}%), struggles vs ${n[r[r.length - 1][1]]} (${r[r.length - 1][0]}%)</li>`; }).join('');
     el.innerHTML = `<div class="tblwrap"><table class="mtab"><thead><tr><th scope="col"><span class="small">row beats column</span></th>${n.map(x => `<th scope="col">${x}</th>`).join('')}<th scope="col">avg</th></tr></thead><tbody>${n.map((x, i) => `<tr><th scope="row">${x}</th>${w[i].map((v, j) => cell(v, i, j)).join('')}<td class="avg">${avg[i]}</td></tr>`).join('')}</tbody></table></div><ul class="mnotes">${notes}</ul>`;
-    el.querySelectorAll('.mcell').forEach(bn => bn.onclick = () => { st.spec[0] = { preset: n[+bn.dataset.i] }; st.spec[1] = { preset: n[+bn.dataset.j] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    el.querySelectorAll('.mcell').forEach(bn => bn.onclick = () => { if (st.mode !== '1v1') { st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null; } st.spec[0] = { preset: n[+bn.dataset.i] }; st.spec[1] = { preset: n[+bn.dataset.j] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }
   marketTable();
   // what each helper drone is worth: click a cell to watch that robot with that drone
@@ -830,9 +850,9 @@
     box.innerHTML = `<h3 class="dvh">Helper drones (upgrades, not in the market deck)</h3><p class="small">Win points a drone adds when you bolt it onto a market robot (that robot + 1 drone vs the other six, ${L.DRONE_VALUE.fights} fights each). Click a number to watch it.</p>
       <div class="tblwrap"><table class="mtab"><thead><tr><th scope="col">drone</th>${n.map(x => `<th scope="col">${x}</th>`).join('')}<th scope="col">avg</th></tr></thead><tbody>${keys.map(k => `<tr><th scope="row" title="${L.HELPERS[k].d}">${L.HELPERS[k].label}</th>${n.map((x, j) => { const v = T[k].per[x]; return `<td><button type="button" class="mcell dcell" data-r="${x}" data-k="${k}" style="--k:${Math.max(-1, Math.min(1, v / 30))}" aria-label="${x} with ${L.HELPERS[k].label}: ${v >= 0 ? '+' : ''}${v} win points">${v >= 0 ? '+' : ''}${v}</button></td>`; }).join('')}<td class="avg">+${T[k].avg}</td></tr>`).join('')}</tbody></table></div>`;
     el.appendChild(box);
-    box.querySelectorAll('.dcell').forEach(bn => bn.onclick = () => { const r = bn.dataset.r, others = n.filter(x => x !== r); st.spec[0] = { preset: r, helpers: [bn.dataset.k] }; st.spec[1] = { preset: others[Math.floor(Math.random() * others.length)] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    box.querySelectorAll('.dcell').forEach(bn => bn.onclick = () => { if (st.mode !== '1v1') { st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null; } const r = bn.dataset.r, others = n.filter(x => x !== r); st.spec[0] = { preset: r, helpers: [bn.dataset.k] }; st.spec[1] = { preset: others[Math.floor(Math.random() * others.length)] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   })();
-  buildCard(0); buildCard(1); paintFloor(); resize(); start();
+  buildCard(0); buildCard(1); buildCard(2); buildCard(3); paintFloor(); resize(); start();
   requestAnimationFrame(frame);
   // after the fight the sim keeps running so debris settles; we keep stepping until 4 s after the end
   const _step = L.step; L.step = function (S2) { if (S2.over && S2.t > S2.result.t + 4) return; _step(S2); };

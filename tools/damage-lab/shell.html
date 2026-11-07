@@ -127,6 +127,9 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
           <button type="button" data-speed="0.25" aria-pressed="false">¼×</button><button type="button" data-speed="0.5" aria-pressed="false">½×</button><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="2" aria-pressed="false">2×</button>
         </span>
         <label class="chk"><input id="drama" type="checkbox" checked> Drama cam</label>
+        <span class="seg" role="group" aria-label="Fight mode">
+          <button type="button" data-mode="1v1" aria-pressed="true">1v1</button><button type="button" data-mode="2v2" aria-pressed="false" title="Two teams of two: Steel (blues) vs Rust (oranges). Friendly fire does 35%.">2v2</button><button type="button" data-mode="ffa" aria-pressed="false" title="Four robots, one from each corner, last one standing wins">FFA</button>
+        </span>
         <select id="arenaSel" aria-label="Arena"></select>
       </div>
       <div class="card" id="reportCard" hidden><div class="report" id="report"></div></div>
@@ -139,6 +142,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     <aside class="col" aria-label="Robots">
       <div class="card bot s0" id="bot0"></div>
       <div class="card bot s1" id="bot1"></div>
+      <div class="card bot" id="bot2" hidden></div>
+      <div class="card bot" id="bot3" hidden></div>
     </aside>
   </main>
 
@@ -158,6 +163,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       <li><b>Flips.</b> Drums and flippers throw robots. Robots with a turret, axe or crusher on top land helpless on their back unless they can self-right (flipper, axe) or bash a wall to roll back. Hard landings damage wheels.</li>
       <li><b>Bumpers.</b> Every robot picks one shell for its armour plates: steel (tough, heavy), rubber (shrugs off rams and punches, blades cut through), spring (throws attackers back across the arena), spiked (hurts whoever rams it) or fibreglass (very light, shatters in a shower of shards).</li>
       <li><b>Arcade rules.</b> Weapon hits throw robots around and parts fly far. Crates drop in now and then: nitro, overcharge (damage ×1.8), repair and shield. Every 15-20 s the arena strikes: walls close in, floor bumpers launch robots, or the ceiling hammer comes down on a red circle. Big hits fill the hype bar; full hype means 6 s of rage (harder hits, faster). The last 30 s are sudden death: the arena strikes every 7 s.</li>
+      <li><b>2v2 and free-for-all.</b> Four robots in the pit. 2v2: robots 1 &amp; 3 (Steel) against 2 &amp; 4 (Rust), friendly fire does 35%. FFA: one robot per corner, last one standing. Each robot picks its own target: the closest, a wounded one, whoever just hit it, or (2v2) whoever is beating up its teammate. Knockouts are credited to the last robot that hit. Time: judges add damage, parts ripped off, knockouts and survival.</li>
       <li><b>Same seed, same fight.</b> The sim is deterministic, so Replay shows exactly the same fight again. Time limit 2:00, then the judges score damage, parts ripped off and aggression.</li>
     </ul>
   </section>
