@@ -58,3 +58,31 @@ Weapon knobs (`TUNE` in engine.js, damage multipliers): global 0.65, spinner 1.1
 
 Engine changes made while balancing: flips/kicks credit wall slams to the thrower; flipper does not flip a helpless upside-down robot back over, plate HP 130; drums are deflected by flipper and wedge plates; crushers cannot grab a spinning drum or bar; gunners keep extra distance from flamethrowers and spinners; flamethrower robots can drive upside down but cannot burn until righted; both robots back off and re-engage after 4 s of shoving with no damage; wall/corner escape; crippled count-out; 3 min limit.
 Tools: `node market.js market-final.json` (matrix), `node search.js in.json out.json` (coordinate search over builds + knobs), `node why.js file.json A B` (damage by cause), `node tos.js file.json N` (time-outs per matchup).
+
+## Arcade update (8 Nov): drama first
+Kev: more drama, crazier weapons, bumpers of different hardness, no hug fests; keep the flying parts. Picked: bigger hit physics, hype meter, power-ups, arena events; one bumper type per robot; looser balance (40-60%).
+- New weapons: boxing glove (punch sends robots across the arena, no flip), spear (long lance, lines up and dashes in, pierces armour, can snap), flail (spiked ball on a chain swung by a motor arm).
+- Bumpers (material of all armour plates): steel, rubber (blunt hits x0.35, sharp x1.5, bouncy), spring (throws attackers back), spiked (hurts whoever rams it), fibreglass (35% weight, shatters into shards).
+- Arcade physics (`ARC` in engine.js): spinner / flail / spear hits add knockback and make the victim skid; torn-off parts fly twice as far and spin more; battery KOs blow every part off.
+- Crates every 13-19 s (nitro, overcharge x1.8 damage, repair, shield 60). Robots go for one when it is closer to them than to the enemy.
+- Arena events every 16-22 s (every 7 s in the last 30 s, "sudden death"): closing walls (two walls move in 1.1 m for 6 s and crush what is in the way), floor bumpers (4 red circles, then robots on them are launched), ceiling hammer (red circle, then a 30-damage slam from above).
+- Hype: damage and ripped-off parts fill a hype bar; full = 6 s of rage (damage x1.4, push x1.2). Comic callouts on the canvas (KAPOW!, SKEWERED!, WHEEL GONE!...), hit-stop and flashes on big hits, motion trails.
+- Anti-hug: back off after 2.5 s of shoving with no damage (was 4), pinning limited to 2 s, 2:00 time limit, AI paths round the pit (first hit in pit arenas went from 17 s to 3 s).
+- Bug fixed on the way: closing walls moved the wrong way through robots.
+
+### Market roster (10 robots, 80 fights per matchup on fresh seeds, open floor + centre pit)
+| Robot | Weapon | Build | Bumper | kg |
+|---|---|---|---|---|
+| Buzzkill | bar spinner | medium, 4 wheels, hot motors, side 3 / rear 1 / top 2 | spiked | 112 |
+| Rumbler | drum | heavy, 2 wheels, big battery, side 2 / rear 1 / top 1 | steel | 103 |
+| Popcorn | flipper | light, 4 wheels, side 2 / rear 2 / top 2 | steel | 84 |
+| Thumper | axe | medium, 4 wheels, big battery, front 2 / side 2 / top 2 | spiked | 105 |
+| Snapjaw | crusher | medium, 4 wheels, side 3 / top 1 | steel | 96 |
+| Peppershot | medium gun | medium, 4 wheels, front 1 / side 2 / rear 1 / top 1 | steel | 90 |
+| Blowtorch | flamethrower | light, 4 wheels, big battery, front 2 / side 1 / top 1 | steel | 74 |
+| Haymaker | boxing glove | medium, 4 wheels, side 2 / rear 1 / top 1 | rubber | 85 |
+| Jouster | spear | medium, 2 wheels, hot motors, side 2 / rear 1 / top 1 | fibreglass | 72 |
+| Wrecker | flail | medium, 4 wheels, big battery, front 1 / side 3 / top 2 | spiked | 114 |
+
+Averages 44-57%. Strongest counters: Jouster beats Peppershot 86%, Snapjaw beats Jouster 83%, Haymaker loses to Jouster 20%, Rumbler loses to Thumper 22%. Median fight 55 s (middle half 36-78 s), 3-4% judges. Endings: chassis torn apart 29%, crippled count-out 23%, pit 13%, no drive 8%, upside down 5%, radio 5%, judges 4%, battery 1%.
+Knobs: global damage 0.68, spinner 1.15, drum 0.62, flipper 1.6, axe 0.75, crusher 1.5, gun 0.8, flame 0.72, glove 0.85, spear 0.9, flail 1.25. `node drama.js` prints first-hit time, parts lost and fight length per arena.
