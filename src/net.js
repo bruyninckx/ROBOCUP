@@ -10,7 +10,7 @@
  *      test options: &name=Ann  &bot=1 (plays itself)  &autostart=N (host starts when N players are ready)  &seed=N
  *                    &relay=1 (connect only through the relay server in src/net-config.js, to check it works)
  * Talks to the game through window.ROBOCUS_GAME (prototypes/tabletop-prototype.html). */
-(function () {
+(function robocusNet() {
   'use strict';
   const PEERJS = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
   const ID_PREFIX = 'robocus-v1-';
@@ -23,6 +23,22 @@
   const ssGet = k => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
   const ssSet = (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) {} };
   const rid = n => Array.from({ length: n }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+  /* Version check (Kev, 7 Nov): every screen must run exactly the same code (the host runs the rules, every screen
+   * runs the fights). The version = the build date + a fingerprint of the game script, the fight simulator and this
+   * file, so any change to the code gives a new version without anyone having to remember to bump a number. */
+  const fnv = str => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; };
+  function codeVersion() {
+    const main = [...document.scripts].filter(x => !x.src).map(x => x.textContent).join('\n');
+    const S = window.Sim || {};
+    const sim = Object.keys(S).sort().map(k => k + '=' + (typeof S[k] === 'function' ? S[k].toString() : JSON.stringify(S[k]))).join('\n');
+    const h = (fnv(main) ^ Math.imul(fnv(sim), 3) ^ Math.imul(fnv(robocusNet.toString()), 7)) >>> 0;
+    const build = (GAME() && GAME().BUILD) || '';
+    const date = (build.match(/\d{4}-\d{2}-\d{2}/) || [''])[0];
+    return (date ? date + ' · ' : '') + h.toString(16).padStart(8, '0').slice(0, 6);
+  }
+  let VERSION = null;
+  const version = () => VERSION || (VERSION = codeVersion());
+  const verLine = () => '<div class="nl-note">Game version <b>' + esc(version()) + '</b></div>';
   const myCid = ssGet('robocus.cid') || (() => { const c = rid(10); ssSet('robocus.cid', c); return c; })();
 
   /* ---------------- transports: send(to, data) / onmsg(from, data) / onlink(id, up) ---------------- */
@@ -133,7 +149,7 @@
   function badge(text, onclick) {
     let b = $('#netBadge');
     if (!b) { b = document.createElement('span'); b.id = 'netBadge'; const bar = $('#seatSel') ? $('#seatSel').parentNode : document.body; bar.appendChild(b); }
-    b.innerHTML = text; b.onclick = onclick || null;
+    b.innerHTML = text; b.onclick = onclick || null; try { b.title = 'Game version ' + version(); } catch (e) {}
   }
   const TEAMS = () => (GAME() ? GAME().TEAMS : [{ name: 'Steel', col: '#3F78A8' }, { name: 'Rust', col: '#C8642B' }, { name: 'Moss', col: '#5E8A3A' }, { name: 'Plum', col: '#86528F' }]);
   const linkFor = (room, local) => location.href.split('?')[0] + '?room=' + room + (local ? '&net=local' : '');
@@ -160,6 +176,12 @@
       let p = pByFrom(from);
       if (d.t === 'hello') {
         const name = String(d.name || 'Player').slice(0, 20);
+        if (d.ver !== version()) {   // a different version would show other rules and other fights: refuse, say how to fix
+          T.send(from, { t: 'full', ver: true, why: 'Your game is a different version than the host\'s (yours: ' + (d.ver || 'older') + ', host: ' + version() + '). Refresh this page with Ctrl+F5 (tablet or phone: close the tab and open the link again). If it still differs, the host should refresh too, before starting.' });
+          H.badVer = H.badVer || {}; H.badVer[name] = d.ver || 'older'; if (!H.started) drawHostLobby(); else toast('⚠️ ' + esc(name) + ' tried to join with another game version (' + esc(d.ver || 'older') + '). They need to refresh.', 6000);
+          return;
+        }
+        if (H.badVer) delete H.badVer[name];
         p = H.players.find(x => x.cid === d.cid) || H.players.find(x => x.name.toLowerCase() === name.toLowerCase());
         if (!p) {
           if (H.started) { T.send(from, { t: 'full', why: 'The game has started. To rejoin, use the same name as before.' }); return; }
@@ -268,7 +290,7 @@
         '<div class="nl-row"><input type="text" readonly value="' + esc(linkFor(room, mode === 'local')) + '" style="width:100%"></div>' +
         H.players.map(p => '<div>' + (p.connected ? '🟢' : '🔴') + ' <b style="color:' + TEAMS()[p.seat].col + '">' + esc(p.name) + '</b></div>').join('') +
         '<div class="nl-row"><button id="nlSave">💾 Save game</button><button class="sec" id="nlClose">Close</button></div>' +
-        '<div class="nl-note">The save is taken at the start of each round. Load it from the lobby of a new room (same names = same seats).</div></div>';
+        '<div class="nl-note">The save is taken at the start of each round. Load it from the lobby of a new room (same names = same seats).</div>' + verLine() + '</div>';
       $('#nlSave').onclick = () => GAME().saveFile();
       $('#nlClose').onclick = closeLobby;
     }
@@ -289,7 +311,8 @@
         '<div class="nl-row">Start fame <select id="nlFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === H.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select>' +
           '<label class="sec" style="cursor:pointer">💾 <u>Load saved game</u><input type="file" id="nlLoad" accept=".json" hidden></label>' + (H.save ? '<span class="nl-note">Loaded: round ' + H.save.G.round + '</span>' : '') + '</div>' +
         '<div class="nl-row"><button id="nlStart"' + (H.players.every(p => p.ready || !p.connected) ? '' : ' disabled') + '>▶ Start game</button><button class="sec" id="nlCancel">Play solo instead</button></div>' +
-        '<div class="nl-note">' + (H.players.length ? H.players.filter(p => p.connected).length + ' player(s) joined.' : 'Nobody joined yet.') + ' Start is enabled when everyone who joined is ready.</div></div>';
+        '<div class="nl-note">' + (H.players.length ? H.players.filter(p => p.connected).length + ' player(s) joined.' : 'Nobody joined yet.') + ' Start is enabled when everyone who joined is ready.</div>' +
+          Object.keys(H.badVer || {}).map(n => '<div class="nl-note" style="color:#b45309;font-weight:700">⚠️ ' + esc(n) + ' has another game version (' + esc(H.badVer[n]) + ') and was told to refresh (Ctrl+F5).</div>').join('') + verLine() + '</div>';
       $('#nlCopy').onclick = () => { const i = $('#nlLink'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } toast('📋 Link copied', 1200); };
       $('#nlName').onchange = e => { H.me.name = e.target.value.trim().slice(0, 20) || 'Host'; lsSet('robocus.name', H.me.name); pushLobby(); };
       el.querySelectorAll('[data-seat]').forEach(b => { b.onclick = () => { const s = +b.dataset.seat; if (!seatTaken(s)) { H.me.seat = s; pushLobby(); } }; });
@@ -310,7 +333,7 @@
     const C = { room, mode, T, seat: null, started: false, name: qs.get('name') || lsGet('robocus.name') || '', ready: false, lastHost: Date.now(), asks: [], deals: [], curAsk: null, curDeal: null, lobby: null, joined: false };
     window.ROBOCUS_CLIENT = C;
     const send = d => T.send('host', d);
-    const hello = () => send({ t: 'hello', cid: myCid, name: C.name });
+    const hello = () => send({ t: 'hello', cid: myCid, name: C.name, ver: version() });
     window.ROBOCUS_NET = {
       sendAct(name, args) { send({ t: 'act', name, args }); },
       ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, fx() {}, rematch() {}
@@ -372,7 +395,7 @@
       const el = lobbyEl();
       el.innerHTML = '<div class="nl-box"><h3>🌐 Join room <span class="nl-code">' + esc(room) + '</span></h3>' + (err ? '<div style="color:#b45309;font-weight:700">' + esc(err) + '</div>' : '') +
         '<div class="nl-row">Your name <input type="text" id="nlName" value="' + esc(C.name) + '" maxlength="20" placeholder="e.g. Kev"><button id="nlJoin">Join</button></div>' +
-        '<div class="nl-note">Rejoining a game? Use the same name as before.</div><div class="nl-row"><button class="sec" id="nlSolo">Play solo instead</button></div></div>';
+        '<div class="nl-note">Rejoining a game? Use the same name as before.</div><div class="nl-row"><button class="sec" id="nlSolo">Play solo instead</button></div>' + verLine() + '</div>';
       const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note" id="nlStage">Connecting… ' + esc(T.stageText || '') + '</div>');
         T.onstage = t => { const n = $('#nlStage'); if (n) n.textContent = 'Connecting… ' + t; };
         T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.onstage = t => { T.stageText = t; T.relay = T2.relay; if (T.onstage) T.onstage(t); }; T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
@@ -395,7 +418,7 @@
         '<div class="nl-seats">' + st.seats.map((x, s) => '<div class="nl-seat' + (s === C.seat ? ' mine' : '') + '" data-seat="' + s + '" style="border-color:' + TEAMS()[s].col + '"><div class="nm" style="color:' + TEAMS()[s].col + '">' + esc(TEAMS()[s].name) + '</div>' +
           (x ? esc(x.name) + (x.host ? ' (host)' : '') + ' ' + (x.ready ? '✅' : '…') : '<span class="nl-note">AI' + (st.save && st.save.names[s] ? ' (saved: ' + esc(st.save.names[s]) + ')' : '') + '</span>') + '</div>').join('') + '</div>' +
         '<div class="nl-row">Start fame: <b>' + st.startFame + '</b>' + (st.save ? ' · <b>saved game, round ' + st.save.round + '</b>' : '') + '</div>' +
-        '<div class="nl-row"><button id="nlReady">' + (C.ready ? '✅ Ready (click to undo)' : 'I\'m ready') + '</button></div><div class="nl-note">The host starts the game when everyone is ready.</div></div>';
+        '<div class="nl-row"><button id="nlReady">' + (C.ready ? '✅ Ready (click to undo)' : 'I\'m ready') + '</button></div><div class="nl-note">The host starts the game when everyone is ready.</div>' + verLine() + '</div>';
       $('#nlName').onchange = e => { C.name = e.target.value.trim().slice(0, 20) || C.name; lsSet('robocus.name', C.name); send({ t: 'name', name: C.name }); };
       el.querySelectorAll('[data-seat]').forEach(b => { b.onclick = () => send({ t: 'seat', seat: +b.dataset.seat }); });
       $('#nlReady').onclick = () => send({ t: 'ready', on: !C.ready });

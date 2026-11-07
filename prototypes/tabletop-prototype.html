@@ -4463,7 +4463,7 @@ html, body {
 
   window.ROBOCUS_GAME = {
     get G() { return G; }, get HS() { return HS; }, get role() { return NETROLE; }, get SEATS() { return SEATS; }, BOT,
-    TEAMS, seatName,
+    TEAMS, seatName, BUILD,
     // host
     startHost(o) {   // o: { seat, seats: ['local'|'remote'|'ai' ×4], names, startFame, seed, save }
       NETROLE = 'host'; SEATS = o.seats.slice(); HS = viewerSeat = o.seat; netNames = o.names.slice();

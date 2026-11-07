@@ -36,6 +36,8 @@ No build step. Double-click an `.html` file in `prototypes/` to open it in a bro
 
 Online play needs the page on the web (GitHub Pages: Settings → Pages → Deploy from branch `main`, folder `/`; then the link is `https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-prototype.html`) and internet (PeerJS, WebRTC). For testing on one PC, tick **Local test** in the 🌐 menu and open the link in more tabs of the same browser (no internet needed).
 
+Before game night: push the last change a day or two early, then everyone refreshes (Ctrl+F5). The lobby shows the game version; a player with a different version can't join and is told to refresh. Don't push during a session.
+
 If a player stays on "Connecting…" or gets "no direct link to the host", their network blocks direct links between devices. Fix: a free relay server. Sign up at metered.ca (Open Relay, free 20 GB a month), create an app, put its name and API key in `src/net-config.js`, commit and push.
 
 Checks (Node.js + Playwright): `node tools/seed-check.js 7` (same seed, same solo game), `node tools/mp-test.js 3 5 20 1` (a host and 3 bot players in 4 tabs play a whole game, including a drop-out, a skip, a player leaving and a save/load).
