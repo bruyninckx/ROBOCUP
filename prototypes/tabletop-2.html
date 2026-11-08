@@ -567,7 +567,59 @@ html, body {
   const pick = a => a[Math.floor(rnd() * a.length)];
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const clone = o => JSON.parse(JSON.stringify(o));
-  let WIN_FAME = 12, HOST_FAME = 1;   // pacing knobs (ROBOCUS_DEBUG.tune)
+  /* ---------- BAL: the balance settings in one place (8 Nov, balance overhaul phase 1) ----------
+   * Defaults are the rules as they stand (Kev, 8 Nov: start fame 0). The game reads these numbers at the moment it uses them.
+   * Change them before a game starts: ?bal=<url-encoded JSON> (deep-merged into BAL; arrays are replaced), or
+   * ROBOCUS_DEBUG.bal({...}) (merges, then deals a fresh game with the same seed). Every key: docs/robocus-2.0-sim.md. */
+  const BAL_DEFAULT = {
+    startFame: 0, winFame: 12,
+    fameFloor: 1,                 // fame never drops below this by losing it (or below the start fame, if that is lower)
+    startCredits: 8,
+    startCrew: { mechanic: 3, chief: 1 }, sovereignMechanics: 4,
+    crewDeck: ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'],
+    lots: {                       // the Market lot deck (4 lots a round stays fixed)
+      robot: 4, crew: 4,          // New Robot / New Crew lots
+      partCopies: {},             // copies per part id (src2/lineup.js PARTS key, e.g. { shield: 2 }); default: its own copies
+      kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
+    },
+    robotLevels: {                // which level a New Robot lot deals, by round: [from round, { level: weight }]
+      scheme: 'waves', rounds: 5, // rounds 1..rounds always offer a robot lot
+      schemes: {
+        waves:   [[1, { 1: 1 }], [3, { 2: 1 }], [5, { 3: 1 }]],
+        waves2:  [[1, { 1: 1 }], [3, { 2: 1 }], [5, { 1: 1, 2: 1, 3: 2 }]],
+        gradual: [[1, { 1: 1 }], [2, { 1: 2, 2: 1 }], [3, { 1: 1, 2: 2 }], [4, { 2: 2, 3: 1 }], [5, { 2: 1, 3: 2 }], [6, { 3: 1 }]],
+        flat:    [[1, { 1: 1, 2: 1, 3: 1 }]],
+      },
+    },
+    repair: {
+      credits: 2,                 // Cr per action once the free and crew actions are used up
+      crewActs: { default: 1 },   // repair actions per crew member, per kind (e.g. { default: 1, chief: 2 })
+      engineersOnly: false,       // switch: only the engineer kinds below give repair actions
+      engineers: ['mechanic', 'chief', 'repairtech'],
+      actsDamaged: 1, actsBroken: 1,
+      brokenTwo: false,           // switch: a broken zone costs 2 actions (same as actsBroken: 2)
+      bodyHeal: 0.5,              // body parts heal back to this every Upkeep for free
+      freeLoser: 1, freeLoserVulture: 2, freeAegis: 1,
+    },
+    mechanicCr: 1,                // credits each Mechanic earns in Upkeep
+    fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2 },
+    cards: { upDmg: 1.2, upHp: 1.2, lens: 0.85, sugar: 0.6, ocAfter: 0.4, boltsLid: 0.3 },   // robot-stat Intrigue cards
+    live: {},                     // live card strengths: filled from DamageLab.LIVE_K below
+    copies: {},                   // Intrigue / Auction card copies by card name, e.g. { 'Smear Campaign': 2 }
+  };
+  try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
+  function balMerge(a, b) {
+    for (const k of Object.keys(b || {})) {
+      const v = b[k];
+      if (v && typeof v === 'object' && !Array.isArray(v) && a[k] && typeof a[k] === 'object' && !Array.isArray(a[k])) balMerge(a[k], v);
+      else a[k] = clone(v);
+    }
+    return a;
+  }
+  const BAL = clone(BAL_DEFAULT);
+  let BAL_URL = null;
+  try { const q = new URLSearchParams(location.search).get('bal'); if (q) { BAL_URL = JSON.parse(q); balMerge(BAL, BAL_URL); } } catch (e) { console.warn('ROBOCUS: bad ?bal= JSON', e); }
+  let WIN_FAME = BAL.winFame, HOST_FAME = BAL.fame.host;   // pacing knobs (ROBOCUS_DEBUG.tune, BAL)
   /* AI versions (Kev, 7 Nov): AIV[team] = 1 (the AI as it was) or 2 (better decisions, driven by the numbers in AIP[team]).
    * Real games use AI_DEFAULT; the benchmark (tools/ai-bench.js) mixes versions and parameter sets to measure them. */
   // tuned by self-play 7 Nov (docs/ai-v2.md): hosting is worth more (3 → 6 Cr per host fame), parts less (partK 1 → 0.5)
@@ -595,7 +647,7 @@ html, body {
     vulture:   { name: 'Vulture Salvage',     tag: 'Scrap Bounty',      text: '+2 Cr whenever a bot is scrapped; 2 free repair actions after a loss (not 1).' },
   };
   const SPONSOR_KEYS = Object.keys(SPONSORS);
-  const favWins = t => t.sponsor === 'apex' ? 2 : 3;
+  const favWins = t => t.sponsor === 'apex' ? BAL.fame.favTokensApex : BAL.fame.favTokens;
   const maxBetOf = t => t.sponsor === 'lucky' ? 5 : 3;
   // Kev, 7 Nov (sponsor check: Lucky Seven won 11%): its winning bets pay like the next band down (Even pays like Underdog)
   const payFor = (t, F, sd) => { if (!F || !F.pay) return 1; if (!t || t.sponsor !== 'lucky' || !F.bands || !F.bands[sd]) return F.pay[sd]; const k = BANDS.indexOf(F.bands[sd]); return k >= 0 ? BANDS[Math.min(BANDS.length - 1, k + 1)].pay : F.pay[sd]; };
@@ -649,9 +701,18 @@ html, body {
     const target = live ? LIVE_TARGET[live] : ANY_T.includes(name) ? 'any' : RIVAL_T.includes(name) ? 'rival' : NONE_T.includes(name) ? 'none' : 'self';
     CARDS[id] = { id, name, fam, t, gate, cash: +cash || 0, text, phase, step: ARENA_STEP[name] || null, target, icon: live ? LIVE_ICON[live] : FAM_ICON[fam] || '🃏',
       need: typeof gate === 'number' ? gate : 0, harmful: HARMFUL_FAMS.has(fam) || name === 'Smash and Grab' };
-    if (AUCTION_NAMES.has(name)) { CARDS[id].auction = true; CARDS[id].need = 0; for (let k = 0; k < copies; k++) AUCTION_TEMPLATE.push(id); continue; }   // paid for at auction: no fame gate
-    for (let k = 0; k < copies; k++) DECK_TEMPLATE.push(id);
+    CARDS[id].copies = +copies || 0;
+    if (AUCTION_NAMES.has(name)) { CARDS[id].auction = true; CARDS[id].need = 0; }   // paid for at auction: no fame gate
   }
+  // the Intrigue and Auction decks, in IV_DATA order (BAL.copies overrides a card's copies by name)
+  function buildDecks() {
+    DECK_TEMPLATE.length = 0; AUCTION_TEMPLATE.length = 0;
+    for (const id of Object.keys(CARDS)) {
+      const c = CARDS[id], n = BAL.copies[c.name] != null ? Math.max(0, Math.round(+BAL.copies[c.name] || 0)) : c.copies;
+      for (let k = 0; k < n; k++) (c.auction ? AUCTION_TEMPLATE : DECK_TEMPLATE).push(id);
+    }
+  }
+  buildDecks();
 
   const LOTS = {
     engine:    { name: 'Tuned Engine',    icon: '🚀', text: '+1 Speed level',       stat: 'speed' },
@@ -709,7 +770,9 @@ html, body {
     const P = window.Lineup.PARTS[k];
     LOTS['p_' + k] = { name: P.name, icon: PART_ICON[P.kind] || '🔩', text: P.kind === 'stat' ? P.d.replace(/\.$/, '') : PART_KIND[P.kind], part: k, kind: P.kind, legend: P.kind === 'legendary', desc: P.d };
   }
-  const lotDeck = () => shuffle(Object.keys(window.Lineup.PARTS).filter(k => window.Lineup.PARTS[k].kind !== 'legendary').flatMap(k => Array(window.Lineup.PARTS[k].copies).fill('p_' + k)).concat(['robot', 'robot', 'robot', 'robot', 'crew', 'crew', 'crew', 'crew']));
+  // copies of a part in the lot deck: BAL.lots.partCopies[id], else BAL.lots.kindCopies[kind], else its own copies
+  const partCopies = k => { const P = window.Lineup.PARTS[k], L = BAL.lots; const n = L.partCopies[k] != null ? L.partCopies[k] : L.kindCopies[P.kind] != null ? L.kindCopies[P.kind] : P.copies; return Math.max(0, Math.round(+n || 0)); };
+  const lotDeck = () => shuffle(Object.keys(window.Lineup.PARTS).filter(k => window.Lineup.PARTS[k].kind !== 'legendary').flatMap(k => Array(partCopies(k)).fill('p_' + k)).concat(Array(Math.max(0, BAL.lots.robot | 0)).fill('robot'), Array(Math.max(0, BAL.lots.crew | 0)).fill('crew')));
   /* CREW CARDS (Kev, 6 Nov; docs/upgrade-cards.md): every crew member is a named card. t.crew = [{ uid, kind }].
    * t.mechs / t.engPool are counts of Mechanic / Chief Engineer cards (getters + setters, so older code keeps working).
    * Exhausting crew stays a count (t.exMechs = exhausted crew this round). */
@@ -723,7 +786,7 @@ html, body {
     secchief:   { name: 'Security Chief', icon: '👮', value: 1, short: 'Security Bots block on 3+', text: 'Your Security Bots block on 3–6 instead of 4–6.' },
     repairtech: { name: 'Repair Tech',    icon: '🛠️', value: 2, short: '1 repair per Upkeep', text: '1 repair action every Upkeep.' },
   };
-  const CREW_DECK = ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'];
+  const CREW_DECK = () => BAL.crewDeck.filter(k => CREW[k]);   // BAL.crewDeck
   LOTS.crew = { name: 'New Crew', icon: '👥', text: 'A crew card', crewLot: true };
   /* 2.0 (8 Nov): no Scrap Crate items. The losing team gets one free repair action next Upkeep (Vulture Salvage: 2). */
   let crewSeq = 0, crewLotSeq = 0;
@@ -771,7 +834,7 @@ html, body {
   const exCrew = t => Math.min(t.crew.length, t.exMechs || 0);
   const secTxt = t => '🤖' + secReady(t) + ((t.exSec || 0) > 0 ? '/' + (t.secBots || 0) + ' 😴' : '');
   const EXH_HELP = '<b>😴 Exhausted</b>: used up this round by a card (Crunch Week, Press Tour, Team-Building Day, Coolant Leak, Rogue Firmware…), by fighting, or (crew) by repairing. Exhausted robots can\'t fight; exhausted crew don\'t count for cards that need ready crew (and Mechanics still earn); exhausted Security Bots can\'t roll. Everything is ready again in the next Upkeep (Rogue Firmware: the robot sits out one more fight).';
-  const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>Repairs: every crew member gives 1 repair action. A crew member who repairs is exhausted for the round.';
+  const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>' + repairRulesTxt();
   function crewLot(k) {
     const id = 'crew:' + k + ':' + (++crewLotSeq);
     LOTS[id] = { name: CREW[k].name, icon: CREW[k].icon, text: CREW[k].short, crew: k, desc: CREW[k].text };
@@ -1041,12 +1104,13 @@ html, body {
   // the spec it fights with: Intrigue cards on it (face-down cards, EMP the Garage) change it for this fight only
   function fightSpec(r, ti) {
     const T = G.teams[ti], sp = spec2(r, T), tm = r.tamper || {};
-    if (tm.up) { sp.dmgK *= 1.2; sp.hpK *= 1.2; }        // Secret Upgrade
-    if (tm.lens) sp.dmgK *= 0.85;                        // Smudged Lens
+    const BC = BAL.cards;
+    if (tm.up) { sp.dmgK *= BC.upDmg; sp.hpK *= BC.upHp; }   // Secret Upgrade
+    if (tm.lens) sp.dmgK *= BC.lens;                     // Smudged Lens
     if (tm.oc) sp.motor = 'hot';                         // Overclock
     if (tm.sugar) {                                      // Sugar in the Tank: drive motors start at 60%
       sp.wear = sp.wear || emptyWear(); sp.wear.ints = sp.wear.ints || {};
-      for (const lb of baseInfo(r).motors) sp.wear.ints[lb] = Math.min(sp.wear.ints[lb] != null ? sp.wear.ints[lb] : 1, 0.6);
+      for (const lb of baseInfo(r).motors) sp.wear.ints[lb] = Math.min(sp.wear.ints[lb] != null ? sp.wear.ints[lb] : 1, BC.sugar);
     }
     if (T.tamper && T.tamper.noMods) { sp.mod = 'none'; sp.helpers = []; if (sp.wear) sp.wear.drones = []; }   // EMP the Garage
     return sp;
@@ -1080,15 +1144,21 @@ html, body {
   /* ---------- repairs (Kev, 8 Nov): crew repair actions in Upkeep ----------
    * Every crew member gives 1 action (Kev, 8 Nov: crew scarcer, so repairs are a choice). Using it exhausts it
    * for the round (t.exMechs, 1.0's crew exhaustion), so it no longer counts as ready crew for Intrigue cards.
-   * No crew left: an action costs REPAIR_CR credits. Free actions: Aegis Heavy, and the loser of last round's fight. */
-  const REPAIR_CR = 2;
-  const CREW_ACTS = () => 1;   // every crew member: 1 repair action
+   * No crew left: an action costs BAL.repair.credits. Free actions: Aegis Heavy, and the loser of last round's fight. */
+  // BAL.repair: credits per action, actions per crew kind (engineersOnly: only BAL.repair.engineers repair), actions per zone
+  const RB = () => BAL.repair;
+  const repairCr = () => RB().credits;
+  const CREW_ACTS = k => { const R = RB(); if (R.engineersOnly && !R.engineers.includes(k)) return 0; const n = R.crewActs[k] != null ? R.crewActs[k] : R.crewActs.default != null ? R.crewActs.default : 1; return Math.max(0, n | 0); };
+  const zoneActs = q => q && q.broken ? (RB().brokenTwo ? Math.max(2, RB().actsBroken) : RB().actsBroken) : RB().actsDamaged;   // actions to fix a zone (zonesOf(r)[key])
+  const repairCost = (r, zk) => Math.max(1, zoneActs(zonesOf(r)[zk]) | 0);
   const repState = t => t.rep || (t.rep = { used: {}, free: 0 });
-  const freshCrew = t => { const R = repState(t); return t.crew.filter(c => R.used[c.uid] == null).sort((a, b) => CREW_ACTS(b.kind) - CREW_ACTS(a.kind)).slice(0, readyCrew(t)); };
-  function repairActs(t) {   // actions left without paying credits
+  // ready crew who can still start repairing (crew exhausted by a card count as the ones that don't repair)
+  const freshCrew = t => { const R = repState(t); return t.crew.filter(c => R.used[c.uid] == null).sort((a, b) => CREW_ACTS(b.kind) - CREW_ACTS(a.kind)).slice(0, readyCrew(t)).filter(c => CREW_ACTS(c.kind) > 0); };
+  function repairActs(t, keepCrew = 0) {   // actions left without paying credits (keepCrew: ready crew to keep out of the workshop)
     const R = repState(t); let n = R.free || 0;
     for (const c of t.crew) if (R.used[c.uid] != null) n += Math.max(0, CREW_ACTS(c.kind) - R.used[c.uid]);
-    for (const c of freshCrew(t)) n += CREW_ACTS(c.kind);
+    const fr = freshCrew(t).slice(0, Math.max(0, readyCrew(t) - keepCrew));
+    for (const c of fr) n += CREW_ACTS(c.kind);
     return n;
   }
   function spendRepair(t, keepCrew = 0, credits = true) {   // one action: a free one, a crew member already at work, a fresh one, else credits
@@ -1097,12 +1167,33 @@ html, body {
     const busy = t.crew.find(c => R.used[c.uid] != null && R.used[c.uid] < CREW_ACTS(c.kind));
     if (busy) { R.used[busy.uid]++; return CREW[busy.kind].name; }
     if (readyCrew(t) > keepCrew) { const c = freshCrew(t)[0]; if (c) { R.used[c.uid] = 1; t.exMechs = (t.exMechs || 0) + 1; return CREW[c.kind].name; } }
-    if (credits && t.credits >= REPAIR_CR) { t.credits -= REPAIR_CR; return REPAIR_CR + ' Cr'; }
+    if (credits && t.credits >= repairCr()) { t.credits -= repairCr(); return repairCr() + ' Cr'; }
     return null;
   }
-  const repairTxt = t => { const n = repairActs(t); return n + ' repair action' + (n === 1 ? '' : 's') + ' left' + (n ? '' : ' (then ' + REPAIR_CR + ' Cr each)'); };
+  // can team t pay n actions (credits: may it pay credits for the rest; keepCrew as above)?
+  const canPayActs = (t, n, keepCrew = 0, credits = true) => { const a = repairActs(t, keepCrew); return a >= n || (credits && Math.floor(t.credits / repairCr()) >= n - a); };
+  // pay n actions, or nothing when they can't all be paid. Returns how they were paid ('Mechanic', '2 Cr', 'free action + Chief Engineer'…)
+  function spendActs(t, n, keepCrew = 0, credits = true) {
+    if (!canPayActs(t, n, keepCrew, credits)) return null;
+    const how = [];
+    for (let k = 0; k < n; k++) { const h = spendRepair(t, keepCrew, credits); if (!h) break; how.push(h); }
+    const cr = how.filter(h => /Cr$/.test(h)).length, rest = [...new Set(how.filter(h => !/Cr$/.test(h)))];
+    return rest.concat(cr ? [cr * repairCr() + ' Cr'] : []).join(' + ') || null;
+  }
+  const actsWord = n => n + ' repair action' + (n === 1 ? '' : 's');
+  const repairTxt = t => { const n = repairActs(t); return actsWord(n) + ' left' + (n ? '' : ' (then ' + repairCr() + ' Cr each)'); };
+  // the repair rules in one line, for help texts
+  const repairRulesTxt = () => {
+    const R = RB(), who = R.engineersOnly ? 'only ' + R.engineers.map(k => CREW[k] ? CREW[k].name : k).join(', ') + ' repair' : 'every crew member repairs';
+    const kinds = Object.keys(CREW).filter(k => CREW_ACTS(k) > 0), acts = [...new Set(kinds.map(CREW_ACTS))];
+    const per = acts.length === 1 ? ' (' + actsWord(acts[0]) + ' each)' : ' (' + kinds.map(k => CREW[k].name + ' ' + CREW_ACTS(k)).join(', ') + ')';
+    const z = zoneActs({ broken: true }), d = zoneActs({ damaged: true });
+    return 'Repair actions: ' + who + per + '; a crew member who repairs is exhausted this round. ' +
+      (z !== d || d !== 1 ? 'A damaged zone costs ' + actsWord(d) + ', a broken one ' + actsWord(z) + '. ' : '') +
+      'Out of actions: ' + repairCr() + ' Cr per action. Free: Aegis Heavy (' + R.freeAegis + ' per Upkeep) and losing a fight (' + R.freeLoser + ', Vulture Salvage ' + R.freeLoserVulture + ').';
+  };
   function doRepair(r, zk) { if (!r.wear) return; const sp = spec2(r); R2.repairZone(sp, zk); r.wear = sp.wear; }   // spec2 hands a copy: r.wear gets a new object
-  function healBody(r) { if (!r.wear) return; const sp = spec2(r); R2.bodyHeal(sp); r.wear = sp.wear; }
+  function healBody(r) { if (!r.wear) return; const sp = spec2(r); R2.bodyHeal(sp, RB().bodyHeal); r.wear = sp.wear; }
   // Intrigue cards that count ready crew: an AI team holding one keeps a crew member out of the workshop
   // (how many ready crew each needs: Team-Building Day 2, Press Tour 3 minus its ready Security Bots, the rest 1)
   const CREW_CARDS = new Set(['Overtime Shift', 'Consulting Gig', 'Headhunter Fee', 'Inside Leak', 'Fall Guy', 'Team-Building Day', 'Press Tour', 'Crunch Week', 'Museum Donation']);
@@ -1113,12 +1204,17 @@ html, body {
     const order = [['weapon', true], ['drive', true], ['weapon', false], ['drive', false], ['body', false]];
     const done = [];
     for (let guard = 0; guard < 12; guard++) {
-      let job = null;
-      for (const [zk, brokenOnly] of order) { for (const r of likely) { const q = zonesOf(r)[zk]; if (q.damaged && (!brokenOnly || q.broken)) { job = { r, zk, broken: q.broken }; break; } } if (job) break; }
+      // jobs in order; the first one it can pay for (a broken zone may cost more actions than are left: then the next job)
+      const jobs = [];
+      for (const [zk, brokenOnly] of order) for (const r of likely) { const q = zonesOf(r)[zk]; if (q.damaged && (!brokenOnly || q.broken) && !jobs.some(j => j.r === r && j.zk === zk)) jobs.push({ r, zk, broken: q.broken }); }
+      let how = null, job = null;
+      for (const j of jobs) {
+        const n = repairCost(j.r, j.zk), short = Math.max(0, n - repairActs(t, keep));
+        const pay = j.broken && j.zk !== 'body' && t.credits >= short * repairCr() + 3;   // credits only for a broken weapon or drive, keeping 3 Cr
+        how = spendActs(t, n, keep, pay);
+        if (how) { job = j; break; }
+      }
       if (!job) break;
-      const pay = job.broken && job.zk !== 'body' && t.credits >= REPAIR_CR + 3;   // credits only for a broken weapon or drive, keeping 3 Cr
-      const how = spendRepair(t, keep, pay);
-      if (!how) break;
       doRepair(job.r, job.zk); logRepair(t, job.r, job.zk, how); done.push(esc(job.r.name) + ' ' + ZONE[job.zk].icon);
     }
     if (done.length) notify('🔧 ' + nm(t) + ' repairs: ' + done.join(', ') + '.', t.col);
@@ -1254,7 +1350,8 @@ html, body {
 
   // ---- help texts ----
   const BAND_HELP = 'Bands: <b>Heavy fav</b> over 75% · <b>Favourite</b> 58–75% · <b>Even</b> 42–58% · <b>Underdog</b> 25–42% · <b>Heavy dog</b> under 25%.';
-  const ZONE_HELP = 'Damage stays after a fight. Repairs work on three zones: <b>⚙ Drive</b> (wheels, tracks, drive motors), <b>⚔ Weapon</b> (the weapon, its motor, turret or arm) and <b>⛨ Body</b> (chassis, armour, top plate, battery, radio, chip, module, drones). One repair action puts a whole zone back to new. Body parts that are still there heal back to half by themselves every Upkeep.';
+  const healWord = () => RB().bodyHeal === 0.5 ? 'half' : Math.round(RB().bodyHeal * 100) + '%';
+  const ZONE_HELP = () => 'Damage stays after a fight. Repairs work on three zones: <b>⚙ Drive</b> (wheels, tracks, drive motors), <b>⚔ Weapon</b> (the weapon, its motor, turret or arm) and <b>⛨ Body</b> (chassis, armour, top plate, battery, radio, chip, module, drones). ' + (zoneActs({ broken: true }) === 1 && zoneActs({ damaged: true }) === 1 ? 'One repair action puts a whole zone back to new.' : 'Repairing puts a whole zone back to new: ' + actsWord(zoneActs({ damaged: true })) + ' for a damaged zone, ' + actsWord(zoneActs({ broken: true })) + ' for a broken one.') + ' Body parts that are still there heal back to ' + healWord() + ' by themselves every Upkeep.';
   const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★). A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
   function helpBand(ti, r, p) {
     return ['🎩 Bookie vs the field: ' + bandOf(p).name + ' (' + pctTxt(p) + ')',
@@ -1282,15 +1379,15 @@ html, body {
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
     return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + Math.round(q.f * 100) + '%)' : 'fine'),
-      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (q.damaged ? '<br>One repair action in Upkeep puts the whole zone back to new.' : '') + '<br>' + ZONE_HELP];
+      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
   }
   function helpName(t, r) {
     const bits = [];
     if (r.wins) bits.push('<b>🎖</b> = Fan tokens, one per win (each: +2 Cr appearance money).');
-    if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: +1 fame while it stays on your team, and 6 Cr appearance money.');
+    if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: +' + BAL.fame.fanFav + ' fame while it stays on your team, and 6 Cr appearance money.');
     if (r.exhausted) bits.push('<b>😴</b> exhausted: can\'t fight this round.');
     if (r.faceDown && r.faceDown.length) bits.push('<b>🂠×' + r.faceDown.length + '</b> face-down cards on it: hidden until its next fight.');
-    return [esc(r.name) + ' (' + starsOf(r.level) + ')', (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite: +1 fame while it stays on your team.<br>' + LEVEL_HELP];
+    return [esc(r.name) + ' (' + starsOf(r.level) + ')', (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite: +' + BAL.fame.fanFav + ' fame while it stays on your team.<br>' + LEVEL_HELP];
   }
   const PHASE_HELP = {
     setup: 'Pick a sponsor and draft your level-0 starter robot.',
@@ -1386,7 +1483,7 @@ html, body {
         pb.innerHTML = '<span>🏁 <b>Sponsor signed.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '…</span>';
       } else if (G.setupStep === 'sponsor') {
         pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; click the one you keep (AI teams are dealt 2 of the rest and keep 1).</span>' +
-          (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [7, 4, 2, 1].map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === 4 ? ' (rulebook)' : '') + '</option>').join('') + '</select></label>') +
+          (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [...new Set([7, 4, 2, 1, 0, BAL_DEFAULT.startFame, G.startFame])].sort((a, b) => b - a).map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === BAL_DEFAULT.startFame ? ' (default)' : '') + '</option>').join('') + '</select></label>') +
           '<button class="act secondary" id="pAct1">Random Sponsor</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
         if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
         $('#pAct1').onclick = () => act('pickSponsor', null);
@@ -1406,7 +1503,7 @@ html, body {
     if (G.phase === 'upkeep') {
       if (iWait('upkeep')) pb.innerHTML = '<span>🔧 <b>Upkeep:</b> you are done. ' + waitTxt('upkeep') + '</span>';
       else {
-        pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + REPAIR_CR + ' Cr each' : '') + '. Crew who repair are exhausted this round.</span>' +
+        pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.</span>' +
           '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
         $('#pAct1').onclick = () => act('upkeepDone');
       }
@@ -1697,7 +1794,7 @@ html, body {
 
   /* ---------- Game Flow & Phases ---------- */
   function newGame() {
-    const G0fame = G && G.startFame || 4;
+    const G0fame = G && G.startFame != null ? G.startFame : BAL.startFame;
     ptNew();
     { const t = document.getElementById('ticker'); if (t) t.innerHTML = ''; LOGC.key = null; LOGC.group = null; logBase += LOGOPS.length; LOGOPS.length = 0; }
     G = {
@@ -1706,18 +1803,18 @@ html, body {
       draftOffer: [],
       teams: TEAMS.map((t, i) => ({
         ...t, i, sponsor: null,
-        fame: G0fame, credits: 8,
+        fame: G0fame, credits: BAL.startCredits,
         crew: [],   // Kev, 6 Nov: 3 Mechanics + 1 Chief Engineer; 2.0: they are the repair crew; see crewProps
         hand: [], robots: [], tamper: {}, schemeLog: [], secBots: 1, exMechs: 0, exSec: 0, shill: 0
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], auctionDeck: shuffle(AUCTION_TEMPLATE.slice()), auctionDiscard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: lotDeck(),
-      robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)) }, crewDeck: shuffle(CREW_DECK.slice()),
+      robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)) }, crewDeck: shuffle(CREW_DECK()),
       legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null,
       fight: null, over: false, crateChoices: null,
       sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
     };
-    G.teams.forEach(t => { crewProps(t); fameProps(t); t.mechs = 3; t.engPool = 1; });
+    G.teams.forEach(t => { crewProps(t); fameProps(t); for (const k of Object.keys(BAL.startCrew)) if (CREW[k]) setCrewCount(t, k, BAL.startCrew[k]); });
     G.gid = GAME_SEED.toString(36) + '-' + (++gameSeq);
     if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); mpDealSponsors(); }   // a person's team carries their name
     setCameraGoal('compound');
@@ -1790,7 +1887,7 @@ html, body {
     G.teams.forEach((t, i) => {
       if (isHuman(i)) t.sponsor = pickOf(i);
       else { const deal = shuffle(free.slice()).slice(0, 2); t.sponsor = pick(deal); free = free.filter(k => k !== t.sponsor); }   // AI: dealt 2 of the rest, keeps 1
-      t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
+      t.mechs = t.sponsor === 'sovereign' ? BAL.sovereignMechanics : (BAL.startCrew.mechanic || 0);
     });
     for (const h of humanSeats()) { const sp = SPONSORS[G.teams[h].sponsor]; say(h, `Signed with <b>${esc(sp.name)}</b> (${esc(sp.tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}starter robot!`, G.teams[h].col); }
     G.setupStep = 'draft1';
@@ -1877,8 +1974,8 @@ html, body {
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
         const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
-        const net = t.mechs - bots - drones;
-        t.ledger = { mechs: t.mechs, bots, drones, net };
+        const earn = t.mechs * BAL.mechanicCr, net = earn - bots - drones;
+        t.ledger = { mechs: earn, bots, drones, net };
         if (t.credits + net < 0) { t.debt = -(t.credits + net); t.credits = 0; } else { t.debt = 0; t.credits += net; }
       }
       if (G.round > 1 && (CATCHUP.purse || CATCHUP.cards)) {   // catch-up for trailing teams (3+ fame behind the leader)
@@ -1891,14 +1988,14 @@ html, body {
       }
       // 2.0 repairs: body parts heal back to half for free; crew is ready; free actions (Aegis Heavy, last round's loser)
       for (const r of t.robots) healBody(r);
-      t.rep = { used: {}, free: (t.freeNext || 0) + (t.sponsor === 'aegis' ? 1 : 0) }; t.freeNext = 0;
+      t.rep = { used: {}, free: (t.freeNext || 0) + (t.sponsor === 'aegis' ? RB().freeAegis : 0) }; t.freeNext = 0;
       t.hand.push(draw1(), draw1(), draw1());   // rulebook: draw 3 (hand limit is checked at the end of your Intrigue turn)
       if (t.sponsor === 'blackwire') t.hand.push(draw1());
       for (const r of t.robots) if (quirkOf(r) === 'Cunning' && G.round > 1 && (r.lastFight || 0) < G.round - 1) { t.hand.push(draw1()); notify('✦ Cunning: ' + esc(r.name) + ' sat out last round, so ' + nm(t) + ' draws 1 extra Intrigue card.', t.col); }
 
       if (!isHuman(t.i)) aiRepairs(t);
     }
-    notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics earned credits, body parts healed to half. Repair the zones that matter (⚙ Drive, ⚔ Weapon, ⛨ Body).', '#111');
+    notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics earned credits, body parts healed to ' + healWord() + '. Repair the zones that matter (⚙ Drive, ⚔ Weapon, ⛨ Body).', '#111');
     for (const h of humanSeats()) { const T = G.teams[h], R = repState(T); if (R.free) say(h, '🔧 You have ' + R.free + ' free repair action' + (R.free > 1 ? 's' : '') + ' this Upkeep' + (T.sponsor === 'aegis' ? ' (Aegis Heavy' + (R.free > 1 ? ' and last round\'s loss' : '') + ')' : ' (your robot lost last round)') + '.', T.col); }
     for (const h of humanSeats()) { const L0 = G.teams[h].ledger; if (L0) say(h, '🧾 Your ledger: +' + L0.mechs + ' Mechanics, −' + L0.bots + ' robot upkeep' + (L0.drones ? ', −' + L0.drones + ' drone upkeep' : '') + ' = ' + (L0.net >= 0 ? '+' : '') + L0.net + ' Cr.', G.teams[h].col); }
     updateHud();
@@ -1912,8 +2009,8 @@ html, body {
     const t = G.teams[S], r = myBot(S, rid);
     if (!r || G.phase !== 'upkeep' || !r.wear || !ZONE[zk]) return;
     if (!zonesOf(r)[zk].damaged) return;
-    const how = spendRepair(t);
-    if (!how) { say(S, '🔧 No repair actions left and less than ' + REPAIR_CR + ' Cr.', '#b45309'); return; }
+    const n = repairCost(r, zk), how = spendActs(t, n);
+    if (!how) { say(S, '🔧 ' + (n > 1 ? 'This zone needs ' + actsWord(n) + ': not enough actions or credits (' + repairCr() + ' Cr each).' : 'No repair actions left and less than ' + repairCr() + ' Cr.'), '#b45309'); return; }
     doRepair(r, zk); logRepair(t, r, zk, how);
     notify('🔧 ' + nm(t) + ' repairs <b>' + esc(r.name) + '</b>\'s ' + ZONE[zk].icon + ' ' + ZONE[zk].label + ' (' + esc(how) + ').', t.col);
   };
@@ -1976,7 +2073,9 @@ html, body {
   const lowestOther = excl => G.teams.filter(t => !excl.includes(t.i)).sort((a, b) => a.fame - b.fame || a.i - b.i)[0];
   // card fame stops at the win target, but a team already past it (a Grand Final win: double fame) keeps what it has:
   // a gain never lowers fame (it used to clamp 13 + 1 down to 12)
-  function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.max(1, old + d); return t.fame - old; }
+  // losing fame stops at BAL.fameFloor (1), or at the start fame if that is lower (a 0-fame start: 0); never raises fame
+  const fameFloor = () => Math.min(BAL.fameFloor, G && G.startFame != null ? G.startFame : BAL.startFame);
+  function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.min(old, Math.max(fameFloor(), old + d)); return t.fame - old; }
   function payCr(t, n) { const p = Math.min(t.credits, n); t.credits -= p; return p; }
   function needOf(F, c) { return Math.max(0, c.need - (F.sponsor === 'blackwire' && c.phase === 'intrigue' ? 2 : 0)); }
   function schemeNeed(t, id) { return needOf(t, CARDS[id]); }
@@ -1997,8 +2096,9 @@ html, body {
     T.robots.splice(k, 1);
     if (to) to.robots.push(r);
     tlog('scrap', { team: T.i, robot: r.name, reason, to: to ? to.i : null, wins: r.wins });
-    if (r.wins >= favWins(T) && T.fame > 0) { G.fameSrc = 'fav'; T.fame = Math.max(0, T.fame - 1); G.fameSrc = null; notify('🎖 ' + nm(T) + ' loses its Fan Favourite ' + esc(r.name) + ': −1 fame.', T.col); }
-    if (to && r.wins >= favWins(to)) { G.fameSrc = 'fav'; to.fame += 1; G.fameSrc = null; notify('🎖 ' + esc(r.name) + ' is a Fan Favourite for ' + nm(to) + ' now: +1 fame.', to.col); }
+    const ff = BAL.fame.fanFav;
+    if (ff && r.wins >= favWins(T) && T.fame > 0) { G.fameSrc = 'fav'; T.fame = Math.max(0, T.fame - ff); G.fameSrc = null; notify('🎖 ' + nm(T) + ' loses its Fan Favourite ' + esc(r.name) + ': −' + ff + ' fame.', T.col); }
+    if (ff && to && r.wins >= favWins(to)) { G.fameSrc = 'fav'; to.fame += ff; G.fameSrc = null; notify('🎖 ' + esc(r.name) + ' is a Fan Favourite for ' + nm(to) + ' now: +' + ff + ' fame.', to.col); }
     return true;
   }
   // a repair for the sim log: who paid for it (crew, a free action or credits)
@@ -2385,6 +2485,7 @@ html, body {
   }
 
   /* ---------- backing: other teams add their fame for one card ---------- */
+  const backFame = o => o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // what a backer adds to a gate
   function aiWillBack(o, F, T, c, off) {
     const lead = leaderOf();
     if (T && T.i === o.i) return false;
@@ -2398,7 +2499,7 @@ html, body {
     const seat = F.hand.includes('board_seat') && F.fame >= 5;
     const html = 'You need <b>' + (needOf(F, c) - F.fame) + '</b> more fame for ' + cardRef(c.id) + (T && T !== F ? ' (target ' + nm(T) + ')' : '') +
       '. Tick the teams to ask, one at a time. For each you can put credits and Stash parts on the table. Backers add their fame for this one card, and you don\'t have to tell them what it is.' +
-      others.map(o => '<label><input type="checkbox" data-o="' + o.i + '" checked> ' + nm(o) + ' (' + o.fame + ' fame)</label>').join('') +
+      others.map(o => '<label><input type="checkbox" data-o="' + o.i + '"' + (backFame(o) > 0 ? ' checked' : '') + '> ' + nm(o) + ' (' + o.fame + ' fame' + (backFame(o) > 0 ? '' : ': adds nothing') + ')</label>').join('') +
       (seat ? '<label><input type="checkbox" id="ivSeat"> Use <b>Board Seat</b>: the first ticked team must back you</label>' : '');
     const res = await askSeat(S, '🤝 Ask for backing', html, [
       { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
@@ -2437,6 +2538,7 @@ html, body {
     let got = 0, promised = 0; const owed = [], backers = [];
     for (const o of G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i)).sort((a, b) => b.fame - a.fame)) {
       if (F.fame + got >= needOf(F, c)) break;
+      if (backFame(o) <= 0) continue;   // a 0-fame team adds nothing (0-fame start): don't ask it
       const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - promised - 3)) + (stashOf(F).length ? 1 : 0));
       B.items = B.items.filter(id => !owed.some(([, b]) => b.items.includes(id)));   // a Stash part can only be promised once
       let yes;
@@ -2669,7 +2771,7 @@ html, body {
       case 'Museum Donation': { const c = loseCrew(F); addFame(F, 1); say('📣 ' + nm(F) + ' donates its ' + (c ? crewRef(c.kind) : 'crew') + ' to the museum: +1 fame.'); break; }
       case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': addFame(T, 1); say('📣 ' + esc(n) + ': ' + nm(T) + ' +1 fame.'); break;
       case 'Co-Branding Deal': { const o = lowestOther([T.i]); addFame(T, 1); addFame(o, 1); say('📣 Co-Branding: ' + nm(T) + ' and ' + nm(o) + ' +1 fame.'); break; }
-      case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, 1); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
+      case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, BAL.fame.fanFav); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
       case 'Bribe Scandal': T.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Bribe Scandal: ' + nm(T) + ' −1 fame.'); break;
       case 'Inside Leak': loseCrew(F, 'the leak'); await loseFame(T, 1); say('🗞️ Inside Leak: ' + nm(T) + ' −1 fame.'); break;
       case 'Paparazzi': { const o = lowestOther([F.i, T.i]); o.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Paparazzi: ' + nm(T) + ' −1 fame.'); break; }
@@ -2689,7 +2791,7 @@ html, body {
         (r.faceDown = r.faceDown || []).push({ from: F.i, id });
         notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
       }
-      case 'Loose Bolts': { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, 0.3) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
+      case 'Loose Bolts': { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
       case 'Rogue Firmware': { const r = bestReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
       case 'Tax Audit': { const p = payCr(T, 5); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
@@ -2799,7 +2901,7 @@ html, body {
   const CARD_SWING = { up: 0.218, lens: -0.082, oc: 0, ocAfter: -0.109, sugar: 0, bolts: -0.009, boltsHeal: -0.005, firmChassis: -0.032, emp: -0.14 };
   const P_FIGHT_ROUND = 0.5;   // chance a team's best ready robot fights this round (a duel: 2 of 4 teams)
   // a fight is worth: 1 fame to its winner (to a rival: weighted by its threat) + about 3 Cr (the loser may be scrapped, bets)
-  const fightStake = (F, T, fc) => fc * (T === F ? 1 : aiThreat(F, T)) + 3;
+  const fightStake = (F, T, fc) => fc * BAL.fame.win * (T === F ? 1 : aiThreat(F, T)) + 3;
   const isHot = r => DL.normSpec(LU.build(r.name, partsOf(r))).motor === 'hot';
   // credits a robot card is worth: |swing| x chance its robot fights x the fight's stake. The card lands on bestReady (as resolveScheme0).
   function aiRobotCardValue(F, c, T, fc) {
@@ -2813,7 +2915,7 @@ html, body {
       case 'Smudged Lens': return tm.lens ? 0 : -CARD_SWING.lens * pNext * stake;
       case 'Sugar in the Tank': return tm.sugar ? 0 : -CARD_SWING.sugar * pNext * stake;
       case 'Overclock': return tm.oc ? 0 : ((isHot(r) ? 0 : CARD_SWING.oc) + CARD_SWING.ocAfter * pLater) * pNext * stake;   // the drive damage after it costs more than the fight gains
-      case 'Loose Bolts': { const lid = r.wear && r.wear.lid != null ? r.wear.lid : 1; return lid <= 0.3 ? 0 : -(CARD_SWING.bolts * pNow + CARD_SWING.boltsHeal * pLater) * stake; }
+      case 'Loose Bolts': { const lid = r.wear && r.wear.lid != null ? r.wear.lid : 1; return lid <= BAL.cards.boltsLid ? 0 : -(CARD_SWING.bolts * pNow + CARD_SWING.boltsHeal * pLater) * stake; }
       case 'Rogue Firmware': return -CARD_SWING.firmChassis * pLater * stake;   // chassis only: it can't fight until after the free heal (50%)
       case 'EMP the Garage': {   // only this round's fight; worth nothing against a robot with no module or drones
         if (T.tamper && T.tamper.noMods) return 0;
@@ -2825,7 +2927,8 @@ html, body {
   }
   function aiCardValue(F, c, T) {
     const P = aiP(F), fc = P.hostFame * (F.fame >= WIN_FAME - 2 ? 1.6 : 1), n = c.name, th = aiThreat(F, T), harm = fc * th;
-    const lowO = lowestOther([F.i, T ? T.i : -1]), myFame = k => k * fc, foeFame = k => k * harm;
+    // fame a rival can actually lose: it stops at the floor (0 at a 0-fame start), so a smear on a team at the floor is worth nothing
+    const lowO = lowestOther([F.i, T ? T.i : -1]), myFame = k => k * fc, foeFame = k => (T ? Math.min(k, Math.max(0, T.fame - fameFloor())) : k) * harm;
     const winsNow = k => F.fame + k >= WIN_FAME ? 40 : 0;   // a card that wins the game is worth everything
     let v = 0;
     switch (n) {
@@ -3041,7 +3144,7 @@ html, body {
     }
     // Kev, 6 Nov: rounds 1–5 always offer at least one robot (a team that lost robots must be able to rebuild)
     // 2.0 (no free Scrapbot): also every round in which a team has no robots left
-    if ((G.round <= ROBOT_LOT_ROUNDS || G.teams.some(t => !t.robots.length)) && !G.market.some(id => LOTS[id] && LOTS[id].robot)) {
+    if ((G.round <= robotLotRounds() || G.teams.some(t => !t.robots.length)) && !G.market.some(id => LOTS[id] && LOTS[id].robot)) {
       const k = G.market.findIndex(id => !(LOTS[id] && LOTS[id].legend));
       if (k >= 0) { const old = G.market[k]; if (LOTS[old] && LOTS[old].crew) G.crewDeck.unshift(LOTS[old].crew); else G.lots.unshift(old); G.market[k] = dealRobot(); }   // the part goes to the bottom of the lot deck
     }
@@ -3259,8 +3362,17 @@ html, body {
       desc: descOf(n), value: 1 + bot.level * 2, legend: false };
     return id;
   }
-  const ROBOT_LOT_ROUNDS = 5;
-  const waveLevel = () => G.round <= 2 ? 1 : G.round <= 4 ? 2 : 3;
+  // BAL.robotLevels: the scheme's weights for this round; one level = no dice roll (the default 'waves': rounds 1-2 L1, 3-4 L2, 5+ L3)
+  const robotLotRounds = () => BAL.robotLevels.rounds;
+  function waveLevel() {
+    const RL = BAL.robotLevels, sc = RL.schemes[RL.scheme] || RL.schemes.waves;
+    let w = { 1: 1 }; for (const [from, wt] of sc) if (G.round >= from) w = wt;
+    const lv = Object.keys(w).map(Number).filter(L => L >= 1 && L <= 3 && w[L] > 0);
+    if (lv.length <= 1) return lv[0] || 1;
+    const tot = lv.reduce((a, L) => a + w[L], 0); let x = rnd() * tot;
+    for (const L of lv) { x -= w[L]; if (x < 0) return L; }
+    return lv[lv.length - 1];
+  }
   function dealRobot() {
     const inMarket = new Set((G.market || []).map(x => LOTS[x] && LOTS[x].starter).filter(Boolean));
     const owned = new Set(G.teams.flatMap(t => t.robots.map(r => r.name)));
@@ -4390,11 +4502,11 @@ html, body {
       if (!best) return;
       const w = best.w;
       if (r.tamper && r.tamper.sugar) {   // Sugar in the Tank was for this fight: keep only the damage the motors took
-        for (const lb of baseInfo(r).motors) { const was = old && old.ints && old.ints[lb] != null ? old.ints[lb] : 1, start = Math.min(was, 0.6), end = w.ints[lb] != null ? w.ints[lb] : 1, now = Math.max(0, was - Math.max(0, start - end)); if (now >= 0.999) delete w.ints[lb]; else w.ints[lb] = Math.round(now * 1000) / 1000; }
+        for (const lb of baseInfo(r).motors) { const was = old && old.ints && old.ints[lb] != null ? old.ints[lb] : 1, start = Math.min(was, BAL.cards.sugar), end = w.ints[lb] != null ? w.ints[lb] : 1, now = Math.max(0, was - Math.max(0, start - end)); if (now >= 0.999) delete w.ints[lb]; else w.ints[lb] = Math.round(now * 1000) / 1000; }
       }
       if (r.tamper && r.tamper.oc) {      // Overclock: the drive motors are left at 40% at best
-        for (const lb of baseInfo(r).motors) w.ints[lb] = Math.min(w.ints[lb] != null ? w.ints[lb] : 1, 0.4);
-        notify('🔥 Overclock wears ' + esc(r.name) + ': its drive motors are left at 40% (⚙ Drive damaged).', '#b45309');
+        for (const lb of baseInfo(r).motors) w.ints[lb] = Math.min(w.ints[lb] != null ? w.ints[lb] : 1, BAL.cards.ocAfter);
+        notify('🔥 Overclock wears ' + esc(r.name) + ': its drive motors are left at ' + Math.round(BAL.cards.ocAfter * 100) + '% (⚙ Drive damaged).', '#b45309');
       }
       r.wear = w;
       const lost = best.R.stats.lost.map(x => x.label);
@@ -4417,7 +4529,7 @@ html, body {
       updateHud();
       return;
     }
-    const famePer = F.event && F.event.kind === 'final' ? 2 : 1;
+    const famePer = BAL.fame.win * (F.event && F.event.kind === 'final' ? BAL.fame.finalMult : 1);
     const winners = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === ws);
     const losers = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] !== ws);
     const famed = new Set();
@@ -4427,7 +4539,7 @@ html, body {
       if (!famed.has(ti)) { T.fame += famePer; famed.add(ti); }   // fame once per team (a double duel or a team fight)
       G.fameSrc = 'fan';
       r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
-      if (r.wins === favWins(T)) T.fame += 1;
+      if (r.wins === favWins(T)) T.fame += BAL.fame.fanFav;
       if (quirkOf(r) === 'Hotshot') { T.credits += 1; notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
       G.fameSrc = 'quirk';
       if (quirkOf(r) === 'Showstopper' && G.host >= 0 && G.host !== ti && G.teams[G.host].fame > 0) { G.teams[G.host].fame -= 1; T.fame += 1; notify('✦ Showstopper: ' + esc(r.name) + ' steals the show: ' + nm(T) + ' takes the host\'s +1 fame from ' + nm(G.teams[G.host]) + '.', T.col); }
@@ -4543,7 +4655,8 @@ html, body {
   function nextCrate() {
     const F = G.fight;
     while (F && F.crateQueue && F.crateQueue.length) {
-      const { team } = F.crateQueue.shift(), T = G.teams[team], n = T.sponsor === 'vulture' ? 2 : 1;
+      const { team } = F.crateQueue.shift(), T = G.teams[team], n = T.sponsor === 'vulture' ? RB().freeLoserVulture : RB().freeLoser;
+      if (n <= 0) continue;
       T.freeNext = (T.freeNext || 0) + n;
       notify('🔧 ' + nm(T) + ' lost: ' + n + ' free repair action' + (n > 1 ? 's' : '') + ' next Upkeep.', T.col);
       F.crateTxt.push(T.name.split(' ')[0] + (n > 1 ? ' ×' + n : ''));
@@ -4596,6 +4709,7 @@ html, body {
   function applySnap(m) {
     const old = G, g = JSON.parse(m.g);
     SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null;
+    if (m.bal) { balMerge(BAL, m.bal); applyBal(false); }
     if (m.win) WIN_FAME = m.win; if (m.hostFame != null) HOST_FAME = m.hostFame;
     Object.assign(LOTS, m.lotsDyn || {});
     relink(g);
@@ -4608,17 +4722,55 @@ html, body {
   }
   function clientFightSync() { /* 2.0: no online play yet */ }
 
+  /* ---------- BAL: apply the settings (at load, after ROBOCUS_DEBUG.bal, on a client snapshot) ----------
+   * Decks, pacing knobs, the engine's live card numbers, and the card and crew texts that quote a number. */
+  const TXT0 = {}; for (const id in CARDS) TXT0['c:' + id] = CARDS[id].text; for (const k in CREW) TXT0['w:' + k] = [CREW[k].text, CREW[k].short];
+  const pctUp = x => Math.round((x - 1) * 100), pctDn = x => Math.round((1 - x) * 100), pctOf = x => Math.round(x * 100);
+  const numTxt = x => String(Math.round(x * 100) / 100);
+  function applyBal(rebuild = true) {
+    WIN_FAME = BAL.winFame; HOST_FAME = BAL.fame.host;
+    if (rebuild) buildDecks();
+    if (DL.LIVE_K) Object.assign(DL.LIVE_K, BAL.live);
+    const C = BAL.cards, L = BAL.live, set = (name, f) => { const id = Object.keys(CARDS).find(k => CARDS[k].name === name); if (id) CARDS[id].text = f(TXT0['c:' + id]); };
+    set('Secret Upgrade', t => t.replace('+20% weapon damage and +20% HP', '+' + pctUp(C.upDmg) + '% weapon damage and +' + pctUp(C.upHp) + '% HP'));
+    set('Smudged Lens', t => t.replace('−15%', '−' + pctDn(C.lens) + '%'));
+    set('Sugar in the Tank', t => t.replace('60%', pctOf(C.sugar) + '%'));
+    if (L.overclockS != null) set('Target Overclock', t => t.replace('3.5 s', numTxt(L.overclockS) + ' s'));
+    if (L.fieldHp != null) set('Field Engineer', t => t.replace('+18 HP', '+' + numTxt(L.fieldHp) + ' HP'));
+    if (L.empStun != null) set('EMP Grenade', t => t.replace('0.9 s stun, 5 damage', numTxt(L.empStun) + ' s stun, ' + numTxt(L.empDmg) + ' damage'));
+    if (L.rattleLid != null) set('Rattle Loose', t => t.replace('30%', pctOf(L.rattleLid) + '%'));
+    if (L.hypeS != null) set('Hype Surge', t => t.replace('6 s', numTxt(L.hypeS) + ' s'));
+    if (L.magnetS != null) set('Electromagnet', t => t.replace('2 s', numTxt(L.magnetS) + ' s'));
+    // crew cards: repair actions per kind (BAL.repair.crewActs; engineersOnly: the others don't repair), Mechanic credits
+    const cr = BAL.mechanicCr;
+    for (const k in CREW) {
+      const [t0, s0] = TXT0['w:' + k], n = CREW_ACTS(k);
+      if (k === 'mechanic') { CREW[k].text = '+' + cr + ' credit' + (cr === 1 ? '' : 's') + ' every Upkeep' + (n ? ', and ' + actsWord(n) + '.' : '.'); CREW[k].short = '+' + cr + ' Cr' + (n ? ', ' + n + ' repair' : ''); }
+      else if (k === 'chief' || k === 'repairtech') { CREW[k].text = n ? actsWord(n) + ' every Upkeep.' : 'No repairs.'; CREW[k].short = n ? n + ' repair per Upkeep' : 'No repairs'; }
+      else { CREW[k].text = t0 + (BAL.repair.engineersOnly || n === 0 ? ' Does not repair.' : n !== 1 ? ' ' + actsWord(n) + ' every Upkeep.' : ''); CREW[k].short = s0; }
+    }
+    for (const id of Object.keys(LOTS)) if (LOTS[id].crew && CREW[LOTS[id].crew]) { LOTS[id].text = CREW[LOTS[id].crew].short; LOTS[id].desc = CREW[LOTS[id].crew].text; }
+  }
+  // ROBOCUS_DEBUG.bal(obj): merge obj into BAL, then deal a fresh game from the same seed (as if it had come in ?bal=)
+  function setBal(o, fresh = true) {
+    balMerge(BAL, o || {});
+    applyBal();
+    if (fresh && G && G.phase === 'setup' && G.round === 1) { rndState = GAME_SEED; gameSeq = 0; G.startFame = BAL.startFame; newGame(); updateHud(); }
+    return clone(BAL);
+  }
+
   /* ---------- save (Kev, 7 Nov): kept at the start of every round, once Upkeep's debts are settled ---------- */
   let SAVE = null;
   function saveState() {
     const g = JSON.parse(JSON.stringify(G, function (k, v) { if (typeof v === 'function') return undefined; if (G.fight && this === G.fight && (k === 'B' || k === 'S')) return undefined; return v; }));
-    return { v: 1, build: BUILD, at: new Date().toISOString(), G: g, rnd: rndState, lotsDyn: dynLots(), seq: { botSeq, crewSeq, crewLotSeq, fightSeq }, WIN_FAME, HOST_FAME, CATCHUP, names: netNames.slice() };
+    return { v: 1, build: BUILD, at: new Date().toISOString(), G: g, rnd: rndState, lotsDyn: dynLots(), seq: { botSeq, crewSeq, crewLotSeq, fightSeq }, WIN_FAME, HOST_FAME, CATCHUP, BAL: clone(BAL), names: netNames.slice() };
   }
   function roundSave() { if (!G || G.fast || G.phase !== 'upkeep') return; try { SAVE = JSON.stringify(saveState()); } catch (e) { console.warn('save failed', e); } }
   function loadState(o) {
     G = o.G; rndState = o.rnd >>> 0;
     Object.assign(LOTS, o.lotsDyn || {});
     ({ botSeq, crewSeq, crewLotSeq, fightSeq } = Object.assign({ botSeq, crewSeq, crewLotSeq, fightSeq }, o.seq || {}));
+    if (o.BAL) { balMerge(BAL, o.BAL); applyBal(); }
     if (o.WIN_FAME) WIN_FAME = o.WIN_FAME; if (o.HOST_FAME != null) HOST_FAME = o.HOST_FAME; if (o.CATCHUP) CATCHUP = o.CATCHUP;
     G.gather = null; G.endHumanTurn = null; G.ivBusy = false; G.debtBusy = false; G.fast = false;
     if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { t.player = netNames[i] || undefined; if (netNames[i]) t.name = netNames[i]; }); }
@@ -4741,14 +4893,14 @@ html, body {
       NETROLE = 'host'; SEATS = o.seats.slice(); HS = viewerSeat = o.seat; netNames = o.names.slice();
       if (o.seed) rndState = o.seed >>> 0;
       if (o.save) loadState(o.save);
-      else { if (G) G.startFame = o.startFame || 4; newGame(); }
+      else { if (G) G.startFame = o.startFame != null ? o.startFame : BAL.startFame; newGame(); }
       if (PT.game) { PT.game.net = 'host'; PT.game.seat = HS; PT.game.names = netNames.slice(); }
       const sel = document.getElementById('seatSel'); if (sel) sel.style.display = 'none';
       updateHud();
     },
-    rematch() { if (NETROLE !== 'host') return; G.startFame = G.startFame || 4; newGame(); updateHud(); },
+    rematch() { if (NETROLE !== 'host') return; if (G.startFame == null) G.startFame = BAL.startFame; newGame(); updateHud(); },
     snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
-    snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, paused: netPaused }),
+    snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.B && G.fight.rolloutDone ? { fid: G.fight.fid, tick: G.fight.B.tick } : null,
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
@@ -4773,7 +4925,8 @@ html, body {
 
   /* test hook for automated play-throughs (read-only use) */
   window.ROBOCUS_DEBUG = { playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
-    ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
+    ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
+    get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
@@ -5005,7 +5158,7 @@ html, body {
         fitText(ctx, z.icon + ' ' + z.label, bx + bw / 2, y + 15, bw - 8, '900', 12);
         fitText(ctx, (q.broken ? 'BROKEN' : q.damaged ? Math.round(q.f * 100) + '%' : 'ok') + (clickable && col ? ' · repair' : ''), bx + bw / 2, y + 30, bw - 8, '700', 10);
       }
-      const hz = helpZone(r, z.key); help(bx, y, bw, h, hz[0], hz[1] + (clickable && col ? '<br><i>Click: spend 1 repair action on it.</i>' : ''));
+      const hz = helpZone(r, z.key); help(bx, y, bw, h, hz[0], hz[1] + (clickable && col ? '<br><i>Click: spend ' + actsWord(zoneActs(q)) + ' on it.</i>' : ''));
       if (clickable && col) hitRegions.push({ kind: 'zone_fix', robot: r, zone: z.key, x: bx, y, w: bw, h });
     });
     ctx.textAlign = 'left';
@@ -5466,7 +5619,7 @@ html, body {
     // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
     ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`CREDITS: ${t.credits} Cr`, x0 + 644, y0 + 25);
-    help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, bets, deals and repairs (' + REPAIR_CR + ' Cr per action once your crew is used up). Each Mechanic earns 1 Cr per Upkeep; each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '') + '.');
+    help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, bets, deals and repairs (' + repairCr() + ' Cr per action once your crew is used up). Each Mechanic earns ' + BAL.mechanicCr + ' Cr per Upkeep; each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '') + '.');
     // 5. Crew cards (Kev, 6 Nov: named crew; new crew comes from the Market)
     ctx.fillStyle = '#111'; ctx.textAlign = 'left';
     if (exCrew(t)) ctx.fillStyle = '#b45309';
@@ -5537,7 +5690,7 @@ html, body {
       { const hn = helpName(t, r); help(tx, by + 10, tw, 20, hn[0], hn[1]); }
       ctx.fillStyle = '#c08400'; fitText(ctx, r.level ? '★'.repeat(r.level) + '  LEVEL ' + r.level : 'STARTER · LEVEL 0', tx, by + 43, tw * 0.62, '900', 11.5);
       ctx.fillStyle = '#7c3aed'; ctx.textAlign = 'right'; fitText(ctx, '🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), bx + bw - 10, by + 43, tw * 0.36, '800', 10.5);
-      help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+1 fame while it stays on your team).');
+      help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+' + BAL.fame.fanFav + ' fame while it stays on your team).');
       ctx.textAlign = 'left'; ctx.fillStyle = '#555'; fitText(ctx, wepLabel(r.name).toUpperCase(), tx, by + 60, tw, '800', 10.5);
       const pl = r.parts || [];
       ctx.fillStyle = pl.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots'), tx, by + 77, tw, '700', 10.5);
@@ -5565,7 +5718,7 @@ html, body {
         ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1; ctx.strokeRect(actX, actY, actW, actH);
         ctx.fillStyle = myUpkeep && dmg ? '#b45309' : '#555'; ctx.textAlign = 'center';
         fitText(ctx, myUpkeep ? (dmg ? '🔧 Click a lit zone · ' + repairTxt(t) : '✓ No damage: nothing to repair') : dmg ? 'Damage: ' + zoneTxt(r) : '✓ No damage', actX + actW / 2, actY + 18, actW - 10, '800', 11);
-        help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP + '<br>Repair actions: every crew member gives 1 (a crew member who repairs is exhausted this round). Out of crew: ' + REPAIR_CR + ' Cr per action. Free: Aegis Heavy (1 per Upkeep) and losing a fight (1, Vulture Salvage 2).');
+        help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt());
       }
       if (!inArenaNow) drawExhaustedOverlay(ctx, r, bx, by, bw, bh, false);
     }
@@ -6090,7 +6243,7 @@ html, body {
       { const dm = robots.filter(x => x.wear && R2.ZONES.some(z => zonesOf(x)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#b45309' : '#666';
         fitText(ctx, dm.length ? '🔧 ' + dm.map(x => (robots.length > 1 ? x.name + ': ' : '') + zoneTxt(x)).join(' · ') : 'No damage · the bookie ignores face-down cards', x + w / 2, y + 100, w - 30, '700', 9.5);
-        help(x + 12, y + 92, w - 24, 14, 'Damage going into the fight', ZONE_HELP); }
+        help(x + 12, y + 92, w - 24, 14, 'Damage going into the fight', ZONE_HELP()); }
       if (lockedOut) {
         ctx.fillStyle = '#999'; fitText(ctx, '(Cannot bet against your own robot)', x + w / 2, y + 138, w - 20, '700', 11);
         help(x + 10, y + 120, w - 20, 30, 'Your own fight', 'You can only bet on your own side, unless you play <b>Hedge Bet</b>.');
@@ -6363,7 +6516,7 @@ html, body {
         const t = me();
         const idx = (SPONSOR_KEYS.indexOf(t.sponsor) + 1) % SPONSOR_KEYS.length;
         t.sponsor = SPONSOR_KEYS[idx];
-        t.mechs = t.sponsor === 'sovereign' ? 4 : 3;
+        t.mechs = t.sponsor === 'sovereign' ? BAL.sovereignMechanics : (BAL.startCrew.mechanic || 0);
         notify(`Sponsor switched to <b>${esc(SPONSORS[t.sponsor].name)}</b> (${esc(SPONSORS[t.sponsor].tag)}).`, t.col);
         updateHud();
         return;
@@ -6484,6 +6637,7 @@ html, body {
   $('#ptBtn').onclick = ptMenu;
   ptRestoreDir();
   VW.mount(document.getElementById('fightView'));
+  applyBal();
   newGame();
   requestAnimationFrame(loop);
 })();
