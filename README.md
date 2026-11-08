@@ -80,6 +80,15 @@ node tools/card-report.js start4_win12                          # per card: play
 
 The report shows: rounds (mean, median, spread), Intrigue cards drawn and the share of the deck seen, cash-ins, attacks and how often they land, Security Bot rolls, fights, live cards per fight, auction cards won and their price, credits held, Market spend, bets, win share per seat and fame by source. To compare the game before and after a change: run the same command on each branch with different tags (the `sims` folder is not committed).
 
+**ROBOCUS 2.0 balance overhaul (physics fights, slower: ~17 s per game per core).** Get the latest files first (`git pull`, or download the repo again), then:
+
+```
+tools\run-sims2.cmd 100        # baseline + every variant in tools\bal\ (9 runs x 100 games); writes sims\overhaul1.txt
+tools\run-sims2.cmd 100 6      # the same, 6 games at a time (use fewer than your core count if the PC gets slow)
+```
+
+Send `sims\overhaul1.txt` to Claude. The variants are listed in `tools/bal/README.md`; one on its own: `node tools/game-sim.js --page=prototypes/tabletop-2.html --tag=x --games=100 --par=8 --balFile=tools/bal/rep_b2.json`.
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):
