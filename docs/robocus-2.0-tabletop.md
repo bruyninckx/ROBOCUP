@@ -25,7 +25,48 @@ Kev (8 Nov): build 2.0 into the browser game as a separate option, "Tabletop pro
 - Fights: duel, 2v2 (Grand Final, Tag Team, 2 per side), free-for-all (Grand Melee), Mirror (2 copies each), House Robot (a level-2 Juggernaut; only when there is room, 4 robots max). Shown in the full-screen view; AI-only, bot and skipped fights run headless.
 - Repairs in Upkeep: body parts heal to half for free, then each zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one repair action: every crew member gives 1 (Kev, 8 Nov; was Mechanic 1, Chief Engineer 2, Repair Tech 3), and is exhausted for the round; else 2 Cr. Free actions: Aegis Heavy 1 per Upkeep; the losing team 1 next Upkeep (Vulture Salvage 2), replacing the Scrap Crate.
 - Intrigue robot cards in 2.0 terms (Secret Upgrade, Overclock, Sugar in the Tank, Smudged Lens, EMP the Garage, Loose Bolts, Rogue Firmware).
-- Not yet: live combat cards (next), online play.
+- Live combat cards: on (see below). Not yet: online play.
+
+## Team-up Intrigue cards (Kev, 8 Nov: "heavy hitters that need co-op, and a card that blocks any block")
+
+| Card | Family | Type | Gate | Cash-in | Copies | Effect |
+|---|---|---|---|---|---|---|
+| Public Disgrace | Smear | Scheme | 15 | 2 | 1 | Target −3 fame. |
+| Corporate Raid | Corporate | Scheme | 14 | 2 | 1 | Target loses up to 8 Cr, split evenly between the player and every team that backed it (the rest to the player). |
+| Override | Leverage | Reaction | 2 | 2 | 2 | Right after any block (Security Bot roll, Firewall, PR Spin, Paid Off, Fall Guy, Under the Radar, Overreach, Sponsor's Lawyers): cancel the block, the scheme goes through. Any team but the target. Only Firewall stops an Override (then the block stands). |
+
+- The gates are above anyone's fame (the game ends at 12), so both schemes always need backing.
+- Override is the "block the block" half of Spartacus's Jupiter's Cock (our Firewall is the other half).
+- AI: asks for backing on these two even when it is up to 12 fame short; a backer counts its share of a raid as payment; plays Override for its own scheme when the scheme is worth it, and for another team's scheme against a sole fame leader or a team 2 fame from winning. People get an "Override?" prompt in the block window when they hold one (and a "Firewall?" prompt when someone overrides).
+
+## Live combat cards in 2.0 (Kev, 8 Nov)
+
+The 1.0 auction is back in the Bets step: 2 cards turned up per fight, sealed bids while you bet, one card per team per fight, a tie goes to the team with less fame, unclaimed cards are discarded. The bookie ignores the cards. Won cards are for that fight only.
+
+Auction deck (32 cards):
+
+| Card | Copies | Target | What it does (engine `DamageLab.command`) |
+|---|---|---|---|
+| Swap the Entry | 2 | (Bets step) | after bets: change which robot an invited team sends |
+| Remote Trigger | 2 | a robot | fires its module now |
+| Pilot Waypoint | 3 | your robot, then a spot | drives there for 3 s |
+| Target Overclock | 2 | your robot | nitro 3.5 s |
+| Field Engineer | 3 | your robot | clears jams, stalls and fire; +18 HP to the chassis and the worst part |
+| Oil Canister | 2 | a spot | oil spill |
+| EMP Grenade | 2 | a spot | 0.9 s stun, 5 damage, drones off |
+| Call the Hammer | 2 | a spot | ceiling hammer after a 1.1 s red warning |
+| Floor Launcher | 2 | a spot | launch pad |
+| Supply Drop | 2 | a spot | crate: repair (default), shield, nitro or overcharge |
+| Chip Hack | 2 | a rival robot | glitch; worse with its lid off |
+| Rattle Loose | 2 | a rival robot | top plate loose (30%) |
+| Hype Surge | 2 | your robot | rage 6 s |
+| Electromagnet | 2 | a spot | pulls robots and scrap there for 2 s |
+| Smoke Bomb | 2 | a spot | robots inside are hidden |
+
+- Playing: the fight screen shows your cards in a tray under the arena. Tap a card, then a robot (valid robots glow) or a spot. Esc or tapping the card again cancels. Works with taps on a phone. A team that is not fighting plays "your robot" cards on the side it bet on.
+- AI: checks its cards every 0.25 s of fight time, at most one card every 3 s, with simple rules (Field Engineer when jammed, burning or hurt; Overclock and Hype Surge when close; hammer, oil, EMP and magnet on a rival that is not next to its own robot; smoke and waypoint when losing; anything late in the fight). Headless fights (AI-only, fast, skipped) run the same rules step by step, so cards land at the same moment.
+- AI bids: the measured swing (`tools/damage-lab/livevalue-results.json`, win % with the card vs 48% without, played blind at 15 s; at least +2) × what the fight is worth to it.
+- Online play is still off in 2.0.
 
 ## What worked in the first slice (replaced)
 
@@ -99,6 +140,6 @@ So wheels, drive motors and the weapon are what count. Armour, the lid and chass
 
 1. Fork the 1.0 game loop into 2.0: starter draft, Market auctions with robot levels in waves, part cards (2 parts + 1 legendary), Intrigue, bets, hosting, crates. Use the 1.0 rules as the reference, with 2.0 wording where cards mention stats.
 2. Strength table for the bookie and the AI (robot strengths, part values, condition).
-3. Live cards on the new engine (the current Auction deck plus Call the Hammer, Floor Launcher, Supply Drop, Chip Hack, Loose Bolts, Hype Surge, Electromagnet, Smoke Bomb).
+3. ~~Live cards on the new engine~~ (done 8 Nov). Tune the card values once more fights are measured.
 4. Online play: the host streams fights.
 5. Decide how the levels are spread over the auctions.
