@@ -2546,11 +2546,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
-    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
+    const rk = R.onSide > 0 ? Math.sin(performance.now() / 90 + R.id) * 0.06 : 0;
+    const sideT = () => { if (R.onSide > 0) { ctx.translate(0, R.sideDir * R.hw * 0.45); ctx.rotate(rk); ctx.scale(1, 0.48); } }; // lying on its side: seen edge-on, rocking
+    const sso = R.onSide > 0 ? so + 0.04 : so; // standing on its edge it is taller, so the shadow falls a bit further
+    ctx.save(); ctx.translate(p.x + sso, p.y + sso); ctx.rotate(a); ctx.scale(sc, sc); sideT(); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
-    if (R.onSide > 0) { const rk = Math.sin(performance.now() / 90 + R.id) * 0.06; ctx.translate(0, R.sideDir * R.hw * 0.45); ctx.rotate(rk); ctx.scale(1, 0.48); } // lying on its side: seen edge-on, rocking
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); sideT();
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
