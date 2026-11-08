@@ -23,7 +23,7 @@ Kev (8 Nov): build 2.0 into the browser game as a separate option, "Tabletop pro
 - Market: the 22 part cards (with copies) replace the 1.0 upgrades; the 3 legendary parts are announced a round ahead like 1.0's legendaries. Robot lots (placeholder): level 1 in rounds 1-2, level 2 in rounds 3-4, level 3 from round 5.
 - Odds and AI use `Repair2.strength` (no scouting, no sparring). Several sides: P ∝ exp(strength).
 - Fights: duel, 2v2 (Grand Final, Tag Team, 2 per side), free-for-all (Grand Melee), Mirror (2 copies each), House Robot (a level-2 Juggernaut; only when there is room, 4 robots max). Shown in the full-screen view; AI-only, bot and skipped fights run headless.
-- Repairs in Upkeep: body parts heal to half for free, then each zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one repair action: Mechanic 1, Chief Engineer 2, Repair Tech 3, other crew 1 (the crew member is exhausted for the round), else 2 Cr. Free actions: Aegis Heavy 1 per Upkeep; the losing team 1 next Upkeep (Vulture Salvage 2), replacing the Scrap Crate.
+- Repairs in Upkeep: body parts heal to half for free, then each zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one repair action: every crew member gives 1 (Kev, 8 Nov; was Mechanic 1, Chief Engineer 2, Repair Tech 3), and is exhausted for the round; else 2 Cr. Free actions: Aegis Heavy 1 per Upkeep; the losing team 1 next Upkeep (Vulture Salvage 2), replacing the Scrap Crate.
 - Intrigue robot cards in 2.0 terms (Secret Upgrade, Overclock, Sugar in the Tank, Smudged Lens, EMP the Garage, Loose Bolts, Rogue Firmware).
 - Not yet: live combat cards (next), online play.
 
@@ -73,7 +73,8 @@ The engine keeps every part's damage, but you repair zones (`src2/repair.js`):
 - Without repairs the game snowballs: a team that lost wins only 39% of its next fight.
 - Zones with a little crew remove the snowball, and game length stays the same.
 - A team uses about 2 repair actions a round. With the full starting crew (5 actions, plus free ones) every robot is always fully repaired, so the only real cost is crew being busy for Intrigue cards.
-- To make repairs a choice, crew should be scarcer than that: for example **every crew member gives 1 action** (Chief Engineer too), or repairs cost a credit on top. To settle in a playtest.
+- To make repairs a choice, crew should be scarcer than that. **Decided (Kev, 8 Nov): every crew member gives 1 action** (Chief Engineer and Repair Tech too). Starting crew = 4 actions, each one a crew member that can't count for Intrigue cards that round.
+- Odds chips on the garage bays can be clicked: the robot's chance against each rival robot on its own (like 1.0's scout panel).
 
 ## What damage costs (`tools/damage-lab/wearcost.js`)
 
