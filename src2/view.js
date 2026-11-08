@@ -701,6 +701,7 @@
     drawWalls();
     drawProjectiles();
     drawParticles();
+    drawAim();
     for (const c of S.smokes) { const k = Math.min(1, c.life / 1), g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r); g.addColorStop(0, `rgba(175,170,160,${0.85 * k})`); g.addColorStop(0.7, `rgba(165,160,150,${0.6 * k})`); g.addColorStop(1, 'rgba(160,155,145,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 6.29); ctx.fill(); }
     tags();
     drawCalls();
@@ -856,6 +857,18 @@
   .fv-row b{height:6px;background:#4A443D;border-radius:3px;overflow:hidden}.fv-row b i{display:block;height:100%}
   .fv-row em{font:600 10px "IBM Plex Mono",monospace;font-style:normal;color:#9A9083;text-align:right;white-space:nowrap}.fv-row em.warn{color:#E0B848}.fv-row em.bad{color:#F07A68}
   .fv-lost{font-size:11px;color:#B8AE9E}
+  .fv-cards{display:flex;flex-direction:column;gap:5px;padding:6px 12px;background:#2B241E;border-top:1px solid #4A4037}
+  .fv-cards[hidden]{display:none}
+  .fv-hint{font:600 12px "IBM Plex Mono",monospace;color:#E8C547;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:20px}
+  .fv-hint button{font:600 12px "IBM Plex Mono",monospace;background:#15110D;color:#EDE6D9;border:1px solid #4A4037;border-radius:5px;padding:3px 8px;cursor:pointer;min-height:28px}
+  .fv-hint button[aria-pressed=true]{background:#E8C547;color:#15110D;border-color:#E8C547}
+  .fv-tray{display:flex;gap:6px;overflow-x:auto}
+  .fv-card{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:220px;font:600 13px "IBM Plex Sans",system-ui,sans-serif;background:#3A3027;color:#EDE6D9;border:1px solid #D99000;border-top:3px solid #D99000;border-radius:7px;padding:6px 10px;cursor:pointer;min-height:40px;text-align:left}
+  .fv-card b{font-size:18px}.fv-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fv-card[aria-pressed=true]{background:#E8C547;color:#15110D;border-color:#E8C547}
+  .fv-card:disabled{opacity:.45;cursor:default}
+  .fv.aiming canvas{cursor:crosshair}
+  .fv.has-cards .fv-arena canvas{width:min(calc(100vh - 235px),calc(100vw - 600px));height:min(calc(100vh - 235px),calc(100vw - 600px))}
   .fv-feed{height:72px;overflow:auto;padding:6px 12px;background:#15110D;border-top:1px solid #3A3229;font:12px "IBM Plex Mono",monospace}
   .fv-ev{border-left:3px solid var(--c);padding-left:7px;margin:2px 0;color:#D9D0C2}
   @media (max-width:900px),(orientation:portrait){
@@ -868,6 +881,8 @@
     .fv-body{grid-template-columns:96px 1fr}
     .fv-diag{height:128px}
     .fv-feed{height:56px}
+    .fv-cards{padding:5px 8px}.fv-card{font-size:12px;padding:5px 8px;min-height:38px}
+    .fv.has-cards .fv-arena canvas{width:min(100vw - 16px,60vh);height:min(100vw - 16px,60vh)}
   }`;
   function mount(el) {
     root = el; if (!document.getElementById('fv-css')) { const s = document.createElement('style'); s.id = 'fv-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -876,8 +891,12 @@
       <button type="button" data-sp="1" aria-pressed="true">1×</button><button type="button" data-sp="2" aria-pressed="false">2×</button><button type="button" data-sp="4" aria-pressed="false">4×</button>
       <button type="button" class="fv-pause" aria-pressed="false">Pause</button><button type="button" class="fv-skip">Skip to result</button><button type="button" class="fv-done go" hidden>Continue</button></div>
       <div class="fv-main"><div class="fv-left"></div><div class="fv-arena"><canvas aria-label="Arena"></canvas></div><div class="fv-right"></div></div>
+      <div class="fv-cards" hidden><div class="fv-hint"></div><div class="fv-tray"></div></div>
       <div class="fv-feed" aria-live="off"></div>`;
     cv = root.querySelector('canvas'); ctx = cv.getContext('2d');
+    cv.addEventListener('pointerdown', onCanvasDown);
+    cv.addEventListener('pointermove', e => { if (aim) hover = toWorld(e.clientX, e.clientY); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && aim && root && !root.hidden) cancelAim(); });
     root.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { V.speed = +b.dataset.sp; root.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
     const pb = root.querySelector('.fv-pause'); pb.onclick = () => { V.paused = !V.paused; pb.setAttribute('aria-pressed', String(V.paused)); pb.textContent = V.paused ? 'Go on' : 'Pause'; };
     root.querySelector('.fv-skip').onclick = skip;
@@ -886,7 +905,8 @@
   }
   function skip() {
     if (!S || S.over) return;
-    let n = 0; while (!S.over && n < 120 * 400) { L.step(S); S.fx.length = 0; n++; }
+    let n = 0; while (!S.over && n < 120 * 400) { L.step(S); if (opts.onStep) opts.onStep(S); S.fx.length = 0; n++; }
+    aim = null; cards = []; drawCards();
     parts = []; calls = []; slowT = 0; cam.tx = cam.ty = 0; cam.tz = 1;
   }
   let running = false, last = 0, acc = 0;
@@ -896,6 +916,7 @@
     root.querySelector('.fv-title').textContent = o.title || 'Fight';
     root.querySelector('.fv-feed').innerHTML = ''; root.querySelector('.fv-done').hidden = true; root.querySelector('.fv-skip').hidden = false;
     const pb = root.querySelector('.fv-pause'); pb.setAttribute('aria-pressed', 'false'); pb.textContent = 'Pause';
+    aim = null; cards = []; onPlayCb = null; drawCards();
     root.hidden = false; buildPanels(); resize(); updatePanels();
     if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
   }
@@ -909,9 +930,10 @@
       if (slowT > 0) slowT -= rdt; else { cam.tx = 0; cam.ty = 0; cam.tz = 1; }
       if (hitStop > 0) { hitStop -= rdt; ts = 0; }
       acc += rdt * ts; let n = 0;
-      while (acc >= L.DT && n < 64) { if (!(S.over && S.t > S.result.t + 4)) L.step(S); consumeFx(); acc -= L.DT; n++; }
+      while (acc >= L.DT && n < 64) { if (!(S.over && S.t > S.result.t + 4)) { L.step(S); if (opts.onStep) opts.onStep(S); } consumeFx(); acc -= L.DT; n++; }
       if (n >= 64) acc = 0;
       emitters(rdt * ts);
+      if (S.over && cards.length) { aim = null; cards = []; drawCards(); }
       if (S.over && !ended && S.t > S.result.t + 1.2) { ended = true; root.querySelector('.fv-done').hidden = false; root.querySelector('.fv-skip').hidden = true; }
     }
     stepParticles(rdt * ts);
@@ -950,5 +972,71 @@
     PCACHE.set(key, c);
     return c;
   }
-  window.RobocusView = { mount, play, skip, close, portrait, drawDiagram, insideRows, V, get state() { return S; } };
+  // ---------- live combat cards (ROBOCUS 2.0): a tray under the arena; tap a card, then a robot or a spot ----------
+  // setCards(list, onPlay): list = [{ key, icon, name, text, target: 'bot'|'arena', own, valid: [robot ids], radius }];
+  // onPlay(key, { robot, x, y, crate }) is called once the card is aimed. The game then calls setCards again.
+  let cards = [], aim = null, hover = null, onPlayCb = null, crate = 'repair';
+  const CRATES = [['repair', '+ Repair'], ['shield', 'S Shield'], ['nitro', 'N Nitro'], ['overcharge', '⚡ Power']];
+  function toWorld(cx, cy) { const r = cv.getBoundingClientRect(), px = (cx - r.left) * W / r.width, py = (cy - r.top) * W / r.height; return [(px - W / 2) / (K * cam.z) + cam.x, (py - W / 2) / (K * cam.z) + cam.y]; }
+  function clientOf(x, y) { const r = cv.getBoundingClientRect(), [sx, sy] = toScreen(x, y); return [r.left + sx * r.width / W, r.top + sy * r.height / W]; }
+  function setCards(list, onPlay) { cards = (list || []).slice(); onPlayCb = onPlay || onPlayCb; if (aim && !cards.some(c => c.key === aim.key)) aim = null; drawCards(); }
+  function hintText() {
+    if (!aim) return cards.length ? 'Your fight cards: tap one to play it' : '';
+    const c = cards.find(x => x.key === aim.key); if (!c) return '';
+    return (aim.stage === 'bot' ? (c.own ? 'Tap your robot' : 'Tap a robot') : c.own ? 'Now tap a spot to drive to' : 'Tap a spot in the arena') + ' · ' + c.name + ' · Esc or tap the card to cancel';
+  }
+  function drawCards() {
+    if (!root) return;
+    const box = root.querySelector('.fv-cards'), tray = root.querySelector('.fv-tray'), hint = root.querySelector('.fv-hint');
+    box.hidden = !cards.length; root.classList.toggle('aiming', !!aim); root.classList.toggle('has-cards', !!cards.length);
+    if (!cards.length) { tray.innerHTML = ''; hint.innerHTML = ''; return; }
+    tray.innerHTML = cards.map((c, i) => `<button type="button" class="fv-card" data-i="${i}" aria-pressed="${aim && aim.key === c.key}" title="${esc(c.text || '')}"${c.target === 'bot' && !(c.valid || []).length ? ' disabled' : ''}><b>${c.icon || '🃏'}</b><span>${esc(c.name)}</span></button>`).join('');
+    const sup = aim && aim.key && (cards.find(x => x.key === aim.key) || {}).crate;
+    hint.innerHTML = `<span>${esc(hintText())}</span>` + (sup ? CRATES.map(([k, l]) => `<button type="button" data-crate="${k}" aria-pressed="${crate === k}">${esc(l)}</button>`).join('') : '');
+    tray.querySelectorAll('.fv-card').forEach(b => b.onclick = () => pickCard(cards[+b.dataset.i]));
+    hint.querySelectorAll('[data-crate]').forEach(b => b.onclick = () => { crate = b.dataset.crate; drawCards(); });
+  }
+  function pickCard(c) {
+    if (!c || (S && S.over)) return;
+    if (aim && aim.key === c.key) { cancelAim(); return; }
+    const valid = (c.valid || []).filter(i => S.robots[i] && S.robots[i].alive);
+    if (c.target === 'bot' && !valid.length) return;
+    aim = { key: c.key, stage: c.target === 'bot' || (c.own && valid.length > 1) ? 'bot' : 'spot', robot: c.own && c.target === 'arena' && valid.length === 1 ? valid[0] : null };
+    if (c.crate) crate = 'repair';
+    drawCards();
+  }
+  function cancelAim() { aim = null; hover = null; drawCards(); }
+  function onCanvasDown(e) {
+    if (!aim || !S || S.over) return;
+    e.preventDefault();
+    const c = cards.find(x => x.key === aim.key); if (!c) { cancelAim(); return; }
+    const [x, y] = toWorld(e.clientX, e.clientY); hover = [x, y];
+    if (aim.stage === 'bot') {
+      let best = null, bd = 1e9;
+      for (const i of c.valid || []) { const R = S.robots[i]; if (!R || !R.alive) continue; const p = R.body.getPosition(), d = Math.hypot(p.x - x, p.y - y); if (d < bd && d < R.hl + 0.55) { bd = d; best = i; } }
+      if (best == null) { const h = root.querySelector('.fv-hint span'); if (h) h.textContent = (c.own ? 'Tap your robot' : 'Tap a robot') + ' (it glows)'; return; }
+      if (c.target === 'arena') { aim.robot = best; aim.stage = 'spot'; drawCards(); return; }
+      fire(c, { robot: best });
+      return;
+    }
+    const H = L.HALF - 0.3;
+    fire(c, { robot: aim.robot, x: Math.max(-H, Math.min(H, x)), y: Math.max(-H, Math.min(H, y)), crate: c.crate ? crate : undefined });
+  }
+  function fire(c, o) { aim = null; hover = null; const cb = onPlayCb; cards = cards.filter(x => x !== c); drawCards(); if (cb) cb(c.key, o); }
+  function drawAim() {
+    if (!aim || !S) return;
+    const c = cards.find(x => x.key === aim.key); if (!c) return;
+    const t = performance.now() / 1000, pulse = 0.5 + 0.5 * Math.sin(t * 8);
+    if (aim.stage === 'bot') for (const i of c.valid || []) {
+      const R = S.robots[i]; if (!R || !R.alive) continue; const p = R.body.getPosition();
+      ctx.strokeStyle = `rgba(232,197,71,${0.55 + 0.45 * pulse})`; ctx.lineWidth = PX * 4; ctx.setLineDash([PX * 9, PX * 6]);
+      ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.22 + 0.04 * pulse, t, t + 6.29); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (aim.stage === 'spot') {
+      if (aim.robot != null && S.robots[aim.robot]) { const p = S.robots[aim.robot].body.getPosition(); ctx.strokeStyle = '#E8C547'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, S.robots[aim.robot].hl + 0.2, 0, 6.29); ctx.stroke(); if (hover) { ctx.setLineDash([PX * 8, PX * 6]); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(hover[0], hover[1]); ctx.stroke(); ctx.setLineDash([]); } }
+      if (hover) { const r = c.radius || 0.4; ctx.fillStyle = 'rgba(232,197,71,0.16)'; ctx.strokeStyle = `rgba(232,197,71,${0.6 + 0.4 * pulse})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(hover[0], hover[1], r, 0, 6.29); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hover[0] - 0.15, hover[1]); ctx.lineTo(hover[0] + 0.15, hover[1]); ctx.moveTo(hover[0], hover[1] - 0.15); ctx.lineTo(hover[0], hover[1] + 0.15); ctx.stroke(); }
+    }
+  }
+  window.RobocusView = { mount, play, skip, close, portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
 })();

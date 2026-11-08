@@ -1186,8 +1186,9 @@
     if (R.stun > 0) { R.ctl.L = R.ctl.R = 0; return; }
     if (R.onSide > 0) { const t = Math.sin(S.t * 9 + R.id) > 0 ? 1 : -1; R.ctl.L = t; R.ctl.R = -t; return; } // rocks itself, trying to fall back
     let ep = E.body.getPosition(), ev = E.body.getLinearVelocity();
+    if (R.wp && R.wp.t > 0) { R.wp.t -= DT; ep = V(R.wp.x, R.wp.y); ev = V(0, 0); if (Math.hypot(ep.x - p.x, ep.y - p.y) < 0.35) R.wp.t = 0; } // live card: Pilot Waypoint
     // the enemy is hidden in its own smoke: aim at a guess
-    if (!R.spotting && S.smokes.some(c => c.owner === E && Math.hypot(ep.x - c.x, ep.y - c.y) < c.r)) { if (!R.fog || S.step % 60 === 0) R.fog = [(S.rng() - 0.5) * 1.6, (S.rng() - 0.5) * 1.6]; ep = V(ep.x + R.fog[0], ep.y + R.fog[1]); ev = V(0, 0); }
+    if (!R.spotting && S.smokes.some(c => (c.owner === E || c.any) && Math.hypot(ep.x - c.x, ep.y - c.y) < c.r)) { if (!R.fog || S.step % 60 === 0) R.fog = [(S.rng() - 0.5) * 1.6, (S.rng() - 0.5) * 1.6]; ep = V(ep.x + R.fog[0], ep.y + R.fog[1]); ev = V(0, 0); }
     const dx = ep.x - p.x, dy = ep.y - p.y, dist = Math.hypot(dx, dy) || 0.001;
     const w = R.spec.weapon, W = R.W;
     const lead = R.proc === 'rammer' ? 0.5 : 0.25, melee = !(W.gun || w === 'laser' || w === 'saw' || w === 'mortar' || w === 'flame' || w === 'rocket' || w === 'harpoon');
@@ -2042,9 +2043,79 @@
     if (!S.evt) S.nextEvt = S.t + (sudden ? 7 : 16 + S.rng() * 6);
   }
 
+  // ---------- ROBOCUS 2.0 live combat cards: commands applied at a given step (deterministic) ----------
+  // command(S, {type, robot (index), x, y, crate, by, tick}) queues a card; tick defaults to the next step.
+  const LIVE = {
+    trigger: { target: 'bot', label: 'Remote Trigger' }, waypoint: { target: 'arena', label: 'Pilot Waypoint', own: true }, overclock: { target: 'bot', label: 'Target Overclock', own: true },
+    field_eng: { target: 'bot', label: 'Field Engineer', own: true }, oil: { target: 'arena', label: 'Oil Canister' }, emp: { target: 'arena', label: 'EMP Grenade' },
+    hammer: { target: 'arena', label: 'Call the Hammer' }, launcher: { target: 'arena', label: 'Floor Launcher' }, supply: { target: 'arena', label: 'Supply Drop' },
+    chiphack: { target: 'bot', label: 'Chip Hack' }, rattle: { target: 'bot', label: 'Rattle Loose' }, hype: { target: 'bot', label: 'Hype Surge', own: true },
+    magnet: { target: 'arena', label: 'Electromagnet' }, smoke: { target: 'arena', label: 'Smoke Bomb' },
+  };
+  function command(S, c) { S.cmdQ = S.cmdQ || []; S.cmdQ.push(Object.assign({ tick: S.step + 1 }, c)); }
+  function magnets(S) {
+    for (const m of S.magnets) {
+      m.life -= DT;
+      for (const R of S.robots) { if (R.airborne > 0) continue; const p = R.body.getPosition(), dx = m.x - p.x, dy = m.y - p.y, d = Math.hypot(dx, dy); if (d > 2.6 || d < 0.05) continue; const f = R.body.getMass() * 7 * (1 - d / 2.6); R.body.applyForceToCenter(V(dx / d * f, dy / d * f), true); }
+      for (const q of S.debris) { if (q.gone || q.attached) continue; const b = q.body, p = b.getPosition(), dx = m.x - p.x, dy = m.y - p.y, d = Math.hypot(dx, dy); if (d > 2.6 || d < 0.05) continue; const f = b.getMass() * 10 * (1 - d / 2.6); b.applyForceToCenter(V(dx / d * f, dy / d * f), true); }
+      if (S.step % 12 === 0) S.fx.push({ type: 'ewall', x: m.x, y: m.y });
+    }
+    S.magnets = S.magnets.filter(m => m.life > 0);
+  }
+  function applyCmd(S, c) {
+    const R = c.robot != null ? S.robots[c.robot] : null, who = c.by ? c.by + ': ' : '', lab = (LIVE[c.type] || {}).label || c.type;
+    const x = c.x == null ? 0 : clamp(c.x, -HALF + 0.4, HALF - 0.4), y = c.y == null ? 0 : clamp(c.y, -HALF + 0.4, HALF - 0.4);
+    if (R && !R.alive) return;
+    const at = R ? R.body.getPosition() : V(x, y);
+    say(S, `${who}${lab}${R ? ' on ' + R.name : ''}`, R ? R.id : null, true);
+    if (c.type === 'trigger' && R) { // fire the robot's module now
+      const E = R.enemy, ep = E.body.getPosition(), dx = ep.x - at.x, dy = ep.y - at.y, d = Math.hypot(dx, dy) || 0.01, m = R.mod;
+      if (!R.module || R.module.hp <= 0 || m === 'none') { callout(S, 'NOTHING HAPPENS', at.x, at.y, false); return; }
+      if (m === 'emp') { if (d < 2.2) { E.stun = Math.max(E.stun, 1.8 * pk('emp')); for (const dd of E.drones) dd.off = Math.max(dd.off, 2.5); } S.fx.push({ type: 'emp', x: at.x, y: at.y, robot: R.id }); callout(S, 'EMP!', at.x, at.y, true); }
+      else if (m === 'grapple') { if (d < 3.6) { const mE = E.body.getMass(); knock(E, -dx / d * mE * 3.2, -dy / d * mE * 3.2); S.fx.push({ type: 'grapple', robot: R.id, x: ep.x, y: ep.y }); } callout(S, 'YOINK!', ep.x, ep.y, true); }
+      else if (m === 'jets') { const a = Math.atan2(-dy, -dx) + 0.6; R.body.setLinearVelocity(V(Math.cos(a) * 5.2, Math.sin(a) * 5.2)); R.airborne = 0.42; R.airMax = 0.3; S.fx.push({ type: 'jets', x: at.x, y: at.y }); callout(S, 'JUMP JETS!', at.x, at.y, true); }
+      else if (m === 'oil') { S.oils.push({ x: at.x, y: at.y, r: 0.7, life: 7, owner: R }); callout(S, 'OIL!', at.x, at.y, true); }
+      else if (m === 'mines') { S.mines.push({ x: at.x, y: at.y, owner: R, arm: 0.6 }); callout(S, 'MINE!', at.x, at.y, true); }
+      else if (m === 'smoke') { S.smokes.push({ x: at.x, y: at.y, r: 1.3, life: 4, owner: R }); S.fx.push({ type: 'smokebomb', x: at.x, y: at.y }); callout(S, 'SMOKE!', at.x, at.y, true); }
+      else if (m === 'shield') { R.eSh = R.eShMax; R.shieldFlash = 0.3; callout(S, 'SHIELD UP!', at.x, at.y, true); }
+      else if (m === 'repair') { const ch = R.chassis; ch.hp = Math.min(ch.maxHp, ch.hp + 15); callout(S, 'PATCHED!', at.x, at.y, true); }
+      else if (m === 'quantum') { R.quantumT = Math.max(R.quantumT || 0, 2); callout(S, 'QUANTUM!', at.x, at.y, true); }
+      else if (m === 'popper') { if (d < R.hl + E.hl + 0.6) { knock(E, dx / d * 60, dy / d * 60); launch(S, E, 0.35, R); E.stun = Math.max(E.stun, 0.8); } callout(S, 'POP!', at.x, at.y, true); }
+      else if (m === 'boom') { if (!R.boomUsed) { R.boomUsed = true; R.boomArm = 4; } callout(S, 'SELF-DESTRUCT!', at.x, at.y, true); }
+      R.modCd = Math.max(R.modCd, 3);
+    } else if (c.type === 'waypoint' && R) { R.wp = { x, y, t: 3 }; S.fx.push({ type: 'ewall', x, y }); callout(S, 'GO THERE!', x, y, false); }
+    else if (c.type === 'overclock' && R) { R.nitro = Math.max(R.nitro || 0, 3.5); callout(S, 'OVERCLOCK!', at.x, at.y, true); }
+    else if (c.type === 'field_eng' && R) { // clear jams and stalls, put out fires, patch 18 HP into the worst parts
+      if (R.wmotor) R.wmotor.jam = 0; for (const s2 of R.slots) { s2.motor.stuck = 0; if (s2.motor.hp > 0) s2.motor.heat = 0; } R.glitch = 0; R.battery.fire = 0; R.stun = 0;
+      const ch = R.chassis; ch.hp = Math.min(ch.maxHp, ch.hp + 18);
+      const worst = R.internals.filter(q => q.hp > 0 && q.hp < q.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; if (worst) worst.hp = Math.min(worst.maxHp, worst.hp + 18);
+      S.fx.push({ type: 'pickup', x: at.x, y: at.y, kind: 'repair' }); callout(S, 'FIELD FIX!', at.x, at.y, true);
+    }
+    else if (c.type === 'oil') { S.oils.push({ x, y, r: 0.75, life: 8, owner: null }); callout(S, 'OIL SPILL!', x, y, true); }
+    else if (c.type === 'emp') {
+      S.fx.push({ type: 'emp', x, y }); callout(S, 'EMP!', x, y, true);
+      for (const Q of S.robots) { if (!Q.alive) continue; const p = Q.body.getPosition(); if (Math.hypot(p.x - x, p.y - y) > 1.0 + Q.hl) continue; Q.stun = Math.max(Q.stun, 0.9); hit(S, Q.chassis, 5, { cause: 'emp', x: p.x, y: p.y }); for (const dd of Q.drones) dd.off = Math.max(dd.off, 2.5); }
+    }
+    else if (c.type === 'hammer' || c.type === 'launcher') {
+      const e = c.type === 'hammer' ? { type: 'hammer', t: 0, warn: 1.1, dur: 1.7, warnPts: [[x, y, 0.6]], card: true } : { type: 'bumpers', t: 0, warn: 0.9, dur: 1.5, warnPts: [[x, y, 0.55]], card: true };
+      S.cardEvt = S.cardEvt || []; S.cardEvt.push(e); callout(S, c.type === 'hammer' ? 'HAMMER CALLED!' : 'LAUNCHER ARMED!', x, y, true);
+    }
+    else if (c.type === 'supply') { const type = ['nitro', 'overcharge', 'repair', 'shield'].includes(c.crate) ? c.crate : 'repair'; S.crates.push({ x, y, type, life: 12, t0: S.t }); S.fx.push({ type: 'crate', x, y }); callout(S, 'SUPPLY DROP!', x, y, true); }
+    else if (c.type === 'chiphack' && R) {
+      if (R.chipExposed && R.chipPart.hp > 0) chipFx(S, R, 18); else { R.glitch = Math.max(R.glitch, 1.6); callout(S, 'HACKED!', at.x, at.y, true); }
+      S.fx.push({ type: 'chipzap', robot: R.id });
+    }
+    else if (c.type === 'rattle' && R) { if (R.lid.attached) { R.lid.hp = Math.min(R.lid.hp, R.lid.maxHp * 0.3); R.lid.state = 'loose'; } callout(S, 'BOLTS LOOSE!', at.x, at.y, true); }
+    else if (c.type === 'hype' && R) { R.hype = 0; R.rage = 6; callout(S, 'RAGE!', at.x, at.y, true); }
+    else if (c.type === 'magnet') { S.magnets = S.magnets || []; S.magnets.push({ x, y, life: 2 }); callout(S, 'MAGNET!', x, y, true); }
+    else if (c.type === 'smoke') { S.smokes.push({ x, y, r: 1.3, life: 5, owner: null, any: true }); S.fx.push({ type: 'smokebomb', x, y }); callout(S, 'SMOKE!', x, y, true); }
+  }
   // ---------- main step ----------
   function step(S) {
     if (S.countdown > 0) { S.countdown -= DT; return; }
+    if (S.cmdQ && S.cmdQ.length) { const due = S.cmdQ.filter(c => c.tick <= S.step); if (due.length) { S.cmdQ = S.cmdQ.filter(c => c.tick > S.step); for (const c of due) applyCmd(S, c); } }
+    if (S.cardEvt && S.cardEvt.length && !S.evt) S.evt = S.cardEvt.shift();
+    if (S.magnets && S.magnets.length) magnets(S);
     if (S.multi) retarget(S);
     for (const R of S.robots) { think(S, R); modules(S, R); drive(S, R); weapons(S, R); }
     drones(S); gadgets(S);
@@ -2103,6 +2174,6 @@
   const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,70,62,18,17,55,88],[30,null,40,75,53,42,62],[38,60,null,72,60,42,28],[82,25,28,null,62,52,42],[83,47,40,38,null,33,43],[45,58,58,48,67,null,37],[12,38,72,58,57,63,null]],"fights":60}; // open floor only (8 Nov: pit removed)
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
-  const API = { wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { LIVE, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
