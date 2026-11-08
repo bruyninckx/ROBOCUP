@@ -1,0 +1,2 @@
+{ "_note": "Broken = 2 actions, only engineers repair, start with 2 Mechanics + 1 Accountant + 1 Analyst (was 3 Mechanics + 1 Chief)",
+  "repair": { "brokenTwo": true, "engineersOnly": true }, "startCrew": { "mechanic": 2, "chief": 0, "accountant": 1, "analyst": 1 } }

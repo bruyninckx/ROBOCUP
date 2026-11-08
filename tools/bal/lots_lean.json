@@ -1,0 +1,2 @@
+{ "_note": "Fewer drones (10 -> 5) and modules (6 -> 5), more crew lots (4 -> 7)",
+  "lots": { "crew": 7, "partCopies": { "medic": 1, "laser": 0, "waller": 0, "blocker": 0, "spotter": 0, "shield": 1 } } }

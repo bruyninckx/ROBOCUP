@@ -1,0 +1,4 @@
+{ "_note": "rep_b2_eng + more engineers to buy: 7 crew lots, crew deck with 3 Mechanics, 3 Chief Engineers, 2 Repair Techs",
+  "repair": { "brokenTwo": true, "engineersOnly": true }, "startCrew": { "mechanic": 2, "chief": 0, "accountant": 1, "analyst": 1 },
+  "lots": { "crew": 7 },
+  "crewDeck": ["mechanic", "mechanic", "mechanic", "chief", "chief", "chief", "repairtech", "repairtech", "accountant", "hacker", "analyst", "fixer", "secchief"] }
