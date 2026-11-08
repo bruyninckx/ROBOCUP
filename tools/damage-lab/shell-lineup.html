@@ -1,0 +1,172 @@
+<title>ROBOCUS 2.0 Lineup Arena</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: workshop bench. Arena (the pit) left, two robot work-orders pinned on the right, fight log and report under the pit. */
+:root {
+  --bg: #E9E4DA; --panel: #F6F2EA; --ink: #2B2118; --muted: #6E6457; --line: #CFC6B7;
+  --steel: #3F78A8; --rust: #C8642B; --hazard: #E8C547; --good: #4C8A3F; --warn: #C99A1E; --bad: #B23A2B;
+  --chip: #E1DACD;
+  --f-display: "Saira Stencil One", "Arial Black", Impact, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --steel: #6E9CC4; --rust: #E08A57; --hazard: #E8C547; --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --steel: #6E9CC4; --rust: #E08A57; --hazard: #E8C547; --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--f-body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 40px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; border-bottom: 3px solid var(--ink); padding-bottom: 10px; }
+.eyebrow { font: 600 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.eyebrow b { background: var(--hazard); color: #2B2118; padding: 3px 6px; border-radius: 3px; letter-spacing: .1em; }
+h1 { font: 400 clamp(34px, 6vw, 52px)/0.95 var(--f-display); margin: 6px 0 0; letter-spacing: .01em; }
+.lede { margin: 0; color: var(--muted); max-width: 60ch; flex: 1 1 320px; }
+h2 { font: 400 20px/1.1 var(--f-display); margin: 0; letter-spacing: .02em; }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .lab { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 12px; min-width: 0; }
+.pit { position: relative; border: 3px solid var(--ink); border-radius: 6px; overflow: hidden; background: #3A3530; max-width: 100%; }
+#arena { display: block; width: 100%; aspect-ratio: 1; touch-action: manipulation; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input { font: inherit; color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 5px; padding: 5px 10px; }
+button { cursor: pointer; font-weight: 600; }
+button:hover { background: var(--chip); }
+button.go { background: var(--ink); color: var(--panel); padding: 6px 18px; font: 400 17px/1.2 var(--f-display); letter-spacing: .04em; }
+button.go:hover { filter: brightness(1.2); background: var(--ink); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
+.seg { display: inline-flex; border: 2px solid var(--ink); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 5px 9px; font: 600 12px var(--f-mono); }
+.seg button + button { border-left: 2px solid var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+label.chk { display: inline-flex; gap: 6px; align-items: center; font-weight: 500; }
+label.chk input { accent-color: var(--rust); width: 16px; height: 16px; }
+.seed { width: 84px; font-family: var(--f-mono); }
+.small { font-size: 12px; color: var(--muted); }
+.card { background: var(--panel); border: 2px solid var(--ink); border-radius: 6px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.bot { border-top-width: 8px; }
+.bot.s0 { border-top-color: var(--steel); } .bot.s1 { border-top-color: var(--rust); }
+.bot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.bot-head h2 { font-size: 22px; }
+.team { font: 600 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; }
+.s0 .team { color: var(--steel); } .s1 .team { color: var(--rust); }
+.kg { font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; }
+.kg.over { color: var(--bad); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.grid2 label, .arm label { display: grid; gap: 2px; font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+.grid2 select, .arm select { padding: 4px 6px; font: 13px var(--f-body); width: 100%; min-width: 0; }
+.arm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.wdesc { font-size: 12.5px; color: var(--muted); margin: 0; min-height: 2.6em; }
+.diag { width: 100%; height: auto; aspect-ratio: 240 / 150; background: var(--chip); border-radius: 4px; display: block; }
+.parts { display: grid; gap: 3px; font-size: 12px; }
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) 54px 72px; gap: 6px; align-items: center; }
+.prow span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hpb { height: 7px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.hpb i { display: block; height: 100%; }
+.st { font: 600 10px var(--f-mono); text-transform: uppercase; letter-spacing: .05em; text-align: right; color: var(--muted); white-space: nowrap; }
+.st.bad { color: var(--bad); } .st.warn { color: var(--warn); }
+details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.logbox { max-height: 230px; overflow-y: auto; font-size: 13px; }
+.logbox ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.logbox li { display: grid; grid-template-columns: 44px 10px minmax(0, 1fr); gap: 6px; align-items: baseline; }
+.logbox time { font: 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.logbox .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.logbox li.big { font-weight: 600; }
+.report { display: grid; gap: 12px; }
+.rep-head { font: 400 24px/1.15 var(--f-display); text-wrap: balance; }
+.rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.rep-grid .card h3 { margin: 0; font: 400 18px var(--f-display); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; }
+.kv b { font: 600 13px var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.causes { display: grid; gap: 3px; font-size: 12px; }
+.causes div { display: grid; grid-template-columns: 90px 1fr 38px; gap: 6px; align-items: center; }
+.causes i { display: block; height: 8px; border-radius: 2px; }
+.lost { margin: 0; padding-left: 18px; font-size: 12.5px; display: grid; gap: 1px; }
+.notes { font-size: 13.5px; color: var(--ink); }
+.notes ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; }
+.notes b { font-weight: 600; }
+.tblwrap { overflow-x: auto; }
+.card > * { min-width: 0; }
+.mtab { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 640px; }
+.mtab th { font: 600 11px var(--f-mono); letter-spacing: .04em; text-align: center; padding: 4px 6px; white-space: nowrap; }
+.mtab tbody th { text-align: left; }
+.mtab td { padding: 2px; text-align: center; }
+.mtab td.self { color: var(--muted); }
+.dvh { margin: 22px 0 4px; font-size: 16px; }
+.mtab td.avg { font: 600 13px var(--f-mono); padding: 0 8px; }
+.mcell { width: 100%; min-width: 52px; padding: 5px 0; border: 1px solid var(--line); border-radius: 4px; font: 600 13px var(--f-mono);
+  background: color-mix(in srgb, var(--good) calc(max(var(--k), 0) * 70%), color-mix(in srgb, var(--bad) calc(max(calc(var(--k) * -1), 0) * 70%), var(--panel))); }
+.mnotes { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 16px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow"><b>2.0</b> Lineup draft, 8 Nov</div>
+      <h1>ROBOCUS 2.0 Lineup Arena</h1>
+    </div>
+    <p class="lede">The 25 robots of the 2.0 lineup at their power grades (level 0 starters, market levels 1-3) and the 25 part cards at their 2.0 strengths. Pick two robots, bolt on parts, watch the fight or test a batch of fights.</p>
+  </header>
+
+  <main class="lab">
+    <section class="col" aria-label="Arena">
+      <div class="pit"><canvas id="arena" aria-label="Arena: two robots fighting, seen from above"></canvas></div>
+      <div class="bar">
+        <button class="go" id="fight" type="button">Fight!</button>
+        <button id="pause" type="button" aria-pressed="false">Pause</button>
+        <button id="replay" type="button" title="Same builds, same seed: the exact same fight">Replay</button>
+        <span class="small">Seed</span><input class="seed" id="seed" type="number" min="1" value="7" aria-label="Seed">
+        <button id="newseed" type="button">New seed</button>
+        <span class="seg" role="group" aria-label="Speed">
+          <button type="button" data-speed="0.25" aria-pressed="false">¼×</button><button type="button" data-speed="0.5" aria-pressed="false">½×</button><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="2" aria-pressed="false">2×</button>
+        </span>
+        <label class="chk"><input id="drama" type="checkbox" checked> Drama cam</label>
+        <span class="seg" role="group" aria-label="Fight mode">
+          <button type="button" data-mode="1v1" aria-pressed="true">1v1</button><button type="button" data-mode="2v2" aria-pressed="false" title="Two teams of two: Steel (blues) vs Rust (oranges). Friendly fire does 35%.">2v2</button><button type="button" data-mode="ffa" aria-pressed="false" title="Four robots, one from each corner, last one standing wins">FFA</button>
+        </span>
+        <select id="arenaSel" aria-label="Arena"></select>
+      </div>
+      <div class="card" id="reportCard" hidden><div class="report" id="report"></div></div>
+      <div class="card">
+        <h2>Fight log</h2>
+        <div class="logbox" id="logbox"><ol id="log"></ol></div>
+      </div>
+    </section>
+
+    <aside class="col" aria-label="Robots">
+      <div class="card bot s0" id="bot0"></div>
+      <div class="card bot s1" id="bot1"></div>
+      <div class="card bot" id="bot2" hidden></div>
+      <div class="card bot" id="bot3" hidden></div>
+    </aside>
+  </main>
+
+  <section class="card" id="qs" aria-labelledby="qs-h">
+    <div class="bar" style="justify-content:space-between"><h2 id="qs-h">Quick match</h2><span class="small">1v1, robot 1 (blue) against robot 2 (orange), same arena, sides swapped every other fight.</span></div>
+    <div class="bar">
+      <button class="go" id="qsRun" type="button">Test</button>
+      <select id="qsN" aria-label="Number of fights"><option value="10">10 fights</option><option value="20" selected>20 fights</option><option value="50">50 fights</option></select>
+      <span class="small">Random matchup:</span>
+      <button id="qsSame" type="button">Same level</button><button id="qsOne" type="button">One level apart</button><button id="qsTwo" type="button">Two levels apart</button>
+      <button id="qsClear" type="button">Remove all parts</button>
+    </div>
+    <p id="qsOut" class="small" aria-live="polite">Targets: one level up wins about 62%, two levels about 77%. One part should bring a robot level with the next level, a legendary with the level after that.</p>
+  </section>
+
+  <section class="card notes">
+    <h2>The 2.0 lineup</h2>
+    <ul>
+      <li><b>Levels.</b> 9 starters (level 0) and 16 market robots in levels 1-3. Each robot card has a power grade: its weapon damage and every part's HP times that number (x0.76 to x1.21). In 3,600 test fights each level beat the level below about 60-62% of the time, two levels up 77%, three levels 91%.</li>
+      <li><b>Parts (22 cards, 18 types).</b> Drones, modules and stat cards. A module part replaces the robot's own module. The % in the picker is how often a robot with that part beats robots one level up (stock: about 38%).</li>
+      <li><b>Legendaries (3).</b> Prototype core, Field hospital and the reworked Quantum shield (phases out on the first real hit, recharges in 8 s). The % is against robots two levels up (stock: about 25%).</li>
+      <li><b>Same physics as the Damage Lab.</b> Parts tear off, robots can land on their side, the arena strikes back. Same seed, same fight.</li>
+      <li>Full write-up: <code>docs/robocus-2.0-lineup.md</code> in the ROBOCUP repo.</li>
+    </ul>
+  </section>
+</div>

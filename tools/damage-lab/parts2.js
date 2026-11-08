@@ -13,7 +13,8 @@ Object.assign(P2, {
   'bumper:spiked': () => ({ bumper: 'spiked' }),
   'leg:core': (sp, b) => ({ hpK: b.hpK * 1.3, dmgK: b.dmgK * 1.3 }), // legendary prototype core
   'leg:quantum': () => ({ mod: 'quantum' }),   // run with PK quantum:k
-  'leg:hospital': (sp, b) => ({ helpers: (sp.helpers || []).concat(['medic']).slice(0, 3), hpK: b.hpK * 1.1 }),
+  'leg:hospital': (sp, b) => ({ helpers: (sp.helpers || []).concat(['fieldmedic']).slice(0, 3), hpK: b.hpK * 1.1 }), // full-strength medic
+  'leg:quantum2': () => ({ qshield: true }), // recharging phase shield (QS env: t,cd)
 });
 module.exports = { P2 };
 if (require.main === module) (async () => {

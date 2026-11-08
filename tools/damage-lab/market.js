@@ -2,7 +2,7 @@
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 if (!isMainThread) {
   const L = require('./engine.js');
-  Object.assign(L.TUNE, workerData.tune || {}); if (process.env.PK) for (const kv of process.env.PK.split(',')) { const [k, v] = kv.split(':'); L.ARC.pk[k] = +v; } /* 2.0 part potency knobs */ if (process.env.OMNI) L.ARC.omni = +process.env.OMNI; if (process.env.OKB) L.DRIVES.omni.kb = +process.env.OKB; if (process.env.OFACE) L.ARC.omniFace = +process.env.OFACE;
+  Object.assign(L.TUNE, workerData.tune || {}); if (process.env.PK) for (const kv of process.env.PK.split(',')) { const [k, v] = kv.split(':'); L.ARC.pk[k] = +v; } /* 2.0 part potency knobs */ if (process.env.QS) { const [t, cd] = process.env.QS.split(','); L.QSHIELD.t = +t; L.QSHIELD.cd = +cd; } if (process.env.OMNI) L.ARC.omni = +process.env.OMNI; if (process.env.OKB) L.DRIVES.omni.kb = +process.env.OKB; if (process.env.OFACE) L.ARC.omniFace = +process.env.OFACE;
   const out = [];
   for (const job of workerData.jobs) {
     const [i, j, seed, arena] = job, swap = seed % 2 === 1;

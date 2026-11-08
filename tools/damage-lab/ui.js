@@ -2,6 +2,8 @@
 (function () {
   'use strict';
   const L = window.DamageLab;
+  const LU = window.Lineup || null; // ROBOCUS 2.0 Lineup Arena: robots with levels and power grades, 2.0 part cards
+  if (LU) LU.usePK();
   // robot colours: 1v1 and FFA use one colour per robot; in 2v2 robots 0 & 2 are team Steel (blues), 1 & 3 team Rust (oranges)
   const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
@@ -31,10 +33,35 @@
   const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers', proc: 'Processor', mod: 'Module', shape: 'Hull' };
   const FIELDS = ['weapon', 'chassis', 'shape', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
-  function fullSpec(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
+  if (LU) st.spec = [{ robot: 'Thumper', parts: [] }, { robot: 'Hornet', parts: [] }, { robot: 'Juggernaut', parts: [] }, { robot: 'Forklift', parts: [] }];
+  function fullSpec(i) { if (LU) { const s = st.spec[i]; return L.normSpec(LU.build(s.robot, s.parts)); }
+    return fullSpecLab(i); }
+  function fullSpecLab(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
   const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain + (sp.helpers || []).length;
-  function nameOf(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + (s.wd && s.wd !== 'std' ? ' Mk II' : '') + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
+  function nameOf(i) { if (LU) { const s = st.spec[i], n = s.parts.filter(Boolean).length; return s.robot + (n ? ' +' + n : ''); } return nameOfLab(i); }
+  function nameOfLab(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + (s.wd && s.wd !== 'std' ? ' Mk II' : '') + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
+  // Lineup Arena card: robot by level, two parts and a legendary
+  function buildLineupCard(i) {
+    const el = $('bot' + i), s = st.spec[i], sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
+    el.style.borderTopColor = TC(i).col;
+    const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([, v]) => v[0] === t).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('');
+    const partOpts = (cur, leg) => '<option value="">none</option>' + ['drone', 'module', 'stat', 'legendary'].filter(k => leg ? k === 'legendary' : k !== 'legendary').map(kind => `<optgroup label="${kind === 'stat' ? 'Stat cards' : kind === 'legendary' ? 'Legendary' : kind[0].toUpperCase() + kind.slice(1) + 's'}">${Object.entries(P).filter(([, v]) => v.kind === kind).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${v.name} (${v.vs}%)</option>`).join('')}</optgroup>`).join('');
+    const parts = s.parts.filter(Boolean);
+    el.innerHTML = `
+      <div class="bot-head"><div><div class="team" style="color:${TC(i).col}">${st.mode === '2v2' ? 'Team ' + TC(i).name : TC(i).name} · <b>level ${lv}</b></div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
+      <div class="grid2" style="grid-template-columns:1fr"><label for="lr${i}">Robot<select id="lr${i}">${robotOpts}</select></label></div>
+      <div class="grid2"><label for="lp0${i}">Part 1<select id="lp0${i}" data-slot="0">${partOpts(s.parts[0])}</select></label><label for="lp1${i}">Part 2<select id="lp1${i}" data-slot="1">${partOpts(s.parts[1])}</select></label></div>
+      <div class="grid2" style="grid-template-columns:1fr"><label for="lp2${i}">Legendary<select id="lp2${i}" data-slot="2">${partOpts(s.parts[2], true)}</select></label></div>
+      <p class="wdesc">${L.WEAPONS[sp.weapon].d}${sp.proc !== 'standard' ? ` <span class="small">${L.PROCS[sp.proc].label}.</span>` : ''}${sp.mod !== 'none' ? ` <span class="small">${L.MODULES[sp.mod].label}.</span>` : ''}</p>
+      ${parts.length ? `<p class="wdesc small">${parts.map(k => `<b>${P[k].name}:</b> ${P[k].d}`).join(' ')}</p>` : '<p class="wdesc small">The % next to a part: how often a robot with it beats robots one level up (legendary: two levels up). Stock: about 38% / 25%.</p>'}
+      <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
+      <details id="pd${i}"><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
+    $('lr' + i).onchange = e => { st.spec[i] = { robot: e.target.value, parts: s.parts.slice() }; buildCard(i); restart(); };
+    el.querySelectorAll('[data-slot]').forEach(sel => sel.onchange = () => { const ps = s.parts.slice(); ps[+sel.dataset.slot] = sel.value || null; st.spec[i] = { robot: s.robot, parts: ps }; buildCard(i); restart(); });
+    const kg = L.weightOf(sp); $('kg' + i).textContent = kg + ' kg';
+  }
   function buildCard(i) {
+    if (LU) return buildLineupCard(i);
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
     el.style.borderTopColor = TC(i).col;
     const pl = keys => keys.map(k => [k, `${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()})`]);
@@ -890,6 +917,32 @@
     el.querySelectorAll('.mcell').forEach(bn => bn.onclick = () => { if (st.mode !== '1v1') { st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null; } st.spec[0] = { preset: n[+bn.dataset.i] }; st.spec[1] = { preset: n[+bn.dataset.j] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   }
   marketTable();
+  if (LU && $('qs')) {
+    const out = $('qsOut'); let busy = false;
+    const quick = async () => {
+      if (busy) return; busy = true; const N = +$('qsN').value || 20, a = fullSpec(0), b = fullSpec(1), na = nameOf(0), nb = nameOf(1) === na ? nameOf(1) + ' II' : nameOf(1);
+      let wa = 0, ko = 0; const T = [];
+      for (let k = 0; k < N; k++) {
+        const swap = k % 2 === 1, seed = 4000 + st.seed * 97 + k;
+        const S2 = L.run(swap ? { a: Object.assign({}, b, { name: nb }), b: Object.assign({}, a, { name: na }), seed, arena: st.arena } : { a: Object.assign({}, a, { name: na }), b: Object.assign({}, b, { name: nb }), seed, arena: st.arena }, 200);
+        if ((S2.result.winner === 0) !== swap) wa++; if (S2.result.how === 'KO') ko++; T.push(S2.t);
+        out.textContent = `Running ${k + 1} of ${N}…`; await new Promise(r => setTimeout(r, 0));
+      }
+      T.sort((x, y) => x - y);
+      out.innerHTML = `<b style="color:${TC(0).col}">${na}</b> wins <b>${wa} of ${N}</b> (${Math.round(100 * wa / N)}%) against <b style="color:${TC(1).col}">${nb}</b> · median fight ${Math.round(T[T.length >> 1])} s · ${Math.round(100 * ko / N)}% knockouts · ${L.ARENAS[st.arena].label}`;
+      busy = false;
+    };
+    $('qsRun').onclick = quick;
+    const pick = gap => {
+      const names = Object.keys(LU.ROBOTS), lo = Math.floor(Math.random() * (4 - gap));
+      const of = t => names.filter(k => LU.ROBOTS[k][0] === t), A = of(lo), B = of(lo + gap).filter(k => gap || k !== '');
+      let a = A[Math.floor(Math.random() * A.length)], b = B[Math.floor(Math.random() * B.length)]; if (!gap) while (b === a) b = B[Math.floor(Math.random() * B.length)];
+      st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null;
+      st.spec[0] = { robot: a, parts: [] }; st.spec[1] = { robot: b, parts: [] }; buildCard(0); buildCard(1); start(); out.textContent = `${a} (level ${lo}) vs ${b} (level ${lo + gap}). Watch it, or test ${$('qsN').value} fights.`;
+    };
+    $('qsSame').onclick = () => pick(0); $('qsOne').onclick = () => pick(1); $('qsTwo').onclick = () => pick(2);
+    $('qsClear').onclick = () => { for (let i = 0; i < 4; i++) st.spec[i] = { robot: st.spec[i].robot, parts: [] }; for (let i = 0; i < 4; i++) buildCard(i); start(); };
+  }
   // what each helper drone is worth: click a cell to watch that robot with that drone
   (function droneTable() {
     const el = $('market'); if (!el || !L.DRONE_VALUE) return;

@@ -61,6 +61,7 @@
   // physical: a solid disc that robots bump into; the others hover (only shots, beams, flames, saws and swinging weapons reach them)
   const HELPERS = {
     medic: { label: 'Medic drone', hp: 45, r: 0.1, mass: 3, col: '#4CC26A', ic: '+', d: 'Hangs behind its robot and patches it up: chassis +4 HP/s, parts +3 HP/s, puts out battery fires and restarts a burnt-out motor after 9 s, while it stays close.' },
+    fieldmedic: { label: 'Field hospital medic', hp: 45, r: 0.1, mass: 3, col: '#2FD27A', ic: '+', d: 'Hangs behind its robot and patches it up: chassis +4 HP/s, parts +3 HP/s, puts out battery fires and restarts a burnt-out motor after 9 s, while it stays close.' },  // legendary (ROBOCUS 2.0): a medic drone that always runs at full strength
     gunner: { label: 'Gun drone', hp: 45, r: 0.1, mass: 3, col: '#E8C547', ic: 'G', d: 'Orbits its robot and fires 2 small shots per second at the enemy.' },
     laser: { label: 'Laser drone', hp: 40, r: 0.1, mass: 3, col: '#FF5A3C', ic: 'L', d: 'Hangs back about 2 m and burns the enemy with a thin beam that heats parts up.' },
     booster: { label: 'Booster drone', hp: 60, r: 0.11, mass: 4, col: '#FF8A2A', ic: 'B', d: 'Docks on the back and pushes: +50% push, +15% speed, weapon overdrive (+15% damage) and a nitro kick every 4.5 s when lined up.' },
@@ -353,10 +354,10 @@
       const m = b.getMass(); b.applyForce(V((vx - v.x) * m * 10, (vy - v.y) * m * 10), p, true);
       d.beam = null; if (idle) continue;
       const near = Math.hypot(p.x - rp.x, p.y - rp.y);
-      const hurt = k === 'medic' && near < 1.3 && (f01(R) < 1 || R.internals.some(q => q.hp < q.maxHp && (q.hp > 0 || q.key === 'motor' || q.key === 'wmotor')) || R.parts.some(q => q.attached && q.hp < q.maxHp));
+      const hurt = (k === 'medic' || k === 'fieldmedic') && near < 1.3 && (f01(R) < 1 || R.internals.some(q => q.hp < q.maxHp && (q.hp > 0 || q.key === 'motor' || q.key === 'wmotor')) || R.parts.some(q => q.attached && q.hp < q.maxHp));
       if (!hurt) d.revive = 0;
       if (hurt) {
-        const c = R.chassis, hk = pk('medic'); c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 2 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 3 * hk * DT);
+        const c = R.chassis, hk = k === 'fieldmedic' ? 1 : pk('medic'); c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 2 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 3 * hk * DT);
         // a burnt-out motor gets restarted after 5 s of patching
         const dead = R.internals.find(q => q.hp <= 0 && (q.key === 'motor' || q.key === 'wmotor'));
         if (dead) { d.revive = (d.revive || 0) + DT; if (d.revive > 9) { d.revive = 0; dead.hp = dead.maxHp * 0.35; dead.state = ''; dead.heat = 0; callout(S, 'PATCHED UP!', rp.x, rp.y, false); say(S, `${R.name}: medic drone restarts the ${dead.label.toLowerCase()}`, R.id, true); } } if (R.battery.fire) R.battery.fire = Math.max(0, R.battery.fire - DT);
@@ -387,6 +388,7 @@
   }
   const f01 = R => Math.min(R.chassis.hp / R.chassis.maxHp, 1);
   const pk = k => ARC.pk[k] == null ? 1 : ARC.pk[k];
+  const QSHIELD = { t: 1.5, cd: 8 }; // legendary quantum shield: phase time and recharge (s)
   function makeRobot(S, spec, id, x, y, ang) {
     const C = CHASSIS[spec.chassis], hl = C.hl, hw = C.hw, W = WEAPONS[spec.weapon], a = spec.armour;
     const body = S.world.createBody({ type: 'dynamic', position: V(x, y), angle: ang, linearDamping: 0.12, angularDamping: 0.5 });
@@ -665,6 +667,8 @@
       if (rear || sideHit) { atk.stats.flankD = (atk.stats.flankD || 0) + d; if (atk.proc === 'flanker') { d *= 1.25; if (d >= 8 && S.t - (atk.lastBack || -9) > 1.2) { atk.lastBack = S.t; callout(S, rear ? 'BACKSTAB!' : 'FLANKED!', h.x, h.y, d >= 20); } } }
       atk.stats.anyD = (atk.stats.anyD || 0) + d;
     }
+    // legendary quantum shield (2.0): the first real hit after it has recharged is cancelled and the robot phases out for a moment
+    if (R.spec.qshield && atk && d >= 6 && !(R.qsCd > 0) && R.alive && !(R.quantumT > 0)) { R.qsCd = QSHIELD.cd; R.quantumT = QSHIELD.t; const qp = R.body.getPosition(); callout(S, 'PHASED!', qp.x, qp.y, d >= 20); S.fx.push({ type: 'shieldhit', robot: R.id }); return; }
     if (R.quantumT > 0 && h.cause !== 'pit') { if (S.step % 10 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); return; }
     if (R.shield > 0 && h.cause !== 'heat' && h.cause !== 'fire') { const ab = Math.min(R.shield, d); R.shield -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.shield <= 0) { R.shieldT = 0; say(S, `${R.name}: shield popped`, R.id); } if (d <= 0) return; }
     if (R.eSh > 0 && atk && modOn(R)) { const ab = Math.min(R.eSh, d); R.eSh -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.eSh <= 0) say(S, `${R.name}: energy shield down`, R.id); R.lastHurt = S.t; if (d <= 0) return; }
@@ -1369,7 +1373,7 @@
     for (const w of S.ewalls) { w.life -= DT; if (w.life <= 0) S.world.destroyBody(w.body); } S.ewalls = S.ewalls.filter(w => w.life > 0);
     for (const R of S.robots) {
       if (R.jammed > 0) R.jammed -= DT; if (R.chipCd > 0) R.chipCd -= DT; if (R.chipFreeze > 0) R.chipFreeze -= DT; if (R.crossed > 0) R.crossed -= DT; if (R.berserk > 0) R.berserk -= DT; if (R.misfire > 0) R.misfire -= DT;
-      R.misfireOff = R.misfire > 0 && Math.floor(S.t * 3) % 2 === 0; if (R.stun > 0) R.stun -= DT; if (R.quantumT > 0) R.quantumT -= DT; if (R.ramCd > 0) R.ramCd -= DT; if (R.modOff > 0) R.modOff -= DT; if (R.driveLock > 0) R.driveLock -= DT; if (R.oiled > 0) R.oiled -= DT;
+      R.misfireOff = R.misfire > 0 && Math.floor(S.t * 3) % 2 === 0; if (R.stun > 0) R.stun -= DT; if (R.quantumT > 0) R.quantumT -= DT; if (R.qsCd > 0) R.qsCd -= DT; if (R.ramCd > 0) R.ramCd -= DT; if (R.modOff > 0) R.modOff -= DT; if (R.driveLock > 0) R.driveLock -= DT; if (R.oiled > 0) R.oiled -= DT;
       // strain: every strain point is a small chance per second of a malfunction
       if (R.alive && R.strain > 0 && S.rng() < 0.004 * R.strain * DT) {
         const r = S.rng(), opts = [];
@@ -2051,6 +2055,6 @@
   const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,70,62,18,17,55,88],[30,null,40,75,53,42,62],[38,60,null,72,60,42,28],[82,25,28,null,62,52,42],[83,47,40,38,null,33,43],[45,58,58,48,67,null,37],[12,38,72,58,57,63,null]],"fights":60}; // open floor only (8 Nov: pit removed)
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
-  const API = { sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
