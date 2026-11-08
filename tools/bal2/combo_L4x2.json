@@ -1,0 +1,7 @@
+{ "_note": "combo, all eight level 4 robots in the pool (perGame 8)",
+  "lots": {"crew": 7, "partCopies": {"medic": 1, "laser": 0, "waller": 0, "blocker": 0, "spotter": 0, "shield": 1}},
+  "robotLevels": {"scheme": "gradual"},
+  "repair": {"brokenTwo": true, "engineersOnly": true},
+  "startCrew": {"mechanic": 2, "chief": 0, "accountant": 1, "analyst": 1},
+  "crewDeck": ["mechanic", "mechanic", "mechanic", "chief", "chief", "chief", "repairtech", "repairtech", "accountant", "hacker", "analyst", "fixer", "secchief"],
+  "level4": {"perGame": 8} }

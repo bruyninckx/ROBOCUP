@@ -1,0 +1,2 @@
+{ "_note": "the new defaults with level 4 off (as before the level 4 robots)",
+  "level4": {"on": false} }
