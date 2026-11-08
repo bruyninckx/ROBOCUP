@@ -40,14 +40,14 @@
     if (w.lost) w.lost = w.lost.filter(k => !labels.has(k));
     if (key === 'body') { delete w.lid; if (w.drones) w.drones = w.drones.map(() => 1); }
   }
-  // every Upkeep for free: body parts that are still there come back to at least half (lost ones stay lost)
-  function bodyHeal(spec) {
+  // every Upkeep for free: body parts that are still there come back to at least half (lv; lost ones stay lost)
+  function bodyHeal(spec, lv = 0.5) {
     const w = spec.wear; if (!w) return;
     const R = probe(spec), body = new Set(R.parts.filter(q => zoneOfPart(q) === 'body').map(q => q.label).concat(R.internals.filter(q => zoneOfPart(q) === 'body').map(q => q.label)));
-    for (const m of ['parts', 'ints']) if (w[m]) for (const k of Object.keys(w[m])) if (body.has(k) && w[m][k] > 0) w[m][k] = Math.max(0.5, w[m][k]);
-    for (const k of ['Battery', 'Radio receiver', 'Chassis']) { if (w.ints && w.ints[k] != null) w.ints[k] = Math.max(0.5, w.ints[k]); if (w.parts && w.parts[k] != null) w.parts[k] = Math.max(0.5, w.parts[k]); }
-    if (w.lid != null && w.lid > 0) w.lid = Math.max(0.5, w.lid);
-    if (w.drones) w.drones = w.drones.map(d => d > 0 ? Math.max(0.5, d) : 0);
+    for (const m of ['parts', 'ints']) if (w[m]) for (const k of Object.keys(w[m])) if (body.has(k) && w[m][k] > 0) w[m][k] = Math.max(lv, w[m][k]);
+    for (const k of ['Battery', 'Radio receiver', 'Chassis']) { if (w.ints && w.ints[k] != null) w.ints[k] = Math.max(lv, w.ints[k]); if (w.parts && w.parts[k] != null) w.parts[k] = Math.max(lv, w.parts[k]); }
+    if (w.lid != null && w.lid > 0) w.lid = Math.max(lv, w.lid);
+    if (w.drones) w.drones = w.drones.map(d => d > 0 ? Math.max(lv, d) : 0);
   }
   // ---- strength model (logit units; one level = 0.62, see docs/robocus-2.0-lineup.md) ----
   // measured: a part closes about one level, a legendary two; damage (tools/damage-lab/wearcost.js):
