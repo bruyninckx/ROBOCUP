@@ -575,15 +575,16 @@ html, body {
     startFame: 0, winFame: 12,
     fameFloor: 1,                 // fame never drops below this by losing it (or below the start fame, if that is lower)
     startCredits: 8,
-    startCrew: { mechanic: 3, chief: 1 }, sovereignMechanics: 4,
-    crewDeck: ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'],
+    // Kev, 8 Nov (round 2 "combo"): 2 Mechanics + Accountant + Analyst; more engineers in the crew deck; 7 crew lots; lean part lots
+    startCrew: { mechanic: 2, chief: 0, accountant: 1, analyst: 1 }, sovereignMechanics: 4,
+    crewDeck: ['mechanic', 'mechanic', 'mechanic', 'chief', 'chief', 'chief', 'repairtech', 'repairtech', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief'],
     lots: {                       // the Market lot deck (4 lots a round stays fixed)
-      robot: 4, crew: 4,          // New Robot / New Crew lots
-      partCopies: {},             // copies per part id (src2/lineup.js PARTS key, e.g. { shield: 2 }); default: its own copies
+      robot: 4, crew: 7,          // New Robot / New Crew lots
+      partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1 },   // copies per part id (src2/lineup.js PARTS key); others: its own copies
       kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
     },
     robotLevels: {                // which level a New Robot lot deals, by round: [from round, { level: weight }]
-      scheme: 'waves', rounds: 5, // rounds 1..rounds always offer a robot lot
+      scheme: 'gradual', rounds: 5, // rounds 1..rounds always offer a robot lot (Kev, 8 Nov: gradual, was waves)
       schemes: {
         waves:   [[1, { 1: 1 }], [3, { 2: 1 }], [5, { 3: 1 }]],
         waves2:  [[1, { 1: 1 }], [3, { 2: 1 }], [5, { 1: 1, 2: 1, 3: 2 }]],
@@ -592,8 +593,8 @@ html, body {
       },
     },
     level4: {                     // level 4 end-game robots (docs/robocus-2.0-level4.md; Kev, 8 Nov: "we need level 4 in the game")
-      on: true, fromRound: 7,     // their lots start in this round
-      perGame: 4,                 // of the 8, drawn at random per game (8 = all)
+      on: true, fromRound: 6,     // their lots start in this round (Kev, 8 Nov: 6, was 7)
+      perGame: 8,                 // of the 8, drawn at random per game (8 = all; Kev, 8 Nov: 8, was 4)
       lotEvery: 1,                // from fromRound: a level 4 lot every N rounds (1 = every round) while any are left
       minBid: 5,                  // lowest winning bid for a level 4 lot (lower = unsold, back to its deck)
       upkeep: 0,                  // extra Cr per level 4 robot every Upkeep (option: 1; the Accountant does not cover it)
@@ -603,18 +604,27 @@ html, body {
     repair: {
       credits: 2,                 // Cr per action once the free and crew actions are used up
       crewActs: { default: 1 },   // repair actions per crew member, per kind (e.g. { default: 1, chief: 2 })
-      engineersOnly: false,       // switch: only the engineer kinds below give repair actions
+      engineersOnly: true,        // switch: only the engineer kinds below give repair actions (Kev, 8 Nov: on)
       engineers: ['mechanic', 'chief', 'repairtech'],
       actsDamaged: 1, actsBroken: 1,
-      brokenTwo: false,           // switch: a broken zone costs 2 actions (same as actsBroken: 2)
+      brokenTwo: true,            // switch: a broken zone costs 2 actions (same as actsBroken: 2) (Kev, 8 Nov: on)
       bodyHeal: 0.5,              // body parts heal back to this every Upkeep for free
       freeLoser: 1, freeLoserVulture: 2, freeAegis: 1,
     },
     mechanicCr: 1,                // credits each Mechanic earns in Upkeep
+    // Kev, 8 Nov: a robot lot won with a full garage (3 bays) = trade-in: scrap one of your robots for base + perLevel × its level Cr,
+    // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
+    tradeIn: { on: true, base: 1, perLevel: 1 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2 },
-    cards: { upDmg: 1.2, upHp: 1.2, lens: 0.85, sugar: 0.6, ocAfter: 0.4, boltsLid: 0.3 },   // robot-stat Intrigue cards
+    // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
+    // ocMode: 'heat' (hot-wound motors: +35% force, 1.9x heat) | 'noheat' (+35% force without the extra heat build-up)
+    cards: { upDmg: 1.2, upHp: 1.2, lens: 0.85, sugar: 0.6, ocAfter: 0.4, boltsLid: 0.3, boltsMode: 'lid', boltsWheel: 0.3, ocMode: 'heat' },
     live: {},                     // live card strengths: filled from DamageLab.LIVE_K below
     copies: {},                   // Intrigue / Auction card copies by card name, e.g. { 'Smear Campaign': 2 }
+    // seat fairness (round 3, 8 Nov): ties between teams go to a seat order shuffled every round (was: the lower seat), the AI
+    // reacts in that order, and round 1's Intrigue starts at a random seat. fairTies: false = the old seat-index order
+    seats: { fairTies: true },
+    auction: { perFight: 2, minBid: 1 },   // fight cards (Bets step): cards offered per fight; lowest bid that counts (Cr)
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
   function balMerge(a, b) {
@@ -883,7 +893,16 @@ html, body {
   let SEATS = null;
   const isHuman = i => i != null && i >= 0 && (SEATS ? SEATS[i] === 'local' || SEATS[i] === 'remote' : i === HS);
   const isRemote = i => !!SEATS && SEATS[i] === 'remote';
-  const seatOrder = () => [0, 1, 2, 3].filter(isHuman).concat([0, 1, 2, 3].filter(i => !isHuman(i)));   // people first (reaction windows)
+  /* Seat fairness (round 3, 8 Nov): AI games won by seat 20.5 / 23 / 26 / 30.5% (600 games). Every tie between teams went to the
+   * lower seat (stable sorts, a.i − b.i): the "fame leader" in a tie (smeared more, given the hardest matchup by the host, blocked
+   * more), the first rival for harmful cards, the first AI in every reaction window, round 1's first Intrigue turn. Now ties use
+   * G.tieOrder, a seat order shuffled each round from the game seed (no game dice used, so deals are unchanged). */
+  const fairTies = () => !(BAL.seats && BAL.seats.fairTies === false);
+  const seatHash = k => { let t = (GAME_SEED ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  function seatPerm(k) { const a = [0, 1, 2, 3]; for (let i = 3; i > 0; i--) { const j = Math.floor(seatHash(k * 7 + i) * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const tieRank = t => { const i = typeof t === 'number' ? t : t.i; if (!fairTies() || !G || !G.tieOrder) return i; return G.tieOrder.indexOf(i); };
+  const tieSort = arr => fairTies() ? arr.slice().sort((a, b) => tieRank(a) - tieRank(b)) : arr.slice();
+  const seatOrder = () => [0, 1, 2, 3].filter(isHuman).concat(tieSort([0, 1, 2, 3]).filter(i => !isHuman(i)));   // people first (reaction windows), then the AI in this round's seat order
   let botSeq = 0;
 
   const cam = { x: 0, y: 40, zoom: 0.58, tx: 0, ty: 40, tzoom: 0.58, manualZoom: false };
@@ -1119,7 +1138,7 @@ html, body {
   const BASE = new Map();
   function baseInfo(r) {
     const key = r.name + '|' + partsOf(r).join(',');
-    if (!BASE.has(key)) { const sp = LU.build(r.name, partsOf(r)), R = DL.create({ a: sp, b: sp, seed: 1 }).robots[0]; BASE.set(key, { motors: R.internals.filter(q => q.key === 'motor').map(q => q.label), helpers: DL.normSpec(sp).helpers.slice(), mod: DL.normSpec(sp).mod }); }
+    if (!BASE.has(key)) { const sp = LU.build(r.name, partsOf(r)), R = DL.create({ a: sp, b: sp, seed: 1 }).robots[0]; BASE.set(key, { motors: R.internals.filter(q => q.key === 'motor').map(q => q.label), wheels: R.parts.filter(q => q.kind === 'wheel').map(q => q.label), helpers: DL.normSpec(sp).helpers.slice(), mod: DL.normSpec(sp).mod }); }
     return BASE.get(key);
   }
   const droneCount = r => baseInfo(r).helpers.length;
@@ -1131,7 +1150,7 @@ html, body {
     const BC = BAL.cards;
     if (tm.up) { sp.dmgK *= BC.upDmg; sp.hpK *= BC.upHp; }   // Secret Upgrade
     if (tm.lens) sp.dmgK *= BC.lens;                     // Smudged Lens
-    if (tm.oc) sp.motor = 'hot';                         // Overclock
+    if (tm.oc) sp.motor = BC.ocMode === 'noheat' ? 'oc' : 'hot';   // Overclock (noheat: the engine's 'oc' motor, +35% force at normal heat)
     if (tm.sugar) {                                      // Sugar in the Tank: drive motors start at 60%
       sp.wear = sp.wear || emptyWear(); sp.wear.ints = sp.wear.ints || {};
       for (const lb of baseInfo(r).motors) sp.wear.ints[lb] = Math.min(sp.wear.ints[lb] != null ? sp.wear.ints[lb] : 1, BC.sugar);
@@ -1554,8 +1573,18 @@ html, body {
           $('#pAct1').onclick = () => act('rebidLock');
         } else pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}:</b> ${esc(tiedNames)} rebid in secret…</span>`;
       } else if (G.marketResolved) {
-        const myInst = PS().install || [];
-        if (myInst.length) {
+        const myInst = PS().install || [], myTI = PS().tradeIn || [];
+        if (myTI.length) {
+          const nb = myTI[0].bot, t = me();
+          pb.innerHTML = '<span>♻️ <b>Your garage is full:</b> pick a robot to scrap for <b>' + esc(nb.name) + '</b> (' + starsOf(nb.level) + '). You get ' + BAL.tradeIn.base + ' Cr + its level; its parts go to your Stash.</span>' +
+            t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(LOTS[id].name)).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
+          pb.querySelectorAll('[data-ti]').forEach(b => { b.onclick = () => act('tradeIn', b.dataset.ti); });
+        } else if (PS().stashTrim) {
+          const t = me(), n = stashOf(t).length - STASH_MAX;
+          pb.innerHTML = '<span>📦 <b>Stash full</b> (' + STASH_MAX + ' max): sell ' + n + ' to the bank.</span>' +
+            stashOf(t).map((id, k) => '<button class="act secondary" data-trim="' + k + '">🏦 ' + esc(LOTS[id].name) + ' (' + bankHalf(id) + ' Cr)</button>').join('');
+          pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
+        } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
           pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your Robot Bays below to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
           $('#pAct1').onclick = () => act('installKeep');
@@ -1796,7 +1825,7 @@ html, body {
     const sw = window.innerWidth, sh = window.innerHeight, lc = document.getElementById('leftCol');
     const top = Math.min(sh * 0.55, (lc ? lc.getBoundingClientRect().bottom : 0) + 12), bot = sh - 84, mid = (top + bot) / 2, room = Math.max(120, bot - top);
     const L = getDynamicLayout(0), P = PS(), t = G.teams[viewerSeat];
-    const mine = G.phase === 'upkeep' || (G.phase === 'arena' && P.choose) || (G.phase === 'market' && (P.install || []).length);
+    const mine = G.phase === 'upkeep' || (G.phase === 'arena' && P.choose) || (G.phase === 'market' && ((P.install || []).length || (P.tradeIn || []).length));
     const whole = G.phase === 'intrigue' || (G.phase === 'arena' && G.host === HS && !G.fight && !P.choose);
     let cx, cy, z;
     if (mine) {
@@ -1989,6 +2018,7 @@ html, body {
   function soleLeader() { const top = Math.max(...G.teams.map(x => x.fame)), L = G.teams.filter(x => x.fame === top); return L.length === 1 ? L[0] : null; }
   function startRound() {
     G.phase = 'upkeep';
+    G.tieOrder = seatPerm(G.round);   // this round's seat order for ties and reactions (seat fairness)
     G.hostCount = 1; G.hostFameGiven = 0;
     G.crateChoices = null; G.gather = null;
     for (let s = 0; s < 4; s++) { const P = PS(s); P.hostCount = 1; P.choose = false; P.skipTurn = false; }
@@ -2095,8 +2125,8 @@ html, body {
   const secReady = t => Math.max(0, (t.secBots || 0) - (t.exSec || 0));
   const handLimit = t => t.fame <= 4 ? 4 : t.fame <= 8 ? 5 : 6;
   const bestReady = t => readyRobots(t).slice().sort((a, b) => power(b) - power(a))[0] || t.robots.slice().sort((a, b) => power(b) - power(a))[0];
-  const leaderOf = () => G.teams.slice().sort((a, b) => b.fame - a.fame || a.i - b.i)[0];
-  const lowestOther = excl => G.teams.filter(t => !excl.includes(t.i)).sort((a, b) => a.fame - b.fame || a.i - b.i)[0];
+  const leaderOf = () => G.teams.slice().sort((a, b) => b.fame - a.fame || tieRank(a) - tieRank(b))[0];
+  const lowestOther = excl => G.teams.filter(t => !excl.includes(t.i)).sort((a, b) => a.fame - b.fame || tieRank(a) - tieRank(b))[0];
   // card fame stops at the win target, but a team already past it (a Grand Final win: double fame) keeps what it has:
   // a gain never lowers fame (it used to clamp 13 + 1 down to 12)
   // losing fame stops at BAL.fameFloor (1), or at the start fame if that is lower (a 0-fame start: 0); never raises fame
@@ -2817,7 +2847,7 @@ html, body {
         (r.faceDown = r.faceDown || []).push({ from: F.i, id });
         notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
       }
-      case 'Loose Bolts': { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
+      case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = bestReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
       case 'Rogue Firmware': { const r = bestReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
       case 'Tax Audit': { const p = payCr(T, 5); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
@@ -2924,7 +2954,25 @@ html, body {
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
   // 8 Nov (tools/damage-lab/cardvalue.js, 2,600 paired engine fights): how much each robot card moves the chance that
   // its robot wins its next fight (win-probability points / 100; + helps the robot, − hurts it). EMP: per module or drone.
-  const CARD_SWING = { up: 0.218, lens: -0.082, oc: 0, ocAfter: -0.109, sugar: 0, bolts: -0.009, boltsHeal: -0.005, firmChassis: -0.032, emp: -0.14 };
+  // Round 3 (8 Nov): measured per setting (BAL.cards); between measured numbers the swing is interpolated (outside: the nearest two
+  // extended). cardvalue.js runs: the defaults (cardvalue-results.json) and the round 3 proposals (cardvalue-new.json).
+  const SWING_AT = {
+    up:      [[1, 0], [1.15, 0.191], [1.2, 0.218]],                 // Secret Upgrade, by upDmg (upHp the same)
+    lens:    [[0.75, -0.155], [0.85, -0.082], [1, 0]],              // Smudged Lens
+    sugar:   [[0.3, -0.218], [0.4, -0.073], [0.6, 0], [1, 0]],      // Sugar in the Tank (motors only lose power below 35%)
+    ocAfter: [[0.3, -0.218], [0.4, -0.109], [0.6, 0], [1, 0]],      // Overclock: drive motors left at this after its fight
+  };
+  const SWING_MODE = { oc: { heat: 0, noheat: 0.064 }, bolts: { lid: -0.009, wheel: -0.073 }, boltsHeal: { lid: -0.005, wheel: -0.073 } };   // Loose Bolts wheel: Drive, no free heal
+  function swingAt(tab, x) {
+    const k = tab.findIndex(p => p[0] >= x); if (k >= 0 && tab[k][0] === x) return tab[k][1];
+    const i = k < 0 ? tab.length - 2 : k === 0 ? 0 : k - 1, [a, b] = [tab[i], tab[i + 1]];
+    return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0]);
+  }
+  const CARD_SWING = {
+    get up() { return swingAt(SWING_AT.up, BAL.cards.upDmg); }, get lens() { return swingAt(SWING_AT.lens, BAL.cards.lens); },
+    get sugar() { return swingAt(SWING_AT.sugar, BAL.cards.sugar); }, get ocAfter() { return swingAt(SWING_AT.ocAfter, BAL.cards.ocAfter); },
+    get oc() { return SWING_MODE.oc[BAL.cards.ocMode] || 0; }, get bolts() { return SWING_MODE.bolts[BAL.cards.boltsMode] || 0; }, get boltsHeal() { return SWING_MODE.boltsHeal[BAL.cards.boltsMode] || 0; },
+    firmChassis: -0.032, emp: -0.14 };
   const P_FIGHT_ROUND = 0.5;   // chance a team's best ready robot fights this round (a duel: 2 of 4 teams)
   // a fight is worth: 1 fame to its winner (to a rival: weighted by its threat) + about 3 Cr (the loser may be scrapped, bets)
   const fightStake = (F, T, fc) => fc * BAL.fame.win * (T === F ? 1 : aiThreat(F, T)) + 3;
@@ -2940,8 +2988,10 @@ html, body {
       case 'Secret Upgrade': return tm.up ? 0 : CARD_SWING.up * pNext * stake;
       case 'Smudged Lens': return tm.lens ? 0 : -CARD_SWING.lens * pNext * stake;
       case 'Sugar in the Tank': return tm.sugar ? 0 : -CARD_SWING.sugar * pNext * stake;
-      case 'Overclock': return tm.oc ? 0 : ((isHot(r) ? 0 : CARD_SWING.oc) + CARD_SWING.ocAfter * pLater) * pNext * stake;   // the drive damage after it costs more than the fight gains
-      case 'Loose Bolts': { const lid = r.wear && r.wear.lid != null ? r.wear.lid : 1; return lid <= BAL.cards.boltsLid ? 0 : -(CARD_SWING.bolts * pNow + CARD_SWING.boltsHeal * pLater) * stake; }
+      case 'Overclock': return tm.oc ? 0 : ((isHot(r) && BAL.cards.ocMode !== 'noheat' ? 0 : CARD_SWING.oc) + CARD_SWING.ocAfter * pLater) * pNext * stake;   // the drive damage after it costs more than the fight gains
+      case 'Loose Bolts': {
+        if (BAL.cards.boltsMode === 'wheel') { const lb = baseInfo(r).wheels[0], wv = lb && r.wear && r.wear.parts && r.wear.parts[lb] != null ? r.wear.parts[lb] : 1; return !lb || wv <= BAL.cards.boltsWheel ? 0 : -CARD_SWING.bolts * (pNow + (1 - pNow) * pLater) * stake; }   // lasts until a Drive repair
+        const lid = r.wear && r.wear.lid != null ? r.wear.lid : 1; return lid <= BAL.cards.boltsLid ? 0 : -(CARD_SWING.bolts * pNow + CARD_SWING.boltsHeal * pLater) * stake; }
       case 'Rogue Firmware': return -CARD_SWING.firmChassis * pLater * stake;   // chassis only: it can't fight until after the free heal (50%)
       case 'EMP the Garage': {   // only this round's fight; worth nothing against a robot with no module or drones
         if (T.tamper && T.tamper.noMods) return 0;
@@ -3004,15 +3054,15 @@ html, body {
   function aiBestTarget(F, c) {
     const T0 = aiTarget(F, c);
     if (c.target !== 'rival' || ['Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Joint Venture'].includes(c.name)) return T0;
-    if (c.name === 'Kick When Down') { const ok = G.teams.filter(o => o !== F && kickable(o)); return ok.length ? ok.sort((a, b) => aiThreat(F, b) - aiThreat(F, a))[0] : undefined; }
-    const opts = G.teams.filter(o => o !== F && !precheck(F, c, o) && (c.gate !== '▲' || o.fame < F.fame));
+    if (c.name === 'Kick When Down') { const ok = tieSort(G.teams.filter(o => o !== F && kickable(o))); return ok.length ? ok.sort((a, b) => aiThreat(F, b) - aiThreat(F, a))[0] : undefined; }
+    const opts = tieSort(G.teams.filter(o => o !== F && !precheck(F, c, o) && (c.gate !== '▲' || o.fame < F.fame)));
     if (!opts.length) return T0;
     return opts.map(o => ({ o, v: aiCardValue(F, c, o) })).sort((a, b) => b.v - a.v)[0].o;
   }
   /* ---------- AI Intrigue turn ---------- */
   const AI_ORDER = ['Smear', 'Publicity', 'Sabotage', 'Corporate', 'Contracts', 'Match-fixing', 'Security', 'Leverage'];
   function aiTarget(F, c) {
-    const others = G.teams.filter(o => o !== F);
+    const others = tieSort(G.teams.filter(o => o !== F));
     if (c.target === 'none') return null;
     if (c.target === 'self' || c.target === 'any') return F;
     if (c.name === 'Skeleton Crew') return others.find(o => readyCrew(o) === 0);
@@ -3095,7 +3145,7 @@ html, body {
   async function runIntrigue() {
     G.phase = 'intrigue';
     setCameraGoal('compound');
-    const first = G.prevHost >= 0 ? G.prevHost : (G.round - 1) % 4;
+    const first = G.prevHost >= 0 ? G.prevHost : ((fairTies() ? Math.floor(seatHash(-1) * 4) : 0) + G.round - 1) % 4;   // round 1: a random seat (was seat 1)
     G.ivOrder = [0, 1, 2, 3].map(k => (first + k) % 4); G.ivDone = 0;   // turn order + turns finished (shown on the board and status bar; plain data, so saves and snapshots carry it)
     for (let k = 0; k < 4; k++) {
       const ti = (first + k) % 4, T = G.teams[ti];
@@ -3226,11 +3276,11 @@ html, body {
    * can't use to teams that can, and make you offers; you can propose a trade to any team (it accepts if it gains). */
   async function openMarketAI() {
     G.openBusy = true; updateHud();
-    for (const A of G.teams) {
+    for (const A of tieSort(G.teams)) {
       if (isHuman(A.i)) continue;
       for (const id of stashOf(A).slice()) {
         if (partGain(A, id)) continue;                       // it can use it itself
-        const buyer = G.teams.filter(B => B !== A && partGain(B, id) && B.credits >= partValue(id)).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
+        const buyer = tieSort(G.teams).filter(B => B !== A && partGain(B, id) && B.credits >= partValue(id)).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
         if (!buyer) continue;
         const price = partValue(id);
         let yes;
@@ -3244,10 +3294,10 @@ html, body {
     }
     // Kev, 6 Nov ("improve AI play"; AI teams never offered robots): a team with a spare robot sells its weakest to a
     // team that is down to one robot, when it is short of credits or has a full garage
-    for (const A of G.teams) {
+    for (const A of tieSort(G.teams)) {
       if (isHuman(A.i) || G.marketStage !== 'open' || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
       const spare = A.robots.slice().sort((x, y) => power(x) - power(y))[0];
-      const buyer = G.teams.filter(Bt => Bt !== A && Bt.robots.length <= 1).sort((x, y) => y.credits - x.credits)[0];
+      const buyer = tieSort(G.teams).filter(Bt => Bt !== A && Bt.robots.length <= 1).sort((x, y) => y.credits - x.credits)[0];
       if (!buyer) continue;
       const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
       if (buyer.credits < price) continue;
@@ -3305,11 +3355,27 @@ html, body {
   ACT.lockBids = S => { if (G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved) gather(S, 'lots', () => resolveMarket()); };
   ACT.hostCount = S => { if (G.phase === 'market' && G.marketStage === 'host' && !iDone(S)) PS(S).hostCount = (PS(S).hostCount || 1) === 2 ? 1 : 2; };
   ACT.lockHost = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) gather(S, 'hostbid', () => resolveHostBid()); };
-  ACT.continueMarket = S => { if (G.phase === 'market' && G.marketResolved && !(PS(S).install || []).length) gather(S, G.hostResolved ? 'mres2' : 'mres', continueMarket); };
+  // parts still waiting for a bay when a person continues go to the Stash (over the limit: the stash-trim prompt), never lost
+  function flushInstalls(S, force) {
+    const P = PS(S), left = (P.install || []).splice(0);
+    if (!left.length) return;
+    const t = G.teams[S];
+    notify('📦 ' + nm(t) + ' keeps ' + left.map(x => lotRef(x.lot)).join(', ') + ' in its Stash (not fitted).', t.col);
+    for (const x of left) if (G.marketResults && G.marketResults[x.idx]) G.marketResults[x.idx].target = '📦 Kept in the Stash';
+    stashParts(t, left.map(x => x.lot), true);
+    if (force && P.stashTrim) {   // leaving the Market: no prompt any more, the least useful parts go to the bank
+      while (t.stash.length > STASH_MAX) { let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } }); sellStash(t, k); }
+      P.stashTrim = false;
+    }
+  }
+  ACT.continueMarket = S => { if (G.phase === 'market' && G.marketResolved && !(PS(S).tradeIn || []).length) flushInstalls(S); if (G.phase === 'market' && G.marketResolved && !(PS(S).install || []).length && !(PS(S).tradeIn || []).length && !PS(S).stashTrim) gather(S, G.hostResolved ? 'mres2' : 'mres', continueMarket); };
   // this seat already locked the current simultaneous step
   const iDone = S => !!(G.gather && G.gather.done[S]);
   function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the ' + NLOTS + ' lots.', '#111'); updateHud(); }
-  function continueMarket() { if (G.hostResolved) startArena(); else startHostBid(); }
+  function continueMarket() {
+    for (const h of humanSeats()) flushInstalls(h, true);   // safety net (a skipped seat, an AI takeover): nothing waits past the Market
+    if (G.hostResolved) startArena(); else startHostBid();
+  }
   function startHostBid() {
     G.marketStage = 'host'; G.marketResolved = false; for (let s = 0; s < 4; s++) PS(s).bids = zeroBids();
     notify('👑 <b>Host bid:</b> every team bids in secret for the right to host this round.', '#111');
@@ -3441,6 +3507,18 @@ html, body {
     for (const L of lv) { x -= w[L]; if (x < 0) return L; }
     return lv[lv.length - 1];
   }
+  // the robot level scheme in words, e.g. "level 1 in round 1, level 1–2 in rounds 2–3, level 2–3 in rounds 4–5, level 3 from round 6"
+  function levelsTxt() {
+    const RL = BAL.robotLevels, sc = RL.schemes[RL.scheme] || RL.schemes.waves, parts = [];
+    sc.forEach(([from, w], j) => {
+      const lv = Object.keys(w).map(Number).filter(L => w[L] > 0).sort((a, b) => a - b);
+      const lt = lv.length > 1 ? 'level ' + lv[0] + '–' + lv[lv.length - 1] : 'level ' + lv[0];
+      const last = parts[parts.length - 1];
+      if (last && last.lt === lt) last.to = j + 1 < sc.length ? sc[j + 1][0] - 1 : null;
+      else parts.push({ lt, from, to: j + 1 < sc.length ? sc[j + 1][0] - 1 : null });
+    });
+    return parts.map(p => p.lt + (p.to == null ? (p.from <= 1 ? ' every round' : ' from round ' + p.from) : p.to === p.from ? ' in round ' + p.from : ' in rounds ' + p.from + '–' + p.to)).join(', ');
+  }
   const l4Open = () => BAL.level4.on && G.round >= BAL.level4.fromRound;
   const maxLv = () => l4Open() ? 4 : 3;
   function dealRobot(want) {
@@ -3467,11 +3545,25 @@ html, body {
   }
   // what a robot lot is worth to an AI team: more when the bookie rates it well against that team's rivals
   // level 4: valued like a legendary (base at least 6) on top of its level and odds
+  /* Round 3 (8 Nov): valued from Repair2 strength, so bids rise with level (round 2: L1 4.7, L2 5.4, L3 4.5, L4 7.0 Cr, because
+   * a full garage valued every lot at 1 and the field odds of a level 3 robot drop late in the game).
+   * robotVal: what a robot of strength s is worth (about L1 5, L2 6.4, L3 7.7, L4 8.9 Cr with its level 4 bonus), plus a bonus when it
+   * would be the team's best and a need bonus with 0-1 robots. Full garage (trade-in): value of the new robot − value of the robot it
+   * scraps + scrap money. The scrapped robot is the weakest of three (a bench robot that rarely fights; its parts are kept), so it
+   * counts at half its robotVal (first try, full value: L3 lots sold for less than L2 lots, 5.6 vs 7.1 Cr, because most L3 lots
+   * come when garages are full). */
+  const robotVal = s => 3.64 + 2.2 * s, BENCH_K = 0.5;
   function robotWant(t, id, base) {
-    const L = LOTS[id];
-    if (t.robots.length >= 3) return 1;
-    const p = L && L.bot ? fieldOdds(t.i, L.bot).p : null;
-    return (L && L.bot && L.bot.level >= 4 ? Math.max(base, 6) : base) + (p == null ? 0 : (p - 0.5) * 5) + (L && L.bot ? L.bot.level * 0.5 : 0);
+    const L = LOTS[id]; if (!L || !L.bot) return base;
+    const bot = L.bot, s = baseStr(bot), off = base - 4;   // base 4 (v2); v1 passes 5.5
+    const p = fieldOdds(t.i, bot).p, l4 = bot.level >= 4 ? 0.6 : 0;
+    const mine = t.robots.map(power), best = mine.length ? Math.max(...mine) : -1;
+    const lead = Math.max(-1, Math.min(1.5, s - best));
+    const v = robotVal(s) + l4 + off + (p - 0.5) * 2 + (lead > 0 ? lead * 1.2 : lead * 0.6);
+    if (t.robots.length < 3) return v + (t.robots.length === 0 ? 3 : t.robots.length === 1 ? 1 : 0);
+    if (!tradeInOn()) return 1;
+    const old = aiTradeInPick(t), keep = old ? BENCH_K * robotVal(bareStr(old)) + (old.wins >= favWins(t) ? BAL.fame.fanFav * aiP(t).hostFame : 0) : 0;
+    return Math.max(0, v - keep + scrapMoney(old));
   }
   // the lowest winning bid for a lot (0 = any bid); level 4 robot lots: BAL.level4.minBid
   const minBidOf = id => { const L = LOTS[id]; return L && L.robot && L.starter && levelOf(L.starter) >= 4 ? BAL.level4.minBid || 0 : 0; };
@@ -3507,16 +3599,73 @@ html, body {
   const lotGainShort = () => '';
   const weaponSwapNote = () => '';
 
+  /* ---------- Trade-in (Kev, 8 Nov): win a robot lot with a full garage, scrap one of your robots ----------
+   * Scrap money = BAL.tradeIn.base + perLevel × its level. Its parts go to the Stash (full Stash: a person picks what to keep,
+   * the AI keeps the most useful; the rest goes to the bank at half value). Fan Favourite fame leaves with it (robotLeaves). */
+  const tradeInOn = () => !!(BAL.tradeIn && BAL.tradeIn.on);
+  const scrapMoney = r => Math.max(0, Math.round((BAL.tradeIn.base || 0) + (BAL.tradeIn.perLevel || 0) * (r ? r.level || 0 : 0)));
+  const partLots = r => (r.parts || []).map(k => 'p_' + k).concat(r.leg ? ['p_' + r.leg] : []).filter(id => LOTS[id]);
+  // strength without its parts (they go to the Stash), with its damage
+  const bareStr = r => power(r) - (baseStr(r) - R2.strength(null, r.name, r.level, []));
+  function aiTradeInPick(t) {   // the weakest robot by strength (damage counted, parts not: they are kept); a Fan Favourite only if clearly weakest
+    const ff = r => r.wins >= favWins(t);
+    const byStr = t.robots.slice().sort((a, b) => bareStr(a) - bareStr(b));
+    const w = byStr[0], nf = byStr.find(r => !ff(r));
+    return ff(w) && nf && bareStr(nf) - bareStr(w) < 0.62 ? nf : w;
+  }
+  function doTradeIn(t, old, nr) {
+    if (!old || !t.robots.includes(old)) { t.robots.push(nr); return `New Bot: ${nr.name}`; }
+    const cr = scrapMoney(old), parts = partLots(old);
+    robotLeaves(t, old, null, 'trade-in'); returnStarter(old.name);
+    t.credits += cr;
+    for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;   // Vulture Salvage: +2 Cr whenever a bot is scrapped
+    t.robots.push(nr);
+    stashParts(t, parts);
+    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round });
+    notify('♻️ ' + nm(t) + ' trades in <b>' + esc(old.name) + '</b> for ' + cr + ' Cr' + (parts.length ? ' (its parts go to the Stash)' : '') + ' and takes <b>' + esc(nr.name) + '</b>.', t.col);
+    return `New Bot: ${nr.name} (traded in ${old.name}, +${cr} Cr)`;
+  }
+  // parts of a traded-in robot into the Stash; over the limit: a person picks what to sell (PS.stashTrim), the AI sells the least useful
+  function stashParts(t, ids, quiet) {
+    if (!ids.length) return;
+    stashOf(t).push(...ids);
+    if (t.stash.length <= STASH_MAX) { if (!quiet) notify('📦 ' + ids.map(lotRef).join(', ') + ' go' + (ids.length === 1 ? 'es' : '') + ' into ' + nm(t) + '\'s Stash.', t.col); return; }
+    if (isHuman(t.i)) { PS(t.i).stashTrim = true; return; }
+    while (t.stash.length > STASH_MAX) {
+      let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } });
+      sellStash(t, k);
+    }
+  }
+  ACT.tradeIn = (S, rid) => {
+    const t = G.teams[S], P = PS(S), it = (P.tradeIn || [])[0];
+    if (!it) return;
+    const old = t.robots.find(r => String(r.id) === String(rid)); if (!old) return;
+    P.tradeIn.shift();
+    const dest = doTradeIn(t, old, it.bot);
+    if (G.marketResults) { const res = G.marketResults.find(x => x.id === it.lot && x.winner === S); if (res) res.target = dest; }
+  };
+  ACT.trimStash = (S, k) => {
+    const t = G.teams[S], P = PS(S);
+    if (!P.stashTrim) return;
+    if (stashOf(t).length > STASH_MAX) sellStash(t, k);
+    if (stashOf(t).length <= STASH_MAX) P.stashTrim = false;
+  };
+
   function applyLot(ti, lot, r) {
     const t = G.teams[ti], L = LOTS[lot];
     if (L.crew) { t.crew.push({ uid: ++crewSeq, kind: L.crew }); return 'Hired'; }
     if (L.mech) { t.mechs++; return '+1 Mechanic'; }
     if (L.eng) { t.engPool++; return '+1 Chief Engineer'; }
     if (L.robot) {
-      if (t.robots.length >= 3) { t.credits += 2; if (L.starter) { returnStarter(L.starter); L.bot = null; } return 'Bays Full (+2 Cr)'; }
+      if (t.robots.length >= 3 && !tradeInOn()) { t.credits += 2; if (L.starter) { returnStarter(L.starter); L.bot = null; } return 'Bays Full (+2 Cr)'; }
       let nr;
       if (L.bot) { nr = L.bot; L.bot = null; }   // the robot shown on the tile
       else nr = mkRobot(drawStarter() || pick(Object.keys(STARTERS)));
+      if (t.robots.length >= 3) {   // trade-in (BAL.tradeIn): the AI scraps its weakest robot now; a person picks (PS.tradeIn prompt)
+        if (isHuman(ti)) { (PS(ti).tradeIn = PS(ti).tradeIn || []).push({ bot: nr, lot }); return '♻️ Trade-in: pick a robot to scrap'; }
+        const old = aiTradeInPick(t);
+        return doTradeIn(t, old, nr);
+      }
       t.robots.push(nr);
       return `New Bot: ${nr.name}`;
     }
@@ -3529,6 +3678,19 @@ html, body {
     return `Fitted on ${r.name}`;
   }
 
+  function applyMarketWins(A) {
+    const live = A.wins.filter(x => !x.botched);   // a botched part went back to the lot deck
+    for (const x of live) if (!needsRobot(x.lot)) A.results[x.idx].target = applyLot(x.team, x.lot, null);
+    for (const h of humanSeats()) PS(h).install = (PS(h).install || []).concat(live.filter(x => x.team === h && needsRobot(x.lot) && canTake(G.teams[h], x.lot)));
+    for (const x of live) {
+      if (!needsRobot(x.lot)) continue;
+      const T = G.teams[x.team];
+      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▼ Click a Robot Bay below'; continue; }
+      const pickR = isHuman(x.team) ? null : aiPickRobot(T, x.lot);
+      if (pickR) { A.results[x.idx].target = applyLot(x.team, x.lot, pickR); continue; }
+      stashParts(T, [x.lot]); A.results[x.idx].target = stashOf(T).includes(x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold';
+    }
+  }
   function resolveMarket() {
     if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
     const all = G.teams.map(t => isHuman(t.i) ? (PS(t.i).bids || zeroBids()).slice() : aiBids(t));
@@ -3647,7 +3809,7 @@ html, body {
       }
       // If a rebid round just took place and nobody added any credits, the team with less fame wins.
       if (A.tie && A.tie.k === k && A.tie.lastMaxAdd === 0) {
-        const sorted = contenders.slice().sort((a, b) => G.teams[a].fame - G.teams[b].fame || a - b);
+        const sorted = contenders.slice().sort((a, b) => G.teams[a].fame - G.teams[b].fame || tieRank(a) - tieRank(b));
         const w = sorted[0];
         const reason = 'Low-Fame Tiebreak';
         notify(`⚖️ Rebid stalemate on <b>${esc(lotName)}</b> at ${mx} Cr — <b>${esc(G.teams[w].name)}</b> wins (${reason})!`, G.teams[w].col);
@@ -3714,17 +3876,10 @@ html, body {
       botchedWindow(A).catch(e => console.error(e)).then(() => { G.ivBusy = false; stepMarketAuction(); });
       return;
     }
-    for (const h of humanSeats()) PS(h).install = A.wins.filter(x => x.team === h && needsRobot(x.lot) && canTake(G.teams[h], x.lot));
-    for (const x of A.wins) {
-      if (!isHuman(x.team) || !needsRobot(x.lot) || !canTake(G.teams[x.team], x.lot)) {
-        const pickR = isHuman(x.team) ? null : aiPickRobot(G.teams[x.team], x.lot);
-        const toBox = needsRobot(x.lot) && !canTake(G.teams[x.team], x.lot);
-        const dest = toBox ? (toStash(G.teams[x.team], x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold') : applyLot(x.team, x.lot, pickR);
-        A.results[x.idx].target = dest;
-      } else {
-        A.results[x.idx].target = '▼ Click a Robot Bay below';
-      }
-    }
+    // Bug fix (Kev's playtest, 8 Nov): robots, crew and other lots first, then the parts. The install list used to be made before the
+    // lots were applied, so a part won together with a robot (by a team with no robot that fitted it yet) was marked "Click a Robot
+    // Bay" but never queued: it could not be fitted and was lost. A part now always ends fitted, queued for a person, or in the Stash.
+    applyMarketWins(A);
     G.marketResults = A.results;
     tlog('market', { lots: A.results.map(r => ({ id: r.id, winner: r.winner, price: r.price, bids: r.bids, target: r.target })) });
     G.marketResolved = true;
@@ -3846,7 +4001,7 @@ html, body {
     const ev = G.arenaEvent, H = G.host;
     if (ev && ev.kind === 'ffa') return invite(G.teams.map(t => t.i), G.teams.map((_, i) => i), 'ffa');
     if (ev && (ev.kind === 'final' || ev.kind === 'tag')) {
-      let a = ev.kind === 'final' ? G.teams.slice().sort((x, y) => y.fame - x.fame || x.i - y.i).slice(0, 2).map(t => t.i) : ev.teams.slice();
+      let a = ev.kind === 'final' ? G.teams.slice().sort((x, y) => y.fame - x.fame || tieRank(x) - tieRank(y)).slice(0, 2).map(t => t.i) : ev.teams.slice();
       const b = G.teams.map(t => t.i).filter(i => !a.includes(i));
       return invite(a.concat(b), [0, 0, 1, 1], '2v2');
     }
@@ -3871,7 +4026,7 @@ html, body {
       return;
     }
     const host = G.teams[H];
-    let others = G.teams.filter(t => t.i !== H);
+    let others = tieSort(G.teams.filter(t => t.i !== H));
     // you may offer the AI host a deal: invite me, or leave me out
     let forceIn = -1; const forceOut = new Set();
     for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
@@ -4131,7 +4286,8 @@ html, body {
    * The highest sealed bid wins and pays its bid (min 1 Cr); 1 card per team per fight; a tie goes to the team with
    * less fame (equal fame: nobody, the card is discarded). A won card is for this fight only. Unclaimed: discarded.
    * The bookie's odds ignore the cards on purpose. */
-  const AUCTION_N = 2;
+  const auctionN = () => Math.max(1, Math.min(4, (BAL.auction && BAL.auction.perFight) | 0 || 2));
+  const auctionMin = () => Math.max(1, (BAL.auction && BAL.auction.minBid) | 0 || 1);
   /* What a live card swings: win % for the robot it is played for (tools/damage-lab/livevalue-results.json: 60 fights per
    * card, played blind at 15 s; ±6 points of noise). The AI plays at a better moment, so every card counts at least +2. */
   const LIVE_VALUE = { none: 48, trigger: 48, waypoint: 48, overclock: 44, field_eng: 48, oil: 50, emp: 46, hammer: 56, launcher: 45, supply: 53, chiphack: 50, rattle: 49, hype: 53, magnet: 44, smoke: 53 };
@@ -4141,7 +4297,7 @@ html, body {
     return G.auctionDeck.pop();
   }
   function startCardAuction(F) {
-    F.auction = { cards: Array.from({ length: AUCTION_N }, drawAuctionCard), hot: Array(AUCTION_N).fill(false), done: false };
+    F.auction = { cards: Array.from({ length: auctionN() }, drawAuctionCard), hot: Array(auctionN()).fill(false), done: false };
     F.pubBets = [null, null, null, null];   // public: { side, amt } per team
     F.aiBets = aiPlanBets(F);               // the AI's bets are decided now, so people see them while they bet
     F.aiBets.forEach(x => { F.pubBets[x.team] = { side: x.side, amt: x.amt }; });
@@ -4160,14 +4316,17 @@ html, body {
     const F = G.fight;
     if (G.phase !== 'bets' || G.betsLocked || iDone(S) || !F || !F.auction || !(k >= 0 && k < F.auction.cards.length)) return;
     const P = PS(S), t = G.teams[S]; P.cardBid = P.cardBid || [0, 0];
-    P.cardBid[k] = Math.max(0, Math.min(t.credits - betStake(S), (P.cardBid[k] || 0) + (d < 0 ? -1 : 1)));
+    const mn = auctionMin(), cur = P.cardBid[k] || 0;
+    let nb = cur + (d < 0 ? -1 : 1);
+    if (d < 0 && nb < mn) nb = 0; else if (d >= 0 && nb < mn) nb = mn;   // BAL.auction.minBid: 0 or at least the minimum
+    P.cardBid[k] = nb > t.credits - betStake(S) ? cur : Math.max(0, nb);
     auctionHot(F);
   };
   // after the bets are paid: resolve the sealed card bids (highest bid on any card first)
   function resolveCardAuction(F) {
     const A = F.auction; if (!A || A.done) return;
     A.done = true; A.won = [];
-    const bids = A.cards.map((_, k) => cardBidsOn(F, k).map((amt, ti) => ({ ti, k, amt: Math.min(amt, G.teams[ti].credits) })).filter(x => x.amt >= 1));
+    const bids = A.cards.map((_, k) => cardBidsOn(F, k).map((amt, ti) => ({ ti, k, amt: Math.min(amt, G.teams[ti].credits) })).filter(x => x.amt >= auctionMin()));
     const order = A.cards.map((_, k) => k).sort((a, b) => Math.max(0, ...bids[b].map(x => x.amt)) - Math.max(0, ...bids[a].map(x => x.amt)));
     const winners = new Set(), lines = [];
     for (const k of order) {
@@ -4219,8 +4378,8 @@ html, body {
       const useful = id => id === 'swap_the_entry' ? (bet || fights ? 0.3 : 0) : !mine.length && LIVE_ENG[id] ? 0 : id === 'trigger' && noMod ? 0 : LIVE_ENG[id] ? Math.max(0, liveValue(id)) / 100 * 3 : 0;
       const free = T.credits - (bet ? bet.amt : 0) - (aiV2(T) ? P.reserve : 1);
       const vals = F.auction.cards.map(id => useful(id) * stake * (0.8 + 0.4 * rnd()));
-      const bestK = vals[0] >= vals[1] ? 0 : 1;
-      return vals.map((v, k) => { const amt = Math.floor((k === bestK ? v : v * 0.5) + rnd()); /* random rounding: fewer exact ties */ return amt >= 1 && free >= amt ? amt : 0; });
+      const bestK = vals.indexOf(Math.max(...vals)), mn = auctionMin();
+      return vals.map((v, k) => { const w = k === bestK ? v : v * 0.5; let amt = Math.floor(w + rnd()); /* random rounding: fewer exact ties */ if (amt < mn) amt = w >= mn - 0.5 ? mn : 0; return amt >= 1 && free >= amt ? amt : 0; });
     });
   }
   // Bets-step arena cards for the human (buttons in the prompt)
@@ -4811,6 +4970,8 @@ html, body {
     set('Secret Upgrade', t => t.replace('+20% weapon damage and +20% HP', '+' + pctUp(C.upDmg) + '% weapon damage and +' + pctUp(C.upHp) + '% HP'));
     set('Smudged Lens', t => t.replace('−15%', '−' + pctDn(C.lens) + '%'));
     set('Sugar in the Tank', t => t.replace('60%', pctOf(C.sugar) + '%'));
+    if (C.boltsMode === 'wheel') set('Loose Bolts', () => 'One wheel of a target robot is left loose at ' + pctOf(C.boltsWheel) + '% (lasting Drive damage until repaired).');
+    if (C.ocMode === 'noheat') set('Overclock', t => t.replace('hot-wound motors next fight', '+35% drive power next fight (no extra heat)'));
     if (L.overclockS != null) set('Target Overclock', t => t.replace('3.5 s', numTxt(L.overclockS) + ' s'));
     if (L.fieldHp != null) set('Field Engineer', t => t.replace('+18 HP', '+' + numTxt(L.fieldHp) + ' HP'));
     if (L.empStun != null) set('EMP Grenade', t => t.replace('0.9 s stun, 5 damage', numTxt(L.empStun) + ' s stun, ' + numTxt(L.empDmg) + ' damage'));
@@ -4875,6 +5036,8 @@ html, body {
     if (G.phase === 'setup') return G.setupStep === 'sponsor' ? (!isNetGame() || !PS(s).sponsor ? 'sponsor' : null) : (PS(s).draftOffer && !PS(s).draftPick ? 'draft' : null);
     if (G.phase === 'intrigue') return G.intrigueTurn === s ? 'intrigue turn' : null;
     if (G.marketAuction && G.marketAuction.tie && tieMine(s)) return 'rebid';
+    if ((PS(s).tradeIn || []).length) return 'trade-in';
+    if (PS(s).stashTrim) return 'stash';
     if ((PS(s).install || []).length) return 'install';
     if (PS(s).choose) return 'robot pick';
     if (G.awaitingJudgment && G.host === s) return 'spare/scrap';
@@ -4903,6 +5066,8 @@ html, body {
     if (G.phase === 'setup') { if (G.setupStep === 'sponsor' && isNetGame() && !P.sponsor) runAct(s, 'pickSponsor', [null]); else if (PS(s).draftOffer && !PS(s).draftPick) runAct(s, 'pickStarter', [-1]); return; }
     if (G.phase === 'intrigue' && G.intrigueTurn === s) { P.skipTurn = true; if (G.endHumanTurn && !G.ivBusy) G.endHumanTurn(); return; }
     if (tieMine(s)) { runAct(s, 'rebidLock', []); return; }
+    while ((P.tradeIn || []).length) { const it = P.tradeIn[0], r = aiTradeInPick(G.teams[s]); runAct(s, 'tradeIn', [r.id]); if (P.tradeIn[0] === it) P.tradeIn.shift(); }
+    if (P.stashTrim) { const t = G.teams[s]; let n = 9; while (P.stashTrim && n--) { let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } }); runAct(s, 'trimStash', [k]); } P.stashTrim = false; if (!(P.install || []).length) { const step = gatherStep(); if (step) runAct(s, step[1], []); } return; }
     if ((P.install || []).length) { while ((P.install || []).length) { const it = P.install[0], r = aiPickRobot(G.teams[s], it.lot); if (r) runAct(s, 'install', [r.id]); else runAct(s, 'installKeep', []); if (P.install[0] === it) runAct(s, 'installKeep', []); } return; }
     if (P.choose) { const r = readyRobots(G.teams[s]).sort((a, b) => power(b) - power(a))[0]; if (r) runAct(s, 'sendBot', [r.id]); else runAct(s, 'decline', []); return; }
     if (G.awaitingJudgment && G.host === s) { runAct(s, 'fate', [false]); return; }
@@ -4946,6 +5111,8 @@ html, body {
       P.botPlayed = false; return act('endTurn');
     }
     if (busy === 'rebid') { if (R() < 0.5) act('rebidAdj', 1); return act('rebidLock'); }
+    if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
+    if (busy === 'stash') return act('trimStash', 0);
     if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }
     if (busy === 'upkeep' && !P.botRep && G.phase === 'upkeep') { P.botRep = true; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) > 0) act('repairZone', r.id, z.key); return; }
     if (busy === 'upkeep') P.botRep = false;
@@ -5000,7 +5167,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -6260,7 +6427,13 @@ html, body {
     ctx.fillStyle = bot.level >= 4 ? '#7c3aed' : '#c08400'; fitText(ctx, bot.level ? '★'.repeat(bot.level) + ' level ' + bot.level + (bot.level >= 4 ? ' · min ' + BAL.level4.minBid + ' Cr' : '') : 'starter', x + w / 2, y + 90, w - 10, '900', 11);
     ctx.fillStyle = '#555'; fitText(ctx, wepLabel(RL.name), x + w / 2, y + 104, w - 10, '700', 10.5);
     ctx.fillStyle = '#666'; fitText(ctx, descOf(RL.name), x + w / 2, y + 117, w - 10, '600', 9.5);
-    help(x + 4, y + 4, w - 8, 116, '🤖 ' + esc(RL.name) + ' · for sale', esc(descOf(RL.name)) + '<br><b>' + esc(wepLabel(RL.name)) + '</b>, ' + (bot.level ? 'level ' + bot.level : 'starter') + ', power ×' + ROB(RL.name)[1].toFixed(2) + '.' + tellOf(RL.name) + (isL4(RL.name) ? '<br><b>Level 4:</b> lowest winning bid ' + BAL.level4.minBid + ' Cr' + (BAL.level4.upkeep ? ', upkeep +' + BAL.level4.upkeep + ' Cr' : '') + '.' : '') + '<br>' + LEVEL_HELP + '<br>Win it and it joins your team in an empty bay (up to 3 robots), new and with no parts. ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots enter in waves: level 1 in rounds 1–2, level 2 in rounds 3–4, level 3 from round 5' + (BAL.level4.on ? ', one level 4 robot a round from round ' + BAL.level4.fromRound : '') + '.');
+    help(x + 4, y + 4, w - 8, 116, '🤖 ' + esc(RL.name) + ' · for sale', esc(descOf(RL.name)) + '<br><b>' + esc(wepLabel(RL.name)) + '</b>, ' + (bot.level ? 'level ' + bot.level : 'starter') + ', power ×' + ROB(RL.name)[1].toFixed(2) + '.' + tellOf(RL.name) + (isL4(RL.name) ? '<br><b>Level 4:</b> lowest winning bid ' + BAL.level4.minBid + ' Cr' + (BAL.level4.upkeep ? ', upkeep +' + BAL.level4.upkeep + ' Cr' : '') + '.' : '') + '<br>' + LEVEL_HELP + '<br>Win it and it joins your team in an empty bay (up to 3 robots), new and with no parts. ' + (full ? (tradeInOn() ? '<b>Your garage is full:</b> win it and you scrap one of your robots (' + BAL.tradeIn.base + ' Cr + its level; its parts go to your Stash).' : '<b>Your bays are full:</b> you would get 2 Cr instead.') : '') + '<br>Robot levels by round: ' + levelsTxt() + (BAL.level4.on ? '; one level 4 robot a round from round ' + BAL.level4.fromRound : '') + '.');
+    if (full && tradeInOn()) {
+      ctx.fillStyle = '#b45309'; fitText(ctx, '♻️ Full garage:', x + w / 2, y + 168, w - 12, '800', 10.5);
+      ctx.fillStyle = '#666'; fitText(ctx, 'you\'ll scrap one robot', x + w / 2, y + 184, w - 12, '700', 10);
+      help(x + 4, y + 158, w - 8, 34, '♻️ Trade-in', 'You already have 3 robots. If you win this lot, you pick one of your robots to scrap: you get ' + BAL.tradeIn.base + ' Cr + its level (' + t.robots.map(r => esc(r.name) + ' ' + scrapMoney(r) + ' Cr').join(', ') + '), and its parts go to your 📦 Stash. A Fan Favourite takes its fame with it.');
+      return;
+    }
     if (full) {
       ctx.fillStyle = '#b45309'; fitText(ctx, '🏠 your bays are full', x + w / 2, y + 168, w - 12, '800', 10.5);
       ctx.fillStyle = '#666'; fitText(ctx, 'win it: +2 Cr instead', x + w / 2, y + 184, w - 12, '700', 10);
@@ -6358,7 +6531,7 @@ html, body {
       ctx.strokeStyle = mine > 0 ? me().col : '#d99000'; ctx.lineWidth = mine > 0 ? 3 : 1.5; ctx.strokeRect(x, cy, cw, ch);
       ctx.textAlign = 'left'; ctx.fillStyle = '#111'; fitText(ctx, c.icon + ' ' + c.name + (AU.hot[k] ? '  🔥' : ''), x + 8, cy + 16, cw - 16, '900', 12.5);
       ctx.fillStyle = '#555'; fitText(ctx, c.text, x + 8, cy + 31, cw - 16, '600', 9.5);
-      help(x, cy, cw, 36, c.icon + ' ' + esc(c.name), esc(c.text) + '<br><br><b>Sealed bid:</b> the highest bid wins and pays it (min 1 Cr). One card per team per fight; a tie goes to the team with less fame. A won card is for this fight only.' + (AU.hot[k] ? '<br>🔥 <b>Hot:</b> 3+ Cr bid on it in total, or 2+ teams bidding.' : ''));
+      help(x, cy, cw, 36, c.icon + ' ' + esc(c.name), esc(c.text) + '<br><br><b>Sealed bid:</b> the highest bid wins and pays it (min ' + auctionMin() + ' Cr). One card per team per fight; a tie goes to the team with less fame. A won card is for this fight only.' + (AU.hot[k] ? '<br>🔥 <b>Hot:</b> 3+ Cr bid on it in total, or 2+ teams bidding.' : ''));
       if (HS < 0 || iDone(HS)) { ctx.fillStyle = '#666'; ctx.textAlign = 'center'; fitText(ctx, HS < 0 ? '' : mine ? 'Your sealed bid: ' + mine + ' Cr (locked)' : 'No bid (locked)', x + cw / 2, cy + 56, cw - 16, '700', 11); return; }
       const bw = 30, by = cy + 42, bh = 22;
       ctx.fillStyle = '#111'; ctx.fillRect(x + 8, by, bw, bh); ctx.fillRect(x + cw - 8 - bw, by, bw, bh);
