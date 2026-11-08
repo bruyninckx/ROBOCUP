@@ -11,6 +11,8 @@
     Juggernaut: [2, 1.138], Gyro: [2, 1.034], Pincher: [2, 1.185], Brawler: [2, 1.056], Thwacker: [2, 1.022],
     Whaler: [3, 1.136], Forklift: [3, 1.141], Vertigo: [3, 1.163], Sawblast: [3, 1.175], Ramrod: [3, 1.213],
   };
+  // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
+  const ROBOTS4 = { Hydra: [4, 1.18], Corkscrew: [4, 0.97], Trebuchet: [4, 1.16], Angler: [4, 1.1], Lodestone: [4, 1.01], Orbiter: [4, 1.18], Tarantula: [4, 1.17], Grandmaster: [4, 1.05] };
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
   const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 1.8, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
@@ -42,12 +44,12 @@
   };
   // a lineup robot with parts, as an engine spec
   function build(name, parts = []) {
-    const P = L.PRESETS[name], r = ROBOTS[name], p = r ? r[1] : 1;
+    const P = L.PRESETS[name], r = ROBOTS[name] || ROBOTS4[name], p = r ? r[1] : 1;
     let spec = { preset: name, dmgK: (P.dmgK || 1) * p, hpK: p };
     for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec)); }
     return spec;
   }
   function usePK() { Object.assign(L.ARC.pk, PK); }
-  const API = { ROBOTS, LEVELS, PK, PARTS, build, usePK };
+  const API = { ROBOTS, ROBOTS4, LEVELS, PK, PARTS, build, usePK };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Lineup = API;
 })(typeof window !== 'undefined' ? window : globalThis);

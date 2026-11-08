@@ -14,10 +14,13 @@
   const BAD = 0.7; // a zone counts as damaged when something in it is lost/dead or below 70%
   // the robot as it stands (an engine robot with the wear applied)
   function probe(spec) { return L.create({ a: spec, b: spec, seed: 1 }).robots[0]; }
+  // level 4 parts (engine "ROBOCUS 2.0 LEVEL 4"): legs are wheels (Drive); arm segments, booms, discs, the carousel and its tools,
+  // the coil, auger, hook and throwing arm are weapon parts or weapon internals (Weapon); the huge chassis is Body
+  const WEAPON_INT = new Set(['wmotor', 'turret', 'arm', 'ring', 'reel', 'coil', 'auger', 'rotor', 'carousel', 'tarm', 'winch', 'boom', 'fang', 'hook']);
   function zoneOfPart(q) {
-    if (q.kind === 'wheel') return 'drive';
+    if (q.kind === 'wheel' || q.leg) return 'drive';
     if (q.kind === 'weapon') return 'weapon';
-    if (q.kind === 'internal') return q.key === 'motor' || q.key === 'thruster' ? 'drive' : q.key === 'wmotor' || q.key === 'turret' || q.key === 'arm' ? 'weapon' : 'body';
+    if (q.kind === 'internal') return q.key === 'motor' || q.key === 'thruster' ? 'drive' : WEAPON_INT.has(q.key) ? 'weapon' : 'body';
     return 'body'; // chassis, armour, lid
   }
   // per zone: health 0..1 (worst part), broken (something lost or dead), damaged (shown on the card), labels
@@ -52,14 +55,18 @@
   // ---- strength model (logit units; one level = 0.62, see docs/robocus-2.0-lineup.md) ----
   // measured: a part closes about one level, a legendary two; damage (tools/damage-lab/wearcost.js):
   // a lost wheel 51%->24%, weapon motor dead 13%, weapon lost 6%, armour/lid/chassis ~48-50%
-  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, ZONE_COST = { drive: 1.2, weapon: 2.2, body: 0.15 };
+  // level 4 (docs/robocus-2.0-level4.md): measured about 0.3 above level 3 vs levels 2-3 (59% vs L3) and no more than level 3 vs
+  // levels 0-1, so it counts as 4 levels minus L4_OFF (level 3 + 0.27 logits)
+  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 2.2, body: 0.15 };
+  const gradeOf = name => { const r = LU && (LU.ROBOTS[name] || (LU.ROBOTS4 || {})[name]); return r ? r[1] : null; };
   function strength(spec, name, level, parts) {
-    let s = (level || 0) * LEVEL + (LU && LU.ROBOTS[name] ? Math.log(LU.ROBOTS[name][1]) * 0.6 : 0);
+    const g = gradeOf(name);
+    let s = (level || 0) * LEVEL - (level >= 4 ? L4_OFF : 0) + (g ? Math.log(g) * 0.6 : 0);
     for (const k of parts || []) if (k) s += LU && LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? LEG : PART;
     if (spec && spec.wear) { const Z = zones(spec); for (const z of ZONES) { const q = Z[z.key]; s -= ZONE_COST[z.key] * (q.broken ? 1 : Math.max(0, (1 - q.f) * 0.8)); } }
     return s;
   }
   const winP = (sa, sb) => 1 / (1 + Math.exp(-(sa - sb)));
-  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, ZONE_COST };
+  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Repair2 = API;
 })(typeof window !== 'undefined' ? window : globalThis);
