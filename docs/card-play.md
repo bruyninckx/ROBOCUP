@@ -94,4 +94,4 @@ Done: Team-Building Day max +1; Press Tour and Celebrity Endorsement 3→2; Secu
 | Smear Campaign / Rival Sponsor | played 38% / 33% | 73% / 52% |
 | Kick When Down (new) | – | played 19%, cashed 38% (still situational) |
 
-The fame balance moved a little toward the fights (cards were 47% of positive fame, now 43%). For a bigger shift, the next step would be the 3-copy staples (Fan Meet etc.) to 2, or +1 fame for a fight win in a 2v2/free-for-all only... but that is a bigger design call. Game length is about the same.
+The fame balance moved a little toward the fights (cards were 47% of positive fame, now 43%). For a bigger shift, the next step would be cutting the 3-copy staples (Fan Meet etc.) to 2 copies. Game length is about the same.
