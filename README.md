@@ -91,6 +91,8 @@ Send `sims\overhaul1.txt` to Claude. The variants are listed in `tools/bal/READM
 
 Round 2 (with the level 4 robots): `tools\run-sims3.cmd 100` (Mac/Linux: `sh tools/run-sims3.sh 100`) runs every variant in `tools\bal2\` (6 runs x 100 games) and writes `sims\overhaul2.txt`; send that to Claude. The variants are listed in `tools/bal2/README.md`.
 
+Round 3 (the new defaults, trade-in, seat fix): `tools\run-sims4.cmd 100` (Mac/Linux: `sh tools/run-sims4.sh 100`) runs every variant in `tools\bal3\` (6 runs x 100 games) and writes `sims\overhaul3.txt`; send that to Claude. The variants are listed in `tools/bal3/README.md`.
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):
