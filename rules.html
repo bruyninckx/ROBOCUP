@@ -11,8 +11,18 @@
 :root{--bg:#211C17;--panel:#2E2721;--panel2:#3A3027;--line:#4A4037;--ink:#EDE6D9;--dim:#B5AA9A;--gold:#E8C547;--gold2:#D99000;--red:#E0402B;--green:#8BC07A;--blue:#79A4CB}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif;overflow-x:hidden;overflow-wrap:anywhere}
 main{max-width:720px;margin:0 auto;padding:16px 16px 64px}
+@media (max-width:600px){
+  main{padding:12px 10px 48px}
+  /* phones: each table row becomes a small block, the first cell its label */
+  table,tbody,tr,td{display:block;width:100%}
+  tr:has(th){display:none}
+  tr{padding:8px 0;border-bottom:1px solid var(--line)}
+  td{padding:1px 0;border:0;white-space:normal}
+  td:first-child{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+  td:nth-child(3){color:var(--dim);font-size:14px}
+}
 h1{font:400 44px/1 "Saira Stencil One",Impact,sans-serif;letter-spacing:.04em;color:var(--gold);margin:18px 0 4px}
 h1 small{display:block;font:600 14px "IBM Plex Mono",monospace;letter-spacing:.12em;color:var(--dim);margin-top:8px}
 h2{font:400 26px/1.1 "Saira Stencil One",Impact,sans-serif;letter-spacing:.03em;color:var(--gold);margin:40px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
@@ -59,7 +69,7 @@ td:first-child{white-space:nowrap;color:#fff;font-weight:600}
 .clip .note{font-size:13px;color:var(--dim);margin:6px 0 0}
 #fv[hidden]{display:none}
 .foot{color:var(--dim);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
-@media (max-width:480px){h1{font-size:36px}h2{font-size:23px}td,th{padding:6px 5px;font-size:14px}}
+@media (max-width:480px){h1{font-size:34px}h2{font-size:23px}td,th{font-size:14px}.fame .n{flex-basis:40px}.steps li{padding-left:40px}}
 </style>
 </head>
 <body>
@@ -118,9 +128,9 @@ td:first-child{white-space:nowrap;color:#fff;font-weight:600}
 <p>No stats to read. A robot is a <b>physical machine</b>: a chassis, armour plates, a lid, drive motors and wheels, a battery, a radio, a chip, and its weapon. Hits take off real parts. A lost wheel or a dead weapon motor is what loses the next fight; dents and a missing lid barely matter.</p>
 <table>
 <tr><th>Level</th><th>What</th><th>Where from</th></tr>
-<tr><td>★ 0</td><td>9 classic starters, roughly even. You draft one at the start (dealt 2, keep 1, all revealed together).</td><td>Setup</td></tr>
-<tr><td>★ 1–3</td><td>16 Market robots. Each level beats the one below about 6 fights in 10; three levels up is 9 in 10.</td><td>Market, in waves: level 1 in rounds 1–2, level 2 in 3–4, level 3 from 5</td></tr>
-<tr><td>★★★★ 4</td><td>8 end-game machines with exotic mechanisms: a three-segment strike arm, a trebuchet, a six-legged stalker, a drill that cores batteries. One level above 3, but a cheap fast starter can still slip them.</td><td>From round 7, named a round ahead, minimum bid 5</td></tr>
+<tr><td>Level 0 · starters</td><td>9 classic starters, roughly even. You draft one at the start (dealt 2, keep 1, all revealed together).</td><td>Setup</td></tr>
+<tr><td>Levels 1–3 · Market</td><td>16 Market robots. Each level beats the one below about 6 fights in 10; three levels up is 9 in 10.</td><td>Market, in waves: level 1 in rounds 1–2, level 2 in 3–4, level 3 from 5</td></tr>
+<tr><td>Level 4 ★★★★ · end game</td><td>8 end-game machines with exotic mechanisms: a three-segment strike arm, a trebuchet, a six-legged stalker, a drill that cores batteries. One level above 3, but a cheap fast starter can still slip them.</td><td>From round 7, named a round ahead, minimum bid 5</td></tr>
 </table>
 <p><b>Parts</b> fit any robot (2 slots): drones, modules and kits, each strong enough to close one level. The three <b>legendary parts</b> (Prototype core, Field hospital, Quantum shield) close two and are announced a round ahead. Rock-paper-scissors is real: rammers bounce off everything that needs a moment of contact, vertical discs flip the heavy ones, rubber bumpers shrug off magnets and drills.</p>
 
