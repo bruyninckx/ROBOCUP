@@ -241,3 +241,9 @@ Kev: add them as well (thwack tail, lifter fork, battering ram, vertical disc). 
 Kev: 9 starters (level 0), 15-16 market robots in levels 1-3, about 25 parts that each close a level, legendaries that close two. Full write-up: `docs/robocus-2.0-lineup.md`, data `tools/damage-lab/robocus2-lineup.json`.
 - Engine: `hpK` (every part's HP) plus `dmgK` give each robot a power grade; `ARC.pk` holds part potency knobs (medic, repair, shield, grapple, quantum, gunner, laser, emp, popper, waller, mines; default 1 = unchanged). Mine layers no longer set off their own mines.
 - Result: levels beat the level below 60-62%, two levels 76-77%, three 91%. 18 part types (22 cards) bring a level-n robot to 42-57% vs level n+1 (stock 38%). Prototype core (x1.3 damage and HP) brings a robot to 54% vs two levels up.
+
+## Lineup Arena (8 Nov)
+Kev: a separate battle arena for the 2.0 lineup, with the proposed 22 parts + Prototype core + Field hospital + a reworked Quantum shield.
+- `prototypes/lineup-arena.html` (same engine and renderer; `lineup.js` holds the robots, power grades, the 25 part cards and their 2.0 strengths; `shell-lineup.html` the page). Robot picker by level, Part 1 / Part 2 / Legendary, Test 10-50 fights, random matchups.
+- Quantum shield reworked as a recharging phase shield (`spec.qshield`, `QSHIELD = { t: 1.5, cd: 8 }`): 48% vs two levels up (stock 25%). Field hospital uses a new `fieldmedic` drone that ignores the 2.0 medic nerf: 55%. Prototype core 50%.
+- The Damage Lab page is unchanged (1.0 part strengths, identical fights).

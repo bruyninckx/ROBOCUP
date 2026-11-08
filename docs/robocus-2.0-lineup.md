@@ -99,11 +99,12 @@ Test: a level-n robot with the part against the level n+2 robots (stock: 28%).
 
 | Legendary | What it does | Win vs two levels up | Robots that reach 40% |
 |---|---|---|---|
-| Prototype core | weapon damage x1.3 and every part HP x1.3 | 54% | 13/15 |
-| Field hospital | medic drone at full strength + HP x1.1 | 46% | 11/15 |
-| Quantum shield (1.0 style) | 12 s invulnerable once below 40% | 27% | 2/15 |
+| Prototype core | weapon damage x1.3 and every part HP x1.3 | 50-54% | 11-13/15 |
+| Field hospital | a full-strength medic drone + HP x1.1 | 55% | 14/15 |
+| Quantum shield (2.0) | the first hit of 6+ damage after it recharges is cancelled and the robot phases out for 1.5 s; recharges in 8 s | 48% | 11/15 |
+| Quantum shield (1.0 style, dropped) | 12 s invulnerable once below 40% | 27% | 2/15 |
 
-The 1.0 Quantum Shield doesn't work as a one-off. It needs a redesign, for example a short shield that recharges.
+The 1.0 Quantum Shield doesn't work as a one-off, so it was reworked into a recharging phase shield (Kev, 8 Nov). The first Field hospital test (46%) accidentally ran its medic at the reduced 60%; with a full-strength medic it is 55%. Retest on the final grades, 4 seeds per pairing: Prototype core 50%, stock 24-25%.
 
 Proposed: **22 parts + Prototype core + Field hospital + a reworked Quantum shield = 25 cards.**
 
@@ -120,6 +121,10 @@ A normal part is also worth a little more than one level: with one part, a robot
 - 2v2 and free-for-all: all numbers are 1v1.
 - Arenas with hazards (saws, killbox).
 - The Damage Lab page still uses 1.0 part strengths. The 2.0 settings live in `robocus2-lineup.json` and `ARC.pk`.
+
+## Lineup Arena
+
+`prototypes/lineup-arena.html` (built with `python3 tools/damage-lab/build.py`): the 25 robots by level at their power grades, two part slots and a legendary slot with the 2.0 part strengths, Watch or Test (10/20/50 fights, sides swapped every other fight), and random matchups (same level, one or two levels apart). Data in `tools/damage-lab/lineup.js`.
 
 ## Tools
 
