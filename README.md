@@ -89,6 +89,8 @@ tools\run-sims2.cmd 100 6      # the same, 6 games at a time (use fewer than you
 
 Send `sims\overhaul1.txt` to Claude. The variants are listed in `tools/bal/README.md`; one on its own: `node tools/game-sim.js --page=prototypes/tabletop-2.html --tag=x --games=100 --par=8 --balFile=tools/bal/rep_b2.json`.
 
+Round 2 (with the level 4 robots): `tools\run-sims3.cmd 100` (Mac/Linux: `sh tools/run-sims3.sh 100`) runs every variant in `tools\bal2\` (6 runs x 100 games) and writes `sims\overhaul2.txt`; send that to Claude. The variants are listed in `tools/bal2/README.md`.
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):
