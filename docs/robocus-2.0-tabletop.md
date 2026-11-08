@@ -179,5 +179,6 @@ Why some are zero: drive motors only lose power below 35% HP (then 55% force) or
 - **Too many modules and drones in the Market?** Checked: the lot deck is 30 cards: 10 drones, 6 modules, 6 stat parts, 4 robots, 4 crew. With 4 lots a round that is about 2 drone/module lots every round, so they stop feeling special. Kev wants fewer.
 - **More special engineers in the lots.** Crew are 4 of 30 lot cards (about 1 every 2 rounds), and the crew deck has 2 Mechanics, 2 Chief Engineers, 1 Repair Tech and 5 non-repair crew.
 - **Repairs should hurt more** so engineers matter. Sim baseline: 4 crew per team vs 1.5 damaged zones, 89% of damage fixed, almost no damage reaches the next fight, credits pay for repairs about 0 times.
+- **Robot-stat Intrigue cards** (Kev, 8 Nov: fold into the overhaul; measured swings in the card-value section): candidates are Sugar in the Tank 60% → 40% (−11), Loose Bolts → one wheel at 30% until repaired (−12), Smudged Lens −15% → −25% (−16), Secret Upgrade +20% → +15% (+16), Overclock needs a real boost in its own fight (not measured). Until then the AI cashes in Sugar, Lens, Overclock, Loose Bolts and EMP (no modules/drones) instead of playing them.
 - Other sim reads: fight cards sell cheap (1.1 Cr, 45% sold), robot prices barely rise with level (4.8 / 5.2 / 5.5 Cr), Intrigue cards out-earn fight wins as a fame source.
 
