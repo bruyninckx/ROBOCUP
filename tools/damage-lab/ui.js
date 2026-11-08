@@ -10,7 +10,7 @@
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
     teal: { name: 'Steel', col: '#2E8F9E', dark: '#1F6470', light: '#6CC0CC' }, red: { name: 'Rust', col: '#B8423A', dark: '#80281F', light: '#E07C72' } };
   const curMode = () => S && S.multi ? S.mode : st.mode;
-  const TC = i => (curMode() === '2v2' ? [PAL.steel, PAL.rust, PAL.teal, PAL.red] : [PAL.steel, PAL.rust, PAL.moss, PAL.violet])[i] || PAL.steel;
+  const TC = i => (typeof S !== 'undefined' && S && S.robots && S.robots[i] && S.robots[i].spec.pal) || (curMode() === '2v2' ? [PAL.steel, PAL.rust, PAL.teal, PAL.red] : [PAL.steel, PAL.rust, PAL.moss, PAL.violet])[i] || PAL.steel;
   const nBots = () => st.mode === '1v1' ? 2 : 4;
   const INK = '#2B2118', STEEL = '#9A9C94', STEEL_D = '#6F7169', RUBBER = '#2A2622', HAZ = '#E8C547';
   const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86', module: '#47A8FF', thruster: '#FF8A2A' };
@@ -319,13 +319,10 @@
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
-    const rk = R.onSide > 0 ? Math.sin(performance.now() / 90 + R.id) * 0.06 : 0;
-    const sideT = () => { if (R.onSide > 0) { ctx.translate(0, R.sideDir * R.hw * 0.45); ctx.rotate(rk); ctx.scale(1, 0.48); } }; // lying on its side: seen edge-on, rocking
-    const sso = R.onSide > 0 ? so + 0.04 : so; // standing on its edge it is taller, so the shadow falls a bit further
-    ctx.save(); ctx.translate(p.x + sso, p.y + sso); ctx.rotate(a); ctx.scale(sc, sc); sideT(); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
+    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); sideT();
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
@@ -512,8 +509,45 @@
     for (const q of segs) if (q.attached) { const b = q.body, p = b.getPosition(), o = raised ? 0.14 : 0.05; ctx.save(); ctx.translate(p.x + o, p.y + o); ctx.rotate(b.getAngle()); ctx.fillStyle = 'rgba(20,14,8,0.22)'; path(q.verts); ctx.fill(); ctx.restore(); }
     segs.forEach((q, k) => { if (!q.attached) return; onBody(q, () => { drawPart(q, cols[k] || cols[cols.length - 1], R, decorate(q, R, 0)); if (q.len && k < segs.length - 1) chaseDots(q, 5, on, lampCol, t, k * 5); bolt(-q.len / 2, 0); }); });
   }
+  // the House Robot: hazard stripes on its deck, the aim ring while the mallet winds up (the tell), the giant mallet itself
+  function hazardBand(x0, y0, x1, y1) { ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.clip(); ctx.fillStyle = HAZ; ctx.fillRect(x0, y0, x1 - x0, y1 - y0); ctx.fillStyle = '#1C1813'; for (let x = x0 - (y1 - y0); x < x1; x += 0.09) { ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x + 0.045, y1); ctx.lineTo(x + 0.045 + (y1 - y0), y0); ctx.lineTo(x + (y1 - y0), y0); ctx.closePath(); ctx.fill(); } ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); }
+  function drawMallet(R) {
+    const st = R.l4, b = R.body, p = b.getPosition(), a = b.getAngle(), t = performance.now() / 1000, HS = L.HOUSE, hl = R.hl, hw = R.hw, alive = R.alive && R.arm.hp > 0;
+    if (!R.flipped) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); hazardBand(-hl * 0.97, -hw * 0.92, -hl * 0.8, hw * 0.92); hazardBand(hl * 0.8, -hw * 0.92, hl * 0.97, hw * 0.92); ctx.restore(); }
+    if (!alive || R.flipped) return;
+    const W2 = (x, y) => b.getWorldPoint(planck.Vec2(x, y)), PIV = -0.55 * hl, REST = 0.45 * hl;
+    let hx, hy, sc, k = 0;
+    if (st.mode === 'wind' && st.aim) { // the tell: a red ring where it will land; the head swings up and back over the robot, shaking at the top
+      k = Math.max(0, Math.min(1, 1 - st.t / HS.wind)); const [ax, ay] = st.aim, rr = 0.45 - 0.17 * k, on = Math.sin(t * (8 + 22 * k)) > 0;
+      ctx.save(); ctx.fillStyle = `rgba(255,59,43,${0.07 + 0.16 * k})`; ctx.beginPath(); ctx.arc(ax, ay, rr, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = `rgba(255,59,43,${on ? 0.95 : 0.45})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 7, PX * 4]); ctx.beginPath(); ctx.arc(ax, ay, rr, t * 2, t * 2 + 6.29); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(ax - rr * 0.55, ay); ctx.lineTo(ax + rr * 0.55, ay); ctx.moveTo(ax, ay - rr * 0.55); ctx.lineTo(ax, ay + rr * 0.55); ctx.stroke(); ctx.restore();
+      const e = Math.min(1, k * 1.6), q = W2(REST + (PIV - 0.05 - REST) * e, 0); hx = q.x; hy = q.y; sc = 1.05 + 0.75 * Math.sin(Math.PI / 2 * e);
+      if (k > 0.75) { hx += (Math.random() - 0.5) * 0.025; hy += (Math.random() - 0.5) * 0.025; }
+    } else if (st.mode === 'slam' && st.aim) { // down it comes on the spot, rests on the floor, then lifts back onto the deck
+      const e = HS.rec - st.t, down = Math.min(1, e / 0.08), up = Math.max(0, (e - (HS.rec - 0.3)) / 0.3), q0 = W2(PIV - 0.05, 0), rest = W2(REST, 0);
+      const tx = st.aim[0] + (rest.x - st.aim[0]) * up, ty = st.aim[1] + (rest.y - st.aim[1]) * up;
+      hx = q0.x + (tx - q0.x) * down; hy = q0.y + (ty - q0.y) * down; sc = 1.8 - 0.85 * down + 0.1 * up;
+    } else { const q = W2(REST, 0); hx = q.x; hy = q.y; sc = 1.05; } // at rest: folded forward on the deck
+    const pv = W2(PIV, 0), dx = hx - pv.x, dy = hy - pv.y, ang = Math.hypot(dx, dy) > 0.05 ? Math.atan2(dy, dx) : a, hgt = Math.max(0, sc - 0.95);
+    // shadow of the head: the higher it is, the further off
+    ctx.save(); ctx.translate(hx + 0.05 + hgt * 0.4, hy + 0.05 + hgt * 0.4); ctx.rotate(ang); ctx.fillStyle = 'rgba(20,14,8,0.25)'; ctx.fillRect(-0.18 * sc, -0.3 * sc, 0.36 * sc, 0.6 * sc); ctx.restore();
+    // the arm: a thick beam from the pivot to the head
+    ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.13; ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.strokeStyle = '#6F7169'; ctx.lineWidth = 0.09; ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 0.025; ctx.stroke(); ctx.lineCap = 'butt';
+    ctx.fillStyle = '#4A4540'; ctx.beginPath(); ctx.arc(pv.x, pv.y, 0.085, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.strokeStyle = INK; ctx.stroke(); bolt(pv.x, pv.y);
+    // the head: a big steel block with hazard-striped faces
+    ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(sc, sc);
+    ctx.fillStyle = '#7D8078'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.6 / sc; ctx.fillRect(-0.18, -0.3, 0.36, 0.6); ctx.strokeRect(-0.18, -0.3, 0.36, 0.6);
+    hazardBand(-0.18, -0.3, 0.18, -0.2); hazardBand(-0.18, 0.2, 0.18, 0.3);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-0.18, -0.2, 0.07, 0.4);
+    bolt(-0.09, -0.12); bolt(-0.09, 0.12); bolt(0.09, -0.12); bolt(0.09, 0.12);
+    if (k > 0.05) { ctx.globalAlpha = Math.sin(t * (8 + 22 * k)) > 0 ? 0.95 : 0.25; ctx.fillStyle = '#FF3B2B'; ctx.beginPath(); ctx.arc(0, 0, 0.045, 0, 6.29); ctx.fill(); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(0, 0, 0.11, 0, 6.29); ctx.fill(); ctx.globalAlpha = 1; } // a strobe on the head too
+    ctx.restore();
+  }
   function drawL4(R, i) {
     const w = R.spec.weapon, b = R.body, t = performance.now() / 1000;
+    if (w === 'mallet' && R.l4 && !R.inPit) drawMallet(R);
     if (w === 'hydra' && R.arms) {
       const raised = R.l4.mode === 'reach';
       drawArm(R, R.arms, ['#8C8F86', '#9A9C94', '#5B5E57'], '#FFB020', raised);
@@ -827,7 +861,7 @@
       if (R.inPit && S.t - R.inPit > 0.8) continue;
       const p = R.body.getPosition(), [sx, sy] = toScreen(p.x, p.y - R.hl - 0.42);
       const chips = [];
-      if (R.onSide > 0) chips.push('ON ITS SIDE'); if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
+      if (R.flipped) chips.push('UPSIDE DOWN'); if (R.battery.fire) chips.push('ON FIRE'); if (R.glitch > 0) chips.push('GLITCH');
       if (R.wmotor && R.wmotor.jam > 0) chips.push('JAMMED'); if (R.slots.some(q => q.motor.stuck > 0)) chips.push('MOTOR STUCK'); if (R.slots.some(q => q.motor.heat > 85 && q.motor.hp > 0)) chips.push('OVERHEAT');
       if (R.snagged) chips.push('STUCK!');
       if (R.fried) chips.push('BRAIN FRIED'); else if (R.chipExposed) chips.push('CHIP EXPOSED'); if (R.chipFreeze > 0) chips.push('REBOOTING'); if (R.crossed > 0) chips.push('WIRES CROSSED'); if (R.berserk > 0) chips.push('BERSERK'); if (R.misfire > 0) chips.push('MISFIRE'); if (R.jammed > 0) chips.push('JAMMED');

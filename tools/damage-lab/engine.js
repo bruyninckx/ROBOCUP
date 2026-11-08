@@ -26,6 +26,7 @@
     medium: { hl: 0.40, hw: 0.31, mass: 38, hp: 220, force: 450, vmax: 4.4, label: 'Medium' },
     heavy: { hl: 0.46, hw: 0.36, mass: 54, hp: 290, force: 600, vmax: 3.8, label: 'Heavy' },
     huge: { hl: 0.52, hw: 0.4, mass: 64, hp: 330, force: 760, vmax: 3.6, label: 'Huge (level 4)' }, // end-game frames: bigger robot, bigger target
+    giant: { hl: 0.66, hw: 0.5, mass: 95, hp: 420, force: 1050, vmax: 3.0, label: 'Giant (house robot)' }, // the House Robot only
   };
   // drives from the Battleground: kb = knockback taken, strain = malfunction risk
   const DRIVES = {
@@ -117,6 +118,7 @@
     lodestone: { label: 'Electromagnet + drum', cat: 'front', mass: 16, invert: true, l4: true, d: 'Level 4: pulls steel in, clamps it, then flips polarity and fires the junk it collected as shrapnel. Rubber and fibreglass are immune.' },
     orbiter: { label: 'Orbiting tether blades', cat: 'spin', mass: 14, invert: true, l4: true, d: 'Level 4: two saw discs docked in the flanks fly out on tethers and orbit the spinning robot, then reel back in. Can lasso.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
+    mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
     carousel: { label: 'Tool carousel', cat: 'front', mass: 16, invert: true, l4: true, d: 'Level 4: a wedge, an axe and a saw on a turning carousel. Its brain picks the tool that counters the enemy.' },
     harpoon: { label: 'Harpoon gun', cat: 'top', mass: 9, invert: false, harpoon: true, d: 'Spears the enemy on a rope, reels it in and swings it round into the walls. The rope can snap.' },
     rapid: { label: 'Rapid gun', cat: 'top', mass: 7, invert: false, gun: { rate: 8, dmg: 2.4, speed: 26, spread: 0.07, range: 3.2, r: 0.025, kick: 1.5 }, d: 'Bullet hose. Armour shrugs most of it off.' },
@@ -199,6 +201,8 @@
     Orbiter: { weapon: 'orbiter', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 0, rear: 1, top: 1 }, shape: 'round', helpers: [], dmgK: 2, l4: true },
     Tarantula: { weapon: 'fangs', chassis: 'medium', drive: 'legs', motor: 'std', battery: 'std', bumper: 'spiked', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'round', helpers: [], dmgK: 1.4, l4: true },
     Grandmaster: { weapon: 'carousel', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'round', helpers: [], dmgK: 1.45, l4: true },
+    // the House Robot (tabletop card "Unleash the House Robot"): neutral, huge, slow, a giant hammer; other robots keep away from it
+    'Big Mallet': { weapon: 'mallet', chassis: 'giant', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 3, side: 3, rear: 2, top: 3 }, shape: 'chamfer', helpers: [], house: true, pal: { name: 'House', col: '#D9A520', dark: '#2E2A25', light: '#F2D27A' } },
     Doorstop: { weapon: 'wedge', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'big', armour: { front: 0, side: 3, rear: 2, top: 2 } },
     Rattler: { weapon: 'rapid', chassis: 'light', drive: '2wd', motor: 'std', battery: 'std', armour: { front: 1, side: 1, rear: 1, top: 1 } },
     Boomer: { weapon: 'heavy', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', armour: { front: 2, side: 2, rear: 1, top: 1 } },
@@ -293,13 +297,14 @@
         const spec = normSpec(o); let nm = spec.name || spec.preset || WEAPONS[spec.weapon].label; seen[nm] = (seen[nm] || 0) + 1; if (seen[nm] > 1) spec.name = nm + ' ' + ['', 'II', 'III', 'IV'][seen[nm] - 1];
         const R = makeRobot(S, spec, i, x, y, Math.atan2(-y, -x) + (r() - 0.5) * 0.4); R.team = team; R.home = [x, y]; R.orbit = r() < 0.5 ? 1 : -1; S.robots.push(R);
       });
-      for (const R of S.robots) R.enemy = S.robots.filter(Q => Q.team !== R.team).sort((a, b) => dist2(R, a) - dist2(R, b))[0];
+      for (const R of S.robots) R.enemy = S.robots.filter(Q => Q.team !== R.team).sort((a, b) => (R.house ? 0 : (a.house ? 1 : 0) - (b.house ? 1 : 0)) || dist2(R, a) - dist2(R, b))[0]; // nobody picks the House Robot first
     } else {
     const jy = (r() - 0.5) * 1.2;
     const A = makeRobot(S, normSpec(opts.a), 0, -2.5, jy, (r() - 0.5) * 0.5), B = makeRobot(S, normSpec(opts.b), 1, 2.5, -jy, Math.PI + (r() - 0.5) * 0.5);
     A.orbit = r() < 0.5 ? 1 : -1; B.orbit = r() < 0.5 ? 1 : -1;
     A.team = 0; B.team = 1; A.enemy = B; B.enemy = A; S.robots.push(A, B);
     }
+    S.house = S.robots.find(R => R.house) || null;
     S.drones = []; S.ewalls = [];
     for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; const dw = (R.spec.wear && R.spec.wear.drones) || [];
       R.spec.helpers.forEach((k, i) => { if (dw[i] != null && dw[i] <= 0) return; makeDrone(S, R, k, i); const d = R.drones[R.drones.length - 1]; d.idx = i; if (dw[i] != null) d.hp = dw[i] * d.maxHp; }); } // 2.0: a drone shot down last fight stays home
@@ -315,9 +320,12 @@
       if (!R.alive) continue;
       const cur = R.enemy, locked = R.grab || R.tether || S.snags.some(g => g.pa.robot === R || g.pb.robot === R);
       if (cur && cur.alive && (locked || (S.step + R.id * 15) % 60 !== 0)) continue;
-      const foes = S.robots.filter(Q => Q.alive && Q.team !== R.team); if (!foes.length) continue;
+      let foes = S.robots.filter(Q => Q.alive && Q.team !== R.team); if (!foes.length) continue;
+      // the House Robot is a hazard, not a target: only go for it when it is helpless or there is nobody else
+      if (S.house && !R.house) { const rest = foes.filter(Q => !Q.house || houseDown(Q)); if (rest.length) foes = rest; }
       let best = null, bs = 1e9;
       for (const Q of foes) {
+        if (R.house) { const sc = Math.sqrt(dist2(R, Q)) - (Q === cur ? 0.3 : 0); if (sc < bs) { bs = sc; best = Q; } continue; } // the House Robot goes for whoever is closest
         let sc = Math.sqrt(dist2(R, Q));
         if (Q === cur) sc -= 1.0;
         sc -= 1.4 * (1 - f01(Q));
@@ -614,6 +622,7 @@
     if (spec.wear) applyWear(S, R, spec.wear); // 2.0: damage carried over from the last fight
     R.massStart = body.getMass();
     R.prof = sideProfile(R, spec);
+    if (spec.house) R.house = true;
     return R;
   }
   // ---- ROBOCUS 2.0: damage that carries over between fights ----
@@ -661,28 +670,31 @@
       else { R.lid.hp = w.lid * R.lid.maxHp; if (w.lid < 0.4) R.lid.state = 'loose'; if (w.dents && w.dents['Top plate']) for (const [x, y, a] of w.dents['Top plate']) addDent(R.lid, [x, y], a); }
     }
   }
-  // how a robot behaves when it lands on its side, worked out from its own build:
-  // width (wheels and plates), a height estimate (frame + top-mounted gear), how top-heavy it is, and the hull shape
+  // how a robot comes down after a hard landing, worked out from its own build:
+  // width (wheels and plates), a height estimate (frame + top-mounted gear), how top-heavy it is, and the hull shape.
+  // (8 Nov: robots no longer stop on their side, it looked wrong from above. Where a side landing used to be rolled,
+  // the robot now goes straight to one of the two flat outcomes with the same build-based odds.)
   function sideProfile(R, spec) {
     let wy = 0; for (const q of R.parts) if (q.body === R.body) for (const v of q.verts) wy = Math.max(wy, Math.abs(v[1]));
     const Wd = wy * 2, W = R.W, a = spec.armour;
-    const H = { light: 0.16, medium: 0.2, heavy: 0.24, huge: 0.27 }[spec.chassis] + (W.cat === 'top' ? 0.1 : 0) + 0.02 * a.top + (spec.weapon === 'shell' ? 0.06 : 0);
+    const H = { light: 0.16, medium: 0.2, heavy: 0.24, huge: 0.27, giant: 0.32 }[spec.chassis] + (W.cat === 'top' ? 0.1 : 0) + 0.02 * a.top + (spec.weapon === 'shell' ? 0.06 : 0);
     const topMass = a.top * 4 + (W.cat === 'top' ? W.mass : 0) + (R.module ? 3 : 0), topK = topMass / R.body.getMass();
     const shapeK = spec.weapon === 'shell' ? 0.3 : { box: 1, chamfer: 0.55, wedge: 0.45, round: 0.12 }[spec.shape] || 1, hr = clamp(H / Wd * 3, 0.4, 1.4); // a shell spinner is round from the outside
     const selfRight = spec.weapon === 'flipper' || spec.weapon === 'hammer';
     return {
       W: Wd, H, topK: Math.round(topK * 100) / 100,
-      pSide: clamp(0.32 * shapeK * hr, 0.03, 0.45), // chance a hard landing ends on its side
-      pUp: selfRight ? 1 : clamp(0.78 - topK * 2.2 + (spec.shape === 'round' ? 0.2 : 0), 0.25, 0.97), // chance it drops back onto its wheels (else onto its back)
-      tSide: selfRight ? 0.5 : 0.6 + 2.2 * shapeK * clamp(hr, 0.5, 1.3), // how long it balances on its side
+      pTip: clamp(0.32 * shapeK * hr, 0.03, 0.45), // chance a hard landing rolls it over the edge (tall, narrow, boxy robots more often)
+      pUp: selfRight ? 1 : clamp(0.78 - topK * 2.2 + (spec.shape === 'round' ? 0.2 : 0), 0.25, 0.97), // then: chance it comes down on its wheels (else on its back)
     };
   }
-  function sideSettle(S, R, knocked) {
-    const P = R.prof, up = S.rng2() < P.pUp * (knocked ? 0.7 : 1), p = R.body.getPosition();
-    R.onSide = 0; R.flipped = up ? R.sidePrevFlip : !R.sidePrevFlip;
+  // a hard landing that rolls it over the edge: it comes down flat, either the way it was or toppled over
+  function sideSettle(S, R) {
+    const up = S.rng2() < R.prof.pUp, p = R.body.getPosition();
+    if (up) return;
+    R.flipped = !R.flipped;
     S.fx.push({ type: 'thud', x: p.x, y: p.y, power: 0.3 });
-    say(S, up ? `${R.name} drops back onto its wheels` : R.flipped ? `${R.name} topples over onto its back` + (R.W.invert ? ', keeps driving' : '') : `${R.name} topples back onto its wheels`, R.id, !up);
-    if (!up) callout(S, 'TOPPLED!', p.x, p.y, false);
+    say(S, R.flipped ? `${R.name} topples over onto its back` + (R.W.invert ? ', keeps driving' : '') : `${R.name} topples back onto its wheels`, R.id, true);
+    callout(S, 'TOPPLED!', p.x, p.y, false);
   }
 
   // ---------- helpers on robots ----------
@@ -692,7 +704,6 @@
   function weaponOk(R) {
     if (!R.alive) return false;
     if (R.flipped && !R.W.invert) return false;
-    if (R.onSide > 0 && R.spec.weapon !== 'shell') return false;
     if (R.wmotor && R.wmotor.hp <= 0) return false;
     if (R.turret && R.turret.hp <= 0) return false;
     if (R.arm && R.arm.hp <= 0) return false;
@@ -748,7 +759,6 @@
     if (R.eSh > 0 && atk && modOn(R)) { const ab = Math.min(R.eSh, d); R.eSh -= ab; d -= ab; if (S.step % 6 === 0) S.fx.push({ type: 'shieldhit', robot: R.id }); if (R.eSh <= 0) say(S, `${R.name}: energy shield down`, R.id); R.lastHurt = S.t; if (d <= 0) return; }
     if (atk && R.drones.length && !h.inner) { const bg = R.drones.find(q => q.alive && q.key === 'bodyguard' && !(q.off > 0)); if (bg) { const bp = bg.body.getPosition(), rp0 = R.body.getPosition(); if (Math.hypot(bp.x - rp0.x, bp.y - rp0.y) < R.hl + 0.9) { const ab = d * 0.4; d -= ab; damageDrone(S, bg, ab, atk, bp.x, bp.y); bg.hitT = 0.12; } } }
     if (atk || h.cause === 'heat' || h.cause === 'fire') R.lastHurt = S.t;
-    if (R.onSide > 0 && atk && d > 10 && R.alive) sideSettle(S, R, true);
     // the lid takes the overhead hits and gets rattled by big hits on the chassis
     if (R.lid.attached && R.alive && !h.inner && (h.top ? (part.kind === 'chassis' || part.kind === 'internal') : part.kind === 'chassis' && d >= 9)) {
       const ld = d * (h.top ? 0.6 : 0.3); if (h.top) d -= ld; lidHit(S, R, ld, h);
@@ -1145,7 +1155,6 @@
   function drive(S, R) {
     const b = R.body, m = b.getMass(), fwd = b.getWorldVector(V(1, 0)), right = b.getWorldVector(V(0, 1));
     let ground = R.airborne > 0 ? 0 : R.lifted > 0 ? 0.25 : 1;
-    if (R.onSide > 0) ground *= R.spec.weapon === 'shell' ? 0.5 : 0.22; // only the edge of the wheels touches the floor
     const onBack = R.flipped && !R.W.invert && !R.W.invertDrive; // lying on its back, wheels spin in the air
     const n = R.slots.length, load = m * G / n;
     const pw = R.alive ? power(R) : 0, mot = MOTORS[R.spec.motor];
@@ -1214,7 +1223,6 @@
     R.ctl.S = 0; R.ctl.dash = false;
     if (!R.alive) { R.ctl.L = R.ctl.R = 0; return; }
     if (R.stun > 0) { R.ctl.L = R.ctl.R = 0; return; }
-    if (R.onSide > 0) { const t = Math.sin(S.t * 9 + R.id) > 0 ? 1 : -1; R.ctl.L = t; R.ctl.R = -t; return; } // rocks itself, trying to fall back
     let ep = E.body.getPosition(), ev = E.body.getLinearVelocity();
     if (R.wp && R.wp.t > 0) { R.wp.t -= DT; ep = V(R.wp.x, R.wp.y); ev = V(0, 0); if (Math.hypot(ep.x - p.x, ep.y - p.y) < 0.35) R.wp.t = 0; } // live card: Pilot Waypoint
     // the enemy is hidden in its own smoke: aim at a guess
@@ -1294,6 +1302,8 @@
     if (!(w === 'wedge' && dist < 1.4) && !R.grab) { tx = clamp(tx, -(HX - 0.85), HX - 0.85); ty = clamp(ty, -(HY - 0.85), HY - 0.85); }
     // get out from under a ceiling hammer or off a floor bumper that is about to fire
     if (S.evt && S.evt.warnPts && S.evt.t < S.evt.warn) for (const q of S.evt.warnPts) { const dq = Math.hypot(p.x - q[0], p.y - q[1]); if (dq < q[2] + R.hl + 0.25) { tx = p.x + (p.x - q[0]) / (dq || 1) * 1.5; ty = p.y + (p.y - q[1]) / (dq || 1) * 1.5; speed = 1; } }
+    // keep clear of the House Robot, and run when its mallet is winding up nearby
+    if (S.house && !R.house) { const o = houseAvoid(S, R, p, tx, ty); if (o) { tx = o[0]; ty = o[1]; speed = o[2]; if (o[3]) R.kiting = 0.25; if (o[3] === 'flee') { R.unstick = 0; R.escape = 0; R.stuckT = 0; } } } // backing away from it: may reverse; running from the mallet: no backing-off moves
     // keep clear of floor saws that are up (unless shoving the enemy onto one)
     for (const sw of S.sawState) { const ds = Math.hypot(p.x - sw.x, p.y - sw.y); if ((sw.up || (sw.t % 4) > 3.3) && ds < sw.r + R.hl + 0.7 && !(w === 'wedge' && dist < 1.4)) { tx = p.x + (p.x - sw.x) / ds * 1.5; ty = p.y + (p.y - sw.y) / ds * 1.5; } }
     // flipped and can self-right? do it
@@ -1355,6 +1365,8 @@
     // thwack tail: spin on the spot when the enemy is in reach of the tail
     if (w === 'tail' && weaponOk(R) && E.alive && dist < R.hl + R.tailLen + E.hl + 0.8 && !(R.unstick > 0)) { const rel2 = wrap(Math.atan2(dy, dx) - a), fc = 0.45 * Math.cos(rel2) * (dist > R.hl + R.tailLen * 0.7 + E.hl ? 1 : -0.4); L = clamp(R.orbit * 0.85 + fc, -1, 1); Rr = clamp(-R.orbit * 0.85 + fc, -1, 1); R.thwack = 0.2; } // spin, and creep towards the enemy (back off when it is inside the tail)
     if (L4W[w] && L4W[w].drive && !(R.unstick > 0)) { const o4 = L4W[w].drive(S, R, { E, dist, dx, dy, ok: weaponOk(R) }); if (o4) { L = o4[0]; Rr = o4[1]; } }
+    if (R.fleeT > 0) { R.fleeT -= DT; L = Rr = R.flee; R.ctl.S = 0; } // the House Robot's mallet is coming down here: full throttle straight out
+    else if (R.awayT > 0) { R.awayT -= DT; let e = wrap(Math.atan2(R.away[1], R.away[0]) - a), dir = 1; if (Math.abs(e) > Math.PI / 2) { e = wrap(e + Math.PI); dir = -1; } const tn = clamp(e * 2.2, -1, 1), fw = clamp(1.2 - Math.abs(e) / 1.2, 0, 1) * dir; L = clamp(fw + tn, -1, 1); Rr = clamp(fw - tn, -1, 1); R.ctl.S = 0; } // right next to the House Robot: get out
     // a damaged radio scrambles the commands
     if (R.radio.hp / R.radio.maxHp < 0.45 && S.rng() < 0.004) R.glitch = 0.5 + S.rng();
     if (R.fried) { if (!R.wander || S.step % 240 === 0) R.wander = [S.rng() * 0.8 - 0.2, S.rng() * 0.8 - 0.2]; if (S.step % 480 < 200) [L, Rr] = R.wander; L *= 0.6; Rr *= 0.6; }
@@ -1968,15 +1980,12 @@
             S.fx.push({ type: 'thud', x: R.body.getPosition().x, y: R.body.getPosition().y, power: hard });
           if (R.overFly) { const tp = R.body.getPosition(); hit(S, R.chassis, 16 * hard, { src: R.overFly, cause: 'treb', top: true, x: tp.x, y: tp.y }); R.overFly = null; } // level 4: landing flat after a Trebuchet throw rattles the lid
           }
-          if (hard > 0.2 && R.alive && !(R.onSide > 0) && S.rng2() < R.prof.pSide) { // lands on its side: balances, rocks a bit, then falls one way or the other
-            R.onSide = R.prof.tSide * (0.7 + 0.6 * S.rng2()); R.sideDir = S.rng2() < 0.5 ? 1 : -1; R.sidePrevFlip = R.flipped;
-            const pp = R.body.getPosition(); callout(S, 'ON ITS SIDE!', pp.x, pp.y, false); say(S, `${R.name} lands on its side`, R.id);
-          } else if (S.rng() < (R.flipChance || 0)) { R.flipped = !R.flipped; if (R.flipped) say(S, `${R.name} lands upside down` + (R.W.invert ? ', keeps driving' : R.W.invertDrive ? ', drives on but the weapon points at the floor' : ', weapon is useless now'), R.id, true); }
+          if (hard > 0.2 && R.alive && S.rng2() < R.prof.pTip) sideSettle(S, R); // rolls over the edge: comes down flat, right side up or on its back
+          else if (S.rng() < (R.flipChance || 0)) { R.flipped = !R.flipped; if (R.flipped) say(S, `${R.name} lands upside down` + (R.W.invert ? ', keeps driving' : R.W.invertDrive ? ', drives on but the weapon points at the floor' : ', weapon is useless now'), R.id, true); }
           R.airMax = 0; R.flipChance = 0;
         }
       }
       if (R.lifted > 0) R.lifted -= DT;
-      if (R.onSide > 0 && R.airborne <= 0) { R.onSide -= DT; if (S.step % 18 === 0) R.body.applyAngularImpulse((S.rng2() - 0.5) * 6, true); if (R.onSide <= 0 && R.alive) sideSettle(S, R, false); }
       // pit
       if (S.arena.pit && R.airborne <= 0 && !R.inPit) {
         const p = R.body.getPosition();
@@ -2221,7 +2230,7 @@
     const busy = !!(E.grab || E.carry || E.tether || E.clampT > 0 || E.punching > 0 || E.swing > 0 || E.recover > 0 || (E.l4 && E.l4.busy));
     const p = R.body.getPosition(), ep = E.body.getPosition(), rel = Math.abs(wrap(Math.atan2(p.y - ep.y, p.x - ep.x) - E.body.getAngle()));
     const front = frontTool(w), inArc = rel < (front ? 1.3 : 0.9);
-    const helpless = E.stun > 0 || E.onSide > 0 || (E.flipped && !E.W.invert) || E.chipFreeze > 0 || E.airborne > 0.1;
+    const helpless = E.stun > 0 || (E.flipped && !E.W.invert) || E.chipFreeze > 0 || E.airborne > 0.1;
     const weak = !ok || helpless || (SPINNY[w] && spin < 0.4) || reload > 0.6 || busy || !inArc;
     return { ok, spin, reload, busy, inArc, weak, helpless, spinny: !!SPINNY[w], lid: E.lid.attached, lidLoose: E.lid.state === 'loose', chip: E.chipExposed && E.chipPart.hp > 0,
       crippled: E.slots.some(s => !(alivePart(s.wheel) && s.motor.hp > 0)), drones: (E.drones || []).some(d => d.alive), magnetic: !!MAGNETIC[E.bumper], heavy: E.body.getMass() / R.body.getMass() };
@@ -2664,6 +2673,108 @@
 
   // ---------------- GRANDMASTER: a carousel of three small tools (wedge, axe, saw). Its brain picks the counter, and baits the enemy into arena traps ----------------
   const GMT = ['flipper', 'saw', 'axe'], GMA = [0, TAU / 3, -TAU / 3];
+  // ---------------- THE HOUSE ROBOT: a huge neutral robot with a giant overhead mallet ----------------
+  // It winds up slowly (strobe lamps = the tell), locks its aim on where the target is, then slams. Robots that keep moving
+  // get out of the way, so it lands about 1 swing in 10, but a hit takes the lid off and does heavy damage.
+  const HOUSE = { reach: 0.85, wind: 2.0, head: 0.04, dmg: 160, lid: 45, rec: 0.7, cool: 1.0, keep: 2.2, speed: 0.3, patrol: 1.5, scatter: 0.38, run: 0.8 };
+  const houseDown = H => H.stun > 0 || (H.flipped && !H.W.invert) || H.chipFreeze > 0 || !weaponOk(H);
+  function houseAvoid(S, R, p, tx, ty) {
+    const H = S.house; if (!H || !H.alive || R.enemy === H || houseDown(H)) return null;
+    const hp = H.body.getPosition(), hx = p.x - hp.x, hy = p.y - hp.y, d = Math.hypot(hx, hy) || 0.01, st = H.l4 || {};
+    // the mallet is going up and I'm under where it will come down: get out
+    // (straight along its own axis, forwards or backwards, whichever takes it away from the spot and not into the House Robot: no time to turn)
+    const bolt = (ax, ay) => {
+      const a0 = R.body.getAngle(), fx = Math.cos(a0), fy = Math.sin(a0);
+      if (R.fleeFrom !== st.swing) { // pick a way out once per swing and stick to it (flip it once if it is blocked)
+        let sg = fx * ax + fy * ay; if (Math.abs(sg) < 0.1) sg = -(fx * p.x + fy * p.y); sg = sg >= 0 ? 1 : -1;
+        if (-(fx * hx + fy * hy) * sg > 0.8 * d) sg = -sg; // that way is straight into it
+        const lim = HALF - S.sq.x - 0.45; if (Math.abs(p.x + fx * sg * 1.2) > lim || Math.abs(p.y + fy * sg * 1.2) > lim) sg = -sg; // or into the wall
+        R.fleeFrom = st.swing; R.flee = sg; R.fleeStuck = 0; R.fleeFlipped = false;
+      }
+      const v = R.body.getLinearVelocity(); if (Math.hypot(v.x, v.y) < 0.25) R.fleeStuck += DT; else R.fleeStuck = 0;
+      if (R.fleeStuck > 0.35 && !R.fleeFlipped) { R.flee = -R.flee; R.fleeFlipped = true; }
+      R.fleeT = 0.1; return [p.x + fx * R.flee * 1.6, p.y + fy * R.flee * 1.6, 1, 'flee'];
+    };
+    if (st.mode === 'wind' && st.aim) { const ax = p.x - st.aim[0], ay = p.y - st.aim[1], da = Math.hypot(ax, ay) || 0.01; if (da < R.hl + HOUSE.run) return bolt(ax, ay); }
+    const gx = tx - p.x, gy = ty - p.y;
+    if (d < HOUSE.keep) { // too close: back off, sliding round it on the side of my target
+      const k = (HOUSE.keep - d) / HOUSE.keep, sg = (hx * gy - hy * gx) >= 0 ? 1 : -1;
+      if (d < HOUSE.keep * 0.85 && !R.grab) { R.away = [hx / d - hy / d * sg * 0.6, hy / d + hx / d * sg * 0.6]; R.awayT = 0.1; } // much too close: drive out, forwards or backwards
+      return [p.x + hx / d * (0.8 + 0.8 * k) - hy / d * sg * 0.5, p.y + hy / d * (0.8 + 0.8 * k) + hx / d * sg * 0.5, 1, 'keep']; // close target: it may reverse out
+    }
+    // the way to my target passes close to it: go round
+    const sl2 = gx * gx + gy * gy || 1, tt = clamp(-(hx * gx + hy * gy) / sl2, 0, 1), cx = hx + gx * tt, cy = hy + gy * tt, cl = Math.hypot(cx, cy);
+    if (tt > 0 && tt < 1 && cl < HOUSE.keep) { const ux = cl > 0.05 ? cx / cl : -hy / d, uy = cl > 0.05 ? cy / cl : hx / d; return [hp.x + ux * HOUSE.keep * 1.2, hp.y + uy * HOUSE.keep * 1.2, 1]; }
+    return null;
+  }
+  L4W.mallet = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      R.arm = k.addInt('arm', 'Mallet arm', [-0.2 * hl, 0], 160, { top: true });
+      R.wmotor = k.addInt('wmotor', 'Mallet ram', [-0.5 * hl, 0.3 * hw], 80);
+      R.l4 = { mode: 'idle', t: 0, aim: null, swing: 0, swings: 0, hits: 0 };
+      R.fx.beacon = 1;
+      for (const y of [-0.62, 0.62]) lamp(R, -0.05 * hl, y * hw, '#FF8A1A', 'beacon', { src: 'beacon', r: 0.045 }); // the house beacons
+      for (const [x, y] of [[0.78, -0.78], [0.78, 0.78], [-0.78, -0.78], [-0.78, 0.78]]) lamp(R, x * hl, y * hw, '#FF3B2B', 'state', { src: 'wind', strobe: true, r: 0.03 });
+    },
+    ok: R => R.arm.hp > 0,
+    step(S, R, c) {
+      const st = R.l4; R.fx.beacon = 1; R.fx.wind = st.mode === 'wind' ? clamp(1 - st.t / HOUSE.wind, 0.06, 1) : 0;
+      if (st.mode === 'wind') {
+        st.t -= DT;
+        if (!c.ok) { st.mode = 'idle'; st.aim = null; R.cool = HOUSE.cool; return; }
+        if (st.t <= 0) L4W.mallet.slam(S, R, c);
+        return;
+      }
+      if (st.mode === 'slam') { st.t -= DT; if (st.t <= 0) { st.mode = 'idle'; st.aim = null; R.cool = HOUSE.cool; } return; }
+      if (!c.ok || R.cool > 0) return;
+      // someone in reach of the mallet: start the wind-up and lock the aim on where it is now.
+      // It doesn't swing at a robot that can't get away (flipped, stunned, stuck, held).
+      const b = R.body, p = b.getPosition(), a = b.getAngle(); let best = null, bd = 1e9;
+      for (const Q of S.robots) {
+        if (Q === R || !Q.alive || Q.airborne > 0.1 || Q.flipped || Q.stun > 0 || Q.snagged || !canDrive(Q) || Q.noDrive > 0.3 || S.robots.some(G => (G.grab && G.grab.robot === Q) || (G.carry && G.carry.robot === Q))) continue;
+        if (Q === st.lastHit && S.t - st.lastHitT < 5) continue; // it just hit this one: it lets it crawl away
+        const qp = Q.body.getPosition(); if (Math.max(Math.abs(qp.x) - (HALF - S.sq.x), Math.abs(qp.y) - (HALF - S.sq.y)) > -(Q.hl + 0.45)) continue; // pinned against the wall: no way out
+        const dx = qp.x - p.x, dy = qp.y - p.y, d = Math.hypot(dx, dy), rel = Math.abs(wrap(Math.atan2(dy, dx) - a));
+        if (d < R.hl + HOUSE.reach + Q.hl * 0.5 && d > R.hl * 0.9 && rel < 0.75 && d < bd) { bd = d; best = Q; }
+      }
+      if (best) {
+        const qp = best.body.getPosition(), dx = qp.x - p.x, dy = qp.y - p.y, d = Math.hypot(dx, dy) || 1, dc = clamp(d, R.hl + 0.25, R.hl + HOUSE.reach);
+        st.mode = 'wind'; st.t = HOUSE.wind; st.aim = [p.x + dx / d * dc, p.y + dy / d * dc]; st.victim = best; st.swing++;
+        if (st.swing % 4 === 1) say(S, `${R.name} raises the mallet over ${best.name}`, R.id);
+      }
+    },
+    slam(S, R, c) { // SLAM: it comes down where the target was when the wind-up started
+      const st = R.l4, b = R.body, sa = S.rng() * 6.283, sr = HOUSE.scatter * Math.sqrt(S.rng()); st.mode = 'slam'; st.t = HOUSE.rec; st.swings++;
+      const x = st.aim[0] + Math.cos(sa) * sr, y = st.aim[1] + Math.sin(sa) * sr; st.aim = [x, y]; // a huge, clumsy hammer: it lands a little off the mark
+      let tgt = null;
+      for (const [ox, oy] of [[0, 0], [HOUSE.head, 0], [-HOUSE.head, 0], [0, HOUSE.head], [0, -HOUSE.head]]) { const q = topPartAt(S, x + ox, y + oy, R); if (q && q.robot !== R && q.robot.alive && q.robot.airborne <= 0.1) { tgt = q; break; } }
+      S.fx.push({ type: 'slam', x, y, power: 60 }); S.fx.push({ type: 'thud', x, y, power: 1 });
+      // only a blow on the body (chassis, under the lid) lands; on a wheel, plate or weapon it glances off the edge
+      const glance = tgt && tgt.kind !== 'chassis';
+      st.lastSlam = { t: S.t, hit: !!tgt && !glance, glance, dealt0: R.stats.dealt, victim: tgt ? tgt.robot.id : null, part: tgt ? tgt.label : null };
+      if (glance) {
+        const T = tgt.robot, lp = tgt.body.getLocalPoint(V(x, y)); st.glances = (st.glances || 0) + 1;
+        hit(S, tgt, HOUSE.dmg * 0.25 * Math.min(1, c.pw) * c.mf0, { src: R, cause: 'mallet', top: true, lp: [lp.x, lp.y], blp: tgt.body === T.body ? [lp.x, lp.y] : null, x, y, pen: 1 });
+        S.fx.push({ type: 'spark', x, y, power: 30 }); callout(S, 'GLANCING BLOW!', x, y, false);
+      } else if (tgt) {
+        const T = tgt.robot, lp = tgt.body.getLocalPoint(V(x, y));
+        hit(S, tgt, HOUSE.dmg * Math.min(1, c.pw) * c.mf0, { src: R, cause: 'mallet', top: true, lp: [lp.x, lp.y], blp: tgt.body === T.body ? [lp.x, lp.y] : null, x, y, pen: 2 });
+        if (T.lid.attached) lidHit(S, T, HOUSE.lid, { src: R, cause: 'mallet', lp: [lp.x, lp.y], blp: [lp.x, lp.y] }); // big enough to take a lid off
+        const tp = T.body.getPosition(), hp = b.getPosition(), ux = tp.x - hp.x, uy = tp.y - hp.y, ul = Math.hypot(ux, uy) || 1, m = T.body.getMass();
+        knock(T, ux / ul * m * 2.2, uy / ul * m * 2.2); T.stun = Math.max(T.stun, 0.3); T.lifted = 0.4; st.hits++; st.lastHit = T; st.lastHitT = S.t; // knocked clear and dazed
+        S.fx.push({ type: 'spark', x, y, power: 70 }); callout(S, 'SMASHED!', x, y, true); say(S, `${R.name} brings the mallet down on ${T.name}!`, R.id, true);
+      } else { callout(S, 'WHUMP!', x, y, false); if (st.swings % 3 === 1) say(S, `${R.name}'s mallet hits the floor`, R.id); }
+      for (const Q of S.robots) if (Q !== R && Q.alive) { const qp = Q.body.getPosition(), dd = Math.hypot(qp.x - x, qp.y - y); if (dd < 0.9 && dd > 0.01) { const k = 18 * (1 - dd / 0.9) * Q.body.getMass() / 40; knock(Q, (qp.x - x) / dd * k, (qp.y - y) / dd * k); } } // the floor jumps
+    },
+    think(S, R, c) {
+      const st = R.l4, p = R.body.getPosition();
+      if (R.flipped) { R.selfRight += DT; if (R.selfRight > 2.5 && R.arm.hp > 0) { R.flipped = false; R.selfRight = 0; R.airborne = 0.3; say(S, `${R.name} heaves itself back over with the mallet`, R.id); } }
+      if (st.mode === 'wind' && st.aim) return { tx: st.aim[0], ty: st.aim[1], speed: 0 }; // stands still and faces the spot
+      if (st.mode === 'slam') return { tx: p.x + Math.cos(R.body.getAngle()), ty: p.y + Math.sin(R.body.getAngle()), speed: 0 };
+      const m = HOUSE.patrol; return { tx: clamp(c.ep.x, -m, m), ty: clamp(c.ep.y, -m, m), speed: HOUSE.speed }; // it patrols the middle: it doesn't chase robots into the corners
+    },
+  };
   L4W.carousel = {
     build(S, R, k) {
       const { body, hl, hw } = k, cb = S.world.createBody({ type: 'dynamic', position: body.getPosition(), angle: body.getAngle(), angularDamping: 2, linearDamping: 0.2 });
@@ -2767,12 +2878,13 @@
     for (const R of S.robots) if (R.muzzle > 0) R.muzzle -= DT;
     // end of the fight
     if (!S.over && S.multi) {
-      const teams = [...new Set(S.robots.filter(R => R.alive).map(R => R.team))];
+      // the House Robot is neutral: the fight ends when one team is left (it only "wins" if it outlasts every team)
+      const teams = [...new Set(S.robots.filter(R => R.alive && !R.house).map(R => R.team))];
       if (teams.length <= 1) {
         if (S.endT == null) S.endT = S.t + 1.5;
-        if (S.t >= S.endT) { const last = teams.length ? teams[0] : S.robots.slice().sort((a, b) => b.koT - a.koT)[0].team; finishTeam(S, last, 'KO'); }
+        if (S.t >= S.endT) { const hs = S.house && S.house.alive ? S.house.team : null; const last = teams.length ? teams[0] : hs != null ? hs : S.robots.slice().sort((a, b) => b.koT - a.koT)[0].team; finishTeam(S, last, 'KO'); }
       } else if (S.t >= S.timeLimit) {
-        const sc = teams.map(t => [t, S.robots.filter(R => R.team === t).reduce((a, R) => a + judge(R, S), 0)]).sort((a, b) => b[1] - a[1]);
+        const sc = teams.map(t => [t, S.robots.filter(R => R.team === t).reduce((a, R) => a + judge(R, S), 0)]).sort((a, b) => b[1] - a[1]); // judges score the teams only
         finishTeam(S, sc[0][0], 'judges', sc);
       }
     }
@@ -2814,6 +2926,6 @@
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
   const L4 = Object.keys(PRESETS).filter(k => PRESETS[k].l4);
-  const API = { L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
