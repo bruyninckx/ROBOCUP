@@ -1,6 +1,6 @@
 # ROBOCUS rulebook (v1.0, first published game)
 
-v1.1, 7 Nov 2026 · Kev with Claude (v1.1: Intrigue trim and the live-card auction). These are the rules of the game as published on GitHub Pages: `prototypes/tabletop-prototype.html` (play it at https://bruyninckx.github.io/ROBOCUP/). Where the game and this text disagree, the game wins; tell Claude. Living version: https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv
+v1.2, 8 Nov 2026 · Kev with Claude (v1.1: Intrigue trim and the live-card auction; v1.2: card pass). These are the rules of the game as published on GitHub Pages: `prototypes/tabletop-prototype.html` (play it at https://bruyninckx.github.io/ROBOCUP/). Where the game and this text disagree, the game wins; tell Claude. Living version: https://claude.ai/artifact/FXXP1hQx6jc67uGHtmzGiv
 
 ## 1. The game in one page
 
@@ -25,7 +25,7 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 
 | Component | Contents |
 | --- | --- |
-| Intrigue deck | 60 different cards, 135 copies (18 of them Security Bots), in 7 families: Contracts 9, Publicity 14, Smear 8, Sabotage 10, Corporate 3, Match-fixing 7, Security 9 |
+| Intrigue deck | 57 different cards, 130 copies (18 of them Security Bots), in 7 families: Contracts 9, Publicity 14, Smear 6, Sabotage 10, Corporate 3, Match-fixing 6, Security 9 |
 | Auction deck | 16 cards: Remote Trigger 2, Pilot Waypoint 3, Target Overclock 2, Field Engineer 3, Oil Canister 2, EMP Grenade 2, Swap the Entry 2 |
 | Lot deck (Market) | 49 cards: 7 stat upgrades, 6 weapon upgrades, 3 gun calibres, 4 armour, 12 modules, 7 helper drones, 5 New Robot, 5 New Crew |
 | Robot deck | 11 Market robot cards, each with a quirk |
@@ -92,7 +92,7 @@ Starting with last round's host and going clockwise (round 1: the first team), e
 
 **Backing.** Short on fame? Ask other teams to back you, one at a time. Each backer adds its fame to yours for that one card; you don't have to say which card it is. You may offer credits and Stash parts; backers are paid only if the backing is enough and the card is really played. The Fixer counts +2 fame.
 
-**Defence.** When a harmful scheme targets you, your Security Bots roll first: each bot (installed or in hand) is spent and rolls a die, 4–6 blocks it (3–6 with a Security Chief), one roll per bot until one blocks. Then a **reaction window** opens for every team holding a blocking reaction (Paid Off, Fall Guy, Firewall, PR Spin, Not My Robot, Sponsor's Lawyers, Under the Radar, Overreach). A blocked scheme has no effect and is discarded.
+**Defence.** When a harmful scheme targets you, your Security Bots roll first: each bot (installed or in hand) is spent and rolls a die, 4–6 blocks it (3–6 with a Security Chief), one roll per bot until one blocks (Security Override and Asset Strip can't be blocked by Security Bots). Then a **reaction window** opens for every team holding a blocking reaction (Paid Off, Fall Guy, Firewall, PR Spin, Not My Robot, Sponsor's Lawyers, Under the Radar, Overreach). A blocked scheme has no effect and is discarded.
 
 **Face-down cards** (Sugar in the Tank, Smudged Lens, Secret Upgrade, Overclock) go onto a robot without being shown (🂠). They stay hidden, also from the bookie, until that robot's next fight starts.
 
@@ -129,7 +129,7 @@ One fight per round. Most fights are duels; Arena cards turn them into events.
 
 **3. Appearance money.** Each invited team gets 2 credits, plus 2 per Fan token on its robot (6 for a Fan Favourite), once per team.
 
-**4. Bets.** The bookie runs 20–40 simulated fights of the visible builds (face-down cards stay hidden) and shows each side in a band. Each team may bet 1–3 credits on one side (Lucky Seven: 5), but not against its own robot. **Bets are public** and update live as anyone clicks; when a team changes its bet, everyone who already locked is un-locked so they can react (no timer). Bookie's Friend shows every face-down card in the fight. The Hacker and a Sniper's Scope each show one face-down card on a rival robot.
+**4. Bets.** The bookie runs 20–40 simulated fights of the visible builds (face-down cards stay hidden) and shows each side in a band. Each team may bet 1–3 credits on one side (Lucky Seven: 5), but not against its own robot. **Bets are public** and update live as anyone clicks; when a team changes its bet, everyone who already locked is un-locked so they can react (no timer). The Hacker and a Sniper's Scope each show one face-down card on a rival robot.
 
 **Fight-card auction.** At the same time, 2 cards from the Auction deck are turned up. Every team may make a **sealed bid** on each (a 🔥 shows a card is wanted: 3+ credits bid on it in total, or 2+ teams bidding). Everyone locks bet and bids together. The bets are paid first, then each card goes to its highest bid, which pays its bid (minimum 1 credit); a team wins at most **1 card per fight**, and a tie goes to the team with less fame (equal fame: nobody). A won card is for **this fight only** (no fame gate); unused or unclaimed cards are discarded. The bookie's odds ignore the cards. **Swap the Entry** is used right after the auction and changes which robot a team sends (bets and odds stay).
 

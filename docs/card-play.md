@@ -57,7 +57,7 @@ Played/g = played per game (all teams); play% = played / drawn; cash% = cashed i
 
 **Win share of teams that played a card** (25% = no effect; biased and noisy, ±6 points): nothing stands out clearly after the AI fix. Earlier, with the old AI, Rival Sponsor (13%) and Mirror (10%) looked bad for whoever played them.
 
-## 4. Proposals (Kev to decide; not changed yet)
+## 4. Proposals (Kev, 8 Nov: all 7 done, results in section 5)
 
 Nerfs:
 1. **Team-Building Day: max +1 fame** (now +2 for 4 crew; 1.8 fame a play at gate 1, the best fame card).
@@ -71,3 +71,27 @@ Fixes / buffs:
 7. **Rival Sponsor gate 14→9, Smear Campaign 16→10** (if you want them playable without backing).
 
 Each is a number or text change; after any of them, rerun `tools\run-sims.cmd` and `node tools/card-report.js start4_win12` to see the effect.
+
+## 5. After the 7 changes (8 Nov, 200 games, same AI)
+
+Done: Team-Building Day max +1; Press Tour and Celebrity Endorsement 3→2; Security Override and Asset Strip can't be blocked by Security Bots (and the AI now knows it); House Robot gate 9→5; Skeleton Crew, Leaked Footage and Bankrupt! merged into **Kick When Down** (2 copies); Bookie's Friend cut; Rival Sponsor gate 14→9, Smear Campaign 16→10. Intrigue deck 135 → 130.
+
+| | Before | After |
+|---|---|---|
+| rounds: mean (median) | 6.1 (6) | 6.3 (6) |
+| share of the deck seen | 60% | 64% |
+| fame from cards (+ / −) | +10.5 / −1.9 | **+9.8** / −2.2 |
+| fame from fights (incl. Grand Final) / hosting | 7.6 / 5.8 | **8.2 / 6.0** |
+| attacks / game (land) | 11.1 (61%) | 11.8 (67%) |
+| Security Bot rolls / game | 5.2 | 3.6 |
+
+| Card | Before | After |
+|---|---|---|
+| Security Override | lands 11% | **lands 65%** |
+| Asset Strip | played 0% | **played 56%, lands 61%** |
+| Team-Building Day | 1.8 fame a play | 1.0 |
+| Unleash the House Robot | played 1% | 13% (still host-only: mostly cashed) |
+| Smear Campaign / Rival Sponsor | played 38% / 33% | 73% / 52% |
+| Kick When Down (new) | – | played 19%, cashed 38% (still situational) |
+
+The fame balance moved a little toward the fights (cards were 47% of positive fame, now 43%). For a bigger shift, the next step would be the 3-copy staples (Fan Meet etc.) to 2, or +1 fame for a fight win in a 2v2/free-for-all only... but that is a bigger design call. Game length is about the same.

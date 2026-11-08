@@ -1,6 +1,6 @@
 # Intrigue deck (v1 + 5 Nov additions + 7 Nov trim)
 
-60 different cards, 135 copies (7 Nov trim, Kev: was 75 cards / 188 copies), in 7 families: schemes and blockers only. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. The live fight cards and Swap the Entry are in the **Auction deck** (below), not in the Intrigue deck. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
+57 different cards, 130 copies (7 Nov trim and 8 Nov card pass, Kev: was 75 cards / 188 copies), in 7 families: schemes and blockers only. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. The live fight cards and Swap the Entry are in the **Auction deck** (below), not in the Intrigue deck. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
 
 ## Contracts (9 cards, 23 copies)
 
@@ -18,7 +18,7 @@ Cheap, low-gate cards that turn crew and robots into credits.
 | **Scrap Deal** | Scheme | 7 | 1 | 3 | Gain 5 credits. | Black Market Profits |
 | **Joint Venture** | Scheme | 12 | 2 | 1 | You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes. | Joint Venture |
 
-## Publicity (14 cards, 27 copies)
+## Publicity (14 cards, 25 copies)
 
 The main way to gain fame. Low gates need a full, rested garage.
 
@@ -28,18 +28,18 @@ The main way to gain fame. Low gates need a full, rested garage.
 | **Roadshow** | Scheme | 0 | 2 | 1 | +2 fame to a target team with 3+ ready robots. | Epic Spectacle |
 | **Public Demo** | Scheme | 0 | 2 | 2 | Pay 3 credits: +1 fame to a target team with 1+ ready robot. | Public Exhibition |
 | **Launch Party** | Scheme | 0 | 2 | 1 | Pay every other team 2 credits: +1 fame to target. | Grand Feast |
-| **Team-Building Day** | Scheme | 1 | 2 | 2 | Target gains +1 fame per 2 robots or crew it exhausts (max +2). | Test of the Brotherhood |
+| **Team-Building Day** | Scheme | 1 | 2 | 2 | Target may exhaust 2 of its crew for +1 fame. (8 Nov: was up to +2) | Test of the Brotherhood |
 | **Underdog Story** | Scheme | 2 | 1 | 1 | +2 fame to the team with the least fame (not on a tie). | Revenge! |
-| **Press Tour** | Scheme | 4 | 2 | 3 | Target may exhaust 3 robots, crew or Security Bots for +1 fame. | Set Hands to Purpose |
+| **Press Tour** | Scheme | 4 | 2 | 2 | Target may exhaust 3 robots, crew or Security Bots for +1 fame. | Set Hands to Purpose |
 | **Museum Donation** | Scheme | 4 | 1 | 2 | Target may discard a robot or crew member for +1 fame. | Party Favors |
-| **Celebrity Endorsement** | Scheme | 6 | 2 | 3 | +1 fame to target. | A Visitor from Rome |
+| **Celebrity Endorsement** | Scheme | 6 | 2 | 2 | +1 fame to target. | A Visitor from Rome |
 | **Hype Reel** | Scheme | 8 | 1 | 2 | Give a target robot a Fan token. 3 tokens = Fan Favourite. | Aggrandizing Proclamation |
 | **Prime-Time Interview** | Scheme | 11 | 2 | 2 | +1 fame to target. | Final Blow |
 | **Viral Moment** | Scheme | 12 | 1 | 2 | +1 fame to target. | Lend Me Your Ear |
 | **Co-Branding Deal** | Scheme | 12 | 2 | 2 | +1 fame to two teams. | Collaboration |
 | **Grand Melee** | Reaction | 5 | 2 | 1 | Event: the host must run a free-for-all or team fight; if it happens, host +1 fame. | A Spectacle of Blood & Death |
 
-## Smear (8 cards, 12 copies)
+## Smear (6 cards, 11 copies)
 
 Costs rivals fame. The big ones gate above 12, so hitting a leader takes a team-up.
 
@@ -48,11 +48,9 @@ Costs rivals fame. The big ones gate above 12, so hitting a leader takes a team-
 | **Bribe Scandal** | Scheme | 0 | 1 | 3 | Pay a target team 3 credits; target −1 fame. | Caught Taking Bribes |
 | **Inside Leak** | Scheme | 4 | 2 | 2 | Discard one of your ready crew (they leak and leave): target −1 fame. | Blackmail |
 | **Paparazzi** | Scheme | 4 | 2 | 2 | Target −1 fame; pay another team 3 credits. | Buying Secrets |
-| **Rival Sponsor** | Scheme | 14 | 2 | 1 | Target −1 fame, another team +1. | Collusion |
-| **Smear Campaign** | Scheme | 16 | 2 | 1 | Target −2 fame. | Conspiracy |
-| **Skeleton Crew** | Reaction | 3 | 1 | 1 | −1 fame to a team with no ready crew. | Empty Brothel |
-| **Leaked Footage** | Reaction | 3 | 1 | 1 | −1 fame to a team with no ready robots. | A Shameful Ludus |
-| **Bankrupt!** | Reaction | 3 | 1 | 1 | −1 fame to a team with 0 credits. | Destitute! |
+| **Rival Sponsor** | Scheme | 9 | 2 | 1 | Target −1 fame, another team +1. | Collusion |
+| **Smear Campaign** | Scheme | 10 | 2 | 1 | Target −2 fame. | Conspiracy |
+| **Kick When Down** | Reaction | 3 | 1 | 2 | −1 fame to a rival with 0 credits, no ready robots or no ready crew. (8 Nov: replaces Skeleton Crew, Leaked Footage and Bankrupt!) | Empty Brothel / A Shameful Ludus / Destitute! |
 
 ## Sabotage (10 cards, 24 copies)
 
@@ -61,7 +59,7 @@ Attacks on a rival garage. The face-down cards are what make the bookmaker wrong
 | Card | Type | Gate | Cash-in | Copies | Effect | Based on |
 |---|---|---|---|---|---|---|
 | **Poached Mechanic** | Scheme | 0 | 1 | 3 | Target discards a ready crew member. | Unlocked Gate |
-| **Security Override** | Scheme | 0 | 1 | 2 | Pay 1 credit per Security Bot asset the target has: exhaust them all. | Bribe the Guards |
+| **Security Override** | Scheme | 0 | 1 | 2 | Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it. | Bribe the Guards |
 | **EMP the Garage** | Scheme | 1 | 1 | 2 | Target's modules and helpers are offline in its next fight. | Sabotage |
 | **Sugar in the Tank** | Scheme (face-down) | 2 | 1 | 3 | On a rival robot: −2 speed in its next fight. | new |
 | **Smudged Lens** | Scheme (face-down) | 2 | 1 | 3 | On a rival robot: −2 accuracy in its next fight. | new |
@@ -77,11 +75,11 @@ Market-phase reactions for a leader against teams behind it.
 
 | Card | Type | Gate | Cash-in | Copies | Effect | Based on |
 |---|---|---|---|---|---|---|
-| **Asset Strip** | Reaction | ▲ | 1 | 2 | Target must sell you up to 3 Security Bot assets at 3 credits each. | Conscription |
+| **Asset Strip** | Reaction | ▲ | 1 | 2 | Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it. | Conscription |
 | **Hostile Buyout** | Reaction | ▲ | 2 | 1 | Target sells you a robot or crew member at 2× its value, or loses 1 fame. | Leverage |
 | **Shill Bidder** | Reaction | ▲ | 1 | 2 | After sealed bids are revealed: the target's bid counts 2 lower. | Submit to Your Betters |
 
-## Match-fixing (7 cards, 13 copies)
+## Match-fixing (6 cards, 11 copies)
 
 One-fight boosts and event formats live here; permanent upgrades are Market cards. New numbers (5 Nov) are first proposals.
 
@@ -89,8 +87,7 @@ One-fight boosts and event formats live here; permanent upgrades are Market card
 |---|---|---|---|---|---|---|
 | **Secret Upgrade** | Scheme (face-down) | 2 | 1 | 3 | On your robot: +1 firepower and +1 armour in its next fight. | new |
 | **Overclock** | Scheme (face-down) | 3 | 1 | 2 | On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage. | new |
-| **Unleash the House Robot** | Scheme | 9 | 2 | 1 | Host only: a neutral robot joins the fight and attacks whoever is closest. | new |
-| **Bookie's Friend** | Reaction | 4 | 2 | 2 | Before bets close: look at every face-down card in this fight. | new |
+| **Unleash the House Robot** | Scheme | 5 | 2 | 1 | Host only: a neutral robot joins the fight and attacks whoever is closest. | new |
 | **Mirror** | Reaction | 3 | 2 | 1 | Host only, event: each team picks one robot; it fights as 2–3 copies. | new |
 | **Grand Final** | Scheme | 10 | 2 | 2 | Event: next fight is 2v2, the two fame leaders vs the other two. Double fame. | new |
 | **Tag Team Licence** | Scheme | 4 | 2 | 2 | Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame. | new |
@@ -134,8 +131,10 @@ Not dealt to hands. In every fight's **Bets step** 2 cards are turned up and auc
 | **Oil Canister** | Reaction | 0 | 1 | 2 | Live, any player: splash oil on the floor; robots slide and spin. | tabletop |
 | **EMP Grenade** | Reaction | 2 | 1 | 2 | Live, any player: lob an EMP (100 px): 0.9 s stun and 5 damage to every robot it catches. | tabletop |
 
-## Cut on 7 Nov (0 copies; still in the code so old saves read)
+## Cut (0 copies; still in the code so old saves read)
 
-Fire Sale, Blaze of Glory, Robot Rights Protest, Rigged Ratings, Pile-On, Backup Restore, Board Seat, Hedge Bet. Also fewer copies: Security Bot 28→18, Leaked Footage / Bankrupt! / Skeleton Crew 2→1, Crunch Week 4→2, Underdog Story 3→1, Roadshow, Launch Party, Joint Venture, Hostile Buyout and Mirror 2→1, Botched Install 3→2. Later, maybe (after a human playtest): the 3-copy staples to 2 each (about 120).
+8 Nov (card pass, `docs/card-play.md`): Bookie's Friend; Skeleton Crew, Leaked Footage and Bankrupt! became Kick When Down; Press Tour and Celebrity Endorsement 3→2; Team-Building Day max +1; Security Override and Asset Strip can't be blocked by Security Bots; gates: House Robot 9→5, Rival Sponsor 14→9, Smear Campaign 16→10.
+
+7 Nov: Fire Sale, Blaze of Glory, Robot Rights Protest, Rigged Ratings, Pile-On, Backup Restore, Board Seat, Hedge Bet. Also fewer copies: Security Bot 28→18, Leaked Footage / Bankrupt! / Skeleton Crew 2→1, Crunch Week 4→2, Underdog Story 3→1, Roadshow, Launch Party, Joint Venture, Hostile Buyout and Mirror 2→1, Botched Install 3→2. Later, maybe (after a human playtest): the 3-copy staples to 2 each (about 120).
 
 **Prototype-only, not in the deck:** Stripped Gears, Cut Corners (drop or add later).
