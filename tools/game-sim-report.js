@@ -19,7 +19,7 @@ const V2 = {
     const zd = k => pc(mean(ent.map(e => e.z && e.z[k] !== 'ok' ? 1 : 0))) + ' (' + pc(mean(ent.map(e => e.z && e.z[k] === 'broken' ? 1 : 0))) + ' broken)';
     const auc = g.flatMap(r => r.auctions || []), won = auc.flatMap(a => a.wins || []), live = g.flatMap(r => r.v2.live);
     const lots = g.flatMap(r => r.v2.lots), sold = lots.filter(l => l.winner != null && l.winner >= 0);
-    const rb = sold.filter(l => l.kind === 'robot'), lv = [0, 1, 2, 3].map(L => rb.filter(l => (l.level || 0) === L));
+    const rb = sold.filter(l => l.kind === 'robot'), lv = [0, 1, 2, 3, 4].map(L => rb.filter(l => (l.level || 0) === L));
     const cal = S.calib(fx), sc = g.flatMap(r => r.v2.scraps);
     const fw = g.flatMap(r => r.v2.fightWall || []);
     return {
@@ -37,10 +37,11 @@ const V2 = {
       'fight cards: won / fight, price': f1(won.length / fx.length) + ', ' + f1(mean(won.map(w => w.price))) + ' Cr (' + pc(won.length / Math.max(1, auc.reduce((a, x) => a + x.cards.length, 0))) + ' of offered)',
       'fight cards: Cr spent / game (all teams)': per(won.reduce((a, w) => a + w.price, 0)),
       'fight cards: played / fight (of won)': f1(live.length / fx.length) + ' (' + pc(live.length / Math.max(1, won.length)) + ')',
-      'robots bought / game: L0 L1 L2 L3': lv.map(a => per(a.length)).join(' '),
-      'robot price by level L0 L1 L2 L3': lv.map(a => a.length ? f1(mean(a.map(l => l.price))) : '-').join(' '),
+      'robots bought / game: L0 L1 L2 L3 L4': lv.map(a => per(a.length)).join(' '),
+      'robot price by level L0 L1 L2 L3 L4': lv.map(a => a.length ? f1(mean(a.map(l => l.price))) : '-').join(' '),
       'parts / crew bought per game (avg Cr)': per(sold.filter(l => l.kind !== 'robot' && l.kind !== 'crew' && l.kind !== 'other').length) + ' (' + f1(mean(sold.filter(l => !['robot', 'crew', 'other'].includes(l.kind)).map(l => l.price))) + ') / ' + per(sold.filter(l => l.kind === 'crew').length) + ' (' + f1(mean(sold.filter(l => l.kind === 'crew').map(l => l.price))) + ')',
       'lots unsold': pc(1 - sold.length / Math.max(1, lots.length)),
+      'level 4: lots / game, sold, fights / game': (() => { const l4 = lots.filter(l => l.level === 4); if (!l4.length) return '-'; const f4 = fx.filter(f => (f.x2 || []).some(e => e && e.level === 4)); return per(l4.length) + ', ' + pc(l4.filter(l => l.winner != null && l.winner >= 0).length / l4.length) + ', ' + per(f4.length); })(),
       'robots at end / team': f1(mean(g.flatMap(r => r.v2.robotsEnd.map(x => x.length)))),
       'scrapped / game: host, debt; robotless': per(sc.filter(x => x.why === 'host').length) + ', ' + per(sc.filter(x => x.why === 'debt').length) + '; ' + per(sc.filter(x => x.why === 'none-left').length),
       'bookie favourite wins (n)': pc(cal.favWin) + ' (' + cal.n + ')',
@@ -62,6 +63,29 @@ const V2 = {
     const all = fx.length || 1;
     return { n, favWin: fav / n, strWin: str / n, brier: br / nb, brier0: br0 / nb, bins, draw: draw / all, house: house / all };
   },
+  // level 4 robots (BAL.level4): lots by round, price, who buys them (fame rank when the lots are sold), fights, win rates, the bookie
+  level4(tag, g, fx) {
+    const lots = g.flatMap(r => r.v2.lots.filter(l => l.level === 4)); if (!lots.length) return;
+    const sold = lots.filter(l => l.winner != null && l.winner >= 0), rounds = [...new Set(lots.map(l => l.r))].sort((a, b) => a - b);
+    console.log('\n' + tag + ': level 4 robots (' + g.length + ' games)');
+    console.log('  by round      ' + rounds.map(r => 'R' + r + ' ' + lots.filter(l => l.r === r).length + '/' + sold.filter(l => l.r === r).length).join('  ') + '   (lots offered / sold)');
+    console.log('  per game      ' + f1(lots.length / g.length) + ' offered, ' + f1(sold.length / g.length) + ' sold (' + pc(sold.length / lots.length) + '), price ' + f1(mean(sold.map(l => l.price))) + ' Cr (min ' + Math.min(...sold.map(l => l.price)) + ', max ' + Math.max(...sold.map(l => l.price)) + ')');
+    const rk = ['leader', '2nd', '3rd', 'last'], byRk = [0, 0, 0, 0];
+    sold.forEach(l => { if (!l.fame) return; const f = l.fame[l.winner]; byRk[Math.min(3, l.fame.filter(x => x > f).length)]++; });
+    const nr = byRk.reduce((a, b) => a + b, 0);
+    if (nr) console.log('  buyer         ' + rk.map((k, i) => k + ' ' + pc(byRk[i] / nr)).join(', ') + '   (fame rank when sold; ties share the higher rank)');
+    const f4 = fx.filter(f => (f.x2 || []).some(e => e && e.level === 4) && typeof f.win === 'number' && f.win >= 0);
+    const per = {}; f4.forEach(f => f.x2.forEach(e => { if (e && e.level === 4) { const o = per[e.name] = per[e.name] || { n: 0, w: 0 }; o.n++; if (e.side === f.win) o.w++; } }));
+    console.log('  fights        ' + f1(f4.length / g.length) + ' / game with a level 4 robot; per robot (fights, wins): ' + Object.entries(per).sort((a, b) => b[1].n - a[1].n).map(([k, o]) => k + ' ' + o.n + ' (' + pc(o.w / o.n) + ')').join(', '));
+    const vs = {}; f4.forEach(f => { const ent = f.x2.filter(Boolean); if (ent.length !== 2 || ent[0].side === ent[1].side) return; const a = ent.find(e => e.level === 4), b = ent.find(e => e !== a); const o = vs[b.level] = vs[b.level] || { n: 0, w: 0 }; o.n++; if (a.side === f.win) o.w++; });
+    console.log('  duels, L4 vs  ' + [0, 1, 2, 3, 4].filter(L => vs[L]).map(L => 'L' + L + ' ' + pc(vs[L].w / vs[L].n) + ' (' + vs[L].n + ')').join(', '));
+    const all = { n: 0, w: 0 }; f4.forEach(f => { const sides = new Set(f.x2.filter(e => e && e.level === 4).map(e => e.side)); sides.forEach(sd => { all.n++; if (sd === f.win) all.w++; }); });
+    console.log('  all formats   a side with a level 4 robot wins ' + pc(all.w / all.n) + ' (' + all.n + ' sides)');
+    const cal = this.calib(f4); let bp = 0, bw = 0, bn = 0;
+    f4.forEach(f => { if (!f.p) return; const sides = new Set(f.x2.filter(e => e && e.level === 4).map(e => e.side)); sides.forEach(sd => { bp += f.p[sd]; bw += sd === f.win ? 1 : 0; bn++; }); });
+    console.log('  bookie        fights with level 4: favourite wins ' + pc(cal.favWin) + ', Brier ' + cal.brier.toFixed(3) + ' (coin ' + cal.brier0.toFixed(3) + '); level 4 sides: bookie ' + pc(bp / bn) + ', actual ' + pc(bw / bn));
+    cal.bins.forEach((b, i) => { if (b.n) console.log('    ' + (i / 10).toFixed(1) + '-' + ((i + 1) / 10).toFixed(1) + '   ' + String(b.n).padStart(5) + '   bookie ' + pc(b.p / b.n).padStart(4) + '   actual ' + pc(b.w / b.n).padStart(4)); });
+  },
   details(tag, D) {
     if (D.bal && Object.keys(D.bal).length) console.log('\n' + tag + ': BAL overrides ' + JSON.stringify(D.bal) + (D.balFile ? ' (from ' + D.balFile + ')' : ''));
     const g = D.res.filter(r => r.v2 && r.over && !r.stall), fx = g.flatMap(r => r.v2.fightsX), cal = this.calib(fx);
@@ -77,6 +101,7 @@ const V2 = {
     for (const id in C) if (!live.some(l => l.id === id)) C[id].played = g.reduce((a, r) => a + ((r.cstat || {})[id] ? r.cstat[id].played || 0 : 0), 0);   // not a live card (Swap the Entry): its play count
     console.log('\n' + tag + ': fight cards (per game)   offered / won / avg price / played');
     Object.entries(C).sort((a, b) => b[1].off - a[1].off).forEach(([id, c]) => console.log('  ' + id.padEnd(18) + [c.off / g.length, c.won / g.length].map(f1).join(' / ') + ' / ' + (c.won ? f1(c.cr / c.won) : '-') + ' / ' + f1(c.played / g.length)));
+    this.level4(tag, g, fx);
     const E = {};
     D.res.forEach(r => { (r.pageErrs || []).forEach(m => { E['page: ' + m] = (E['page: ' + m] || 0) + 1; }); (r.errEvents || []).forEach(e => { E['game: ' + e.msg] = (E['game: ' + e.msg] || 0) + 1; }); ((r.v2 || {}).hookErrs || []).forEach(m => { E['sim hook: ' + m] = (E['sim hook: ' + m] || 0) + 1; }); if (r.crash) E['crash: ' + r.crash] = (E['crash: ' + r.crash] || 0) + 1; if (r.stall) E['stall'] = (E['stall'] || 0) + 1; if (!r.crash && !r.over) E['not over by round ' + r.round] = (E['not over by round ' + r.round] || 0) + 1; });
     console.log('\n' + tag + ': errors and stalls (games affected)' + (Object.keys(E).length ? '' : ': none'));

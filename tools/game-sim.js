@@ -99,6 +99,7 @@ function installHooks() {
           e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), s: D.str2(r), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
+        if (e && e.k === 'market') e.fameNow = g.teams.map(t => t.fame);   // fame when the lots are sold (who buys level 4: leader or not)
         if (e && e.k === 'phase' && e.ph === 'intrigue') {
           if (!X.ups.some(u => u.r === g.round && u.after)) for (const t of g.teams) { const u = X.ups.filter(u => u.r === g.round && u.team === t.i).pop(); if (u) { u.after = teamDamage(t); u.crAfter = t.credits; } }
         }
@@ -164,7 +165,7 @@ function installHooks() {
             reps: X.reps, ups: X.ups, scraps: X.scraps, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
-            lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && Lineup.ROBOTS[x.starter || x.name] ? Lineup.ROBOTS[x.starter || x.name][0] : 0) : null, name: x.name }; })),
+            lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),
             live: ev.filter(e => e.k === 'live_card').map(e => ({ r: e.r, team: e.team, id: e.id, type: e.type, t: e.t })),
             stepMs: X.stepMs, steps: X.steps, fightWall: X.fightWall,
             robotsEnd: G.teams.map(t => t.robots.map(r => ({ name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0) }))),
