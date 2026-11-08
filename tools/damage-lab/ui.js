@@ -294,6 +294,16 @@
     };
   }
 
+  // Lineup Arena: the robot's level pressed into its lid as small stars (level 0 starters have none)
+  function starPath(cx, cy, r) { ctx.beginPath(); for (let k = 0; k < 10; k++) { const an = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; ctx.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); } ctx.closePath(); }
+  function stamp(R, i, x0, y0, x1, y1) {
+    if (!LU || !st.spec[i] || !LU.ROBOTS[st.spec[i].robot]) return; const n = LU.ROBOTS[st.spec[i].robot][0]; if (!n) return;
+    const h = y1 - y0, r = Math.min(0.048, h / (n * 2.4 + 0.8)), gap = r * 2.35, cx = x0 + Math.min(0.09, (x1 - x0) * 0.22), d = Math.max(PX, 0.005);
+    for (let k = 0; k < n; k++) { const cy = (k - (n - 1) / 2) * gap + (y0 + y1) / 2;
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 2); // stars point to the robot's front
+      starPath(d, d, r); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill(); // lit lower edge of the dent
+      starPath(0, 0, r); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(); ctx.restore(); }
+  }
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
@@ -328,6 +338,7 @@
         const lo = R.lid.state === 'loose' ? Math.sin(performance.now() / 25) * 0.008 : 0; ctx.save(); ctx.translate(lo, -lo);
         drawPart(R.lid, R.alive ? TC(i).dark : '#4A4540', R, () => { ctx.fillStyle = 'rgba(255,255,255,0.1)'; const [x0, y0, x1] = bbox(R.lid.home); ctx.fillRect(x0, y0, x1 - x0, 0.03); });
         const [x0, y0, x1, y1] = bbox(R.lid.home); for (const [bx, by] of [[x0 + 0.03, y0 + 0.03], [x1 - 0.03, y0 + 0.03], [x0 + 0.03, y1 - 0.03], [x1 - 0.03, y1 - 0.03]]) if (!(R.lid.state === 'loose' && bx > 0 && by < 0)) bolt(bx, by);
+        stamp(R, i, x0, y0, x1, y1);
         ctx.restore();
       } else {
         const [cx, cy] = R.chipPart.lp, dead = R.chipPart.hp <= 0, z = (R.zap || 0) > 0;
