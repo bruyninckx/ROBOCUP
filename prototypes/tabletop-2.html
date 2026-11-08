@@ -165,6 +165,8 @@ html, body {
 .left-col .prompt-bar { position: static; transform: none; flex: 0 0 auto; border-radius: 12px; padding: 10px 12px; flex-wrap: wrap; gap: 8px; font-size: 12.5px; line-height: 1.4; }
 .left-col .prompt-bar > span { flex: 1 1 100%; }
 .left-col .prompt-bar .act { padding: 5px 12px; }
+.prompt-bar .ivorder { background: #f6f4ee; color: #333; border-radius: 8px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
+.prompt-bar .ivorder i { font-style: normal; font-weight: 800; color: #111; }
 /* Action log (Kev, 6 Nov): persistent, scrollable, grouped by round/phase and by action; hover for help */
 .logpanel {
   position: static; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; position: relative;
@@ -538,6 +540,8 @@ html, body {
 
 <div id="fightView"></div>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
+<script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
+<script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
 <script src="../src2/engine.js"></script>
 <script src="../src2/lineup.js"></script>
 <script src="../src2/repair.js"></script>
@@ -743,12 +747,23 @@ html, body {
     Object.defineProperty(t, 'engPool', { get() { return crewCount(t, 'chief'); }, set(v) { setCrewCount(t, 'chief', v); }, enumerable: true, configurable: true });
   }
   // a team loses one crew member (an Intrigue card discards it): a Mechanic first, else the least valuable card
+  // every card that discards crew says "ready crew", so it is a ready one (not one that repaired this round); none ready: nobody
   function loseCrew(t, why) {
-    if (!t.crew.length) return null;
-    const c = t.crew.find(x => x.kind === 'mechanic') || t.crew.slice().sort((a, b) => CREW[a.kind].value - CREW[b.kind].value)[0];
+    if (!t.crew.length || readyCrew(t) < 1) return null;
+    const R = repState(t), pool = t.crew.filter(x => R.used[x.uid] == null);
+    const c = pool.find(x => x.kind === 'mechanic') || pool.slice().sort((a, b) => CREW[a.kind].value - CREW[b.kind].value)[0];
+    if (!c) return null;
     t.crew.splice(t.crew.indexOf(c), 1); if (c.kind === 'chief') fixEng(t);
+    crewLeft(t, c);
     if (why) notify('👥 ' + nm(t) + ' loses its ' + crewRef(c.kind) + ' (' + why + ').', t.col);
     return c;
+  }
+  // a crew card left team t (discarded or traded): an exhausted one takes its 😴 with it, and the count never exceeds the crew
+  function crewLeft(t, c) {
+    const R = repState(t), tired = R.used[c.uid] != null;
+    if (tired) { delete R.used[c.uid]; t.exMechs = Math.max(0, (t.exMechs || 0) - 1); }
+    t.exMechs = Math.min(t.exMechs || 0, t.crew.length);
+    return tired;
   }
   const crewRef = k => '<span class="lcard"' + helpAttr(CREW[k].icon + ' ' + CREW[k].name, esc(CREW[k].text)) + '>' + esc(CREW[k].name) + '</span>';
   const crewIcons = t => '🔧' + t.mechs + ' 👷' + t.engPool + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('') + (exCrew(t) ? ' · 😴' + exCrew(t) : '');
@@ -1089,9 +1104,11 @@ html, body {
   function doRepair(r, zk) { if (!r.wear) return; const sp = spec2(r); R2.repairZone(sp, zk); r.wear = sp.wear; }   // spec2 hands a copy: r.wear gets a new object
   function healBody(r) { if (!r.wear) return; const sp = spec2(r); R2.bodyHeal(sp); r.wear = sp.wear; }
   // Intrigue cards that count ready crew: an AI team holding one keeps a crew member out of the workshop
-  const CREW_CARDS = new Set(['Overtime Shift', 'Consulting Gig', 'Headhunter Fee', 'Inside Leak', 'Fall Guy', 'Team-Building Day', 'Press Tour', 'Crunch Week']);
+  // (how many ready crew each needs: Team-Building Day 2, Press Tour 3 minus its ready Security Bots, the rest 1)
+  const CREW_CARDS = new Set(['Overtime Shift', 'Consulting Gig', 'Headhunter Fee', 'Inside Leak', 'Fall Guy', 'Team-Building Day', 'Press Tour', 'Crunch Week', 'Museum Donation']);
+  const crewKeep = (t, n) => n === 'Team-Building Day' ? 2 : n === 'Press Tour' ? Math.max(0, 3 - secReady(t)) : 1;
   function aiRepairs(t) {
-    const keep = t.hand.some(id => CARDS[id] && CREW_CARDS.has(CARDS[id].name)) ? 1 : 0;
+    const keep = Math.min(2, Math.max(0, ...t.hand.filter(id => CARDS[id] && CREW_CARDS.has(CARDS[id].name)).map(id => crewKeep(t, CARDS[id].name))));
     const likely = t.robots.filter(r => !(r.sitOut > 0)).sort((a, b) => baseStr(b) - baseStr(a)).slice(0, 2);   // the robots it is likely to send
     const order = [['weapon', true], ['drive', true], ['weapon', false], ['drive', false], ['body', false]];
     const done = [];
@@ -1102,7 +1119,7 @@ html, body {
       const pay = job.broken && job.zk !== 'body' && t.credits >= REPAIR_CR + 3;   // credits only for a broken weapon or drive, keeping 3 Cr
       const how = spendRepair(t, keep, pay);
       if (!how) break;
-      doRepair(job.r, job.zk); done.push(esc(job.r.name) + ' ' + ZONE[job.zk].icon);
+      doRepair(job.r, job.zk); logRepair(t, job.r, job.zk, how); done.push(esc(job.r.name) + ' ' + ZONE[job.zk].icon);
     }
     if (done.length) notify('🔧 ' + nm(t) + ' repairs: ' + done.join(', ') + '.', t.col);
   }
@@ -1270,10 +1287,10 @@ html, body {
   function helpName(t, r) {
     const bits = [];
     if (r.wins) bits.push('<b>🎖</b> = Fan tokens, one per win (each: +2 Cr appearance money).');
-    if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: 6 Cr appearance money.');
+    if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: +1 fame while it stays on your team, and 6 Cr appearance money.');
     if (r.exhausted) bits.push('<b>😴</b> exhausted: can\'t fight this round.');
     if (r.faceDown && r.faceDown.length) bits.push('<b>🂠×' + r.faceDown.length + '</b> face-down cards on it: hidden until its next fight.');
-    return [esc(r.name) + ' (' + starsOf(r.level) + ')', (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite.<br>' + LEVEL_HELP];
+    return [esc(r.name) + ' (' + starsOf(r.level) + ')', (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite: +1 fame while it stays on your team.<br>' + LEVEL_HELP];
   }
   const PHASE_HELP = {
     setup: 'Pick a sponsor and draft your level-0 starter robot.',
@@ -1291,6 +1308,8 @@ html, body {
   // card statistics for analysis (tools/pace.js reads G.cstat): drawn / played / landed / blocked / cashed, and what a landed card changed
   function cst(id, ti) { G.cstat = G.cstat || {}; const s = G.cstat[id] = G.cstat[id] || { drawn: 0, played: 0, landed: 0, blocked: 0, cashed: 0, selfCr: 0, selfFame: 0, otherCr: 0, otherFame: 0, by: [0, 0, 0, 0] }; if (ti != null) s.by[ti]++; return s; }
   // per team: played / landed / cashed (tools/game-sim-report.js --cards uses them for the win share of teams that played a card)
+  // live combat cards (analysis): won in the Bets-step auction, played in the fight, or left unused (and why)
+  const liveStat = () => G.liveStat || (G.liveStat = { won: 0, played: 0, fallback: 0, unused: 0, why: {}, unusedIds: {}, held: [] });
   function cstBy(id, ti, k) { if (ti == null || ti < 0) return; const s = cst(id); s[k + 'By'] = s[k + 'By'] || [0, 0, 0, 0]; s[k + 'By'][ti]++; }
   function draw1() {
     { const top = G.deck.length ? G.deck[G.deck.length - 1] : null; if (top) cst(top).drawn++; }
@@ -1299,6 +1318,18 @@ html, body {
   }
 
   /* ---------- Top Bar & Prompt Bar ---------- */
+  // Intrigue turn order strip for the status bar: "Turn order: Red ✓ → Blue (now) → Green (next) → Yellow · You're next"
+  const ivName = ti => isHuman(ti) ? seatName(ti) : G.teams[ti].name;
+  function ivOrderHtml() {
+    const O = G.ivOrder; if (!O || !O.length) return '';
+    const cur = O.indexOf(G.intrigueTurn), done = cur >= 0 ? cur : (G.ivDone || 0);
+    const parts = O.map((ti, k) => '<span style="white-space:nowrap"><b style="color:' + G.teams[ti].col + (k < done ? ';opacity:.55' : '') + '">' + esc(ivName(ti)) + (ti === HS ? ' (you)' : '') + '</b>' +
+      (k < done ? ' ✓' : k === cur ? ' <i>(now)</i>' : k === cur + 1 ? ' <i>(next)</i>' : '') + (k < O.length - 1 ? ' →' : '') + '</span>');
+    let you = '';
+    const mine = O.indexOf(HS);
+    if (mine >= 0 && mine !== cur) you = mine < done ? 'Your turn is done' : mine === cur + 1 ? 'You\'re next' : 'You\'re up after <b style="color:' + G.teams[O[mine - 1]].col + '">' + esc(ivName(O[mine - 1])) + '</b>';
+    return '<span class="ivorder">Turn order: ' + parts.join(' ') + (you ? ' · <span style="white-space:nowrap">' + you + '</span>' : '') + '</span>';
+  }
   function updateHud() {
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
     renderStash();
@@ -1328,7 +1359,7 @@ html, body {
     const one = close.some(t => t.fame >= WIN_FAME - 1);
     el.hidden = false; el.className = 'win-watch' + (one ? ' one' : '');
     el.innerHTML = '🏁 ' + close.map(t => '<span style="color:' + (one ? '#fff' : t.col) + '">' + esc(t.name.split(' ')[0]) + (t.i === HS ? ' (you)' : '') + ' ' + t.fame + '/' + WIN_FAME + '</span>').join(' · ');
-    el.setAttribute('data-help', '🏁 Close to winning|' + close.map(t => '<b>' + esc(t.name) + '</b>: ' + (WIN_FAME - t.fame > 0 ? (WIN_FAME - t.fame) + ' fame to go' : 'at ' + WIN_FAME + ', wins at the next check')).join('<br>') + '<br><br>' + WIN_CHECKS);
+    el.setAttribute('data-help', '🏁 Close to winning|' + close.map(t => '<b>' + esc(t.name) + '</b>: ' + (WIN_FAME - t.fame > 0 ? (WIN_FAME - t.fame) + ' fame to go' : 'at ' + t.fame + ', wins at the next check')).join('<br>') + '<br><br>' + WIN_CHECKS);
   }
 
   const analystNote = () => {
@@ -1342,8 +1373,10 @@ html, body {
     const pb = $('#promptBar');
     const t = me();
     if (G.over) {
-      const w = G.teams.slice().sort((a, b) => b.fame - a.fame)[0];
-      pb.innerHTML = '<span>🏆 <b>' + esc(w.name) + '</b> wins the Championship (' + w.fame + ' Fame)!</span>' + (isClient() ? '<span class="sc-note">The host can start a rematch.</span>' : '<button class="act" id="pAct1">' + (isNetGame() ? '🔁 Rematch' : 'New Game') + '</button>');
+      // the winner checkWin picked (most fame, tie: most credits); a Grand Final can put both winners on the target at once
+      const w = G.teams[G.winner] || G.teams.slice().sort((a, b) => b.fame - a.fame || b.credits - a.credits)[0];
+      const tie = G.teams.filter(x => x !== w && x.fame === w.fame);
+      pb.innerHTML = '<span>🏆 <b>' + esc(w.name) + '</b> wins the Championship (' + w.fame + ' Fame' + (tie.length ? ', most credits: ' + w.credits + ' Cr' : '') + ')!</span>' + (isClient() ? '<span class="sc-note">The host can start a rematch.</span>' : '<button class="act" id="pAct1">' + (isNetGame() ? '🔁 Rematch' : 'New Game') + '</button>');
       if ($('#pAct1')) $('#pAct1').onclick = () => { if (isNetGame() && window.ROBOCUS_NET) window.ROBOCUS_NET.rematch(); else newGame(); };
       return;
     }
@@ -1379,13 +1412,13 @@ html, body {
       }
     } else if (G.phase === 'intrigue') {
       if (G.intrigueTurn === HS) {
-        pb.innerHTML = '<span>🕵️ <b>Your turn:</b> ' + (G.cashMode ? 'click cards to cash them in for their 🪙 value.' : 'drag cards onto a garage. Hand limit ' + handLimit(t) + ' at the end of your turn.') + '</span>' +
+        pb.innerHTML = ivOrderHtml() + '<span>🕵️ <b>Your turn:</b> ' + (G.cashMode ? 'click cards to cash them in for their 🪙 value.' : 'drag cards onto a garage. Hand limit ' + handLimit(t) + ' at the end of your turn.') + '</span>' +
           '<button class="act secondary" id="pAct1">' + (G.cashMode ? '✓ Done cashing' : '💰 Cash-in mode') + '</button><button class="act" id="pAct2"' + (G.ivBusy ? ' disabled' : '') + '>End turn →</button>';
         $('#pAct1').onclick = () => act('cashMode');
         $('#pAct2').onclick = () => { if (!G.ivBusy) act('endTurn'); };
       } else {
         const it = G.teams[G.intrigueTurn];
-        pb.innerHTML = '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(isHuman(it.i) ? seatName(it.i) : it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
+        pb.innerHTML = ivOrderHtml() + '<span>🕵️ <b>Intrigue:</b> ' + (it ? '<b style="color:' + it.col + '">' + esc(isHuman(it.i) ? seatName(it.i) : it.name) + '</b> is scheming…' : 'starting…') + ' Watch for reaction windows.</span>';
       }
     } else if (G.phase === 'market') {
       if (G.marketAuction && G.marketAuction.sabotageDone) {
@@ -1881,7 +1914,7 @@ html, body {
     if (!zonesOf(r)[zk].damaged) return;
     const how = spendRepair(t);
     if (!how) { say(S, '🔧 No repair actions left and less than ' + REPAIR_CR + ' Cr.', '#b45309'); return; }
-    doRepair(r, zk);
+    doRepair(r, zk); logRepair(t, r, zk, how);
     notify('🔧 ' + nm(t) + ' repairs <b>' + esc(r.name) + '</b>\'s ' + ZONE[zk].icon + ' ' + ZONE[zk].label + ' (' + esc(how) + ').', t.col);
   };
   // a won part on one of your bays (twin: the second weapon; the calibre warning was confirmed on that screen)
@@ -1919,7 +1952,7 @@ html, body {
         if (isHuman(t.i)) r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })));
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
-        t.robots.splice(t.robots.indexOf(r), 1); t.debt--; returnStarter(r.name);
+        robotLeaves(t, r, null, 'debt'); t.debt--; returnStarter(r.name);
         for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
         notify('🧾 <b>' + esc(t.name) + '</b> can\'t pay its upkeep and scraps <b>' + esc(r.name) + '</b>.', '#d62828');
         if (!t.robots.length) noRobotsLeft(t);   // 2.0 (Kev, 8 Nov): no free Scrapbot
@@ -1941,7 +1974,9 @@ html, body {
   const bestReady = t => readyRobots(t).slice().sort((a, b) => power(b) - power(a))[0] || t.robots.slice().sort((a, b) => power(b) - power(a))[0];
   const leaderOf = () => G.teams.slice().sort((a, b) => b.fame - a.fame || a.i - b.i)[0];
   const lowestOther = excl => G.teams.filter(t => !excl.includes(t.i)).sort((a, b) => a.fame - b.fame || a.i - b.i)[0];
-  function addFame(t, d) { const old = t.fame; t.fame = Math.max(1, Math.min(WIN_FAME, t.fame + d)); return t.fame - old; }
+  // card fame stops at the win target, but a team already past it (a Grand Final win: double fame) keeps what it has:
+  // a gain never lowers fame (it used to clamp 13 + 1 down to 12)
+  function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.max(1, old + d); return t.fame - old; }
   function payCr(t, n) { const p = Math.min(t.credits, n); t.credits -= p; return p; }
   function needOf(F, c) { return Math.max(0, c.need - (F.sponsor === 'blackwire' && c.phase === 'intrigue' ? 2 : 0)); }
   function schemeNeed(t, id) { return needOf(t, CARDS[id]); }
@@ -1954,6 +1989,20 @@ html, body {
   // 2.0 (Kev, 8 Nov): a team that loses its last robot gets NO free robot (1.0 gave a Scrap Bot, but a fresh one was
   // sometimes better than repairing the old one). It sits out (an invite without a ready robot costs 1 fame, as in 1.0)
   // until it wins a robot lot in the Market.
+  /* A robot leaves team T (Kev, 8 Nov: Fan Favourite = +1 fame while it stays on your team). Every removal goes through here:
+   * scrapped (host, upkeep debt), sold to the bank (Fire Sale), traded or bought (to = the new team). The old owner loses
+   * the Fan Favourite fame; a new owner gains it if the robot is a Fan Favourite there (Apex Media: 2 tokens). Fame stays >= 0. */
+  function robotLeaves(T, r, to, reason) {
+    const k = T.robots.indexOf(r); if (k < 0) return false;
+    T.robots.splice(k, 1);
+    if (to) to.robots.push(r);
+    tlog('scrap', { team: T.i, robot: r.name, reason, to: to ? to.i : null, wins: r.wins });
+    if (r.wins >= favWins(T) && T.fame > 0) { G.fameSrc = 'fav'; T.fame = Math.max(0, T.fame - 1); G.fameSrc = null; notify('🎖 ' + nm(T) + ' loses its Fan Favourite ' + esc(r.name) + ': −1 fame.', T.col); }
+    if (to && r.wins >= favWins(to)) { G.fameSrc = 'fav'; to.fame += 1; G.fameSrc = null; notify('🎖 ' + esc(r.name) + ' is a Fan Favourite for ' + nm(to) + ' now: +1 fame.', to.col); }
+    return true;
+  }
+  // a repair for the sim log: who paid for it (crew, a free action or credits)
+  function logRepair(t, r, zk, how) { tlog('repair', { team: t.i, robot: r.name, zone: zk, by: how === 'free action' ? 'free' : /Cr$/.test(how) ? 'credits' : 'crew' }); }
   function noRobotsLeft(t) { notify('🤖 ' + nm(t) + ' has no robots left: win a New Robot lot in the Market.', t.col); }
   function discardCard(id) { if (CARDS[id] && CARDS[id].auction) { (G.auctionDiscard = G.auctionDiscard || []).push(id); return; } G.discard.push(id); }   // auction cards never go back into the Intrigue deck
   function removeFromHand(t, id) { const k = t.hand.indexOf(id); if (k >= 0) t.hand.splice(k, 1); return k >= 0; }
@@ -2206,10 +2255,11 @@ html, body {
     for (const id of B.items || []) {
       if (id.startsWith('R:')) {   // a robot with its fitted parts; its Chief Engineers stay home
         const x = robotById(id.slice(2)); if (!x || x.T !== from || from.robots.length <= 1 || to.robots.length >= 3) continue;
-        from.robots.splice(from.robots.indexOf(x.r), 1); to.robots.push(x.r);
+        robotLeaves(from, x.r, to, 'trade');
       } else if (id.startsWith('C:')) {
         const x = crewByUid(id.slice(2)); if (!x || x.T !== from) continue;
         from.crew.splice(from.crew.indexOf(x.c), 1); to.crew.push(x.c); if (x.c.kind === 'chief') fixEng(from);
+        if (crewLeft(from, x.c)) { repState(to).used[x.c.uid] = 1; to.exMechs = (to.exMechs || 0) + 1; }   // a crew member who repaired stays tired this round
       } else { const k = stashOf(from).indexOf(id); if (k >= 0) { from.stash.splice(k, 1); toStash(to, id, true); } }
     }
   }
@@ -2565,7 +2615,7 @@ html, body {
     const sell = isHuman(T.i)
       ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
       : T.robots.length >= 3 || T.fame <= 2;
-    if (sell) { T.robots.splice(T.robots.indexOf(r), 1); r.exhausted = true; F.robots.push(r); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
+    if (sell) { r.exhausted = true; robotLeaves(T, r, F, 'buyout'); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
   }
   // Tag Team Licence: pick an ally; it may refuse for −1 fame
@@ -2607,7 +2657,7 @@ html, body {
       case 'Industry Insider': T.hand.push(draw1(), draw1()); say('💼 ' + nm(T) + ' draws 2 Intrigue cards.'); break;
       case 'Scrap Deal': F.credits += 5; say('💼 ' + nm(F) + ' closes a scrap deal: +5 Cr.'); break;
       case 'Joint Venture': await jointVenture(F, T); break;
-      case 'Fire Sale': { const r = F.robots.slice().sort((a, b) => power(a) - power(b))[0]; F.robots.splice(F.robots.indexOf(r), 1); F.credits += 2; say('💼 Fire Sale: ' + nm(F) + ' sells ' + esc(r.name) + ' to the bank for 2 Cr.'); break; }
+      case 'Fire Sale': { const r = F.robots.slice().sort((a, b) => power(a) - power(b))[0]; robotLeaves(F, r, null, 'fire sale'); F.credits += 2; say('💼 Fire Sale: ' + nm(F) + ' sells ' + esc(r.name) + ' to the bank for 2 Cr.'); break; }
       case 'Fan Meet': if (readyRobots(T).length >= 2) { addFame(T, 1); say('📣 Fan Meet: ' + nm(T) + ' +1 fame.'); } else say('📣 Fan Meet fizzles: ' + nm(T) + ' needs 2 ready robots.'); break;
       case 'Roadshow': if (readyRobots(T).length >= 3) { addFame(T, 2); say('📣 Roadshow: ' + nm(T) + ' +2 fame.'); } else say('📣 Roadshow fizzles: ' + nm(T) + ' needs 3 ready robots.'); break;
       case 'Public Demo': payCr(F, 3); if (readyRobots(T).length >= 1) { addFame(T, 1); say('📣 Public Demo: ' + nm(T) + ' +1 fame.'); } break;
@@ -2884,9 +2934,10 @@ html, body {
     G.phase = 'intrigue';
     setCameraGoal('compound');
     const first = G.prevHost >= 0 ? G.prevHost : (G.round - 1) % 4;
+    G.ivOrder = [0, 1, 2, 3].map(k => (first + k) % 4); G.ivDone = 0;   // turn order + turns finished (shown on the board and status bar; plain data, so saves and snapshots carry it)
     for (let k = 0; k < 4; k++) {
       const ti = (first + k) % 4, T = G.teams[ti];
-      G.intrigueTurn = ti; G.cashMode = false; updateHud();
+      G.ivDone = k; G.intrigueTurn = ti; G.cashMode = false; updateHud();
       if (isHuman(ti)) {
         for (;;) {
           if (!PS(ti).skipTurn && isHuman(ti)) await new Promise(res => { G.endHumanTurn = res; });
@@ -2901,7 +2952,7 @@ html, body {
       }
       updateHud();
     }
-    G.intrigueTurn = -1; G.cashMode = false;
+    G.intrigueTurn = -1; G.cashMode = false; G.ivOrder = null; G.ivDone = 0;
     if (checkWin()) return;
     startMarket();
   }
@@ -3910,6 +3961,7 @@ html, body {
       T.credits -= w.amt; T.hand.push(id); winners.add(w.ti);
       A.won.push({ team: w.ti, id, price: w.amt });
       cst(id, w.ti).drawn++;
+      if (LIVE_ENG[id]) liveStat().won++;
       lines.push(cardRef(id) + ' → <b>' + esc(T.name) + '</b> for ' + w.amt + ' Cr' + (tied.length > 1 ? ' (tie: less fame wins)' : ''));
     }
     notify('🃏 <b>Fight cards:</b> ' + lines.join(' · ') + '. Won cards are for this fight only.', '#111');
@@ -3918,7 +3970,17 @@ html, body {
   // after the fight: auction cards nobody played go to the auction discard
   function clearAuctionCards(F) {
     if (!F || !F.auction || !F.auction.won) return;
-    for (const w of F.auction.won) { const T = G.teams[w.team]; if (removeFromHand(T, w.id)) discardCard(w.id); }
+    for (const w of F.auction.won) {
+      const T = G.teams[w.team];
+      if (removeFromHand(T, w.id)) {
+        discardCard(w.id);
+        if (LIVE_ENG[w.id]) {   // a won live card nobody played: why (for the analysis)
+          const L = liveStat(), S = F.S, why = !S ? 'no fight' : F.teams.indexOf(w.team) < 0 && !(F.bets || []).some(x => x.team === w.team) ? 'not in it' : S.t < 10 ? 'fight under 10 s' : 'held';
+          L.unused++; L.why[why] = (L.why[why] || 0) + 1; L.unusedIds[w.id] = (L.unusedIds[w.id] || 0) + 1;
+          if (S && L.held.length < 40) L.held.push({ id: w.id, t: Math.round(S.t), fought: F.teams.indexOf(w.team) >= 0, own: liveOwn(F, w.team).length, how: S.result && S.result.text, n: S.robots.length });
+        }
+      }
+    }
     F.auction.won = [];
   }
   // AI card bids: only when it fights or has a bet on this fight, scaled to what it has riding on it
@@ -3932,8 +3994,10 @@ html, body {
       if (stake <= 0) return [0, 0];
       // 2.0: a live card is worth its measured swing in win points (LIVE_VALUE) × what the fight is worth to it; a team that
       // only bet can still use it for the side it backs. Swap the Entry as in 1.0.
-      const noMod = fights && (() => { const sp = spec2(F.robots[e], T.i); return !sp.mod || sp.mod === 'none'; })();   // Remote Trigger needs a module
-      const useful = id => id === 'swap_the_entry' ? (bet || fights ? 0.3 : 0) : id === 'trigger' && noMod ? 0 : LIVE_ENG[id] ? Math.max(0, liveValue(id)) / 100 * 3 : 0;
+      // the robots its cards would help: its own fighter, else the side it bet on. Remote Trigger needs one with a module.
+      const mine = fights ? [e] : bet ? F.teams.map((_, k) => k).filter(k => F.sides[k] === bet.side) : [];
+      const noMod = !mine.some(k => { if (!F.robots[k]) return false; const sp = spec2(F.robots[k], F.teams[k]); return sp.mod && sp.mod !== 'none'; });
+      const useful = id => id === 'swap_the_entry' ? (bet || fights ? 0.3 : 0) : !mine.length && LIVE_ENG[id] ? 0 : id === 'trigger' && noMod ? 0 : LIVE_ENG[id] ? Math.max(0, liveValue(id)) / 100 * 3 : 0;
       const free = T.credits - (bet ? bet.amt : 0) - (aiV2(T) ? P.reserve : 1);
       const vals = F.auction.cards.map(id => useful(id) * stake * (0.8 + 0.4 * rnd()));
       const bestK = vals[0] >= vals[1] ? 0 : 1;
@@ -4156,6 +4220,7 @@ html, body {
     const cmd = { type: eng, by: T.name.split(' ')[0] }; if (o.robot != null) cmd.robot = o.robot; if (L0.target === 'arena') { cmd.x = o.x; cmd.y = o.y; } if (eng === 'supply') cmd.crate = o.crate || 'repair';
     DL.command(S, cmd);
     { const st = cst(id, ti); cstBy(id, ti, 'played'); cstBy(id, ti, 'landed'); st.played++; st.landed++; }
+    { const L = liveStat(); L.played++; if (o.fallback) L.fallback++; }
     const R = o.robot != null ? S.robots[o.robot] : null;
     F.live.push({ team: ti, id, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null });
     tlog('live_card', { team: ti, id, type: eng, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null, x: cmd.x, y: cmd.y, crate: cmd.crate });
@@ -4195,8 +4260,31 @@ html, body {
     const me = me0 && own.slice().sort((a, b) => hp(a) - hp(b))[0];   // its robot that needs help most
     const foe = me ? foes.slice().sort((a, b) => dist(me, a) - dist(me, b))[0] : foes.slice().sort((a, b) => hp(b) - hp(a))[0];
     const d = me ? dist(me, foe) : 9, losing = me && hp(me) < hp(foe) - 0.12, clear = r => own.every(R => dist(R, foe) > r + R.hl);
-    const late = S.t > 40 || (me && hp(me) < 0.35);   // late in the fight, or its robot is nearly done: use it now
+    const late = S.t > 25 || (me && hp(me) < 0.35);   // later in the fight (most end within 30 s), or its robot is nearly done: use it now
+    // fallback: still holding it past 70% of the time limit, or its robot is about to go down: play it anyway (a held card is wasted)
+    F.liveOwn0 = F.liveOwn0 || {}; if (own.length > (F.liveOwn0[ti] || 0)) F.liveOwn0[ti] = own.length;
+    const frac = q => q ? Math.max(0, q.hp) / q.maxHp : 1, nearKO = R => hp(R) < 0.3 || frac(R.battery) < 0.3 || frac(R.chassis) < 0.3 || (R.noDrive || 0) > 2;   // a dead battery or chassis is a KO
+    const dying = own.some(nearKO) || (F.liveOwn0 && F.liveOwn0[ti] > own.length);
+    const foeDying = foes.length === 1 && nearKO(foe);   // the fight is about to end: use it before it's wasted
+    const lastCall = S.t > 0.7 * (S.timeLimit || 120) || dying || foeDying;
     const lead = (R, k) => { const p = pos(R), v = R.body.getLinearVelocity(); return { x: p.x + v.x * k, y: p.y + v.y * k }; };
+    const m = aiLiveRule(S, eng, me, foe, foes, d, losing, clear, late, lead, pos, hp);
+    if (m || !lastCall) return m;
+    const L0 = DL.LIVE[eng], fb = o => o && Object.assign(o, { fallback: true });
+    if (L0.own) {   // a card for its own robot: on the one that needs it most (Remote Trigger only does something with a working module)
+      if (!me || (eng === 'trigger' && !(me.module && me.module.hp > 0 && me.mod && me.mod !== 'none'))) return null;
+      if (eng === 'waypoint') { const a = pos(me), b = pos(foe), k = Math.hypot(a.x - b.x, a.y - b.y) || 1, sg = foeDying && !dying ? -1 : 1;   // in trouble: get away; the rival is nearly done: go at it
+        return fb({ robot: me.id, x: a.x - sg * (b.x - a.x) / k * 1.6, y: a.y - sg * (b.y - a.y) / k * 1.6 }); }
+      return fb({ robot: me.id });
+    }
+    if (eng === 'trigger') return me && me.module && me.module.hp > 0 && me.mod && me.mod !== 'none' ? fb({ robot: me.id }) : null;
+    if (L0.target === 'bot') { const f2 = eng === 'rattle' ? foes.find(R => R.lid && R.lid.attached) || foe : foe; return fb({ robot: f2.id }); }
+    if (eng === 'smoke' || eng === 'supply') { if (!me) return null; const p = pos(me); return fb({ x: p.x, y: p.y, crate: eng === 'supply' ? (hp(me) < 0.6 ? 'repair' : 'overcharge') : undefined }); }
+    // area cards on a rival: only where they don't hit its own robot too hard
+    for (const f2 of foes.slice().sort((a, b) => (me ? dist(me, a) - dist(me, b) : 0))) { const p = pos(f2); if (own.every(R => dist(R, f2) > 0.45 + R.hl)) return fb({ x: p.x, y: p.y }); }
+    return null;
+  }
+  function aiLiveRule(S, eng, me, foe, foes, d, losing, clear, late, lead, pos, hp) {
     switch (eng) {
       case 'field_eng': return me && ((me.wmotor && me.wmotor.jam > 0) || me.slots.some(q => q.motor.stuck > 0) || me.battery.fire || me.glitch > 0.3 || me.stun > 0.5 || hp(me) < 0.5 || (late && hp(me) < 0.8)) ? { robot: me.id } : null;
       case 'overclock': return me && (d < 1.6 || late) ? { robot: me.id } : null;
@@ -4293,6 +4381,7 @@ html, body {
       for (const x of F.bets) { G.teams[x.team].credits += x.amt; x.payout = x.amt; }
       notify(ws === 'house' ? '🏠 The House Robot wins! Nobody gets fame; bets refunded.' : 'Arena Draw! Bets refunded.', '#111');
       G.awaitingJudgment = false;
+      if (checkWin()) return;   // no fate step after a draw: check here (Headline Act can still give the host its last fame)
       updateHud();
       return;
     }
@@ -4398,8 +4487,7 @@ html, body {
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
       offs.forEach(o => { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
-      if (robot.wins >= favWins(T)) G.teams[G.host].fame = Math.max(0, G.teams[G.host].fame - 1);
-      T.robots.splice(T.robots.indexOf(robot), 1); returnStarter(robot.name);
+      robotLeaves(T, robot, null, 'host scrap'); returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
       for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
@@ -4446,7 +4534,7 @@ html, body {
     return JSON.stringify(G, function (k, v) {
       if (typeof v === 'function') return true;
       if (this === G) {
-        if (k === 'cstat') return undefined;
+        if (k === 'cstat' || k === 'liveStat') return undefined;
         if (k === 'deck' || k === 'auctionDeck' || k === 'robotDeck' || k === 'crewDeck' || k === 'starterDeck' || k === 'legends') return Array.isArray(v) ? v.map(() => '?') : v;
         if (k === 'lots') return Array.isArray(v) ? v.map((x, i) => analyst && i >= v.length - NLOTS ? x : '?') : v;
         if (k === 'ps') return v.map((p, i) => i === s ? p : {});
@@ -4658,7 +4746,7 @@ html, body {
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
     if (!w.length) return false;
-    if (!G.over) { tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
+    if (!G.over) { G.winner = w[0].i; tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
     G.over = true;
     updateHud();
     return true;
@@ -4983,8 +5071,10 @@ html, body {
     }
 
     if (G.phase !== 'fight') G.teams.forEach(t => { const B = boxOf(L, t.i); if (B) drawPurse(ctx, t, B); });
+    if (G.phase === 'intrigue') drawIntrigueOrder(ctx, L, now, 'under');
     placeHand(L);
     drawBoardFx(ctx, L);
+    if (G.phase === 'intrigue') drawIntrigueOrder(ctx, L, now, 'over');   // tags stay readable over a played card's show
 
     // Welding sparks FX in garages
     for (let i = weldSparks.length - 1; i >= 0; i--) {
@@ -5140,6 +5230,69 @@ html, body {
     });
   }
 
+  /* ---------- Intrigue turn order on the board: the active garage glows with a NOW tag, the next one gets NEXT,
+     finished ones are dimmed with a ✓, and each garage has its 1–4 turn number (a pill on its bottom edge). ---------- */
+  function ivPill(ctx, cx, cy, txt, col, solid, size) {
+    ctx.font = '900 ' + size + 'px system-ui, sans-serif'; ctx.textAlign = 'center';
+    const w = ctx.measureText(txt).width + size * 1.4, h = size + 8;
+    rrect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2);
+    ctx.fillStyle = solid ? col : '#ffffff'; ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = solid ? '#ffffff' : col; ctx.fillText(txt, cx, cy + size * 0.36);
+  }
+  function drawIntrigueOrder(ctx, L, now, layer) {
+    const O = G.ivOrder; if (!O || !O.length) return;
+    const cur = O.indexOf(G.intrigueTurn), done = cur >= 0 ? cur : (G.ivDone || 0), pulse = 0.5 + 0.5 * Math.sin(now / 320);
+    O.forEach((ti, k) => {
+      const B = boxOf(L, ti); if (!B) return;
+      const t = G.teams[ti], by = B.y + B.h, bx = B.x + B.w / 2;
+      ctx.save();
+      if (layer === 'under') {
+        if (k < done) { ctx.fillStyle = 'rgba(246,244,238,0.38)'; ctx.fillRect(B.x, B.y, B.w, B.h); }   // turn over: dim a little
+      } else if (k < done) {
+        ivPill(ctx, bx, by, k + 1 + '  ✓ DONE', '#8a8578', false, 10);
+      } else if (k === cur) {   // turn now: glowing team-coloured outline
+        ctx.shadowColor = t.col; ctx.shadowBlur = 10 + 10 * pulse;
+        ctx.strokeStyle = t.col; ctx.lineWidth = 4;
+        ctx.strokeRect(B.x - 3, B.y - 3, B.w + 6, B.h + 6);
+        ctx.shadowBlur = 0;
+        ivPill(ctx, bx, by, k + 1 + '  ·  NOW', t.col, true, 12);
+      } else if (k === cur + 1) {
+        ivPill(ctx, bx, by, k + 1 + '  ·  NEXT', t.col, false, 10.5);
+      } else {
+        ivPill(ctx, bx, by, String(k + 1), t.col, false, 10);
+      }
+      ctx.restore();
+    });
+  }
+  // a quiet clockwise ring in the arena pit: one dot per team where its garage is, numbered in turn order
+  function drawIntrigueRing(ctx, L, now) {
+    const O = G.ivOrder; if (!O || !O.length) return;
+    const cx = L.ax, cy = L.ay + 8, R = Math.min(L.aw, L.ah) * 0.30;
+    const cur = O.indexOf(G.intrigueTurn), done = cur >= 0 ? cur : (G.ivDone || 0);
+    const ang = ti => [135, 225, 315, 45][posOfTeam(ti)] * Math.PI / 180;   // your garage bottom-left, rivals TL, TR, BR: clockwise like the seats
+    ctx.save();
+    ctx.strokeStyle = '#e4e0d5'; ctx.lineWidth = 2;
+    for (let q = 0; q < 4; q++) {   // four arcs with arrowheads, clockwise
+      const a0 = (q * 90 + 45 + 14) * Math.PI / 180, a1 = (q * 90 + 135 - 14) * Math.PI / 180;
+      ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+      const ex = cx + R * Math.cos(a1), ey = cy + R * Math.sin(a1), tx = -Math.sin(a1), ty = Math.cos(a1);
+      ctx.fillStyle = '#d6d1c4'; ctx.beginPath();
+      ctx.moveTo(ex + tx * 7, ey + ty * 7); ctx.lineTo(ex - ty * 5, ey + tx * 5); ctx.lineTo(ex + ty * 5, ey - tx * 5); ctx.closePath(); ctx.fill();
+    }
+    O.forEach((ti, k) => {
+      const a = ang(ti), x = cx + R * Math.cos(a), y = cy + R * Math.sin(a), t = G.teams[ti], on = k === cur, r = on ? 13 + 2 * Math.sin(now / 320) : 10;
+      ctx.globalAlpha = k < done ? 0.45 : 1;
+      if (on) { ctx.shadowColor = t.col; ctx.shadowBlur = 12; }
+      ctx.fillStyle = on || k >= done ? t.col : '#b9b4a6'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff'; ctx.font = '900 ' + (on ? 13 : 11) + 'px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(k < done ? '✓' : String(k + 1), x, y + (on ? 4.5 : 4));
+      ctx.globalAlpha = 1;
+    });
+    ctx.restore();
+  }
+
   /* ---------- Compact Pre-Fight Central Stage Overview ---------- */
   function drawStandbyStage(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
@@ -5181,6 +5334,8 @@ html, body {
       ctx.fillStyle = '#1f6feb'; ctx.font = '700 12.5px system-ui, sans-serif';
       ctx.fillText(picked ? `Selected: ${picked}` : 'Select 2 teams (you may include yourself)', cx, cy + 12);
     } else if (G.phase === 'intrigue') {
+      drawIntrigueRing(ctx, L, now);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fillRect(x0 + 8, cy - 24, L.aw - 16, 52);
       ctx.fillStyle = '#111'; ctx.font = '900 15px system-ui, sans-serif';
       ctx.fillText(G.intrigueTurn === HS ? 'YOUR INTRIGUE TURN — DRAG A CARD TO A GARAGE' : 'INTRIGUE — ' + (G.teams[G.intrigueTurn] ? G.teams[G.intrigueTurn].name.toUpperCase() + ' IS SCHEMING' : 'HOST FIRST, THEN CLOCKWISE'), cx, cy - 4);
       ctx.fillStyle = '#666'; ctx.font = '600 12px system-ui, sans-serif';
@@ -5342,6 +5497,7 @@ html, body {
       const px = bx + 10, py = by + 10, ps = 104;
       drawPortrait(ctx, r, t, px, py, ps, ps);
       { const hl = helpLook(r); help(px, py, ps, ps, hl[0], hl[1]); }
+      drawEmpBadge(ctx, r, t, px, py + ps, ps, false);
       const tx = bx + 124, tw = bw - 134;
       const fav = r.wins >= favWins(t);
       ctx.fillStyle = '#111'; ctx.textAlign = 'left';
@@ -5349,7 +5505,7 @@ html, body {
       { const hn = helpName(t, r); help(tx, by + 10, tw, 20, hn[0], hn[1]); }
       ctx.fillStyle = '#c08400'; fitText(ctx, r.level ? '★'.repeat(r.level) + '  LEVEL ' + r.level : 'STARTER · LEVEL 0', tx, by + 43, tw * 0.62, '900', 11.5);
       ctx.fillStyle = '#7c3aed'; ctx.textAlign = 'right'; fitText(ctx, '🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), bx + bw - 10, by + 43, tw * 0.36, '800', 10.5);
-      help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite.');
+      help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+1 fame while it stays on your team).');
       ctx.textAlign = 'left'; ctx.fillStyle = '#555'; fitText(ctx, wepLabel(r.name).toUpperCase(), tx, by + 60, tw, '800', 10.5);
       const pl = r.parts || [];
       ctx.fillStyle = pl.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots'), tx, by + 77, tw, '700', 10.5);
@@ -5470,6 +5626,18 @@ html, body {
     ctx.restore();
     help(bx, y, bw, h, '😴 ' + esc(r.name) + ' is exhausted', EXH_HELP);
   }
+  // EMP the Garage (public: it is a played scheme): a strip along the bottom of the portrait of each robot that has a
+  // module or helper drones to lose. Robots with neither get nothing (the card changes nothing for them).
+  function drawEmpBadge(ctx, r, t, x, yBottom, w, small) {
+    if (!(t.tamper && t.tamper.noMods) || !r) return;
+    const sp = spec2(r, t), mod = sp.mod && sp.mod !== 'none', dr = (sp.helpers || []).length;
+    if (!mod && !dr) return;
+    const h = small ? 13 : 17, y = yBottom - h;
+    ctx.fillStyle = 'rgba(109,40,217,0.92)'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    fitText(ctx, small ? '⚡✕ OFFLINE' : '⚡✕ ' + (mod && dr ? 'ALL' : mod ? 'MODULE' : 'DRONES') + ' OFFLINE', x + w / 2, y + h - (small ? 3.5 : 5), w - 4, '900', small ? 8.5 : 10);
+    help(x, y, w, h, '⚡✕ EMP the Garage', 'EMP the Garage: modules and drones are offline in this team\'s next fight.');
+  }
   function drawCompactOpponentBay(ctx, slot, ti, t, r, bIdx, bx, by, bw, bh, now) {
     const inArenaNow = G.phase === 'fight' && G.fight && G.fight.robots && G.fight.robots.includes(r);
     ctx.fillStyle = r ? '#fcfbf9' : '#f5f3ec';
@@ -5495,6 +5663,7 @@ html, body {
     const px = bx + 5, py = by + 5, ps = 56;
     drawPortrait(ctx, r, t, px, py, ps, ps);
     { const hl = helpLook(r); help(px, py, ps, ps, hl[0], hl[1]); }
+    drawEmpBadge(ctx, r, t, px, py + ps, ps, true);
     const tx = bx + 66, tw = bw - 72;
     const st = r.level ? '★'.repeat(r.level) : 'starter';
     ctx.font = '800 9px system-ui, sans-serif'; const stW = ctx.measureText(st).width + 4;
