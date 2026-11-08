@@ -614,21 +614,25 @@ html, body {
    * Cards at 0 copies are cut (kept here so old saves and logs still read). The 6 live cards and Swap the Entry
    * are not in the Intrigue deck any more: they are the Auction deck (16 cards), 2 offered in every fight's Bets step.
    * ============================================================================ */
-  const IV_DATA = [["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a neutral robot joins the fight and attacks whoever is closest.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Remote Trigger", "R", 2, 1, 2, "Live: fire a robot's module right now.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: +45% speed and fire rate for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: clear a stall or jam, heal 18; no breaks for 5 s.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live, any player: splash oil on the floor; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live, any player: lob an EMP (100 px): 0.9 s stun and 5 damage to every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction.", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"]];
-  const LIVE_KEYS = { 'Remote Trigger': 'trigger', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card' };
-  const LIVE_TARGET = { trigger: 'bot', waypoint: 'arena', overclock: 'bot', field_eng: 'bot', oil_card: 'arena', emp_card: 'arena' };
-  const LIVE_ICON = { trigger: '🎛️', waypoint: '📍', overclock: '🎯', field_eng: '👷', oil_card: '🛢️', emp_card: '🧲' };
+  const IV_DATA = [["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a neutral robot joins the fight and attacks whoever is closest.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Remote Trigger", "R", 2, 1, 2, "Live: fire a robot's module right now.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: nitro on your fighter for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: your fighter: clear jams, stalls and fire; +18 HP to its chassis and worst part.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live: an oil spill at a spot; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live: an EMP at a spot: 0.9 s stun, 5 damage and drones off for every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction (it also stops an Override).", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"], ["Public Disgrace", "S", 15, 2, 1, "Target −3 fame. Gate 15: you will need backing.", "Smear"], ["Corporate Raid", "S", 14, 2, 1, "Target loses up to 8 Cr, split evenly between you and every team that backed it (the rest to you).", "Corporate"], ["Override", "R", 2, 2, 2, "Right after any block: cancel the block, the scheme goes through. Any team but the target. Only Firewall stops it.", "Leverage"], ["Call the Hammer", "R", 0, 1, 2, "Live: the ceiling hammer slams a spot after a 1.1 s warning.", "Match-fixing"], ["Floor Launcher", "R", 0, 1, 2, "Live: a launch pad pops up at a spot and throws robots.", "Match-fixing"], ["Supply Drop", "R", 0, 1, 2, "Live: drop a crate (nitro, overcharge, repair or shield) at a spot.", "Match-fixing"], ["Chip Hack", "R", 0, 1, 2, "Live: a robot glitches; much worse if its top plate is off.", "Match-fixing"], ["Rattle Loose", "R", 0, 1, 2, "Live: a robot's top plate rattles loose (down to 30%).", "Match-fixing"], ["Hype Surge", "R", 0, 1, 2, "Live: your fighter rages for 6 s.", "Match-fixing"], ["Electromagnet", "R", 0, 1, 2, "Live: pulls robots and scrap to a spot for 2 s.", "Match-fixing"], ["Smoke Bomb", "R", 0, 1, 2, "Live: smoke at a spot; robots inside are hidden.", "Match-fixing"]];
+  const LIVE_KEYS = { 'Remote Trigger': 'trigger', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card',
+    'Call the Hammer': 'hammer', 'Floor Launcher': 'launcher', 'Supply Drop': 'supply', 'Chip Hack': 'chiphack', 'Rattle Loose': 'rattle', 'Hype Surge': 'hype', 'Electromagnet': 'magnet', 'Smoke Bomb': 'smoke' };
+  // 2.0: card id -> engine command type (DamageLab.LIVE); 1.0 ids kept (oil_card, emp_card) so old logs read
+  const LIVE_ENG = { trigger: 'trigger', waypoint: 'waypoint', overclock: 'overclock', field_eng: 'field_eng', oil_card: 'oil', emp_card: 'emp', hammer: 'hammer', launcher: 'launcher', supply: 'supply', chiphack: 'chiphack', rattle: 'rattle', hype: 'hype', magnet: 'magnet', smoke: 'smoke' };
+  const LIVE_TARGET = {}; for (const k in LIVE_ENG) LIVE_TARGET[k] = window.DamageLab.LIVE[LIVE_ENG[k]].target;
+  const LIVE_ICON = { trigger: '🎛️', waypoint: '📍', overclock: '🎯', field_eng: '👷', oil_card: '🛢️', emp_card: '⚡', hammer: '🔨', launcher: '🚀', supply: '📦', chiphack: '💾', rattle: '🔩', hype: '📣', magnet: '🧲', smoke: '💨' };
   // Arena cards (Kev, 6 Nov): played in the Host step (after the host bid, before invites) or the Bets step, from the prompt.
   // Grand Final and Tag Team Licence are Intrigue schemes that set up this round's fight.
   const ARENA_STEP = { 'Grand Melee': 'host', 'Unleash the House Robot': 'host', 'Mirror': 'host', "Bookie's Friend": 'bets', 'Hedge Bet': 'bets', 'Swap the Entry': 'bets' };
   const LATER = new Set(Object.keys(ARENA_STEP));
   const BLOCKERS = new Set(['Paid Off', 'Fall Guy', 'Firewall', 'PR Spin', 'Not My Robot', "Sponsor's Lawyers", 'Under the Radar', 'Overreach']);
   const TURN_REACTIONS = new Set(['Fire Sale', 'Kick When Down', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Backup Restore']);
-  const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory', 'Botched Install']);
+  const TEAMUP = new Set(['Public Disgrace', 'Corporate Raid']);   // heavy hitters: their gate is above anyone's fame, so they need backing
+  const WINDOW_ONLY = new Set(['Pile-On', 'Board Seat', 'Blaze of Glory', 'Botched Install', 'Override']);
   const HARMFUL_FAMS = new Set(['Smear', 'Sabotage', 'Corporate']);
   const FAM_ICON = { Contracts: '💼', Publicity: '📣', Smear: '🗞️', Sabotage: '🔧', Corporate: '🏢', 'Match-fixing': '🎲', Security: '🛡️', Leverage: '⛓️' };
   const ANY_T = ['Overtime Shift', 'Consulting Gig', 'Industry Insider', 'Fan Meet', 'Roadshow', 'Public Demo', 'Launch Party', 'Team-Building Day', 'Press Tour', 'Celebrity Endorsement', 'Hype Reel', 'Prime-Time Interview', 'Viral Moment', 'Co-Branding Deal'];
-  const RIVAL_T = ['Kick When Down', 'Smash and Grab', 'Joint Venture', 'Bribe Scandal', 'Inside Leak', 'Paparazzi', 'Rival Sponsor', 'Smear Campaign', 'Rigged Ratings', 'Poached Mechanic', 'Security Override', 'EMP the Garage', 'Sugar in the Tank', 'Smudged Lens', 'Loose Bolts', 'Rogue Firmware', 'Tax Audit', 'Coolant Leak', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!'];
+  const RIVAL_T = ['Public Disgrace', 'Corporate Raid', 'Kick When Down', 'Smash and Grab', 'Joint Venture', 'Bribe Scandal', 'Inside Leak', 'Paparazzi', 'Rival Sponsor', 'Smear Campaign', 'Rigged Ratings', 'Poached Mechanic', 'Security Override', 'EMP the Garage', 'Sugar in the Tank', 'Smudged Lens', 'Loose Bolts', 'Rogue Firmware', 'Tax Audit', 'Coolant Leak', 'Asset Strip', 'Hostile Buyout', 'Shill Bidder', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!'];
   const NONE_T = ['Underdog Story', 'Robot Rights Protest'];
   const slugOf = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
   const CARDS = {};
@@ -1458,7 +1462,8 @@ html, body {
     } else if (G.phase === 'bets') {
       const lim = betLimit(t), myBet = PS().bet || [], staked = myBet.reduce((a, b) => a + b, 0);
       const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
-      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '. Live combat cards come to 2.0 next.</span>' +
+      const cb = (PS().cardBid || []).reduce((a, b) => a + b, 0);
+      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (G.fight && G.fight.auction ? ' · 🃏 sealed bids on the fight cards below (' + cb + ' Cr)' : '') + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock bets & bids →</button>';
@@ -1467,7 +1472,7 @@ html, body {
       if ($('#pBF')) $('#pBF').onclick = () => act('bookiesFriend');
       if ($('#pHB')) $('#pHB').onclick = () => act('hedgeBet');
     } else if (G.phase === 'fight') {
-      pb.innerHTML = '<span>⚔️ <b>The fight is on screen.</b> Live combat cards come to 2.0 next.</span>' +
+      pb.innerHTML = '<span>⚔️ <b>The fight is on screen.</b>' + (liveCardsOf(t).length ? ' Play your fight cards from the tray under the arena.' : '') + '</span>' +
         (isClient() ? '' : '<button class="act secondary" id="pAct1">Skip</button>');
       if ($('#pAct1')) $('#pAct1').onclick = () => act('skipFight');
     } else if (G.phase === 'after') {
@@ -1561,12 +1566,12 @@ html, body {
                       c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
       const targetHint = c.phase === 'security' ? 'Install: drag to your garage' :
                          c.phase === 'later' ? (c.step === 'host' ? 'Host step: play from the prompt' : 'Bets step: play from the prompt') :
-                         c.phase === 'fight' ? (c.target === 'bot' ? 'Fight: drag to a robot' : 'Fight: drag to the floor') :
+                         c.phase === 'fight' ? 'Fight: tray on the fight screen' :
                          BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
                          c.target === 'rival' ? 'Drag to a rival garage' : c.target === 'any' ? 'Drag to any garage' : 'Drag onto the table';
       const gateTxt = c.gate === '▲' ? '▲ more fame' : c.gate === '▼' ? '▼ less fame' : need ? '★' + need : '';
 
-      const typeHelp = c.phase === 'fight' ? 'Live combat card: play it into a running fight (drag onto a robot or the floor).' :
+      const typeHelp = c.phase === 'fight' ? 'Live combat card: won in the Bets-step auction, for this fight only. Play it from the card tray under the arena: tap it, then tap ' + (c.target === 'bot' ? 'a robot' : 'a spot') + '.' :
                        c.phase === 'later' ? (c.step === 'host' ? 'Arena card for the <b>Host step</b> (after the host bid, before invites): the prompt offers it then' + (c.name === 'Grand Melee' ? ' to everyone.' : ' to the host.') : 'Arena card for the <b>Bets step</b>: the prompt offers it while bets are open' + (c.name === 'Swap the Entry' ? ' (it plays right after bets are locked).' : '.')) + ' You can also cash it in on your Intrigue turn.' :
                        c.phase === 'security' ? 'Security Bot: discard it to roll 4–6 and block a scheme, or install it in your garage as a lasting guard.' :
                        c.t === 'F' ? 'Face-down card: put it on a robot without showing it. It stays hidden (the bookie can\'t see it) until that robot\'s next fight.' :
@@ -1998,7 +2003,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0 2026-11-08 fork';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0 2026-11-08 live cards';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2333,6 +2338,7 @@ html, body {
   function aiWillBack(o, F, T, c, off) {
     const lead = leaderOf();
     if (T && T.i === o.i) return false;
+    if (c.name === 'Corporate Raid' && T) off += Math.min(8, T.credits) / 2;   // a backer gets a share of the take
     if (T && T === lead && o !== lead && c.harmful) return rnd() < 0.85;
     if (F === lead || F.fame >= 9) return off >= 3 && rnd() < 0.4;
     return rnd() < 0.15 + 0.25 * off;
@@ -2348,7 +2354,7 @@ html, body {
       { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
       { label: 'Cancel', secondary: true, value: () => null }]);
     if (!res) return false;
-    let got = 0, forced = false; const owed = [];   // Kev, 6 Nov: backers are only paid if the card really gets played
+    let got = 0, forced = false; const owed = [], backers = [];   // Kev, 6 Nov: backers are only paid if the card really gets played
     for (const o of res.ask) {
       if (F.fame + got >= needOf(F, c)) break;
       let yes, B = null;
@@ -2364,19 +2370,21 @@ html, body {
       }
       const bf = o.fame + (hasCrew(o, 'fixer') ? 2 : 0);   // 🕴️ Fixer: +2 fame toward the gate
       notify(yes ? '🤝 ' + nm(o) + ' backs ' + nm(F) + ' (+' + bf + ' fame' + (bf > o.fame ? ', Fixer +2' : '') + (!bundleEmpty(B) ? ', for ' + bundleText(B) : '') + ').' : '✋ ' + nm(o) + ' refuses to back ' + nm(F) + (!bundleEmpty(B) ? ' (offered ' + bundleText(B) + ')' : '') + '.', o.col);
-      if (yes) { got += bf; await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
+      if (yes) { got += bf; backers.push(o); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + bf + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); }
     }
-    return settleBacking(F, c, got, owed);
+    return settleBacking(F, c, got, owed, backers);
   }
   // backing deals are paid only when the backing is enough; otherwise nobody pays and the card stays secret
-  function settleBacking(F, c, got, owed) {
+  // F.ivBackers: who backed the card being played (Corporate Raid shares its take with them); cleared after the play
+  function settleBacking(F, c, got, owed, backers) {
     const ok = F.fame + got >= needOf(F, c);
+    F.ivBackers = ok ? (backers || owed.map(([o]) => o)).map(o => o.i) : [];
     if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B); });
     else if (owed.some(([, B]) => !bundleEmpty(B))) notify('not enough backing, so nobody gets paid', '#888');
     return ok;
   }
   async function aiBacking(F, c, T) {
-    let got = 0, promised = 0; const owed = [];
+    let got = 0, promised = 0; const owed = [], backers = [];
     for (const o of G.teams.filter(o => o.i !== F.i && (!T || o.i !== T.i)).sort((a, b) => b.fame - a.fame)) {
       if (F.fame + got >= needOf(F, c)) break;
       const B = aiBundle(F, o, Math.min(2, Math.max(0, F.credits - promised - 3)) + (stashOf(F).length ? 1 : 0));
@@ -2386,9 +2394,9 @@ html, body {
         yes = await dealAsk('🤝 Backing request', nm(F) + ' asks you to back a scheme' + (T && T !== F ? ' against ' + nm(T) : '') + ' and offers <b>' + bundleText(B) + '</b>' +
           (B.items.length ? '<br>' + B.items.map(id => lotRef(id) + ': ' + partForTxt(o, id)).join('<br>') : '') + '<br>Your ' + o.fame + ' fame would count for that one card. They don\'t have to tell you what it is.', o.i);
       } else yes = aiWillBack(o, F, T, c, bundleWorth(o, B));
-      if (yes) { owed.push([o, B]); promised += B.cr || 0; got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
+      if (yes) { owed.push([o, B]); backers.push(o); promised += B.cr || 0; got += o.fame + (hasCrew(o, 'fixer') ? 2 : 0); await boardFx({ kind: 'back', ti: o.i, label: 'BACKS ' + F.name.split(' ')[0].toUpperCase(), sub: '+' + (o.fame + (hasCrew(o, 'fixer') ? 2 : 0)) + ' fame' + (!bundleEmpty(B) ? ' · ' + ptPlain(bundleText(B)) : '') }); notify('🤝 ' + nm(o) + ' backs ' + nm(F) + (hasCrew(o, 'fixer') ? ' (Fixer +2 fame)' : '') + (!bundleEmpty(B) ? ' for ' + bundleText(B) : '') + '.', o.col); }
     }
-    return settleBacking(F, c, got, owed);
+    return settleBacking(F, c, got, owed, backers);
   }
 
   /* ---------- defence: Security Bots (target only), then a reaction window for everyone ---------- */
@@ -2438,7 +2446,9 @@ html, body {
         const roll = 1 + Math.floor(rnd() * 6);
         await boardFx({ kind: 'roll', ti: T.i, roll, ok: roll >= (hasCrew(T, 'secchief') ? 3 : 4) });
         { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[roll >= (hasCrew(T, 'secchief') ? 3 : 4) ? 'landed' : 'blocked']++; }
-        if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col); return { blocked: true, T }; }
+        if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col);
+          if (await overrideStep(F, c, T, 'the Security Bot')) return { blocked: false, T };
+          return { blocked: true, T }; }
         notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
       }
     }
@@ -2455,10 +2465,55 @@ html, body {
       } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
       if (!use) continue;
       const r = await applyBlock(o, use, F, c, T);
+      if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
       if (r.blocked) return r;
       T = r.T;
     }
     return { blocked: false, T };
+  }
+  /* Override (Leverage, Kev 8 Nov): right after any block, any team but the target may cancel the block and the scheme
+   * goes through. Only Firewall stops an Override (then the block stands). */
+  function aiWantsOverride(o, F, c, T) {
+    if (o === F) return aiCardValue(F, c, T) >= 3;   // its own scheme, when the scheme is worth it
+    if (!c.harmful || !T || T === o || T === F) return false;
+    const soleLeader = G.teams.every(x => x === T || x.fame < T.fame);
+    return soleLeader || T.fame >= WIN_FAME - 2;   // help a scheme against a sole leader or a team about to win
+  }
+  async function overrideStep(F, c, T, what) {
+    const shown = c.t === 'F' ? 'a face-down card' : cardRef(c.id);
+    for (const oi of seatOrder()) {
+      const o = G.teams[oi];
+      if ((T && o.i === T.i) || !o.hand.includes('override') || o.fame < (CARDS.override.need || 0)) continue;
+      const yes = isHuman(oi)
+        ? await askSeat(oi, '⛓️ Override?', what + ' just blocked ' + nm(F) + '\'s ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + '.<br>Play <b>Override</b>: cancel the block and the scheme goes through. Only Firewall can stop it.',
+          [{ label: '⛓️ Override', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
+        : aiWantsOverride(o, F, c, T);
+      if (!yes) continue;
+      removeFromHand(o, 'override'); discardCard('override');
+      await boardFx({ kind: 'react', ti: o.i, card: 'override', label: '⛓️ OVERRIDE' });
+      const st = cst('override', o.i); cstBy('override', o.i, 'played'); st.played++;
+      notify('⛓️ ' + nm(o) + ' plays ' + cardRef('override') + ': the block is cancelled!', o.col);
+      tlog('override', { by: o.i, scheme: c.id, player: F.i, target: T ? T.i : null, what: ptPlain(what) });
+      for (const qi of seatOrder()) {   // only Firewall can stop an Override
+        const q = G.teams[qi];
+        if (q === o || !q.hand.includes('firewall') || q.fame < (CARDS.firewall.need || 0)) continue;
+        const stop = isHuman(qi)
+          ? await askSeat(qi, '🛡️ Firewall?', nm(o) + ' played <b>Override</b> to push ' + nm(F) + '\'s ' + shown + ' through' + (T && T !== F ? ' on ' + nm(T) : '') + '.<br>Play <b>Firewall</b> to stop the Override (the block stands)?',
+            [{ label: '🛡️ Firewall', value: () => true }, { label: 'Let it through', secondary: true, value: () => false }], 5000, false)
+          : q !== F && aiWantsBlock(q, F, c, T);
+        if (!stop) continue;
+        removeFromHand(q, 'firewall'); discardCard('firewall');
+        await boardFx({ kind: 'react', ti: q.i, card: 'firewall', label: '✋ STOPS THE OVERRIDE' });
+        { const s2 = cst('firewall', q.i); cstBy('firewall', q.i, 'played'); s2.played++; s2.landed++; }
+        st.blocked++;
+        notify('🛡️ ' + nm(q) + ' stops the Override with ' + cardRef('firewall') + ': the block stands.', q.col);
+        return false;
+      }
+      st.landed++; cstBy('override', o.i, 'landed');
+      notify('⛓️ The scheme goes through.', o.col);
+      return true;
+    }
+    return false;
   }
   async function loseFame(X, d) {
     const lost = -addFame(X, -d);
@@ -2571,6 +2626,7 @@ html, body {
       case 'Robot Rights Protest': addFame(F, -2); for (const o of G.teams) if (o !== F) addFame(o, -1); say('🗞️ Robot Rights Protest: ' + nm(F) + ' −2 fame, every other team −1.'); break;
       case 'Rival Sponsor': { const o = lowestOther([F.i, T.i]); await loseFame(T, 1); addFame(o, 1); say('🗞️ Rival Sponsor: ' + nm(T) + ' −1, ' + nm(o) + ' +1 fame.'); break; }
       case 'Smear Campaign': await loseFame(T, 2); say('🗞️ Smear Campaign: ' + nm(T) + ' −2 fame.'); break;
+      case 'Public Disgrace': { const l = await loseFame(T, 3); say('🗞️ Public Disgrace: ' + nm(T) + ' −' + l + ' fame.'); break; }
       case 'Rigged Ratings': { const o = lowestOther([F.i, T.i]); await loseFame(T, 2); addFame(F, 1); addFame(o, 1); say('🗞️ Rigged Ratings: ' + nm(T) + ' −2; ' + nm(F) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Kick When Down': case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': await loseFame(T, 1); say('🗞️ ' + esc(n) + ': ' + nm(T) + ' −1 fame.'); break;
       case 'Poached Mechanic': { const c = loseCrew(T); say('🔧 ' + nm(F) + ' poaches ' + (c ? 'a ' + crewRef(c.kind) : 'nobody') + ' from ' + nm(T) + '.'); break; }
@@ -2589,6 +2645,13 @@ html, body {
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
       case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; T.credits += payCr(F, 3 * k); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
       case 'Hostile Buyout': await hostileBuyout(F, T); break;
+      case 'Corporate Raid': {   // the take is split evenly between the player and every backer; the remainder goes to the player
+        const take = payCr(T, 8), bk = [...new Set(F.ivBackers || [])].filter(i => i !== F.i && i !== T.i).map(i => G.teams[i]), each = Math.floor(take / (bk.length + 1));
+        bk.forEach(o => { o.credits += each; }); F.credits += take - each * bk.length;
+        say('🏢 Corporate Raid: ' + nm(F) + ' takes ' + take + ' Cr from ' + nm(T) + (bk.length ? ', split: ' + nm(F) + ' ' + (take - each * bk.length) + ', ' + bk.map(o => nm(o) + ' ' + each).join(', ') : '') + '.');
+        tlog('raid', { from: T.i, take, split: [[F.i, take - each * bk.length]].concat(bk.map(o => [o.i, each])) });
+        break;
+      }
       case 'Shill Bidder': T.shill = (T.shill || 0) + 2; say('🏢 Shill Bidder: ' + nm(T) + '\'s bids count 2 lower this round.'); break;
       case 'Backup Restore': G.discard.splice(G.discard.indexOf('firewall'), 1); F.hand.push('firewall'); say('🛡️ ' + nm(F) + ' takes Firewall back from the discard pile.'); break;
       case 'Grand Final': G.nextEvent = { kind: 'final', by: F.i, card: id }; say('🏆 Grand Final: this round\'s fight is 2v2, the two fame leaders vs the other two. Double fame.'); break;
@@ -2611,6 +2674,7 @@ html, body {
     const st = cst(id, F.i); cstBy(id, F.i, 'played'); st.played++; st[d.blocked ? 'blocked' : 'landed']++; if (!d.blocked) cstBy(id, F.i, 'landed');
     const before = G.teams.map(t => [t.credits, t.fame]);
     if (!d.blocked) await resolveScheme(F, id, d.T);
+    F.ivBackers = null;
     G.teams.forEach((t, k) => { const dc = t.credits - before[k][0], df = t.fame - before[k][1]; if (t === F) { st.selfCr += dc; st.selfFame += df; } else { st.otherCr += dc; st.otherFame += df; } });
     logEnd(d.blocked ? 'blocked' : 'landed');
     updateHud();
@@ -2698,6 +2762,8 @@ html, body {
       case 'Inside Leak': v = foeFame(1) - 2; break;
       case 'Kick When Down': case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': v = foeFame(1); break;
       case 'Smear Campaign': v = foeFame(2); break;
+      case 'Public Disgrace': v = foeFame(3); break;
+      case 'Corporate Raid': v = Math.min(8, T ? T.credits : 0) * 0.6 * (1 + 0.3 * th); break;   // about half the take (backers share it)
       case 'Rival Sponsor': v = foeFame(1) - fc * aiThreat(F, lowO); break;
       case 'Overtime Shift': v = readyCrew(F); break;
       case 'Consulting Gig': v = 2 * readyCrew(F); break;
@@ -2780,7 +2846,7 @@ html, body {
         const { id, c, T } = opts[0]; tried.add(id);
         if (!gateOk(c, F, T)) {
           const gap = needOf(F, c) - F.fame, could = G.teams.filter(o => o !== F && o !== T).reduce((a, o) => a + o.fame + (hasCrew(o, 'fixer') ? 2 : 0), 0);
-          if (askedBacking || typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+          if (askedBacking || typeof c.gate !== 'number' || gap > (TEAMUP.has(c.name) ? 12 : 8) || gap > could || rnd() < (TEAMUP.has(c.name) ? 0.15 : 0.4)) continue;
           askedBacking = true;
           secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
           if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
@@ -2800,7 +2866,7 @@ html, body {
       if (!gateOk(c, F, T)) {
         // Kev, 6 Nov: only ask when the other teams' fame could close the gap (Red Rivets asked for 8 fame when all three rivals had 1)
         const gap = needOf(F, c) - F.fame, could = G.teams.filter(o => o !== F && o !== T).reduce((a, o) => a + o.fame + (hasCrew(o, 'fixer') ? 2 : 0), 0);
-        if (askedBacking || typeof c.gate !== 'number' || gap > 8 || gap > could || rnd() < 0.4) continue;
+        if (askedBacking || typeof c.gate !== 'number' || gap > (TEAMUP.has(c.name) ? 12 : 8) || gap > could || rnd() < (TEAMUP.has(c.name) ? 0.15 : 0.4)) continue;
         askedBacking = true;   // Kev, 6 Nov: one backing request per turn, not a string of them
         secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
         if (!(await aiBacking(F, c, T))) { notify('not enough backing: the card stays in hand'); logEnd('failed'); continue; }
@@ -3768,7 +3834,7 @@ html, body {
   function startBets() {
     G.phase = 'bets';
     for (let s = 0; s < 4; s++) { PS(s).bet = Array(G.fight.nSides).fill(0); PS(s).hedge = false; PS(s).cardBid = [0, 0]; }
-    { const F = G.fight; F.auction = null; F.pubBets = [null, null, null, null]; F.aiBets = aiPlanBets(F); F.aiBets.forEach(x => { F.pubBets[x.team] = { side: x.side, amt: x.amt }; }); }   // 2.0: no live-card auction yet
+    startCardAuction(G.fight);   // 2.0 (Kev, 8 Nov): the live-card auction is back, on the new engine
     setCameraGoal('compound');
     updateHud();
     // ✦ Scope (Sniper): its owner sees one face-down card on a rival robot in this fight
@@ -3796,6 +3862,10 @@ html, body {
    * less fame (equal fame: nobody, the card is discarded). A won card is for this fight only. Unclaimed: discarded.
    * The bookie's odds ignore the cards on purpose. */
   const AUCTION_N = 2;
+  /* What a live card swings: win % for the robot it is played for (tools/damage-lab/livevalue-results.json: 60 fights per
+   * card, played blind at 15 s; ±6 points of noise). The AI plays at a better moment, so every card counts at least +2. */
+  const LIVE_VALUE = { none: 48, trigger: 48, waypoint: 48, overclock: 44, field_eng: 48, oil: 50, emp: 46, hammer: 56, launcher: 45, supply: 53, chiphack: 50, rattle: 49, hype: 53, magnet: 44, smoke: 53 };
+  const liveValue = id => Math.max(2, (LIVE_VALUE[LIVE_ENG[id]] != null ? LIVE_VALUE[LIVE_ENG[id]] : 52) - LIVE_VALUE.none);
   function drawAuctionCard() {
     if (!G.auctionDeck || !G.auctionDeck.length) { G.auctionDeck = shuffle(AUCTION_TEMPLATE.slice()); G.auctionDiscard = []; }
     return G.auctionDeck.pop();
@@ -3860,9 +3930,12 @@ html, body {
       // what winning this fight is worth to it: fame (at its host-fame rate) if it fights, its bet's payout if it bet
       const stake = (fights ? famePer * (aiV2(T) ? P.hostFame : 3) * 0.5 : 0) + (bet ? bet.amt * (payFor(T, F, bet.side) - 1) : 0);
       if (stake <= 0) return [0, 0];
-      const useful = id => id === 'swap_the_entry' ? (bet || fights ? 1 : 0) : !fights ? 0 : id === 'waypoint' ? 0 : id === 'field_eng' || id === 'overclock' ? 1 : 0.8;
+      // 2.0: a live card is worth its measured swing in win points (LIVE_VALUE) × what the fight is worth to it; a team that
+      // only bet can still use it for the side it backs. Swap the Entry as in 1.0.
+      const noMod = fights && (() => { const sp = spec2(F.robots[e], T.i); return !sp.mod || sp.mod === 'none'; })();   // Remote Trigger needs a module
+      const useful = id => id === 'swap_the_entry' ? (bet || fights ? 0.3 : 0) : id === 'trigger' && noMod ? 0 : LIVE_ENG[id] ? Math.max(0, liveValue(id)) / 100 * 3 : 0;
       const free = T.credits - (bet ? bet.amt : 0) - (aiV2(T) ? P.reserve : 1);
-      const vals = F.auction.cards.map(id => useful(id) * stake * 0.3 * (0.8 + 0.4 * rnd()));
+      const vals = F.auction.cards.map(id => useful(id) * stake * (0.8 + 0.4 * rnd()));
       const bestK = vals[0] >= vals[1] ? 0 : 1;
       return vals.map((v, k) => { const amt = Math.floor((k === bestK ? v : v * 0.5) + rnd()); /* random rounding: fewer exact ties */ return amt >= 1 && free >= amt ? amt : 0; });
     });
@@ -4014,7 +4087,7 @@ html, body {
   const headless = () => !!(G.fast || BOT || HS < 0 || window.__fightHeadless);
   function runHeadless(F) {
     const S = F.S; S.countdown = 0;
-    let n = 0; while (!S.over && n++ < 60 * 400) { DL.step(S); S.fx.length = 0; }
+    let n = 0; while (!S.over && n++ < 60 * 400) { DL.step(S); fightStep(F, S); S.fx.length = 0; }
     if (!S.over) {   // safety net: the engine always ends a fight by 120 s; if not, the judges decide here
       const best = S.robots.slice().sort((a, b) => (b.alive - a.alive) || (DL.judge(b, S) - DL.judge(a, S)))[0];
       S.over = true; S.result = { winner: best.id, winTeam: best.team, winners: [best.id], how: 'judges', text: 'Time! The judges pick ' + best.name, t: S.t };
@@ -4035,8 +4108,9 @@ html, body {
     if (F.format === 'ffa' && F.event && F.event.kind === 'ffa' && G.host >= 0) { addFame(G.teams[G.host], 1); notify('⚔️ Grand Melee happens: host ' + nm(G.teams[G.host]) + ' +1 fame.', G.teams[G.host].col); }
     fightBanners(F);
     updateHud();
+    F.live = []; F.aiLiveAt = {};
     if (headless()) runHeadless(F);
-    else VW.play(F.S, { title: 'Round ' + G.round + ' · ' + fightTitle(F) + ': ' + Array.from({ length: F.nSides }, (_, sd) => sideLabel(F, sd)).join(' vs ') + (F.house ? ' + House Robot' : ''), onEnd: () => { F.viewDone = true; } });
+    else { VW.play(F.S, { title: 'Round ' + G.round + ' · ' + fightTitle(F) + ': ' + Array.from({ length: F.nSides }, (_, sd) => sideLabel(F, sd)).join(' vs ') + (F.house ? ' + House Robot' : ''), onEnd: () => { F.viewDone = true; }, onStep: S => fightStep(F, S) }); liveTray(F); }
   }
 
   // face-down cards and garage sabotage are revealed when the fight starts
@@ -4049,8 +4123,96 @@ html, body {
       }
     });
   }
-  // live combat cards: not in 2.0 yet (they come next, on the new engine)
-  ACT.combatCard = () => {};
+  /* ---------- live combat cards in the fight (2.0, Kev 8 Nov) ----------
+   * Cards won in the Bets-step auction are played into the running fight: people from the card tray of the fight view
+   * (src2/view.js), the AI by simple rules checked every 30 steps (0.25 s) (the same in a shown and a headless fight). A card
+   * becomes DamageLab.command(S, ...), applied on the next engine step (deterministic). */
+  const liveCardsOf = T => [...new Set(T.hand.filter(id => CARDS[id] && CARDS[id].phase === 'fight'))];
+  // the engine robots a team plays its "own" cards on: its fighters; a team not fighting: the side it bet on
+  function liveOwn(F, ti) {
+    const S = F.S, mine = S.robots.filter((R, i) => R.alive && F.botEnt[i] >= 0 && F.teams[F.botEnt[i]] === ti).map(R => R.id);
+    if (mine.length) return mine;
+    const b = (F.bets || []).find(x => x.team === ti);
+    return b ? S.robots.filter((R, i) => R.alive && F.botEnt[i] >= 0 && F.sides[F.botEnt[i]] === b.side).map(R => R.id) : [];
+  }
+  const LIVE_R = { oil: 0.75, emp: 1.15, hammer: 0.6, launcher: 0.55, supply: 0.25, magnet: 2.6, smoke: 1.3, waypoint: 0.3 };
+  function liveValid(F, ti, id) {
+    const S = F.S, eng = LIVE_ENG[id], L0 = DL.LIVE[eng], own = liveOwn(F, ti);
+    if (L0.own) return own;
+    if (L0.target !== 'bot') return [];
+    const alive = S.robots.filter(R => R.alive).map(R => R.id);
+    if (eng === 'trigger') return alive;
+    const foes = alive.filter(i => !own.includes(i) && (!own.length || S.robots[i].team !== S.robots[own[0]].team));
+    return foes.length ? foes : alive;
+  }
+  // play card `id` of team ti: o = { robot, x, y, crate }
+  function playLive(F, ti, id, o) {
+    const T = G.teams[ti], S = F && F.S, eng = LIVE_ENG[id];
+    if (!S || S.over || G.phase !== 'fight' || !eng || !T.hand.includes(id)) return false;
+    const L0 = DL.LIVE[eng];
+    if ((L0.target === 'bot' || L0.own) && !liveValid(F, ti, id).includes(o.robot)) return false;
+    if (L0.target === 'arena' && !(Number.isFinite(o.x) && Number.isFinite(o.y))) return false;
+    removeFromHand(T, id); discardCard(id);
+    const cmd = { type: eng, by: T.name.split(' ')[0] }; if (o.robot != null) cmd.robot = o.robot; if (L0.target === 'arena') { cmd.x = o.x; cmd.y = o.y; } if (eng === 'supply') cmd.crate = o.crate || 'repair';
+    DL.command(S, cmd);
+    { const st = cst(id, ti); cstBy(id, ti, 'played'); cstBy(id, ti, 'landed'); st.played++; st.landed++; }
+    const R = o.robot != null ? S.robots[o.robot] : null;
+    F.live.push({ team: ti, id, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null });
+    tlog('live_card', { team: ti, id, type: eng, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null, x: cmd.x, y: cmd.y, crate: cmd.crate });
+    notify('🃏 <b>' + esc(T.name) + '</b> plays ' + cardRef(id) + (R ? ' on ' + esc(R.name) : '') + ' (' + Math.round(S.t) + ' s).', T.col);
+    if (!headless()) liveTray(F);
+    return true;
+  }
+  // the viewer's cards in the fight view's tray
+  function liveTray(F) {
+    if (HS < 0 || headless()) { VW.setCards([]); return; }
+    const T = G.teams[HS], list = liveCardsOf(T).map(id => { const eng = LIVE_ENG[id], L0 = DL.LIVE[eng]; return { key: id, icon: CARDS[id].icon, name: CARDS[id].name, text: CARDS[id].text, target: L0.target, own: !!L0.own, valid: liveValid(F, HS, id), radius: LIVE_R[eng], crate: eng === 'supply' }; });
+    const key = JSON.stringify(list.map(c => [c.key, c.valid]));
+    if (key === F.trayKey) return;   // only redraw the tray when something changed (a redraw mid-tap would lose the tap)
+    F.trayKey = key;
+    VW.setCards(list, (id, o) => { if (!playLive(F, HS, id, o)) { F.trayKey = null; liveTray(F); } });
+  }
+  ACT.combatCard = (S, id, bot, x, y, crate) => { const F = G.fight; if (F && F.S) playLive(F, S, id, { robot: bot, x, y, crate }); };
+  // every engine step (shown or headless): the AI's cards, and the tray's robot list
+  function fightStep(F, S) {
+    if (S.countdown > 0 || S.over || S.step % 30) return;   // every 0.25 s (DT = 1/120)
+    if (!headless() && S.step % 120 === 0) liveTray(F);
+    for (const ti of [0, 1, 2, 3]) {
+      if (isHuman(ti) && !(BOT && headless())) continue;   // people play their own (test bots in a headless fight use the AI rules)
+      const T = G.teams[ti], ids = liveCardsOf(T);
+      if (!ids.length || S.step - (F.aiLiveAt[ti] || -9999) < 360) continue;   // at most one card every 3 s
+      for (const id of ids) { const m = aiLiveMoment(F, ti, id); if (m && playLive(F, ti, id, m)) { F.aiLiveAt[ti] = S.step; break; } }
+    }
+  }
+  // AI: when and where to play a live card (simple rules per card)
+  function aiLiveMoment(F, ti, id) {
+    const S = F.S, eng = LIVE_ENG[id], own = liveOwn(F, ti).map(i => S.robots[i]);
+    if (S.t < 3) return null;
+    const me0 = own[0] || null, foes = S.robots.filter(R => R.alive && (!me0 ? true : R.team !== me0.team));
+    if (!foes.length) return null;
+    const pos = R => R.body.getPosition(), dist = (A, B) => { const a = pos(A), b = pos(B); return Math.hypot(a.x - b.x, a.y - b.y); };
+    const hp = R => { const f = q => q ? Math.max(0, q.hp) / q.maxHp : 0, wh = R.slots.map(s2 => s2.wheel ? f(s2.wheel) * (s2.motor.hp > 0 ? 1 : 0.3) : 0); return f(R.chassis) * 0.4 + f(R.battery) * 0.2 + (wh.reduce((a, b) => a + b, 0) / Math.max(1, wh.length)) * 0.4; };
+    const me = me0 && own.slice().sort((a, b) => hp(a) - hp(b))[0];   // its robot that needs help most
+    const foe = me ? foes.slice().sort((a, b) => dist(me, a) - dist(me, b))[0] : foes.slice().sort((a, b) => hp(b) - hp(a))[0];
+    const d = me ? dist(me, foe) : 9, losing = me && hp(me) < hp(foe) - 0.12, clear = r => own.every(R => dist(R, foe) > r + R.hl);
+    const late = S.t > 40 || (me && hp(me) < 0.35);   // late in the fight, or its robot is nearly done: use it now
+    const lead = (R, k) => { const p = pos(R), v = R.body.getLinearVelocity(); return { x: p.x + v.x * k, y: p.y + v.y * k }; };
+    switch (eng) {
+      case 'field_eng': return me && ((me.wmotor && me.wmotor.jam > 0) || me.slots.some(q => q.motor.stuck > 0) || me.battery.fire || me.glitch > 0.3 || me.stun > 0.5 || hp(me) < 0.5 || (late && hp(me) < 0.8)) ? { robot: me.id } : null;
+      case 'overclock': return me && (d < 1.6 || late) ? { robot: me.id } : null;
+      case 'hype': return me && (d < 1.5 || late) && !(me.rage > 0) ? { robot: me.id } : null;
+      case 'trigger': return me && me.module && me.module.hp > 0 && me.mod && me.mod !== 'none' && (d < 2 || late) ? { robot: me.id } : null;
+      case 'chiphack': return d < 2.5 || late || foe.chipExposed ? { robot: foe.id } : null;
+      case 'rattle': return foe.lid && foe.lid.attached && (S.t > 4 || late) ? { robot: foe.id } : null;
+      case 'hammer': case 'launcher': { const p = lead(foe, eng === 'hammer' ? 1.0 : 0.8); return clear(1.0) || (late && clear(0.6)) ? p : null; }
+      case 'emp': case 'oil': { const p = pos(foe); return clear(eng === 'emp' ? 1.1 : 0.8) ? { x: p.x, y: p.y } : null; }
+      case 'magnet': { const p = pos(foe); return clear(2.4) || late ? { x: p.x, y: p.y } : null; }
+      case 'smoke': { if (!me) return null; const p = pos(me); return losing || late ? { x: p.x, y: p.y } : null; }
+      case 'waypoint': { if (!me || !(losing && d < 1.3) && !late) return null; const a = pos(me), b = pos(foe), k = Math.hypot(a.x - b.x, a.y - b.y) || 1; return { robot: me.id, x: a.x - (b.x - a.x) / k * 1.6, y: a.y - (b.y - a.y) / k * 1.6 }; }
+      case 'supply': { if (!me) return null; const p = pos(me), h = hp(me); return h < 0.6 || S.t > 8 ? { x: p.x, y: p.y, crate: h < 0.6 ? 'repair' : 'overcharge' } : null; }
+    }
+    return null;
+  }
   ACT.skipFight = S => {
     const F = G.fight;
     if (G.phase !== 'fight' || !F || !F.S || isRemote(S)) return;
@@ -4445,7 +4607,7 @@ html, body {
     if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); const o2 = o.length ? o : G.teams.map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o2.length) return act('pickTeam', o2[Math.floor(R() * o2.length)]); return act('invite'); }
     if (busy === 'lots' && !P.botBid) { P.botBid = true; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
     if (busy === 'hostbid' && !P.botHost) { P.botHost = true; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
-    if (busy === 'bets' && !P.botBet && G.fight) { P.botBet = true; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); return; }
+    if (busy === 'bets' && !P.botBet && G.fight) { P.botBet = true; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); if (G.fight.auction && R() < 0.6) { const k = R() < 0.5 ? 0 : 1, n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('cardBid', k, 1); } return; }
     if (busy === 'lots' || busy === 'hostbid' || busy === 'bets') { P.botBid = P.botHost = P.botBet = false; }
     const step = gatherStep(); if (step) act(step[1]);
   }
@@ -4490,7 +4652,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
@@ -5740,16 +5902,11 @@ html, body {
       }
     }
 
-    void AU; void ay0;
-    { const pub = (F.pubBets || []).map((b, i) => b ? G.teams[i].name.split(' ')[0] + ' ' + b.amt + ' Cr on ' + sideLabel(F, b.side) : null).filter(Boolean);
+    if (AU) drawCardAuction(ctx, L, ay0, F, AU, L.ay + h / 2 + 4);
+    else { const pub = (F.pubBets || []).map((b, i) => b ? G.teams[i].name.split(' ')[0] + ' ' + b.amt + ' Cr on ' + sideLabel(F, b.side) : null).filter(Boolean);
       ctx.textAlign = 'center'; ctx.fillStyle = '#333';
       fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, L.ay + h / 2 + 18, L.aw - 24, '700', 10.5);
-      help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public. When someone changes a bet, everyone who already locked is un-locked to react.');
-      const tw = 236, th = 20, tx = L.ax - tw / 2, ty = L.ay + h / 2 + 26;
-      ctx.fillStyle = '#fffaf0'; ctx.fillRect(tx, ty, tw, th);
-      ctx.strokeStyle = '#d99000'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.strokeRect(tx, ty, tw, th); ctx.setLineDash([]);
-      ctx.fillStyle = '#b45309'; fitText(ctx, '🃏 Live combat cards come to 2.0 next', tx + tw / 2, ty + 14, tw - 10, '800', 10.5);
-      help(tx, ty, tw, th, '🃏 Live combat cards', 'In 1.0 two live cards are auctioned in every Bets step and played into the fight. They come to 2.0 next, on the new engine.'); }
+      help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public. When someone changes a bet, everyone who already locked is un-locked to react.'); }
   }
 
   // the public bets line and the 2 sealed-bid fight cards, under the robots
