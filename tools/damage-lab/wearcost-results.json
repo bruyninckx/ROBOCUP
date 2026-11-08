@@ -1,0 +1,38 @@
+{
+ "stock": {
+  "win": 51,
+  "n": 300
+ },
+ "one wheel lost": {
+  "win": 24,
+  "n": 300
+ },
+ "side armour lost": {
+  "win": 48,
+  "n": 288
+ },
+ "lid off": {
+  "win": 48,
+  "n": 300
+ },
+ "chassis at 50%": {
+  "win": 50,
+  "n": 300
+ },
+ "drive motor dead": {
+  "win": 27,
+  "n": 300
+ },
+ "weapon motor dead": {
+  "win": 13,
+  "n": 264
+ },
+ "weapon lost": {
+  "win": 6,
+  "n": 252
+ },
+ "everything at 60%": {
+  "win": 27,
+  "n": 300
+ }
+}
