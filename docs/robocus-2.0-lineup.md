@@ -122,6 +122,10 @@ A normal part is also worth a little more than one level: with one part, a robot
 - Arenas with hazards (saws, killbox).
 - The Damage Lab page still uses 1.0 part strengths. The 2.0 settings live in `robocus2-lineup.json` and `ARC.pk`.
 
+## Level 4: the end-game wave (8 Nov, later)
+
+Eight level 4 robots built from exotic mechanisms instead of bigger knobs: Hydra (strike arm), Corkscrew (drill), Trebuchet (throwing arm), Angler (gaff hook + drum), Lodestone (electromagnet), Orbiter (blades on telescoping booms), Tarantula (six-legged walker with a stalker brain), Grandmaster (tool carousel with a brain). Power grades 0.97-1.18 (level 3: 1.14-1.21), 57-63% against level 3. They live in `ROBOTS4` (not `ROBOTS`), so the tabletop and the tier tools don't see them; the Lineup Arena shows them. Full write-up: `docs/robocus-2.0-level4.md`, plan: `docs/robocus-2.0-level4-plan.md`.
+
 ## Lineup Arena
 
 `prototypes/lineup-arena.html` (built with `python3 tools/damage-lab/build.py`): the 25 robots by level at their power grades, two part slots and a legendary slot with the 2.0 part strengths, Watch or Test (10/20/50 fights, sides swapped every other fight), and random matchups (same level, one or two levels apart). Data in `tools/damage-lab/lineup.js`.

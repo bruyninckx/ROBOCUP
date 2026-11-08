@@ -166,6 +166,37 @@ Why some are zero: drive motors only lose power below 35% HP (then 55% force) or
 - **Secret Upgrade** is at the top end (+21.8); **+15% / +15%** gives +15.9.
 - EMP (−14 per module or drone) is fine where it applies; it is a dead card against teams without modules or drones.
 
+## Level 4 in the tabletop (Kev, 8 Nov: "we need level 4 in the game")
+
+The eight level 4 robots (`docs/robocus-2.0-level4.md`) are in `prototypes/tabletop-2.html`, on by default (`BAL.level4`).
+
+- **Deck and lots.** Each game deals `perGame` (4) of the 8 into their own robot deck (`G.robotDecks[4]`, dealt after every other shuffle, so with level 4 off a seed plays exactly as before). From round `fromRound` (7) the Market gets one level 4 robot lot every `lotEvery` (1) rounds while the deck lasts; it takes a part lot's slot (else a crew lot's, else a lower robot's). Next round's level 4 robot is named a round ahead, like the legendary parts (log + notice, purple). A `robotLevels` scheme may name level 4 too, but only from `fromRound`; a dry level 3 deck still falls back to level 2, never up to 4.
+- **Price.** Lowest winning bid `minBid` (5 Cr); a lower top bid leaves the lot unsold (back to the bottom of its deck, so it can come again). The + button jumps straight to the minimum. The tile has a purple ★★★★ LEVEL 4 tag. `upkeep` (default 0, option 1) adds Cr per level 4 robot every Upkeep (the Accountant does not cover it).
+- **Robot card and help.** Four stars on the card and on the lid, weapon label, portrait, the lot description, and a one-line lamp tell in the help (`L4_TELL`, e.g. "Strobing lamps = it is about to throw"). LEVEL_HELP mentions level 4 from round 7.
+- **Lineup data.** `ROBOTS4` stays apart from `ROBOTS` in `src2/lineup.js`; the tabletop reads both through `ROB()` (levels, decks, power grade). Starters are still only level 0. The Lineup Arena and the tier tools see what they saw before.
+- **Fight view.** `src2/view.js` now has the level 4 drawing code from `tools/damage-lab/ui.js` (arms and their chase lights, auger, trebuchet arm, hook and winch line, magnet field and clamp arc, orbit booms and discs, carousel and its tool lamps, legs, lamps). Keep the two copies in step.
+- **Repairs.** `Repair2.zoneOfPart`: legs → Drive; arm segments, booms, discs, the carousel tools, coil, auger, winch, throwing arm, turret ring, boom rams → Weapon; the huge chassis → Body. Checked: a Hydra that loses its arm middle and strike head in fight 1 starts fight 2 without them; repairing Weapon brings them back.
+- **Strength.** `Repair2.strength` counts level 4 as 4 levels minus `L4_OFF` (0.35), i.e. level 3 + 0.27 logits (the measured 59% vs level 3; level 4 is no stronger than level 3 against levels 0-1). The AI values a level 4 lot like a legendary (base 6) plus its level and odds, and bids at least the minimum or nothing.
+
+### Sim: level 4 on vs off (40 games each, seeds 1-40, start 0, win 12, AI v2)
+
+| | L4 on | L4 off |
+|---|---|---|
+| rounds: mean (median) | 11.5 (12) | 10.7 (11) |
+| close finish: runner-up within 1 / 2 fame | 63% / 90% | 50% / 78% |
+| win share by seat 1-4 | 18 / 28 / 28 / 28% | 8 / 35 / 30 / 28% |
+| Market spend / game | 128 Cr | 106 Cr |
+| robot price L1 / L2 / L3 / L4 | 4.7 / 5.4 / 4.4 / 6.9 | 4.7 / 5.2 / 5.2 / - |
+| bookie favourite wins (all fights) | 62% | 68% |
+| page errors | 0 | 0 |
+
+- **Lots:** 5.0 level 4 lots a game, 75% sold (round 7: 39 of 40, round 10: 24 of 37, round 11: 14 of 25), 6.9 Cr on average (5-9). Every game reached round 7. Robots that get scrapped go back to the deck, so more than 4 lots a game is normal.
+- **Buyers** (fame rank when the lots sold, ties count as the higher rank): leader 38%, 2nd 19%, 3rd 21%, last 22%.
+- **Fights:** 3.2 a game have a level 4 robot (Hydra 35 fights, the others 18-24). A side with a level 4 robot wins 56% (167 sides, all formats); duels are few (L4 vs L1 75% of 8, vs L3 44% of 9). 26 of 40 winners own a level 4 robot at the end.
+- **Bookie, fights with level 4:** level 4 sides rated 53%, won 56%; favourite wins 62%. Close enough, so `L4_OFF` stays 0.35. The bookie's high bands (70-90%) win less than rated in these fights, as in all fights.
+
+Round 2 variants for the PC run are in `tools/bal2/` (`tools/run-sims3.cmd`).
+
 ## Next steps
 
 1. Fork the 1.0 game loop into 2.0: starter draft, Market auctions with robot levels in waves, part cards (2 parts + 1 legendary), Intrigue, bets, hosting, crates. Use the 1.0 rules as the reference, with 2.0 wording where cards mention stats.

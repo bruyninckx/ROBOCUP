@@ -53,6 +53,9 @@ How to change it:
 | `robotLevels.scheme` | `waves` | which level a New Robot lot deals by round (a missing level falls back to the nearest, then starters) |
 | `robotLevels.rounds` | 5 | rounds 1..N always offer a robot lot |
 | `robotLevels.schemes` | see below | `[from round, {level: weight}]` lists; one level = no dice roll |
+| `level4.on` | true | level 4 end-game robots in the game (`docs/robocus-2.0-tabletop.md`, "Level 4 in the tabletop"); off = exactly the game before level 4 |
+| `level4.fromRound` / `perGame` / `lotEvery` | 7 / 4 / 1 | first round with a level 4 lot; how many of the 8 are dealt per game; a level 4 lot every N rounds while any are left (a scheme in `robotLevels` may also name level 4, from `fromRound`) |
+| `level4.minBid` / `upkeep` / `announce` | 5 / 0 / true | lowest winning bid; extra Cr upkeep per level 4 robot (option: 1); name next round's level 4 robot a round ahead |
 | `repair.credits` | 2 | Cr per repair action once free and crew actions are used up |
 | `repair.crewActs` | `{default: 1}` | repair actions per crew member, per kind (e.g. `{"default": 1, "chief": 2}`) |
 | `repair.engineersOnly` | false | **switch**: only `repair.engineers` give repair actions; the others' cards say "Does not repair." |
