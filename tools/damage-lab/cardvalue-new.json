@@ -1,0 +1,82 @@
+{
+ "settings": {
+  "upDmg": 1.15,
+  "upHp": 1.15,
+  "lens": 0.75,
+  "sugar": 0.4,
+  "ocAfter": 0.4,
+  "boltsLid": 0.3,
+  "boltsMode": "wheel",
+  "boltsWheel": 0.3,
+  "ocMode": "noheat"
+ },
+ "fights": {
+  "main": 220,
+  "emp": 0
+ },
+ "seconds": 262,
+ "cards": {
+  "Secret Upgrade": {
+   "n": 220,
+   "base": 49.5,
+   "win": 68.6,
+   "swing": 19.1,
+   "se": 3.8,
+   "logit": 0.8,
+   "levels": 1.29
+  },
+  "Smudged Lens": {
+   "n": 220,
+   "base": 49.5,
+   "win": 34.1,
+   "swing": -15.5,
+   "se": 3.3,
+   "logit": -0.64,
+   "levels": -1.03
+  },
+  "Overclock": {
+   "n": 220,
+   "base": 49.5,
+   "win": 55.9,
+   "swing": 6.4,
+   "se": 4.1,
+   "logit": 0.26,
+   "levels": 0.41
+  },
+  "Sugar in the Tank": {
+   "n": 220,
+   "base": 49.5,
+   "win": 42.3,
+   "swing": -7.3,
+   "se": 3.4,
+   "logit": -0.29,
+   "levels": -0.47
+  },
+  "Loose Bolts": {
+   "n": 220,
+   "base": 49.5,
+   "win": 42.3,
+   "swing": -7.3,
+   "se": 3.2,
+   "logit": -0.29,
+   "levels": -0.47
+  }
+ },
+ "base": 49.5,
+ "notes": {
+  "alreadyHot": [
+   "Jouster",
+   "Buzzkill",
+   "Whirlwind",
+   "Thwacker",
+   "Forklift"
+  ],
+  "ownModule": [
+   "Hornet",
+   "Whirlwind",
+   "Mauler",
+   "Juggernaut",
+   "Brawler"
+  ]
+ }
+}

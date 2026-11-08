@@ -74,7 +74,8 @@
     spotter: { label: 'Spotter drone', hp: 35, r: 0.09, mass: 2, col: '#B266FF', ic: 'S', d: 'Marks weak spots: +25% damage, guns 40% more accurate, sees through smoke.' },
     jammer: { label: 'Jammer drone', hp: 40, r: 0.1, mass: 3, col: '#D24B3A', ic: 'J', d: 'Flies in close to the enemy: its turret turns at 45%, spinners spin up and weapons reload half as fast, its module is blocked.' },
   };
-  const MOTORS = { std: { label: 'Standard', f: 1, heat: 1, mass: 0 }, hot: { label: 'Hot-wound (+35%)', f: 1.35, heat: 1.9, mass: 3 } };
+  const MOTORS = { std: { label: 'Standard', f: 1, heat: 1, mass: 0 }, hot: { label: 'Hot-wound (+35%)', f: 1.35, heat: 1.9, mass: 3 },
+    oc: { label: 'Overclocked (+35%, no extra heat)', f: 1.35, heat: 1, mass: 0 } };   // ROBOCUS 2.0 Overclock card, BAL.cards.ocMode 'noheat'
   // chassis outlines: not everything has to be a box. Angled faces make hits glance off.
   const SHAPES = {
     box: { label: 'Box', d: 'Plain box: most room, square corners catch everything.' },

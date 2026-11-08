@@ -1,5 +1,8 @@
 // ROBOCUS 2.0: how much each robot-stat Intrigue card changes a robot's chance to win its next fight.
-//   node cardvalue.js [fights per card, default 220] [EMP fights, default 200] [workers, default 2]
+//   node cardvalue.js [fights per card, default 220] [EMP fights, default 200] [workers, default 2] [--cards='{"lens":0.75,...}'] [--only=main] [--out=file.json]
+// --cards: the page's BAL.cards numbers to measure (defaults as the page: upDmg/upHp 1.2, lens 0.85, sugar 0.6, ocAfter 0.4,
+//   boltsMode 'lid' (boltsLid 0.3) or 'wheel' (boltsWheel 0.3), ocMode 'heat' or 'noheat'). With --cards the proposals are left out.
+// --conds=a,b measures only these rows (and base). --only=main skips the EMP rows (EMP does not depend on --cards).
 // Paired design: the same pairs of equal-level robots (sides alternate) and the same seeds are fought with and
 // without the card on robot A. The spec changes are exactly the ones prototypes/tabletop-2.html makes
 // (fightSpec for face-down cards and EMP the Garage, resolveScheme0 for Loose Bolts / Rogue Firmware,
@@ -10,21 +13,28 @@ const path = require('path'), fs = require('fs'), cp = require('child_process');
 try { require.resolve('planck'); } catch (e) { globalThis.planck = require(path.join(__dirname, '../../vendor/planck-1.4.3.min.js')); }
 const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
 const LEVEL = 0.62, MAXT = 200;
-const N = +process.argv[2] || 220, NE = +process.argv[3] || 200, W = +process.argv[4] || 2;
+const POS = process.argv.slice(2).filter(a => !a.startsWith('--')), OPT = {};
+for (const a of process.argv.slice(2)) { const m = a.match(/^--(\w+)=(.*)$/); if (m) OPT[m[1]] = m[2]; }
+const N = +POS[0] || 220, NE = OPT.only === 'main' ? 0 : +POS[1] || 200, W = +POS[2] || 2;
+const C = Object.assign({ upDmg: 1.2, upHp: 1.2, lens: 0.85, sugar: 0.6, ocAfter: 0.4, boltsLid: 0.3, boltsMode: 'lid', boltsWheel: 0.3, ocMode: 'heat' }, OPT.cards ? JSON.parse(OPT.cards) : {});
+const OUT = OPT.out || 'cardvalue-results.json';
 const names = Object.keys(LU.ROBOTS), lvOf = n => LU.ROBOTS[n][0];
 const emptyWear = () => ({ parts: {}, lost: [], ints: {}, dents: {}, drones: [] });   // as the page's emptyWear
 const motorsOf = sp => L.create({ a: sp, b: sp, seed: 1 }).robots[0].internals.filter(q => q.key === 'motor').map(q => q.label);
+const wheelOf = sp => { const q = L.create({ a: sp, b: sp, seed: 1 }).robots[0].parts.find(x => x.kind === 'wheel'); return q ? q.label : null; };   // as the page's baseInfo(r).wheels[0]
 const withWear = (sp, f) => { sp.wear = sp.wear || emptyWear(); f(sp.wear); return sp; };
 // card -> what it does to robot A's spec (a fresh LU.build copy)
 const CONDS = {
   base: sp => sp,
-  'Secret Upgrade': sp => { sp.dmgK *= 1.2; sp.hpK *= 1.2; return sp; },                         // fightSpec tm.up
-  'Smudged Lens': sp => { sp.dmgK *= 0.85; return sp; },                                          // fightSpec tm.lens
-  Overclock: sp => { sp.motor = 'hot'; return sp; },                                              // fightSpec tm.oc
-  'Overclock (after: drive motors 40%)': sp => withWear(sp, w => { for (const lb of motorsOf(sp)) w.ints[lb] = 0.4; }),   // fight-end wear
-  'Sugar in the Tank': sp => withWear(sp, w => { for (const lb of motorsOf(sp)) w.ints[lb] = 0.6; }),                     // fightSpec tm.sugar
-  'Loose Bolts (lid 30%)': sp => withWear(sp, w => { w.lid = 0.3; }),                              // resolveScheme0
-  'Loose Bolts (after free heal: lid 50%)': sp => withWear(sp, w => { w.lid = 0.3; }) && heal(sp),
+  'Secret Upgrade': sp => { sp.dmgK *= C.upDmg; sp.hpK *= C.upHp; return sp; },                 // fightSpec tm.up
+  'Smudged Lens': sp => { sp.dmgK *= C.lens; return sp; },                                        // fightSpec tm.lens
+  Overclock: sp => { sp.motor = C.ocMode === 'noheat' ? 'oc' : 'hot'; return sp; },                // fightSpec tm.oc
+  'Overclock (after: drive motors at ocAfter)': sp => withWear(sp, w => { for (const lb of motorsOf(sp)) w.ints[lb] = C.ocAfter; }),   // fight-end wear
+  'Sugar in the Tank': sp => withWear(sp, w => { for (const lb of motorsOf(sp)) w.ints[lb] = C.sugar; }),                       // fightSpec tm.sugar
+  'Loose Bolts': C.boltsMode === 'wheel' ? sp => withWear(sp, w => { const q = wheelOf(sp); if (q) w.parts[q] = C.boltsWheel; })   // resolveScheme0 (wheel: Drive, no free heal)
+    : sp => withWear(sp, w => { w.lid = C.boltsLid; }),
+  'Loose Bolts (after the free heal)': C.boltsMode === 'wheel' ? sp => withWear(sp, w => { const q = wheelOf(sp); if (q) w.parts[q] = C.boltsWheel; }) && heal(sp)
+    : sp => withWear(sp, w => { w.lid = C.boltsLid; }) && heal(sp),
   'Rogue Firmware chassis (40%)': sp => withWear(sp, w => { w.parts.Chassis = 0.4; }),             // resolveScheme0
   'Rogue Firmware chassis (after free heal: 50%)': sp => withWear(sp, w => { w.parts.Chassis = 0.4; }) && heal(sp),
 };
@@ -36,7 +46,8 @@ const PROPS = {
   'proposal: Loose Bolts, one wheel at 30%': sp => withWear(sp, w => { const R = L.create({ a: sp, b: sp, seed: 1 }).robots[0], q = R.parts.find(x => x.kind === 'wheel'); if (q) w.parts[q.label] = 0.3; }),
   'proposal: Smudged Lens -25%': sp => { sp.dmgK *= 0.75; return sp; },
 };
-Object.assign(CONDS, PROPS);
+if (!OPT.cards) Object.assign(CONDS, PROPS);
+if (OPT.conds) { const keep = new Set(['base'].concat(OPT.conds.split(','))); for (const k of Object.keys(CONDS)) if (!keep.has(k)) delete CONDS[k]; }   // --conds='Secret Upgrade,Smudged Lens'
 function heal(sp) {   // Repair2.bodyHeal (needs src2/repair.js, which wants window-less globals)
   const R2 = require('../../src2/repair.js'); R2.bodyHeal(sp); return sp;
 }
@@ -92,8 +103,9 @@ if (process.env.CV_WORKER != null) {   // worker: every W-th job
   function done() {
     const by = {}; J.forEach((j, n) => { ((by[j.set] = by[j.set] || {})[j.c] = by[j.set][j.c] || [])[j.i] = win[n]; });
     const lg = p => Math.log(Math.max(0.005, Math.min(0.995, p)) / (1 - Math.max(0.005, Math.min(0.995, p))));
-    const res = { fights: { main: N, emp: NE }, seconds: Math.round((Date.now() - t0) / 1000), cards: {} };
+    const res = { settings: C, fights: { main: N, emp: NE }, seconds: Math.round((Date.now() - t0) / 1000), cards: {} };
     for (const set of ['main', 'emp']) {
+      if (!by[set]) continue;
       const B = by[set].base, pb = B.reduce((a, x) => a + x, 0) / B.length;
       res[set === 'main' ? 'base' : 'empBase'] = Math.round(pb * 1000) / 10;
       for (const c of Object.keys(by[set])) {
@@ -108,7 +120,7 @@ if (process.env.CV_WORKER != null) {   // worker: every W-th job
     }
     // which robots Overclock can't change (already hot-wound) and which have a module of their own
     res.notes = { alreadyHot: names.filter(x => L.normSpec(LU.build(x)).motor === 'hot'), ownModule: names.filter(x => { const s = L.normSpec(LU.build(x)); return s.mod && s.mod !== 'none'; }) };
-    fs.writeFileSync(path.join(__dirname, 'cardvalue-results.json'), JSON.stringify(res, null, 1));
-    console.log('saved cardvalue-results.json in', res.seconds, 's');
+    fs.writeFileSync(path.join(__dirname, OUT), JSON.stringify(res, null, 1));
+    console.log('saved', OUT, 'in', res.seconds, 's');
   }
 }
