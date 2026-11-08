@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROBOCUS 2.0 · how to play</title>
+<meta name="description" content="The short rulebook for ROBOCUS 2.0: robot fights, schemes and bets for 4 teams. If you have played Spartacus, you already know most of it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#211C17;--panel:#2E2721;--panel2:#3A3027;--line:#4A4037;--ink:#EDE6D9;--dim:#B5AA9A;--gold:#E8C547;--gold2:#D99000;--red:#E0402B;--green:#8BC07A;--blue:#79A4CB}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 16px 64px}
+h1{font:400 44px/1 "Saira Stencil One",Impact,sans-serif;letter-spacing:.04em;color:var(--gold);margin:18px 0 4px}
+h1 small{display:block;font:600 14px "IBM Plex Mono",monospace;letter-spacing:.12em;color:var(--dim);margin-top:8px}
+h2{font:400 26px/1.1 "Saira Stencil One",Impact,sans-serif;letter-spacing:.03em;color:var(--gold);margin:40px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
+h3{font:700 15px/1.3 "IBM Plex Sans",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:22px 0 6px}
+p{margin:10px 0}
+a{color:var(--gold);font-weight:600}
+b{color:#fff}
+.lead{font-size:18px;color:#fff}
+.play{display:inline-block;background:var(--gold);color:#15110D;border-radius:8px;padding:10px 16px;font:700 15px "IBM Plex Sans",system-ui,sans-serif;text-decoration:none;margin:6px 8px 6px 0}
+.play.alt{background:transparent;color:var(--gold);border:1.5px solid var(--gold)}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+td,th{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+td:first-child{white-space:nowrap;color:#fff;font-weight:600}
+.steps{counter-reset:s;list-style:none;padding:0;margin:12px 0}
+.steps li{position:relative;padding:8px 0 8px 44px;border-bottom:1px solid var(--line)}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:8px;width:30px;height:30px;border-radius:50%;background:var(--panel2);color:var(--gold);font:600 14px "IBM Plex Mono",monospace;display:flex;align-items:center;justify-content:center}
+.steps b{color:#fff}
+.fame{list-style:none;padding:0;margin:10px 0}
+.fame li{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+.fame .n{flex:0 0 46px;font:600 15px "IBM Plex Mono",monospace;color:var(--gold);white-space:nowrap}
+.fame .n.m{color:var(--red)}
+.tip{background:var(--panel);border-left:3px solid var(--gold2);border-radius:0 8px 8px 0;padding:10px 14px;margin:14px 0}
+.tip.red{border-color:var(--red)}
+.kbd{font:600 13px "IBM Plex Mono",monospace;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:#fff;white-space:nowrap}
+/* robot gallery */
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
+.bot{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;display:flex;flex-direction:column;gap:4px;min-height:44px;transition:border-color .15s,transform .15s}
+.bot:hover{border-color:var(--gold2)}
+.bot.a{border-color:var(--blue);box-shadow:0 0 0 2px rgba(121,164,203,.45)}
+.bot.b{border-color:#E59866;box-shadow:0 0 0 2px rgba(229,152,102,.45)}
+.bot canvas{width:100%;aspect-ratio:1;background:#BDB5A7;border-radius:6px;display:block}
+.bot .nm{font-weight:700;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.bot .lv{font:600 11px "IBM Plex Mono",monospace;color:var(--gold);letter-spacing:.08em}
+.bot .wp{font-size:12.5px;color:var(--dim);line-height:1.3}
+.bot .tag{position:absolute}
+.clip{background:var(--panel);border:1.5px solid var(--gold2);border-radius:12px;padding:14px;margin:14px 0}
+.clip .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.clip select{flex:1 1 130px;min-height:44px;font:600 15px "IBM Plex Sans",system-ui,sans-serif;background:var(--panel2);color:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.clip .vs{font:400 20px "Saira Stencil One",Impact,sans-serif;color:var(--gold)}
+.clip button{min-height:44px;font:700 15px "IBM Plex Sans",system-ui,sans-serif;border-radius:8px;border:0;padding:8px 16px;cursor:pointer}
+.clip .go{background:var(--gold);color:#15110D;flex:1 1 100%}
+.clip .pre{background:var(--panel2);color:var(--ink);border:1px solid var(--line);font-weight:600;font-size:13.5px;padding:8px 10px}
+.clip .note{font-size:13px;color:var(--dim);margin:6px 0 0}
+#fv[hidden]{display:none}
+.foot{color:var(--dim);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:480px){h1{font-size:36px}h2{font-size:23px}td,th{padding:6px 5px;font-size:14px}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ROBOCUS 2.0<small>HOW TO PLAY · SPARTACUS WITH ROBOTS</small></h1>
+<p class="lead">Four robotics teams scheme, bid, bet and fight until one reaches <b>12 fame</b>. You have played <i>Spartacus: A Game of Blood &amp; Treachery</i>, so you already know most of this. Here is what is the same, what is different, and what to watch for.</p>
+<p><a class="play" href="prototypes/tabletop-2.html">▶ Play ROBOCUS 2.0</a> <a class="play alt" href="#clip">Watch the robots first</a></p>
+<p class="tip">2.0 is played on <b>one screen against three AI teams</b> for now; online play for friends comes later. The game is built for a laptop screen, this page reads fine on your phone.</p>
+
+<h2>Spartacus → ROBOCUS</h2>
+<table>
+<tr><th>Spartacus</th><th>ROBOCUS</th></tr>
+<tr><td>Dominus, house</td><td>You, a robotics team (with a sponsor instead of a house power)</td></tr>
+<tr><td>Influence</td><td><b>Fame</b>. Start at 0, first to 12 wins. It also gates your Intrigue cards</td></tr>
+<tr><td>Gold</td><td><b>Credits</b>. Bids, bets, repairs, bribes</td></tr>
+<tr><td>Gladiators</td><td><b>Robots</b>, levels 0–4. They don't tire, but their damage stays</td></tr>
+<tr><td>Slaves</td><td><b>Crew</b>. Mechanics earn a credit each; every crew member can also do one repair a round</td></tr>
+<tr><td>Guards</td><td><b>Security Bots</b>: each rolls a die, 4+ blocks a scheme against you</td></tr>
+<tr><td>Intrigue, Reaction cards</td><td>Same idea: schemes, reactions, Arena cards, and face-down cards that sit on a robot until it fights</td></tr>
+<tr><td>Jupiter's Cock</td><td>Split in two: <b>Firewall</b> blocks, <b>Override</b> cancels any block (anyone but the target may play it)</td></tr>
+<tr><td>Hosting the games</td><td>A sealed <b>host bid</b> every round. The host picks the fighters, judges the losers, and gains +1 fame</td></tr>
+<tr><td>Dice combat</td><td>A <b>physics auto-battle</b>. You can't drive, but you can throw live cards into the fight</td></tr>
+<tr><td>Decapitate / spare</td><td><b>Scrap or spare</b>. A scrapped robot is gone with its parts</td></tr>
+</table>
+
+<h2>Hover help (read this one)</h2>
+<p>The screen explains itself. <b>Rest your mouse on anything</b>, a card, a chip, a 🎩 odds badge, a crew line, a log entry, a stat abbreviation, for a third of a second and a small box tells you what it is, what it does and what it costs. Every card in the log is hoverable too. If you are ever lost, hover before you ask.</p>
+<p>The dark card top-left always says <b>what the game wants from you right now</b> and has the button for it. The log underneath shows everything that happened, with ✓ landed or ✋ blocked on every scheme.</p>
+
+<h2>A round in seven steps</h2>
+<ol class="steps">
+<li><b>Upkeep.</b> Everyone at once. Mechanics pay +1 credit, every robot costs 1. Draw 3 Intrigue cards. Then repair: body damage heals to half for free; each broken zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one <b>repair action</b>. Every crew member gives one action a round, but is then exhausted (and can't count for Intrigue cards). No crew left: 2 credits per zone.</li>
+<li><b>Intrigue.</b> One turn each, last round's host first. Drag schemes onto garages. Short on fame? <b>Ask other teams to back you</b>: they add their fame for one card, you pay them what you agreed. Hand limit 4 (5 at fame 5+, 6 at 9+); extra cards cash in for credits.</li>
+<li><b>Market.</b> Open trading with anyone, then <b>sealed bids on 4 lots</b> (robots, parts, crew), then the sealed <b>host bid</b>. Ties rebid. A sole fame leader gets no host fame.</li>
+<li><b>Host.</b> Arena cards (Mirror, House Robot, Grand Melee…). The host invites two teams, who may bribe their way in or out. Declining costs 1 fame.</li>
+<li><b>Bets.</b> The bookie simulates the visible builds and shows bands (face-down cards stay hidden, so the odds can be wrong). Bet 1–3 credits on a side. Two <b>live combat cards</b> are auctioned at the same time, for this fight only.</li>
+<li><b>Fight.</b> Full-screen auto-battle. Tap a won card, then a robot or a spot. After 60 s the walls close in and the floor overheats.</li>
+<li><b>Fate.</b> The host spares or scraps each losing robot in turn, while everyone offers deals. The host's own robots and Fan Favourites are always safe. The loser gets a free repair action next round.</li>
+</ol>
+<p>The game checks for a winner after Intrigue, after the Market, after the host bid, and after every spare/scrap decision. A 🏁 pill in the top bar shows who is close.</p>
+
+<h2>Every way to gain fame</h2>
+<ul class="fame">
+<li><span class="n">+1</span><span><b>Win a fight.</b> Each team on the winning side, once. A <b>Grand Final</b> (gate 10: the two leaders vs the other two) pays double. A draw or a House Robot win pays nobody.</span></li>
+<li><span class="n">+1</span><span><b>Host.</b> Win the host bid. Not if you are the sole fame leader. (Apex Media gets +2 credits on top.)</span></li>
+<li><span class="n">+1</span><span><b>Fan Favourite.</b> A robot's 3rd win (Apex: 2nd) makes it a Fan Favourite and the fame is yours while it stays yours. Lose or sell the robot and the fame goes with it. Hype Reel hands out a free win token.</span></li>
+<li><span class="n">+1</span><span><b>Grand Melee.</b> Play it as a reaction (gate 5) and if the host runs the free-for-all, the host gains 1.</span></li>
+<li><span class="n">+1/+2</span><span><b>Publicity cards.</b> The main source. Fan Meet (+1, needs 2 ready robots), Roadshow (+2, needs 3), Public Demo (pay 3 credits), Launch Party (pay every rival 2), Team-Building Day and Press Tour (exhaust crew or robots), Museum Donation (give up a robot or crew), Celebrity Endorsement, Prime-Time Interview, Viral Moment, Co-Branding Deal (+1 to two teams), and <b>Underdog Story</b> (+2 to the team with the least fame).</span></li>
+<li><span class="n">+1</span><span><b>Blaze of Glory</b>: one of your robots gets scrapped in style.</span></li>
+<li><span class="n m">−1…−3</span><span><b>Smear cards</b> take fame away (Smear Campaign, Kick When Down, Pile-On, Public Disgrace −3). So does <b>declining an invitation</b>, refusing a Tag Team ally, and losing a Fan Favourite. <b>Losing a fight costs nothing</b>, and fame can't be taken below where you started.</span></li>
+</ul>
+<p class="tip">In AI games about 40% of all fame comes from Intrigue cards, a third from fights and a quarter from hosting. A player who never hosts rarely wins.</p>
+
+<h2 id="robots">The robots</h2>
+<p>No stats to read. A robot is a <b>physical machine</b>: a chassis, armour plates, a lid, drive motors and wheels, a battery, a radio, a chip, and its weapon. Hits take off real parts. A lost wheel or a dead weapon motor is what loses the next fight; dents and a missing lid barely matter.</p>
+<table>
+<tr><th>Level</th><th>What</th><th>Where from</th></tr>
+<tr><td>★ 0</td><td>9 classic starters, roughly even. You draft one at the start (dealt 2, keep 1, all revealed together).</td><td>Setup</td></tr>
+<tr><td>★ 1–3</td><td>16 Market robots. Each level beats the one below about 6 fights in 10; three levels up is 9 in 10.</td><td>Market, in waves: level 1 in rounds 1–2, level 2 in 3–4, level 3 from 5</td></tr>
+<tr><td>★★★★ 4</td><td>8 end-game machines with exotic mechanisms: a three-segment strike arm, a trebuchet, a six-legged stalker, a drill that cores batteries. One level above 3, but a cheap fast starter can still slip them.</td><td>From round 7, named a round ahead, minimum bid 5</td></tr>
+</table>
+<p><b>Parts</b> fit any robot (2 slots): drones, modules and kits, each strong enough to close one level. The three <b>legendary parts</b> (Prototype core, Field hospital, Quantum shield) close two and are announced a round ahead. Rock-paper-scissors is real: rammers bounce off everything that needs a moment of contact, vertical discs flip the heavy ones, rubber bumpers shrug off magnets and drills.</p>
+
+<h3 id="clip">Watch them fight</h3>
+<div class="clip">
+  <p style="margin:0 0 6px">Tap two robots below (or pick from the lists) and press Fight. This is the real 2.0 engine and the real fight screen, including the damage panels you will see in the game. It plays full screen; <b>Continue</b> brings you back here.</p>
+  <div class="row"><select id="selA" aria-label="Robot A"></select><span class="vs">VS</span><select id="selB" aria-label="Robot B"></select></div>
+  <div class="row"><button class="go" id="goBtn" type="button">▶ Fight</button></div>
+  <div class="row">
+    <button class="pre" type="button" data-a="Thumper" data-b="Wrecker">Starters: Thumper vs Wrecker</button>
+    <button class="pre" type="button" data-a="Popcorn" data-b="Mincer">A level up: Popcorn vs Mincer</button>
+    <button class="pre" type="button" data-a="Gyro" data-b="Vertigo">Spinners: Gyro vs Vertigo</button>
+    <button class="pre" type="button" data-a="Hydra" data-b="Ramrod">End game: Hydra vs Ramrod</button>
+  </div>
+  <p class="note" id="clipNote">Loading the engine…</p>
+</div>
+<div class="gal" id="gal"></div>
+
+<h2>What actually decides games</h2>
+<p><b>The host is king.</b> Hosting is +1 fame and the power to pick who fights, who sits out, and who gets scrapped. Expect bribes at every step: to be invited, to be left alone, to be spared. All of that is table talk between people; the game only moves the credits once a deal is accepted.</p>
+<p><b>The bookie can be fooled.</b> Its odds come from the builds everyone can see. Sugar in the Tank, Smudged Lens or a Secret Upgrade face-down on a robot are invisible to it. If a heavy favourite has a 🂠 on its card, think twice. Underdog wins pay 3× and 4×.</p>
+<p><b>Gang up on the leader.</b> Nobody reaches the gate of Public Disgrace (−3 fame) or Corporate Raid (steal 8 credits) alone, so they only happen as a coalition through backing, and the target can't back a card against itself. Under the Radar blocks schemes from richer teams; Override cancels their blocks.</p>
+<p><b>Crew is a budget.</b> Every repair exhausts a crew member, and many Publicity cards need rested crew or ready robots. Fixing all three zones every round means fewer cards. A robot with a wobbly wheel can still win against a weaker level.</p>
+<p><b>Damage is leverage.</b> A scarred robot is cheaper to invite into a fight you want to win, and a damaged loser is easier to talk the host into scrapping. Keep at least one robot you would not mind losing.</p>
+<p><b>Parts beat panic.</b> Missed the robot auction? One part closes a level; a legendary closes two. A level 1 robot with a legendary keeps up with fresh level 3s.</p>
+
+<h2>Setup, in case you host the table</h2>
+<p>Each team gets 2 sponsor cards and keeps 1 (Aegis Heavy: a free repair action every round; Blackwire: an extra card and cheaper schemes; Sovereign Foundry: 4 Mechanics and wins lot ties; Apex Media: hosting pays credits and Fan Favourites come sooner; Lucky Seven: bigger, better-paying bets; Vulture Salvage: credits whenever anything is scrapped and 2 free repairs after a loss). Then 8 credits, 3 Mechanics, 1 Chief Engineer, 1 Security Bot, and one drafted starter. Start fame is 0 by default; the host can set it higher in the lobby for a quicker game.</p>
+
+<p class="foot">ROBOCUS 2.0 is a work in progress by Kev; numbers change between playtests and the game always wins over this page. Full rules: <a href="docs/rulebook.md">docs/rulebook.md</a> (1.0 wording) and the 2.0 notes in <a href="docs/">docs/</a>. Spartacus reference: the Universal Head rules summary.</p>
+
+</main>
+<div id="fv"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
+<script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
+<script>window.planck || document.write('<script src="vendor/planck-1.4.3.min.js"><\/script>');</script>
+<script src="src2/engine.js"></script>
+<script src="src2/lineup.js"></script>
+<script src="src2/view.js"></script>
+<script>
+(function () {
+  'use strict';
+  const L = window.DamageLab, LU = window.Lineup, FV = window.RobocusView;
+  const note = document.getElementById('clipNote');
+  if (!L || !LU || !FV || !window.planck) { note.textContent = 'The engine did not load (offline?). Open the game itself to see the robots.'; return; }
+  LU.usePK();
+  const ALL = Object.assign({}, LU.ROBOTS, LU.ROBOTS4);
+  const NAMES = Object.keys(ALL).sort((a, b) => ALL[a][0] - ALL[b][0] || a.localeCompare(b));
+  // the gallery: a few of each level, with a one-line weapon description
+  const SHOW = [
+    ['Thumper', 'Axe hammer: one overhead chop at a time'], ['Wrecker', 'Flail: the strongest starter'], ['Popcorn', 'Flipper: launches robots onto their lids'], ['Buzzkill', 'Bar spinner: tears plates off'],
+    ['Mincer', 'Twin grinders: eats anything it holds'], ['Mauler', 'Flail with a repair module'], ['Gyro', 'Shell spinner: no lid to hit'], ['Brawler', 'Piston glove and an EMP, rubber bumper'],
+    ['Ramrod', 'Battering ram: the level 4 nemesis'], ['Vertigo', 'Vertical disc: flips the heavy ones'], ['Hydra', 'Three-segment strike arm, slams lids'], ['Trebuchet', 'Scoops under you and hurls you over its back'],
+    ['Tarantula', 'Six legs, venom fangs, stalks and pounces'], ['Corkscrew', 'Drill on a ram rail: bores to the battery'],
+  ];
+  const stars = n => n ? '★'.repeat(n) : 'STARTER';
+  const PAL = { A: { name: 'Blue', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, B: { name: 'Orange', col: '#C8642B', dark: '#8E431B', light: '#E59866' } };
+  function spec(name, side) { const s = LU.build(name); s.level = ALL[name][0]; s.pal = PAL[side]; s.teamName = side === 'A' ? 'Blue corner' : 'Orange corner'; return s; }
+  const selA = document.getElementById('selA'), selB = document.getElementById('selB');
+  for (const sel of [selA, selB]) {
+    let lv = -1, grp = null;
+    for (const n of NAMES) { if (ALL[n][0] !== lv) { lv = ALL[n][0]; grp = document.createElement('optgroup'); grp.label = lv ? 'Level ' + lv : 'Starters (level 0)'; sel.appendChild(grp); } const o = document.createElement('option'); o.value = n; o.textContent = n; grp.appendChild(o); }
+  }
+  selA.value = 'Thumper'; selB.value = 'Wrecker';
+  FV.mount(document.getElementById('fv'));
+  // gallery with portraits drawn by the fight renderer
+  const gal = document.getElementById('gal');
+  let pickNext = 'A';
+  function markCards() { for (const el of gal.children) { el.classList.toggle('a', el.dataset.n === selA.value); el.classList.toggle('b', el.dataset.n === selB.value); } }
+  for (const [n, d] of SHOW) {
+    if (!ALL[n]) continue;
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'bot'; el.dataset.n = n;
+    el.innerHTML = '<div class="nm"><span>' + n + '</span><span class="lv">' + stars(ALL[n][0]) + '</span></div><div class="wp">' + d + '</div>';
+    try { const c = FV.portrait(spec(n, 'A'), 220); el.insertBefore(c, el.firstChild); } catch (e) { /* no picture, keep the card */ }
+    el.onclick = () => { if (pickNext === 'A') { selA.value = n; pickNext = 'B'; } else { selB.value = n; pickNext = 'A'; } markCards(); note.textContent = selA.value + ' vs ' + selB.value + ' — press Fight.'; };
+    gal.appendChild(el);
+  }
+  selA.onchange = selB.onchange = markCards;
+  markCards();
+  note.textContent = 'Tap a robot for the blue corner, another for the orange corner, then Fight.';
+  let seed = 1 + Math.floor(Math.random() * 100000);
+  function fight() {
+    const a = selA.value, b = selB.value;
+    let S;
+    try { S = L.create({ a: spec(a, 'A'), b: spec(b, 'B'), seed: seed++, countdown: 2.99 }); } catch (e) { note.textContent = 'Could not start that fight: ' + e.message; return; }
+    document.body.style.overflow = 'hidden';
+    FV.play(S, { title: a + ' vs ' + b, onEnd: R => {
+      document.body.style.overflow = '';
+      const t = R && R.result ? R.result.text : '';
+      note.textContent = (t ? t + ' (' + Math.round(R.result.t) + ' s). ' : '') + 'Fight again for a different fight (new seed), or pick others.';
+      document.getElementById('clip').scrollIntoView({ block: 'start' });
+    } });
+  }
+  document.getElementById('goBtn').onclick = fight;
+  for (const b of document.querySelectorAll('.pre')) b.onclick = () => { selA.value = b.dataset.a; selB.value = b.dataset.b; markCards(); fight(); };
+})();
+</script>
+</body>
+</html>
