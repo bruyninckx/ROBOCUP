@@ -4,16 +4,27 @@
 //   node tools/game-sim.js --tag=start4 --games=200 --par=8 --start=4 --win=12
 //   node tools/game-sim.js --page=prototypes/tabletop-2.html --tag=v2base --games=40 --par=2
 // Options: --games (default 100), --par (parallel games, default 4; about your number of CPU cores),
-//          --start (start fame: 1, 2, 4 or 7; default 4), --win (fame to win, default 12), --seed0 (first seed, default 1),
+//          --start (start fame, e.g. 0, 1, 2, 4, 7; default: the page's own (2.0: 0, BAL.startFame; 1.0: 4)),
+//          --win (fame to win, default 12), --seed0 (first seed, default 1),
+//          --bal='{"repair":{"brokenTwo":true}}' (2.0: deep-merged into the page's BAL settings via ?bal=; see docs/robocus-2.0-sim.md),
+//          --balFile=path.json (the same from a file; --bal is merged on top),
 //          --ai (v2 or v1, default v2), --page (default prototypes/tabletop-prototype.html),
 //          --planck (local planck.min.js for 2.0 when the CDN can't be reached; default: node_modules/planck, then
 //          vendor/planck-1.4.3.min.js; --planck=cdn always uses the network), --maxRound (give up after, default 40)
 // The same seeds in two runs = the same shuffles to start with, so two settings compare like for like.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
-const N = +arg('games', 100), PAR = +arg('par', 4), START = +arg('start', 4), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
+const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
 const AIV = +String(arg('ai', 'v2')).replace(/\D/g, ''), PAGE = arg('page', 'prototypes/tabletop-prototype.html'), MAXR = +arg('maxRound', 40);
-const TAG = arg('tag', 's' + START + '_w' + WIN), OUTD = path.join(process.cwd(), 'sims');
+// BAL overrides (2.0): --balFile, then --bal on top; --start also goes in as BAL.startFame
+const BALF = arg('balFile', null), BAL = (() => {
+  const o = {}, merge = (a, b) => { for (const k in b) { if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object') merge(a[k], b[k]); else a[k] = b[k]; } return a; };
+  if (BALF) merge(o, JSON.parse(fs.readFileSync(BALF, 'utf8')));
+  if (arg('bal', null)) merge(o, JSON.parse(arg('bal')));
+  if (START != null) o.startFame = START;
+  return o;
+})();
+const TAG = arg('tag', 's' + (START == null ? 'def' : START) + '_w' + WIN), OUTD = path.join(process.cwd(), 'sims');
 fs.mkdirSync(OUTD, { recursive: true });
 
 // 2.0 loads planck from cdn.jsdelivr.net; serve a local copy instead (offline / proxied machines), same version
@@ -113,11 +124,12 @@ function installHooks() {
     try {
       if (PLANCK) await p.route(/planck(\.min)?\.js/, r => r.fulfill({ contentType: 'application/javascript', body: PLANCK }));
       await p.addInitScript(() => { window.__noRender = true; });
-      await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed); await p.waitForTimeout(150);
+      await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + (Object.keys(BAL).length ? '&bal=' + encodeURIComponent(JSON.stringify(BAL)) : '')); await p.waitForTimeout(150);
       const v2 = await p.evaluate(() => !!window.Repair2);
       if (v2 && !(await p.evaluate(() => !!window.planck))) throw new Error('planck.js did not load (pass --planck=<file>)');
       await p.evaluate(([v, start, win]) => {
         const D = window.ROBOCUS_DEBUG; D.ai({ versions: [v, v, v, v] }); D.tune({ win });
+        if (start == null) return;
         const s = document.getElementById('pFame'); if (s) { if (![...s.options].some(o => +o.value === start)) s.add(new Option(start, start)); s.value = String(start); s.dispatchEvent(new Event('change')); }
         else { D.G.startFame = start; D.G.teams.forEach(t => { t.fame = start; }); }
       }, [AIV, START, WIN]);
@@ -137,7 +149,7 @@ function installHooks() {
         const market = ev.filter(e => e.k === 'market').map(e => e.lots.reduce((a, l) => a + (l.winner != null && l.winner >= 0 ? (l.price || 0) : 0), 0));
         const betCr = fights.reduce((a, f) => a + (f.bets || []).reduce((s, x) => s + (x && (x.amt || x.amount) || 0), 0), 0);
         const auctions = ev.filter(e => e.k === 'card_auction');
-        const out = { over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
+        const out = { startFame: G.startFame, bal: D.BAL ? JSON.parse(JSON.stringify(D.BAL)) : null, over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
           fameBy: G.teams.map(t => t.fameBy || {}), ups, cstat: G.cstat || {}, cash: Object.fromEntries(Object.keys(G.cstat || {}).map(id => [id, C[id] ? { cash: C[id].cash, fam: C[id].fam, name: C[id].name, live: C[id].phase === 'fight', harmful: !!C[id].harmful, auction: !!C[id].auction } : null])),
           deckSize: D.DECK().length, fights: fights.length, fightCards: fends.map(f => (f.log || []).filter(x => x.k === 'card').length),
           formats: fights.map(f => f.format), marketCr: market, betCr, hostBids: ev.filter(e => e.k === 'host_bid').length,
@@ -168,7 +180,8 @@ function installHooks() {
   }
   await Promise.all(Array.from({ length: PAR }, async () => { while (next < SEED0 + N) await one(next++); }));
   const file = path.join(OUTD, TAG + '.json');
-  fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START, win: WIN, ai: AIV, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res }));
+  const ok = res.find(r => r.startFame != null), balFull = ok && ok.bal; res.forEach(r => { delete r.bal; });   // the page's whole BAL: once per file
+  fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START != null ? START : ok ? ok.startFame : null, bal: BAL, balFile: BALF, balFull, win: WIN, ai: AIV, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res }));
   console.log('\nsaved ' + file + '  (summary: node tools/game-sim-report.js ' + TAG + ')');
   await b.close();
 })();

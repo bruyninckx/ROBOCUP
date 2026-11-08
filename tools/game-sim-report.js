@@ -63,6 +63,7 @@ const V2 = {
     return { n, favWin: fav / n, strWin: str / n, brier: br / nb, brier0: br0 / nb, bins, draw: draw / all, house: house / all };
   },
   details(tag, D) {
+    if (D.bal && Object.keys(D.bal).length) console.log('\n' + tag + ': BAL overrides ' + JSON.stringify(D.bal) + (D.balFile ? ' (from ' + D.balFile + ')' : ''));
     const g = D.res.filter(r => r.v2 && r.over && !r.stall), fx = g.flatMap(r => r.v2.fightsX), cal = this.calib(fx);
     console.log('\n' + tag + ': bookie calibration (every side of every fight; p = bookie odds)');
     console.log('  p band     sides   bookie p   actual win');
@@ -102,6 +103,7 @@ for (const tag of tags) {
   cols.push(tag);
   rows.push({
     'settings': 'start ' + D.start + ', win ' + D.win + ', AI v' + D.ai,
+    'BAL overrides': (() => { const o = Object.assign({}, D.bal || {}); delete o.startFame; const j = JSON.stringify(o); const t = (j === '{}' ? 'none' : j) + (D.balFile ? ' (file ' + D.balFile + ')' : ''); return t.length > 70 ? t.slice(0, 67) + '...' : t; })(),
     'games finished / run': n + ' / ' + all.length + (all.length - n ? ' (' + all.filter(r => r.stall).length + ' stalls, ' + all.filter(r => r.crash).length + ' crashes)' : ''),
     'page errors': all.reduce((a, r) => a + (r.errs || 0) + (r.pageErrs || []).length, 0),
     'rounds: mean': f1(mean(rounds)), 'rounds: median (10%–90%)': q(rounds, .5) + ' (' + q(rounds, .1) + '–' + q(rounds, .9) + ')',
@@ -116,6 +118,8 @@ for (const tag of tags) {
     'avg credits held per team (upkeep)': f1(mean(crPerRound)),
     'Market spend / game (all teams)': f1(mean(market)), 'bets staked / game': f1(mean(bets)),
     'win share by seat 1-4': seatWins.map(pc).join(' '),
+    // Kev, 8 Nov: fights should lead (>= 60% from fights, hosting, Fan Favourite, Grand Final vs net Intrigue fame)
+    'fame: fights+host+fan / net cards (share)': (() => { const g = k => (fame[k] || 0) / n, fi = g('win') + g('win:grand final') + g('host') + g('fav') + g('fan'), cd = g('cards +') + g('cards −'); return f1(fi) + ' / ' + f1(cd) + ' (' + pc(fi / (fi + cd)) + ')'; })(),
     'fame / game by source': Object.entries(fame).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 7).map(([k, v]) => k + ' ' + f1(v / n)).join(', '),
     'close finish: runner-up within 1 / 2 fame': (() => { const g = ok.map(r => { const f = r.fame.slice().sort((a, b) => b - a); return f[0] - f[1]; }); return pc(mean(g.map(x => x <= 1 ? 1 : 0))) + ' / ' + pc(mean(g.map(x => x <= 2 ? 1 : 0))); })(),
     'fame gap winner - last': f1(mean(ok.map(r => Math.max(...r.fame) - Math.min(...r.fame)))),
