@@ -1,0 +1,162 @@
+{
+ "fights": {
+  "main": 220,
+  "emp": 200
+ },
+ "seconds": 686,
+ "cards": {
+  "Secret Upgrade": {
+   "n": 220,
+   "base": 51.4,
+   "win": 73.2,
+   "swing": 21.8,
+   "se": 3.7,
+   "logit": 0.95,
+   "levels": 1.53
+  },
+  "Smudged Lens": {
+   "n": 220,
+   "base": 51.4,
+   "win": 43.2,
+   "swing": -8.2,
+   "se": 3.4,
+   "logit": -0.33,
+   "levels": -0.53
+  },
+  "Overclock": {
+   "n": 220,
+   "base": 51.4,
+   "win": 51.4,
+   "swing": 0,
+   "se": 3.6,
+   "logit": 0,
+   "levels": 0
+  },
+  "Overclock (after: drive motors 40%)": {
+   "n": 220,
+   "base": 51.4,
+   "win": 40.5,
+   "swing": -10.9,
+   "se": 3.5,
+   "logit": -0.44,
+   "levels": -0.71
+  },
+  "Sugar in the Tank": {
+   "n": 220,
+   "base": 51.4,
+   "win": 51.4,
+   "swing": 0,
+   "se": 2.9,
+   "logit": 0,
+   "levels": 0
+  },
+  "Loose Bolts (lid 30%)": {
+   "n": 220,
+   "base": 51.4,
+   "win": 50.5,
+   "swing": -0.9,
+   "se": 2.4,
+   "logit": -0.04,
+   "levels": -0.06
+  },
+  "Loose Bolts (after free heal: lid 50%)": {
+   "n": 220,
+   "base": 51.4,
+   "win": 50.9,
+   "swing": -0.5,
+   "se": 2,
+   "logit": -0.02,
+   "levels": -0.03
+  },
+  "Rogue Firmware chassis (40%)": {
+   "n": 220,
+   "base": 51.4,
+   "win": 46.8,
+   "swing": -4.5,
+   "se": 2.3,
+   "logit": -0.18,
+   "levels": -0.29
+  },
+  "Rogue Firmware chassis (after free heal: 50%)": {
+   "n": 220,
+   "base": 51.4,
+   "win": 48.2,
+   "swing": -3.2,
+   "se": 2.1,
+   "logit": -0.13,
+   "levels": -0.21
+  },
+  "proposal: Secret Upgrade +15% / +15%": {
+   "n": 220,
+   "base": 51.4,
+   "win": 67.3,
+   "swing": 15.9,
+   "se": 3.9,
+   "logit": 0.67,
+   "levels": 1.07
+  },
+  "proposal: Sugar in the Tank, motors at 30%": {
+   "n": 220,
+   "base": 51.4,
+   "win": 29.5,
+   "swing": -21.8,
+   "se": 3.9,
+   "logit": -0.92,
+   "levels": -1.49
+  },
+  "proposal: Loose Bolts, top plate off": {
+   "n": 220,
+   "base": 51.4,
+   "win": 48.6,
+   "swing": -2.7,
+   "se": 3.9,
+   "logit": -0.11,
+   "levels": -0.18
+  },
+  "proposal: Loose Bolts, one wheel at 30%": {
+   "n": 220,
+   "base": 51.4,
+   "win": 39.5,
+   "swing": -11.8,
+   "se": 3.3,
+   "logit": -0.48,
+   "levels": -0.77
+  },
+  "proposal: Smudged Lens -25%": {
+   "n": 220,
+   "base": 51.4,
+   "win": 35.5,
+   "swing": -15.9,
+   "se": 3.5,
+   "logit": -0.65,
+   "levels": -1.05
+  },
+  "EMP the Garage": {
+   "n": 200,
+   "base": 52,
+   "win": 38,
+   "swing": -14,
+   "se": 4.5,
+   "logit": -0.57,
+   "levels": -0.92
+  }
+ },
+ "base": 51.4,
+ "empBase": 52,
+ "notes": {
+  "alreadyHot": [
+   "Jouster",
+   "Buzzkill",
+   "Whirlwind",
+   "Thwacker",
+   "Forklift"
+  ],
+  "ownModule": [
+   "Hornet",
+   "Whirlwind",
+   "Mauler",
+   "Juggernaut",
+   "Brawler"
+  ]
+ }
+}
