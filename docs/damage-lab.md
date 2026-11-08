@@ -236,3 +236,8 @@ Kev: add them as well (thwack tail, lifter fork, battering ram, vertical disc). 
 - Drone values on open floor (each market robot + 1 drone, 120 fights): medic +28, waller +18, jammer +16, laser/booster/spotter +15, gunner +14, bodyguard +11, blocker +7.
 - Trial robots re-tuned on open floor (`dmgK`): Gyro 1.1, Scythe 1.2, Mincer 1.55, Pincher 1.8, Thwacker 5, Forklift 2, Ramrod 1.1, Vertigo 0.95 → 41-63% vs the market roster (70 fights each; noise about ±7).
 - New `hpK` spec field (multiplies every part's HP) for the 2.0 tier analysis.
+
+## ROBOCUS 2.0 lineup analysis (8 Nov)
+Kev: 9 starters (level 0), 15-16 market robots in levels 1-3, about 25 parts that each close a level, legendaries that close two. Full write-up: `docs/robocus-2.0-lineup.md`, data `tools/damage-lab/robocus2-lineup.json`.
+- Engine: `hpK` (every part's HP) plus `dmgK` give each robot a power grade; `ARC.pk` holds part potency knobs (medic, repair, shield, grapple, quantum, gunner, laser, emp, popper, waller, mines; default 1 = unchanged). Mine layers no longer set off their own mines.
+- Result: levels beat the level below 60-62%, two levels 76-77%, three 91%. 18 part types (22 cards) bring a level-n robot to 42-57% vs level n+1 (stock 38%). Prototype core (x1.3 damage and HP) brings a robot to 54% vs two levels up.
