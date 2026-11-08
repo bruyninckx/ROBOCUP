@@ -591,6 +591,15 @@ html, body {
         flat:    [[1, { 1: 1, 2: 1, 3: 1 }]],
       },
     },
+    level4: {                     // level 4 end-game robots (docs/robocus-2.0-level4.md; Kev, 8 Nov: "we need level 4 in the game")
+      on: true, fromRound: 7,     // their lots start in this round
+      perGame: 4,                 // of the 8, drawn at random per game (8 = all)
+      lotEvery: 1,                // from fromRound: a level 4 lot every N rounds (1 = every round) while any are left
+      minBid: 5,                  // lowest winning bid for a level 4 lot (lower = unsold, back to its deck)
+      upkeep: 0,                  // extra Cr per level 4 robot every Upkeep (option: 1; the Accountant does not cover it)
+      announce: true,             // name next round's level 4 robot a round ahead (like the legendary parts)
+      priceNote: 'Lowest winning bid',   // the words before the minimum on the level 4 tag's help
+    },
     repair: {
       credits: 2,                 // Cr per action once the free and crew actions are used up
       crewActs: { default: 1 },   // repair actions per crew member, per kind (e.g. { default: 1, chief: 2 })
@@ -1060,8 +1069,12 @@ html, body {
    * ============================================================================ */
   const DL = window.DamageLab, LU = window.Lineup, R2 = window.Repair2, VW = window.RobocusView;
   LU.usePK();
-  const levelOf = n => LU.ROBOTS[n] ? LU.ROBOTS[n][0] : 0;
-  const robotsOfLevel = lv => Object.keys(LU.ROBOTS).filter(n => LU.ROBOTS[n][0] === lv);
+  // level 4 robots live in LU.ROBOTS4 (kept apart from LU.ROBOTS so the Lineup Arena's waves and the tier tools don't change); the tabletop reads both
+  const ROB = n => LU.ROBOTS[n] || (LU.ROBOTS4 || {})[n] || null;
+  const ROB_ALL = () => Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4 || {}));
+  const levelOf = n => ROB(n) ? ROB(n)[0] : 0;
+  const robotsOfLevel = lv => ROB_ALL().filter(n => ROB(n)[0] === lv);
+  const isL4 = x => levelOf(typeof x === 'string' ? x : x && x.name) >= 4;
   const wepLabel = n => { const P = DL.PRESETS[n]; return P && DL.WEAPONS[P.weapon] ? DL.WEAPONS[P.weapon].label : 'weapon'; };
   const ROBOT_DESC = {
     Haymaker: 'Boxing glove on four wheels, rubber bumpers.', Rumbler: 'Heavy drum spinner, thick side plates.', Thumper: 'Axe hammer that slams from above, spiked bumpers.',
@@ -1072,7 +1085,18 @@ html, body {
     Juggernaut: 'Drum on tracks with a grappling hook.', Gyro: 'Full shell spinner, no armour plates.', Pincher: 'Heavy clapper arms.',
     Brawler: 'Piston glove and an EMP burst.', Thwacker: 'Thwack tail that whips around.', Whaler: 'Harpoon gun that reels robots in.',
     Forklift: 'Lifter fork that tips robots over.', Vertigo: 'Vertical disc spinner.', Sawblast: 'Buzzsaw plus a rocket pod.', Ramrod: 'Heavy battering ram.',
+    Hydra: 'Huge crane: a 3-part arm unfolds over the enemy and slams its lid.', Corkscrew: 'Drill on a ram: bites, anchors, bores to the battery.',
+    Trebuchet: 'Scoops slide under, then an arm hurls the enemy over its back.', Angler: 'Gaff hook on a folding arm drags the enemy into a drum.',
+    Lodestone: 'Electromagnet: pulls steel robots in, clamps them, then blasts junk.', Orbiter: 'Two saw discs fly out on booms from a spinning rotor.',
+    Tarantula: 'Six-legged walker with venom fangs; waits for your weak moment.', Grandmaster: 'Carousel of flipper, saw and axe; reads you and picks the counter.',
   };
+  // level 4: what its lamps tell you (one line on the robot card's help)
+  const L4_TELL = {
+    Hydra: 'Red lamps lit = the arm is striking.', Corkscrew: 'Lamps fill up = the drill is boring in.', Trebuchet: 'Strobing lamps = it is about to throw.',
+    Angler: 'Green chase lights = the hook is out.', Lodestone: 'Blue lamps = magnet on; red flash = junk blast.', Orbiter: 'Spinning beacon = the blades are out.',
+    Tarantula: 'Eyes go solid red = it is about to pounce.', Grandmaster: 'The lit lamp = the tool it picked; blinking = switching.',
+  };
+  const tellOf = n => L4_TELL[n] ? '<br>💡 ' + L4_TELL[n] : '';
   const descOf = n => ROBOT_DESC[n] || wepLabel(n);
   const starsOf = lv => lv ? '★'.repeat(lv) : 'starter';
   function mkRobot(name) { return { id: ++botSeq, name, level: levelOf(name), parts: [], leg: null, wear: null, wins: 0 }; }
@@ -1352,7 +1376,7 @@ html, body {
   const BAND_HELP = 'Bands: <b>Heavy fav</b> over 75% · <b>Favourite</b> 58–75% · <b>Even</b> 42–58% · <b>Underdog</b> 25–42% · <b>Heavy dog</b> under 25%.';
   const healWord = () => RB().bodyHeal === 0.5 ? 'half' : Math.round(RB().bodyHeal * 100) + '%';
   const ZONE_HELP = () => 'Damage stays after a fight. Repairs work on three zones: <b>⚙ Drive</b> (wheels, tracks, drive motors), <b>⚔ Weapon</b> (the weapon, its motor, turret or arm) and <b>⛨ Body</b> (chassis, armour, top plate, battery, radio, chip, module, drones). ' + (zoneActs({ broken: true }) === 1 && zoneActs({ damaged: true }) === 1 ? 'One repair action puts a whole zone back to new.' : 'Repairing puts a whole zone back to new: ' + actsWord(zoneActs({ damaged: true })) + ' for a damaged zone, ' + actsWord(zoneActs({ broken: true })) + ' for a broken one.') + ' Body parts that are still there heal back to ' + healWord() + ' by themselves every Upkeep.';
-  const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★). A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
+  const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★)' + (BAL.level4.on ? ', and level 4 (★★★★, end game) from round ' + BAL.level4.fromRound : '') + '. A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
   function helpBand(ti, r, p) {
     return ['🎩 Bookie vs the field: ' + bandOf(p).name + ' (' + pctTxt(p) + ')',
       'The bookie\'s chance for <b>' + esc(r.name) + '</b> against every robot of the other teams, from their levels, parts and damage. Face-down cards stay secret. ' + BAND_HELP + '<br><i>Click: its chance against each rival robot.</i>'];
@@ -1374,7 +1398,7 @@ html, body {
   }
   function helpLook(r) {
     return [esc(r.name) + ' · ' + esc(wepLabel(r.name)) + ' · ' + (r.level ? 'level ' + r.level : 'starter'),
-      esc(descOf(r.name)) + '<br><b>Parts</b> (2 slots + 1 legendary): ' + esc(partsTxt(r)) + '.<br><b>Damage</b>: ' + esc(zoneTxt(r)) + '.<br>' + LEVEL_HELP];
+      esc(descOf(r.name)) + tellOf(r.name) + '<br><b>Parts</b> (2 slots + 1 legendary): ' + esc(partsTxt(r)) + '.<br><b>Damage</b>: ' + esc(zoneTxt(r)) + '.<br>' + LEVEL_HELP];
   }
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
@@ -1809,11 +1833,12 @@ html, body {
       })),
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], auctionDeck: shuffle(AUCTION_TEMPLATE.slice()), auctionDiscard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: lotDeck(),
-      robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)) }, crewDeck: shuffle(CREW_DECK()),
-      legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null,
+      robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)), 4: [] }, crewDeck: shuffle(CREW_DECK()),
+      legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null, l4Next: null,
       fight: null, over: false, crateChoices: null,
       sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
     };
+    if (BAL.level4.on) G.robotDecks[4] = shuffle(robotsOfLevel(4)).slice(0, Math.max(0, BAL.level4.perGame | 0));   // level 4: this game's end-game robots (dealt last: with level 4 off the shuffles are as before)
     G.teams.forEach(t => { crewProps(t); fameProps(t); for (const k of Object.keys(BAL.startCrew)) if (CREW[k]) setCrewCount(t, k, BAL.startCrew[k]); });
     G.gid = GAME_SEED.toString(36) + '-' + (++gameSeq);
     if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); mpDealSponsors(); }   // a person's team carries their name
@@ -1974,8 +1999,9 @@ html, body {
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
         const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
-        const earn = t.mechs * BAL.mechanicCr, net = earn - bots - drones;
-        t.ledger = { mechs: earn, bots, drones, net };
+        const l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;   // level 4 option: extra upkeep (default 0)
+        const earn = t.mechs * BAL.mechanicCr, net = earn - bots - l4up - drones;
+        t.ledger = { mechs: earn, bots: bots + l4up, drones, net };
         if (t.credits + net < 0) { t.debt = -(t.credits + net); t.credits = 0; } else { t.debt = 0; t.credits += net; }
       }
       if (G.round > 1 && (CATCHUP.purse || CATCHUP.cards)) {   // catch-up for trailing teams (3+ fame behind the leader)
@@ -3152,10 +3178,45 @@ html, body {
       G.legendNext = G.legends.pop();
       notify('🌟 <b>Next round\'s Market:</b> ' + lotRef(G.legendNext) + ' (legendary). Save your credits!', '#b45309');
     }
+    l4Market();
     for (let s = 0; s < 4; s++) { PS(s).bids = zeroBids(); PS(s).install = []; }
     G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
     updateHud();
     openMarketAI();
+  }
+  /* ---------- level 4 robots (BAL.level4): from fromRound one level 4 lot every lotEvery rounds while this game's level 4 deck
+   * lasts (it replaces a part lot, else a lower robot lot); the next one is named a round ahead, like the legendary parts ---------- */
+  const l4Due = r => BAL.level4.on && r >= BAL.level4.fromRound && (r - BAL.level4.fromRound) % Math.max(1, BAL.level4.lotEvery | 0) === 0;
+  function l4Draw() {
+    const D = G.robotDecks[4] || [], owned = new Set(G.teams.flatMap(t => t.robots.map(r => r.name)));
+    const inMarket = new Set((G.market || []).map(x => LOTS[x] && LOTS[x].starter).filter(Boolean));
+    const n = D.filter(k => !owned.has(k) && !inMarket.has(k)).pop();
+    if (n) D.splice(D.indexOf(n), 1);
+    return n || null;
+  }
+  function l4Market() {
+    if (!G.robotDecks[4]) G.robotDecks[4] = [];
+    if (l4Due(G.round) && !G.market.some(id => LOTS[id] && LOTS[id].robot && isL4(LOTS[id].starter))) {
+      let n = G.l4Next; G.l4Next = null;
+      if (n && G.teams.some(t => t.robots.some(r => r.name === n))) n = null;
+      n = n || l4Draw();
+      if (n) {
+        const free = id => !(LOTS[id] && LOTS[id].legend);
+        let k = G.market.findIndex(id => free(id) && !(LOTS[id] && (LOTS[id].robot || LOTS[id].crew)));
+        if (k < 0) k = G.market.findIndex(id => free(id) && !(LOTS[id] && LOTS[id].robot));
+        if (k < 0) k = G.market.findIndex(free);
+        if (k >= 0) {
+          const old = G.market[k];
+          if (LOTS[old] && LOTS[old].starter) returnStarter(LOTS[old].starter); else if (LOTS[old] && LOTS[old].crew) G.crewDeck.unshift(LOTS[old].crew); else G.lots.unshift(old);
+          G.market[k] = robotLot(n);
+          notify('⭐ <b>Level 4 in the Market:</b> ' + esc(n) + ' (★★★★, ' + esc(wepLabel(n)) + '). Lowest winning bid ' + BAL.level4.minBid + ' Cr.', '#7c3aed');
+        } else G.robotDecks[4].push(n);
+      }
+    }
+    if (BAL.level4.announce && l4Due(G.round + 1) && !G.l4Next) {
+      G.l4Next = l4Draw();
+      if (G.l4Next) notify('⭐ <b>Next round\'s Market:</b> ' + esc(G.l4Next) + ' (level 4, ' + esc(wepLabel(G.l4Next)) + '). Save your credits!', '#7c3aed');
+    }
   }
   /* ---------- Market step 1: open market (Kev, 6 Nov) ----------
    * Teams trade credits and Stash parts, and may sell Stash parts to the bank at half value. AI teams sell parts they
@@ -3231,9 +3292,11 @@ html, body {
     if (G.phase !== 'market' || G.marketAuction || G.marketResolved || iDone(S)) return;
     if (k === HOST_K ? G.marketStage !== 'host' : G.marketStage !== 'lots' || k < 0 || k >= NLOTS) return;
     const P = PS(S), b = P.bids || (P.bids = zeroBids()), t = G.teams[S];
-    if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); return; }
+    const mn = k < NLOTS ? minBidOf(G.market[k]) : 0;   // level 4 lots: + jumps straight to the lowest winning bid, − below it goes to 0
+    if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); if (mn && b[k] < mn) b[k] = 0; return; }
     const spent = k === HOST_K ? b[HOST_K] : b.slice(0, NLOTS).reduce((a, x) => a + x, 0);
-    if (spent < t.credits) b[k] = (b[k] || 0) + 1;
+    const add = mn && !(b[k] > 0) ? mn : 1;
+    if (spent + add <= t.credits) b[k] = (b[k] || 0) + add;
     else if (kind === 'tile') b[k] = 0;
   };
   ACT.lockBids = S => { if (G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved) gather(S, 'lots', () => resolveMarket()); };
@@ -3286,7 +3349,8 @@ html, body {
       const bids = zeroBids();
       for (const { k, v } of order) {
         if (v <= 0.5) continue;
-        const b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
+        let b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
+        const mn = minBidOf(G.market[k]); if (mn && b < mn) b = v >= mn && budget >= mn ? mn : 0;   // level 4: at least the minimum, or nothing
         bids[k] = b; budget -= b;
       }
       return bids;
@@ -3302,6 +3366,7 @@ html, body {
       const want = LOTS[G.market[k]].robot ? robotWant(t, G.market[k], LOTS[G.market[k]].legend ? 6 : 4) : LOTS[G.market[k]].legend ? 5 : LOTS[G.market[k]].crew ? crewWant(t, LOTS[G.market[k]].crew) : G.market[k] === 'eng' ? 3 : 2.2;
       let b = Math.round(want * (0.4 + rnd() * 1.1));
       b = Math.max(0, Math.min(b, budget, Math.ceil(t.credits * 0.6)));
+      const mn = minBidOf(G.market[k]); if (mn && b < mn) b = want >= mn && budget >= mn ? mn : 0;
       budget -= b;
       return b;
     });
@@ -3351,7 +3416,7 @@ html, body {
   }
   // a robot back into its deck (also when scrapped): market robots to their level's deck, starters to the starter deck
   const returnStarter = n => {
-    if (!n || !LU.ROBOTS[n] || G.teams.some(t => t.robots.some(r => r.name === n))) return;
+    if (!n || !ROB(n) || G.teams.some(t => t.robots.some(r => r.name === n))) return;
     const lv = levelOf(n);
     if (lv > 0) { const D = G.robotDecks[lv] = G.robotDecks[lv] || []; if (!D.includes(n)) D.unshift(n); }
     else if (!G.starterDeck.includes(n)) G.starterDeck.unshift(n);
@@ -3367,17 +3432,20 @@ html, body {
   function waveLevel() {
     const RL = BAL.robotLevels, sc = RL.schemes[RL.scheme] || RL.schemes.waves;
     let w = { 1: 1 }; for (const [from, wt] of sc) if (G.round >= from) w = wt;
-    const lv = Object.keys(w).map(Number).filter(L => L >= 1 && L <= 3 && w[L] > 0);
+    const lv = Object.keys(w).map(Number).filter(L => L >= 1 && L <= maxLv() && w[L] > 0);
     if (lv.length <= 1) return lv[0] || 1;
     const tot = lv.reduce((a, L) => a + w[L], 0); let x = rnd() * tot;
     for (const L of lv) { x -= w[L]; if (x < 0) return L; }
     return lv[lv.length - 1];
   }
-  function dealRobot() {
+  const l4Open = () => BAL.level4.on && G.round >= BAL.level4.fromRound;
+  const maxLv = () => l4Open() ? 4 : 3;
+  function dealRobot(want) {
     const inMarket = new Set((G.market || []).map(x => LOTS[x] && LOTS[x].starter).filter(Boolean));
     const owned = new Set(G.teams.flatMap(t => t.robots.map(r => r.name)));
-    const lv = waveLevel();
-    for (const L0 of [lv, lv - 1, lv + 1, lv - 2, lv + 2].filter(x => x >= 1 && x <= 3)) {
+    const lv = want || waveLevel();
+    // a level 4 robot only when the wave asks for level 4 (a dry level 3 deck falls back to level 2, not up to 4)
+    for (const L0 of [lv, lv - 1, lv + 1, lv - 2, lv + 2].filter(x => x >= 1 && x <= (lv >= 4 ? 4 : 3))) {
       const D = G.robotDecks[L0] || [];
       const card = D.filter(k => !inMarket.has(k) && !owned.has(k)).pop();
       if (card) { D.splice(D.indexOf(card), 1); return robotLot(card); }
@@ -3395,12 +3463,15 @@ html, body {
     return id;
   }
   // what a robot lot is worth to an AI team: more when the bookie rates it well against that team's rivals
+  // level 4: valued like a legendary (base at least 6) on top of its level and odds
   function robotWant(t, id, base) {
     const L = LOTS[id];
     if (t.robots.length >= 3) return 1;
     const p = L && L.bot ? fieldOdds(t.i, L.bot).p : null;
-    return base + (p == null ? 0 : (p - 0.5) * 5) + (L && L.bot ? L.bot.level * 0.5 : 0);
+    return (L && L.bot && L.bot.level >= 4 ? Math.max(base, 6) : base) + (p == null ? 0 : (p - 0.5) * 5) + (L && L.bot ? L.bot.level * 0.5 : 0);
   }
+  // the lowest winning bid for a lot (0 = any bid); level 4 robot lots: BAL.level4.minBid
+  const minBidOf = id => { const L = LOTS[id]; return L && L.robot && L.starter && levelOf(L.starter) >= 4 ? BAL.level4.minBid || 0 : 0; };
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew && !LOTS[id].tape;
   // 2.0: can this part go on this robot? 2 part slots + 1 legendary slot; at most 3 drones (lineup.js caps them)
   function canFit(r, L) {
@@ -3538,8 +3609,9 @@ html, body {
       const eligible = A.tie && A.tie.k === k ? A.tie.teams : [0, 1, 2, 3];
       const mx = Math.max(...eligible.map(ti => col[ti]));
 
-      if (mx <= 0) {
-        finalizeLotResult(k, -1, 0, '');
+      if (mx <= 0 || (k < NLOTS && mx < minBidOf(G.market[k]))) {   // no bids, or below a level 4 lot's lowest winning bid
+        if (mx > 0) notify('⭐ <b>' + esc(lotName) + '</b>: top bid ' + mx + ' Cr is below the ' + minBidOf(G.market[k]) + ' Cr minimum. Unsold.', '#7c3aed');
+        finalizeLotResult(k, -1, 0, mx > 0 ? 'Below the minimum' : '');
         A.tie = null;
         A.curK++;
         continue;
@@ -4681,6 +4753,7 @@ html, body {
       if (this === G) {
         if (k === 'cstat' || k === 'liveStat') return undefined;
         if (k === 'deck' || k === 'auctionDeck' || k === 'robotDeck' || k === 'crewDeck' || k === 'starterDeck' || k === 'legends') return Array.isArray(v) ? v.map(() => '?') : v;
+        if (k === 'robotDecks' && v) { const o = {}; for (const L0 in v) o[L0] = (v[L0] || []).map(() => '?'); return o; }
         if (k === 'lots') return Array.isArray(v) ? v.map((x, i) => analyst && i >= v.length - NLOTS ? x : '?') : v;
         if (k === 'ps') return v.map((p, i) => i === s ? p : {});
       }
@@ -5396,7 +5469,7 @@ html, body {
       ctx.fillStyle = '#111'; ctx.textAlign = 'left'; fitText(ctx, sName, tx, by + 22, tw, '900', 13);
       ctx.fillStyle = '#c08400'; fitText(ctx, 'STARTER · LEVEL 0', tx, by + 37, tw, '900', 9);
       ctx.fillStyle = t.col; fitText(ctx, wepLabel(sName).toUpperCase(), tx, by + 52, tw, '800', 9.5);
-      ctx.fillStyle = '#444'; fitText(ctx, 'Power ×' + LU.ROBOTS[sName][1].toFixed(2), tx, by + 67, tw, '700', 9);
+      ctx.fillStyle = '#444'; fitText(ctx, 'Power ×' + ROB(sName)[1].toFixed(2), tx, by + 67, tw, '700', 9);
       help(tx, by + 58, tw, 12, 'Power grade', 'Its weapon damage and every part\'s HP are multiplied by this (0.76 to 1.10 among the starters). Matchups still matter: the fights are physics, not numbers.');
       ctx.fillStyle = '#f3f1ea'; ctx.fillRect(bx + 8, by + 98, cw - 16, 46);
       ctx.strokeStyle = '#dfdbd0'; ctx.lineWidth = 1; ctx.strokeRect(bx + 8, by + 98, cw - 16, 46);
@@ -6102,6 +6175,12 @@ html, body {
       ctx.strokeStyle = bid > 0 ? '#1f6feb' : '#222';
       ctx.lineWidth = bid > 0 ? 2.5 : 1.5;
       ctx.strokeRect(x, y, w, h);
+      if (LOTS[it.id] && LOTS[it.id].robot && isL4(LOTS[it.id].starter)) {   // level 4: purple frame and tag
+        ctx.strokeStyle = '#7c3aed'; ctx.lineWidth = 3; ctx.strokeRect(x + 2.5, y + 2.5, w - 5, h - 5);
+        ctx.fillStyle = '#7c3aed'; ctx.fillRect(x + w / 2 - 44, y - 8, 88, 15);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '★★★★ LEVEL 4', x + w / 2, y + 3, 84, '900', 9.5);
+        help(x + w / 2 - 44, y - 8, 88, 15, '★★★★ Level 4', 'End-game robot, one of ' + BAL.level4.perGame + ' this game, from round ' + BAL.level4.fromRound + '. ' + esc(BAL.level4.priceNote) + ' ' + BAL.level4.minBid + ' Cr: a lower top bid leaves it unsold (it comes back later).');
+      }
       if (LOTS[it.id] && LOTS[it.id].legend) {   // legendary: gold frame and tag
         ctx.strokeStyle = '#d99000'; ctx.lineWidth = 3; ctx.strokeRect(x + 2.5, y + 2.5, w - 5, h - 5);
         ctx.fillStyle = '#d99000'; ctx.fillRect(x + w / 2 - 40, y - 8, 80, 15);
@@ -6175,10 +6254,10 @@ html, body {
     drawPortrait(ctx, bot, t, x + w / 2 - 28, y + 5, 56, 56);
     ctx.textAlign = 'center'; ctx.fillStyle = '#111';
     fitText(ctx, '🤖 ' + RL.name, x + w / 2, y + 76, w - 10, '800', 13.5);
-    ctx.fillStyle = '#c08400'; fitText(ctx, bot.level ? '★'.repeat(bot.level) + ' level ' + bot.level : 'starter', x + w / 2, y + 90, w - 10, '900', 11);
+    ctx.fillStyle = bot.level >= 4 ? '#7c3aed' : '#c08400'; fitText(ctx, bot.level ? '★'.repeat(bot.level) + ' level ' + bot.level + (bot.level >= 4 ? ' · min ' + BAL.level4.minBid + ' Cr' : '') : 'starter', x + w / 2, y + 90, w - 10, '900', 11);
     ctx.fillStyle = '#555'; fitText(ctx, wepLabel(RL.name), x + w / 2, y + 104, w - 10, '700', 10.5);
     ctx.fillStyle = '#666'; fitText(ctx, descOf(RL.name), x + w / 2, y + 117, w - 10, '600', 9.5);
-    help(x + 4, y + 4, w - 8, 116, '🤖 ' + esc(RL.name) + ' · for sale', esc(descOf(RL.name)) + '<br><b>' + esc(wepLabel(RL.name)) + '</b>, ' + (bot.level ? 'level ' + bot.level : 'starter') + ', power ×' + LU.ROBOTS[RL.name][1].toFixed(2) + '.<br>' + LEVEL_HELP + '<br>Win it and it joins your team in an empty bay (up to 3 robots), new and with no parts. ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots enter in waves: level 1 in rounds 1–2, level 2 in rounds 3–4, level 3 from round 5.');
+    help(x + 4, y + 4, w - 8, 116, '🤖 ' + esc(RL.name) + ' · for sale', esc(descOf(RL.name)) + '<br><b>' + esc(wepLabel(RL.name)) + '</b>, ' + (bot.level ? 'level ' + bot.level : 'starter') + ', power ×' + ROB(RL.name)[1].toFixed(2) + '.' + tellOf(RL.name) + (isL4(RL.name) ? '<br><b>Level 4:</b> lowest winning bid ' + BAL.level4.minBid + ' Cr' + (BAL.level4.upkeep ? ', upkeep +' + BAL.level4.upkeep + ' Cr' : '') + '.' : '') + '<br>' + LEVEL_HELP + '<br>Win it and it joins your team in an empty bay (up to 3 robots), new and with no parts. ' + (full ? '<b>Your bays are full:</b> you would get 2 Cr instead.' : '') + '<br>Robots enter in waves: level 1 in rounds 1–2, level 2 in rounds 3–4, level 3 from round 5' + (BAL.level4.on ? ', one level 4 robot a round from round ' + BAL.level4.fromRound : '') + '.');
     if (full) {
       ctx.fillStyle = '#b45309'; fitText(ctx, '🏠 your bays are full', x + w / 2, y + 168, w - 12, '800', 10.5);
       ctx.fillStyle = '#666'; fitText(ctx, 'win it: +2 Cr instead', x + w / 2, y + 184, w - 12, '700', 10);
