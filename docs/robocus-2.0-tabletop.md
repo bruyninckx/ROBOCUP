@@ -166,6 +166,26 @@ Why some are zero: drive motors only lose power below 35% HP (then 55% force) or
 - **Secret Upgrade** is at the top end (+21.8); **+15% / +15%** gives +15.9.
 - EMP (−14 per module or drone) is fine where it applies; it is a dead card against teams without modules or drones.
 
+### Round 3: the proposals as BAL options, re-measured (8 Nov, later)
+
+All five proposals are now `BAL.cards` settings (defaults unchanged): `upDmg` / `upHp`, `lens`, `sugar`, `boltsMode: 'lid' | 'wheel'`
+(+ `boltsWheel`), `ocMode: 'heat' | 'noheat'` (`noheat` = the engine's new `oc` motor: hot-wound force, normal heat, no extra mass). Card texts
+follow the settings. `cardvalue.js` now takes `--cards='{...}'` (the page's numbers), `--conds=` and `--out=`; the proposal run:
+`node tools/damage-lab/cardvalue.js 220 0 2 --only=main --cards='{"upDmg":1.15,"upHp":1.15,"lens":0.75,"sugar":0.4,"boltsMode":"wheel","ocMode":"noheat"}' --conds='Secret Upgrade,Smudged Lens,Overclock,Sugar in the Tank,Loose Bolts' --out=cardvalue-new.json`
+(same 220 pairs and seeds; base 49.5% on today's engine, was 51%).
+
+| Card | now (default) | proposal | proposal swing |
+|---|---|---|---|
+| Secret Upgrade | +20% / +20%: +21.8 ±3.7 | +15% / +15% | **+19.1** ±3.8 |
+| Smudged Lens | −15%: −8.2 ±3.4 | −25% | **−15.5** ±3.3 |
+| Overclock, its fight | hot-wound: 0 ±3.6 | no extra heat (`noheat`) | **+6.4** ±4.1 |
+| Sugar in the Tank | 60%: 0 ±2.9 | 40% | **−7.3** ±3.4 |
+| Loose Bolts | top plate 30%: −0.9 ±2.4 | one wheel at 30% (`wheel`, lasts until a Drive repair) | **−7.3** ±3.2 |
+
+The AI's card values (`CARD_SWING`) now follow the settings: measured swings per setting (`SWING_AT` for the numbers, interpolated
+between measured points; `SWING_MODE` for `ocMode` and `boltsMode`). With Overclock `noheat` the AI also counts it on robots that are
+already hot-wound (they lose their extra heat). Variant `tools/bal3/cards_new.json` has all five.
+
 ## Level 4 in the tabletop (Kev, 8 Nov: "we need level 4 in the game")
 
 The eight level 4 robots (`docs/robocus-2.0-level4.md`) are in `prototypes/tabletop-2.html`, on by default (`BAL.level4`).
@@ -212,6 +232,62 @@ It looked wrong in the top-down view. A hard landing now ends right side up or u
 A side bet on how much a fighter loses (no parts / 1–2 / 3+ or KO'd) was tried on 8 Nov and dropped (Kev: too complex): with fixed payouts and no odds it can be farmed using the public odds (the loser almost always ends 3+ or KO'd, a strong favourite often loses nothing).[^dbet]
 
 [^dbet]: Real bands of every fighter (20 AI games, 222 fights, 644 fighters, all formats): no parts lost 12%, 1–2 lost 18%, 3+ or KO'd 69%. Duel 15 / 23 / 62, 2v2 11 / 16 / 74, double 11 / 17 / 72; winners 24 / 34 / 41, losers 0 / 2 / 97; bookie p < 0.3: 4 / 9 / 87, 0.3–0.45: 8 / 13 / 79, 0.45–0.55: 5 / 19 / 76, 0.55–0.7: 12 / 22 / 66, > 0.7: 29 / 30 / 41. 150 open-floor lineup duels: 19 / 20 / 61 (favourites 29 / 23 / 48, underdogs 10 / 12 / 79). A flat 2× let the AI net +33 Cr a game on "3+ or KO'd"; fixed 7.5× / 5× / 1.25× (a blind bet returns 0.87–0.92) still netted +27.5 Cr a game, from "no parts lost" on favourites.
+
+## Round 3 (Kev, 8 Nov, later): new defaults, trade-in, seat fix
+
+**New defaults** (`BAL_DEFAULT` in `prototypes/tabletop-2.html`; every key in `docs/robocus-2.0-sim.md`): round 2's `combo`, the best of the
+PC run (`tools/bal2/combo.json`: 52% of damage fixed, 30% of fighters carry body damage, close finish 56%, fights 58 s):
+- Market lot deck: 7 New Crew lots (was 4); fewer drones and modules (Medic drone 1, Energy shield 1, Laser drone, Waller, Blocker and
+  Spotter 0 copies).
+- Robot levels `gradual`: round 1 level 1; round 2 level 1 or 2 (2:1); round 3 1 or 2 (1:2); round 4 2 or 3 (2:1); round 5 2 or 3 (1:2); round 6+ level 3.
+- Repairs: a broken zone costs 2 actions; only engineers (Mechanic, Chief Engineer, Repair Tech) repair.
+- Start crew: 2 Mechanics, an Accountant and a Market Analyst (was 3 Mechanics and a Chief Engineer).
+- Crew deck: 3 Mechanics, 3 Chief Engineers, 2 Repair Techs, Accountant, Hacker, Analyst, Fixer, Security Chief.
+- Level 4: from round 6 (was 7), all 8 level 4 robots in the pool (was 4 of 8), still one lot a round, lowest winning bid 5 Cr.
+- The robot lot help now reads the level scheme from `BAL` ("Robot levels by round: level 1 in round 1, level 1–2 in rounds 2–3, ...").
+
+**Trade-in on a full garage** (`BAL.tradeIn: { on: true, base: 1, perLevel: 1 }`). You may bid on a robot lot with 3 robots. If you win it,
+you scrap one of your existing robots (not the new one): you get 1 Cr + its level, its fitted parts go to your Stash, and a Fan Favourite
+takes its fame with it (`robotLeaves`, reason `trade-in`). Vulture Salvage gets its +2 Cr, as for any scrap. A Stash over 4 parts: you
+pick what to sell to the bank at half value (AI: it keeps the most useful). The scrapped robot goes back to its robot deck.
+- People: after the Market resolves, the prompt says "Your garage is full: pick a robot to scrap for <new robot>", one button per robot
+  with its level, scrap money, parts, damage and a Fan Favourite tag; then (if needed) "Stash full: sell N to the bank". The robot lot tile
+  says "♻️ Full garage: you'll scrap one robot" (help: the scrap money per robot). The state is in `G.ps[seat].tradeIn` / `stashTrim`
+  (saves and online snapshots carry it; Continue waits for it; the host's skip and the AI takeover pick the weakest).
+- AI: values the lot as the new robot's value − half the value of the robot it would scrap (its weakest by `Repair2.strength` with its
+  damage and without its parts, which it keeps; a Fan Favourite only if it is more than a level weaker than the next) + the scrap money.
+- Log: "♻️ Team trades in X for N Cr (its parts go to the Stash) and takes Y."; events `scrap` (reason `trade-in`) and `trade_in`.
+- Before: a full garage got 2 Cr and the robot went back; the AI valued such a lot at 1 Cr.
+
+**AI robot values** (`robotWant`): from `Repair2.strength` instead of the bookie's odds vs the field: `robotVal(s) = 3.64 + 2.2 s`
+(about L1 5, L2 6.4, L3 7.7, L4 8.3 + 0.6 level 4 bonus), + 1.2 per logit it would be stronger than the team's best (− 0.6 per logit
+weaker, capped), + 3 with no robot, + 1 with one robot, + a little for its odds vs the field; full garage: the trade-in value above.
+
+**Seat fix** (`BAL.seats.fairTies`, default on; off = the old order). Kev's PC run had seat 1 winning 20.5% and seat 4 30.5% of 600 AI
+games. Cause (an AI and tie-break artefact, not the board): every tie between teams went to the lower seat index (stable sorts and
+`a.i − b.i`), so on equal fame the lower seat was "the fame leader": it was smeared more (fame lost to cards by seat in 260 earlier games:
+−0.88 / −0.88 / −0.81 / −0.63), the AI host gave it the hardest matchup, other teams blocked its publicity cards, Grand Final and market
+stalemates broke ties against or for it by index; the AI also reacted in seat order (first to block, back, Override, Pile-On), and round 1's
+Intrigue always started at seat 1. Now ties follow `G.tieOrder`, a seat order shuffled every round from the game seed (no game dice, so
+deals are unchanged), the AI reacts in that order (people still first), round 1's Intrigue starts at a random seat, and the open market
+loops in that order.
+- Check (60 games each, seeds 1–60, same seeds): new defaults with the fix (`o3_base60`) 23 / 25 / 15 / 37%, final fame 9.5 / 9.6 / 8.9 / 9.9;
+  the same with the old order (`o3_seatsold60`) 27 / 27 / 32 / 15%, final fame 9.4 / 9.8 / 10.3 / 9.7. The standard error is ±5.6 points
+  per seat, so 60 games can't show a 10-point spread either way (the old order didn't reproduce it in 60 games). Kev's PC run of
+  `tools/bal3/base` vs `seats_old` (100+ games each, better 300) is the real test. Not found as a cause: the starter draft (dealt and
+  picked at the same time), sponsors (random), fight sides (side 1 wins as the bookie says), the fight-card auction (no seat tie-break).
+- Still seat-shaped, not explained: in the older games seats 1–2 won more round-1 lots (0.98 / 0.89 / 0.60 / 0.56 a game) and won fewer
+  2-per-side fights than the bookie said (seat 1 −8 points in doubles); both may be noise.
+
+## Bug fix: parts won together with a robot were lost (Kev's playtest, 8 Nov)
+Round 2: a team with no robot won Whirlwind + Laser drone + Power kit in one auction. The results said "▼ Click a Robot Bay below" for
+both parts, but they could not be fitted and were gone. Cause: `resolveMarket` built the person's install list before any lot was
+applied; with no robot, nothing "could take" the parts, so they were left out of the list, and a moment later (Whirlwind now in the
+garage) they were marked "Click a Robot Bay" instead of going to the Stash. Fix (`applyMarketWins`): robots, crew and other lots first,
+then the parts: fitted (AI), queued for a bay click (people), or into the Stash. Continuing with parts still waiting puts them in the Stash
+(log line "keeps … in its Stash (not fitted)"; over 4: the stash-trim prompt); leaving the Market by any other path does the same
+(least useful parts to the bank if over 4). Also fixed: a botched part was still installed or queued. Test: `node tools/market-install-test.js`
+(seat 0 as a person with real bay clicks: fit both, continue without fitting, continue with a full Stash; plus the AI path).
 
 ## Next steps
 

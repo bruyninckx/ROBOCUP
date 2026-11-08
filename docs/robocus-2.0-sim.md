@@ -24,7 +24,8 @@ of the same version: `node_modules/planck/dist/planck.min.js` if it is there, el
 ## Balance settings (BAL)
 
 Since 8 Nov every tunable number of 2.0 sits in one object, `BAL`, near the top of the game script in `prototypes/tabletop-2.html`.
-The defaults are the rules as they stand; the only change is **start fame 0** (Kev, 8 Nov). The code reads `BAL` when it needs a
+The defaults are the rules as they stand: **start fame 0** (Kev, 8 Nov), and since round 3 (Kev, 8 Nov, later) round 2's `combo`, level 4
+from round 6 with all 8 level 4 robots, the trade-in and the seat fix (changed defaults are marked **R3**). The code reads `BAL` when it needs a
 number, so a change before the game starts applies everywhere (rules, AI, help texts, card and crew texts).
 
 How to change it:
@@ -43,25 +44,25 @@ How to change it:
 | `winFame` | 12 | fame to win (same as `ROBOCUS_DEBUG.tune({win})`) |
 | `fameFloor` | 1 | losing fame stops here, or at the start fame if that is lower (start 0: fame can drop to 0) |
 | `startCredits` | 8 | credits at the start |
-| `startCrew` | `{mechanic: 3, chief: 1}` | starting crew cards per kind |
+| `startCrew` | **R3** `{mechanic: 2, chief: 0, accountant: 1, analyst: 1}` (was `{mechanic: 3, chief: 1}`) | starting crew cards per kind (objects merge: a variant that sets `startCrew` should name every kind, with 0 for none) |
 | `sovereignMechanics` | 4 | Mechanics a Sovereign Foundry team starts with |
 | `mechanicCr` | 1 | credits each Mechanic earns in Upkeep |
-| `crewDeck` | 2 mechanic, 2 chief, accountant, hacker, analyst, fixer, secchief, repairtech | the New Crew deck (list of kinds) |
-| `lots.robot` / `lots.crew` | 4 / 4 | New Robot and New Crew lots in the Market lot deck (4 lots a round stays fixed) |
-| `lots.partCopies` | `{}` | copies per part id (`src2/lineup.js` PARTS key, e.g. `{"shield": 2}`); default: the part's own `copies` |
+| `crewDeck` | **R3** 3 mechanic, 3 chief, 2 repairtech, accountant, hacker, analyst, fixer, secchief (was 2 mechanic, 2 chief, 1 repairtech + the 5) | the New Crew deck (list of kinds) |
+| `lots.robot` / `lots.crew` | 4 / **R3** 7 (was 4) | New Robot and New Crew lots in the Market lot deck (4 lots a round stays fixed) |
+| `lots.partCopies` | **R3** `{medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1}` (was `{}`) | copies per part id (`src2/lineup.js` PARTS key, e.g. `{"shield": 2}`); others: the part's own `copies` |
 | `lots.kindCopies` | `{}` | copies for every part of a kind (`drone`, `module`, `stat`); `partCopies` wins |
-| `robotLevels.scheme` | `waves` | which level a New Robot lot deals by round (a missing level falls back to the nearest, then starters) |
+| `robotLevels.scheme` | **R3** `gradual` (was `waves`) | which level a New Robot lot deals by round (a missing level falls back to the nearest, then starters) |
 | `robotLevels.rounds` | 5 | rounds 1..N always offer a robot lot |
 | `robotLevels.schemes` | see below | `[from round, {level: weight}]` lists; one level = no dice roll |
 | `level4.on` | true | level 4 end-game robots in the game (`docs/robocus-2.0-tabletop.md`, "Level 4 in the tabletop"); off = exactly the game before level 4 |
-| `level4.fromRound` / `perGame` / `lotEvery` | 7 / 4 / 1 | first round with a level 4 lot; how many of the 8 are dealt per game; a level 4 lot every N rounds while any are left (a scheme in `robotLevels` may also name level 4, from `fromRound`) |
+| `level4.fromRound` / `perGame` / `lotEvery` | **R3** 6 / 8 / 1 (was 7 / 4 / 1) | first round with a level 4 lot; how many of the 8 are dealt per game; a level 4 lot every N rounds while any are left (a scheme in `robotLevels` may also name level 4, from `fromRound`) |
 | `level4.minBid` / `upkeep` / `announce` | 5 / 0 / true | lowest winning bid; extra Cr upkeep per level 4 robot (option: 1); name next round's level 4 robot a round ahead |
 | `repair.credits` | 2 | Cr per repair action once free and crew actions are used up |
 | `repair.crewActs` | `{default: 1}` | repair actions per crew member, per kind (e.g. `{"default": 1, "chief": 2}`) |
-| `repair.engineersOnly` | false | **switch**: only `repair.engineers` give repair actions; the others' cards say "Does not repair." |
+| `repair.engineersOnly` | **R3** true | **switch**: only `repair.engineers` give repair actions; the others' cards say "Does not repair." |
 | `repair.engineers` | mechanic, chief, repairtech | the engineer kinds |
 | `repair.actsDamaged` / `repair.actsBroken` | 1 / 1 | actions to fix a damaged / broken zone |
-| `repair.brokenTwo` | false | **switch**: a broken zone costs 2 actions (same as `actsBroken: 2`) |
+| `repair.brokenTwo` | **R3** true | **switch**: a broken zone costs 2 actions (same as `actsBroken: 2`) |
 | `repair.bodyHeal` | 0.5 | body parts heal back to this every Upkeep for free |
 | `repair.freeLoser` / `freeLoserVulture` / `freeAegis` | 1 / 2 / 1 | free repair actions: fight loser next Upkeep (Vulture Salvage), Aegis Heavy every Upkeep |
 | `fame.win` | 1 | fame for a fight win (once per team) |
@@ -73,7 +74,12 @@ How to change it:
 | `cards.lens` | 0.85 | Smudged Lens weapon damage factor |
 | `cards.sugar` | 0.6 | Sugar in the Tank: drive motors start the fight at this |
 | `cards.ocAfter` | 0.4 | Overclock: drive motors left at this after the fight |
-| `cards.boltsLid` | 0.3 | Loose Bolts: top plate left at this |
+| `cards.boltsLid` | 0.3 | Loose Bolts (`boltsMode: 'lid'`): top plate left at this |
+| `cards.boltsMode` / `boltsWheel` | `lid` / 0.3 | **R3** Loose Bolts: `lid` (top plate, Body) or `wheel` (its first wheel left at `boltsWheel`, Drive damage until repaired; the free heal doesn't fix it) |
+| `cards.ocMode` | `heat` | **R3** Overclock: `heat` = hot-wound motors (+35% force, 1.9× heat), `noheat` = +35% force without the extra heat (engine motor `oc`) |
+| `tradeIn.on` / `base` / `perLevel` | true / 1 / 1 | **R3** a robot lot won with a full garage (3 bays): scrap one of your robots for `base + perLevel × level` Cr, its parts go to the Stash (off: the old rule, 2 Cr and the robot goes back) |
+| `auction.perFight` / `minBid` | 2 / 1 | **R3** fight cards offered per fight (Bets step); lowest bid that counts |
+| `seats.fairTies` | true | **R3** seat fix: ties between teams follow a seat order shuffled each round (was: lower seat), the AI reacts in that order, round 1 Intrigue starts at a random seat; false = the old order |
 | `live.overclockS` | 3.5 | Target Overclock nitro seconds (`DamageLab.LIVE_K` in `src2/engine.js`) |
 | `live.fieldHp` | 18 | Field Engineer HP to chassis and worst part |
 | `live.empStun` / `live.empDmg` | 0.9 / 5 | EMP Grenade stun seconds / damage |
@@ -85,14 +91,15 @@ Robot level schemes (`robotLevels.schemes`; add your own under a new name):
 
 | scheme | rounds 1–2 | 3–4 | 5+ |
 |---|---|---|---|
-| `waves` (default, as before) | L1 | L2 | L3 |
+| `waves` (the default before round 3) | L1 | L2 | L3 |
 | `waves2` | L1 | L2 | mixed: L1 25%, L2 25%, L3 50% |
-| `gradual` | r1 L1; r2 L1 2:1 L2 | r3 L1 1:2 L2; r4 L2 2:1 L3 | r5 L2 1:2 L3; r6+ L3 |
+| `gradual` (**R3 default**) | r1 L1; r2 L1 2:1 L2 | r3 L1 1:2 L2; r4 L2 2:1 L3 | r5 L2 1:2 L3; r6+ L3 |
 | `flat` | L1/L2/L3 equally every round | | |
 
 The card and crew texts that quote a number (Secret Upgrade, Smudged Lens, Sugar in the Tank, the live cards, Mechanic / Chief
-Engineer / Repair Tech, repair help, zone help) are rebuilt from `BAL`. The AI's robot-card values (`CARD_SWING`) were measured at
-the default card numbers; they don't follow a changed `cards.*`.
+Engineer / Repair Tech, repair help, zone help, robot level help, Loose Bolts and Overclock in their modes) are rebuilt from `BAL`. The AI's robot-card
+values (`CARD_SWING`) follow `cards.*` since round 3: a small table of measured swings per setting (`SWING_AT`, `SWING_MODE`), interpolated
+between measured numbers.
 
 Run a variant:
 
@@ -104,6 +111,65 @@ node tools/game-sim-report.js v2_s0 v2_eng v2_w2        # same seeds: compare li
 ```
 
 (On Windows cmd, write the JSON with escaped quotes: `--bal="{\"repair\":{\"brokenTwo\":true}}"`, or use `--balFile`.)
+
+## Round 2 results (Kev's PC, `tools/run-sims3.cmd`, `tools/bal2/`)
+
+| finding | |
+|---|---|
+| best variant | `combo` (lean lots, robot levels `gradual`, broken zone 2 actions, engineers only, new start crew and crew deck): 52% of damaged zones fixed, 30% of fighters carry body damage into a fight, close finish (runner-up within 1) 56%, fights 58 s |
+| level 4 | neutral for balance; lots from round 6 (`combo_L4r6`) give more level 4 fights |
+| win share by seat 1-4 (pooled, 600 games) | 20.5% / 23% / 26% / 30.5%: a real bias (±1.8 points each) |
+| AI robot price by level | L1 4.7, L2 5.4, **L3 4.5**, L4 7.0 Cr: level 3 cheaper than level 2 (AI valuation bug: a full garage valued every robot lot at 1) |
+
+Kev's decisions (8 Nov): `combo` + level 4 from round 6 with all 8 level 4 robots become the defaults; a full garage becomes a trade-in;
+round 3 looks at the seat bias, the AI's robot values, the robot-card proposals and fight-card prices.
+
+## Round 3 (8 Nov, later): plan and first results
+
+Code (all in `BAL`, see the table): the new defaults; `tradeIn`; `seats.fairTies` (seat fix); `cards.boltsMode` / `boltsWheel` /
+`ocMode`; `auction.perFight` / `minBid`. AI: robot values from `Repair2.strength` and the trade-in value; `CARD_SWING` per card setting.
+Rules and AI details: `docs/robocus-2.0-tabletop.md`, "Round 3". The sim now records trade-ins (`v2.tradeIns`; report row
+`trade-ins / game`) and prints `final fame by seat` and the standard error of the seat shares.
+
+PC run: `tools\run-sims4.cmd 100` (or `sh tools/run-sims4.sh 100`), every file in `tools/bal3/` (tags `o3_*`, `sims/overhaul3.txt`):
+
+| variant | what it tests |
+|---|---|
+| `base` | the new defaults |
+| `cards_new` | all robot-card proposals (Secret Upgrade +15%/+15%, Smudged Lens −25%, Sugar 40%, Loose Bolts one wheel at 30%, Overclock without extra heat) |
+| `fight1` | 1 fight card per fight |
+| `fightMin2` | fight cards: lowest bid 2 Cr |
+| `cards_new_fight1` | both |
+| `seats_old` | the old seat order (to measure the seat fix with many games) |
+
+Checks here (2 cores, 8 Nov), new defaults, start 0, win 12, AI v2:
+
+| | `o3_base60` (new defaults, 60 games) | `o3_seatsold60` (old seat order, 60) |
+|---|---|---|
+| games, errors | 60 / 60, 0 page errors, no stalls | 60 / 60, 0 |
+| rounds: mean (median, 10–90%) | 11.3 (12, 9–13) | 11.4 |
+| close finish: within 1 / 2 fame | 50% / 82% | 62% / 85% |
+| win share by seat 1-4 (±5.6 each) | 23 / 25 / 15 / 37% | 27 / 27 / 32 / 15% |
+| final fame by seat | 9.5 / 9.6 / 8.9 / 9.9 | 9.4 / 9.8 / 10.3 / 9.7 |
+| fame / game | cards +14.9 / −3.3, wins 11.6, host 10.7, Grand Final 2.1, Fan Favourite 2.1: 69% from fights | |
+| trade-ins / game | 4.2 (scrap 2.7 Cr, scrapped robots level 1.7 on average) | 4.6 |
+| repairs / team / Upkeep | 1.1 (crew 0.7, free 0.3, Cr 0.1); damaged zones 2.1 → 1.0 (53% fixed); body damage carried 30% (28% broken) | |
+| fights | 10.8 / game, 57 s, 5% to the judges; duel 53%, double 28%, 2v2 17% | |
+| level 4 | 5.9 lots / game, 98% sold, 4.2 fights / game with a level 4 robot | |
+| robots bought / game, price L1 L2 L3 L4 | 2.1 / 2.1 / 3.6 / 5.8; **6.1 / 7.2 / 6.5 / 8.3 Cr** (round 2: 4.7 / 5.4 / 4.5 / 7.0) | 6.1 / 7.3 / 6.5 / 8.4 |
+| fight cards | 0.9 won / fight (45% of offered) at 1.1 Cr | |
+| bookie | favourite wins 69% (649 fights), Brier 0.206 | |
+
+Robot prices (`o3_base60`): the AI's values now rise with level, and so do prices at the same garage size (robots at that Upkeep; 1 robot: L1 6.1,
+L2 7.6, L3 8.2, L4 10.0; 2 robots: L2 6.2, L3 6.6, L4 8.2; 3 robots, a trade-in: L2 5.1, L3 5.6, L4 8.1) and in rounds without a level 4 lot (L1 6.1, L2 7.3,
+**L3 8.3**, L4 8.3). The overall L3 average is still below L2 (6.5 vs 7.2) because two thirds of level 3 lots sell in rounds 6+, next to a
+level 4 lot: the AI bids on the level 4 robot first (higher value, 5 Cr minimum) and spends what is left on the level 3 one
+(L3 next to a level 4 lot 5.7 Cr, 146 lots). A first try with the scrapped robot at its full value gave L3 5.6 vs L2 7.1.
+Open: a "one robot lot a round" budget rule for the AI, or fewer level 4 lots, if the L3 price should rise overall.
+
+Smoke runs, 2 games per `tools/bal3` file: all finished, 0 page errors. Fight cards: `fight1` 0.5 won / fight (54% of offered) at 1.2 Cr;
+**`fightMin2` 0.0 won / fight (2% of offered)**: the AI values a fight card at about 1 Cr (measured swing × the fight's stake), so with a
+2 Cr minimum it almost never bids. Raise the AI's card values (or the cards) before a 2 Cr minimum means anything.
 
 ## Speed
 
