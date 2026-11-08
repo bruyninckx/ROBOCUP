@@ -247,3 +247,6 @@ Kev: a separate battle arena for the 2.0 lineup, with the proposed 22 parts + Pr
 - `prototypes/lineup-arena.html` (same engine and renderer; `lineup.js` holds the robots, power grades, the 25 part cards and their 2.0 strengths; `shell-lineup.html` the page). Robot picker by level, Part 1 / Part 2 / Legendary, Test 10-50 fights, random matchups.
 - Quantum shield reworked as a recharging phase shield (`spec.qshield`, `QSHIELD = { t: 1.5, cd: 8 }`): 48% vs two levels up (stock 25%). Field hospital uses a new `fieldmedic` drone that ignores the 2.0 medic nerf: 55%. Prototype core 50%.
 - The Damage Lab page is unchanged (1.0 part strengths, identical fights).
+
+## Level 4 robots (8 Nov, later)
+Kev: 4-8 end-game robots from exotic mechanisms, not power knobs. Eight new presets (Hydra, Corkscrew, Trebuchet, Angler, Lodestone, Orbiter, Tarantula, Grandmaster), new weapons `hydra`, `corkscrew`, `trebuchet`, `angler`, `lodestone`, `orbiter`, `fangs`, `carousel`, a `huge` frame and a six-legged `legs` drive. Shared helpers: motorised joint chains with inverse kinematics, raised arms that pass over robots (only tall weapons hit them), an enemy-reading "Tactician" (0.5 s latency), lamps driven by the mechanism's state. Existing fights are bit-identical (`node l4-regress.js`). Results and engine notes: `docs/robocus-2.0-level4.md`.
