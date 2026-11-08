@@ -50,6 +50,8 @@ From the design docs:
 
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
+- 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 lineup analysis in the Damage Lab: 9 starters + 16 market robots in levels 1-3 (each level beats the one below 60-62%), 18 part types / 22 cards that each close about one level, legendary Prototype core closes two. See `docs/robocus-2.0-lineup.md`.
+
 - 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab: forklift now slides under robots; robots can land on their side (chance and outcome from their own build); centre pit removed, everything on open floor; market roster re-balanced to 48-52%, drone values and trial robots re-measured. Details in `docs/damage-lab.md`.
 
 - 2026-11-08, Claude (branch `claude/damage-lab`): ROBOCUS 2.0 Damage Lab: four more mechanical weapons: thwack tail (Thwacker), lifter fork (Forklift), battering ram (Ramrod), vertical disc (Vertigo). 46-54% vs the market roster. Details in `docs/damage-lab.md`.
