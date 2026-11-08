@@ -924,5 +924,31 @@
     if (frameN % 6 === 0) updatePanels();
     requestAnimationFrame(frame);
   }
-  window.RobocusView = { mount, play, skip, drawDiagram, insideRows, V, get state() { return S; } };
+  // close the view without its Continue button (the game skipped the fight)
+  function close() { if (!root) return; root.hidden = true; running = false; }
+  // a still picture of a robot as it stands (lost parts missing, the lid as it is), drawn with the fight renderer.
+  // Returns a square canvas (cached by spec), front up. The tabletop game draws it on its garage bays and lots.
+  const PCACHE = new Map();
+  function portrait(spec, size) {
+    size = Math.max(32, Math.round(size || 160));
+    const key = size + '|' + JSON.stringify(spec);
+    if (PCACHE.has(key)) return PCACHE.get(key);
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const P = L.create({ a: spec, b: spec, seed: 1 }), R = P.robots[0];
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const q of R.parts) if (q.attached || q.kind === 'chassis') for (const [x, y] of q.home) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const k = size / (Math.max(x1 - x0, y1 - y0) + 0.3), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, b = R.body, pos = b.getPosition(), ang = b.getAngle();
+    const sS = S, sCtx = ctx, sPX = PX;
+    try {
+      S = P; ctx = c.getContext('2d'); PX = 1 / k;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.translate(size / 2, size / 2); ctx.scale(k, k); ctx.rotate(-Math.PI / 2);
+      ctx.translate(-cx, -cy); ctx.rotate(-ang); ctx.translate(-pos.x, -pos.y);
+      drawRobot(R, 0);
+    } catch (e) { /* a picture must never break the game */ }
+    finally { S = sS; ctx = sCtx; PX = sPX; }
+    if (PCACHE.size > 300) PCACHE.clear();
+    PCACHE.set(key, c);
+    return c;
+  }
+  window.RobocusView = { mount, play, skip, close, portrait, drawDiagram, insideRows, V, get state() { return S; } };
 })();
