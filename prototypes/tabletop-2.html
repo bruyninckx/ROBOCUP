@@ -2794,6 +2794,35 @@ html, body {
     return th;
   };
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
+  // 8 Nov (tools/damage-lab/cardvalue.js, 2,600 paired engine fights): how much each robot card moves the chance that
+  // its robot wins its next fight (win-probability points / 100; + helps the robot, − hurts it). EMP: per module or drone.
+  const CARD_SWING = { up: 0.218, lens: -0.082, oc: 0, ocAfter: -0.109, sugar: 0, bolts: -0.009, boltsHeal: -0.005, firmChassis: -0.032, emp: -0.14 };
+  const P_FIGHT_ROUND = 0.5;   // chance a team's best ready robot fights this round (a duel: 2 of 4 teams)
+  // a fight is worth: 1 fame to its winner (to a rival: weighted by its threat) + about 3 Cr (the loser may be scrapped, bets)
+  const fightStake = (F, T, fc) => fc * (T === F ? 1 : aiThreat(F, T)) + 3;
+  const isHot = r => DL.normSpec(LU.build(r.name, partsOf(r))).motor === 'hot';
+  // credits a robot card is worth: |swing| x chance its robot fights x the fight's stake. The card lands on bestReady (as resolveScheme0).
+  function aiRobotCardValue(F, c, T, fc) {
+    const n = c.name, X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T; if (!X) return 0;
+    const r = bestReady(X); if (!r) return 0;
+    const ready = !r.exhausted, tm = r.tamper || {}, stake = fightStake(F, X, fc);
+    const pNext = ready ? 0.85 : 0.6;   // a face-down card stays on the robot until it fights
+    const pNow = ready ? P_FIGHT_ROUND : 0, pLater = 0.5;   // pLater: damage not repaired before a later fight
+    switch (n) {
+      case 'Secret Upgrade': return tm.up ? 0 : CARD_SWING.up * pNext * stake;
+      case 'Smudged Lens': return tm.lens ? 0 : -CARD_SWING.lens * pNext * stake;
+      case 'Sugar in the Tank': return tm.sugar ? 0 : -CARD_SWING.sugar * pNext * stake;
+      case 'Overclock': return tm.oc ? 0 : ((isHot(r) ? 0 : CARD_SWING.oc) + CARD_SWING.ocAfter * pLater) * pNext * stake;   // the drive damage after it costs more than the fight gains
+      case 'Loose Bolts': { const lid = r.wear && r.wear.lid != null ? r.wear.lid : 1; return lid <= 0.3 ? 0 : -(CARD_SWING.bolts * pNow + CARD_SWING.boltsHeal * pLater) * stake; }
+      case 'Rogue Firmware': return -CARD_SWING.firmChassis * pLater * stake;   // chassis only: it can't fight until after the free heal (50%)
+      case 'EMP the Garage': {   // only this round's fight; worth nothing against a robot with no module or drones
+        if (T.tamper && T.tamper.noMods) return 0;
+        const k = Math.min(2, (modName(r) ? 1 : 0) + droneCount(r));
+        return -CARD_SWING.emp * k * pNow * stake;
+      }
+    }
+    return 0;
+  }
   function aiCardValue(F, c, T) {
     const P = aiP(F), fc = P.hostFame * (F.fame >= WIN_FAME - 2 ? 1.6 : 1), n = c.name, th = aiThreat(F, T), harm = fc * th;
     const lowO = lowestOther([F.i, T ? T.i : -1]), myFame = k => k * fc, foeFame = k => k * harm;
@@ -2826,13 +2855,14 @@ html, body {
       case 'Smash and Grab': v = Math.min(3, T ? T.credits : 0) * (1 + 0.3 * th); break;
       case 'Tax Audit': v = Math.min(5, T ? T.credits : 0) * th * 0.7; break;
       case 'Poached Mechanic': v = 3 * th; break;
-      case 'Loose Bolts': case 'EMP the Garage': case 'Sugar in the Tank': case 'Smudged Lens': v = 2.2 * th; break;
-      case 'Rogue Firmware': case 'Coolant Leak': v = 3 * th; break;
+      case 'Loose Bolts': case 'EMP the Garage': case 'Sugar in the Tank': case 'Smudged Lens': v = aiRobotCardValue(F, c, T, fc); break;
+      case 'Rogue Firmware': v = (T && readyRobots(T).length ? 3 * th : 1.5 * th) + aiRobotCardValue(F, c, T, fc); break;   // the sit-out (its best robot misses 2 rounds) + the chassis damage
+      case 'Coolant Leak': v = 3 * th; break;
       case 'Security Override': { const more = F.hand.some(x => x !== 'security_override' && CARDS[x].harmful); v = (more ? 2.2 : 0.6) * secReady(T) * th - secReady(T) * 0.5; return v; }   // can't be blocked usefully: value is opening the way
       case 'Asset Strip': v = Math.min(3, secReady(T)) * 1.2 * (0.5 + th); break;
       case 'Hostile Buyout': v = 2; break;
       case 'Shill Bidder': v = 1.5; break;
-      case 'Secret Upgrade': case 'Overclock': v = readyRobots(F).length ? 2 : 0; break;
+      case 'Secret Upgrade': case 'Overclock': v = aiRobotCardValue(F, c, F, fc); break;
       case 'Tag Team Licence': case 'Grand Final': v = 2; break;
       default: v = 1;
     }
@@ -3604,7 +3634,9 @@ html, body {
   function aiHostCount(t) { return fitRobots(t).length >= 2 && G.teams.some(x => x !== t && fitRobots(x).length >= 2) && rnd() < 0.6 ? 2 : 1; }
   // the AI's guess of robot a beating robot b: the bookie's number if it has one, else a rough power comparison
   const aiEdge = (ra, rb) => Math.max(0.02, Math.min(0.98, duelP(ra, rb)));   // 2.0: strength already counts damage
-  const bestVs = (T, foes) => readyRobots(T).map(r => ({ r, p: foes.length ? foes.reduce((a, f) => a + aiEdge(r, f), 0) / foes.length : 0.5 })).sort((x, y) => y.p - x.p)[0];
+  // what the face-down cards a team put on this robot itself do to its odds (it knows them; others' cards stay hidden)
+  const knownSwing = (r, ti) => ti == null ? 0 : (r.faceDown || []).filter(x => x.from === ti).reduce((a, x) => a + (CARDS[x.id] && CARDS[x.id].name === 'Secret Upgrade' ? CARD_SWING.up : 0), 0);
+  const bestVs = (T, foes, ti) => readyRobots(T).map(r => ({ r, p: (foes.length ? foes.reduce((a, f) => a + aiEdge(r, f), 0) / foes.length : 0.5) + knownSwing(r, ti) })).sort((x, y) => y.p - x.p)[0];
   const sideTeams = (F, sd) => F.teams.filter((_, e) => F.sides[e] === sd);
   const sideName = (F, sd) => sd === 'house' || sd === 9 ? 'House Robot' : sideTeams(F, sd).map(ti => G.teams[ti].name).join(' + ');
   const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
@@ -3672,10 +3704,10 @@ html, body {
     const two = fmt === 'double', okTeam = t => readyRobots(t).length >= (two ? 2 : 1);
     const able0 = others.filter(t => readyRobots(t).length), able = able0.filter(okTeam).length >= (okTeam(host) ? 1 : 2) ? able0.filter(okTeam) : able0;
     const strong = T => readyRobots(T).slice().sort((x, y) => power(y) - power(x)).slice(0, 2);
-    const mine = able.map(T => ({ T, p: (bestVs(host, strong(T)) || { p: 0 }).p })).sort((x, y) => y.p - x.p);
+    const mine = able.map(T => ({ T, p: (bestVs(host, strong(T), host.i) || { p: 0 }).p })).sort((x, y) => y.p - x.p);
     const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && mine[0].p >= 0.55 && rnd() < 0.85;
     if (forceIn >= 0) {
-      const vsMe = (bestVs(host, strong(G.teams[forceIn])) || { p: 0 }).p;
+      const vsMe = (bestVs(host, strong(G.teams[forceIn]), host.i) || { p: 0 }).p;
       a = forceIn; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== forceIn).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== forceIn)).i;
     } else if (fightSelf) {
       a = H; b = mine[0].T.i;   // its best matchup (ties: whoever has more fame)
@@ -3747,7 +3779,7 @@ html, body {
       if (!isHuman(ti)) {
         const t = G.teams[ti];
         const foes = teams.filter((x, k) => sides2[k] !== sides2[e]).flatMap(x => readyRobots(G.teams[x]).slice().sort((p, q) => power(q) - power(p)).slice(0, 1));
-        const pick = bestVs({ robots: readyRobots(t).filter(r => !wrecked(r)) }, foes);   // Kev, 6 Nov: send the robot with the best matchup, not just the biggest
+        const pick = bestVs({ robots: readyRobots(t).filter(r => !wrecked(r)) }, foes, ti);   // Kev, 6 Nov: send the robot with the best matchup, not just the biggest
         G.fight.robots[e] = (pick && pick.r) || readyRobots(t).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
       }
     });
