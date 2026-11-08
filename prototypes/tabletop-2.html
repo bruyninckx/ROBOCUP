@@ -707,13 +707,13 @@ html, body {
    * Exhausting crew stays a count (t.exMechs = exhausted crew this round). */
   const CREW = {
     mechanic:   { name: 'Mechanic',       icon: '🔧', value: 2, short: '+1 Cr, 1 repair', text: '+1 credit every Upkeep, and 1 repair action.' },
-    chief:      { name: 'Chief Engineer', icon: '👷', value: 2, short: '2 repairs per Upkeep', text: '2 repair actions every Upkeep.' },
+    chief:      { name: 'Chief Engineer', icon: '👷', value: 2, short: '1 repair per Upkeep', text: '1 repair action every Upkeep.' },
     accountant: { name: 'Accountant',     icon: '🧮', value: 2, short: 'Extra robots: no upkeep', text: 'Upkeep: only your first robot costs 1 Cr; the others are free.' },
     hacker:     { name: 'Hacker',         icon: '💻', value: 1, short: 'Peek at a hidden card', text: 'Each fight you are in or bet on: before bets close, see 1 face-down card on a rival robot.' },
     analyst:    { name: 'Market Analyst', icon: '🔮', value: 1, short: 'See next round\'s lots', text: 'See next round\'s Market lots before you bid.' },
     fixer:      { name: 'Fixer',          icon: '🕴️', value: 2, short: '+2 fame when backing', text: 'When you back someone\'s scheme, you count +2 fame toward its gate.' },
     secchief:   { name: 'Security Chief', icon: '👮', value: 1, short: 'Security Bots block on 3+', text: 'Your Security Bots block on 3–6 instead of 4–6.' },
-    repairtech: { name: 'Repair Tech',    icon: '🛠️', value: 2, short: '3 repairs per Upkeep', text: '3 repair actions every Upkeep.' },
+    repairtech: { name: 'Repair Tech',    icon: '🛠️', value: 2, short: '1 repair per Upkeep', text: '1 repair action every Upkeep.' },
   };
   const CREW_DECK = ['mechanic', 'mechanic', 'chief', 'chief', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief', 'repairtech'];
   LOTS.crew = { name: 'New Crew', icon: '👥', text: 'A crew card', crewLot: true };
@@ -752,7 +752,7 @@ html, body {
   const exCrew = t => Math.min(t.crew.length, t.exMechs || 0);
   const secTxt = t => '🤖' + secReady(t) + ((t.exSec || 0) > 0 ? '/' + (t.secBots || 0) + ' 😴' : '');
   const EXH_HELP = '<b>😴 Exhausted</b>: used up this round by a card (Crunch Week, Press Tour, Team-Building Day, Coolant Leak, Rogue Firmware…), by fighting, or (crew) by repairing. Exhausted robots can\'t fight; exhausted crew don\'t count for cards that need ready crew (and Mechanics still earn); exhausted Security Bots can\'t roll. Everything is ready again in the next Upkeep (Rogue Firmware: the robot sits out one more fight).';
-  const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>Repairs: Mechanic 1 action, Chief Engineer 2, Repair Tech 3, other crew 1. A crew member who repairs is exhausted for the round.';
+  const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>Repairs: every crew member gives 1 repair action. A crew member who repairs is exhausted for the round.';
   function crewLot(k) {
     const id = 'crew:' + k + ':' + (++crewLotSeq);
     LOTS[id] = { name: CREW[k].name, icon: CREW[k].icon, text: CREW[k].short, crew: k, desc: CREW[k].text };
@@ -1059,11 +1059,11 @@ html, body {
   const me = () => G.teams[viewerSeat];
   const ownerOf = r => G && G.teams.find(t => t.robots.includes(r));
   /* ---------- repairs (Kev, 8 Nov): crew repair actions in Upkeep ----------
-   * Mechanic 1 action, Chief Engineer 2, Repair Tech 3, any other crew 1. Using any of a crew member's actions exhausts it
+   * Every crew member gives 1 action (Kev, 8 Nov: crew scarcer, so repairs are a choice). Using it exhausts it
    * for the round (t.exMechs, 1.0's crew exhaustion), so it no longer counts as ready crew for Intrigue cards.
    * No crew left: an action costs REPAIR_CR credits. Free actions: Aegis Heavy, and the loser of last round's fight. */
   const REPAIR_CR = 2;
-  const CREW_ACTS = k => k === 'chief' ? 2 : k === 'repairtech' ? 3 : 1;
+  const CREW_ACTS = () => 1;   // every crew member: 1 repair action
   const repState = t => t.rep || (t.rep = { used: {}, free: 0 });
   const freshCrew = t => { const R = repState(t); return t.crew.filter(c => R.used[c.uid] == null).sort((a, b) => CREW_ACTS(b.kind) - CREW_ACTS(a.kind)).slice(0, readyCrew(t)); };
   function repairActs(t) {   // actions left without paying credits
@@ -1126,6 +1126,25 @@ html, body {
     return { per, done: true, p: per.length ? per.reduce((a, x) => a + x.p, 0) / per.length : 0.5 };
   }
   const duelP = (ra, rb) => R2.winP(str2(ra), str2(rb));
+  // click an odds chip: this robot's chance against each rival robot on its own (like 1.0's scout panel, no scout needed)
+  function openMatchups(ti, r) {
+    let el = document.getElementById('scoutPanel');
+    if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
+    const T = G.teams[ti], F = fieldOdds(ti, r);
+    const chip = p => { const c = oddsChip(p); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
+    const rows = F.per.slice().sort((a, b) => a.T.i - b.T.i || b.p - a.p).map(x => '<tr' + (x.r.exhausted ? ' style="opacity:.55"' : '') + '><td><b style="color:' + x.T.col + '">' + esc(x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + ' <span style="color:#b45309">' + ('★'.repeat(x.r.level) || '·') + '</span>' + (x.r.exhausted ? ' 😴' : '') + '</td><td class="sc-w">' + esc(wepLabel(x.r.name)) + '<br><span class="sc-note">' + esc(zoneTxt(x.r)) + '</span></td><td>' + chip(x.p) + '</td></tr>').join('');
+    el.hidden = false;
+    el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
+      '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + ' <span style="color:#b45309">' + ('★'.repeat(r.level) || 'starter') + '</span></h3>' +
+      '<div class="sc-sub">' + esc(wepLabel(r.name)) + ' · Parts: ' + esc(partsTxt(r)) + '<br>Damage: ' + esc(zoneTxt(r)) + '</div>' +
+      '<div class="sc-field">Bookie vs the field: ' + chip(F.p) + '</div>' +
+      (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>chance</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
+      '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from levels, fitted parts and the damage they carry now. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
+      '<div class="iv-btns"><button class="secondary sc-close">Close</button></div></div>';
+    const close = () => { el.hidden = true; };
+    el.querySelector('.sc-x').onclick = close; el.querySelector('.sc-close').onclick = close;
+    el.onclick = e => { if (e.target === el) close(); };
+  }
   const scouted = () => true;   // 2.0: the odds are a quick model, so the exact % is always shown
   const pctTxt = p => Math.round(p * 100) + '%';
   const BAND_ABBR = { 'Heavy favourite': 'H.fav', Favourite: 'Fav', Even: 'Even', Underdog: 'Dog', 'Heavy underdog': 'H.dog' };
@@ -1218,7 +1237,7 @@ html, body {
   const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★). A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
   function helpBand(ti, r, p) {
     return ['🎩 Bookie vs the field: ' + bandOf(p).name + ' (' + pctTxt(p) + ')',
-      'The bookie\'s chance for <b>' + esc(r.name) + '</b> against every robot of the other teams, from their levels, parts and damage. Face-down cards stay secret. ' + BAND_HELP];
+      'The bookie\'s chance for <b>' + esc(r.name) + '</b> against every robot of the other teams, from their levels, parts and damage. Face-down cards stay secret. ' + BAND_HELP + '<br><i>Click: its chance against each rival robot.</i>'];
   }
   function helpTagsTxt(tg, who) {
     const row = (ks, lab, col) => ks.length ? '<span style="color:' + col + ';font-weight:800">' + lab + '</span> ' + ks.map(k => esc(clsName(k)) + ' ' + pctTxt(tg.vs ? tg.vs[k] : 0.5)).join(', ') + '<br>' : '';
@@ -3038,9 +3057,9 @@ html, body {
   // what a crew card is worth to an AI team (Mechanics pay back early; 2.0: Chief Engineers and Repair Techs repair)
   function crewWant(t, k) {
     if (k === 'mechanic') return G.round <= 4 ? 4 : 2.5;
-    if (k === 'chief') return t.robots.some(r => r.wear) ? 3.5 : 2.5;   // 2.0: 2 repair actions
+    if (k === 'chief') return t.robots.some(r => r.wear) ? 2.5 : 1.5;   // 2.0: 1 repair action
     if (k === 'accountant') return t.robots.length >= 2 ? 3.5 : 2;
-    if (k === 'repairtech') return t.robots.some(r => wrecked(r)) ? 4 : 3;   // 2.0: 3 repair actions
+    if (k === 'repairtech') return t.robots.some(r => wrecked(r)) ? 2.5 : 1.5;   // 2.0: 1 repair action
     return hasCrew(t, k) ? 0.5 : 2.5;
   }
   function aiRebid(t, k, curBid, maxAdd) {
@@ -4468,7 +4487,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = o.win; if (o.host != null) HOST_FAME = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; } };
 
   function checkWin() {
@@ -5171,7 +5190,7 @@ html, body {
       ctx.fillStyle = pl.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots'), tx, by + 77, tw, '700', 10.5);
       ctx.fillStyle = r.leg ? '#b45309' : '#999'; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 92, tw, '700', 10.5);
       help(tx, by + 66, tw, 30, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots and 1 legendary slot per robot.');
-      { const fo = fieldOdds(ti, r); drawOddsChip(ctx, fo.p, tx, by + 99, tw, 18, 10.5); const hb = helpBand(ti, r, fo.p); help(tx, by + 99, tw, 18, hb[0], hb[1]); }
+      { const fo = fieldOdds(ti, r); drawOddsChip(ctx, fo.p, tx, by + 99, tw, 18, 10.5); const hb = helpBand(ti, r, fo.p); help(tx, by + 99, tw, 18, hb[0], hb[1]); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 99, w: tw, h: 18 }); }
       const myUpkeep = G.phase === 'upkeep' && ti === HS && !isClient() && !iWait('upkeep');
       drawZoneButtons(ctx, r, bx + 10, by + 124, bw - 20, 40, myUpkeep, false);
       const actX = bx + 10, actY = by + 172, actW = bw - 20, actH = 28;
@@ -5193,7 +5212,7 @@ html, body {
         ctx.strokeStyle = '#d5d1c7'; ctx.lineWidth = 1; ctx.strokeRect(actX, actY, actW, actH);
         ctx.fillStyle = myUpkeep && dmg ? '#b45309' : '#555'; ctx.textAlign = 'center';
         fitText(ctx, myUpkeep ? (dmg ? '🔧 Click a lit zone · ' + repairTxt(t) : '✓ No damage: nothing to repair') : dmg ? 'Damage: ' + zoneTxt(r) : '✓ No damage', actX + actW / 2, actY + 18, actW - 10, '800', 11);
-        help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP + '<br>Repair actions: Mechanic 1, Chief Engineer 2, Repair Tech 3, other crew 1 (a crew member who repairs is exhausted this round). Out of crew: ' + REPAIR_CR + ' Cr per action. Free: Aegis Heavy (1 per Upkeep) and losing a fight (1, Vulture Salvage 2).');
+        help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP + '<br>Repair actions: every crew member gives 1 (a crew member who repairs is exhausted this round). Out of crew: ' + REPAIR_CR + ' Cr per action. Free: Aegis Heavy (1 per Upkeep) and losing a fight (1, Vulture Salvage 2).');
       }
       if (!inArenaNow) drawExhaustedOverlay(ctx, r, bx, by, bw, bh, false);
     }
@@ -5325,7 +5344,7 @@ html, body {
     ctx.fillStyle = '#f3f1ea'; ctx.fillRect(bx + 4, fy, bw - 8, fh);
     ctx.fillStyle = '#7c3aed'; ctx.textAlign = 'left'; fitText(ctx, '🎖 ' + r.wins + (r.wins >= favWins(t) ? ' FAV' : ''), bx + 8, fy + fh / 2 + 3.5, 46, '800', 9.5);
     { const cw = Math.min(92, bw - 70), cx = bx + bw - 8 - cw, cy = fy + 2, ch = fh - 4, fo = fieldOdds(ti, r);
-      drawOddsChip(ctx, fo.p, cx, cy, cw, ch, 9, true);
+      drawOddsChip(ctx, fo.p, cx, cy, cw, ch, 9, true); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: cx, y: cy, w: cw, h: ch });
       const hb = helpBand(ti, r, fo.p); help(cx, cy, cw, ch, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog.'); }
     drawExhaustedOverlay(ctx, r, bx, by, bw, bh, true);
   }
@@ -5963,6 +5982,8 @@ html, body {
     { const top = hitRegions.slice().reverse().find(r => wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
       if (top) tlog('click', { kind: top.kind, idx: top.idx, side: top.side, team: top.team, robot: top.robot ? top.robot.name : undefined }); }
 
+    { const od = hitRegions.find(r => r.kind === 'odds' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);   // odds chip: matchups panel
+      if (od && G.teams[od.team] && G.teams[od.team].robots.includes(od.robot)) { openMatchups(od.team, od.robot); return; } }
     for (let i = hitRegions.length - 1; i >= 0; i--) {
       const r = hitRegions[i];
       if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
