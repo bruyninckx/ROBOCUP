@@ -48,6 +48,9 @@ const V2 = {
       'stronger side (Repair2) wins': pc(cal.strWin),
       'bookie Brier (vs coin flip)': cal.brier.toFixed(3) + ' (' + cal.brier0.toFixed(3) + ')',
       'draws / House Robot wins': pc(cal.draw) + ' / ' + pc(cal.house),
+      // the House Robot (Unleash the House Robot)
+      ...(() => { const hs = g.flatMap(r => r.v2.house || []); if (!hs.length) return { 'House Robot fights': '0' }; const sw = hs.reduce((a, h) => a + h.swings, 0), hi = hs.reduce((a, h) => a + h.hits, 0), dm = hs.flatMap(h => h.dmg);
+        return { 'House Robot: fights, swings, hit %': hs.length + ', ' + sw + ', ' + pc(hi / Math.max(1, sw)), 'House Robot: dmg / hit, others within 1.5 m': f1(mean(dm)) + ', ' + pc(hs.reduce((a, h) => a + h.near, 0) / Math.max(1, hs.reduce((a, h) => a + h.nearN, 0))) }; })(),
     };
   },
   calib(fx) {   // per side: the bookie's p vs a win; the favourite; the stronger side by Repair2 strength (sum of exp per side)

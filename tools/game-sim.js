@@ -40,7 +40,7 @@ const PLANCK = (() => {
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [] };
+  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; return o; };
@@ -77,13 +77,23 @@ function installHooks() {
     };
   }
   if (DL && DL.step) {   // engine time: wall time inside DamageLab.step and from a fight's first to its last step
-    const orig = DL.step; let curS = null, t0 = 0, tl = 0, n = 0;
-    const close = () => { if (curS) X.fightWall.push({ ms: tl - t0, steps: n }); };
+    const orig = DL.step; let curS = null, t0 = 0, tl = 0, n = 0, hs = null;
+    // the House Robot (Big Mallet): swings, hits, damage per hit, how often other robots are within 1.5 m of it
+    const close = () => { if (curS) { X.fightWall.push({ ms: tl - t0, steps: n }); if (hs) X.house.push(hs); } hs = null; };
     X.closeFight = close;
     DL.step = function (S) {
       const a = performance.now();
       if (S !== curS) { close(); curS = S; t0 = a; n = 0; }
-      const r = orig.apply(this, arguments); tl = performance.now(); X.stepMs += tl - a; X.steps++; n++; return r;
+      const r = orig.apply(this, arguments); tl = performance.now(); X.stepMs += tl - a; X.steps++; n++;
+      try {
+        const H = S.house;
+        if (H && H.l4) {
+          if (!hs) hs = { swings: 0, hits: 0, dmg: [], near: 0, nearN: 0, last: null };
+          const ls = H.l4.lastSlam; if (ls && ls !== hs.last) { hs.last = ls; hs.swings++; if (ls.hit) { hs.hits++; hs.dmg.push(Math.round(H.stats.dealt - ls.dealt0)); } }
+          if (S.step % 12 === 0 && H.alive) { const hp = H.body.getPosition(); for (const R of S.robots) if (R !== H && R.alive) { const q = R.body.getPosition(); hs.nearN++; if (Math.hypot(q.x - hp.x, q.y - hp.y) < 1.5) hs.near++; } }
+        }
+      } catch (e) { X.hookErrs.push('house: ' + e.message); }
+      return r;
     };
   }
   // the event log: add what the bookie and the zones looked like when a fight starts; damage left after Upkeep
@@ -166,6 +176,7 @@ function installHooks() {
             fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
             lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),
+            house: (X.house || []).map(h => ({ swings: h.swings, hits: h.hits, dmg: h.dmg, near: h.near, nearN: h.nearN })),
             live: ev.filter(e => e.k === 'live_card').map(e => ({ r: e.r, team: e.team, id: e.id, type: e.type, t: e.t })),
             stepMs: X.stepMs, steps: X.steps, fightWall: X.fightWall,
             robotsEnd: G.teams.map(t => t.robots.map(r => ({ name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0) }))),
