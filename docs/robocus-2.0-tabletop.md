@@ -136,6 +136,36 @@ Each lineup robot with one kind of carried-over damage against robots of its own
 
 So wheels, drive motors and the weapon are what count. Armour, the lid and chassis HP barely matter for the next fight. They matter for how long a robot lasts, and they are cheap to leave. Possible tweak: armour and lid repairs at half an action (two per action), so crew time goes to the parts that decide fights.
 
+## What the robot Intrigue cards are worth in a fight (`tools/damage-lab/cardvalue.js`, 8 Nov)
+
+Same-level robot pairs (every lineup robot as A, sides alternate), each fought twice on the same seed: with and without the card on robot A. The spec changes are the ones the game makes (`fightSpec`, `resolveScheme0`, the Overclock wear at fight end, `Repair2.bodyHeal`). 220 pairs per row; EMP: 200 pairs of robots with a module or one drone/module part (a part robot fights a stock robot one level up). ± is one standard error of the paired swing. Levels = logit change / 0.62. Results: `tools/damage-lab/cardvalue-results.json`.
+
+| Card (what is measured) | Win % without → with | Swing | Levels |
+|---|---|---|---|
+| Secret Upgrade (+20% dmg, +20% HP) | 51 → 73% | **+21.8** ±3.7 | +1.53 |
+| Smudged Lens (−15% dmg) | 51 → 43% | −8.2 ±3.4 | −0.53 |
+| Overclock, its fight (hot-wound motors) | 51 → 51% | **0** ±3.6 | 0 |
+| Overclock, a later fight (drive motors left at 40%) | 51 → 41% | −10.9 ±3.5 | −0.71 |
+| Sugar in the Tank (drive motors at 60%) | 51 → 51% | **0** ±2.9 | 0 |
+| Loose Bolts, this round (top plate 30%) | 51 → 51% | −0.9 ±2.4 | −0.06 |
+| Loose Bolts after the free Upkeep heal (50%) | 51 → 51% | −0.5 ±2.0 | −0.03 |
+| Rogue Firmware chassis (40%) | 51 → 47% | −4.5 ±2.3 | −0.29 |
+| Rogue Firmware chassis after the free heal (50%) | 51 → 48% | −3.2 ±2.1 | −0.21 |
+| EMP the Garage (one module or drone offline) | 52 → 38% | −14.0 ±4.5 | −0.92 |
+| Coolant Leak | no fight effect (exhausts robots) | | |
+
+Why some are zero: drive motors only lose power below 35% HP (then 55% force) or when dead, so 60% motors drive as well as new ones and just have less to lose. Hot-wound motors give +35% force but heat up 1.9× and overheated motors drop to 40% force, which cancels out (5 of the 25 lineup robots are already hot-wound, so Overclock does nothing at all on them). Loose Bolts and chassis damage are Body damage, which barely matters for one fight (as in the damage table above). Rogue Firmware's robot can't fight before the free heal, so its chassis part is the 50% row; the real cost of that card is the sit-out.
+
+**AI card values now follow these numbers** (`aiRobotCardValue` in `prototypes/tabletop-2.html`): credits = |swing| × chance its robot fights (face-down cards stay until the robot fights: 0.85; EMP and Loose Bolts' 30% only this round: 0.5; damage still there at a later fight: 0.5) × the fight's stake (1 fame at the AI's fame rate, weighted by the rival's threat, + 3 Cr for scrap risk and bets). The target robot is the one the card lands on (strongest ready robot), so EMP is worth 0 against a team whose best robot has no module or drones, Overclock is worth less than nothing (its drive damage costs more than the fight gains), and a card already on the robot is worth 0. Rogue Firmware keeps its sit-out value (3 × threat, 1.5 if the team has no ready robot) plus the chassis part. The AI also counts its own Secret Upgrade when it picks which robot to send. Effect in 6 AI games: Secret Upgrade played 14 of 15 times drawn, Rogue Firmware 5 of 7; Smudged Lens, Sugar, Overclock, Loose Bolts and EMP now stay in hand and are cashed in (worth under 1 Cr).
+
+**Proposals for Kev (not changed in the game):**
+- **Sugar in the Tank: 60% → 40%** (−10.9 points, the same spec as the Overclock after-damage row). 30% is too strong (−21.8, the motors start weak).
+- **Overclock** does nothing in its own fight. Options: no extra motor heat with it, or a different boost (e.g. +20% weapon damage then Weapon damaged); or drop the after-damage. Not measured.
+- **Loose Bolts** is almost nothing (top plate off entirely: −2.7). Make it Drive damage instead: **one wheel at 30%** measured −11.8 (lasting until a Drive repair; the free heal doesn't fix it).
+- **Smudged Lens** is weak but measurable (−8.2); **−25%** gives −15.9 if it should match Secret Upgrade.
+- **Secret Upgrade** is at the top end (+21.8); **+15% / +15%** gives +15.9.
+- EMP (−14 per module or drone) is fine where it applies; it is a dead card against teams without modules or drones.
+
 ## Next steps
 
 1. Fork the 1.0 game loop into 2.0: starter draft, Market auctions with robot levels in waves, part cards (2 parts + 1 legendary), Intrigue, bets, hosting, crates. Use the 1.0 rules as the reference, with 2.0 wording where cards mention stats.
