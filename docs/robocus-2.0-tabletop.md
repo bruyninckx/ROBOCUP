@@ -74,6 +74,7 @@ The engine keeps every part's damage, but you repair zones (`src2/repair.js`):
 - Zones with a little crew remove the snowball, and game length stays the same.
 - A team uses about 2 repair actions a round. With the full starting crew (5 actions, plus free ones) every robot is always fully repaired, so the only real cost is crew being busy for Intrigue cards.
 - To make repairs a choice, crew should be scarcer than that. **Decided (Kev, 8 Nov): every crew member gives 1 action** (Chief Engineer and Repair Tech too). Starting crew = 4 actions, each one a crew member that can't count for Intrigue cards that round.
+- **No free Scrapbot (Kev, 8 Nov):** a team that loses its last robot (scrapped by the host, or sold to pay its upkeep) gets no free robot, because a fresh one was sometimes better than repairing the old one. It sits out until it wins a New Robot lot; the Market always offers one while a team has no robots.
 - Odds chips on the garage bays can be clicked: the robot's chance against each rival robot on its own (like 1.0's scout panel).
 
 ## What damage costs (`tools/damage-lab/wearcost.js`)
