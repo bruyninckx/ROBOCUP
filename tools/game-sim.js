@@ -40,7 +40,7 @@ const PLANCK = (() => {
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
+  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; return o; };
@@ -117,6 +117,7 @@ function installHooks() {
           if (/Host scrapped/.test(e.text) && g.fight && g.fight.loser) X.scraps.push({ r: g.round, team: g.fight.loser.team, robot: g.fight.loser.robot.name, why: 'host', host: g.host });
           else if (/can't pay its upkeep and scraps/.test(e.text)) { const t = g.teams.find(t => e.text.includes(t.name)); X.scraps.push({ r: g.round, team: t ? t.i : -1, why: 'debt' }); }
         }
+        if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got });
         if (e && e.k === 'msg' && /has no robots left/.test(e.text || '')) X.scraps.push({ r: g.round, why: 'none-left', team: (g.teams.find(t => e.text.includes(t.name)) || {}).i });
       } catch (err) { X.hookErrs.push('event: ' + err.message); }
       return push.apply(this, arguments);
@@ -172,7 +173,7 @@ function installHooks() {
           const L = D.LOTS;
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
-            reps: X.reps, ups: X.ups, scraps: X.scraps, hookErrs: X.hookErrs.slice(0, 10),
+            reps: X.reps, ups: X.ups, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
             lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),

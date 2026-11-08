@@ -43,6 +43,7 @@ const V2 = {
       'lots unsold': pc(1 - sold.length / Math.max(1, lots.length)),
       'level 4: lots / game, sold, fights / game': (() => { const l4 = lots.filter(l => l.level === 4); if (!l4.length) return '-'; const f4 = fx.filter(f => (f.x2 || []).some(e => e && e.level === 4)); return per(l4.length) + ', ' + pc(l4.filter(l => l.winner != null && l.winner >= 0).length / l4.length) + ', ' + per(f4.length); })(),
       'robots at end / team': f1(mean(g.flatMap(r => r.v2.robotsEnd.map(x => x.length)))),
+      'trade-ins / game (scrap Cr, level)': (() => { const ti = g.flatMap(r => r.v2.tradeIns || []); return per(ti.length) + ' (' + (ti.length ? f1(mean(ti.map(x => x.cr))) + ' Cr, L' + f1(mean(ti.map(x => x.level))) : '-') + ')'; })(),
       'scrapped / game: host, debt; robotless': per(sc.filter(x => x.why === 'host').length) + ', ' + per(sc.filter(x => x.why === 'debt').length) + '; ' + per(sc.filter(x => x.why === 'none-left').length),
       'bookie favourite wins (n)': pc(cal.favWin) + ' (' + cal.n + ')',
       'stronger side (Repair2) wins': pc(cal.strWin),
@@ -145,7 +146,9 @@ for (const tag of tags) {
     'auction: cards won / fight (Cr each)': auct.length ? f1(auctWon / mean(fights) / n) + ' (' + f1(auctCr / Math.max(1, auctWon)) + ' Cr)' : '-',
     'avg credits held per team (upkeep)': f1(mean(crPerRound)),
     'Market spend / game (all teams)': f1(mean(market)), 'bets staked / game': f1(mean(bets)),
-    'win share by seat 1-4': seatWins.map(pc).join(' '),
+    'win share by seat 1-4': seatWins.map(pc).join(' ') + ' (±' + pc(Math.sqrt(0.25 * 0.75 / Math.max(1, n))) + ' each)',
+    // round 3: per seat (seat fairness check): final fame, fight wins / fight entered
+    'final fame by seat 1-4': [0, 1, 2, 3].map(i => f1(mean(ok.map(r => r.fame[i])))).join(' '),
     // Kev, 8 Nov: fights should lead (>= 60% from fights, hosting, Fan Favourite, Grand Final vs net Intrigue fame)
     'fame: fights+host+fan / net cards (share)': (() => { const g = k => (fame[k] || 0) / n, fi = g('win') + g('win:grand final') + g('host') + g('fav') + g('fan'), cd = g('cards +') + g('cards −'); return f1(fi) + ' / ' + f1(cd) + ' (' + pc(fi / (fi + cd)) + ')'; })(),
     'fame / game by source': Object.entries(fame).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 7).map(([k, v]) => k + ' ' + f1(v / n)).join(', '),
