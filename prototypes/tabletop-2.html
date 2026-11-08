@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- ROBOCUS 2.0 tabletop prototype (work in progress). Separate from the 1.0 game (tabletop-prototype.html):
+     its own engine (src2/engine.js, the Damage Lab physics), robots and parts (src2/lineup.js), fight view (src2/view.js)
+     and game (src2/game2.js). Needs internet for planck.js and fonts. -->
+<title>ROBOCUS 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #E9E4DA; --panel: #F6F2EA; --ink: #2B2118; --muted: #6E6457; --line: #CFC6B7; --chip: #E1DACD;
+  --hazard: #E8C547; --good: #4C8A3F; --warn: #C99A1E; --bad: #B23A2B;
+  --f-display: "Saira Stencil One", "Arial Black", Impact, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--f-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 22px; border-bottom: 3px solid var(--ink); padding-bottom: 10px; }
+.eyebrow { font: 600 11px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.eyebrow b { background: var(--hazard); color: #2B2118; padding: 3px 6px; border-radius: 3px; letter-spacing: .1em; }
+h1 { font: 400 clamp(34px, 6vw, 52px)/0.95 var(--f-display); margin: 6px 0 0; }
+h2 { font: 400 22px/1.1 var(--f-display); margin: 0; letter-spacing: .02em; }
+h3 { font: 400 19px/1.1 var(--f-display); margin: 0; }
+.lede { margin: 0; color: var(--muted); max-width: 64ch; flex: 1 1 320px; }
+.small { font-size: 12px; color: var(--muted); }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: 600 14px var(--f-body); color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 5px; padding: 6px 12px; cursor: pointer; min-height: 36px; }
+button:hover { background: var(--chip); }
+button:disabled { opacity: .45; cursor: default; }
+button.go { background: var(--ink); color: var(--panel); font: 400 18px/1.2 var(--f-display); letter-spacing: .04em; padding: 6px 18px; }
+button:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
+.card { background: var(--panel); border: 2px solid var(--ink); border-radius: 6px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.team { border-top: 8px solid var(--tc); }
+.team.you { box-shadow: 0 0 0 3px var(--hazard); }
+.thead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.stat { font: 600 13px var(--f-mono); display: flex; gap: 10px; flex-wrap: wrap; }
+.robots { display: grid; gap: 8px; }
+.rob { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 5px; }
+.rob canvas { width: 64px; height: 86px; background: #1E1915; border-radius: 4px; }
+.rob .nm { font: 400 17px var(--f-display); }
+.stars { color: #C99A1E; letter-spacing: 2px; font-size: 13px; }
+.cond { height: 7px; background: var(--chip); border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.cond i { display: block; height: 100%; }
+.crew { display: flex; flex-wrap: wrap; gap: 6px; }
+.crewc { border: 2px solid var(--ink); border-radius: 5px; padding: 3px 8px; font: 600 12px var(--f-mono); display: flex; gap: 6px; align-items: center; background: var(--panel); }
+.crewc.used { opacity: .5; text-decoration: line-through; }
+.pip { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); display: inline-block; }
+.pip.on { background: var(--hazard); }
+.repair { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; }
+.rcard { display: grid; grid-template-columns: 120px 1fr; gap: 12px; }
+.rcard canvas { width: 120px; height: 160px; background: #1E1915; border-radius: 5px; }
+.items { display: grid; gap: 4px; align-content: start; }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); padding: 3px 0; font-size: 13px; }
+.item em { font-style: normal; font: 600 11px var(--f-mono); color: var(--warn); }
+.item em.bad { color: var(--bad); }
+.item button { font: 600 12px var(--f-mono); padding: 3px 8px; min-height: 30px; }
+.fightpick { display: grid; gap: 10px; }
+.log { max-height: 220px; overflow: auto; font: 12px/1.5 var(--f-mono); margin: 0; padding-left: 0; list-style: none; }
+.note { border-left: 4px solid var(--hazard); padding: 6px 10px; background: var(--chip); border-radius: 0 5px 5px 0; }
+</style></head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow"><b>2.0</b> Work in progress</div>
+      <h1>ROBOCUS 2.0</h1>
+    </div>
+    <p class="lede">The new physics fights, damage that stays on your robots and crew who repair them. The 1.0 game stays as it is; the auctions, Intrigue cards and bets come over into 2.0 next.</p>
+  </header>
+  <main id="game"></main>
+</div>
+<div id="fightView"></div>
+<script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
+<script src="../src2/engine.js"></script>
+<script src="../src2/lineup.js"></script>
+<script src="../src2/view.js"></script>
+<script src="../src2/game2.js"></script>
+</body></html>

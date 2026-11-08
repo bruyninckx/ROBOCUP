@@ -456,7 +456,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     A.team = 0; B.team = 1; A.enemy = B; B.enemy = A; S.robots.push(A, B);
     }
     S.drones = []; S.ewalls = [];
-    for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; R.spec.helpers.forEach((k, i) => makeDrone(S, R, k, i)); }
+    for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; const dw = (R.spec.wear && R.spec.wear.drones) || [];
+      R.spec.helpers.forEach((k, i) => { if (dw[i] != null && dw[i] <= 0) return; makeDrone(S, R, k, i); const d = R.drones[R.drones.length - 1]; d.idx = i; if (dw[i] != null) d.hp = dw[i] * d.maxHp; }); } // 2.0: a drone shot down last fight stays home
     return S;
   }
 
@@ -761,9 +762,55 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     R.chipPart = addInt('chip', 'Processor chip', [0.12 * hl, -0.12 * hw], 30, { top: true });
     if (spec.drive === 'boost') R.thruster = addInt('thruster', 'Thruster', [-0.75 * hl, 0], 40);
     if (R.mod !== 'none') R.module = addInt('module', R.M.label, [-0.1 * hl, 0.3 * hw], 40, { top: true });
+    if (spec.wear) applyWear(S, R, spec.wear); // 2.0: damage carried over from the last fight
     R.massStart = body.getMass();
     R.prof = sideProfile(R, spec);
     return R;
+  }
+  // ---- ROBOCUS 2.0: damage that carries over between fights ----
+  // wearOf(R) after a fight: what is broken, as fractions of full HP, keyed by part label; dents kept as battle scars.
+  // spec.wear = that object: the robot starts its next fight in that state (lost parts are simply not there).
+  const r3 = x => Math.round(x * 1000) / 1000;
+  function wearOf(R) {
+    const w = { parts: {}, lost: [], ints: {}, lid: R.lid.attached ? r3(Math.max(0, R.lid.hp) / R.lid.maxHp) : 0, dents: {}, drones: R.spec.helpers.map((k, i) => { const d = (R.drones || []).find(q => q.idx === i); return d && d.alive ? r3(Math.max(0, d.hp) / d.maxHp) : 0; }) };
+    for (const q of R.parts) {
+      if (!q.attached) { w.lost.push(q.label); continue; }
+      if (q.hp < q.maxHp) w.parts[q.label] = r3(Math.max(0, q.hp) / q.maxHp);
+      if (q.dents.length && q.body === R.body) w.dents[q.label] = q.dents.map(d => [r3(d.x), r3(d.y), Math.round(d.a)]);
+    }
+    if (R.lid.attached && R.lid.dents.length) w.dents['Top plate'] = R.lid.dents.map(d => [r3(d.x), r3(d.y), Math.round(d.a)]);
+    for (const q of R.internals) if (q.hp < q.maxHp) w.ints[q.label] = r3(Math.max(0, q.hp) / q.maxHp);
+    return w;
+  }
+  function applyWear(S, R, w) {
+    if (!w) return;
+    const lost = new Set(w.lost || []);
+    for (const q of R.parts.slice()) {
+      if (q.kind === 'chassis') { if (w.parts && w.parts[q.label] != null) q.hp = Math.max(1, w.parts[q.label] * q.maxHp); continue; }
+      if (lost.has(q.label)) { // not there at all: no debris, no fixture, no joint
+        q.attached = false; q.hp = 0; q.gone = true;
+        if (q.sep || q.body !== R.body) {
+          for (const jn of ['joint', 'rope', 'gjoint', 'bjoint', 'sjoint', 'swjoint', 'rjoint']) if (q.jname === jn || ({ blade: 'joint', ball: 'rope', glove: 'gjoint', buzz: 'bjoint' })[q.key] === jn) { if (R[jn]) { S.world.destroyJoint(R[jn]); R[jn] = null; } }
+          if (q.joint) { S.world.destroyJoint(q.joint); q.joint = null; }
+          if (!R.parts.some(o => o !== q && o.attached && o.body === q.body)) S.world.destroyBody(q.body);
+        } else q.body.destroyFixture(q.fx);
+        if (q.slot) q.slot.wheel = null;
+        continue;
+      }
+      if (w.parts && w.parts[q.label] != null) q.hp = Math.max(1, w.parts[q.label] * q.maxHp);
+      if (w.dents && w.dents[q.label] && q.body === R.body) for (const [x, y, a] of w.dents[q.label]) addDent(q, [x, y], a);
+    }
+    if (R.flailArm && R.ball && !R.ball.attached) { /* the arm still swings, harmless */ }
+    for (const q of R.internals) {
+      if (!w.ints || w.ints[q.label] == null) continue;
+      const f = w.ints[q.label], vital = q.key === 'battery' || q.key === 'radio';
+      q.hp = vital ? Math.max(1, f * q.maxHp) : f * q.maxHp;
+      if (q.hp <= 0) { q.hp = 0; q.state = 'dead'; if (q.key === 'chip') { R.fried = true; R.proc = 'standard'; } if (q.key === 'module') R.eSh = 0; }
+    }
+    if (w.lid != null) {
+      if (w.lid <= 0) { R.lid.attached = false; R.lid.hp = 0; R.topArmour = 0; R.chipExposed = true; }
+      else { R.lid.hp = w.lid * R.lid.maxHp; if (w.lid < 0.4) R.lid.state = 'loose'; if (w.dents && w.dents['Top plate']) for (const [x, y, a] of w.dents['Top plate']) addDent(R.lid, [x, y], a); }
+    }
   }
   // how a robot behaves when it lands on its side, worked out from its own build:
   // width (wheels and plates), a height estimate (frame + top-mounted gear), how top-heavy it is, and the hull shape
@@ -2232,7 +2279,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,70,62,18,17,55,88],[30,null,40,75,53,42,62],[38,60,null,72,60,42,28],[82,25,28,null,62,52,42],[83,47,40,38,null,33,43],[45,58,58,48,67,null,37],[12,38,72,58,57,63,null]],"fights":60}; // open floor only (8 Nov: pit removed)
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
-  const API = { QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 
