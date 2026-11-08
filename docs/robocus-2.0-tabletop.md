@@ -10,12 +10,24 @@ Kev (8 Nov): build 2.0 into the browser game as a separate option, "Tabletop pro
 | Fights | `src/sim.js` | `src2/engine.js` (the Damage Lab physics, planck.js) |
 | Robots and parts | in the page | `src2/lineup.js` (25 robots in levels 0-3, 25 part cards) |
 | Fight screen | in the page | `src2/view.js` (full-screen fight with damage panels) |
-| Game | in the page | `src2/game2.js` |
+| Game | in the page | in the page: a fork of the 1.0 page (same board and phases), plus `src2/repair.js` (zones, strength) |
 | Online | `src/net.js` | not yet (its own copy later; the host will stream fights) |
 
 `src2/engine.js` and `src2/lineup.js` are copies made by `python3 tools/damage-lab/build.py`: edit them in `tools/damage-lab/` (where the test tools live) and rebuild. No 1.0 file was changed.
 
-## What works now (first playable slice)
+## Update 8 Nov (later): the 1.0 game forked into 2.0
+
+`prototypes/tabletop-2.html` is now a copy of the 1.0 page with the 2.0 robots in it (the first slice and `src2/game2.js` are gone):
+- Same board and phases as 1.0: sponsor, starter draft (2 dealt, keep 1, the 9 level-0 robots), Upkeep, Intrigue, Market, Host, Bets, Fight, Fate.
+- A robot has a level, 2 part slots and 1 legendary slot, its damage (`wear`) and Fan tokens. No stats, strain or engineers.
+- Market: the 22 part cards (with copies) replace the 1.0 upgrades; the 3 legendary parts are announced a round ahead like 1.0's legendaries. Robot lots (placeholder): level 1 in rounds 1-2, level 2 in rounds 3-4, level 3 from round 5.
+- Odds and AI use `Repair2.strength` (no scouting, no sparring). Several sides: P ∝ exp(strength).
+- Fights: duel, 2v2 (Grand Final, Tag Team, 2 per side), free-for-all (Grand Melee), Mirror (2 copies each), House Robot (a level-2 Juggernaut; only when there is room, 4 robots max). Shown in the full-screen view; AI-only, bot and skipped fights run headless.
+- Repairs in Upkeep: body parts heal to half for free, then each zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one repair action: Mechanic 1, Chief Engineer 2, Repair Tech 3, other crew 1 (the crew member is exhausted for the round), else 2 Cr. Free actions: Aegis Heavy 1 per Upkeep; the losing team 1 next Upkeep (Vulture Salvage 2), replacing the Scrap Crate.
+- Intrigue robot cards in 2.0 terms (Secret Upgrade, Overclock, Sugar in the Tank, Smudged Lens, EMP the Garage, Loose Bolts, Rogue Firmware).
+- Not yet: live combat cards (next), online play.
+
+## What worked in the first slice (replaced)
 
 - Four teams (you are Steel, three AI teams). Each team has a starter and a level 1 robot, 3 Mechanics and a Chief Engineer, 8 credits. First to 5 fame wins.
 - Every round:
@@ -31,22 +43,37 @@ Kev (8 Nov): build 2.0 into the browser game as a separate option, "Tabletop pro
   - A robot with `spec.wear` starts its next fight in that state: lost parts simply aren't there, a dead motor stays dead, a fried chip stays fried, and the dents stay as battle scars.
   - Without `wear`, fights are identical to before (42-fight check: 0 different).
 
-## Repair rules (first numbers, to tune)
+## Repairs: three zones (Kev, 8 Nov)
 
-- Crew gives repair actions each Upkeep: **Mechanic 1, Chief Engineer 2, Repair Tech 3.** Using any of a crew member's actions makes it busy for the round, which will matter once Intrigue cards that count ready crew come over.
-- **One action** repairs one item fully or puts a lost item back. A **broken weapon** or a **shot-down drone** takes **2**.
-- Items:
-  - chassis;
-  - each wheel with its motor;
-  - each armour plate;
-  - the weapon (all its parts plus the weapon motor, turret or arm);
-  - the top plate;
-  - battery, radio, chip, module, thruster;
-  - each drone.
-- Anything above 95% counts as fine.
-- Out of crew: **2 Cr per action.**
-- **For free in every Upkeep:** chassis, battery and radio come back to at least 50%.
-- AI teams repair broken things first, then the most damage per action, and spend credits on broken items while they keep 4 Cr in reserve.
+The engine keeps every part's damage, but you repair zones (`src2/repair.js`):
+
+| Zone | Covers |
+|---|---|
+| ⚙ Drive | wheels, tracks, drive motors, thruster |
+| ⚔ Weapon | the weapon, its motor, turret or arm |
+| ⛨ Body | chassis, armour, top plate, battery, radio, chip, module, drones |
+
+- A zone is lit when something in it is lost or dead, or below 70%.
+- One repair action restores a whole zone, dents included.
+- Body parts that are still there heal back to half on their own every Upkeep. Lost body parts (a plate, the lid, a drone) stay lost until Body is repaired.
+- The losing team gets one free repair action next Upkeep (this replaces the Scrap Crate).
+
+### Do repairs add to the game? (`tools/robocus2/zonesim.js`)
+
+40 AI games per row: 4 teams, a starter and a level 1 robot each, real fights, first to 5 fame. Each team sends its best robot by strength.
+
+| Repairs | Rounds | Win after a loss / after a win | Fights with a broken zone |
+|---|---|---|---|
+| everything repaired for free (no carry-over) | 6.2 | 50% / 50% | 0% |
+| no repairs (Body heals only) | 5.6 | **39% / 61%** | 58% |
+| zones, 1 action a round + loser's free one | 6.2 | 44% / 56% | 54% |
+| zones, 2 actions a round + loser's free one | 6.3 | 49% / 51% | 18% |
+| zones, 5 actions a round (3 Mechanics + Chief Engineer) | 6.2 | 50% / 50% | 0% |
+
+- Without repairs the game snowballs: a team that lost wins only 39% of its next fight.
+- Zones with a little crew remove the snowball, and game length stays the same.
+- A team uses about 2 repair actions a round. With the full starting crew (5 actions, plus free ones) every robot is always fully repaired, so the only real cost is crew being busy for Intrigue cards.
+- To make repairs a choice, crew should be scarcer than that: for example **every crew member gives 1 action** (Chief Engineer too), or repairs cost a credit on top. To settle in a playtest.
 
 ## What damage costs (`tools/damage-lab/wearcost.js`)
 
