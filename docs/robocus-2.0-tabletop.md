@@ -22,7 +22,7 @@ Kev (8 Nov): build 2.0 into the browser game as a separate option, "Tabletop pro
 - A robot has a level, 2 part slots and 1 legendary slot, its damage (`wear`) and Fan tokens. No stats, strain or engineers.
 - Market: the 22 part cards (with copies) replace the 1.0 upgrades; the 3 legendary parts are announced a round ahead like 1.0's legendaries. Robot lots (placeholder): level 1 in rounds 1-2, level 2 in rounds 3-4, level 3 from round 5.
 - Odds and AI use `Repair2.strength` (no scouting, no sparring). Several sides: P ∝ exp(strength).
-- Fights: duel, 2v2 (Grand Final, Tag Team, 2 per side), free-for-all (Grand Melee), Mirror (2 copies each), House Robot (a level-2 Juggernaut; only when there is room, 4 robots max). Shown in the full-screen view; AI-only, bot and skipped fights run headless.
+- Fights: duel, 2v2 (Grand Final, Tag Team, 2 per side), free-for-all (Grand Melee), Mirror (2 copies each), House Robot (Big Mallet, see "The House Robot" below; only when there is room, 4 robots max). Shown in the full-screen view; AI-only, bot and skipped fights run headless.
 - Repairs in Upkeep: body parts heal to half for free, then each zone (⚙ Drive, ⚔ Weapon, ⛨ Body) costs one repair action: every crew member gives 1 (Kev, 8 Nov; was Mechanic 1, Chief Engineer 2, Repair Tech 3), and is exhausted for the round; else 2 Cr. Free actions: Aegis Heavy 1 per Upkeep; the losing team 1 next Upkeep (Vulture Salvage 2), replacing the Scrap Crate.
 - Intrigue robot cards in 2.0 terms (Secret Upgrade, Overclock, Sugar in the Tank, Smudged Lens, EMP the Garage, Loose Bolts, Rogue Firmware).
 - Live combat cards: on (see below). Not yet: online play.
@@ -196,6 +196,22 @@ The eight level 4 robots (`docs/robocus-2.0-level4.md`) are in `prototypes/table
 - **Bookie, fights with level 4:** level 4 sides rated 53%, won 56%; favourite wins 62%. Close enough, so `L4_OFF` stays 0.35. The bookie's high bands (70-90%) win less than rated in these fights, as in all fights.
 
 Round 2 variants for the PC run are in `tools/bal2/` (`tools/run-sims3.cmd`).
+
+## Robots no longer land on their side (Kev, 8 Nov, later)
+It looked wrong in the top-down view. A hard landing now ends right side up or upside down (same build-based odds as the old side landing's settle), in the engine, the fight view (`src2/view.js`: no edge-on drawing, no "ON ITS SIDE" chip) and the Damage Lab. No card or help text in the tabletop mentioned it. Balance check: `docs/damage-lab.md`, "On its side removed".
+
+## The House Robot: Big Mallet (Kev, 8 Nov, later)
+"Unleash the House Robot" (Intrigue, host only) now reads: *A huge house robot with a giant hammer joins in. It rarely lands a hit, but when it does it hurts. Robots keep away from it.* (prefixed "Host only:").
+- The robot is the engine preset `Big Mallet` (`HOUSE_NAME`, house colours from the preset; engine details and measurements in `docs/damage-lab.md`, "The House Robot"): huge, slow, patrols the middle, winds up for 2 s with a red ring and strobes, lands about 1 swing in 10, about 95 damage and usually the lid when it does. Other robots keep away from it.
+- Rules: neutral, as before, but the fight now ends when one team is left (it doesn't have to be beaten) and the judges only score teams. If it outlasts every team: nobody gets fame, bets refunded.
+- Bookie: the House Robot no longer takes a share of the odds (it almost never wins); with it in, the sides' strength gaps are shrunk (`HOUSE_ODDS` 0.8), because the favourite wins 4-6 points less often with it in.
+- Help: the banner's 🏠 help explains it; the fight panel shows it as "House · neutral".
+- AI: `aiCardValue` gives it 3 when its own best ready robot is weaker than the other teams' average best (the House Robot shakes the odds up), else 1.5; in the Host step it plays it 80% of the time when that value is high, else 25% (was a flat 50%; the card used to be cashed in, 0.0 plays a game).
+
+## Damage bet: tried and dropped (8 Nov)
+A side bet on how much a fighter loses (no parts / 1–2 / 3+ or KO'd) was tried on 8 Nov and dropped (Kev: too complex): with fixed payouts and no odds it can be farmed using the public odds (the loser almost always ends 3+ or KO'd, a strong favourite often loses nothing).[^dbet]
+
+[^dbet]: Real bands of every fighter (20 AI games, 222 fights, 644 fighters, all formats): no parts lost 12%, 1–2 lost 18%, 3+ or KO'd 69%. Duel 15 / 23 / 62, 2v2 11 / 16 / 74, double 11 / 17 / 72; winners 24 / 34 / 41, losers 0 / 2 / 97; bookie p < 0.3: 4 / 9 / 87, 0.3–0.45: 8 / 13 / 79, 0.45–0.55: 5 / 19 / 76, 0.55–0.7: 12 / 22 / 66, > 0.7: 29 / 30 / 41. 150 open-floor lineup duels: 19 / 20 / 61 (favourites 29 / 23 / 48, underdogs 10 / 12 / 79). A flat 2× let the AI net +33 Cr a game on "3+ or KO'd"; fixed 7.5× / 5× / 1.25× (a blind bet returns 0.87–0.92) still netted +27.5 Cr a game, from "no parts lost" on favourites.
 
 ## Next steps
 

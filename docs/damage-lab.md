@@ -226,7 +226,7 @@ Kev: add them as well (thwack tail, lifter fork, battering ram, vertical disc). 
 
 ## Forklift fix, robots on their side, pit removed (8 Nov)
 - **Forklift** (Kev: it does not go under a robot): the forks used to be solid, so they bumped into the other robot and lifts only happened from the very tips. Now the forks slide under any robot on the ground (contact disabled), and it lifts when a robot sits at least halfway up the forks. Forks are drawn under the other robots; a carried robot is drawn raised.
-- **On its side** (Kev: robots that land on their side, move a little, then fall over, depending on their physics body). After a hard landing a robot can come down on its side. Worked out per robot from its own build (`sideProfile`): width over wheels and plates, a height estimate (frame + top-mounted weapon + top armour), how top-heavy it is (top armour, turret weapons, module mass over total mass) and the hull (box 1, chamfer 0.55, wedge 0.45, round 0.12; a shell spinner counts as round-ish).
+- **On its side** (removed again on 8 Nov, see "On its side removed" below) (Kev: robots that land on their side, move a little, then fall over, depending on their physics body). After a hard landing a robot can come down on its side. Worked out per robot from its own build (`sideProfile`): width over wheels and plates, a height estimate (frame + top-mounted weapon + top armour), how top-heavy it is (top armour, turret weapons, module mass over total mass) and the hull (box 1, chamfer 0.55, wedge 0.45, round 0.12; a shell spinner counts as round-ish).
   - Chance to land on its side 3-45% (Rocketeer 30%, Whirlwind 22%, Whaler 4%).
   - It balances for 0.6-3 s, rocking, scooting on the edge of its wheels (22% grip) with the weapon off (a shell spinner keeps spinning).
   - Then it drops back onto its wheels with chance 25-97% (top-heavy robots topple onto their back more often), or straight away when hit hard (more likely to topple). Flippers and axes push themselves back up.
@@ -250,3 +250,27 @@ Kev: a separate battle arena for the 2.0 lineup, with the proposed 22 parts + Pr
 
 ## Level 4 robots (8 Nov, later)
 Kev: 4-8 end-game robots from exotic mechanisms, not power knobs. Eight new presets (Hydra, Corkscrew, Trebuchet, Angler, Lodestone, Orbiter, Tarantula, Grandmaster), new weapons `hydra`, `corkscrew`, `trebuchet`, `angler`, `lodestone`, `orbiter`, `fangs`, `carousel`, a `huge` frame and a six-legged `legs` drive. Shared helpers: motorised joint chains with inverse kinematics, raised arms that pass over robots (only tall weapons hit them), an enemy-reading "Tactician" (0.5 s latency), lamps driven by the mechanism's state. Existing fights are bit-identical (`node l4-regress.js`). Results and engine notes: `docs/robocus-2.0-level4.md`.
+
+## On its side removed (Kev, 8 Nov, later)
+Robots that stopped on their side looked wrong in the top-down view, so the state is gone (`R.onSide`, `prof.pSide` / `tSide`, the "ON ITS SIDE!" callout, the edge-on drawing in `ui.js` and `src2/view.js`, the readEnemy "helpless" check).
+- A hard landing still rolls the same build-based chance (`prof.pTip`, was `pSide`: 3-45%, tall, narrow, boxy robots most). When it comes up, the robot goes straight to one of the two flat outcomes with the old settle odds (`prof.pUp`, 25-97%: top-heavy robots more often on their back): right side up, or toppled ("TOPPLED!"). Otherwise the old flip roll applies, as before.
+- Level ladder (`tiers`-style round robin of the 25 lineup robots at their grades, 12 seeds from 7101, 3,600 fights; scratch script: the `M.evaluate` call of `tiers.js verify`), row wins before → after:
+
+| | vs L0 | vs L1 | vs L2 |
+|---|---|---|---|
+| L1 | 67% → 68% | | |
+| L2 | 71% → 72% | 62% → 62% | |
+| L3 | 86% → 88% | 77% → 78% | 65% → **71%** |
+
+  L3 vs L2 moved 6 points (300 fights, about ±3 of noise): Vertigo 72 → 78 and Forklift 77 → 79 average; on the low end Haymaker 31 → 26, Popcorn 34 → 30. Median fight 55 → 54 s, judges 6 → 7%.
+- Level 4 (`node l4.js 10`, 100 fights per robot): vs L3 average 55% → 57%, vs L2 62% → 68%. Single robots move a lot at 10 fights per opponent; a second run at 30 per opponent (`SEED0=30001`) for the biggest movers: Grandmaster vs L3 55 → 47, Lodestone 61 → 49, Hydra 65 → 61, Angler 71 → 61 (vs L2: 59 → 60, 62 → 69, 58 → 67, 84 → 87). Lodestone and Angler vs L3 dropped in both runs (−8 / −12 and −6 / −10).
+- `l4-regress.js` prints a fingerprint (it doesn't store one): existing fights change from the first hard landing on, as expected.
+
+## The House Robot: Big Mallet (Kev, 8 Nov, later)
+The tabletop card "Unleash the House Robot" now brings a huge neutral robot with a giant overhead hammer (preset `Big Mallet`, weapon `mallet`, new `giant` frame 1.32 x 1.0 m, 193 kg, tracks, armour 3/3/2/3, house colours, hazard stripes, two orange beacons).
+- **The swing.** When a robot comes within reach in front of it (0.85 m past its nose), it locks its aim on where that robot is *now*, stands still and winds up for 2 s: the head goes up and back over the robot, the corner lamps and the head strobe faster and faster, and a red ring marks the spot (the tell). Then it slams down there (with up to 0.38 m of scatter: it is clumsy). Only a blow on the body counts as a hit: 160 base damage (about 95 after armour, plus 45 straight into the lid, which usually comes off), a shove and a short daze. On a wheel, plate or weapon it glances off (a quarter of the damage). It doesn't swing at a robot that can't get away (flipped, stunned, stuck, held, no drive, pinned against the wall) or at the robot it just hit (5 s).
+- **It is slow and patrols the middle**: 30% throttle, and it doesn't follow robots into the outer ring of the arena (target clamped to ±1.5 m).
+- **Other robots avoid it** (engine `houseAvoid`, only when a House Robot is in the fight): it is never their first pick and they only go for it when it is helpless (stunned, flipped, its arm broken) or there is nobody else. They keep about 2.2 m away (steering round it, and driving straight out when within 1.9 m), and when a slam is winding up near them they drive straight out along their own axis, forwards or backwards, whichever is away from the spot (they don't have time to turn).
+- **Results**: it is neutral. A fight ends when one team is left (the House Robot doesn't have to be beaten) and the judges only score teams. Only if it outlasts every team is it the "winner" (no fame, bets refunded).
+- **Measured** (`node house.js 100`, the same 100 random level 1-3 duels with and without it; two seed sets, 20001 and 40001): mallet hits 10% / 12% of its swings (50 of 516, 60 of 493; about 4.5 swings a minute); 91-97 damage per hit (median 95), 34 / 38 lids knocked off in 100 fights; other robots are within 1.5 m of it 9% / 8% of the time; it is flipped or stunned about 28 times per 100 fights and KO'd 0-1 times. The favourite (higher level and grade) wins 64% → 58% and 54% → 50% with it; 52-57% of seeds keep the same winner; fights 54 → 59-60 s, judges 2 → 11% and 5 → 19%.
+- Drawn in `ui.js` and `src2/view.js` (`drawMallet`, kept in step): arm on a rear pivot, the head at rest on the front deck, raised over the back while winding up (bigger and higher = further shadow), then on the spot; the red ring and strobes are the tell.

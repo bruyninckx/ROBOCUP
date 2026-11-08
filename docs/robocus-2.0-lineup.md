@@ -53,6 +53,8 @@ Starters are the classic robots with no module or chip (1.0 had the same idea). 
 
 So each level adds 10-12 points over the one below, two levels 26-27, three levels 41.
 
+Re-check after robots stopped landing on their side (8 Nov, later; 3,600 fights, seeds 7101-7112): L1 vs L0 67 → 68%, L2 vs L0 71 → 72%, L2 vs L1 62 → 62%, L3 vs L0 86 → 88%, L3 vs L1 77 → 78%, **L3 vs L2 65 → 71%** (the one move over 5 points). Details in `docs/damage-lab.md`, "On its side removed". (The 'before' numbers are this re-run on the same seeds, not the table above.)
+
 **Rock-paper-scissors worth knowing:**
 - Mauler is the weakest L1 within its level (20%) but crushes the starters (82%).
 - Brawler and Ramrod are the opposite: strong in their own level, weak against the level below (38% / 52%). The rubber bumper and the glove are hard counters.
