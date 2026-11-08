@@ -1917,7 +1917,7 @@ html, body {
         t.robots.splice(t.robots.indexOf(r), 1); t.debt--; returnStarter(r.name);
         for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
         notify('🧾 <b>' + esc(t.name) + '</b> can\'t pay its upkeep and scraps <b>' + esc(r.name) + '</b>.', '#d62828');
-        if (!t.robots.length) { t.robots.push(scrapBot()); notify('🤖 ' + nm(t) + ' gets a free starter robot: ' + esc(t.robots[0].name) + '.', t.col); }
+        if (!t.robots.length) noRobotsLeft(t);   // 2.0 (Kev, 8 Nov): no free Scrapbot
       }
       t.debt = 0;
     }
@@ -1946,8 +1946,10 @@ html, body {
     return F.fame + (extra || 0) >= needOf(F, c);
   }
   function tamperRobot(r, d) { r.tamper = r.tamper || {}; for (const k in d) r.tamper[k] = (r.tamper[k] || 0) + d[k]; }
-  // a team that lost its last robot gets a free starter (1.0: a Scrap Bot)
-  function scrapBot() { const n = drawStarter() || pick(Object.keys(STARTERS)); return mkRobot(n); }
+  // 2.0 (Kev, 8 Nov): a team that loses its last robot gets NO free robot (1.0 gave a Scrap Bot, but a fresh one was
+  // sometimes better than repairing the old one). It sits out (an invite without a ready robot costs 1 fame, as in 1.0)
+  // until it wins a robot lot in the Market.
+  function noRobotsLeft(t) { notify('🤖 ' + nm(t) + ' has no robots left: win a New Robot lot in the Market.', t.col); }
   function discardCard(id) { if (CARDS[id] && CARDS[id].auction) { (G.auctionDiscard = G.auctionDiscard || []).push(id); return; } G.discard.push(id); }   // auction cards never go back into the Intrigue deck
   function removeFromHand(t, id) { const k = t.hand.indexOf(id); if (k >= 0) t.hand.splice(k, 1); return k >= 0; }
 
@@ -2891,7 +2893,8 @@ html, body {
       notify('🌟 <b>Legendary in the Market:</b> ' + lotRef(G.market[NLOTS - 1]) + ' (one copy).', '#b45309');
     }
     // Kev, 6 Nov: rounds 1–5 always offer at least one robot (a team that lost robots must be able to rebuild)
-    if (G.round <= ROBOT_LOT_ROUNDS && !G.market.some(id => LOTS[id] && LOTS[id].robot)) {
+    // 2.0 (no free Scrapbot): also every round in which a team has no robots left
+    if ((G.round <= ROBOT_LOT_ROUNDS || G.teams.some(t => !t.robots.length)) && !G.market.some(id => LOTS[id] && LOTS[id].robot)) {
       const k = G.market.findIndex(id => !(LOTS[id] && LOTS[id].legend));
       if (k >= 0) { const old = G.market[k]; if (LOTS[old] && LOTS[old].crew) G.crewDeck.unshift(LOTS[old].crew); else G.lots.unshift(old); G.market[k] = dealRobot(); }   // the part goes to the bottom of the lot deck
     }
@@ -4238,7 +4241,7 @@ html, body {
       for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
-      if (!T.robots.length) { T.robots.push(scrapBot()); notify('🤖 ' + nm(T) + ' gets a free starter robot: ' + esc(T.robots[0].name) + '.', T.col); }
+      if (!T.robots.length) noRobotsLeft(T);   // 2.0 (Kev, 8 Nov): no free Scrapbot
     } else if (safeWhy) {
       notify('🛡️ <b>' + esc(robot.name) + '</b> (' + nm(T) + ') is safe: ' + safeWhy + '.', '#2a9d3a');
     } else {
