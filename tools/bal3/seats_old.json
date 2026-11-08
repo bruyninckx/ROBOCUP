@@ -1,0 +1,2 @@
+{ "_note": "the new defaults with the old seat order (ties to the lower seat, AI reacts in seat order, round 1 Intrigue starts at seat 1): measures the seat fix",
+  "seats": {"fairTies": false} }

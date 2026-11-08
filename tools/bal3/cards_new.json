@@ -1,0 +1,2 @@
+{ "_note": "all robot-card proposals: Secret Upgrade +15%/+15%, Smudged Lens -25%, Sugar in the Tank 40%, Loose Bolts = one wheel at 30% until repaired, Overclock without extra heat",
+  "cards": {"upDmg": 1.15, "upHp": 1.15, "lens": 0.75, "sugar": 0.4, "boltsMode": "wheel", "boltsWheel": 0.3, "ocMode": "noheat"} }
