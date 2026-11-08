@@ -14,3 +14,6 @@ drive-download-*.zip
 # test tool installs
 package-lock.json
 sims/
+
+# local planck copy for offline/sandbox runs (npm pack planck@1.4.3)
+vendor/
