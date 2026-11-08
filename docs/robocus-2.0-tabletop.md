@@ -143,3 +143,11 @@ So wheels, drive motors and the weapon are what count. Armour, the lid and chass
 3. ~~Live cards on the new engine~~ (done 8 Nov). Tune the card values once more fights are measured.
 4. Online play: the host streams fights.
 5. Decide how the levels are spread over the auctions.
+
+## Balance overhaul: notes to take along (Kev, 8 Nov)
+
+- **Too many modules and drones in the Market?** Checked: the lot deck is 30 cards: 10 drones, 6 modules, 6 stat parts, 4 robots, 4 crew. With 4 lots a round that is about 2 drone/module lots every round, so they stop feeling special. Kev wants fewer.
+- **More special engineers in the lots.** Crew are 4 of 30 lot cards (about 1 every 2 rounds), and the crew deck has 2 Mechanics, 2 Chief Engineers, 1 Repair Tech and 5 non-repair crew.
+- **Repairs should hurt more** so engineers matter. Sim baseline: 4 crew per team vs 1.5 damaged zones, 89% of damage fixed, almost no damage reaches the next fight, credits pay for repairs about 0 times.
+- Other sim reads: fight cards sell cheap (1.1 Cr, 45% sold), robot prices barely rise with level (4.8 / 5.2 / 5.5 Cr), Intrigue cards out-earn fight wins as a fame source.
+
