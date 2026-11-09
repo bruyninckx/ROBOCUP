@@ -978,62 +978,76 @@
     }
   }
   function fmtT(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${m}:${String(s).padStart(2, '0')}`; }
+  // Layout B "Workshop Bench" (Kev, 9 Nov 2026): the fight screen on the bench. The arena is drawn as before; only the frame
+  // changes: light bench, paper fighter cards with a team-coloured top, the arena in the dark pit frame with the moments under
+  // it, the fight cards on hazard stripes, and a bets / what's-next card next to them (opts.info from the game).
   const CSS = `
-  .fv{position:fixed;inset:0;z-index:50;background:#211C17;color:#EDE6D9;display:flex;flex-direction:column;font:14px "IBM Plex Sans",system-ui,sans-serif}
+  .fv{position:fixed;inset:0;z-index:50;background:#E9E4DA;color:#2B2118;display:flex;flex-direction:column;font:14px "IBM Plex Sans",system-ui,sans-serif}
   .fv[hidden]{display:none}
-  .fv-top{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#15110D;border-bottom:1px solid #3A3229;flex-wrap:wrap}
-  .fv-top h2{margin:0 auto 0 0;font:400 20px "Saira Stencil One",Impact,sans-serif;letter-spacing:.04em;color:#E8C547}
-  .fv-top button{font:600 13px "IBM Plex Mono",monospace;background:#2E2721;color:#EDE6D9;border:1px solid #4A4037;border-radius:6px;padding:7px 11px;cursor:pointer;min-height:36px}
-  .fv-top button[aria-pressed=true]{background:#E8C547;color:#15110D;border-color:#E8C547}
-  .fv-top button.go{background:#E8C547;color:#15110D;border-color:#E8C547}
-  .fv-main{flex:1;display:grid;grid-template-columns:minmax(270px,1fr) auto minmax(270px,1fr);gap:10px;padding:10px;min-height:0}
-  .fv-arena{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
-  .fv-arena canvas{width:min(calc(100vh - 150px),calc(100vw - 600px));height:min(calc(100vh - 150px),calc(100vw - 600px));min-width:280px;min-height:280px;border-radius:8px;display:block}
+  .fv-top{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#E9E4DA;border-bottom:3px solid #2B2118;flex-wrap:wrap}
+  .fv-top h2{margin:0 auto 0 0;font:400 24px "Saira Stencil One",Impact,sans-serif;letter-spacing:.02em;color:#2B2118}
+  .fv-top button{font:700 12.5px "IBM Plex Mono",monospace;background:#F6F2EA;color:#2B2118;border:2px solid #2B2118;border-radius:5px;padding:6px 11px;cursor:pointer;min-height:36px}
+  .fv-top button[aria-pressed=true]{background:#2B2118;color:#E8C547}
+  .fv-top button.go{font:400 16px "Saira Stencil One",Impact,sans-serif;letter-spacing:1px;background:#2B2118;color:#E8C547;border-color:#2B2118}
+  .fv-main{flex:1;display:grid;grid-template-columns:minmax(270px,1fr) auto minmax(270px,1fr);gap:12px;padding:12px;min-height:0}
+  .fv-arena{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:0;background:#3A3530;border:3px solid #2B2118;border-radius:6px;padding:10px;align-self:center}
+  .fv-arena canvas{width:min(calc(100vh - 180px),calc(100vw - 650px));height:min(calc(100vh - 180px),calc(100vw - 650px));min-width:280px;min-height:280px;border-radius:3px;display:block;outline:4px dashed #E8C547;outline-offset:2px}
+  .fv-col{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
   .fv-left,.fv-right{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
-  .fv-panel{background:#2B241E;border:1px solid #3A3229;border-top:4px solid var(--tc);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:7px}
+  .fv-panel{background:#F6F2EA;border:2px solid #2B2118;border-top:10px solid var(--tc);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:7px}
   .fv-panel.out{opacity:.55}
   .fv-panel header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .fv-panel h3{margin:0;font:400 22px "Saira Stencil One",Impact,sans-serif;color:var(--tl);line-height:1.1}
-  .fv-team{font:600 11px "IBM Plex Mono",monospace;color:#B8AE9E;text-transform:uppercase;letter-spacing:.06em}
-  .fv-stars{color:#E8C547;letter-spacing:2px;margin-left:4px}.fv-stars.dim{color:#7A7064;letter-spacing:0;text-transform:none}
-  .fv-kg{font:600 11px "IBM Plex Mono",monospace;color:#9A9083}
-  .fv-bars{display:grid;gap:3px}.fv-hp,.fv-hype{height:9px;background:#4A443D;border-radius:5px;overflow:hidden}.fv-hype{height:4px}
-  .fv-hp i,.fv-hype i{display:block;height:100%;transition:width .2s}.fv-hype i{background:#E8C547}.fv-hype i.rage{background:#FF5A3C}
-  .fv-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:18px}.fv-chips span{font:600 10px "IBM Plex Mono",monospace;background:#15110D;color:#E8C547;padding:2px 6px;border-radius:4px}.fv-chips span.bad{background:#B23A2B;color:#fff}
+  .fv-panel h3{margin:0;font:400 24px "Saira Stencil One",Impact,sans-serif;color:#2B2118;line-height:1.05}
+  .fv-team{font:700 11px "IBM Plex Mono",monospace;color:var(--tc);text-transform:uppercase;letter-spacing:.06em}
+  .fv-stars{color:#B07A10;letter-spacing:2px;margin-left:4px}.fv-stars.dim{color:#6E6457;letter-spacing:0;text-transform:none}
+  .fv-kg{font:600 11px "IBM Plex Mono",monospace;color:#6E6457}
+  .fv-bars{display:grid;gap:3px}.fv-hp,.fv-hype{height:9px;background:#CFC6B7;border-radius:2px;overflow:hidden}.fv-hype{height:4px}
+  .fv-hp i,.fv-hype i{display:block;height:100%;transition:width .2s}.fv-hype i{background:#C99A1E}.fv-hype i.rage{background:#B23A2B}
+  .fv-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:18px}.fv-chips span{font:700 10px "IBM Plex Mono",monospace;background:#2B2118;color:#E8C547;padding:2px 6px;border-radius:2px}.fv-chips span.bad{background:#B23A2B;color:#fff}
   .fv-body{display:grid;gap:8px}
-  .fv-diag{width:100%;height:130px;background:#1E1915;border-radius:6px}
+  .fv-diag{width:100%;height:130px;background:#3A3530;border-radius:4px}
   .fv-rows{display:grid;gap:2px}
   .fv-row{display:grid;grid-template-columns:1fr 60px 84px;gap:6px;align-items:center;font-size:12px;line-height:1.25}
   .fv-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .fv-row b{height:6px;background:#4A443D;border-radius:3px;overflow:hidden}.fv-row b i{display:block;height:100%}
-  .fv-row em{font:600 10px "IBM Plex Mono",monospace;font-style:normal;color:#9A9083;text-align:right;white-space:nowrap}.fv-row em.warn{color:#E0B848}.fv-row em.bad{color:#F07A68}
-  .fv-lost{font-size:11px;color:#B8AE9E}
-  .fv-cards{display:flex;flex-direction:column;gap:5px;padding:6px 12px;background:#2B241E;border-top:1px solid #4A4037}
+  .fv-row b{height:7px;background:#CFC6B7;border-radius:2px;overflow:hidden}.fv-row b i{display:block;height:100%}
+  .fv-row em{font:600 10px "IBM Plex Mono",monospace;font-style:normal;color:#6E6457;text-align:right;white-space:nowrap}.fv-row em.warn{color:#8A6A10}.fv-row em.bad{color:#B23A2B}
+  .fv-lost{font-size:11px;color:#6E6457}
+  .fv-foot{display:flex;gap:12px;padding:0 12px 12px;align-items:stretch}
+  .fv-foot:not(:has(> :not([hidden]))){display:none}
+  .fv-cards{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:9px 12px;background:#2B2118;border-radius:6px}
   .fv-cards[hidden]{display:none}
-  .fv-hint{font:600 12px "IBM Plex Mono",monospace;color:#E8C547;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:20px}
-  .fv-hint button{font:600 12px "IBM Plex Mono",monospace;background:#15110D;color:#EDE6D9;border:1px solid #4A4037;border-radius:5px;padding:3px 8px;cursor:pointer;min-height:28px}
-  .fv-hint button[aria-pressed=true]{background:#E8C547;color:#15110D;border-color:#E8C547}
-  .fv-tray{display:flex;gap:6px;overflow-x:auto}
-  .fv-card{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:220px;font:600 13px "IBM Plex Sans",system-ui,sans-serif;background:#3A3027;color:#EDE6D9;border:1px solid #D99000;border-top:3px solid #D99000;border-radius:7px;padding:6px 10px;cursor:pointer;min-height:40px;text-align:left}
+  .fv-hint{font:700 12px "IBM Plex Mono",monospace;color:#E8C547;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:20px}
+  .fv-hint button{font:700 12px "IBM Plex Mono",monospace;background:#F6F2EA;color:#2B2118;border:2px solid #F6F2EA;border-radius:4px;padding:3px 8px;cursor:pointer;min-height:28px}
+  .fv-hint button[aria-pressed=true]{background:#E8C547;color:#1A1A12;border-color:#E8C547}
+  .fv-tray{display:flex;gap:10px;overflow-x:auto;padding:3px}
+  .fv-card{flex:0 0 auto;display:flex;align-items:center;gap:7px;max-width:240px;font:400 15px "Saira Stencil One",Impact,sans-serif;letter-spacing:.3px;background:#1A1A12;color:#F4EDE2;border:5px solid transparent;border-image:repeating-linear-gradient(-45deg,#E8C547 0 8px,#1A1A12 8px 16px) 5;padding:5px 10px;cursor:pointer;min-height:44px;text-align:left}
   .fv-card b{font-size:18px}.fv-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .fv-card[aria-pressed=true]{background:#E8C547;color:#15110D;border-color:#E8C547}
+  .fv-card[aria-pressed=true]{background:#E8C547;color:#1A1A12;outline:3px solid #E8C547}
   .fv-card:disabled{opacity:.45;cursor:default}
+  .fv-info{flex:0 0 auto;background:#FFFDF8;border:2px solid #2B2118;border-radius:6px;padding:8px 12px;font-size:12.5px;line-height:1.4;overflow:auto;max-height:150px}
+  .fv-info[hidden]{display:none}
+  .fv-info h4{margin:0 0 3px;font:700 11px "IBM Plex Mono",monospace;letter-spacing:1px;color:#6E6457}
+  .fv-info .fv-ib{display:flex;justify-content:space-between;gap:8px}.fv-info .fv-ib i{font:600 12px "IBM Plex Mono",monospace;font-style:normal;white-space:nowrap}
+  .fv-info .fv-next{margin-top:6px;padding-top:5px;border-top:2px dashed #CFC6B7;font-weight:600}
   .fv.aiming canvas{cursor:crosshair}
-  .fv.has-cards .fv-arena canvas{width:min(calc(100vh - 235px),calc(100vw - 600px));height:min(calc(100vh - 235px),calc(100vw - 600px))}
-  .fv-feed{height:72px;overflow:auto;padding:6px 12px;background:#15110D;border-top:1px solid #3A3229;font:12px "IBM Plex Mono",monospace}
-  .fv-ev{border-left:3px solid var(--c);padding-left:7px;margin:2px 0;color:#D9D0C2}
+  .fv.has-cards .fv-arena canvas{width:min(calc(100vh - 275px),calc(100vw - 650px));height:min(calc(100vh - 275px),calc(100vw - 650px))}
+  .fv-feed{width:100%;height:52px;overflow:auto;padding:0 2px;font:12px "IBM Plex Mono",monospace}
+  .fv-ev{border-left:4px solid var(--c);padding:1px 7px;margin:2px 0;color:#EDE6DA;background:rgba(0,0,0,.3);border-radius:0 3px 3px 0}
   @media (max-width:900px),(orientation:portrait){
     .fv-main{display:flex;flex-direction:column;overflow:auto;padding:8px}
     .fv-main>*,.fv-panel{flex-shrink:0}
-    .fv-top{padding:6px 8px;gap:6px}.fv-top h2{font-size:16px;flex-basis:100%}.fv-top button{padding:5px 9px;min-height:34px}
-    .fv-arena canvas{width:min(100vw - 16px,60vh);height:min(100vw - 16px,60vh)}
-    .fv-left,.fv-right{overflow:visible}
+    .fv-top{padding:6px 8px;gap:6px}.fv-top h2{font-size:17px;flex-basis:100%}.fv-top button{padding:5px 9px;min-height:34px}
+    .fv-arena{padding:6px;align-self:stretch}
+    .fv-arena canvas{width:min(100vw - 40px,58vh);height:min(100vw - 40px,58vh)}
+    .fv-left,.fv-right,.fv-col{overflow:visible}
     .fv-arena{order:-1}
     .fv-body{grid-template-columns:96px 1fr}
     .fv-diag{height:128px}
-    .fv-feed{height:56px}
-    .fv-cards{padding:5px 8px}.fv-card{font-size:12px;padding:5px 8px;min-height:38px}
-    .fv.has-cards .fv-arena canvas{width:min(100vw - 16px,60vh);height:min(100vw - 16px,60vh)}
+    .fv-feed{height:44px}
+    .fv-foot{flex-direction:column;padding:0 8px 8px;gap:8px}
+    .fv-col{order:1}.fv-right{order:2}
+    .fv-cards{padding:6px 8px}.fv-card{font-size:13px;padding:4px 8px;min-height:40px}
+    .fv.has-cards .fv-arena canvas{width:min(100vw - 40px,52vh);height:min(100vw - 40px,52vh)}
   }`;
   function mount(el) {
     root = el; if (!document.getElementById('fv-css')) { const s = document.createElement('style'); s.id = 'fv-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -1041,9 +1055,8 @@
     root.innerHTML = `<div class="fv-top"><h2 class="fv-title">Fight</h2>
       <button type="button" data-sp="1" aria-pressed="false">1×</button><button type="button" data-sp="2" aria-pressed="true">2×</button><button type="button" data-sp="4" aria-pressed="false">4×</button>
       <button type="button" class="fv-pause" aria-pressed="false">Pause</button><button type="button" class="fv-skip">Skip to result</button><button type="button" class="fv-done go" hidden>Continue</button></div>
-      <div class="fv-main"><div class="fv-left"></div><div class="fv-arena"><canvas aria-label="Arena"></canvas></div><div class="fv-right"></div></div>
-      <div class="fv-cards" hidden><div class="fv-hint"></div><div class="fv-tray"></div></div>
-      <div class="fv-feed" aria-live="off"></div>`;
+      <div class="fv-main"><div class="fv-col"><div class="fv-left"></div><div class="fv-info" hidden></div></div><div class="fv-arena"><canvas aria-label="Arena"></canvas><div class="fv-feed" aria-live="off"></div></div><div class="fv-right"></div></div>
+      <div class="fv-foot"><div class="fv-cards" hidden><div class="fv-hint"></div><div class="fv-tray"></div></div></div>`;
     cv = root.querySelector('canvas'); ctx = cv.getContext('2d');
     cv.addEventListener('pointerdown', onCanvasDown);
     cv.addEventListener('pointermove', e => { if (aim) hover = toWorld(e.clientX, e.clientY); });
@@ -1065,6 +1078,7 @@
     S = S2; opts = o; ended = false; feedN = 0; parts = []; calls = []; hitStop = 0; flash = 0; shake = 0; slowT = 0; decalReset();
     cam.x = cam.y = cam.tx = cam.ty = 0; cam.z = cam.tz = 1; V.paused = false; V.bars = false;
     root.querySelector('.fv-title').textContent = o.title || 'Fight';
+    { const inf = root.querySelector('.fv-info'); inf.innerHTML = o.info || ''; inf.hidden = !o.info; }   // the game's bets / what's next card
     root.querySelector('.fv-feed').innerHTML = ''; root.querySelector('.fv-done').hidden = true; root.querySelector('.fv-skip').hidden = false;
     const pb = root.querySelector('.fv-pause'); pb.setAttribute('aria-pressed', 'false'); pb.textContent = 'Pause';
     aim = null; cards = []; onPlayCb = null; drawCards();
