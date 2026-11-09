@@ -48,7 +48,7 @@ Auction deck (32 cards):
 | Card | Copies | Target | What it does (engine `DamageLab.command`) |
 |---|---|---|---|
 | Swap the Entry | 2 | (Bets step) | after bets: change which robot an invited team sends |
-| Remote Trigger | 2 | a robot | fires its module now |
+| Floor Spikes | 2 | a spot | red ring for 0.8 s, then spikes for 4 s (0.7 m): 9 chassis damage and 14 to each tyre per second; robots steer clear (replaced Remote Trigger, Kev 9 Nov: it almost never sold) |
 | Pilot Waypoint | 3 | your robot, then a spot | drives there for 3 s |
 | Target Overclock | 2 | your robot | nitro 3.5 s |
 | Field Engineer | 3 | your robot | clears jams, stalls and fire; +18 HP to the chassis and the worst part |

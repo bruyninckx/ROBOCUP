@@ -391,3 +391,26 @@ First reads for the balance overhaul:
 
 Note: the baseline ran while other test runs shared the 2 cores, so its wall times (27 s per game, 13.6 s per game overall) are
 slower than the clean timings above.
+
+## Balance rounds 3 and 4 (Kev's PC, 9 Nov; 6 variants × 100 games each)
+
+Round 3 ran on the old AI (Kev's copy had not pulled the AI-spending change); round 4 is the same six variants with the spending AI.
+
+| | round 3 (old AI) | round 4 (spending AI) |
+|---|---|---|
+| credits held per team at Upkeep | 10.1 | 9.3 |
+| Market spend / game (all teams) | 144.5 | 156.4 |
+| repairs paid with credits / game | about 2 (4.1 Cr) | 8.0 (15.9 Cr) |
+| close finish (runner-up within 1 / 2 fame) | 46% / 83% | 56% / 82% |
+| fame gap winner − last | 5.2 | 5.1 |
+| lots unsold | 21% | 22% |
+
+Base variant; the other variants move the same way. Credits at game end, all 2,400 teams of round 4: median 10, 90th percentile 22;
+67 teams ended with 30+, mostly winners collecting in their last round. Credits still drift up from about 7 a team (round 2) to 11 (round 12).
+
+Decisions (Kev, 9 Nov):
+- Fight cards: keep 2 per fight. In round 4 the 2-card variants had the closest finishes (56–60% within 1 fame against 52–54% with 1 card); a 2 Cr minimum bid kills the auction (5% sold).
+- Remote Trigger is replaced by **Floor Spikes** (offered 1.3 a game, bought 0.1). Engine check: a fight with Floor Spikes played blind on the rival at 15 s is won 58% against 56% without (160 fights; oil 57%). First tabletop games: offered 1.6, won 0.6, played 0.6 per game.
+- Backing stays as it is (Kev: it will work out at a real table). Big Mallet stays as it is (about 20% hits, small sample).
+- Level 3 robots sell below level 2 (6.5 against 7.6 Cr): left alone, an AI quirk; people set their own prices.
+- Seats with shuffled ties, pooled over 500 games: 26 / 26 / 22 / 26% wins.
