@@ -2749,7 +2749,7 @@ html, body {
         (r.faceDown = r.faceDown || []).push({ from: F.i, id });
         notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
       }
-      case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = pickReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = pickReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
+      case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = pickReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); r.loose = { part: lb, by: F.i }; say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = pickReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); r.loose = { part: 'lid', by: F.i }; say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
       case 'Rogue Firmware': { const r = pickReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
       case 'Tax Audit': { const p = payCr(T, 5, 'card'); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
@@ -6145,7 +6145,7 @@ html, body {
     else { ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name), bx, by + 54, bw, '600', 9.5); }
     help(bx, by + 44, bw, 13, esc(r.name) + ': ' + esc(wepLabel(r.name)), esc(descOf(r.name)) + '<br><b>Parts</b>: ' + esc(partsTxt(r)) + '.');
     if (!tgW) { ctx.textAlign = 'left'; ctx.fillStyle = pts.length ? INK : DASH; fitText(ctx, pts.length ? ptxt : 'no parts', bx, by + 68, bw, '600', 9); }
-    if (pts.length) { const bw2 = 17, bx2 = bx + 1, by2 = by + ps - 14; ctx.fillStyle = '#2F6DB5'; rrect(ctx, bx2, by2, bw2, 13, 3); ctx.fill();
+    if (pts.length) { const bw2 = 17, bx2 = bx + ps - bw2 - 1, by2 = by + 14; /* under a bounty strip, above a LOOSE / OFFLINE strip */ ctx.fillStyle = '#2F6DB5'; rrect(ctx, bx2, by2, bw2, 13, 3); ctx.fill();
       ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '+' + pts.length, bx2 + bw2 / 2, by2 + 10, bw2 - 2, '700', 9, F_MONO); ctx.textAlign = 'left';
       help(bx2, by2, bw2, 13, pts.length + ' part' + (pts.length === 1 ? '' : 's') + ' fitted', esc(ptxt) + '.'); }
     drawZoneButtons(ctx, r, bx, by + 73, bw, 12, false, true);
@@ -6295,7 +6295,25 @@ html, body {
     fitText(ctx, small ? '🎯 BOUNTY' : '🎯 BOUNTY +' + BAL.fame.bounty + ' FAME', x + w / 2, yTop + h - (small ? 3 : 4.5), w - 4, '700', small ? 8 : 9.5, F_MONO);
     help(x, yTop, w, h, '🎯 Bounty', 'We Have Your Number (' + (G.teams[r.bounty.by] ? esc(G.teams[r.bounty.by].name) : 'a rival') + '): whoever beats this robot in a fight gets +' + BAL.fame.bounty + ' fame. Then the mark is gone. It stays on the robot if it is traded.');
   }
+  // Kev, 9 Nov: Loose Bolts only showed as a small amber Drive chip; the robot's picture now carries a LOOSE BOLTS strip until it is repaired
+  function looseNow(r) {
+    const L = r && r.loose; if (!L) return false;
+    const v = L.part === 'lid' ? (r.wear && r.wear.lid) : (r.wear && r.wear.parts && r.wear.parts[L.part]);
+    if (v == null || v >= 0.999) return false;
+    return true;
+  }
+  function drawLooseBadge(ctx, r, x, yBottom, w, small) {
+    if (!looseNow(r)) return 0;
+    const h = small ? 12 : 16, y = yBottom - h;
+    ctx.fillStyle = 'rgba(178,58,43,0.94)'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    fitText(ctx, small ? '🔩 LOOSE' : '🔩 LOOSE BOLTS', x + w / 2, y + h - (small ? 3 : 4.5), w - 4, '700', small ? 8 : 9.5, F_MONO);
+    const what = r.loose.part === 'lid' ? 'top plate (⛨ Body)' : r.loose.part.toLowerCase() + ' (⚙ Drive)';
+    help(x, y, w, h, '🔩 Loose Bolts', esc(r.name) + '\'s ' + esc(what) + ' was left loose by ' + esc(G.teams[r.loose.by] ? G.teams[r.loose.by].name : 'a rival') + '. It stays damaged until you repair that zone in Upkeep.');
+    return h;
+  }
   function drawEmpBadge(ctx, r, t, x, yBottom, w, small) {
+    yBottom -= drawLooseBadge(ctx, r, x, yBottom, w, small);
     if (!(t.tamper && t.tamper.noMods) || !r) return;
     const sp = spec2(r, t), mod = sp.mod && sp.mod !== 'none', dr = (sp.helpers || []).length;
     if (!mod && !dr) return;
