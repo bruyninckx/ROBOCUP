@@ -407,3 +407,49 @@ level, so the bookie and the AI see it). Duels of every robot against every robo
 | compounding 15% per step (`gap15`) | 75% | 77% | 78% | 69% |
 The flat version widened the low gaps most, so the setting compounds. Game test: `tools/bal4/gap8.json` and `gap15.json`.
 
+## End credits (Kev, 9 Nov)
+
+When a team wins, every screen shows **the end credits**: a panel of awards with a bit of banter. The host keeps a tally during the
+game (`G.stats`: wins per robot, the biggest upset and the biggest flop by bookie odds, attacks landed / blocked / received,
+bounties, credits by source, credits each team handed each other team (deals, backing fees, host deals), schemes backed, fights
+lost to each team, live cards, robots the host scrapped) and turns it into `G.awards` at the win (plain data: the same on every
+screen; the line for each award is picked from a few, seeded by the game). Awards (only the ones that happened):
+Robot of the Game, Biggest Upset, Missed the Big Shot (lost as the biggest favourite), Kingmaker (who helped the champion most:
+credits + 2 x backed schemes + 2 x fights lost to it), Bounty Hunter, Backstabber, Most Wanted, Talked to the Wall (blocked
+attacks), Big Spender, Lucky Punter, Donated to the Bookie, Left It All on the Table (credits + unused cards at the end, not the
+champion), Played Like GPT-2 (last place, with what went wrong), Card Shark, Scrapheap Regular. `ROBOCUS_DEBUG.makeAwards()`.
+
+## Arena layouts (Kev, 9 Nov)
+
+The host picks the arena when it invites (a menu next to "Invite Fighters"; an AI host picks one that helps its own robot when
+it fights, else now and then one for the show). Open floor is free; the others cost the host `BAL.arenas.cost` (1 Cr). The invited
+teams see the arena before they choose a robot; the bookie counts it. The Cage falls back to open floor with more than 2 robots or
+the House Robot (the host gets its credits back). Engine `ARENAS` (`tools/damage-lab/engine.js`): open, saws (4 floor saws),
+killbox (spiked walls + 2 saws), and new: **cage** (walls start 1 m in: 6 x 6 m, spawns moved in) and **ice** (grip x 0.4 for
+wheels and tracks; legs keep their grip). Open floor fights are unchanged (`l4-regress.js` identical).
+
+How the arenas change the order (`tools/damage-lab/arenafit.js`: each lineup robot against every robot of its own level, both
+sides, 2 seeds; 16-32 fights a robot an arena, so ±12 points). Average fight: open 58 s, saws 66 s, killbox 57 s, cage 56 s, ice 57 s.
+Examples (win % vs its own level): Whaler 19 open / 69 saws; Rocketeer 35 / 80 saws; Pincher 81 / 38 saws; Forklift 81 / 44 saws;
+Juggernaut 69 / 38 saws and cage; Brawler 38 / 75 saws and ice; Gyro 25 / 56 killbox. The tabletop's `ARENA_FIT` keeps every
+robot's change in logits x 0.5 (shrunk for the noise); the bookie and the AI host use it.
+
+## Tuning chips (Kev, 9 Nov)
+
+Three new part cards (`kind: 'chip'`, 1 copy each in the lot deck, a part slot, one chip per robot). Routines worked out for light
+robots; on heavier frames they can overload: every 4 s a chance of a 1 s glitch by level (0 / 0 / 15 / 30 / 45%), "not made
+for this frame". The robot drives as it always does; the chip takes over for its move and pays off when the move works:
+
+| chip | move | pay-off (`CHIP_K`) |
+|---|---|---|
+| Matador | a charge from the front: sidestep at the last moment ("OLÉ!"), then hit its side | x3 damage in the 0.9 s counter |
+| Wall Bait | drifts in front of a wall or hazard when the enemy is far; sidesteps a charge there ("BAITED!") | the enemy ending up against the wall or a hazard is dazed 2 s ("CRASH!"), then x2.4 in the counter |
+| Pester | after a hit, fade out sideways; never drives into the front of a front weapon or spinner | x2.4 on side and back hits ("PESTERED!") |
+
+Measured (`tools/damage-lab/chipfit.js`: every level 1 robot with the chip vs every level 3 robot, both sides, 2 seeds, 120 fights;
+`chipdiag.js` counts the moves): level 1 vs level 3 without a chip 22.5%; Matador 37.5%, Pester 43%, Wall Bait 27.5% on open floor
+(32% on Floor Saws, 33% in the Cage, 24% vs 17% in the Killbox). On level 3 vs level 3 a chip is about neutral (50-51% vs 47.5%;
+3.5-3.9 overloads a fight). The first versions took over the steering and made robots worse (9-13%); movement alone did not close
+two levels, so each chip got a pay-off for its move. The strength model counts a chip as +0.8 logits on level 0-1, +0.4 on level 2,
+0 on level 3, -0.2 on level 4 (`src2/repair.js` `CHIP`). Wall Bait is the weakest and the most arena-dependent: first to tune.
+
