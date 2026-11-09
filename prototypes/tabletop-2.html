@@ -625,6 +625,9 @@ html, body {
       freeLoser: 1, freeLoserVulture: 2, freeAegis: 1,
     },
     mechanicCr: 1,                // credits each Mechanic earns in Upkeep
+    // robot upkeep: 'all' = every robot costs 1 Cr (the Accountant: only the first); 'first' = only your first robot costs 1 Cr for
+    // everyone (Kev, 9 Nov: crew = Mechanics only test; every team started with an Accountant anyway)
+    robotUpkeep: 'all',
     // Kev, 8 Nov: a robot lot won with a full garage (3 bays) = trade-in: scrap one of your robots for base + perLevel × its level Cr,
     // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
     tradeIn: { on: true, base: 1, perLevel: 1 },
@@ -873,7 +876,7 @@ html, body {
     return tired;
   }
   const crewRef = k => '<span class="lcard"' + helpAttr(CREW[k].icon + ' ' + CREW[k].name, esc(CREW[k].text)) + '>' + esc(CREW[k].name) + '</span>';
-  const crewIcons = t => '🔧' + t.mechs + ' 👷' + t.engPool + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('') + (exCrew(t) ? ' · 😴' + exCrew(t) : '');
+  const crewIcons = t => '🔧' + t.mechs + (t.engPool ? ' 👷' + t.engPool : '') + t.crew.filter(c => c.kind !== 'mechanic' && c.kind !== 'chief').map(c => ' ' + CREW[c.kind].icon).join('') + (exCrew(t) ? ' · 😴' + exCrew(t) : '');
   // Kev, 7 Nov: make exhausted crew, Security Bots and robots obvious (they are back in the next Upkeep)
   const exCrew = t => Math.min(t.crew.length, t.exMechs || 0);
   const secTxt = t => '🤖' + secReady(t) + ((t.exSec || 0) > 0 ? '/' + (t.secBots || 0) + ' 😴' : '');
@@ -2060,7 +2063,7 @@ html, body {
       for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
-        const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
+        const bots = hasCrew(t, 'accountant') || BAL.robotUpkeep === 'first' ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
         const l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;   // level 4 option: extra upkeep (default 0)
         const earn = t.mechs * BAL.mechanicCr, net = earn - bots - l4up - drones;
         t.ledger = { mechs: earn, bots: bots + l4up, drones, net };
@@ -3435,7 +3438,7 @@ html, body {
    * No random numbers here, so spendK 0 plays exactly as before (same seeds, same games). */
   function aiReserve(t, withRepairs = true) {
     const P = aiP(t);
-    const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;
+    const bots = hasCrew(t, 'accountant') || BAL.robotUpkeep === 'first' ? Math.min(1, t.robots.length) : t.robots.length, l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;
     const drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
     const upkeep = Math.max(0, bots + l4up + drones - t.mechs * BAL.mechanicCr);
     let rep = 0;
@@ -6154,7 +6157,7 @@ html, body {
     // 4. Credits, Mechanics & Engineers Summary (x0 + 644 .. x0 + 908)
     ctx.fillStyle = '#111'; ctx.font = '800 11.5px system-ui, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`CREDITS: ${t.credits} Cr`, x0 + 644, y0 + 25);
-    help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, bets, deals and repairs (' + repairCr() + ' Cr per action once your crew is used up). Each Mechanic earns ' + BAL.mechanicCr + ' Cr per Upkeep; each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '') + '.');
+    help(x0 + 640, y0 + 8, 110, 26, 'Credits', '<b>Cr</b> credits: for bids, bets, deals and repairs (' + repairCr() + ' Cr per action once your crew is used up). Each Mechanic earns ' + BAL.mechanicCr + ' Cr per Upkeep; ' + (BAL.robotUpkeep === 'first' ? 'only your first robot costs 1 Cr upkeep' : 'each robot costs 1 Cr upkeep' + (hasCrew(t, 'accountant') ? ' (your Accountant: only the first)' : '')) + '.');
     // 5. Crew cards (Kev, 6 Nov: named crew; new crew comes from the Market)
     ctx.fillStyle = '#111'; ctx.textAlign = 'left';
     if (exCrew(t)) ctx.fillStyle = '#b45309';
