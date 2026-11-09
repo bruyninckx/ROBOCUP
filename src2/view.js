@@ -1073,16 +1073,17 @@
       ts = V.speed * (slowT > 0 ? 0.25 : 1);
       if (slowT > 0) slowT -= rdt; else { cam.tx = 0; cam.ty = 0; cam.tz = 1; }
       if (hitStop > 0) { hitStop -= rdt; ts = 0; }
-      const goal = opts.pace && S.countdown <= 0 ? opts.pace(S) : null;   // online: a client follows the host's step (null = run free; the countdown runs on its own clock)
-      if (goal != null) {   // catch up when behind (fast, up to 240 steps a frame), hold when ahead; slow motion still plays out
-        let n = 0; acc += rdt * ts; const want = Math.min(goal, S.step + Math.max(0, Math.floor(acc / L.DT)) + (goal - S.step > 12 ? 240 : 0));
-        while (S.step < want && n < 240) { if (!(S.over && S.t > S.result.t + 4)) { L.step(S); if (opts.onStep) opts.onStep(S); } else break; consumeFx(); n++; }
-        acc = S.step >= goal ? 0 : Math.max(0, acc - n * L.DT);
-      } else {
+      // online: a client follows the host's step. It runs on its own clock (with its own slow motion and hit stops) and nudges
+      // its speed towards where the host should be: up to 1.5× when behind, down to 0.6× when ahead, a quick catch-up when far behind.
+      const goal = opts.pace && S.countdown <= 0 ? opts.pace(S) : null;
+      if (goal != null) {
+        const err = goal - S.step;
+        if (err > 240) { let n = 0; while (S.step < goal - 30 && n < 600 && !S.over) { L.step(S); if (opts.onStep) opts.onStep(S); consumeFx(); n++; } acc = 0; }
+        else ts *= err < -90 ? 0 : Math.max(0.6, Math.min(1.5, 1 + err / 120));
+      }
       acc += rdt * ts; let n = 0;
       while (acc >= L.DT && n < 64) { if (!(S.over && S.t > S.result.t + 4)) { L.step(S); if (opts.onStep) opts.onStep(S); } consumeFx(); acc -= L.DT; n++; }
       if (n >= 64) acc = 0;
-      }
       emitters(rdt * ts);
       if (S.over && cards.length) { aim = null; cards = []; drawCards(); }
       if (S.over && !ended && S.t > S.result.t + 1.2) { ended = true; root.querySelector('.fv-done').hidden = false; root.querySelector('.fv-skip').hidden = true; }
