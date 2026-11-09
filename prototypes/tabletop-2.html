@@ -5081,11 +5081,13 @@ html, body {
       if (clientFight.shown) { VW.close(); clientFight.shown = false; }
     }
   }
-  // the step a client's fight should be at: the host's last step plus the time since (at most 24 steps ahead)
+  // where the host's fight should be now: its last step plus the time since at its measured speed (at most 1 s on), a few steps
+  // behind so the live cards (30 steps ahead) are always in time. The fight view eases towards it (src2/view.js).
   function clientPace() {
     const F = G && G.fight;
-    if (!F || !clientFight || netTick.fid !== F.fid) return 0;   // no word from the host about this fight yet: wait at the start
-    return netTick.tick + Math.min(24, Math.floor((performance.now() - netTick.at) * 0.12));
+    if (!F || !clientFight || netTick.fid !== F.fid) return clientFight ? clientFight.S.step : 0;   // no word from the host yet: run on
+    if (netTick.tick >= 1e8) return 1e9;   // the host's fight is over
+    return netTick.tick + Math.min(1000, performance.now() - netTick.at) * 0.12 * (netTick.rate != null ? netTick.rate : 1) - 6;
   }
   function resimFight(F) {
     resims++;
@@ -5298,7 +5300,12 @@ html, body {
       for (const op of m.ops) { LOGOPS.push(op); logRender(op); if (op.o === 'msg' && (op.to == null || op.to === HS)) tlog('msg', { text: ptPlain(op.html) }); }
     },
     showFx(o) { o.t0 = performance.now(); FX.push(o); },
-    setTick(t) { netTick = { fid: t.fid, tick: t.tick, at: performance.now() }; },
+    setTick(t) {   // the host's fight step (4× a second); its speed is measured from the last two (slow motion, 2×, pause)
+      const now = performance.now(), o = netTick;
+      let rate = o.fid === t.fid && o.rate != null ? o.rate : 1;
+      if (o.fid === t.fid && t.tick < 1e8 && o.tick < 1e8 && now - o.at > 50) rate = Math.max(0, Math.min(4, 0.5 * rate + 0.5 * (t.tick - o.tick) / ((now - o.at) * 0.12)));
+      netTick = { fid: t.fid, tick: t.tick, at: now, rate };
+    },
     showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
       return ivModal(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })));
     },
