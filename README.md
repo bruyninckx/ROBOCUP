@@ -95,6 +95,8 @@ Round 2 (with the level 4 robots): `tools\run-sims3.cmd 100` (Mac/Linux: `sh too
 
 Round 3 (the new defaults, trade-in, seat fix): `tools\run-sims4.cmd 100` (Mac/Linux: `sh tools/run-sims4.sh 100`) runs every variant in `tools\bal3\` (6 runs x 100 games) and writes `sims\overhaul3.txt`; send that to Claude. The variants are listed in `tools/bal3/README.md`.
 
+Round 5 (Security Bots, level gap): `tools\run-sims5.cmd 100` (Mac/Linux: `sh tools/run-sims5.sh 100`) runs every variant in `tools\bal4\` (6 runs x 100 games) and writes `sims\round5.txt`: send that file to Claude.
+
 ## Balance check (watchdog)
 
 Run after every new weapon, module, helper or stat change (needs Node.js):
