@@ -1058,6 +1058,9 @@
     root.querySelector('.fv-feed').innerHTML = ''; root.querySelector('.fv-done').hidden = true; root.querySelector('.fv-skip').hidden = false;
     const pb = root.querySelector('.fv-pause'); pb.setAttribute('aria-pressed', 'false'); pb.textContent = 'Pause';
     aim = null; cards = []; onPlayCb = null; drawCards();
+    // online client: the host runs the clock, so no speed, pause or skip buttons here (o.client)
+    root.querySelectorAll('[data-sp], .fv-pause, .fv-skip').forEach(b => { b.hidden = !!o.client; });
+    V.speed = o.client ? 1 : V.speed;
     root.hidden = false; buildPanels(); resize(); updatePanels();
     if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
   }
@@ -1070,9 +1073,16 @@
       ts = V.speed * (slowT > 0 ? 0.25 : 1);
       if (slowT > 0) slowT -= rdt; else { cam.tx = 0; cam.ty = 0; cam.tz = 1; }
       if (hitStop > 0) { hitStop -= rdt; ts = 0; }
+      const goal = opts.pace && S.countdown <= 0 ? opts.pace(S) : null;   // online: a client follows the host's step (null = run free; the countdown runs on its own clock)
+      if (goal != null) {   // catch up when behind (fast, up to 240 steps a frame), hold when ahead; slow motion still plays out
+        let n = 0; acc += rdt * ts; const want = Math.min(goal, S.step + Math.max(0, Math.floor(acc / L.DT)) + (goal - S.step > 12 ? 240 : 0));
+        while (S.step < want && n < 240) { if (!(S.over && S.t > S.result.t + 4)) { L.step(S); if (opts.onStep) opts.onStep(S); } else break; consumeFx(); n++; }
+        acc = S.step >= goal ? 0 : Math.max(0, acc - n * L.DT);
+      } else {
       acc += rdt * ts; let n = 0;
       while (acc >= L.DT && n < 64) { if (!(S.over && S.t > S.result.t + 4)) { L.step(S); if (opts.onStep) opts.onStep(S); } consumeFx(); acc -= L.DT; n++; }
       if (n >= 64) acc = 0;
+      }
       emitters(rdt * ts);
       if (S.over && cards.length) { aim = null; cards = []; drawCards(); }
       if (S.over && !ended && S.t > S.result.t + 1.2) { ended = true; root.querySelector('.fv-done').hidden = false; root.querySelector('.fv-skip').hidden = true; }
@@ -1157,13 +1167,14 @@
       for (const i of c.valid || []) { const R = S.robots[i]; if (!R || !R.alive) continue; const p = R.body.getPosition(), d = Math.hypot(p.x - x, p.y - y); if (d < bd && d < R.hl + 0.55) { bd = d; best = i; } }
       if (best == null) { const h = root.querySelector('.fv-hint span'); if (h) h.textContent = (c.own ? 'Tap your robot' : 'Tap a robot') + ' (it glows)'; return; }
       if (c.target === 'arena') { aim.robot = best; aim.stage = 'spot'; drawCards(); return; }
-      fire(c, { robot: best });
+      playCard(c, { robot: best });
       return;
     }
     const H = L.HALF - 0.3;
-    fire(c, { robot: aim.robot, x: Math.max(-H, Math.min(H, x)), y: Math.max(-H, Math.min(H, y)), crate: c.crate ? crate : undefined });
+    playCard(c, { robot: aim.robot, x: Math.max(-H, Math.min(H, x)), y: Math.max(-H, Math.min(H, y)), crate: c.crate ? crate : undefined });
   }
-  function fire(c, o) { aim = null; hover = null; const cb = onPlayCb; cards = cards.filter(x => x !== c); drawCards(); if (cb) cb(c.key, o); }
+  // (was also called fire(), which hid the fire-particle fire(x, y): burning robots played cards instead of showing flames)
+  function playCard(c, o) { aim = null; hover = null; const cb = onPlayCb; cards = cards.filter(x => x !== c); drawCards(); if (cb) cb(c.key, o); }
   function drawAim() {
     if (!aim || !S) return;
     const c = cards.find(x => x.key === aim.key); if (!c) return;
@@ -1179,5 +1190,5 @@
         ctx.beginPath(); ctx.moveTo(hover[0] - 0.15, hover[1]); ctx.lineTo(hover[0] + 0.15, hover[1]); ctx.moveTo(hover[0], hover[1] - 0.15); ctx.lineTo(hover[0], hover[1] + 0.15); ctx.stroke(); }
     }
   }
-  window.RobocusView = { mount, play, skip, close, portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
+  window.RobocusView = { mount, play, skip, close, replace(S2) { S = S2; }, portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
 })();
