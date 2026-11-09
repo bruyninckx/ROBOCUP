@@ -29,6 +29,8 @@ No build step. Double-click an `.html` file in `prototypes/` to open it in a bro
 
 `prototypes/tabletop-prototype.html` plays online with friends (2–4 people; the AI plays empty seats). Plan and rules: `docs/multiplayer-plan.md`.
 
+**2.0 plays online too** (9 Nov): same steps in `prototypes/tabletop-2.html` (link: `https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-2.html`). 1.0 and 2.0 rooms are separate. Every screen runs the fights itself from the host's seed, and the live cards everyone plays land on every screen at the same moment.
+
 1. Click **🌐 Online** in the top bar, then **Host a game**. Copy the invite link and send it (Discord).
 2. Friends open the link, type a name, pick a colour and press **Ready**. Press **Start game**.
 3. Keep the host tab open: the host's browser runs the game. A player who drops out comes back with the same link and the same name; meanwhile the game pauses (the host can let the AI take the seat).
