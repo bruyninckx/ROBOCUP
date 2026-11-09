@@ -50,6 +50,10 @@ Watch in the playtest: v2 buys fewer parts, so AI robots may stay plainer; and s
 - `node tools/sponsor-check.js <games> <parallel>`.
 - In the game: `ROBOCUS_DEBUG.ai({ versions: [2, 1, 1, 1], params: [{ hostFame: 8 }, {}, {}, {}] })`.
 
+## Surplus spending (2.0, 8 Nov, later)
+
+The 2.0 AI (`prototypes/tabletop-2.html`) now spends credits above a reserve: higher lot, host and fight-card bids, and credit repairs (params `spendK`, `spendCap`, `spendShare`, `spendRes`, `spendBody`, `spendLate`). Details: `docs/robocus-2.0-tabletop.md`, "AI spending"; numbers: `docs/robocus-2.0-sim.md`, "Credits". `tools/ai-bench.js` takes `--page=prototypes/tabletop-2.html` for 2.0 benchmarks.
+
 ## Found while testing (7 Nov)
 
 - Fixed: while a player's "over your hand limit" question was open, the host still accepted card plays and cash-ins from that player. A late click over the network could crash the host and hang the game. The question now blocks plays (like other Intrigue windows) and asks again if the hand changed anyway.

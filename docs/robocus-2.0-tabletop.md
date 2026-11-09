@@ -279,6 +279,32 @@ loops in that order.
 - Still seat-shaped, not explained: in the older games seats 1–2 won more round-1 lots (0.98 / 0.89 / 0.60 / 0.56 a game) and won fewer
   2-per-side fights than the bookie said (seat 1 −8 points in doubles); both may be noise.
 
+## AI spending (8 Nov, later; Kev's playtest: an AI held 61 Cr by round 10)
+
+The AI's lot values were fixed amounts (robot 5–9, part about 2) however much it held, so a rich AI never spent more than about 8 Cr a
+round. Now (`aiReserve`, `aiSurplus`, `aiSpendMult` in `prototypes/tabletop-2.html`; params in `AI_PARAMS`):
+- **Reserve** = `reserve` (2) + `spendRes` (3, bets and reactions) + next Upkeep's shortfall (robots, level 4 upkeep and drones minus
+  Mechanic income) + debt + the larger of: repair credits its two likeliest fighters need beyond its crew and free actions (damaged
+  drive / weapon), or a **war chest** when it is within `spendLate` (3) fame of the win (the richest rival's credits + 1: the host bid at
+  match point is worth all its credits, and that is what hoarded credits win). **Surplus** = credits − reserve.
+- **Willingness to pay** = value × min(1 + `spendCap`, 1 + `spendK` × surplus / 10) (defaults 0.3 and 0.4: at most +40%, reached at
+  13 Cr surplus). Spending only adds to the old bids: the sealed lot bids are first made exactly as before (old reserve and budget); then,
+  in a second pass, each lot it bid on and values at 1+ gets up to bid × (factor − 1) extra, at most `spendShare` (half) of the surplus per
+  lot, highest value first, paid only from what is left above the full reserve after the base bids. Rebids go up to the same raised value.
+  Host bid and fight cards (when it fights or bets): raised the same way, but only from the surplus above `spendMkt` (8 Cr), so they don't
+  take next round's Market money.
+- **Repairs**: with a surplus above `spendMkt` it also pays `BAL.repair.credits` per action once crew and free actions are used up for
+  damaged (not only broken) weapon and drive zones of its two likeliest fighters, and for body zones once that surplus is `spendBody` (6)+.
+  (Repairs come at Upkeep, before the Market: without the `spendMkt` keep they starved the Market.)
+- War chest: at most `spendWar` (12 Cr).
+- Surplus 0 (or `spendK` 0) = the old AI exactly; no random numbers are drawn, so `spendK: 0` replays the same games.
+- Benchmark switches: `off: ['spend']` (all), `spendLots`, `spendHost`, `spendCards`, `spendRep`.
+- Measured (`docs/robocus-2.0-sim.md`, "Credits"): the Market gets 9 Cr a game more and sells as many lots as before (23% unsold; parts and
+  crew 14.1 / 6.0 a game vs 14.7 / 5.8); robot prices within 0.5 Cr; credits held at round 12: 11.0 a team (before 12.9); the richest team
+  late holds 22 Cr instead of 27 (max 39 vs 68). One spending AI vs three old ones wins 20% (same AI: 23%; within noise). The first version (v1)
+  added the extras inside the bid loop and paid credit repairs from any surplus: 40% of lots went unsold.
+- Every credit change is now logged (`cr` events: team, amount, source) for the sim and for playtest logs.
+
 ## Bug fix: parts won together with a robot were lost (Kev's playtest, 8 Nov)
 Round 2: a team with no robot won Whirlwind + Laser drone + Power kit in one auction. The results said "▼ Click a Robot Bay below" for
 both parts, but they could not be fitted and were gone. Cause: `resolveMarket` built the person's install list before any lot was

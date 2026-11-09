@@ -171,6 +171,86 @@ Smoke runs, 2 games per `tools/bal3` file: all finished, 0 page errors. Fight ca
 **`fightMin2` 0.0 won / fight (2% of offered)**: the AI values a fight card at about 1 Cr (measured swing × the fight's stake), so with a
 2 Cr minimum it almost never bids. Raise the AI's card values (or the cards) before a 2 Cr minimum means anything.
 
+## Credits: AI surplus spending (8 Nov, later)
+
+Kev's playtest (AI v2): Rust Rivets held 61 Cr by round 10 (backing fees from 8 backings, 5 Mechanics, a Fan Favourite's appearance
+money, cash-ins, sales to Kev) and never spent more than about 8 Cr a round, because the AI's lot values were fixed amounts. Now the
+AI spends a **surplus** (AI rules: `docs/robocus-2.0-tabletop.md`, "AI spending"; params `spendK` … `spendMkt` in `AI_PARAMS`).
+
+**New sim stats** (page: one `cr` event per credit change, `{k:'cr', team, amt, src}` via `addCr` / `payCr` / `transfer(…, src)`; no rule
+change, and the playtest log has them too). Sim: `res[i].v2.cr` = `[round, team, amount, source]`, `v2.crStart`. Report rows: credits at
+the end (mean / max, winner / others), credits held by round 1–13 (end of round), most held by a team in round 10+, income by source,
+spend by sink, host bid price, repairs paid with credits, and a check that every change was logged (`credit changes not logged`: 0.0).
+Below the table: a backing-fee block. `--aip='{"spendK":0}'` sets AI params for all four teams. Sources: `mechanics`, `upkeep`,
+`backing`, `appearance`, `cashin`, `bet` (stakes out, payouts and refunds in), `sale` (bank: Stash, trade-in scrap money, full bays),
+`trade`, `card` (Intrigue effects, both ways), `hostdeal` (invite / spare / scrap offers), `deal` (payoffs, Tag Team), `market`, `host`,
+`fightcard`, `repair`, `wager` (2 per side), `sponsor`, `quirk`, `lot`, `catchup`.
+
+**Before / after** (40 games each, seeds 1–40, start 0, win 12, AI v2). Before = `--aip='{"spendK":0}'` on the new page, which plays the
+same games as the page before this change (checked: same seeds give identical final fame and credits). `v1` = the first committed
+version (extras added inside the sealed-bid loop, credit repairs from any surplus), `after` = the fix below (tags `sp_before40`,
+`sp_after40_v1`, `sp_after40`; also kept: `sp_after40_k05` (spendK 0.5), `sp_after40_v2`, `_v3`, the steps in between).
+
+| | before | v1 (regression) | **after** |
+|---|---|---|---|
+| credits held by round 1–12 (mean / team) | 7.0 6.5 7.0 8.0 8.7 9.1 9.8 10.6 11.1 12.0 12.5 12.9 | 6.8 6.2 6.7 7.2 7.4 7.4 7.3 7.7 7.9 8.7 9.3 10.4 | 7.0 6.5 6.8 7.9 8.2 8.2 8.6 9.0 10.1 10.4 10.5 11.0 |
+| most held by one team, round 10+ (mean / max) | 26.8 / 68 | 19.1 / 28 | **21.9 / 39** |
+| end credits: mean / max; winner / others | 12.7 / 49; 18.4 / 10.9 | 9.5 / 27; 13.6 / 8.1 | 10.7 / 39; 14.2 / 9.5 |
+| spend / game: market, host, bets, fight cards, repairs | 144, 81, 28, 10.7, 15.8 | 139, 83, 28, 11.3, 27.6 | **153**, 81, 28, 10.5, 15.1 |
+| spend / game: backing paid, upkeep, card costs, host deals | 22.5, 47.4, 34.7, 26.5 | 23.1, 45.3, 30.0, 28.3 | 23.4, 48.1, 35.4, 25.4 |
+| robot price L1 / L2 / L3 / L4 | 6.1 / 7.3 / 6.4 / 8.4 | 7.1 / 8.6 / 5.9 / 9.7 | 6.4 / 7.3 / 6.5 / 8.9 |
+| parts / crew bought per game; lots unsold | 14.7 / 5.8; 23% | 9.5 / 3.4; 40% | **14.1 / 6.0; 23%** |
+| host bid price (hostings paid / game) | 7.3 (11.1) | 7.6 (11.0) | 7.3 (11.1) |
+| repairs paid with credits / game | 7.9 (15.8 Cr) | 13.8 (27.6 Cr) | 7.6 (15.1 Cr) |
+| rounds; close finish within 1 / 2 | 11.3; 53% / 88% | 11.2; 50% / 78% | 11.5; 55% / 83% |
+| win share by seat 1–4 (±7 each) | 28 / 20 / 15 / 38% | 20 / 28 / 18 / 35% | 30 / 15 / 33 / 23% |
+| page errors, stalls | 0 | 0 | 0 |
+
+Why v1 bought fewer parts and crew (40% of lots unsold): its base bids already used the old reserve, but (1) the surplus extra was added
+inside the sealed-bid loop, so a robot lot's extra used up the shared budget before the lower-value lots (parts, crew) got their base
+bid, and (2) credit repairs at Upkeep (before the Market) spent 12 Cr a game more, so teams came to the Market poorer. The fix: base
+bids are computed exactly as before (same budget, same random numbers); then the extras are added in a second pass, only from what
+is left above the full reserve after the base bids. Credit repairs, host-bid and fight-card extras use only the surplus above
+`spendMkt` (8 Cr), which keeps money for this and next round's Market (with that, credit repairs are back to the old level). The war
+chest is capped at `spendWar` (12 Cr).
+
+Income / game (all teams, before → after): Mechanics 104 → 106, appearance 91 → 87, card effects 64 → 65, cash-ins 61 → 63, host deals
+27 → 25, backing fees 22.5 → 23, sales 13.5 → 14, trades 11 → 13, bets net +9 → +7, sponsor / quirk / lot 13 → 14.
+
+Reads: the Market gets more money (+9 Cr a game) and sells as many lots as before; robot prices are within 0.5 Cr of before; credits still
+climb, but slower (round 12: 11.0 vs 12.9 a team) and the richest team late holds 22 Cr instead of 27 (max 39 vs 68). This is a smaller
+cut than v1's (19 / 28), because the spending now only adds to bids and never takes money from the Market. No average over 20 Cr
+held late, so no new credit sink is needed for AI games.
+
+**Backing fees** (before; after is within noise): 10.8 payments a game, 2.1 Cr each (22.5 Cr a game, 5% of all team income); per team
+5.6 Cr received and 5.6 paid. Backers risk nothing: the fee is paid only when the backing is enough, the backer can't be the target,
+and no fame is lost. It is a transfer between teams, not new money, but it flows uphill: the AI asks the highest-fame team first and
+a 0-fame team can't back, so the top quarter of backers (12.2 Cr received, net +7.7 a game) win 43% of games, the rest (3.4 Cr) 19%.
+The AI backs 65% of 2 Cr requests (`aiWillBack`: 15% + 25% per Cr offered; 85% when the card hurts the leader; a leader or a
+team on 9+ fame asking gets backing only for 3+ Cr, 40%). Kev's playtest:
+Rust Rivets backed 8 of the 14 backings (about 16 Cr). Not changed (rule question for Kev: a backer could lose 1 fame if the scheme is
+blocked, or the fee could go to the bank).
+
+**AI benchmark** (`node tools/ai-bench.js 60 2 <A> <B> --page=prototypes/tabletop-2.html`: one spending AI vs three with `spendK=0`,
+seat rotates, seeds 1–60, ±10–12 points):
+
+| A (one team) vs three `spendK=0` | A wins | A's final fame |
+|---|---|---|
+| control: `spendK=0` (the same AI) | 23% | 9.5 |
+| v1 tries: spendK 0.5, cap 0.6, no war chest / war chest / war chest without credit repairs | 18% / 20% / 17% | 9.0 / 8.9 / 9.1 |
+| v1: spendK 0.3, cap 0.4, war chest | 25% | 9.75 |
+| two-pass extras, credit repairs above `spendMkt` (step `_v3`) | 33% | 10.1 |
+| **after (defaults: host / card extras also keep `spendMkt`)** | **20%** | **9.1** |
+
+All within noise of the control (±10–12 points: 20% is 12 of 60 games, the control 14, `_v3` 20). The defaults keep the Market whole;
+`_v3` (host and card extras from the whole surplus) benchmarked better but left 26% of lots unsold. A 200+ game run on the PC would tell
+them apart. `tools/ai-bench.js` now takes `--page` (and `--planck`) so it runs on 2.0.
+
+If AI or human games still pile up credits late, options for Kev (not built): (1) a late-game sink with fame, e.g. "Sponsor Gala": in the
+Market, buy 1 fame for 10 + 5 × (times bought) Cr, once a round; (2) upkeep that grows with credits held (a 10% "storage fee" on credits
+over 15 at Upkeep, to the bank); (3) bigger late lots: from round 8, a "Prototype" lot (a level 4 robot or legendary with a 10 Cr
+minimum), so rich teams have something worth the money.
+
 ## Speed
 
 Physics fights are fast enough; no fight model is needed.
