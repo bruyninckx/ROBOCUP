@@ -493,3 +493,21 @@ even ones where the winner is badly hurt too (nail-biters). See "Matchup overvie
   Whirlwind. Nail-biters: Juggernaut vs Sawblast, Buzzkill vs Wrecker, Pincher vs Sawblast (the winner on about 60%).
 - Arenas barely change it: same-level winners keep 71% (saws, the closest) to 75% (cage, ice); Popcorn vs Snapjaw is
   the most one-sided even pairing on four of the five arenas.
+
+## Crew = Mechanics only (Kev, 9 Nov, round 7)
+
+Kev: too many crew cards, too much fiddling for too little fun. New defaults (variant `mech_few` in `tools/bal7/`): start with 2
+Mechanics, the crew deck is 4 Mechanics (4 crew lots in the lot deck, was 7), and only your first robot pays upkeep
+(`robotUpkeep: 'first'`, the old Accountant rule for everyone: every team started with an Accountant). The other crew kinds stay
+in the code (`CREW`) but are no longer dealt. Round 7 (Kev's PC, 100 games each): runner-up within 1 / 2 fame 48 / 75% (was
+50 / 71%), fame gap 5.8 (5.0), credits held 8.5 (8.8), damage fixed at Upkeep 43% (52%), lots unsold 30% (24%), 11.1 rounds
+(11.7). Intrigue cards that pay per crew member (Overtime Shift, Consulting Gig) pay less now (card income about −20 Cr a game).
+
+## Bookie notes on robot cards (Kev, 9 Nov)
+
+Up to 2 small tags next to the weapon on a robot card, only where something stands out (hover for the numbers):
+arena tags for this fight's arena (🪚 Saw specialist / Hates saws, ☠️, 🔒, 🧊; when `ARENA_FIT` is ±0.45 or more), 💾 Chip-tuned
+(a chip on a level 0-1 robot) and one fight-style tag from the Lineup Arena matchup data (`STYLE`): 🗡️ Giant killer (Thwacker,
+Whirlwind, Vertigo, Ramrod: 1.25x the expected wins against higher levels), 🎲 Coin-flip brawler (Snapjaw: 61% blowouts),
+⏱️ Quick finisher (Rocketeer, 35 s), 🧱 Grinder (Pincher, Wrecker, Gyro: 70 s+). The bounty already has its own badge.
+The bookie's chip boost is lowered (`src2/repair.js` `CHIP` 0.55 / 0.55 / 0.25 / 0 / −0.2, was 0.8 / 0.8 / 0.4).
