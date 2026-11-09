@@ -48,6 +48,14 @@ From the design docs:
 
 ## Log
 
+- **2026-11-09 (Claude): bench tweaks and Kev's list.**
+  - Log back on the left as a side panel; sticky note under the pit; Intrigue ring dots evenly spaced.
+  - No bookie percentages (bands only), with ??? when the bookie isn't sure.
+  - New 🔨 Hard hitter note; damage chart in the fight recap; every money move as a 🪙 log line.
+  - We Have Your Number only on robots with 3+ Fan tokens; drop Secret Upgrade, Overclock or the bounty on the robot you want.
+  - Clearer part texts; Rumbler's description fixed.
+  - Files: tabletop-2.html, src2/view.js (exports integrity). Docs: robocus-2.0-tabletop.md.
+
 - **2026-11-09 (Claude): Layout B "Workshop Bench" and the card-type system, in full.**
   - `prototypes/tabletop-2.html`:
     - New stylesheet and top bar; rival tickets; the pit with a title strip and floor; your rail of work orders.
