@@ -480,3 +480,16 @@ for most winners, because most knockouts are lost wheels, a crippled drive or a 
 
 Below the grid: the even matchups (8-12 of 20) sorted by the winner's health ("even on paper, one-sided in the pit") and the
 even ones where the winner is badly hurt too (nail-biters). See "Matchup overview results" below.
+
+### Matchup overview results (9 Nov; 10,560 open-floor fights + 1,980 per other arena)
+
+- Fights are mostly one-sided: on the open floor the winner keeps 79% health on the median, the loser 36%; 94% end in a
+  knockout. Even matchups (8-12 of 20) are no closer: their winners keep 72% on average.
+- Higher level wins 63% (one level up), 71% (two), 77% (three), 86% (four).
+- The swingiest robots (winner's health in fights they are in, share of blowouts with 85%+ left): Snapjaw 85 / 61%,
+  Thwacker 83 / 53%, Popcorn 81 / 42%, Angler 81 / 50%. Snapjaw is in 6 of the 12 most one-sided even pairings
+  (Popcorn vs Snapjaw 10-10 with the winner on 86%, 15 blowouts of 20): flips and the crusher end fights fast.
+- The slugging robots: Sawblast (winner 67%, 7% blowouts, 30% close fights), Mincer, Buzzkill, Forklift, Vertigo,
+  Whirlwind. Nail-biters: Juggernaut vs Sawblast, Buzzkill vs Wrecker, Pincher vs Sawblast (the winner on about 60%).
+- Arenas barely change it: same-level winners keep 71% (saws, the closest) to 75% (cage, ice); Popcorn vs Snapjaw is
+  the most one-sided even pairing on four of the five arenas.
