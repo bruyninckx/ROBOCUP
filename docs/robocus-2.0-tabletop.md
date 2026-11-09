@@ -355,9 +355,12 @@ their step). That needs no fight stream, but only works if the physics comes out
   `tabletop-2.html`; the 🌐 badge in the top bar opens it, as in 1.0.
 - **Fights:** the host keeps the engine's create options in `F.bb` (seed + every robot's build) and every live card in
   `F.cmdLog` with the step it lands on (`LIVE_LEAD` = 30 steps, 0.25 s after it is played). A client builds the same fight
-  from `F.bb` (`fightFromBB`), queues the cards, and its fight view follows the host's step (`clientPace`: the host sends it
-  4× a second; the client catches up when behind and holds when ahead; the countdown runs on its own clock). No speed, pause
-  or skip buttons on a client. A card that arrives after its step replays the fight from the start with every card (`resims`).
+  from `F.bb` (`fightFromBB`), queues the cards, and its fight view follows the host's step (`clientPace`): the host sends its
+  step 4× a second, the client measures the host's speed from them (slow motion, 2×, pause) and estimates where the host is now,
+  6 steps behind. The client's view runs on its own clock and eases towards that: 0.6× to 1.5× speed, a quick catch-up when
+  more than 2 s behind (Kev, 9 Nov: the first version held whenever it got 0.2 s ahead, so it stuttered 4× a second; measured
+  after the fix: no jumps, 3–9 steps behind the host). The countdown runs on its own clock. No speed, pause or skip buttons
+  on a client. A card that arrives after its step replays the fight from the start with every card (`resims`).
 - A person's live card on a client goes to the host (`act('combatCard', …)`); the host checks it and plays it for everyone.
   The AI's cards are decided on the host only.
 - **Check:** the fight's fingerprint (`fightHash`) is taken at the step the fight ends (`S.endHash`; the view runs on a few
