@@ -593,6 +593,9 @@ html, body {
       partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1 },   // copies per part id (src2/lineup.js PARTS key); others: its own copies
       kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
     },
+    // tuning chips (Kev, 9 Nov sims): slot true = a chip gets its own slot (it does not use one of the 2 part slots);
+    // fromRound = chip lots stay out of the Market before this round (dealt later from the same deck)
+    chips: { slot: false, fromRound: 1 },
     robotLevels: {                // which level a New Robot lot deals, by round: [from round, { level: weight }]
       scheme: 'gradual', rounds: 5, // rounds 1..rounds always offer a robot lot (Kev, 8 Nov: gradual, was waves)
       schemes: {
@@ -3619,6 +3622,8 @@ html, body {
   }
   function dealLot() {
     let id = G.lots.pop();
+    // chips held back until BAL.chips.fromRound: to the bottom of the deck, deal the next lot (if the deck has anything else)
+    for (let k = 0; k < G.lots.length && id && id.startsWith('p_') && isChip(id.slice(2)) && G.round < (BAL.chips.fromRound || 1); k++) { G.lots.unshift(id); id = G.lots.pop(); }
     if (id === 'crew') { const k = G.crewDeck.pop(); return k ? crewLot(k) : 'mech'; }
     if (id === 'robot' || (LOTS[id] && LOTS[id].robot)) {
       if (LOTS[id] && LOTS[id].starter) returnStarter(LOTS[id].starter);
@@ -3652,13 +3657,15 @@ html, body {
   const minBidOf = id => { const L = LOTS[id]; return L && L.robot && L.starter && levelOf(L.starter) >= 4 ? BAL.level4.minBid || 0 : 0; };
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew && !LOTS[id].tape;
   // 2.0: can this part go on this robot? 2 part slots + 1 legendary slot; at most 3 drones (lineup.js caps them)
+  const isChip = k => !!(LU.PARTS[k] && LU.PARTS[k].kind === 'chip');
+  const slotParts = r => (r.parts || []).filter(k => !(BAL.chips.slot && isChip(k)));   // parts in the 2 part slots (a chip has its own slot when BAL.chips.slot)
   function canFit(r, L) {
     if (!r || !L) return false;
     if (L.part) {
       const P = LU.PARTS[L.part];
       if (!P) return false;
       if (P.kind === 'legendary') return !r.leg;
-      if ((r.parts || []).length >= 2) return false;
+      if (P.kind !== 'chip' || !BAL.chips.slot) { if (slotParts(r).length >= 2) return false; }
       if (P.kind === 'drone' && droneCount(r) >= 3) return false;
       if (P.kind === 'chip' && partsOf(r).some(k => LU.PARTS[k] && LU.PARTS[k].kind === 'chip')) return false;   // one tuning chip per robot
       return true;
@@ -3676,7 +3683,7 @@ html, body {
   // what a lot does to this robot, in the bookie's numbers ("62% → 70% vs the field")
   function lotPreview(r, L) {
     if (!L || !L.part) return L ? L.text : '';
-    if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : (r.parts || []).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
+    if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : LU.PARTS[L.part].kind === 'chip' && partsOf(r).some(isChip) ? 'it already has a tuning chip' : slotParts(r).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
     const ti = ownerOf(r) ? ownerOf(r).i : viewerSeat, a = fieldOdds(ti, r).p, b = fieldOdds(ti, withPart(r, L.part)).p;
     return pctTxt(a) + ' → ' + pctTxt(b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '');
   }
@@ -6219,10 +6226,10 @@ html, body {
       ctx.fillStyle = '#7c3aed'; ctx.textAlign = 'right'; fitText(ctx, '🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), bx + bw - 10, by + 43, tw * 0.36, '800', 10.5);
       help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+' + BAL.fame.fanFav + ' fame while it stays on your team).');
       ctx.textAlign = 'left'; ctx.fillStyle = '#555'; fitText(ctx, wepLabel(r.name).toUpperCase(), tx, by + 60, tw, '800', 10.5);
-      const pl = r.parts || [];
-      ctx.fillStyle = pl.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots'), tx, by + 77, tw, '700', 10.5);
+      const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
+      ctx.fillStyle = pl.length || chp.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name : ''), tx, by + 77, tw, '700', 10.5);
       ctx.fillStyle = r.leg ? '#b45309' : '#999'; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 92, tw, '700', 10.5);
-      help(tx, by + 66, tw, 30, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots and 1 legendary slot per robot.');
+      help(tx, by + 66, tw, 30, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
       { const fo = fieldOdds(ti, r); drawOddsChip(ctx, fo.p, tx, by + 99, tw, 18, 10.5); const hb = helpBand(ti, r, fo.p); help(tx, by + 99, tw, 18, hb[0], hb[1]); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 99, w: tw, h: 18 }); }
       const myUpkeep = G.phase === 'upkeep' && ti === HS && !isClient() && !iWait('upkeep');
       drawZoneButtons(ctx, r, bx + 10, by + 124, bw - 20, 40, myUpkeep, false);
