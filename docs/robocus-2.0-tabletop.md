@@ -66,7 +66,7 @@ Auction deck (32 cards):
 - Playing: the fight screen shows your cards in a tray under the arena. Tap a card, then a robot (valid robots glow) or a spot. Esc or tapping the card again cancels. Works with taps on a phone. A team that is not fighting plays "your robot" cards on the side it bet on.
 - AI: checks its cards every 0.25 s of fight time, at most one card every 3 s, with simple rules (Field Engineer when jammed, burning or hurt; Overclock and Hype Surge when close; hammer, oil, EMP and magnet on a rival that is not next to its own robot; smoke and waypoint when losing; anything late in the fight). Headless fights (AI-only, fast, skipped) run the same rules step by step, so cards land at the same moment.
 - AI bids: the measured swing (`tools/damage-lab/livevalue-results.json`, win % with the card vs 48% without, played blind at 15 s; at least +2) × what the fight is worth to it.
-- Online play is still off in 2.0.
+- Online play is still off in 2.0 (groundwork: see "Online fights" below).
 
 ## What worked in the first slice (replaced)
 
@@ -331,3 +331,21 @@ then the parts: fitted (AI), queued for a bay click (people), or into the Stash.
 - **Robot-stat Intrigue cards** (Kev, 8 Nov: fold into the overhaul; measured swings in the card-value section): candidates are Sugar in the Tank 60% → 40% (−11), Loose Bolts → one wheel at 30% until repaired (−12), Smudged Lens −15% → −25% (−16), Secret Upgrade +20% → +15% (+16), Overclock needs a real boost in its own fight (not measured). Until then the AI cashes in Sugar, Lens, Overclock, Loose Bolts and EMP (no modules/drones) instead of playing them.
 - Other sim reads: fight cards sell cheap (1.1 Cr, 45% sold), robot prices barely rise with level (4.8 / 5.2 / 5.5 Cr), Intrigue cards out-earn fight wins as a fame source.
 
+## Online fights: same fight on every screen (9 Nov)
+
+Plan: every browser runs the fight itself from the seed, like 1.0 (the host sends the seed, the builds and the live cards with
+their step). That needs no fight stream, but only works if the physics comes out bit for bit the same everywhere.
+
+- **Found:** it did not. Chrome 153 and node 22 (an older V8) already round `Math.sin`, `cos`, `atan2`, `exp`, `pow`, `log`, `tan`
+  differently in the last bit, so even two Chrome versions would drift apart within seconds of a fight.
+- **Fix:** `tools/damage-lab/dmath.js` (copied to `src2/dmath.js`): deterministic versions of those functions (fdlibm kernels,
+  only + − × ÷ and `sqrt`, which IEEE 754 makes exact everywhere), about 1 ulp from the native ones. It replaces the `Math`
+  functions page-wide and must load before planck.js (planck keeps its own `Math.sin` / `cos` / `atan2` from load time). The
+  pages load it first; in node `engine.js` installs it before requiring planck. The engine warns in the console if it is missing.
+- **Result:** node 22 and Chrome 153 now give the same code on all 23 test fights. Every fight plays differently than before
+  9 Nov (once); the game balance is unchanged (same physics, different last digits).
+- **Check:** `prototypes/sync-check.html` runs 23 fixed fights (duels, level 4, 2v2, free-for-all, House Robot, live cards) and
+  shows one code; reference `5185270f` (maths code `2cd6141c`). Open it in Firefox, Edge, Safari and on phones: the same code
+  means that browser plays fights the same. Node: `node tools/sync-check.js`.
+- Not covered yet: the host's and clients' fight inputs (live cards arrive with a step; a late card replays the fight), the end
+  hash compare, and what to do on a mismatch. Those come with the online build.
