@@ -5385,7 +5385,7 @@ html, body {
     snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
     snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman,
-    fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step } : null,
+    fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
@@ -5402,6 +5402,7 @@ html, body {
       let rate = o.fid === t.fid && o.rate != null ? o.rate : 1;
       if (o.fid === t.fid && t.tick < 1e8 && o.tick < 1e8 && now - o.at > 50) rate = Math.max(0, Math.min(4, 0.5 * rate + 0.5 * (t.tick - o.tick) / ((now - o.at) * 0.12)));
       netTick = { fid: t.fid, tick: t.tick, at: now, rate };
+      if (VW.V && t.sp > 0) VW.V.speed = t.sp;   // only the host sets the speed
     },
     showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
       return ivModal(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })));
