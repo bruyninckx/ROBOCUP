@@ -11,7 +11,7 @@
   const V = (x, y) => pl.Vec2(x, y);
   // tuning knobs: dmg = global damage scale, other keys = damage multiplier per cause (weapon key)
   const TUNE = { buzzsaw: 1, sawrocket: 1, rocket: 1, harpoon: 1, dmg: 0.68, spinner: 1.15, drum: 0.62, flipper: 1.6, hammer: 0.75, crusher: 1.5, medium: 0.8, flame: 0.72, glove: 0.85, spear: 0.9, flail: 1.25 };
-  const NOKNOB = { wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
+  const NOKNOB = { strain: 1, wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
   // arcade knobs: knock = extra knockback from weapon hits, fly = how far torn-off parts fly
   const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
   const DT = 1 / 120, G = 9.8, HALF = 4; // arena is 8 x 8 m, centred on 0,0
@@ -59,6 +59,8 @@
     mines: { label: 'Mine layer', strain: 1, mass: 4, d: 'Drops a mine every 3 s while driving (max 3), 22 damage blast from below.' },
     repair: { label: 'Repair drone', strain: 1, mass: 3, d: 'Patches the robot up after 1.5 s without being hit.' },
     boom: { label: 'Self-destruct core', strain: 1, mass: 5, d: 'Below 30% it charges and blows up: 50 damage around it, its own armour and weapon fly off.' },
+    tow: { label: 'Tow cable', strain: 1, mass: 4, d: 'Hooks the enemy and slings it into the nearest wall (a slam). Every 8 s.' },
+    jam: { label: 'Sensor scrambler', strain: 1, mass: 2, d: 'Scrambles the enemy\'s sensors within 3 m: it steers haywire and its module is offline for 3 s. Every 6 s.' },
     quantum: { label: 'Quantum shield', strain: 2, mass: 3, d: 'Once per fight, below 40%: 3 s of no damage.' },
     smoke: { label: 'Smoke screen', strain: 0, mass: 2, d: 'At 50%: a 4 s smoke cloud. Guns spray, the enemy loses track of it.' },
     popper: { label: 'Pop-up flipper', strain: 2, mass: 5, d: 'On contact: 14 damage, throws the enemy back, 0.8 s stun. Every 3 s.' },
@@ -756,6 +758,8 @@
     if (part.kind === 'armour' && part.bumper) { const B = BUMPERS[part.bumper]; d *= SHARP[h.cause] ? B.sharpK : B.blunt; }
     const atk = h.src && h.src !== R ? h.src : null;
     if (atk && S.multi) { if (atk.team === R.team) d *= ARC.ff; else { R.lastAtk = atk; R.lastAtkT = S.t; } }
+    // Overdrive (stat part, Kev 9 Nov): the weapon hits much harder but strains itself: its motor (or the weapon) takes a share of every hit it lands
+    if (atk && atk.spec.overdrive && own && h.cause !== 'strain' && d > 0) { const wq = atk.wmotor && atk.wmotor.hp > 0 ? atk.wmotor : atk.parts.find(q => q.kind === 'weapon' && q.attached && q.hp > 0); if (wq) hit(S, wq, d * atk.spec.overdrive, { src: atk, cause: 'strain', inner: wq === atk.wmotor }); }
     if (atk) d *= (atk.over > 0 ? 1.8 : 1) * (atk.rage > 0 ? 1.4 : 1) * (atk.spotting ? 1.25 : 1) * (atk.boostK > 1 ? 1.15 : 1) * (atk.berserk > 0 ? 1.3 : 1);
     // side / rear hits: tracked for every robot, +25% for the flanker chip
     if (atk && !h.inner && h.blp && part.body === R.body && h.cause !== 'landing' && h.cause !== 'heat' && h.cause !== 'fire') {
@@ -965,7 +969,7 @@
     S.fx.push({ type: 'ko', robot: R.id });
   }
 
-  const CAUSES = { tail: 'thwack tail', lifter: 'lifter fork', batram: 'battering ram', vdisc: 'vertical disc', shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
+  const CAUSES = { strain: 'overdrive strain', tail: 'thwack tail', lifter: 'lifter fork', batram: 'battering ram', vdisc: 'vertical disc', shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
   const causeLabel = c => CAUSES[c] || c || 'hit';
 
   // ---------- contacts -> damage ----------
@@ -1478,6 +1482,14 @@
       const mE = E.body.getMass(), k = 3.2 * pk('grapple'); knock(E, -dx / dist * mE * k, -dy / dist * mE * k);
       b.applyLinearImpulse(V(dx / dist * b.getMass() * 0.8, dy / dist * b.getMass() * 0.8), b.getWorldCenter(), true);
       R.modCd = 6; S.fx.push({ type: 'grapple', robot: R.id, x: ep.x, y: ep.y }); callout(S, 'YOINK!', ep.x, ep.y, false); say(S, `${R.name} hooks ${E.name} and reels it in`, R.id);
+    }
+    else if (m === 'tow' && ready && dist < R.hl + E.hl + 1.6 && E.airborne <= 0) {   // Tow cable (Kev, 9 Nov): sling it into the nearest wall
+      const ax = Math.abs(ep.x), ay = Math.abs(ep.y), wx = ax > ay ? Math.sign(ep.x) || 1 : 0, wy = ax > ay ? 0 : Math.sign(ep.y) || 1, mE = E.body.getMass(), k = 4.8 * pk('tow');
+      knock(E, wx * mE * k, wy * mE * k); E.thrownBy = R; E.airborne = Math.max(E.airborne, 0.25); E.airMax = Math.max(E.airMax || 0, 0.2); E.stun = Math.max(E.stun, 0.5);   // airborne + thrownBy: the wall hit counts as a slam
+      R.modCd = 8; S.fx.push({ type: 'grapple', robot: R.id, x: ep.x, y: ep.y }); callout(S, 'SLUNG!', ep.x, ep.y, true); say(S, `${R.name} hooks ${E.name} and slings it at the wall`, R.id);
+    }
+    else if (m === 'jam' && ready && dist < 3) {   // Sensor scrambler (Kev, 9 Nov): the enemy steers haywire for a moment
+      E.glitch = Math.max(E.glitch || 0, 3 * pk('jam')); E.modOff = Math.max(E.modOff || 0, 3); R.modCd = 6; S.fx.push({ type: 'emp', x: p.x, y: p.y, robot: R.id }); callout(S, 'SCRAMBLED!', ep.x, ep.y, false); say(S, `${R.name} scrambles ${E.name}'s sensors`, R.id);
     }
     else if (m === 'jets' && ready && dist < R.hl + E.hl + 0.6 && R.airborne <= 0 && (R.W.gun || /^(laser|saw|mortar|rocket|harpoon)$/.test(R.spec.weapon) || Math.abs(err) > 1.2 || R.stuckT > 0.5 || E.grab === R)) {
       let a = Math.atan2(-dy, -dx) + (S.rng() < 0.5 ? 0.6 : -0.6); const cx = -p.x, cy = -p.y; if (Math.cos(a) * cx + Math.sin(a) * cy < -1.5) a += Math.PI * 0.5;
