@@ -740,6 +740,16 @@
     ctx.drawImage(floorC, -VIEW / 2, -VIEW / 2, VIEW, VIEW);
     ctx.drawImage(decal, -VIEW / 2, -VIEW / 2, VIEW, VIEW);
     const A = S.arena, P = L.PIT;
+    if (A.ice) {   // ice rink: a pale blue sheen with a few scratch marks (Kev, 9 Nov)
+      const H = L.HALF; ctx.fillStyle = 'rgba(160,210,240,0.38)'; ctx.fillRect(-H, -H, 2 * H, 2 * H);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.02;
+      for (let k = 0; k < 14; k++) { const a = ((k * 37) % 17) / 17 * 6.28, x = ((k * 53) % 13) / 13 * 6 - 3, y = ((k * 29) % 11) / 11 * 6 - 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(a) * 0.4, y + Math.sin(a) * 0.4 + 0.2, x + Math.cos(a) * 0.9, y + Math.sin(a) * 0.9); ctx.stroke(); }
+    }
+    if (A.inset) {   // The Cage: dark ground outside the walls, with hazard stripes along them
+      const H = L.HALF, h = H - A.inset;
+      ctx.fillStyle = '#1B1712'; ctx.beginPath(); ctx.rect(-H - 1, -H - 1, 2 * H + 2, 2 * H + 2); ctx.rect(-h, -h, 2 * h, 2 * h); ctx.fill('evenodd');
+      ctx.strokeStyle = '#E8C547'; ctx.lineWidth = 0.06; ctx.setLineDash([0.18, 0.14]); ctx.strokeRect(-h - 0.03, -h - 0.03, 2 * h + 0.06, 2 * h + 0.06); ctx.setLineDash([]);
+    }
     if (A.pit) {
       const g = ctx.createLinearGradient(-P, -P, P, P); g.addColorStop(0, '#0E0B08'); g.addColorStop(1, '#2A2420');
       ctx.fillStyle = g; ctx.fillRect(-P, -P, 2 * P, 2 * P);
