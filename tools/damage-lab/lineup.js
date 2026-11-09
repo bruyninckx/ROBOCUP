@@ -41,9 +41,9 @@
     hospital: { name: 'Field hospital', kind: 'legendary', copies: 1, vs: 55, d: 'Legendary: a full-strength medic drone and HP x1.1.', apply: (sp, b) => ({ helpers: (sp.helpers || []).concat(['fieldmedic']).slice(0, 3), hpK: b.hpK * 1.1 }) },
     quantum: { name: 'Quantum shield', kind: 'legendary', copies: 1, vs: 48, d: 'Legendary: the first real hit after it recharges is cancelled and the robot phases out for 1.5 s; recharges in 8 s.', apply: () => ({ qshield: true }) },
     // tuning chips (Kev, 9 Nov): routines worked out for light robots; from level 2 up they can overload (engine CHIP_GLITCH)
-    matador: { name: 'Matador chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: waits in front of the enemy, sidesteps its charge and hits its side. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'matador' }) },
-    bait: { name: 'Wall Bait chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: stands in front of a wall or hazard and sidesteps at the last moment, so the enemy crashes in. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'bait' }) },
-    pester: { name: 'Pester chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: circles at the edge of the enemy\'s reach and darts in when it is turned away. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'pester' }) },
+    matador: { name: 'Matador chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: waits in front of the enemy, sidesteps its charge and hits its side. On a level 0-1 robot it also drives nimbly: +25% push, +20% speed, sharper turns. May glitch on heavier robots.', apply: () => ({ chip: 'matador' }) },
+    bait: { name: 'Wall Bait chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: stands in front of a wall or hazard and sidesteps at the last moment, so the enemy crashes in. On a level 0-1 robot it also drives nimbly: +25% push, +20% speed, sharper turns. May glitch on heavier robots.', apply: () => ({ chip: 'bait' }) },
+    pester: { name: 'Pester chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: circles at the edge of the enemy\'s reach and darts in when it is turned away. On a level 0-1 robot it also drives nimbly: +25% push, +20% speed, sharper turns. May glitch on heavier robots.', apply: () => ({ chip: 'pester' }) },
   };
   // a lineup robot with parts, as an engine spec
   // level gap (Kev, 9 Nov: test wider gaps between levels): every level's power grade x (1 + levelBoost) ^ level, the same step
