@@ -66,7 +66,7 @@ Auction deck (32 cards):
 - Playing: the fight screen shows your cards in a tray under the arena. Tap a card, then a robot (valid robots glow) or a spot. Esc or tapping the card again cancels. Works with taps on a phone. A team that is not fighting plays "your robot" cards on the side it bet on.
 - AI: checks its cards every 0.25 s of fight time, at most one card every 3 s, with simple rules (Field Engineer when jammed, burning or hurt; Overclock and Hype Surge when close; hammer, oil, EMP and magnet on a rival that is not next to its own robot; smoke and waypoint when losing; anything late in the fight). Headless fights (AI-only, fast, skipped) run the same rules step by step, so cards land at the same moment.
 - AI bids: the measured swing (`tools/damage-lab/livevalue-results.json`, win % with the card vs 48% without, played blind at 15 s; at least +2) × what the fight is worth to it.
-- Online play is still off in 2.0 (groundwork: see "Online fights" below).
+- Online play: on (9 Nov), see "Online fights" below.
 
 ## What worked in the first slice (replaced)
 
@@ -347,5 +347,30 @@ their step). That needs no fight stream, but only works if the physics comes out
 - **Check:** `prototypes/sync-check.html` runs 23 fixed fights (duels, level 4, 2v2, free-for-all, House Robot, live cards) and
   shows one code; reference `5185270f` (maths code `2cd6141c`). Open it in Firefox, Edge, Safari and on phones: the same code
   means that browser plays fights the same. Node: `node tools/sync-check.js`.
-- Not covered yet: the host's and clients' fight inputs (live cards arrive with a step; a late card replays the fight), the end
-  hash compare, and what to do on a mismatch. Those come with the online build.
+
+### Online play in 2.0 (9 Nov)
+
+- `src2/net.js`: a copy of 1.0's `src/net.js` (lobby, rooms, snapshots, actions, pause/rejoin, save/load) with its own room
+  names (`robocus-v2-`, so 1.0 and 2.0 rooms never meet) and a version fingerprint over the 2.0 engine. Loaded at the end of
+  `tabletop-2.html`; the 🌐 badge in the top bar opens it, as in 1.0.
+- **Fights:** the host keeps the engine's create options in `F.bb` (seed + every robot's build) and every live card in
+  `F.cmdLog` with the step it lands on (`LIVE_LEAD` = 30 steps, 0.25 s after it is played). A client builds the same fight
+  from `F.bb` (`fightFromBB`), queues the cards, and its fight view follows the host's step (`clientPace`: the host sends it
+  4× a second; the client catches up when behind and holds when ahead; the countdown runs on its own clock). No speed, pause
+  or skip buttons on a client. A card that arrives after its step replays the fight from the start with every card (`resims`).
+- A person's live card on a client goes to the host (`act('combatCard', …)`); the host checks it and plays it for everyone.
+  The AI's cards are decided on the host only.
+- **Check:** the fight's fingerprint (`fightHash`) is taken at the step the fight ends (`S.endHash`; the view runs on a few
+  seconds after a KO). Every client compares its own with the host's; a difference counts as a desync in its playtest log.
+  A fight a client never saw running (skipped, or a test bot) is run there in one go and compared too.
+- A host in a background tab: the browser stops the fight view's frames, so the game's own timer steps the fight there.
+- **Tests:** `PAGE=tabletop-2.html node tools/mp-test.js 3 5 10` (host + 3 bot players, fights headless) and with `WATCH=1`
+  (fights shown in real time on every screen, the test bots play their own live cards from their screens). 9 Nov:
+  - full games: no desyncs in any fight (6 headless; 11 and 5 shown live), no resims;
+  - chaos run (drop-out + rejoin, host skips a player, a player leaves for good and the AI takes over, save loaded into a new
+    room): all passed.
+- Fixed on the way (also in solo play): the fight view had two functions called `fire`, so burning robots "played a card"
+  instead of showing flames (and cancelled a card you were aiming); two `wrapLines` on the board (card texts weren't cut to
+  5 lines); a second call into the host's spare-or-scrap step could crash after a slow player; a test bot in a room no
+  longer plays a solo game before it connects.
+- Not tested here: real PeerJS/WebRTC between PCs (the cloud sandbox has no internet), as with 1.0.
