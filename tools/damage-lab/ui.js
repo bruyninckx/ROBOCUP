@@ -47,15 +47,17 @@
     const el = $('bot' + i), s = st.spec[i], sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
     el.style.borderTopColor = TC(i).col;
     const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([, v]) => v[0] === t).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('');
-    const partOpts = (cur, leg) => '<option value="">none</option>' + ['drone', 'module', 'stat', 'legendary'].filter(k => leg ? k === 'legendary' : k !== 'legendary').map(kind => `<optgroup label="${kind === 'stat' ? 'Stat cards' : kind === 'legendary' ? 'Legendary' : kind[0].toUpperCase() + kind.slice(1) + 's'}">${Object.entries(P).filter(([, v]) => v.kind === kind).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${v.name} (${v.vs}%)</option>`).join('')}</optgroup>`).join('');
+    // tuning chips (9 Nov): the % is a level 1 robot with the chip against level 3 (stock 23%), from tools/damage-lab/chipfit.js
+    const CHIP_UP2 = { matador: 38, bait: 28, pester: 43 }, otherChip = slot => s.parts.some((k, j) => j !== slot && k && P[k] && P[k].kind === 'chip');
+    const partOpts = (cur, leg, slot) => '<option value="">none</option>' + ['drone', 'module', 'stat', 'chip', 'legendary'].filter(k => leg ? k === 'legendary' : k !== 'legendary').map(kind => `<optgroup label="${kind === 'stat' ? 'Stat cards' : kind === 'legendary' ? 'Legendary' : kind === 'chip' ? 'Tuning chips (one per robot)' : kind[0].toUpperCase() + kind.slice(1) + 's'}">${Object.entries(P).filter(([, v]) => v.kind === kind).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}${kind === 'chip' && otherChip(slot) ? ' disabled' : ''}>${v.name} (${kind === 'chip' ? CHIP_UP2[k] + '% two levels up' : v.vs + '%'})</option>`).join('')}</optgroup>`).join('');
     const parts = s.parts.filter(Boolean);
     el.innerHTML = `
       <div class="bot-head"><div><div class="team" style="color:${TC(i).col}">${st.mode === '2v2' ? 'Team ' + TC(i).name : TC(i).name} · <b>level ${lv}</b></div><h2 id="nm${i}">${nameOf(i)}</h2></div><span class="kg" id="kg${i}"></span></div>
       <div class="grid2" style="grid-template-columns:1fr"><label for="lr${i}">Robot<select id="lr${i}">${robotOpts}</select></label></div>
-      <div class="grid2"><label for="lp0${i}">Part 1<select id="lp0${i}" data-slot="0">${partOpts(s.parts[0])}</select></label><label for="lp1${i}">Part 2<select id="lp1${i}" data-slot="1">${partOpts(s.parts[1])}</select></label></div>
+      <div class="grid2"><label for="lp0${i}">Part 1<select id="lp0${i}" data-slot="0">${partOpts(s.parts[0], false, 0)}</select></label><label for="lp1${i}">Part 2<select id="lp1${i}" data-slot="1">${partOpts(s.parts[1], false, 1)}</select></label></div>
       <div class="grid2" style="grid-template-columns:1fr"><label for="lp2${i}">Legendary<select id="lp2${i}" data-slot="2">${partOpts(s.parts[2], true)}</select></label></div>
       <p class="wdesc">${L.WEAPONS[sp.weapon].d}${sp.proc !== 'standard' ? ` <span class="small">${L.PROCS[sp.proc].label}.</span>` : ''}${sp.mod !== 'none' ? ` <span class="small">${L.MODULES[sp.mod].label}.</span>` : ''}</p>
-      ${parts.length ? `<p class="wdesc small">${parts.map(k => `<b>${P[k].name}:</b> ${P[k].d}`).join(' ')}</p>` : '<p class="wdesc small">The % next to a part: how often a robot with it beats robots one level up (legendary: two levels up). Stock: about 38% / 25%.</p>'}
+      ${parts.length ? `<p class="wdesc small">${parts.map(k => `<b>${P[k].name}:</b> ${P[k].d}`).join(' ')}</p>` : '<p class="wdesc small">The % next to a part: how often a robot with it beats robots one level up (legendary and tuning chips: two levels up). Stock: about 38% / 25%.</p>'}${parts.some(k => P[k].kind === 'chip') && lv >= 2 ? `<p class="wdesc small" style="color:var(--warn)"><b>Heavy frame:</b> a level ${lv} robot overloads the chip now and then (${[0, 0, 15, 30, 45][lv]}% chance of a 1 s glitch every 4 s).</p>` : ''}
       <canvas class="diag" id="dg${i}" width="480" height="300" aria-label="Part health diagram"></canvas>
       <details id="pd${i}"><summary>Parts</summary><div class="parts" id="pl${i}"></div></details>`;
     $('lr' + i).onchange = e => { st.spec[i] = { robot: e.target.value, parts: s.parts.slice() }; buildCard(i); restart(); };
@@ -1109,6 +1111,57 @@
     $('qsSame').onclick = () => pick(0); $('qsOne').onclick = () => pick(1); $('qsTwo').onclick = () => pick(2);
     $('qsClear').onclick = () => { for (let i = 0; i < 4; i++) st.spec[i] = { robot: st.spec[i].robot, parts: [] }; for (let i = 0; i < 4; i++) buildCard(i); start(); };
   }
+  // matchup overview (Kev, 9 Nov): row robot vs column robot, 20 fights a pair (tools/damage-lab/matrix.js, inlined as LU_MATRIX).
+  // Show win %, the winner's health left or knockouts; below it the even matchups whose fights are still one-sided.
+  if (LU && $('mx') && !window.LU_MATRIX) $('mx').hidden = true;   // no matrix-data.json built in yet
+  if (LU && window.LU_MATRIX && $('mx')) (function matchups() {
+    const D = window.LU_MATRIX, AR = Object.keys(D.arenas).sort((a, b) => (b === 'open') - (a === 'open'));
+    const names = Object.keys(LU.ROBOTS).sort((a, b) => LU.ROBOTS[a][0] - LU.ROBOTS[b][0] || LU.ROBOTS[a][1] - LU.ROBOTS[b][1]);
+    const v = { arena: AR[0], show: 'win', lv: 'all' };
+    const get = (arena, a, b) => { const P = D.arenas[arena].pairs, x = P[a + '|' + b]; if (x) return { w: x[0], n: x[1], h: x[2], hw: x[3], hl: x[4], ko: x[5], t: x[6], bl: x[7] }; const y = P[b + '|' + a]; return y ? { w: y[1] - y[0], n: y[1], h: y[2], hw: y[4], hl: y[3], ko: y[5], t: y[6], bl: y[7] } : null; };
+    const seg = (key, opts) => `<span class="seg" role="group">${opts.map(([k, l]) => `<button type="button" data-${key}="${k}" aria-pressed="${String(v[key] === k)}">${l}</button>`).join('')}</span>`;
+    const lvName = t => t === 'all' ? 'All' : 'L' + t;
+    const load = (a, b) => { st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null;
+      st.arena = v.arena; $('arenaSel').value = v.arena; st.spec[0] = { robot: a, parts: [] }; st.spec[1] = { robot: b, parts: [] }; buildCard(0); buildCard(1); start(); $('arena').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    function draw() {
+      const A = D.arenas[v.arena], same = A.mode === 'same';
+      if (same && v.lv === 'all') v.lv = '0';
+      const rows = names.filter(k => v.lv === 'all' || LU.ROBOTS[k][0] === +v.lv);
+      const lvOpts = (same ? [] : [['all', 'All']]).concat([0, 1, 2, 3, 4].map(t => [String(t), lvName(t)]));
+      const cellOf = (a, b) => {
+        if (a === b) return '<td class="self">–</td>';
+        const x = get(v.arena, a, b); if (!x) return '<td class="self">·</td>';
+        const pw = Math.round(100 * x.w / x.n), even = pw >= 40 && pw <= 60;
+        const val = v.show === 'win' ? pw : v.show === 'health' ? x.hw == null ? '–' : x.hw : Math.round(100 * x.ko / x.n);
+        const k = v.show === 'win' ? (pw - 50) / 50 : v.show === 'health' ? (x.hw == null ? 0 : (x.hw - 45) / 45) : (x.ko / x.n - 0.5) * 2;
+        const tip = `${a} vs ${b}: ${a} wins ${x.w} of ${x.n}. When ${a} wins it has ${x.hw == null ? '–' : x.hw + '%'} health left; when ${b} wins, ${x.hl == null ? '–' : x.hl + '%'}. ${Math.round(100 * x.ko / x.n)}% knockouts, median ${x.t} s.`;
+        return `<td><button type="button" class="mcell${v.show === 'health' && even && x.h >= 60 ? ' swing' : ''}" data-a="${a}" data-b="${b}" style="--k:${Math.max(-1, Math.min(1, k)).toFixed(2)}" title="${tip}" aria-label="${tip}">${val}</button></td>`;
+      };
+      const avgOf = a => { const xs = rows.filter(b => b !== a).map(b => get(v.arena, a, b)).filter(Boolean); if (!xs.length) return '–';
+        if (v.show === 'win') return Math.round(100 * xs.reduce((s2, x) => s2 + x.w, 0) / xs.reduce((s2, x) => s2 + x.n, 0));
+        if (v.show === 'ko') return Math.round(100 * xs.reduce((s2, x) => s2 + x.ko, 0) / xs.reduce((s2, x) => s2 + x.n, 0));
+        const hs = xs.filter(x => x.hw != null); return hs.length ? Math.round(hs.reduce((s2, x) => s2 + x.hw * x.w, 0) / Math.max(1, hs.reduce((s2, x) => s2 + x.w, 0))) : '–'; };
+      // the swing list: even pairs (8-12 of 20) sorted by how much health the winner usually keeps
+      const ev = []; for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) { const x = get(v.arena, rows[i], rows[j]); if (!x) continue; const pw = x.w / x.n; if (pw >= 0.4 && pw <= 0.6) ev.push(Object.assign({ a: rows[i], b: rows[j] }, x)); }
+      ev.sort((p, q) => q.h - p.h);
+      const evRow = x => `<tr><th scope="row"><button type="button" class="linkb" data-a="${x.a}" data-b="${x.b}">${x.a} vs ${x.b}</button> <span class="small">L${LU.ROBOTS[x.a][0]}${LU.ROBOTS[x.a][0] !== LU.ROBOTS[x.b][0] ? '/L' + LU.ROBOTS[x.b][0] : ''}</span></th><td>${x.w}–${x.n - x.w}</td><td><b>${x.h}%</b></td><td>${x.hw == null ? '–' : x.hw + '%'}</td><td>${x.hl == null ? '–' : x.hl + '%'}</td><td>${x.bl} of ${x.n}</td><td>${Math.round(100 * x.ko / x.n)}%</td><td>${x.t} s</td></tr>`;
+      const evHead = `<thead><tr><th scope="col">Matchup</th><th scope="col">Score</th><th scope="col">Winner's health</th><th scope="col">Left wins, health</th><th scope="col">Right wins, health</th><th scope="col">Blowouts</th><th scope="col">KO</th><th scope="col">Median</th></tr></thead>`;
+      const swing = ev.slice(0, 12), tight = ev.slice(-6).reverse();
+      $('mxBody').innerHTML = `
+        <div class="bar">${seg('arena', AR.map(k => [k, L.ARENAS[k] ? L.ARENAS[k].label.replace(/ \(.*/, '') : k]))}${seg('show', [['win', 'Win %'], ['health', "Winner's health"], ['ko', 'Knockouts']])}${seg('lv', lvOpts)}</div>
+        <p class="small">${v.show === 'win' ? 'How often the row robot beats the column robot (green: row wins more).' : v.show === 'health' ? "Chassis health the row robot has left when it wins (high: it won easily). Ringed cells: even matchups (40-60%) that are usually one-sided anyway." : 'How many fights end in a knockout instead of the judges.'} ${A.mode === 'same' ? 'This arena was only tested within each level.' : ''} ${D.fights || 20} fights a pair, half on each side. Click a cell to watch that fight.</p>
+        <div class="tblwrap"><table class="mtab mx"><thead><tr><th scope="col"><span class="small">row vs column</span></th>${rows.map(b => `<th scope="col" title="${b}, level ${LU.ROBOTS[b][0]}">${b.slice(0, 5)}</th>`).join('')}<th scope="col">avg</th></tr></thead>
+        <tbody>${rows.map(a => `<tr><th scope="row">${a} <span class="small">${'★'.repeat(LU.ROBOTS[a][0])}</span></th>${rows.map(b => cellOf(a, b)).join('')}<td class="avg">${avgOf(a)}</td></tr>`).join('')}</tbody></table></div>
+        <h3 class="dvh">Even on paper, one-sided in the pit</h3>
+        <p class="small">Matchups that end about 10-10 over 20 fights, but the winner usually walks away with lots of health left: whoever gets the first good hit runs away with it. Blowouts = the winner kept 60%+ health.${ev.length ? '' : ' No even matchups in this selection.'}</p>
+        ${swing.length ? `<div class="tblwrap"><table class="mtab ev">${evHead}<tbody>${swing.map(evRow).join('')}</tbody></table></div>
+        <h3 class="dvh">Nail-biters, for comparison</h3><p class="small">Even matchups where the winner is usually hanging on too.</p>
+        <div class="tblwrap"><table class="mtab ev">${evHead}<tbody>${tight.map(evRow).join('')}</tbody></table></div>` : ''}`;
+      $('mxBody').querySelectorAll('[data-arena],[data-show],[data-lv]').forEach(bn => bn.onclick = () => { for (const key of ['arena', 'show', 'lv']) if (bn.dataset[key] != null) v[key] = bn.dataset[key]; draw(); });
+      $('mxBody').querySelectorAll('.mcell, .linkb').forEach(bn => bn.onclick = () => load(bn.dataset.a, bn.dataset.b));
+    }
+    draw();
+  })();
   // what each helper drone is worth: click a cell to watch that robot with that drone
   (function droneTable() {
     const el = $('market'); if (!el || !L.DRONE_VALUE) return;

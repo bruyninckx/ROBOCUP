@@ -102,16 +102,25 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
 .mcell { width: 100%; min-width: 52px; padding: 5px 0; border: 1px solid var(--line); border-radius: 4px; font: 600 13px var(--f-mono);
   background: color-mix(in srgb, var(--good) calc(max(var(--k), 0) * 70%), color-mix(in srgb, var(--bad) calc(max(calc(var(--k) * -1), 0) * 70%), var(--panel))); }
 .mnotes { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 16px; font-size: 13px; }
+.mtab.mx { min-width: 0; font-size: 12px; }
+.mtab.mx th { font-size: 10px; padding: 3px 2px; }
+.mtab.mx .mcell { min-width: 30px; padding: 4px 0; font-size: 11.5px; }
+.mcell.swing { outline: 2px solid var(--rust); outline-offset: -2px; }
+.mtab.ev { min-width: 620px; }
+.mtab.ev td, .mtab.ev th { padding: 4px 8px; text-align: left; font: 13px var(--f-body); }
+.mtab.ev thead th { font: 600 11px var(--f-mono); }
+.linkb { border: 0; background: none; padding: 0; font-weight: 600; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.linkb:hover { background: none; color: var(--rust); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow"><b>2.0</b> Lineup draft, 8 Nov</div>
+      <div class="eyebrow"><b>2.0</b> Lineup, 9 Nov</div>
       <h1>ROBOCUS 2.0 Lineup Arena</h1>
     </div>
-    <p class="lede">The 25 robots of the 2.0 lineup at their power grades (level 0 starters, market levels 1-3), the 8 level 4 end-game robots (exotic mechanisms: strike arm, drill, throwing arm, hook, electromagnet, orbiting blades, walker, tool carousel) and the 25 part cards at their 2.0 strengths. Pick two robots, bolt on parts, watch the fight or test a batch of fights.</p>
+    <p class="lede">The 25 robots of the 2.0 lineup at their power grades (level 0 starters, market levels 1-3), the 8 level 4 end-game robots (exotic mechanisms: strike arm, drill, throwing arm, hook, electromagnet, orbiting blades, walker, tool carousel) the part cards at their 2.0 strengths (with the three tuning chips) and the five arenas. Pick two robots, bolt on parts, watch the fight or test a batch of fights. The matchup overview below shows every pairing.</p>
   </header>
 
   <main class="lab">
@@ -159,12 +168,19 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     <p id="qsOut" class="small" aria-live="polite">Targets: one level up wins about 62%, two levels about 77%. One part should bring a robot level with the next level, a legendary with the level after that.</p>
   </section>
 
+  <section class="card" id="mx" aria-labelledby="mx-h">
+    <h2 id="mx-h">Matchup overview</h2>
+    <div id="mxBody"></div>
+  </section>
+
   <section class="card notes">
     <h2>The 2.0 lineup</h2>
     <ul>
       <li><b>Levels.</b> 9 starters (level 0) and 16 market robots in levels 1-3. Each robot card has a power grade: its weapon damage and every part's HP times that number (x0.76 to x1.21). In 3,600 test fights each level beat the level below about 60-62% of the time, two levels up 77%, three levels 91%.</li>
       <li><b>Parts (22 cards, 18 types).</b> Drones, modules and stat cards. A module part replaces the robot's own module. The % in the picker is how often a robot with that part beats robots one level up (stock: about 38%).</li>
       <li><b>Legendaries (3).</b> Prototype core, Field hospital and the reworked Quantum shield (phases out on the first real hit, recharges in 8 s). The % is against robots two levels up (stock: about 25%).</li>
+      <li><b>Tuning chips (3).</b> Matador, Wall Bait and Pester: a fighting routine for light robots, one per robot. The % is a level 1 robot with the chip against level 3 (stock: about 23%). From level 2 up a chip can glitch (15 / 30 / 45% chance of a 1 s glitch every 4 s).</li>
+      <li><b>Arenas (5).</b> Open floor, Floor saws, Killbox, the Cage (6 x 6 m, walls 1 m in) and the Ice rink (grip x0.4; legs keep their footing). Pick one under the arena.</li>
       <li><b>Same physics as the Damage Lab.</b> Parts tear off, robots get flipped, the arena strikes back. Same seed, same fight.</li>
       <li>Full write-up: <code>docs/robocus-2.0-lineup.md</code> in the ROBOCUP repo.</li>
     </ul>

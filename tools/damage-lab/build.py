@@ -11,7 +11,9 @@ i = body.index('<div class="wrap">')
 print('built prototypes/damage-lab.html')
 # ROBOCUS 2.0 Lineup Arena: same engine and UI, plus lineup.js, with shell-lineup.html
 lu = (d/'lineup.js').read_text(); shl = (d/'shell-lineup.html').read_text()
-body = shl + '\n' + cdn + '\n<script>\n' + eng + '\n</script>\n<script>\n' + lu + '\n</script>\n<script>\n' + ui + '\n</script>\n'
+mxf = d/'matrix-data.json'   # matchup overview data (matrix.js + matrix-merge.js)
+mx = '<script>\nwindow.LU_MATRIX = ' + mxf.read_text().strip() + ';\n</script>\n' if mxf.exists() else ''
+body = shl + '\n' + cdn + '\n<script>\n' + eng + '\n</script>\n<script>\n' + lu + '\n</script>\n' + mx + '<script>\n' + ui + '\n</script>\n'
 headl = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<!-- ROBOCUS 2.0 Lineup Arena. Built from tools/damage-lab (engine.js, lineup.js, ui.js, shell-lineup.html). Needs internet for planck.js and fonts. -->\n'
 i = body.index('<div class="wrap">')
 (d.parent.parent/'prototypes'/'lineup-arena.html').write_text(headl + body[:i] + '</head><body>\n' + body[i:] + '</body></html>\n')
