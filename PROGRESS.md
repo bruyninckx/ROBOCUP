@@ -48,6 +48,7 @@ From the design docs:
 
 ## Log
 
+- **2026-11-09 (Claude): chips nimble, recap card, KO meters, repair cost.** Tuning chips give level 0-1 robots +25% push, +20% speed, sharper turns (chips now win as often as the best modules vs level 2/3). Recap: headline + chart + 3 highlights in one card. Fight screen: Drive / Power / Chassis meters and a count-out bar. Repairs that cost credits say so in red. Loose Bolts strip on robots. game-sim 4/4, mp-test OK.
 - **2026-11-09 (Claude): playtest fixes.** A rival's played card hangs inside the pit (it fell under the log for the leftmost ticket). Damage chart: no KO jump at the end (a KO'd robot keeps its real damage, a KO badge marks it), a red ⚔ badge where a robot loses its weapon or weapon motor. Rival tickets always show fitted parts (a bookie tag used to hide them) plus a +N badge on the picture. Sugar in the Tank, Smudged Lens, Loose Bolts and Rogue Firmware go on the rival robot the card is dropped on (ready robots light up), else on their best ready robot. game-sim 4/4, mp-test OK.
 - **2026-11-09 (Claude): bench tweaks and Kev's list.**
   - Log back on the left as a side panel; sticky note under the pit; Intrigue ring dots evenly spaced.
