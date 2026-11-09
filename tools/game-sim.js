@@ -107,7 +107,7 @@ function installHooks() {
         const g = G();
         if (e && e.k === 'fight_start' && g.fight) {
           const F = g.fight;
-          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), s: D.str2(r), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
+          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
         if (e && e.k === 'market') e.fameNow = g.teams.map(t => t.fame);   // fame when the lots are sold (who buys level 4: leader or not)

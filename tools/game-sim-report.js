@@ -31,6 +31,10 @@ const V2 = {
       'fight formats': Object.entries(S.sumBy(fx, 'format')).map(([k, v]) => k + ' ' + pc(v / fx.length)).join(' '),
       'arenas (host picks)': Object.entries(S.sumBy(fx, 'arena')).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + pc(v / fx.length)).join(' '),
       'end credits: awards / game': f1(mean(g.map(r => (r.awards || []).length))),
+      // tuning chips (Kev, 9 Nov): sold per game, price, first round sold, level of the robots that fight with one, their wins against the bookie
+      'chips: sold / game, price, first round': (() => { const c = sold.filter(l => l.kind === 'chip'); return f1(c.length / g.length) + ', ' + f1(mean(c.map(l => l.price))) + ' Cr, R' + f1(mean(g.map(r => { const x = r.v2.lots.filter(l => l.kind === 'chip' && l.winner != null && l.winner >= 0).map(l => l.r); return x.length ? Math.min(...x) : NaN; }).filter(x => !isNaN(x)))); })(),
+      'chips: fighters with one, their level': (() => { const ce = ent.filter(e => e.chip); return pc(ce.length / Math.max(1, ent.length)) + ', L' + f1(mean(ce.map(e => e.level || 0))) + ' (' + [0, 1, 2, 3, 4].map(L => ce.filter(e => (e.level || 0) === L).length).join('/') + ')'; })(),
+      'chips: chip sides win vs bookie p': (() => { let n = 0, w = 0, bp = 0; fx.forEach(f => { if (!f.p || typeof f.win !== 'number' || f.win < 0) return; const sd = new Set((f.x2 || []).filter(e => e && e.chip).map(e => e.side)); sd.forEach(x => { n++; bp += f.p[x]; if (x === f.win) w++; }); }); return n ? pc(w / n) + ' vs ' + pc(bp / n) + ' (' + n + ' sides)' : '-'; })(),
       'repairs / team / round (crew, free, Cr)': f1(reps.length / ups.length) + ' (' + [how.crew, how.free, how.credits].map(x => f1((x || 0) / ups.length)).join(', ') + ')' + (how.unknown ? ' ?' + how.unknown : ''),
       'repairs by zone (drive / weapon / body)': ['drive', 'weapon', 'body'].map(k => pc(reps.filter(x => x.zone === k).length / reps.length)).join(' / '),
       'crew / team at upkeep; repair Cr / game': f1(mean(ups.map(u => u.crew))) + '; ' + per((how.credits || 0) * 2),
