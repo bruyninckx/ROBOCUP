@@ -432,6 +432,16 @@ html, body {
   border-top: 1px solid #d5d1c7;
   padding-top: 2px;
 }
+#awardsPanel{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.35);padding:16px}
+#awardsPanel[hidden]{display:none}
+.aw-box{background:#fffdf7;border:2.5px solid #111;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:16px 18px;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;font:13px/1.45 system-ui,sans-serif;text-align:center}
+.aw-head{font-size:20px;font-weight:900}
+.aw-sub{color:#777;font-weight:700;margin:2px 0 12px;text-transform:uppercase;letter-spacing:1px;font-size:11px}
+.aw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-bottom:12px;text-align:left}
+.aw-card{display:flex;gap:10px;align-items:flex-start;border:2px solid #111;border-left-width:7px;border-radius:10px;padding:8px 10px;background:#fff}
+.aw-ic{font-size:24px;line-height:1}
+.aw-t{font-weight:900}
+.aw-x{color:#444}
 #ivModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(20,20,20,.25)}
 #ivModal[hidden]{display:none}
 #helpTip{position:fixed;z-index:10050;pointer-events:none;max-width:290px;background:#fffdf7;border:2px solid #111;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.22);padding:7px 10px;font:12px/1.4 system-ui,sans-serif;color:#222}
@@ -616,6 +626,7 @@ html, body {
     // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
     tradeIn: { on: true, base: 1, perLevel: 1 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
+    arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
     // ocMode: 'heat' (hot-wound motors: +35% force, 1.9x heat) | 'noheat' (+35% force without the extra heat build-up)
@@ -794,8 +805,8 @@ html, body {
   // Kev, 6 Nov: Hire Mechanic / Hire Engineer lots became 5 New Crew lots that deal named crew cards
   /* 2.0 PART CARDS (src2/lineup.js): 22 parts in the lot deck (with their copies); the 3 legendary parts are announced one
    * round ahead like 1.0's legendaries. A robot has 2 part slots and 1 legendary slot. */
-  const PART_ICON = { drone: '🛸', module: '⚙️', stat: '🔩', legendary: '🌟' };
-  const PART_KIND = { drone: 'Drone (max 3 per robot)', module: 'Module (replaces its own)', stat: 'Upgrade', legendary: 'Legendary slot' };
+  const PART_ICON = { drone: '🛸', module: '⚙️', stat: '🔩', legendary: '🌟', chip: '💾' };
+  const PART_KIND = { drone: 'Drone (max 3 per robot)', module: 'Module (replaces its own)', stat: 'Upgrade', legendary: 'Legendary slot', chip: 'Tuning chip (for level 1 frames)' };
   for (const k of Object.keys(window.Lineup.PARTS)) {
     const P = window.Lineup.PARTS[k];
     LOTS['p_' + k] = { name: P.name, icon: PART_ICON[P.kind] || '🔩', text: P.kind === 'stat' ? P.d.replace(/\.$/, '') : PART_KIND[P.kind], part: k, kind: P.kind, legend: P.kind === 'legendary', desc: P.d };
@@ -1485,6 +1496,7 @@ html, body {
     return '<span class="ivorder">Turn order: ' + parts.join(' ') + (you ? ' · <span style="white-space:nowrap">' + you + '</span>' : '') + '</span>';
   }
   function updateHud() {
+    try { renderAwards(); } catch (e) { console.warn('awards', e); }
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
     renderStash();
     ptPhase();
@@ -1645,14 +1657,16 @@ html, body {
         pb.innerHTML = '<span>⚔️ <b>Fighters:</b> waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the invited teams') + ' to send a robot…</span>';
       } else if (G.chooseMyBot) {
         const ev = G.fight && G.fight.format !== 'duel' && G.fight.format !== 'mirror';
-        pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Click a Bay\'s <b>Send to Pit</b> button (check its damage first).' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + '</span>' +
+        pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Click a Bay\'s <b>Send to Pit</b> button (check its damage first).' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + (G.fight && G.fight.arena && G.fight.arena !== 'open' ? ' Arena: ' + arenaRef(G.fight.arena) + ' (' + esc(ARENA_INFO[G.fight.arena].text) + ')' : '') + '</span>' +
           (ev ? '' : '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>');
         if (!ev) $('#pAct1').onclick = () => act('decline');
       } else if (G.host === HS) {
         const n = (G.pickTeams || []).length;
         pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 Garages on the compound to invite them (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
+          (arenaList().length > 1 ? '<label class="sc-note" style="font-weight:700">Arena <select id="pArena">' + arenaList().map(k => '<option value="' + k + '"' + ((G.arenaPick || 'open') === k ? ' selected' : '') + (arenaCost(k) > t.credits ? ' disabled' : '') + '>' + ARENA_INFO[k].icon + ' ' + ARENA_INFO[k].name + (arenaCost(k) ? ' (' + arenaCost(k) + ' Cr)' : ' (free)') + '</option>').join('') + '</select></label>' : '') +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
         $('#pAct1').onclick = () => act('invite');
+        if ($('#pArena')) { $('#pArena').onchange = e => act('pickArena', e.target.value); $('#pArena').title = ARENA_INFO[G.arenaPick || 'open'].text; }
       } else if (G.host >= 0 && !G.fight) {
         pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking the fighters…</span>';
       }
@@ -1879,6 +1893,7 @@ html, body {
       robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)), 4: [] }, crewDeck: shuffle(CREW_DECK()),
       legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null, l4Next: null,
       fight: null, over: false, crateChoices: null,
+      stats: newStats(),   // the end-of-game awards' tally (Kev, 9 Nov)
       sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
     };
     if (BAL.level4.on) G.robotDecks[4] = shuffle(robotsOfLevel(4)).slice(0, Math.max(0, BAL.level4.perGame | 0));   // level 4: this game's end-game robots (dealt last: with level 4 off the shuffles are as before)
@@ -2150,7 +2165,10 @@ html, body {
   function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.min(old, Math.max(fameFloor(), old + d)); return t.fame - old; }
   // credit flow log (sim / playtest: income by source, spend by sink): one 'cr' event per change, no rule effect
   let CR_SRC = 'other';
-  function crLog(t, amt, src) { if (amt && t) tlog('cr', { team: t.i, amt, src: src || CR_SRC }); }
+  function crLog(t, amt, src) {
+    if (amt && t) tlog('cr', { team: t.i, amt, src: src || CR_SRC });
+    if (amt && t && G && G.stats && G.stats.cr[t.i]) { const m = G.stats.cr[t.i], k = src || CR_SRC; m[k] = (m[k] || 0) + amt; }
+  }
   function addCr(t, n, src) { t.credits += n; crLog(t, n, src); return n; }
   function payCr(t, n, src) { const p = Math.min(t.credits, n); t.credits -= p; crLog(t, -p, src); return p; }
   function needOf(F, c) { return Math.max(0, c.need - (F.sponsor === 'blackwire' && c.phase === 'intrigue' ? 2 : 0)); }
@@ -2426,7 +2444,7 @@ html, body {
   const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : '', B.sec ? B.sec + ' Security Bot' + (B.sec > 1 ? 's' : '') : ''].concat((B.items || []).map(tokRef)).filter(Boolean).join(' + ');
   function transfer(from, to, B, src) {
     if (bundleEmpty(B)) return;
-    if (B.cr) addCr(to, payCr(from, B.cr, src), src);
+    if (B.cr) { const got = payCr(from, B.cr, src); addCr(to, got, src); if (G.stats && G.stats.gave && from.i !== to.i) G.stats.gave[from.i][to.i] += got; }
     if (B.sec) { const n = Math.min(B.sec, from.secBots || 0); from.secBots -= n; to.secBots = (to.secBots || 0) + n; }
     for (const id of B.items || []) {
       if (id.startsWith('R:')) {   // a robot with its fitted parts; its Chief Engineers stay home
@@ -2607,6 +2625,7 @@ html, body {
     const ok = F.fame + got >= needOf(F, c);
     F.ivBackers = ok ? (backers || owed.map(([o]) => o)).map(o => o.i) : [];
     if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B, 'backing'); });
+    if (ok && G.stats && G.stats.backed) owed.forEach(([o]) => { if (o && o.i !== F.i) G.stats.backed[o.i][F.i]++; });
     else if (owed.some(([, B]) => !bundleEmpty(B))) notify('not enough backing, so nobody gets paid', '#888');
     return ok;
   }
@@ -2904,6 +2923,8 @@ html, body {
     discardCard(id);
     const st = cst(id, F.i); cstBy(id, F.i, 'played'); st.played++; st[d.blocked ? 'blocked' : 'landed']++; if (!d.blocked) cstBy(id, F.i, 'landed');
     const before = G.teams.map(t => [t.credits, t.fame]);
+    if (!d.blocked && c.harmful && d.T && d.T !== F && G.stats) { G.stats.attacks[F.i]++; G.stats.hit[d.T.i]++; }
+    if (d.blocked && c.harmful && G.stats && G.stats.blocked) G.stats.blocked[F.i]++;
     if (!d.blocked) await resolveScheme(F, id, d.T);
     F.ivBackers = null;
     G.teams.forEach((t, k) => { const dc = t.credits - before[k][0], df = t.fame - before[k][1]; if (t === F) { st.selfCr += dc; st.selfFame += df; } else { st.otherCr += dc; st.otherFame += df; } });
@@ -3639,6 +3660,7 @@ html, body {
       if (P.kind === 'legendary') return !r.leg;
       if ((r.parts || []).length >= 2) return false;
       if (P.kind === 'drone' && droneCount(r) >= 3) return false;
+      if (P.kind === 'chip' && partsOf(r).some(k => LU.PARTS[k] && LU.PARTS[k].kind === 'chip')) return false;   // one tuning chip per robot
       return true;
     }
     return !needsRobot0(L);
@@ -3654,7 +3676,7 @@ html, body {
   // what a lot does to this robot, in the bookie's numbers ("62% → 70% vs the field")
   function lotPreview(r, L) {
     if (!L || !L.part) return L ? L.text : '';
-    if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : (r.parts || []).length >= 2 ? 'both part slots taken' : 'no room for another drone';
+    if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : (r.parts || []).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
     const ti = ownerOf(r) ? ownerOf(r).i : viewerSeat, a = fieldOdds(ti, r).p, b = fieldOdds(ti, withPart(r, L.part)).p;
     return pctTxt(a) + ' → ' + pctTxt(b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '');
   }
@@ -4047,7 +4069,7 @@ html, body {
   const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
   const sideLabel = (F, sd) => sideRobots(F, sd).map(r => r.name).join(' + ');
   const mySide = F => { const e = F.teams.indexOf(viewerSeat); return e >= 0 ? F.sides[e] : -1; };
-  const fightTitle = F => (F.house ? '🏠 ' : '') + (FORMAT_NAME[F.format] || 'Duel');
+  const fightTitle = F => (F.house ? '🏠 ' : '') + (FORMAT_NAME[F.format] || 'Duel') + (F.arena && F.arena !== 'open' && ARENA_INFO[F.arena] ? ' · ' + ARENA_INFO[F.arena].icon + ' ' + ARENA_INFO[F.arena].name : '');
 
   async function startArena() {
     G.phase = 'arena';
@@ -4127,6 +4149,7 @@ html, body {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = (s[1] || { i: H }).i;
     }
+    G.arenaPick = aiPickArena(H, a, b);
     notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : fmt === 'double' ? ' (up to 2 robots each)' : '') + '!', host.col);
     invite([a, b], [0, 1], fmt);
   }
@@ -4181,6 +4204,11 @@ html, body {
     const used = [...new Set(sd)]; const sides2 = sd.map(x => used.indexOf(x));
     if (used.length < 2) { notify('🏟️ Not enough teams with a ready robot: no fight this round.', '#b45309'); G.fight = null; G.phase = 'after'; G.awaitingJudgment = false; G.nextEvent = null; updateHud(); return; }
     G.fight = { teams, robots: teams.map(() => null), sides: sides2, nSides: used.length, format, house: !!G.houseRobot, event: G.arenaEvent };
+    { let a = G.arenaPick || 'open'; G.arenaPick = null;   // the arena the host picked (it pays for anything but open floor)
+      const H = G.teams[G.host], c = arenaCost(a);
+      if (a !== 'open' && (!H || H.credits < c)) a = 'open';
+      if (a !== 'open') { payCr(H, c, 'arena'); notify('🏟️ Host ' + nm(H) + ' sets up ' + arenaRef(a) + (c ? ' (' + c + ' Cr)' : '') + ': ' + esc(ARENA_INFO[a].text), H.col); }
+      G.fight.arena = a; }
     if (format === '2v2' || format === 'ffa') notify('🏟️ ' + fightTitle(G.fight) + ': ' + used.map((_, k) => esc(sideName(G.fight, k))).join(' vs ') + '.', '#111');
     teams.forEach((ti, e) => {
       if (!isHuman(ti)) {
@@ -4241,6 +4269,38 @@ html, body {
   }
 
   // the engine fight for this round: specs (copies for Mirror, the House Robot), engine robot index -> entrant
+  /* ---------- arena layouts (Kev, 9 Nov): the host picks the arena when it invites; the engine builds it (DL ARENAS) ----------
+   * ARENA_FIT[robot][arena]: how much better (+) or worse (−) a robot does there than on open floor, in logit units (measured
+   * in the Damage Lab: every robot against its own level on each arena, tools/damage-lab/arenafit.js). The bookie and the AI use it. */
+  const ARENA_INFO = {
+    open: { icon: '🟫', name: 'Open Floor', text: 'The plain 8 × 8 m arena.' },
+    saws: { icon: '🪚', name: 'Floor Saws', text: 'Four saws pop out of the floor: shove a robot onto one.' },
+    killbox: { icon: '☠️', name: 'Killbox', text: 'Spiked walls and two floor saws: pushers love it.' },
+    cage: { icon: '🔒', name: 'The Cage', text: 'A small 6 × 6 m arena: nowhere to run (not with 4 robots or the House Robot).' },
+    ice: { icon: '🧊', name: 'Ice Rink', text: 'A slippery floor: wheels slide, legs keep their grip.' },
+  };
+  // measured 9 Nov: every lineup robot against each robot of its own level, both sides, 2 seeds (16–32 fights a robot per arena),
+  // logit change vs open floor × 0.5 (shrunk for the noise)
+  const ARENA_FIT = {"Haymaker":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.06},"Rumbler":{"saws":0.73,"killbox":0.6,"cage":0.09,"ice":0.39},"Thumper":{"saws":-0.51,"killbox":-0.3,"cage":-0.24,"ice":0.0},"Jouster":{"saws":-0.37,"killbox":0.06,"cage":-0.24,"ice":-0.18},"Popcorn":{"saws":0.67,"killbox":0.12,"cage":0.39,"ice":0.24},"Snapjaw":{"saws":0.24,"killbox":0.06,"cage":0.58,"ice":0.18},"Wrecker":{"saws":-0.06,"killbox":0.15,"cage":-0.06,"ice":-0.06},"Blowtorch":{"saws":-0.3,"killbox":-0.24,"cage":-0.24,"ice":-0.36},"Buzzkill":{"saws":-0.33,"killbox":-0.33,"cage":-0.27,"ice":-0.07},"Hornet":{"saws":-0.41,"killbox":-0.3,"cage":0.1,"ice":-0.1},"Whirlwind":{"saws":-0.31,"killbox":0.24,"cage":-0.21,"ice":-0.31},"Mincer":{"saws":-0.2,"killbox":0.0,"cage":0.1,"ice":0.1},"Scythe":{"saws":0.21,"killbox":0.21,"cage":0.1,"ice":0.0},"Mauler":{"saws":-0.24,"killbox":-0.56,"cage":0.11,"ice":-0.24},"Rocketeer":{"saws":1.0,"killbox":0.31,"cage":-0.24,"ice":0.51},"Juggernaut":{"saws":-0.64,"killbox":-0.13,"cage":-0.64,"ice":-0.52},"Pincher":{"saws":-0.97,"killbox":-0.85,"cage":-0.46,"ice":-0.32},"Thwacker":{"saws":0.37,"killbox":0.24,"cage":0.12,"ice":0.0},"Gyro":{"saws":0.43,"killbox":0.67,"cage":0.55,"ice":0.0},"Brawler":{"saws":0.79,"killbox":0.0,"cage":0.37,"ice":0.79},"Forklift":{"saws":-0.85,"killbox":-0.6,"cage":-0.18,"ice":-0.18},"Whaler":{"saws":1.13,"killbox":0.73,"cage":0.18,"ice":0.18},"Vertigo":{"saws":0.0,"killbox":-0.73,"cage":0.0,"ice":0.4},"Sawblast":{"saws":0.67,"killbox":0.55,"cage":0.0,"ice":-0.4},"Ramrod":{"saws":-0.95,"killbox":0.0,"cage":0.0,"ice":-0.15},"Hydra":{"saws":-0.26,"killbox":-0.1,"cage":-0.1,"ice":0.0},"Trebuchet":{"saws":0.15,"killbox":0.15,"cage":-0.09,"ice":-0.16},"Lodestone":{"saws":0.06,"killbox":-0.37,"cage":0.15,"ice":-0.09},"Orbiter":{"saws":0.07,"killbox":-0.38,"cage":-0.38,"ice":-0.15},"Tarantula":{"saws":0.14,"killbox":0.55,"cage":0.29,"ice":0.29},"Corkscrew":{"saws":-0.14,"killbox":0.55,"cage":0.29,"ice":0.38},"Grandmaster":{"saws":-0.53,"killbox":-0.29,"cage":-0.07,"ice":-0.53},"Angler":{"saws":0.3,"killbox":-0.22,"cage":-0.16,"ice":0.06}};
+  const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
+  const arenaList = () => (BAL.arenas && BAL.arenas.on ? BAL.arenas.list || [] : ['open']).filter(a => ARENA_INFO[a] && DL.ARENAS[a] || a === 'open');
+  const arenaCost = a => a === 'open' ? 0 : (BAL.arenas && BAL.arenas.cost) || 0;
+  const arenaRef = a => (ARENA_INFO[a] || ARENA_INFO.open).icon + ' <b>' + (ARENA_INFO[a] || ARENA_INFO.open).name + '</b>';
+  // the AI host: an arena that helps its own robot against the rival (if it fights), else now and then one for the show
+  function aiPickArena(H, a, b) {
+    const list = arenaList(), T = G.teams[H]; if (list.length < 2) return 'open';
+    const top = ti => readyRobots(G.teams[ti]).slice().sort((x, y) => power(y) - power(x))[0];
+    const afford = k => T.credits - arenaCost(k) >= 3;
+    if (a === H || b === H) {
+      const mine = top(H), foe = top(a === H ? b : a);
+      let best = 'open', bv = 0.15;
+      for (const k of list) { if (k === 'open' || !afford(k)) continue; const v = arenaFit(mine, k) - arenaFit(foe, k); if (v > bv) { bv = v; best = k; } }
+      return best;
+    }
+    if (rnd() < 0.3) { const opts = list.filter(k => k !== 'open' && afford(k)); if (opts.length) return opts[Math.floor(rnd() * opts.length)]; }
+    return 'open';
+  }
+  ACT.pickArena = (S, k) => { if (G.phase === 'arena' && G.host === S && G.pickTeams && !G.fight && (k === 'open' || arenaList().includes(k))) G.arenaPick = k; };
   function buildFight(F, seed, withTamper) {
     const copies = F.format === 'mirror' ? 2 : 1, list = [], botEnt = [];
     F.teams.forEach((ti, e) => {
@@ -4249,7 +4309,9 @@ html, body {
     });
     if (F.house && list.length < 4) { list.push(Object.assign(LU.build(HOUSE_NAME), { name: HOUSE_NAME, level: 0, teamName: 'House', team: 9 })); botEnt.push(-1); }   // keeps the preset's house colours
     const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
-    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99 } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99 };
+    let arena = F.arena && DL.ARENAS[F.arena] ? F.arena : 'open';
+    if (arena === 'cage' && list.length > 2) arena = 'open';   // no room in the Cage for 4 robots or the House Robot (decided before the fight: see afterChoose)
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena };
     return { S: DL.create(clone(bb)), botEnt, bb };
   }
   // online (2.0): a client builds the same fight from F.bb (the engine's create options, as the host built them)
@@ -4275,7 +4337,8 @@ html, body {
     // 2.0 bookie: every side's strength (Repair2, open information only); P(side) ∝ exp(strength)
     if (F.house && fightBots(F) >= 4) { F.house = false; notify('🏠 No room for the House Robot: a 2.0 fight has at most 4 robots.', '#b45309'); }
     { const copies = F.format === 'mirror' ? 2 : 1;
-      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(str2(r)) : 0), 0) || 1e-9));
+      if (F.arena === 'cage' && (fightBots(F) + (F.house ? 1 : 0) > 2)) { const H = G.teams[G.host]; if (H) addCr(H, arenaCost('cage'), 'arena'); F.arena = 'open'; notify('🔒 Too many robots for The Cage: this fight is on open floor (the host gets its credits back).', '#b45309'); }
+      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(str2(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
       if (F.house) ss = ss.map(x => x * HOUSE_ODDS);   // the House Robot is neutral and almost never wins (it doesn't count for the KO), but it shakes the odds up
       const mx = Math.max(...ss), ex = ss.map(s => Math.exp(s - mx)), tot = ex.reduce((a, b) => a + b, 0);
       F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot))); }
@@ -4611,7 +4674,7 @@ html, body {
     F.S = m.S; F.B = m.S; F.botEnt = m.botEnt;
     F.bb = m.bb; F.cmdLog = [];   // online: every screen runs this fight from F.bb, with the live cards in F.cmdLog   // F.B: older checks only ask "is a fight on"
     F.entBot = F.teams.map((_, e) => m.botEnt.indexOf(e));
-    tlog('fight_start', { format: F.format, house: !!F.house, event: F.event ? F.event.kind : null, sides: F.sides, p: F.p, bands: (F.bands || []).map(b => b.name), mode: m.S.multi ? m.S.mode : '1v1',
+    tlog('fight_start', { format: F.format, arena: F.arena || 'open', house: !!F.house, event: F.event ? F.event.kind : null, sides: F.sides, p: F.p, bands: (F.bands || []).map(b => b.name), mode: m.S.multi ? m.S.mode : '1v1',
       entrants: F.teams.map((ti, e) => ({ team: ti, robot: F.robots[e].name, b: ptBuild(F.robots[e]), faceDown: (F.robots[e].faceDown || []).map(x => x.id) })), bets: F.bets });
     if (F.format === 'ffa' && F.event && F.event.kind === 'ffa' && G.host >= 0) { addFame(G.teams[G.host], 1); notify('⚔️ Grand Melee happens: host ' + nm(G.teams[G.host]) + ' +1 fame.', G.teams[G.host].col); }
     fightBanners(F);
@@ -4668,6 +4731,7 @@ html, body {
     DL.command(S, cmd);
     { const st = cst(id, ti); cstBy(id, ti, 'played'); cstBy(id, ti, 'landed'); st.played++; st.landed++; }
     { const L = liveStat(); L.played++; if (o.fallback) L.fallback++; }
+    if (G.stats) G.stats.live[ti]++;
     const R = o.robot != null ? S.robots[o.robot] : null;
     F.live.push({ team: ti, id, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null });
     tlog('live_card', { team: ti, id, type: eng, t: Math.round(S.t * 10) / 10, robot: R ? R.name : null, x: cmd.x, y: cmd.y, crate: cmd.crate });
@@ -4850,6 +4914,14 @@ html, body {
     const winners = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === ws);
     const losers = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] !== ws);
     const famed = new Set();
+    if (G.stats) {   // awards tally: wins per robot, the biggest upset (the lowest bookie chance that won)
+      const st = G.stats; st.fights++;
+      winners.forEach(({ ti, e }) => { const r = F.robots[e]; if (!r) return; const k = String(r.id), x = st.robots[k] || (st.robots[k] = { name: r.name, team: ti, level: r.level, wins: 0 }); x.wins++; x.team = ti; });
+      const p = F.p && F.p[ws];
+      if (st.lostTo) { const wt = [...new Set(winners.map(x => x.ti))], lt = [...new Set(losers.map(x => x.ti))]; wt.forEach(a => { st.wins[a]++; lt.forEach(l => { if (l !== a) st.lostTo[l][a]++; }); }); lt.forEach(l => { if (!wt.includes(l)) st.losses[l]++; }); }
+      F.p && F.sides.forEach((sd, e) => { const q = F.p[sd]; if (sd !== ws && q != null && q > 0.6 && (!st.flop || q > st.flop.p)) st.flop = { p: q, round: G.round, team: F.teams[e], robot: F.robots[e] && F.robots[e].name, by: winners.map(x => F.robots[x.e] && F.robots[x.e].name).filter(Boolean) }; });
+      if (p != null && (!st.upset || p < st.upset.p) && p < 0.4) st.upset = { p, round: G.round, team: winners[0].ti, robots: winners.map(x => F.robots[x.e] && F.robots[x.e].name).filter(Boolean), vs: losers.map(x => F.robots[x.e] && F.robots[x.e].name).filter(Boolean) };
+    }
     winners.forEach(({ ti, e }) => {
       const T = G.teams[ti], r = F.robots[e];
       G.fameSrc = F.event && F.event.kind === 'final' ? 'win:grand final' : 'win';
@@ -4867,7 +4939,7 @@ html, body {
       const r = F.robots[e]; if (!r || !r.bounty) return;
       const got = [...new Set(winners.map(x => x.ti))].filter(w => w !== ti);
       if (!got.length) return;
-      G.fameSrc = 'bounty'; for (const w of got) G.teams[w].fame += BAL.fame.bounty; G.fameSrc = null;
+      G.fameSrc = 'bounty'; for (const w of got) { G.teams[w].fame += BAL.fame.bounty; if (G.stats) G.stats.bounty[w]++; } G.fameSrc = null;
       tlog('bounty', { robot: r.name, owner: ti, by: r.bounty.by, to: got });
       notify('🎯 Bounty collected on <b>' + esc(r.name) + '</b>: ' + got.map(w => nm(G.teams[w])).join(' and ') + ' +' + BAL.fame.bounty + ' fame.', G.teams[got[0]].col);
       delete r.bounty;
@@ -4960,7 +5032,7 @@ html, body {
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
       offs.forEach(o => { transfer(G.teams[o.team], H, o.B, 'hostdeal'); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
-      robotLeaves(T, robot, null, 'host scrap'); returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
+      robotLeaves(T, robot, null, 'host scrap'); if (G.stats) G.stats.scrapped[T.i]++; returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
       for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
@@ -5333,14 +5405,76 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
+  /* ---------- end-of-game awards (Kev, 9 Nov): a tally kept by the host during the game (G.stats), turned into awards when
+   * the game is won (G.awards: plain data, so every screen shows the same). Ties go to the team with more fame. ---------- */
+  function newStats() { const z = () => [0, 0, 0, 0], zz = () => [z(), z(), z(), z()]; return { fights: 0, robots: {}, upset: null, flop: null, cr: [{}, {}, {}, {}], attacks: z(), blocked: z(), hit: z(), bounty: z(), scrapped: z(), live: z(), gave: zz(), backed: zz(), lostTo: zz(), wins: z(), losses: z() }; }
+  function makeAwards() {
+    const st = Object.assign(newStats(), G.stats || {}), out = [], fame = i => G.teams[i].fame, W = G.winner;
+    const best = (arr, min, skip) => { let b = -1; (arr || []).forEach((v, i) => { if (i === skip || v < min) return; if (b < 0 || v > arr[b] || (v === arr[b] && fame(i) > fame(b))) b = i; }); return b; };
+    const nm2 = i => G.teams[i].name, sumK = (i, re) => Object.entries(st.cr[i] || {}).filter(([k]) => re.test(k)).reduce((a, [, v]) => a + v, 0);
+    let seed = 0; for (const ch of String(G.gid || '') + G.round) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const pick = arr => arr[(seed = (seed * 1103515245 + 12345) >>> 0) % arr.length];   // the same line on every screen
+    const add = (icon, title, team, lines) => out.push({ icon, title, team, text: pick(lines) });
+    const pct = p => Math.round(p * 100) + '%';
+    // the champions' side of the credits
+    const bots = Object.values(st.robots).sort((a, b) => b.wins - a.wins || (b.level || 0) - (a.level || 0));
+    if (bots[0] && bots[0].wins >= 2) { const b = bots[0]; add('🤖', 'Robot of the Game', b.team, [b.name + ' won ' + b.wins + ' fights. Somebody give it a raise.', b.name + ': ' + b.wins + ' wins. The scrapyard will tell stories about this one.', b.wins + ' wins for ' + b.name + '. Fear the paint job.']); }
+    if (st.upset) { const u = st.upset, who = u.robots.join(' & '), vs = u.vs.join(' & ') || 'the favourite'; add('😲', 'Biggest Upset', u.team, [who + ' beat ' + vs + ' in round ' + u.round + '. The bookie gave it ' + pct(u.p) + '. The bookie is updating its CV.', 'Round ' + u.round + ': ' + who + ' at ' + pct(u.p) + ' odds sent ' + vs + ' to the scrap pile. Nobody saw it coming, least of all ' + vs + '.', who + ' won at ' + pct(u.p) + '. Proof that maths is just a suggestion.']); }
+    if (st.flop) { const f = st.flop; add('🫠', 'Missed the Big Shot', f.team, [f.robot + ' lost in round ' + f.round + ' as a ' + pct(f.p) + ' favourite. ' + nm2(f.team) + ', what happened?', nm2(f.team) + '\'s ' + f.robot + ' had ' + pct(f.p) + ' to win and still found a way. Impressive, really.', f.robot + ' (' + pct(f.p) + ' favourite) lost to ' + (f.by.join(' & ') || 'a nobody') + '. The punters want their money back.']); }
+    // who helped the champion
+    if (W >= 0) {
+      const help = [0, 1, 2, 3].map(i => i === W ? -1 : (st.gave[i] ? st.gave[i][W] : 0) + 2 * (st.backed[i] ? st.backed[i][W] : 0) + 2 * (st.lostTo[i] ? st.lostTo[i][W] : 0));
+      const k = best(help, 3, W);
+      if (k >= 0) { const cr = st.gave[k][W], bk = st.backed[k][W], lt = st.lostTo[k][W], bits = [cr ? cr + ' Cr' : '', bk ? bk + ' backed scheme' + (bk > 1 ? 's' : '') : '', lt ? lt + ' lost fight' + (lt > 1 ? 's' : '') : ''].filter(Boolean).join(', ');
+        add('👑', 'Kingmaker', k, [nm2(k) + ' handed ' + nm2(W) + ' the title: ' + bits + '. Expect a thank-you card.', 'Without ' + nm2(k) + ' (' + bits + ') ' + nm2(W) + ' might not be champion. Awkward.', nm2(k) + ' funded the champion\'s campaign: ' + bits + '. Very generous. Very silly.']); }
+    }
+    // the rest of the table
+    let i = best(st.bounty, 1); if (i >= 0) add('🎯', 'Bounty Hunter', i, [nm2(i) + ' collected ' + st.bounty[i] + ' bount' + (st.bounty[i] === 1 ? 'y' : 'ies') + '. Wanted posters fear them.', st.bounty[i] + ' bounties cashed by ' + nm2(i) + '. Paint a target, they show up.']);
+    i = best(st.attacks, 2); if (i >= 0) add('🗡️', 'Backstabber', i, [nm2(i) + ' landed ' + st.attacks[i] + ' attacks. Friends? What friends?', nm2(i) + ': ' + st.attacks[i] + ' dirty tricks that worked. Their mum would be ashamed.']);
+    i = best(st.hit, 3); if (i >= 0) add('🎪', 'Most Wanted', i, ['Everybody picked on ' + nm2(i) + ': ' + st.hit[i] + ' attacks. Must be the haircut.', nm2(i) + ' took ' + st.hit[i] + ' hits from the table. Popular, in the worst way.']);
+    i = best(st.blocked, 3); if (i >= 0) add('🧱', 'Talked to the Wall', i, [nm2(i) + ' had ' + st.blocked[i] + ' attacks blocked. The Security Bots send their thanks.', st.blocked[i] + ' schemes from ' + nm2(i) + ' bounced off. Maybe knock first?']);
+    const spent = [0, 1, 2, 3].map(k => -sumK(k, /^market$/));
+    i = best(spent, 1); if (i >= 0) add('💸', 'Big Spender', i, [nm2(i) + ' spent ' + spent[i] + ' Cr in the Market. The auctioneer is buying a boat.', spent[i] + ' Cr of shopping by ' + nm2(i) + '. Retail therapy, robot edition.']);
+    const bets = [0, 1, 2, 3].map(k => sumK(k, /^bet$/));
+    i = best(bets, 1); if (i >= 0) add('🎰', 'Lucky Punter', i, [nm2(i) + ' made ' + bets[i] + ' Cr on bets. The bookie wants a word.', '+' + bets[i] + ' Cr from the betting desk for ' + nm2(i) + '. Skill, they say.']);
+    const worst = [0, 1, 2, 3].map(k => -sumK(k, /^bet$/)); i = best(worst, 4); if (i >= 0) add('🤡', 'Donated to the Bookie', i, [nm2(i) + ' lost ' + worst[i] + ' Cr on bets. The bookie named a yacht after them.', worst[i] + ' Cr down the drain on bets. ' + nm2(i) + ' bets like the robots have feelings.']);
+    // left it on the table: the most unspent credits + unplayed cards at the end (not the champion)
+    const left = G.teams.map((t, k) => k === W ? -1 : t.credits + 2 * (t.hand || []).length);
+    i = best(left, 10); if (i >= 0) { const t = G.teams[i]; add('💰', 'Left It All on the Table', i, [nm2(i) + ' finished with ' + t.credits + ' Cr and ' + (t.hand || []).length + ' cards unused. Saving for the afterlife?', t.credits + ' Cr in the bank, ' + (t.hand || []).length + ' cards in hand, 0 trophies. ' + nm2(i) + ' played it safe. Too safe.']); }
+    // played like GPT-2: the last place team, with what went wrong
+    const order = G.teams.map((t, k) => k).sort((a, b) => fame(a) - fame(b) || G.teams[a].credits - G.teams[b].credits), L0 = order[0];
+    if (L0 !== W) { const why = [st.losses[L0] ? st.losses[L0] + ' fights lost' : '', st.blocked[L0] ? st.blocked[L0] + ' schemes blocked' : '', st.scrapped[L0] ? st.scrapped[L0] + ' robots scrapped' : ''].filter(Boolean).join(', ') || 'a quiet game';
+      add('🧠', 'Played Like GPT-2', L0, [nm2(L0) + ' finished last on ' + fame(L0) + ' fame (' + why + '). Bold strategy. Wrong, but bold.', nm2(L0) + ': ' + why + '. It was a learning experience. For the others.', 'Last place: ' + nm2(L0) + ' with ' + fame(L0) + ' fame. Have you tried turning it off and on again?']); }
+    i = best(st.live, 2); if (i >= 0) add('🃏', 'Card Shark', i, [nm2(i) + ' threw ' + st.live[i] + ' live cards into fights. Subtle as a hammer.', st.live[i] + ' live cards from ' + nm2(i) + '. The arena crew is still cleaning up.']);
+    i = best(st.scrapped, 2); if (i >= 0) add('🗑️', 'Scrapheap Regular', i, [nm2(i) + ' lost ' + st.scrapped[i] + ' robots to the host\'s hammer. The scrapyard has a loyalty card for them.', st.scrapped[i] + ' robots of ' + nm2(i) + ' got scrapped. RIP, little guys.']);
+    return out;
+  }
+  // the awards panel: on every screen once the game is won (close it with the button; it comes back with the next game)
+  let awardsClosed = null;
+  function renderAwards() {
+    let el = document.getElementById('awardsPanel');
+    const show = G && G.over && G.awards && G.awards.length && awardsClosed !== G.gid + ':' + G.round;
+    if (!show) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'awardsPanel'; document.body.appendChild(el); }
+    const key = JSON.stringify(G.awards) + G.winner;
+    el.hidden = false;
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+    const w = G.teams[G.winner];
+    el.innerHTML = '<div class="aw-box"><div class="aw-head">🏆 <b style="color:' + (w ? w.col : '#111') + '">' + esc(w ? w.name : '') + '</b> wins the Championship</div>' +
+      '<div class="aw-sub">The end credits · ' + G.round + ' round' + (G.round === 1 ? '' : 's') + '</div><div class="aw-grid">' +
+      G.awards.map(a => '<div class="aw-card" style="border-color:' + (G.teams[a.team] ? G.teams[a.team].col : '#111') + '"><div class="aw-ic">' + a.icon + '</div><div><div class="aw-t">' + esc(a.title) + '</div><div class="aw-x">' + esc(a.text) + '</div></div></div>').join('') +
+      '</div><button class="act" id="awClose">Close</button></div>';
+    el.querySelector('#awClose').onclick = () => { awardsClosed = G.gid + ':' + G.round; el.hidden = true; };
+  }
   function checkWin() {
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
     if (!w.length) return false;
-    if (!G.over) { G.winner = w[0].i; tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
+    if (!G.over) { G.winner = w[0].i; G.awards = makeAwards(); tlog('awards', { awards: G.awards }); tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
     G.over = true;
     updateHud();
     return true;

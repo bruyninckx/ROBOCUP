@@ -477,6 +477,9 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     open: { label: 'Open floor', pit: false, saws: [], spikes: false },
     saws: { label: 'Floor saws', pit: false, saws: [[-1.7, -1.7], [1.7, 1.7], [-1.7, 1.7], [1.7, -1.7]], spikes: false },
     killbox: { label: 'Killbox (saws, spiked walls)', pit: false, saws: [[0, -2.5], [0, 2.5]], spikes: true },
+    // Kev, 9 Nov (arena layouts for the tabletop): a smaller cage and a slippery floor
+    cage: { label: 'The Cage (6 x 6 m)', pit: false, saws: [], spikes: false, inset: 1 },        // the walls start 1 m in
+    ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.4 },   // grip x 0.4 everywhere (legs keep their footing)
   };
   const PIT = 0.65; // half size of the centre pit
   // bumpers: the material of the armour plates. blunt / sharp = damage taken from blunt / sharp hits
@@ -587,8 +590,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // walls
     // four walls on kinematic bodies so arena events can move them in (they crush whatever is in the way)
     const T = 0.25;
-    S.walls = []; S.sq = { x: 0, y: 0 }; S.crates = []; S.nextCrate = 9 + S.rng() * 4; S.evt = null; S.nextEvt = 18 + S.rng() * 4;
-    for (const [cx, cy, hx, hy, axis, sgn] of [[0, -HALF - T, HALF + T, T, 'y', -1], [0, HALF + T, HALF + T, T, 'y', 1], [-HALF - T, 0, T, HALF + T, 'x', -1], [HALF + T, 0, T, HALF + T, 'x', 1]]) {
+    const INSET = S.arena.inset || 0;   // The Cage: the walls start this far in (S.sq = how far in the walls are now)
+    S.walls = []; S.sq = { x: INSET, y: INSET }; S.crates = []; S.nextCrate = 9 + S.rng() * 4; S.evt = null; S.nextEvt = 18 + S.rng() * 4;
+    for (let [cx, cy, hx, hy, axis, sgn] of [[0, -HALF - T, HALF + T, T, 'y', -1], [0, HALF + T, HALF + T, T, 'y', 1], [-HALF - T, 0, T, HALF + T, 'x', -1], [HALF + T, 0, T, HALF + T, 'x', 1]]) {
+      if (INSET) { if (axis === 'x') cx -= sgn * INSET; else cy -= sgn * INSET; }
       const wb = world.createBody({ type: 'kinematic', position: V(cx, cy) });
       wb.createFixture({ shape: pl.Box(hx, hy), friction: 0.5, restitution: 0.5, userData: { wall: true } });
       if (S.arena.spikes) { const sx = axis === 'x' ? -sgn * (T + 0.06) : 0, sy = axis === 'y' ? -sgn * (T + 0.06) : 0; wb.createFixture({ shape: pl.Box(axis === 'x' ? 0.06 : 1.4, axis === 'y' ? 0.06 : 1.4, V(sx, sy)), friction: 0.6, restitution: 0.3, userData: { wall: true, spike: true } }); }
@@ -626,13 +631,15 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         // spawn: 2v2 = teams on opposite sides, FFA = the corners
         const mates = list.filter((q, j) => (S.mode === '2v2' ? (q.team != null ? q.team : j % 2) : j) === team), k = mates.indexOf(o);
         let x, y; if (S.mode === '2v2') { x = team ? 2.6 : -2.6; y = (k ? 1 : -1) * 1.7 + (r() - 0.5) * 0.6; } else { const c = [[-2.6, -2.6], [2.6, 2.6], [2.6, -2.6], [-2.6, 2.6]][i]; x = c[0]; y = c[1]; }
+        if (INSET) { const f = (HALF - INSET) / HALF; x *= f; y *= f; }
         const spec = normSpec(o); let nm = spec.name || spec.preset || WEAPONS[spec.weapon].label; seen[nm] = (seen[nm] || 0) + 1; if (seen[nm] > 1) spec.name = nm + ' ' + ['', 'II', 'III', 'IV'][seen[nm] - 1];
         const R = makeRobot(S, spec, i, x, y, Math.atan2(-y, -x) + (r() - 0.5) * 0.4); R.team = team; R.home = [x, y]; R.orbit = r() < 0.5 ? 1 : -1; S.robots.push(R);
       });
       for (const R of S.robots) R.enemy = S.robots.filter(Q => Q.team !== R.team).sort((a, b) => (R.house ? 0 : (a.house ? 1 : 0) - (b.house ? 1 : 0)) || dist2(R, a) - dist2(R, b))[0]; // nobody picks the House Robot first
     } else {
     const jy = (r() - 0.5) * 1.2;
-    const A = makeRobot(S, normSpec(opts.a), 0, -2.5, jy, (r() - 0.5) * 0.5), B = makeRobot(S, normSpec(opts.b), 1, 2.5, -jy, Math.PI + (r() - 0.5) * 0.5);
+    const f0 = (HALF - INSET) / HALF;
+    const A = makeRobot(S, normSpec(opts.a), 0, -2.5 * f0, jy * f0, (r() - 0.5) * 0.5), B = makeRobot(S, normSpec(opts.b), 1, 2.5 * f0, -jy * f0, Math.PI + (r() - 0.5) * 0.5);
     A.orbit = r() < 0.5 ? 1 : -1; B.orbit = r() < 0.5 ? 1 : -1;
     A.team = 0; B.team = 1; A.enemy = B; B.enemy = A; S.robots.push(A, B);
     }
@@ -1082,6 +1089,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (atk && !h.inner && h.blp && part.body === R.body && h.cause !== 'landing' && h.cause !== 'heat' && h.cause !== 'fire') {
       const bx = h.blp[0], by = h.blp[1], rear = bx < -R.hl * 0.35, sideHit = Math.abs(by) > R.hw * 0.75 && bx < R.hl * 0.7;
       if (rear || sideHit) { atk.stats.flankD = (atk.stats.flankD || 0) + d; if (atk.proc === 'flanker') { d *= 1.25; if (d >= 8 && S.t - (atk.lastBack || -9) > 1.2) { atk.lastBack = S.t; callout(S, rear ? 'BACKSTAB!' : 'FLANKED!', h.x, h.y, d >= 20); } } }
+      if (atk.spec.chip === 'pester' && (rear || sideHit)) { d *= CHIP_K.pester; if (d >= 8 && S.t - (atk.lastBack || -9) > 1.2) { atk.lastBack = S.t; callout(S, 'PESTERED!', h.x, h.y, false); } }   // tuning chip pay-off
+      if ((atk.spec.chip === 'matador' || atk.spec.chip === 'bait') && atk.cStrike > 0) { d *= CHIP_K[atk.spec.chip]; if (S.t - (atk.lastBack || -9) > 1.2) { atk.lastBack = S.t; callout(S, 'COUNTER!', h.x, h.y, true); } }
       atk.stats.anyD = (atk.stats.anyD || 0) + d;
     }
     // legendary quantum shield (2.0): the first real hit after it has recharged is cancelled and the robot phases out for a moment
@@ -1341,7 +1350,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   function sideDamage(S, ux, uy, c) {
     const px = ux.part; if (!px) return;
     let sharp, src = null, cause = 'impact';
-    if (uy.wall) { sharp = uy.spike ? 1.8 : 0.25; cause = uy.spike ? 'spikes' : 'wall'; if (px.attached && px.robot.airborne > 0 && px.robot.thrownBy) { src = px.robot.thrownBy; cause = 'slam'; sharp = uy.spike ? 2.2 : 0.7; } }
+    if (uy.wall) { if (px.attached && c.J > 10) px.robot.lastWall = S.t;   // (bait chip: it crashed into the wall)
+      sharp = uy.spike ? 1.8 : 0.25; cause = uy.spike ? 'spikes' : 'wall'; if (px.attached && px.robot.airborne > 0 && px.robot.thrownBy) { src = px.robot.thrownBy; cause = 'slam'; sharp = uy.spike ? 2.2 : 0.7; } }
     else if (uy.part) {
       const py = uy.part;
       sharp = py.sharp; if (py.attached) { src = py.robot; cause = py.kind === 'weapon' ? ({ blade: 'spinner', jaws: 'crusher', ball: 'flail', buzz: 'buzzsaw' }[py.key] || py.key) : py.bumper === 'spiked' ? 'spikeplate' : 'ram'; } else if (py.shrapBy && S.t < py.shrapT && py.shrapBy !== px.robot) { src = py.shrapBy; cause = 'shrapnel'; sharp = 1.1; } // level 4: magnet shrapnel
@@ -1497,6 +1507,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // oil: robots in a puddle lose most of their grip and start to spin
     let oiled = false;
     if (S.oils.length && R.airborne <= 0) { const pp = b.getPosition(); for (const o of S.oils) if (Math.hypot(pp.x - o.x, pp.y - o.y) < o.r + 0.1) { oiled = true; break; } }
+    if (S.arena.ice && !legs) ground *= S.arena.ice;   // the ice rink
     if (oiled && !legs) { ground *= 0.22; if (S.step % 20 === 0) b.applyAngularImpulse((S.rng() - 0.5) * 18, true); R.oiled = 0.3; }
     // thruster dash
     if (R.dashT > 0) { R.dashT -= DT; if (R.thruster && R.thruster.hp > 0 && R.alive) { b.applyForce(V(fwd.x * m * 9, fwd.y * m * 9), b.getWorldCenter(), true); vmax *= 1.6; R.thruster.heat += 30 * DT; } }
@@ -1549,6 +1560,45 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     }
   }
 
+  const CHIP_GLITCH = [0, 0, 0.15, 0.3, 0.45];
+  const CHIP_K = { matador: 3, pester: 2.4, bait: 2.4, baitStun: 2 };   // pay-offs: counter-strike damage, side/back damage, stun after a crash   // by level: chance per 4 s that the chip overloads (a 1 s glitch)
+  function chipThink(S, R) {
+    const E = R.enemy, b = R.body, p = b.getPosition(), ep = E.body.getPosition(), ev = E.body.getLinearVelocity();
+    const dx = ep.x - p.x, dy = ep.y - p.y, dist = Math.hypot(dx, dy) || 0.001, ux = dx / dist, uy = dy / dist;
+    const w = R.spec.weapon, melee = !(R.W.gun || w === 'laser' || w === 'saw' || w === 'mortar' || w === 'flame' || w === 'rocket' || w === 'harpoon');
+    const ef = E.body.getWorldVector(V(1, 0)), rel = wrap(Math.atan2(p.y - ep.y, p.x - ep.x) - E.body.getAngle()), rel2 = Math.abs(rel);
+    const charge = (ev.x * -ux + ev.y * -uy);   // enemy speed towards me
+    const reach = E.hl + R.hl + 0.25;
+    // overload on heavier frames
+    R.chipT = (R.chipT || 0) + DT;
+    if (R.chipT >= 4) { R.chipT = 0; const g = CHIP_GLITCH[Math.min(4, Math.max(0, R.spec.lv || 0))]; if (g && S.rng() < g) { R.glitch = Math.max(R.glitch || 0, 1); say(S, `${R.name}: tuning chip overloads (not made for this frame)`, R.id, true); callout(S, 'CHIP GLITCH!', p.x, p.y, false); } }
+    for (const k of ['cDodge', 'cStrike', 'cCd', 'cBack', 'baitCd']) if (R[k] > 0) R[k] -= DT;
+    const side = (sd) => [-uy * sd, ux * sd];
+    const chip = R.spec.chip, front = rel2 < 1.1;   // front: I'm in front of its weapon
+    const back = () => [ep.x - ef.x * E.hl * 0.8, ep.y - ef.y * E.hl * 0.8];
+    // light touch (v2): the robot drives as it always does; the chip only takes over for a dodge, the punish after it, and a fade-out
+    R.chipGo = null;
+    if (R.cDodge > 0) { R.chipGo = [p.x + R.cDir[0] * 1.8, p.y + R.cDir[1] * 1.8, 1]; return; }
+    if (R.cNext) { R.cNext = 0; R.cStrike = melee ? 0.9 : 0; }
+    if (R.cStrike > 0) { const q = back(); R.chipGo = [q[0], q[1], 1]; return; }
+    if (R.cBack > 0) { R.chipGo = [p.x - ux * 1.4 + R.cDir2[0], p.y - uy * 1.4 + R.cDir2[1], 1]; return; }
+    const cs = R.chipStats || (R.chipStats = { dodge: 0, crash: 0, drift: 0, fade: 0 });
+    const dodge = (t) => { cs.dodge++; const sd = rel >= 0 ? 1 : -1; R.cDir = side(sd); R.cDodge = t; R.cCd = 1.6; R.cNext = 1; R.chipGo = [p.x + R.cDir[0] * 1.8, p.y + R.cDir[1] * 1.8, 1]; };
+    if (chip === 'matador') {   // a charge from the front: sidestep at the last moment, then hit its side
+      if (front && charge > 1.1 && dist < reach + 0.9 && !(R.cCd > 0)) { dodge(0.35); callout(S, 'OLÉ!', p.x, p.y, false); }
+    } else if (chip === 'bait') {   // near a wall or hazard and it charges: step aside so it crashes in; from afar, drift towards one
+      const hz = nearestHazard(S, p.x, p.y), dh = Math.hypot(hz[0] - p.x, hz[1] - p.y);
+      if (dh < 1.5 && front && charge > 0.9 && dist < reach + 1.0 && !(R.cCd > 0)) { dodge(0.4); callout(S, 'BAITED!', p.x, p.y, false); }
+      else if (melee && dist > reach + 2.2 && dh > 1.2 && !(R.cCd > 0)) { cs.drift += DT; const hx = ep.x - hz[0], hy = ep.y - hz[1], hl = Math.hypot(hx, hy) || 1; R.chipGo = [hz[0] + hx / hl * 1.0, hz[1] + hy / hl * 1.0, 0.8]; }
+      const eh = nearestHazard(S, ep.x, ep.y), ed = Math.hypot(eh[0] - ep.x, eh[1] - ep.y), espd = Math.hypot(ev.x, ev.y);
+      const crashed = (E.lastWall && S.t - E.lastWall < 0.3) || (ed < E.hl + 0.9 && espd > 0.3);   // it hit the wall, or ended up right against it or a hazard
+      if (crashed && R.cCd > 0.4 && !(R.baitCd > 0)) {   // ...just after my sidestep: dazed, then punish
+        R.baitCd = 2; cs.crash++; E.stun = Math.max(E.stun || 0, CHIP_K.baitStun); callout(S, 'CRASH!', ep.x, ep.y, true); if (melee) R.cStrike = 1.0; }
+    } else if (chip === 'pester') {   // after a hit, fade out sideways; never drive into the front of a dangerous weapon
+      if (melee && R.lastHit && S.t - R.lastHit < 0.05 && dist < reach + 0.6) { R.cBack = 0.5; R.cDir2 = side(R.orbit); cs.fade++; return; }
+      if (melee && front && frontTool(E.spec.weapon) && dist < reach + 0.7 && dist > reach - 0.1 && !(E.stun > 0)) { const cur = Math.atan2(p.y - ep.y, p.x - ep.x) + R.orbit * 0.9, gr = reach + 0.4; R.chipGo = [ep.x + Math.cos(cur) * gr, ep.y + Math.sin(cur) * gr, 1]; }
+    }
+  }
   // ---------- AI ----------
   function think(S, R) {
     const b = R.body, p = b.getPosition(), a = b.getAngle(), E = R.enemy;
@@ -1623,6 +1673,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       } else { R.flankT = 0; if (melee) { const ef = E.body.getWorldVector(V(1, 0)); tx = ep.x + ev.x * 0.2 - ef.x * E.hl * 0.6; ty = ep.y + ev.y * 0.2 - ef.y * E.hl * 0.6; speed = 1; R.flanking = 0.3; } } // aim at its rear quarter so it can't turn its weapon round in time
     }
     if (R.flanking > 0) R.flanking -= DT; if (R.dodgeCd > 0) R.dodgeCd -= DT;
+    // ---------- tuning chips (Kev, 9 Nov): routines worked out for light robots to beat heavier ones (spec.chip) ----------
+    // matador: wait at a distance in front of its weapon, sidestep its charge, then hit its side or back
+    // bait: stand with your back to the nearest wall or hazard, sidestep at the last moment so it crashes in, then hit it
+    // pester: circle at the edge of its reach and only dart in when it is turned away
+    // Not tested on heavier frames: from level 2 up the chip can overload (spec.lv; CHIP_GLITCH per 4 s, a 1 s glitch).
+    if (R.spec.chip && E.alive && !R.house) chipThink(S, R);
+    if (R.spec.chip && R.chipGo && E.alive) { tx = R.chipGo[0]; ty = R.chipGo[1]; speed = R.chipGo[2]; }
     // armed self-destruct: charge
     if (R.boomArm > 0 || R.berserk > 0) { tx = ep.x; ty = ep.y; speed = 1; }
     const HX = HALF - S.sq.x, HY = HALF - S.sq.y;
@@ -2402,8 +2459,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     E.t += DT;
     if (E.type === 'walls') {
       const t = E.t, want = t < 2.5 ? 1.1 * t / 2.5 : t < 8.5 ? 1.1 : t < 11 ? 1.1 * (11 - t) / 2.5 : 0;
-      for (const w of S.walls) { if (w.axis !== E.axis) { w.body.setLinearVelocity(V(0, 0)); continue; } const pos = w.body.getPosition(), cur = w.axis === 'x' ? (w.home[0] - pos.x) * w.sgn : (w.home[1] - pos.y) * w.sgn; const vel = clamp((want - cur) / DT, -0.6, 0.6) * -w.sgn; w.body.setLinearVelocity(w.axis === 'x' ? V(vel, 0) : V(0, vel)); S.sq[w.axis] = Math.max(0, cur); }
-      if (t >= E.dur + 0.6) { for (const w of S.walls) w.body.setLinearVelocity(V(0, 0)); S.sq.x = S.sq.y = 0; S.evt = null; }
+      for (const w of S.walls) { if (w.axis !== E.axis) { w.body.setLinearVelocity(V(0, 0)); continue; } const pos = w.body.getPosition(), cur = w.axis === 'x' ? (w.home[0] - pos.x) * w.sgn : (w.home[1] - pos.y) * w.sgn; const vel = clamp((want - cur) / DT, -0.6, 0.6) * -w.sgn; w.body.setLinearVelocity(w.axis === 'x' ? V(vel, 0) : V(0, vel)); S.sq[w.axis] = (S.arena.inset || 0) + Math.max(0, cur); }
+      if (t >= E.dur + 0.6) { for (const w of S.walls) w.body.setLinearVelocity(V(0, 0)); S.sq.x = S.sq.y = S.arena.inset || 0; S.evt = null; }
     } else if (E.type === 'bumpers') {
       if (!E.fired && E.t >= E.warn) { E.fired = true;
         for (const q of E.warnPts) { S.fx.push({ type: 'piston', x: q[0], y: q[1] });
@@ -4028,6 +4085,16 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     ctx.drawImage(floorC, -VIEW / 2, -VIEW / 2, VIEW, VIEW);
     ctx.drawImage(decal, -VIEW / 2, -VIEW / 2, VIEW, VIEW);
     const A = S.arena, P = L.PIT;
+    if (A.ice) {   // ice rink: a pale blue sheen with a few scratch marks (Kev, 9 Nov)
+      const H = L.HALF; ctx.fillStyle = 'rgba(160,210,240,0.38)'; ctx.fillRect(-H, -H, 2 * H, 2 * H);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.02;
+      for (let k = 0; k < 14; k++) { const a = ((k * 37) % 17) / 17 * 6.28, x = ((k * 53) % 13) / 13 * 6 - 3, y = ((k * 29) % 11) / 11 * 6 - 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(a) * 0.4, y + Math.sin(a) * 0.4 + 0.2, x + Math.cos(a) * 0.9, y + Math.sin(a) * 0.9); ctx.stroke(); }
+    }
+    if (A.inset) {   // The Cage: dark ground outside the walls, with hazard stripes along them
+      const H = L.HALF, h = H - A.inset;
+      ctx.fillStyle = '#1B1712'; ctx.beginPath(); ctx.rect(-H - 1, -H - 1, 2 * H + 2, 2 * H + 2); ctx.rect(-h, -h, 2 * h, 2 * h); ctx.fill('evenodd');
+      ctx.strokeStyle = '#E8C547'; ctx.lineWidth = 0.06; ctx.setLineDash([0.18, 0.14]); ctx.strokeRect(-h - 0.03, -h - 0.03, 2 * h + 0.06, 2 * h + 0.06); ctx.setLineDash([]);
+    }
     if (A.pit) {
       const g = ctx.createLinearGradient(-P, -P, P, P); g.addColorStop(0, '#0E0B08'); g.addColorStop(1, '#2A2420');
       ctx.fillStyle = g; ctx.fillRect(-P, -P, 2 * P, 2 * P);
