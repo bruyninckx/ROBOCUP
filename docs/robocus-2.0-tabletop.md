@@ -588,3 +588,10 @@ Kev picked layout B of the four layout boards, and the card-type sheet. The tabl
 - **Secret Upgrade and Overclock.** Drop the card on one of your robots to choose it. Elsewhere on your rail, it goes on your best ready robot as before.
 - **Part texts.** Each part kind now says plainly what it is (drone, module, upgrade, tuning chip, legendary) and which slot it takes. A module replaces the module a robot came with, and the help names yours. The old "drones max 3" line is gone: with 2 part slots and a legendary slot it never mattered.
 - **Starter check.** All 9 starters' weapons, power grades and descriptions were checked against the engine. Rumbler's text was wrong (it said "thick side plates"); it now reads "drum spinner on a heavy chassis, steel bumpers".
+
+## Playtest fixes (Kev, 9 Nov, later)
+
+- A rival's played card is clamped inside the pit floor, so the leftmost ticket's card no longer hides under the log.
+- Damage chart: the fight HUD counts a knocked-out robot as 0 health, which drew a jump to 100% at the end. The chart now keeps the robot's real damage and marks the knock-out with a KO badge (and "· KO" in the legend). A red ⚔ badge sits on a robot's line where it lost a weapon part or its weapon motor died (hover: which part, when, by whom).
+- Rival tickets: fitted parts always show. With a bookie tag on the robot they replace the weapon name line (the weapon stays in the hover help); a blue +N badge on the picture counts them.
+- Robot-targeted sabotage (Sugar in the Tank, Smudged Lens, Loose Bolts, Rogue Firmware) goes on the rival robot you drop it on; ready rival robots light up while dragging. Dropped on the team's ticket elsewhere, it picks their best ready robot as before. The AI still aims at the best ready robot.
