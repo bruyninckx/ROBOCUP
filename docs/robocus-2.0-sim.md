@@ -438,3 +438,24 @@ base (current defaults with the bounty card), sec12 / sec8 / sec5 (Security Bots
 Fewer Security Bots: more attacks played and landed, more fame lost, no closer finishes (within noise), slightly longer games
 at 5. A wider level gap: more predictable fights, fewer close finishes, pricier robots, more unsold lots.
 **Kev, 9 Nov: keep both as they are** (18 Security Bots, `levelBoost` 0; the setting stays for later tests).
+
+## Round 6 (9 Nov): tuning chip slot and release round
+
+`tools/bal6/*.json`, run with `tools/run-sims6.cmd`. Kev's PC: 100 games per variant (first number); cloud: 40 games (in brackets).
+
+| | now (part slot) | own slot | own slot, R3 | own slot, R4 | own slot, R5 | own slot, 2 of each |
+|---|---|---|---|---|---|---|
+| chips sold / game, price | 2.0, 1.6 Cr | 2.1, 1.6 | 2.2, 1.6 | 2.3, 1.7 | 2.2, 1.7 | 3.5, 1.5 |
+| first chip sold (round) | 4.6 | 4.4 | 6.1 | 6.5 | 7.4 | 3.6 |
+| fighters with a chip, their level | 8%, L0.8 | 10%, L0.8 | 9%, L1.1 | 8%, L1.2 | 8%, L1.5 | 16%, L1.0 |
+| chip sides win (bookie said) | 55% (61%) | 57% (65%) | 58% (62%) | 60% (60%) | 64% (64%) | 56% (59%) |
+| rounds (mean) | 11.6 | 11.4 | 11.2 | 11.3 | 11.2 | 11.2 |
+| runner-up within 1 fame | 52% (65%) | 39% (38%) | 42% (43%) | 48% (48%) | 46% (50%) | 43% (45%) |
+| runner-up within 2 fame | 76% (80%) | 68% (63%) | 72% (73%) | 80% (78%) | 75% (78%) | 75% (83%) |
+| bookie favourite wins | 70% | 68% | 69% | 68% | 69% | 70% |
+
+Reading: chips are a small part of the game (about 2 a game at 1.6 Cr), no errors in 600 games. Both runs agree on one thing:
+**an own chip slot from round 1 gives the fewest close finishes** (39% / 38% within 1 fame, against 52% / 65% now; about 3
+standard errors over the 140 games). A later release recovers most of it (round 4: 48% / 48%) but moves chips onto heavier
+robots (average level 0.8 → 1.2-1.5), where they glitch. The bookie overrates chip robots by 4-8 points when they are on
+light robots (part slot, own slot, round 3); later releases are on target.

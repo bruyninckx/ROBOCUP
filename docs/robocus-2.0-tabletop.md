@@ -453,3 +453,30 @@ Measured (`tools/damage-lab/chipfit.js`: every level 1 robot with the chip vs ev
 two levels, so each chip got a pay-off for its move. The strength model counts a chip as +0.8 logits on level 0-1, +0.4 on level 2,
 0 on level 3, -0.2 on level 4 (`src2/repair.js` `CHIP`). Wall Bait is the weakest and the most arena-dependent: first to tune.
 
+
+### Chip slot and chip release round (Kev, 9 Nov, round 6)
+
+Two settings: `BAL.chips.slot` (true = a chip has its own slot: 2 parts + 1 chip + 1 legendary per robot; the robot card
+shows "Parts n/2 · 💾 chip") and `BAL.chips.fromRound` (chip lots go to the bottom of the lot deck before that round).
+Defaults unchanged (part slot, round 1) until Kev decides. Sim variants: `tools/bal6/` (`tools/run-sims6.cmd`); results in
+the sim doc (round 6, 100 + 40 games each): an own slot from round 1 gives clearly fewer close finishes (39% within 1 fame vs
+52%); releasing chips from round 4 recovers most of that but puts chips on heavier robots (average level 0.8 → 1.2). The bookie
+overrates chip robots by 4-8 points while chips sit on light robots.
+
+## Fight speed (Kev, 9 Nov)
+
+Fights play at 2x by default (`src2/view.js` `V.speed`; 1x and 4x stay on the host's buttons). Online, only the host has
+the speed, pause and skip buttons; the host sends its speed with every fight tick (`fightTick().sp`) and every other screen
+plays at it, so live cards land at the same moment for everyone (tested: the client stays within about 15 steps, 0.1 s).
+
+## Lineup Arena: matchup overview (Kev, 9 Nov)
+
+`prototypes/lineup-arena.html` has the three tuning chips in the part picker (one per robot, with the glitch warning on
+level 2+) and a matchup overview: every robot against every robot, 20 fights a pair (half on each side), as win %, the
+winner's health or knockouts; open floor for all 33 robots, the other four arenas within each level. Data:
+`tools/damage-lab/matrix.js` (per fight: winner, winner's health, KO, seconds, loser's health) and `matrix-merge.js` into
+`matrix-data.json`, inlined by `build.py`. Health = all parts of the robot (torn off = 0): the chassis alone stays near 100%
+for most winners, because most knockouts are lost wheels, a crippled drive or a flip.
+
+Below the grid: the even matchups (8-12 of 20) sorted by the winner's health ("even on paper, one-sided in the pit") and the
+even ones where the winner is badly hurt too (nail-biters). See "Matchup overview results" below.
