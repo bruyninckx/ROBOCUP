@@ -891,6 +891,27 @@
     return c;
   }
   const PCOL = f => f > 0.6 ? '#79B46A' : f > 0.3 ? '#E0B848' : '#E06A58';
+  // KO meters (Kev, 9 Nov): the health bar is an average, but fights end on one weak link. Show what ends a fight:
+  // Drive (wheels + their motors: none left = counted out), Power (battery and radio: either destroyed = out), Chassis (torn apart = out),
+  // and the count-outs as they tick: no drive for 6 s, or crippled and not moving for 12 s
+  const hpf = p => p && p.attached !== false && p.hp > 0 ? Math.max(0, p.hp) / p.maxHp : 0;
+  function koRisk(R) {
+    const n = R.slots.length, live = R.slots.filter(q => hpf(q.wheel) > 0 && q.motor.hp > 0);
+    const drive = n ? R.slots.reduce((a, q) => a + Math.min(hpf(q.wheel), q.motor.hp > 0 ? Math.max(0, q.motor.hp) / q.motor.maxHp : 0), 0) / n : 1;
+    const pw = Math.min(hpf(R.battery), R.radio ? hpf(R.radio) : 1), ch = hpf(R.chassis);
+    const crippled = R.spec.drive === 'legs' ? live.length < 3 : live.length < n;
+    let still = 0;   // seconds the refs have seen it standing still while crippled (their count-out is 12 s)
+    if (crippled && R.trail && R.trail.length) { const q = R.body.getPosition(); for (let i = R.trail.length - 1; i >= 0; i--) { const t = R.trail[i]; if (Math.hypot(t[0] - q.x, t[1] - q.y) < 0.45) still++; else break; } }
+    return { meters: [['⚙ Drive', 'Drive', drive, live.length + '/' + n], ['🔋 Power', 'Power', pw, ''], ['⛨ Chassis', 'Chassis', ch, '']], noDrive: R.noDrive || 0, still: crippled ? Math.max(0, still - 1) : 0, flipped: R.flipped && !R.W.invert && !R.W.invertDrive };
+  }
+  function koHTML(R) {
+    if (!R.alive || R.house) return '';
+    const k = koRisk(R), low = Math.min(...k.meters.map(m => m[2]));
+    let h = k.meters.map(m => `<span class="${m[2] === low && low < 0.5 ? 'weak' : ''}" title="${m[1]}: ${Math.round(m[2] * 100)}%${m[1] === 'Drive' ? ' · working wheels ' + m[3] + '. None left for 6 s = counted out' : m[1] === 'Power' ? ' (battery and radio). Either destroyed = out' : ' (frame). Torn apart = out'}"><em>${m[0]}</em><b><i style="width:${Math.round(m[2] * 100)}%;background:${PCOL(m[2])}"></i></b></span>`).join('');
+    if (k.noDrive > 0.4) h += `<div class="fv-count">${k.flipped ? 'ON ITS BACK' : 'CAN\'T DRIVE'} · COUNT-OUT ${Math.max(0, Math.ceil(6 - k.noDrive))} s<b><i style="width:${Math.min(100, k.noDrive / 6 * 100).toFixed(0)}%"></i></b></div>`;
+    else if (k.still >= 3) h += `<div class="fv-count">CRIPPLED, NOT MOVING · REFS COUNT ${Math.max(0, 12 - k.still)} s<b><i style="width:${Math.min(100, k.still / 12 * 100).toFixed(0)}%"></i></b></div>`;
+    return h;
+  }
   // the robot seen from above, front up: every part coloured by its health, lost parts dashed
   function drawDiagram(c, R, opts = {}) {
     const g = c.getContext('2d'), dp = Math.min(2, window.devicePixelRatio || 1), cw = Math.round(c.clientWidth * dp), ch = Math.round(c.clientHeight * dp);
@@ -946,11 +967,12 @@
       el.style.setProperty('--tc', pal.col); el.style.setProperty('--tl', pal.light);
       el.innerHTML = `<header><div><div class="fv-team">${esc(R.spec.teamName || pal.name || '')} ${R.house ? '<span class="fv-stars dim" title="Neutral: it does not count for the result">neutral</span>' : stars(R.spec.level || 0)}</div><h3>${esc(R.name)}</h3></div><div class="fv-kg"></div></header>
         <div class="fv-bars"><div class="fv-hp"><i></i></div><div class="fv-hype"><i></i></div></div>
+        <div class="fv-ko"></div>
         <div class="fv-chips"></div>
         <div class="fv-body"><canvas class="fv-diag" aria-label="Damage diagram of ${esc(R.name)}"></canvas><div class="fv-rows"></div></div>
         <div class="fv-lost"></div>`;
       (right ? Rc : Lc).appendChild(el);
-      panels.push({ R, el, hp: el.querySelector('.fv-hp i'), hype: el.querySelector('.fv-hype i'), chips: el.querySelector('.fv-chips'), diag: el.querySelector('.fv-diag'), rows: el.querySelector('.fv-rows'), lost: el.querySelector('.fv-lost'), kg: el.querySelector('.fv-kg'), last: '' });
+      panels.push({ R, el, hp: el.querySelector('.fv-hp i'), hype: el.querySelector('.fv-hype i'), chips: el.querySelector('.fv-chips'), ko: el.querySelector('.fv-ko'), koLast: '', diag: el.querySelector('.fv-diag'), rows: el.querySelector('.fv-rows'), lost: el.querySelector('.fv-lost'), kg: el.querySelector('.fv-kg'), last: '' });
     }
   }
   function updatePanels() {
@@ -959,6 +981,7 @@
       P.el.classList.toggle('out', !R.alive);
       P.hp.style.width = (f * 100).toFixed(0) + '%'; P.hp.style.background = PCOL(f);
       P.hype.style.width = (R.rage > 0 ? 100 : (R.hype || 0)).toFixed(0) + '%'; P.hype.classList.toggle('rage', R.rage > 0);
+      { const kh = koHTML(R); if (kh !== P.koLast) { P.ko.innerHTML = kh; P.koLast = kh; } }
       const ch = chipsOf(R).map(c => `<span class="${c === 'ON FIRE' || c.startsWith('OUT') ? 'bad' : ''}">${esc(c)}</span>`).join('');
       if (P.chips.innerHTML !== ch) P.chips.innerHTML = ch;
       P.kg.textContent = Math.round(R.body.getMass()) + ' kg';
@@ -1001,7 +1024,7 @@
   .fv-team{font:700 11px "IBM Plex Mono",monospace;color:var(--tc);text-transform:uppercase;letter-spacing:.06em}
   .fv-stars{color:#B07A10;letter-spacing:2px;margin-left:4px}.fv-stars.dim{color:#6E6457;letter-spacing:0;text-transform:none}
   .fv-kg{font:600 11px "IBM Plex Mono",monospace;color:#6E6457}
-  .fv-bars{display:grid;gap:3px}.fv-hp,.fv-hype{height:9px;background:#CFC6B7;border-radius:2px;overflow:hidden}.fv-hype{height:4px}
+  .fv-bars{display:grid;gap:3px}.fv-ko{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.fv-ko:empty{display:none}.fv-ko>span{display:flex;align-items:center;gap:4px;font:700 11px "IBM Plex Mono",monospace}.fv-ko>span b{flex:1;height:7px;background:#CFC6B7;border-radius:2px;overflow:hidden}.fv-ko>span b i{display:block;height:100%}.fv-ko>span.weak{outline:2px solid #B23A2B;outline-offset:1px;border-radius:2px}.fv-count{grid-column:1/-1;background:#B23A2B;color:#fff;font:700 11.5px "IBM Plex Mono",monospace;padding:3px 6px;border-radius:3px;animation:fvPulse .8s infinite alternate}.fv-count b{display:block;height:4px;background:rgba(255,255,255,.3);margin-top:2px}.fv-count b i{display:block;height:100%;background:#E8C547}@keyframes fvPulse{to{background:#7d1f15}}.fv-hp,.fv-hype{height:9px;background:#CFC6B7;border-radius:2px;overflow:hidden}.fv-hype{height:4px}
   .fv-hp i,.fv-hype i{display:block;height:100%;transition:width .2s}.fv-hype i{background:#C99A1E}.fv-hype i.rage{background:#B23A2B}
   .fv-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:18px}.fv-chips span{font:700 10px "IBM Plex Mono",monospace;background:#2B2118;color:#E8C547;padding:2px 6px;border-radius:2px}.fv-chips span.bad{background:#B23A2B;color:#fff}
   .fv-body{display:grid;gap:8px}

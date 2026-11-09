@@ -14,7 +14,7 @@
   const TUNE = { buzzsaw: 1, sawrocket: 1, rocket: 1, harpoon: 1, dmg: 0.68, spinner: 1.15, drum: 0.62, flipper: 1.6, hammer: 0.75, crusher: 1.5, medium: 0.8, flame: 0.72, glove: 0.85, spear: 0.9, flail: 1.25 };
   const NOKNOB = { wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
   // arcade knobs: knock = extra knockback from weapon hits, fly = how far torn-off parts fly
-  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, pk: {} }; // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
+  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
   const DT = 1 / 120, G = 9.8, HALF = 4; // arena is 8 x 8 m, centred on 0,0
   const TAU = Math.PI * 2;
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -1175,8 +1175,10 @@
     const pw = R.alive ? power(R) : 0, mot = MOTORS[R.spec.motor];
     const dk = R.spec.drive, trk = dk === 'tracks', omni = dk === 'omni', legs = dk === 'legs';
     if (R.magGrip > 0) { R.magGrip -= DT; ground *= 0.6; } // level 4: an electromagnet drags the wheels
-    const Fw = R.C.force * mot.f * (R.wedgeBoost || 1) * (n === 4 ? 1.25 : 1) * (trk ? 1.45 : 1) * (legs ? 1.35 : 1) / n * (R.nitro > 0 ? 1.6 : 1) * (R.rage > 0 ? 1.2 : 1) * (R.boostK || 1);
-    let vmax = R.C.vmax * Math.sqrt(R.massStart / m) ** 0.5 * (R.nitro > 0 ? 1.5 : 1) * (trk ? 0.84 : dk === 'boost' ? 1.08 : omni ? 0.95 : legs ? 0.8 : 1) * (R.boostK > 1 ? 1.15 : 1);
+    // tuning chip nimbleness (Kev, 9 Nov): a chipped light frame (level <= chipNim.maxLv) gets more push, top speed and a sharper turn
+    const nim = R.spec.chip && (R.spec.lv || 0) <= ARC.chipNim.maxLv ? ARC.chipNim : null;
+    const Fw = (nim ? nim.f : 1) * R.C.force * mot.f * (R.wedgeBoost || 1) * (n === 4 ? 1.25 : 1) * (trk ? 1.45 : 1) * (legs ? 1.35 : 1) / n * (R.nitro > 0 ? 1.6 : 1) * (R.rage > 0 ? 1.2 : 1) * (R.boostK || 1);
+    let vmax = R.C.vmax * Math.sqrt(R.massStart / m) ** 0.5 * (R.nitro > 0 ? 1.5 : 1) * (trk ? 0.84 : dk === 'boost' ? 1.08 : omni ? 0.95 : legs ? 0.8 : 1) * (R.boostK > 1 ? 1.15 : 1) * (nim ? nim.v : 1);
     // oil: robots in a puddle lose most of their grip and start to spin
     let oiled = false;
     if (S.oils.length && R.airborne <= 0) { const pp = b.getPosition(); for (const o of S.oils) if (Math.hypot(pp.x - o.x, pp.y - o.y) < o.r + 0.1) { oiled = true; break; } }
@@ -1200,6 +1202,7 @@
         const bent = s.wheel.state === 'bent';
         const mu = (bent ? 0.6 : 1) * ground * (trk ? 1.6 : 1), muSide = omni ? mu * 0.12 : legs ? mu * 0.5 : mu;
         let thr = s.side < 0 ? R.ctl.L : R.ctl.R;
+        if (nim && nim.turn !== 1) { const avg = (R.ctl.L + R.ctl.R) / 2; thr = clamp(avg + (thr - avg) * nim.turn, -1, 1); }   // sharper turns
         if (!R.alive) thr = 0;
         if (mo.stuck > 0 && mo.hp > 0) thr = mo.stuckDir;
         let mf = mo.hp > 0 ? (mo.hp / mo.maxHp < 0.35 ? 0.55 : 1) : 0;
