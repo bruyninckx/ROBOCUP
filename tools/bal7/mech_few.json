@@ -1,0 +1,1 @@
+{ "_note": "Mechanics only, fewer crew lots: start 2 Mechanics; 4 crew lots (more parts and robots in the Market); first robot pays upkeep", "startCrew": {"mechanic": 2, "accountant": 0, "analyst": 0}, "crewDeck": ["mechanic","mechanic","mechanic","mechanic"], "lots": {"crew": 4}, "robotUpkeep": "first" }

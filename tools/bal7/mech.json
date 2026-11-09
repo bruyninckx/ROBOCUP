@@ -1,0 +1,1 @@
+{ "_note": "Mechanics only: start 2 Mechanics; 7 crew lots, all Mechanics; only your first robot pays upkeep (the old Accountant rule for everyone)", "startCrew": {"mechanic": 2, "accountant": 0, "analyst": 0}, "crewDeck": ["mechanic","mechanic","mechanic","mechanic","mechanic","mechanic","mechanic"], "robotUpkeep": "first" }
