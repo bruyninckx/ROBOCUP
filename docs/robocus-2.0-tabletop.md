@@ -596,3 +596,11 @@ Kev picked layout B of the four layout boards, and the card-type sheet. The tabl
 - Rival tickets: fitted parts always show. With a bookie tag on the robot they replace the weapon name line (the weapon stays in the hover help); a blue +N badge on the picture counts them.
 - Robot-targeted sabotage (Sugar in the Tank, Smudged Lens, Loose Bolts, Rogue Firmware) goes on the rival robot you drop it on; ready rival robots light up while dragging. Dropped on the team's ticket elsewhere, it picks their best ready robot as before. The AI still aims at the best ready robot.
 - Loose Bolts now marks the robot: a red 🔩 LOOSE strip on its picture (rival tickets and your rail) until the loose part is repaired; hover says which part and who did it. The +N parts badge moved to the picture's right edge so the strips don't cover it.
+
+## Chips, recap, KO meters, repair cost (Kev, 9 Nov, later)
+
+- **Tuning chips make light robots nimble.** Test: every level 0/1 robot with one part vs every level 2/3 robot (300 fights each, open arena). No part 25% wins. Modules: EMP 40, shield 39, mines 35, pop-up flipper 32, repair 28. Chips before: pester 35, matador 29, wall bait 27. With `ARC.chipNim` (+25% drive push, +20% top speed, turns 50% sharper; only on level 0-1 frames): matador 42, wall bait 38, pester 38. A bigger boost (+40% / +30% / x1.8) did no better; speed alone took matador to 36, turning alone to 33. Script: scratch `chipt.js` (same idea as tools/damage-lab/chipfit.js).
+- **Fight recap: one card.** Left: headline, the damage chart, and the 3 most important moments (the rest is in the log). Right: the bets. The chart lost its grey 5 s bars; each line stops at its KO badge; the legend sits under it.
+- **KO meters on the fight screen.** Under the health bar: ⚙ Drive (wheels and their motors), 🔋 Power (battery and radio), ⛨ Chassis; the weakest one is outlined when under 50%. A red pulsing bar counts down a count-out: "CAN'T DRIVE · COUNT-OUT 4 s" (6 s rule) or "CRIPPLED, NOT MOVING · REFS COUNT n s" (12 s rule).
+- **Repair cost in red.** When your free repair actions are used up, a zone button says "FIX 4 CR" and its help box opens with a red line: what the repair costs and why.
+- Parts: about half the 24 part cards protect or heal. Kev did not like swapping in the engine's unused modules (grapple, jets, oil, smoke, self-destruct); still open.
