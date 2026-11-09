@@ -521,10 +521,10 @@ Kev picked layout B of the four layout boards, and the card-type sheet. The tabl
 1. **Top bar.** Round and seat, the 8 steps (0 Draft … 7 Fate), one dot per team (green: done; pulsing: we wait for them; ringed: their turn), the close-to-winning pill, the seat picker and the Online badge.
 2. **Rival tickets.** One per rival, in seat order after you. Each shows the fame bar, credits as coins, sponsor, cards in hand, Security Bots, Stash and crew. It also shows the three robots: picture, level, Fan tokens, weapon, one bookie note, damage and the odds chip. A ticket is a drop target for cards and a pick target for the host.
 3. **The pit.** A dark frame, a title strip (phase and a short note), and a concrete floor with hazard tape. The phase stage fills the whole floor: draft, fame race, Intrigue ring, market lots, bookie, recap.
-4. **Sticky note.** Under the pit, next to the log: what to do now and the button that moves on. It reads "YOUR MOVE", or "AT THE TABLE" when there is nothing to click.
+4. **Sticky note.** Under the pit: what to do now and the button that moves on. It reads "YOUR MOVE", or "AT THE TABLE" when there is nothing to click.
 5. **Your rail.** Team header (fame, coins, crew, Security Bots, sponsor), your robots as work orders, then the Stash.
 6. **Hand drawer.** Under the rail. The cards spread to the rail's width.
-7. **Log clipboard.** Under the pit.
+7. **Log.** A side panel on the left, the full height of the bench (Kev, 9 Nov: he liked the log on the left better; the pit is a little smaller for it).
 
 **No wasted space** (Kev, 9 Nov). The bench is as wide as the screen's shape allows, from 1400 to 2000 world px. On a wide screen the tickets and the pit get wider; the rail keeps its width. The stage stretches to the floor, and the panels in it are centred.
 
@@ -562,3 +562,29 @@ Kev picked layout B of the four layout boards, and the card-type sheet. The tabl
 - game-sim: 4 games, 0 page errors, no stalls.
 - mp-test: 4 seats, 0 desyncs, 0 errors.
 - sync-check: unchanged (the engine was not touched).
+
+## Bookie bands only, doubt marks, hard hitters, damage chart, money lines (Kev, 9 Nov)
+
+- **No bookie percentages.** The board shows only the bands: Heavy fav, Favourite, Even, Underdog, Heavy dog.
+  - A part's effect reads as a band change ("Even → Fav"), or ▲ / ▼ inside one band.
+  - The awards say "as a heavy underdog" instead of a number.
+- **??? = the bookie isn't sure.** The odds chip and the bets get "???" when the robot:
+  - has a tuning chip and is level 0-1 (the bookie reads chips badly),
+  - is a coin-flip brawler (Snapjaw), or
+  - carries face-down cards.
+  The hover help says why.
+- **🔨 Hard hitter.** A bookie note for robots that leave the winner badly damaged even when they lose. It comes from the Lineup Arena matrix: equal-level duels on the open floor, the winner's health loss when this robot loses, 6+ points over its level's average.
+
+  | Robot | Winner loses | Level average |
+  |---|---|---|
+  | Wrecker | 32% | 24% |
+  | Buzzkill | 31% | 24% |
+  | Whirlwind | 37% | 28% |
+  | Sawblast | 42% | 30% |
+  | Angler | 31% | 25% |
+- **Damage chart in the recap.** It plots each robot's damage over the fight time: 100 minus the fight screen's health bar, sampled every half second. Grey bars show all damage done per 5 s; ticks mark cards played.
+- **Money in the log.** Every credit change (addCr / payCr, the upkeep ledger) is gathered per action and written as one 🪙 line: team, amount, what for. It is written on the host or in solo play; not in AI-only test games.
+- **We Have Your Number.** It only goes on a rival robot with 3+ Fan tokens and no bounty yet; otherwise the card can't be played. Drop it on that robot to choose it; else it marks the robot with the most tokens. The AI follows the same rule.
+- **Secret Upgrade and Overclock.** Drop the card on one of your robots to choose it. Elsewhere on your rail, it goes on your best ready robot as before.
+- **Part texts.** Each part kind now says plainly what it is (drone, module, upgrade, tuning chip, legendary) and which slot it takes. A module replaces the module a robot came with, and the help names yours. The old "drones max 3" line is gone: with 2 part slots and a legendary slot it never mattered.
+- **Starter check.** All 9 starters' weapons, power grades and descriptions were checked against the engine. Rumbler's text was wrong (it said "thick side plates"); it now reads "drum spinner on a heavy chassis, steel bumpers".
