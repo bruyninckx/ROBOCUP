@@ -1216,5 +1216,5 @@
         ctx.beginPath(); ctx.moveTo(hover[0] - 0.15, hover[1]); ctx.lineTo(hover[0] + 0.15, hover[1]); ctx.moveTo(hover[0], hover[1] - 0.15); ctx.lineTo(hover[0], hover[1] + 0.15); ctx.stroke(); }
     }
   }
-  window.RobocusView = { mount, play, skip, close, replace(S2) { S = S2; }, portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
+  window.RobocusView = { mount, play, skip, close, integrity, replace(S2) { S = S2; }, portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
 })();
