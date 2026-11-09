@@ -5,7 +5,7 @@
   'use strict';
   const L = window.DamageLab;
   let S = null, frameN = 0;
-  const V = { drama: true, paused: false, speed: 1 };
+  const V = { drama: true, paused: false, speed: 2 };   // Kev, 9 Nov: fights play at 2× by default
   const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
     teal: { name: 'Steel', col: '#2E8F9E', dark: '#1F6470', light: '#6CC0CC' }, red: { name: 'Rust', col: '#B8423A', dark: '#80281F', light: '#E07C72' } };
@@ -1039,7 +1039,7 @@
     root = el; if (!document.getElementById('fv-css')) { const s = document.createElement('style'); s.id = 'fv-css'; s.textContent = CSS; document.head.appendChild(s); }
     root.className = 'fv'; root.hidden = true;
     root.innerHTML = `<div class="fv-top"><h2 class="fv-title">Fight</h2>
-      <button type="button" data-sp="1" aria-pressed="true">1×</button><button type="button" data-sp="2" aria-pressed="false">2×</button><button type="button" data-sp="4" aria-pressed="false">4×</button>
+      <button type="button" data-sp="1" aria-pressed="false">1×</button><button type="button" data-sp="2" aria-pressed="true">2×</button><button type="button" data-sp="4" aria-pressed="false">4×</button>
       <button type="button" class="fv-pause" aria-pressed="false">Pause</button><button type="button" class="fv-skip">Skip to result</button><button type="button" class="fv-done go" hidden>Continue</button></div>
       <div class="fv-main"><div class="fv-left"></div><div class="fv-arena"><canvas aria-label="Arena"></canvas></div><div class="fv-right"></div></div>
       <div class="fv-cards" hidden><div class="fv-hint"></div><div class="fv-tray"></div></div>
@@ -1068,9 +1068,10 @@
     root.querySelector('.fv-feed').innerHTML = ''; root.querySelector('.fv-done').hidden = true; root.querySelector('.fv-skip').hidden = false;
     const pb = root.querySelector('.fv-pause'); pb.setAttribute('aria-pressed', 'false'); pb.textContent = 'Pause';
     aim = null; cards = []; onPlayCb = null; drawCards();
-    // online client: the host runs the clock, so no speed, pause or skip buttons here (o.client)
+    // online client: the host runs the clock, so no speed, pause or skip buttons here (o.client); the client plays at the
+    // host's speed (the host sends it with every tick, Kev 9 Nov: only the host sets the speed, fair for live cards)
     root.querySelectorAll('[data-sp], .fv-pause, .fv-skip').forEach(b => { b.hidden = !!o.client; });
-    V.speed = o.client ? 1 : V.speed;
+    if (!o.client) root.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', String(+x.dataset.sp === V.speed)));
     root.hidden = false; buildPanels(); resize(); updatePanels();
     if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
   }
