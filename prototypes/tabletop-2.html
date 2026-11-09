@@ -586,10 +586,11 @@ html, body {
     fameFloor: 1,                 // fame never drops below this by losing it (or below the start fame, if that is lower)
     startCredits: 8,
     // Kev, 8 Nov (round 2 "combo"): 2 Mechanics + Accountant + Analyst; more engineers in the crew deck; 7 crew lots; lean part lots
-    startCrew: { mechanic: 2, chief: 0, accountant: 1, analyst: 1 }, sovereignMechanics: 4,
-    crewDeck: ['mechanic', 'mechanic', 'mechanic', 'chief', 'chief', 'chief', 'repairtech', 'repairtech', 'accountant', 'hacker', 'analyst', 'fixer', 'secchief'],
+    // Kev, 9 Nov (round 7): crew = Mechanics only (was 2 Mechanics + Accountant + Analyst, 13-card crew deck, 7 crew lots)
+    startCrew: { mechanic: 2, chief: 0, accountant: 0, analyst: 0 }, sovereignMechanics: 4,
+    crewDeck: ['mechanic', 'mechanic', 'mechanic', 'mechanic'],
     lots: {                       // the Market lot deck (4 lots a round stays fixed)
-      robot: 4, crew: 7,          // New Robot / New Crew lots
+      robot: 4, crew: 4,          // New Robot / New Crew lots (crew 4: Kev, 9 Nov, round 7; was 7)
       partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1 },   // copies per part id (src2/lineup.js PARTS key); others: its own copies
       kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
     },
@@ -627,7 +628,7 @@ html, body {
     mechanicCr: 1,                // credits each Mechanic earns in Upkeep
     // robot upkeep: 'all' = every robot costs 1 Cr (the Accountant: only the first); 'first' = only your first robot costs 1 Cr for
     // everyone (Kev, 9 Nov: crew = Mechanics only test; every team started with an Accountant anyway)
-    robotUpkeep: 'all',
+    robotUpkeep: 'first',         // Kev, 9 Nov (round 7): 'first' with crew = Mechanics only
     // Kev, 8 Nov: a robot lot won with a full garage (3 bays) = trade-in: scrap one of your robots for base + perLevel × its level Cr,
     // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
     tradeIn: { on: true, base: 1, perLevel: 1 },
@@ -4293,6 +4294,39 @@ html, body {
   // logit change vs open floor × 0.5 (shrunk for the noise)
   const ARENA_FIT = {"Haymaker":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.06},"Rumbler":{"saws":0.73,"killbox":0.6,"cage":0.09,"ice":0.39},"Thumper":{"saws":-0.51,"killbox":-0.3,"cage":-0.24,"ice":0.0},"Jouster":{"saws":-0.37,"killbox":0.06,"cage":-0.24,"ice":-0.18},"Popcorn":{"saws":0.67,"killbox":0.12,"cage":0.39,"ice":0.24},"Snapjaw":{"saws":0.24,"killbox":0.06,"cage":0.58,"ice":0.18},"Wrecker":{"saws":-0.06,"killbox":0.15,"cage":-0.06,"ice":-0.06},"Blowtorch":{"saws":-0.3,"killbox":-0.24,"cage":-0.24,"ice":-0.36},"Buzzkill":{"saws":-0.33,"killbox":-0.33,"cage":-0.27,"ice":-0.07},"Hornet":{"saws":-0.41,"killbox":-0.3,"cage":0.1,"ice":-0.1},"Whirlwind":{"saws":-0.31,"killbox":0.24,"cage":-0.21,"ice":-0.31},"Mincer":{"saws":-0.2,"killbox":0.0,"cage":0.1,"ice":0.1},"Scythe":{"saws":0.21,"killbox":0.21,"cage":0.1,"ice":0.0},"Mauler":{"saws":-0.24,"killbox":-0.56,"cage":0.11,"ice":-0.24},"Rocketeer":{"saws":1.0,"killbox":0.31,"cage":-0.24,"ice":0.51},"Juggernaut":{"saws":-0.64,"killbox":-0.13,"cage":-0.64,"ice":-0.52},"Pincher":{"saws":-0.97,"killbox":-0.85,"cage":-0.46,"ice":-0.32},"Thwacker":{"saws":0.37,"killbox":0.24,"cage":0.12,"ice":0.0},"Gyro":{"saws":0.43,"killbox":0.67,"cage":0.55,"ice":0.0},"Brawler":{"saws":0.79,"killbox":0.0,"cage":0.37,"ice":0.79},"Forklift":{"saws":-0.85,"killbox":-0.6,"cage":-0.18,"ice":-0.18},"Whaler":{"saws":1.13,"killbox":0.73,"cage":0.18,"ice":0.18},"Vertigo":{"saws":0.0,"killbox":-0.73,"cage":0.0,"ice":0.4},"Sawblast":{"saws":0.67,"killbox":0.55,"cage":0.0,"ice":-0.4},"Ramrod":{"saws":-0.95,"killbox":0.0,"cage":0.0,"ice":-0.15},"Hydra":{"saws":-0.26,"killbox":-0.1,"cage":-0.1,"ice":0.0},"Trebuchet":{"saws":0.15,"killbox":0.15,"cage":-0.09,"ice":-0.16},"Lodestone":{"saws":0.06,"killbox":-0.37,"cage":0.15,"ice":-0.09},"Orbiter":{"saws":0.07,"killbox":-0.38,"cage":-0.38,"ice":-0.15},"Tarantula":{"saws":0.14,"killbox":0.55,"cage":0.29,"ice":0.29},"Corkscrew":{"saws":-0.14,"killbox":0.55,"cage":0.29,"ice":0.38},"Grandmaster":{"saws":-0.53,"killbox":-0.29,"cage":-0.07,"ice":-0.53},"Angler":{"saws":0.3,"killbox":-0.22,"cage":-0.16,"ice":0.06}};
   const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
+  /* ---------- bookie notes (Kev, 9 Nov): a short tag on a robot card when something stands out from the odds ----------
+   * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
+   * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
+   * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
+  const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",42,32],"Wrecker":["grind",71],"Whirlwind":["giant",44,29],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",53,37],"Ramrod":["giant",56,37]};
+  const ARENA_TAG = { saws: ['🪚', 'Saw specialist', 'Hates saws'], killbox: ['☠️', 'Killbox natural', 'Hates the Killbox'], cage: ['🔒', 'Cage fighter', 'Hates the Cage'], ice: ['🧊', 'Ice skater', 'Slips on ice'] };
+  function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
+    const out = []; if (!r) return out;
+    const a = G && G.fight && G.fight.arena;
+    if (a && ARENA_TAG[a]) { const f = arenaFit(r, a), T = ARENA_TAG[a]; if (Math.abs(f) >= 0.45) out.push({ ic: T[0], label: f > 0 ? T[1] : T[2], good: f > 0, help: 'The bookie: on ' + esc(ARENA_INFO[a] ? ARENA_INFO[a].name : a) + ' ' + esc(r.name) + (f > 0 ? ' does much better' : ' does much worse') + ' than on the open floor (measured in test fights; the odds count it).' }); }
+    if ((r.parts || []).some(isChip) && (r.level || 0) <= 1) { const k = r.parts.find(isChip); out.push({ ic: '💾', label: 'Chip-tuned', good: true, help: 'The bookie is nervous: a light robot with the ' + esc(LU.PARTS[k].name) + '. Chips are made for level 0-1 frames: a level 1 robot with a chip beats level 3 robots 28-43% of the time instead of 23%.' }); }
+    const st = STYLE[r.name];
+    if (st && out.length < 2) out.push(st[0] === 'giant' ? { ic: '🗡️', label: 'Giant killer', good: true, help: 'The bookie: ' + esc(r.name) + ' beats higher-level robots ' + st[1] + '% of the time, where a robot of its level usually manages ' + st[2] + '%.' }
+      : st[0] === 'coin' ? { ic: '🎲', label: 'Coin-flip brawler', good: null, help: 'The bookie: ' + st[1] + '% of ' + esc(r.name) + '\'s fights are blowouts, one way or the other. Whoever lands the first big hit runs away with it.' }
+      : st[0] === 'quick' ? { ic: '⏱️', label: 'Quick finisher', good: null, help: 'The bookie: ' + esc(r.name) + '\'s fights last ' + st[1] + ' s on average (most last about 55 s). Blink and it is over.' }
+      : { ic: '🧱', label: 'Grinder', good: null, help: 'The bookie: ' + esc(r.name) + '\'s fights last ' + st[1] + ' s on average (most last about 55 s). It wears robots down.' });
+    return out.slice(0, 2);
+  }
+  // draws the tags right-aligned, ending at xr; returns the width used
+  function drawBookieTags(ctx, r, xr, yTop, h, fs, maxW) {
+    const tags = bookieTags(r); if (!tags.length) return 0;
+    let x = xr, used = 0;
+    for (const tg of tags.slice().reverse()) {
+      const txt = tg.ic + ' ' + tg.label; ctx.font = '800 ' + fs + 'px system-ui, sans-serif';
+      const w = Math.min(maxW - used, ctx.measureText(txt).width + 10); if (w < 30) break;
+      x -= w; ctx.fillStyle = tg.good === true ? '#e7f6ea' : tg.good === false ? '#fdeceb' : '#f1ecfb'; ctx.fillRect(x, yTop, w, h);
+      ctx.strokeStyle = tg.good === true ? '#2f7d4a' : tg.good === false ? '#b42318' : '#7c3aed'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, yTop + 0.5, w - 1, h - 1);
+      ctx.fillStyle = '#222'; ctx.textAlign = 'center'; fitText(ctx, txt, x + w / 2, yTop + h - (h - fs) / 2 - 1.5, w - 6, '800', fs);
+      help(x, yTop, w, h, tg.ic + ' ' + tg.label, tg.help);
+      used += w + 4; x -= 4;
+    }
+    ctx.textAlign = 'left'; return used;
+  }
   const arenaList = () => (BAL.arenas && BAL.arenas.on ? BAL.arenas.list || [] : ['open']).filter(a => ARENA_INFO[a] && DL.ARENAS[a] || a === 'open');
   const arenaCost = a => a === 'open' ? 0 : (BAL.arenas && BAL.arenas.cost) || 0;
   const arenaRef = a => (ARENA_INFO[a] || ARENA_INFO.open).icon + ' <b>' + (ARENA_INFO[a] || ARENA_INFO.open).name + '</b>';
@@ -6229,7 +6263,7 @@ html, body {
       ctx.fillStyle = '#c08400'; fitText(ctx, r.level ? '★'.repeat(r.level) + '  LEVEL ' + r.level : 'STARTER · LEVEL 0', tx, by + 43, tw * 0.62, '900', 11.5);
       ctx.fillStyle = '#7c3aed'; ctx.textAlign = 'right'; fitText(ctx, '🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), bx + bw - 10, by + 43, tw * 0.36, '800', 10.5);
       help(tx, by + 32, tw, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+' + BAL.fame.fanFav + ' fame while it stays on your team).');
-      ctx.textAlign = 'left'; ctx.fillStyle = '#555'; fitText(ctx, wepLabel(r.name).toUpperCase(), tx, by + 60, tw, '800', 10.5);
+      { const tgW = drawBookieTags(ctx, r, tx + tw, by + 49, 15, 9.5, tw * 0.62); ctx.textAlign = 'left'; ctx.fillStyle = '#555'; fitText(ctx, wepLabel(r.name).toUpperCase(), tx, by + 60, tw - tgW - 4, '800', 10.5); }
       const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
       ctx.fillStyle = pl.length || chp.length ? '#222' : '#999'; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name : ''), tx, by + 77, tw, '700', 10.5);
       ctx.fillStyle = r.leg ? '#b45309' : '#999'; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 92, tw, '700', 10.5);
@@ -6402,7 +6436,7 @@ html, body {
     ctx.fillStyle = '#111'; ctx.textAlign = 'left'; fitText(ctx, r.name, tx, by + 15, tw - stW, '800', 11.5);
     ctx.fillStyle = '#c08400'; ctx.textAlign = 'right'; fitText(ctx, st, bx + bw - 6, by + 15, stW, '800', 9);
     { const hn = helpName(t, r); help(tx, by + 4, tw, 14, hn[0], hn[1]); }
-    ctx.textAlign = 'left'; ctx.fillStyle = '#666'; fitText(ctx, wepLabel(r.name), tx, by + 28, tw, '700', 9.5);
+    { const tgW = drawBookieTags(ctx, r, tx + tw, by + 19, 12, 8, tw * 0.7); ctx.textAlign = 'left'; ctx.fillStyle = '#666'; fitText(ctx, wepLabel(r.name), tx, by + 28, tw - tgW - 3, '700', 9.5); }
     ctx.fillStyle = partsOf(r).length ? '#222' : '#999'; fitText(ctx, partsOf(r).length ? partsOf(r).map(k => (LU.PARTS[k].kind === 'legendary' ? '🌟' : '') + partShort(k)).join(', ') : 'no parts', tx, by + 41, tw, '700', 9);
     help(tx, by + 20, tw, 24, esc(r.name) + ': ' + esc(wepLabel(r.name)), esc(descOf(r.name)) + '<br><b>Parts</b>: ' + esc(partsTxt(r)) + '.');
     drawZoneButtons(ctx, r, tx, by + 47, tw, 14, false, true);
