@@ -141,6 +141,8 @@ html, body {
 .lp-step::before { content: '↳ '; color: var(--dash); }
 .lp-res { float: right; font: 700 9.5px var(--mono); padding: 0 5px; border-radius: 2px; margin-left: 4px; }
 .lp-res.ok { background: #DCEBD6; color: #2F6B2A; } .lp-res.no { background: #F6DAD5; color: var(--red); }
+.lp-money { font: 600 11px var(--mono); }
+.lp-money i { font-style: normal; color: var(--muted); }
 .lcard { text-decoration: underline dotted var(--dash); text-underline-offset: 2px; cursor: help; font-weight: 700; }
 @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
@@ -521,7 +523,7 @@ html, body {
    * Cards at 0 copies are cut (kept here so old saves and logs still read). The 6 live cards and Swap the Entry
    * are not in the Intrigue deck any more: they are the Auction deck (16 cards), 2 offered in every fight's Bets step.
    * ============================================================================ */
-  const IV_DATA = [["We Have Your Number", "S", 2, 1, 3, "Mark a target team's best robot with a bounty: whoever beats it in a fight gets +1 fame (then the mark is gone).", "Sabotage"], ["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a huge house robot with a giant hammer joins in. It rarely lands a hit, but when it does it hurts. Robots keep away from it.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Floor Spikes", "R", 0, 1, 2, "Live: spikes at a spot for 4 s; they hurt robots on them and pop tyres.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: nitro on your fighter for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: your fighter: clear jams, stalls and fire; +18 HP to its chassis and worst part.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live: an oil spill at a spot; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live: an EMP at a spot: 0.9 s stun, 5 damage and drones off for every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction (it also stops an Override).", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"], ["Public Disgrace", "S", 15, 2, 1, "Target −3 fame. Gate 15: you will need backing.", "Smear"], ["Corporate Raid", "S", 14, 2, 1, "Target loses up to 8 Cr, split evenly between you and every team that backed it (the rest to you).", "Corporate"], ["Override", "R", 2, 2, 2, "Right after any block: cancel the block, the scheme goes through. Any team but the target. Only Firewall stops it.", "Leverage"], ["Call the Hammer", "R", 0, 1, 2, "Live: the ceiling hammer slams a spot after a 1.1 s warning.", "Match-fixing"], ["Floor Launcher", "R", 0, 1, 2, "Live: a launch pad pops up at a spot and throws robots.", "Match-fixing"], ["Supply Drop", "R", 0, 1, 2, "Live: drop a crate (nitro, overcharge, repair or shield) at a spot.", "Match-fixing"], ["Chip Hack", "R", 0, 1, 2, "Live: a robot glitches; much worse if its top plate is off.", "Match-fixing"], ["Rattle Loose", "R", 0, 1, 2, "Live: a robot's top plate rattles loose (down to 30%).", "Match-fixing"], ["Hype Surge", "R", 0, 1, 2, "Live: your fighter rages for 6 s.", "Match-fixing"], ["Electromagnet", "R", 0, 1, 2, "Live: pulls robots and scrap to a spot for 2 s.", "Match-fixing"], ["Smoke Bomb", "R", 0, 1, 2, "Live: smoke at a spot; robots inside are hidden.", "Match-fixing"]];
+  const IV_DATA = [["We Have Your Number", "S", 2, 1, 3, "Put a bounty on a rival robot with 3+ Fan tokens: whoever beats it in a fight gets +1 fame (then the mark is gone).", "Sabotage"], ["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a huge house robot with a giant hammer joins in. It rarely lands a hit, but when it does it hurts. Robots keep away from it.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Floor Spikes", "R", 0, 1, 2, "Live: spikes at a spot for 4 s; they hurt robots on them and pop tyres.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: nitro on your fighter for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: your fighter: clear jams, stalls and fire; +18 HP to its chassis and worst part.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live: an oil spill at a spot; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live: an EMP at a spot: 0.9 s stun, 5 damage and drones off for every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction (it also stops an Override).", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"], ["Public Disgrace", "S", 15, 2, 1, "Target −3 fame. Gate 15: you will need backing.", "Smear"], ["Corporate Raid", "S", 14, 2, 1, "Target loses up to 8 Cr, split evenly between you and every team that backed it (the rest to you).", "Corporate"], ["Override", "R", 2, 2, 2, "Right after any block: cancel the block, the scheme goes through. Any team but the target. Only Firewall stops it.", "Leverage"], ["Call the Hammer", "R", 0, 1, 2, "Live: the ceiling hammer slams a spot after a 1.1 s warning.", "Match-fixing"], ["Floor Launcher", "R", 0, 1, 2, "Live: a launch pad pops up at a spot and throws robots.", "Match-fixing"], ["Supply Drop", "R", 0, 1, 2, "Live: drop a crate (nitro, overcharge, repair or shield) at a spot.", "Match-fixing"], ["Chip Hack", "R", 0, 1, 2, "Live: a robot glitches; much worse if its top plate is off.", "Match-fixing"], ["Rattle Loose", "R", 0, 1, 2, "Live: a robot's top plate rattles loose (down to 30%).", "Match-fixing"], ["Hype Surge", "R", 0, 1, 2, "Live: your fighter rages for 6 s.", "Match-fixing"], ["Electromagnet", "R", 0, 1, 2, "Live: pulls robots and scrap to a spot for 2 s.", "Match-fixing"], ["Smoke Bomb", "R", 0, 1, 2, "Live: smoke at a spot; robots inside are hidden.", "Match-fixing"]];
   const LIVE_KEYS = { 'Floor Spikes': 'spikes', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card',
     'Call the Hammer': 'hammer', 'Floor Launcher': 'launcher', 'Supply Drop': 'supply', 'Chip Hack': 'chiphack', 'Rattle Loose': 'rattle', 'Hype Surge': 'hype', 'Electromagnet': 'magnet', 'Smoke Bomb': 'smoke' };
   // 2.0: card id -> engine command type (DamageLab.LIVE); 1.0 ids kept (oil_card, emp_card) so old logs read
@@ -616,7 +618,7 @@ html, body {
   /* 2.0 PART CARDS (src2/lineup.js): 22 parts in the lot deck (with their copies); the 3 legendary parts are announced one
    * round ahead like 1.0's legendaries. A robot has 2 part slots and 1 legendary slot. */
   const PART_ICON = { drone: '🛸', module: '⚙️', stat: '🔩', legendary: '🌟', chip: '💾' };
-  const PART_KIND = { drone: 'Drone (max 3 per robot)', module: 'Module (replaces its own)', stat: 'Upgrade', legendary: 'Legendary slot', chip: 'Tuning chip (for level 1 frames)' };
+  const PART_KIND = { drone: 'Drone: flies along and helps', module: 'Module: a special device', stat: 'Upgrade', legendary: 'Legendary slot', chip: 'Tuning chip: new tactics' };
   for (const k of Object.keys(window.Lineup.PARTS)) {
     const P = window.Lineup.PARTS[k];
     LOTS['p_' + k] = { name: P.name, icon: PART_ICON[P.kind] || '🔩', text: P.kind === 'stat' ? P.d.replace(/\.$/, '') : PART_KIND[P.kind], part: k, kind: P.kind, legend: P.kind === 'legendary', desc: P.d };
@@ -928,7 +930,7 @@ html, body {
   const isL4 = x => levelOf(typeof x === 'string' ? x : x && x.name) >= 4;
   const wepLabel = n => { const P = DL.PRESETS[n]; return P && DL.WEAPONS[P.weapon] ? DL.WEAPONS[P.weapon].label : 'weapon'; };
   const ROBOT_DESC = {
-    Haymaker: 'Boxing glove on four wheels, rubber bumpers.', Rumbler: 'Heavy drum spinner, thick side plates.', Thumper: 'Axe hammer that slams from above, spiked bumpers.',
+    Haymaker: 'Boxing glove on four wheels, rubber bumpers.', Rumbler: 'Drum spinner on a heavy chassis, steel bumpers.', Thumper: 'Axe hammer that slams from above, spiked bumpers.',
     Jouster: 'Long spear that pokes from range.', Popcorn: 'Light flipper that throws robots around.', Blowtorch: 'Flamethrower that cooks the insides.',
     Buzzkill: 'Bar spinner with spiked bumpers.', Snapjaw: 'Crusher jaws that grab and squeeze.', Wrecker: 'Swinging flail, the toughest starter.',
     Hornet: 'Spear on a boost drive with jump jets.', Whirlwind: 'Bar spinner with an energy shield.', Mincer: 'Twin grinders, rams in hard.',
@@ -1126,27 +1128,39 @@ html, body {
     let el = document.getElementById('scoutPanel');
     if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
     const T = G.teams[ti], F = fieldOdds(ti, r);
-    const chip = p => { const c = oddsChip(p); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
+    const chip = (p, rr) => { const c = oddsChip(p, false, rr); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
     const rows = F.per.slice().sort((a, b) => a.T.i - b.T.i || b.p - a.p).map(x => '<tr' + (x.r.exhausted ? ' style="opacity:.55"' : '') + '><td><b style="color:' + x.T.col + '">' + esc(x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + ' <span style="color:#b45309">' + ('★'.repeat(x.r.level) || '·') + '</span>' + (x.r.exhausted ? ' 😴' : '') + '</td><td class="sc-w">' + esc(wepLabel(x.r.name)) + '<br><span class="sc-note">' + esc(zoneTxt(x.r)) + '</span></td><td>' + chip(x.p) + '</td></tr>').join('');
     el.hidden = false;
     el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
       '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + ' <span style="color:#b45309">' + ('★'.repeat(r.level) || 'starter') + '</span></h3>' +
       '<div class="sc-sub">' + esc(wepLabel(r.name)) + ' · Parts: ' + esc(partsTxt(r)) + '<br>Damage: ' + esc(zoneTxt(r)) + '</div>' +
-      '<div class="sc-field">Bookie vs the field: ' + chip(F.p) + '</div>' +
-      (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>chance</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
+      '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
+      (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>bookie</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
       '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from levels, fitted parts and the damage they carry now. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
       '<div class="iv-btns"><button class="secondary sc-close">Close</button></div></div>';
     const close = () => { el.hidden = true; };
     el.querySelector('.sc-x').onclick = close; el.querySelector('.sc-close').onclick = close;
     el.onclick = e => { if (e.target === el) close(); };
   }
-  const scouted = () => true;   // 2.0: the odds are a quick model, so the exact % is always shown
-  const pctTxt = p => Math.round(p * 100) + '%';
+  // Kev, 9 Nov: no bookie percentages on screen, only the bands (Heavy fav … Heavy dog). A band moving with a part reads
+  // "Even → Fav"; inside one band ▲ / ▼. And ??? where the bookie's guess is shaky (oddsDoubt).
+  const scouted = () => false;
   const BAND_ABBR = { 'Heavy favourite': 'H.fav', Favourite: 'Fav', Even: 'Even', Underdog: 'Dog', 'Heavy underdog': 'H.dog' };
-  function oddsChip(p, compact) {
+  const pctTxt = p => BAND_ABBR[bandOf(p).name];
+  const shiftTxt = (a, b) => bandOf(a) !== bandOf(b) ? pctTxt(a) + ' → ' + pctTxt(b) : pctTxt(a) + (b > a + 0.01 ? ' ▲' : b < a - 0.01 ? ' ▼' : ' =');
+  // where the bookie's odds are a shaky guess: why (empty = the bookie is fairly sure)
+  function oddsDoubt(r) {
+    const out = []; if (!r) return out;
+    if ((r.parts || []).some(isChip) && (r.level || 0) <= 1) out.push('a tuning chip: the bookie can\'t read chips well');
+    if (STYLE[r.name] && STYLE[r.name][0] === 'coin') out.push('a coin-flip brawler: its fights swing either way');
+    if ((r.faceDown || []).length) out.push('face-down cards on it the bookie can\'t see');
+    return out;
+  }
+  const doubtHelp = r => { const d = oddsDoubt(r); return d.length ? '<br><b>??? The bookie isn\'t sure:</b> ' + d.join('; ') + '.' : ''; };
+  function oddsChip(p, compact, r) {
     if (p == null) return { text: compact ? '…' : 'Bookie…', col: '#9a968c' };
     const bd = bandOf(p);
-    return { text: (compact ? BAND_ABBR[bd.name] : bd.short) + ' ' + pctTxt(p), col: bd.col };
+    return { text: (compact ? BAND_ABBR[bd.name] : bd.short) + (oddsDoubt(r).length ? ' ???' : ''), col: bd.col };
   }
   function lotBuild(r, L) { return L && L.part && r && canFit(r, L) ? withPart(r, L.part) : null; }
   // a module part replaces the robot's own module
@@ -1155,14 +1169,14 @@ html, body {
     const nb = lotBuild(r, L);
     if (!nb) return undefined;
     const a = fieldOdds(ti, r).p, b = fieldOdds(ti, nb).p, sw = swapOut(r, L) ? ' (replaces ' + swapOut(r, L) + ')' : '';
-    return pctTxt(a) + '→' + pctTxt(b) + sw;
+    return shiftTxt(a, b) + sw;
   }
   function oddsShiftRaw(ti, r, L) {
     const nb = lotBuild(r, L);
     if (!nb) return undefined;
     const a = fieldOdds(ti, r).p, b = fieldOdds(ti, nb).p;
     const so = swapOut(r, L), swT = so ? ' (replaces its ' + so + ')' : '', swS = so ? ' ⇄' : '';
-    return { text: pctTxt(a) + ' → ' + pctTxt(b) + swT, short: pctTxt(a) + '→' + pctTxt(b) + swS, col: b > a + 0.005 ? '#17803a' : b < a - 0.005 ? '#d62828' : '#777' };
+    return { text: shiftTxt(a, b) + swT, short: shiftTxt(a, b) + swS, col: b > a + 0.005 ? '#17803a' : b < a - 0.005 ? '#d62828' : '#777' };
   }
   // 1.0's counter tags (▲ / ▼ weapon classes) don't exist in 2.0: the helpers stay, with nothing to show
   const clsShort = k => k, clsName = k => k;
@@ -1185,8 +1199,8 @@ html, body {
     ctx.restore();
     return tot * sc;
   }
-  function drawOddsChip(ctx, p, x, y, w, h, size, compact) {
-    const c = oddsChip(p, compact);
+  function drawOddsChip(ctx, p, x, y, w, h, size, compact, r) {
+    const c = oddsChip(p, compact, r);
     ctx.fillStyle = c.col; rrect(ctx, x, y, w, h, 2); ctx.fill();
     ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; fitText(ctx, '🎩 ' + c.text, x + w / 2, y + h / 2 + size * 0.36, w - 6, '700', size, F_MONO);
   }
@@ -1227,13 +1241,13 @@ html, body {
   const helpAttr = (title, body) => ' data-help="' + (title + '|' + body).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"';
 
   // ---- help texts ----
-  const BAND_HELP = 'Bands: <b>Heavy fav</b> over 75% · <b>Favourite</b> 58–75% · <b>Even</b> 42–58% · <b>Underdog</b> 25–42% · <b>Heavy dog</b> under 25%.';
+  const BAND_HELP = 'The bookie\'s bands, from its surest pick to its longest shot: <b>Heavy fav</b> · <b>Favourite</b> · <b>Even</b> · <b>Underdog</b> · <b>Heavy dog</b>.';
   const healWord = () => RB().bodyHeal === 0.5 ? 'half' : Math.round(RB().bodyHeal * 100) + '%';
   const ZONE_HELP = () => 'Damage stays after a fight. Repairs work on three zones: <b>⚙ Drive</b> (wheels, tracks, drive motors), <b>⚔ Weapon</b> (the weapon, its motor, turret or arm) and <b>⛨ Body</b> (chassis, armour, top plate, battery, radio, chip, module, drones). ' + (zoneActs({ broken: true }) === 1 && zoneActs({ damaged: true }) === 1 ? 'One repair action puts a whole zone back to new.' : 'Repairing puts a whole zone back to new: ' + actsWord(zoneActs({ damaged: true })) + ' for a damaged zone, ' + actsWord(zoneActs({ broken: true })) + ' for a broken one.') + ' Body parts that are still there heal back to ' + healWord() + ' by themselves every Upkeep.';
   const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★)' + (BAL.level4.on ? ', and level 4 (★★★★, end game) from round ' + BAL.level4.fromRound : '') + '. A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
   function helpBand(ti, r, p) {
-    return ['🎩 Bookie vs the field: ' + bandOf(p).name + ' (' + pctTxt(p) + ')',
-      'The bookie\'s chance for <b>' + esc(r.name) + '</b> against every robot of the other teams, from their levels, parts and damage. Face-down cards stay secret. ' + BAND_HELP + '<br><i>Click: its chance against each rival robot.</i>'];
+    return ['🎩 Bookie vs the field: ' + bandOf(p).name + (oddsDoubt(r).length ? ' ???' : ''),
+      'The bookie\'s view of <b>' + esc(r.name) + '</b> against every robot of the other teams, from their levels, parts and damage. Face-down cards stay secret. ' + BAND_HELP + doubtHelp(r) + '<br><i>Click: how it does against each rival robot.</i>'];
   }
   function helpTagsTxt(tg, who) {
     const row = (ks, lab, col) => ks.length ? '<span style="color:' + col + ';font-weight:800">' + lab + '</span> ' + ks.map(k => esc(clsName(k)) + ' ' + pctTxt(tg.vs ? tg.vs[k] : 0.5)).join(', ') + '<br>' : '';
@@ -1600,7 +1614,7 @@ html, body {
 
       const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena' : c.phase === 'security' ? '🤖 Security' :
                       c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
-      const targetHint = c.phase === 'security' ? 'Install: drag onto your rail' :
+      const targetHint = c.name === 'We Have Your Number' ? 'Drag onto a rival robot with ' + bountyMin() + '+ 🎖' : c.name === 'Secret Upgrade' || c.name === 'Overclock' ? 'Drag onto one of your robots' : c.phase === 'security' ? 'Install: drag onto your rail' :
                          c.phase === 'later' ? (c.step === 'host' ? 'Host step: play from the prompt' : 'Bets step: play from the prompt') :
                          c.phase === 'fight' ? 'Fight: tray on the fight screen' :
                          BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
@@ -1982,8 +1996,23 @@ html, body {
   function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.min(old, Math.max(fameFloor(), old + d)); return t.fame - old; }
   // credit flow log (sim / playtest: income by source, spend by sink): one 'cr' event per change, no rule effect
   let CR_SRC = 'other';
+  // Kev, 9 Nov: every money move shows in the log. The moves of one action are gathered and written as one 🪙 line after
+  // it (team, amount, what for), on the host / in solo; clients get the line with the rest of the log.
+  const CR_WORD = { mechanics: 'Mechanics', upkeep: 'robot upkeep', repair: 'repair', sale: 'sold', sponsor: 'sponsor', card: 'card', cashin: 'card cashed in', catchup: 'underdog purse', lot: 'market lot', market: 'market bid', host: 'host bid', wager: 'robot-count wager', arena: 'arena', appearance: 'appearance money', fightcard: 'fight card', bet: 'bet', quirk: 'quirk', backing: 'backing', deal: 'deal', trade: 'trade' };
+  let crQ = null;
+  function crQueue(t, amt, src) {
+    if (!G || G.fast || isClient() || headless()) return;
+    if (!crQ) { crQ = []; Promise.resolve().then(crFlush); }
+    crQ.push([t.i, amt, src]);
+  }
+  function crFlush() {
+    const q = crQ; crQ = null; if (!q || !G) return;
+    const m = new Map(); for (const [i, a, s2] of q) { const k = i + '|' + s2; m.set(k, (m.get(k) || 0) + a); }
+    const parts = []; for (const [k, a] of m) { if (!a) continue; const [i, s2] = k.split('|'), t = G.teams[+i]; parts.push('<b style="color:' + t.col + '">' + esc(t.name.split(' ')[0]) + '</b> ' + (a > 0 ? '+' : '−') + Math.abs(a) + ' Cr' + (CR_WORD[s2] ? ' <i>' + CR_WORD[s2] + '</i>' : '')); }
+    if (parts.length) notify('<span class="lp-money">🪙 ' + parts.join(' · ') + '</span>', '#B07A10');
+  }
   function crLog(t, amt, src) {
-    if (amt && t) tlog('cr', { team: t.i, amt, src: src || CR_SRC });
+    if (amt && t) { tlog('cr', { team: t.i, amt, src: src || CR_SRC }); crQueue(t, amt, src || CR_SRC); }
     if (amt && t && G && G.stats && G.stats.cr[t.i]) { const m = G.stats.cr[t.i], k = src || CR_SRC; m[k] = (m[k] || 0) + amt; }
   }
   function addCr(t, n, src) { t.credits += n; crLog(t, n, src); return n; }
@@ -2278,7 +2307,7 @@ html, body {
   function partForTxt(t, id) {
     const g = partGain(t, id);
     if (!g) return 'none of ' + (t.i === HS ? 'your' : esc(t.name) + '\'s') + ' robots can take it (bank: ' + bankHalf(id) + ' Cr)';
-    return '🎩 ' + esc(g.r.name) + ': ' + pctTxt(g.a) + ' → ' + pctTxt(g.b) + ' vs the field';
+    return '🎩 ' + esc(g.r.name) + ': ' + shiftTxt(g.a, g.b) + ' vs the field';
   }
   // AI: the bundle it would offer, worth about `want` to the receiver (credits first, then a part the receiver can use)
   function aiBundle(t, to, want) {
@@ -2310,7 +2339,7 @@ html, body {
       if (!el) { el = document.createElement('div'); el.id = 'dealModal'; document.body.appendChild(el); }
       const chipHelp = id => {
         if (id.startsWith('R:')) { const x = robotById(id.slice(2)); if (!x) return ['robot', '']; const fo = fieldOdds(x.T.i, x.r).p;
-          return ['🤖 ' + esc(x.r.name) + ' (' + starsOf(x.r.level) + ')', esc(wepLabel(x.r.name)) + ' · ' + esc(partsTxt(x.r)) + '<br>Damage: ' + esc(zoneTxt(x.r)) + '<br>🎩 ' + bandOf(fo).name + ' (' + pctTxt(fo) + ') vs the field.<br>It moves with its fitted parts and its damage.'];
+          return ['🤖 ' + esc(x.r.name) + ' (' + starsOf(x.r.level) + ')', esc(wepLabel(x.r.name)) + ' · ' + esc(partsTxt(x.r)) + '<br>Damage: ' + esc(zoneTxt(x.r)) + '<br>🎩 ' + bandOf(fo).name + ' vs the field.<br>It moves with its fitted parts and its damage.'];
         }
         if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? [CREW[x.c.kind].icon + ' ' + CREW[x.c.kind].name, esc(CREW[x.c.kind].text)] : ['crew', '']; }
         return [LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>For you: ' + partForTxt(me_, id) + (O ? '<br>For ' + esc(O.name) + ': ' + partForTxt(O, id) : '')];
@@ -2596,6 +2625,17 @@ html, body {
 
   /* ---------- card effects ---------- */
   const kickable = T => !!T && (T.credits === 0 || readyRobots(T).length === 0 || readyCrew(T) === 0);
+  // 🎯 We Have Your Number (Kev, 9 Nov): only on a robot with 3+ Fan tokens (a crowd favourite worth hunting); you may drop
+  // the card on that robot, else the one with the most tokens
+  const bountyMin = () => BAL.fame.bountyTokens != null ? BAL.fame.bountyTokens : 3;
+  function bountyTarget(T, pick) {
+    if (!T) return null;
+    const ok = r => r && !r.bounty && (r.wins || 0) >= bountyMin();
+    if (pick != null) { const r = T.robots.find(x => x.id === pick); if (ok(r)) return r; }
+    return T.robots.filter(ok).sort((a, b) => b.wins - a.wins || power(b) - power(a))[0] || null;
+  }
+  // a robot the player dropped a card on (Secret Upgrade, Overclock, We Have Your Number), else the usual pick
+  const pickedOr = (X, fallback) => { const r = G.pickBot != null && X ? X.robots.find(b => b.id === G.pickBot) : null; return r || fallback; };
   function precheck(F, c, T) {
     const n = c.name;
     if (c.phase === 'later') return 'Arena card: the prompt offers it in the ' + (c.step === 'host' ? 'Host step (after the host bid)' : 'Bets step') + '. Or cash it in now.';
@@ -2614,6 +2654,7 @@ html, body {
     if (n === 'Leaked Footage' && readyRobots(T).length > 0) return 'The target still has ready robots.';
     if (n === 'Bankrupt!' && T.credits > 0) return 'The target still has credits.';
     if (n === 'Kick When Down' && !kickable(T)) return 'The target has credits, a ready robot and ready crew.';
+    if (n === 'We Have Your Number' && !bountyTarget(T)) return 'We Have Your Number needs a rival robot with ' + bountyMin() + '+ Fan tokens (and no bounty yet).';
     return null;
   }
   async function jointVenture(F, T) {
@@ -2696,12 +2737,11 @@ html, body {
       case 'Kick When Down': case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': await loseFame(T, 1); say('🗞️ ' + esc(n) + ': ' + nm(T) + ' −1 fame.'); break;
       case 'Poached Mechanic': { const c = loseCrew(T); say('🔧 ' + nm(F) + ' poaches ' + (c ? 'a ' + crewRef(c.kind) : 'nobody') + ' from ' + nm(T) + '.'); break; }
       case 'Security Override': { const k = secReady(T); payCr(F, k, 'card'); T.exSec = (T.exSec || 0) + k; say('🔧 Security Override: ' + nm(T) + '\'s ' + k + ' Security Bot' + (k === 1 ? ' is' : 's are') + ' exhausted.'); break; }
-      case 'We Have Your Number': { const r = bestReady(T) || T.robots[0]; if (!r) { say('🎯 We Have Your Number: ' + nm(T) + ' has no robot to mark.'); break; }
-        if (r.bounty) { say('🎯 ' + esc(r.name) + ' already has a bounty on it.'); break; }
+      case 'We Have Your Number': { const r = bountyTarget(T, G.pickBot); if (!r) { say('🎯 We Have Your Number: ' + nm(T) + ' has no robot with ' + bountyMin() + '+ Fan tokens to mark.'); break; }
         r.bounty = { by: F.i, round: G.round }; notify('🎯 <b>We Have Your Number:</b> ' + nm(F) + ' puts a bounty on ' + nm(T) + '\'s <b>' + esc(r.name) + '</b>. Whoever beats it in a fight gets +' + BAL.fame.bounty + ' fame.', '#b42318'); break; }
       case 'EMP the Garage': T.tamper.noMods = 1; T.schemeLog.push({ from: F.i, id }); say('🔧 EMP: ' + nm(T) + '\'s modules and helpers are offline next fight.'); break;
       case 'Sugar in the Tank': case 'Smudged Lens': case 'Secret Upgrade': case 'Overclock': {
-        const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = bestReady(X);
+        const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = X === F ? pickedOr(X, bestReady(X)) : bestReady(X);
         if (!r) break;
         tamperRobot(r, n === 'Sugar in the Tank' ? { sugar: 1 } : n === 'Smudged Lens' ? { lens: 1 } : n === 'Secret Upgrade' ? { up: 1 } : { oc: 1 });   // 2.0: applied by fightSpec
         (r.faceDown = r.faceDown || []).push({ from: F.i, id });
@@ -2902,7 +2942,7 @@ html, body {
       case 'Loose Bolts': case 'EMP the Garage': case 'Sugar in the Tank': case 'Smudged Lens': v = aiRobotCardValue(F, c, T, fc); break;
       case 'Rogue Firmware': v = (T && readyRobots(T).length ? 3 * th : 1.5 * th) + aiRobotCardValue(F, c, T, fc); break;   // the sit-out (its best robot misses 2 rounds) + the chassis damage
       case 'Coolant Leak': v = 3 * th; break;
-      case 'We Have Your Number': { const r = T && (bestReady(T) || T.robots[0]); v = !r || r.bounty ? 0 : BAL.fame.bounty * fc * (0.6 + th); break; }   // fame for whoever beats it; the AI might be the one
+      case 'We Have Your Number': { const r = bountyTarget(T); v = !r ? 0 : BAL.fame.bounty * fc * (0.6 + th); break; }   // fame for whoever beats it; the AI might be the one
       case 'Security Override': { const more = F.hand.some(x => x !== 'security_override' && CARDS[x].harmful); v = (more ? 2.2 : 0.6) * secReady(T) * th - secReady(T) * 0.5; return v; }   // can't be blocked usefully: value is opening the way
       case 'Asset Strip': v = Math.min(3, secReady(T)) * 1.2 * (0.5 + th); break;
       case 'Hostile Buyout': v = 2; break;
@@ -3035,7 +3075,7 @@ html, body {
   }
   function startIntrigue() { runIntrigue(); }
 
-  ACT.play = (S, id, toTeam) => { humanPlay(id, toTeam, S); };
+  ACT.play = (S, id, toTeam, bot) => { humanPlay(id, toTeam, S, bot); };
   ACT.endTurn = S => { if (G.phase === 'intrigue' && G.intrigueTurn === S && !G.ivBusy && G.endHumanTurn) G.endHumanTurn(); };
   ACT.cashMode = S => { if (G.phase === 'intrigue' && G.intrigueTurn === S) G.cashMode = !G.cashMode; };
   ACT.cashIn = (S, id) => {
@@ -3044,7 +3084,7 @@ html, body {
     const g = cashIn(t, id);
     say(S, '💰 Cashed in ' + cardRef(id) + ' for ' + g + ' Cr.', t.col);
   };
-  async function humanPlay(id, toTeam, S = HS) {
+  async function humanPlay(id, toTeam, S = HS, bot = null) {
     if (G.ivBusy || G.phase !== 'intrigue' || G.intrigueTurn !== S) return false;
     const F = G.teams[S], c = CARDS[id];
     if (!c || !F.hand.includes(id)) return false;
@@ -3064,8 +3104,8 @@ html, body {
         secretHead(F, T); notify('needs ' + needOf(F, c) + ' fame, has ' + F.fame + ': asks for backing');
         if (!(await humanBacking(c, T, S))) { notify('not enough backing: the card stays secret in the hand'); logEnd('failed'); return false; }
       }
-      await playScheme(F, id, T);
-    } finally { G.ivBusy = false; updateHud(); }
+      G.pickBot = bot; await playScheme(F, id, T);
+    } finally { G.pickBot = null; G.ivBusy = false; updateHud(); }
     return true;
   }
 
@@ -3471,9 +3511,22 @@ html, body {
   // the lowest winning bid for a lot (0 = any bid); level 4 robot lots: BAL.level4.minBid
   const minBidOf = id => { const L = LOTS[id]; return L && L.robot && L.starter && levelOf(L.starter) >= 4 ? BAL.level4.minBid || 0 : 0; };
   const needsRobot = id => !LOTS[id].robot && !LOTS[id].mech && !LOTS[id].eng && !LOTS[id].crew && !LOTS[id].tape;
-  // 2.0: can this part go on this robot? 2 part slots + 1 legendary slot; at most 3 drones (lineup.js caps them)
+  // 2.0: can this part go on this robot? 2 part slots + 1 legendary slot (and lineup.js keeps a robot to 3 drones)
   const isChip = k => !!(LU.PARTS[k] && LU.PARTS[k].kind === 'chip');
   const slotParts = r => (r.parts || []).filter(k => !(BAL.chips.slot && isChip(k)));   // parts in the 2 part slots (a chip has its own slot when BAL.chips.slot)
+  // what a part card is, in plain words (Kev, 9 Nov: the old line about drones and modules was not clear)
+  function partKindHelp(k) {
+    const P = LU.PARTS[k]; if (!P) return '';
+    const mods = me().robots.filter(r => modName(r)).map(r => esc(r.name) + '\'s ' + esc(modName(r)));
+    const what = {
+      drone: '<b>Drone:</b> a small helper that flies next to your robot in the fight (shoots, shields or repairs). It can be shot down; fix it with the ⛨ Body repairs.',
+      module: '<b>Module:</b> a special device (a shield, jump jets, a repair arm…). A robot holds one module: on a robot that came with one, this one replaces it' + (mods.length ? ' (yours: ' + mods.join(', ') + ')' : '') + '.',
+      stat: '<b>Upgrade:</b> makes the robot itself stronger.',
+      chip: '<b>Tuning chip:</b> a new routine for the robot\'s brain (how it moves and attacks). One chip per robot. Made for level 0–1 robots: on heavier frames it can glitch.',
+      legendary: '<b>Legendary part:</b> one of a kind. It goes in the robot\'s own legendary slot (one per robot).'
+    }[P.kind] || '';
+    return what + '<br>' + (P.kind === 'legendary' ? '' : 'It takes 1 of the robot\'s 2 part slots. ') + 'Parts stay on the robot (they go with it in a trade).';
+  }
   function canFit(r, L) {
     if (!r || !L) return false;
     if (L.part) {
@@ -3500,7 +3553,7 @@ html, body {
     if (!L || !L.part) return L ? L.text : '';
     if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : LU.PARTS[L.part].kind === 'chip' && partsOf(r).some(isChip) ? 'it already has a tuning chip' : slotParts(r).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
     const ti = ownerOf(r) ? ownerOf(r).i : viewerSeat, a = fieldOdds(ti, r).p, b = fieldOdds(ti, withPart(r, L.part)).p;
-    return pctTxt(a) + ' → ' + pctTxt(b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '');
+    return shiftTxt(a, b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '');
   }
   const lotGainShort = () => '';
   const weaponSwapNote = () => '';
@@ -3813,7 +3866,7 @@ html, body {
     const parts = A.wins.filter(x => needsRobot(x.lot) && canTake(G.teams[x.team], x.lot));
     for (const x of parts) {
       const W = G.teams[x.team], th = partThreat(x.team, x.lot);
-      const thTxt = th ? esc(th.r.name) + ': ' + pctTxt(th.a) + ' → ' + pctTxt(th.b) : '';
+      const thTxt = th ? esc(th.r.name) + ': ' + shiftTxt(th.a, th.b) : '';
       for (const oi of seatOrder()) {
         const o = G.teams[oi];
         if (o === W || !o.hand.includes('botched_install') || o.fame < (CARDS.botched_install.need || 0)) continue;
@@ -4110,12 +4163,17 @@ html, body {
    * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
    * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
   const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",42,32],"Wrecker":["grind",71],"Whirlwind":["giant",44,29],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",53,37],"Ramrod":["giant",56,37]};
+  // 🔨 hard hitters (Kev, 9 Nov: "a bot that always does a lot of damage, even if it loses"). Lineup Arena matrix, equal-level
+  // duels on the open floor: the health its winner loses when this robot loses, vs the level's average. Tagged at 6+ points.
+  const HITTER = { Wrecker: [32, 24], Buzzkill: [31, 24], Whirlwind: [37, 28], Sawblast: [42, 30], Angler: [31, 25] };
   const ARENA_TAG = { saws: ['🪚', 'Saw specialist', 'Hates saws'], killbox: ['☠️', 'Killbox natural', 'Hates the Killbox'], cage: ['🔒', 'Cage fighter', 'Hates the Cage'], ice: ['🧊', 'Ice skater', 'Slips on ice'] };
   function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
     const out = []; if (!r) return out;
     const a = G && G.fight && G.fight.arena;
     if (a && ARENA_TAG[a]) { const f = arenaFit(r, a), T = ARENA_TAG[a]; if (Math.abs(f) >= 0.45) out.push({ ic: T[0], label: f > 0 ? T[1] : T[2], good: f > 0, help: 'The bookie: on ' + esc(ARENA_INFO[a] ? ARENA_INFO[a].name : a) + ' ' + esc(r.name) + (f > 0 ? ' does much better' : ' does much worse') + ' than on the open floor (measured in test fights; the odds count it).' }); }
     if ((r.parts || []).some(isChip) && (r.level || 0) <= 1) { const k = r.parts.find(isChip); out.push({ ic: '💾', label: 'Chip-tuned', good: true, help: 'The bookie is nervous: a light robot with the ' + esc(LU.PARTS[k].name) + '. Chips are made for level 0-1 frames: a level 1 robot with a chip beats level 3 robots 28-43% of the time instead of 23%.' }); }
+    const hh = HITTER[r.name];
+    if (hh && out.length < 2) out.push({ ic: '🔨', label: 'Hard hitter', good: null, help: 'The bookie: even when ' + esc(r.name) + ' loses, it leaves its mark. The winner loses ' + hh[0] + '% of its health on average (robots of its level: ' + hh[1] + '%). Expect a damaged winner: good to know for the next fight and for Fate.' });
     const st = STYLE[r.name];
     if (st && out.length < 2) out.push(st[0] === 'giant' ? { ic: '🗡️', label: 'Giant killer', good: true, help: 'The bookie: ' + esc(r.name) + ' beats higher-level robots ' + st[1] + '% of the time, where a robot of its level usually manages ' + st[2] + '%.' }
       : st[0] === 'coin' ? { ic: '🎲', label: 'Coin-flip brawler', good: null, help: 'The bookie: ' + st[1] + '% of ' + esc(r.name) + '\'s fights are blowouts, one way or the other. Whoever lands the first big hit runs away with it.' }
@@ -4623,8 +4681,16 @@ html, body {
   }
   ACT.combatCard = (S, id, bot, x, y, crate) => { const F = G.fight; if (F && F.S) playLive(F, S, id, { robot: bot, x, y, crate }); };
   // every engine step (shown or headless): the AI's cards, and the tray's robot list
+  // the damage chart after the fight (Kev, 9 Nov): every robot's damage (100 − its health bar, as on the fight screen) each
+  // half second of fight time, and once more when the fight ends. Display only: it doesn't touch the fight.
+  function recordDamage(F, S) {
+    const I = VW.integrity; if (!I) return;
+    const D = F.dmg = F.dmg || { t: [], d: [], who: S.robots.map(R => ({ name: R.name, col: R.house ? '#6E6457' : R.spec && R.spec.pal ? R.spec.pal.col : '#6E6457', team: R.spec ? R.spec.teamName || '' : '', house: !!R.house })) };
+    D.t.push(Math.round(S.t * 10) / 10); D.d.push(S.robots.map(R => Math.round((1 - I(R)) * 100)));
+  }
   function fightStep(F, S) {
     if (S.over && S.endHash == null) S.endHash = fightHash(S);   // the fingerprint at the step the fight ends (the view runs a few seconds on)
+    if (S.countdown <= 0 && !F.dmgDone && (S.step % 60 === 0 || S.over)) { try { recordDamage(F, S); } catch (e) { F.dmgDone = true; } if (S.over) F.dmgDone = true; }
     if (S.countdown > 0 || S.over || S.step % 30) return;   // every 0.25 s (DT = 1/120)
     if (!headless() && S.step % 120 === 0) liveTray(F);
     // a test bot (&bot=1) watching a fight plays its own team's cards by the AI rules, like a person would: a client sends them
@@ -5288,12 +5354,12 @@ html, body {
     let seed = 0; for (const ch of String(G.gid || '') + G.round) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
     const pick = arr => arr[(seed = (seed * 1103515245 + 12345) >>> 0) % arr.length];   // the same line on every screen
     const add = (icon, title, team, lines) => out.push({ icon, title, team, text: pick(lines) });
-    const pct = p => Math.round(p * 100) + '%';
+    const pct = p => bandOf(p).name.toLowerCase();   // Kev, 9 Nov: no bookie percentages on screen, the band only
     // the champions' side of the credits
     const bots = Object.values(st.robots).sort((a, b) => b.wins - a.wins || (b.level || 0) - (a.level || 0));
     if (bots[0] && bots[0].wins >= 2) { const b = bots[0]; add('🤖', 'Robot of the Game', b.team, [b.name + ' won ' + b.wins + ' fights. Somebody give it a raise.', b.name + ': ' + b.wins + ' wins. The scrapyard will tell stories about this one.', b.wins + ' wins for ' + b.name + '. Fear the paint job.']); }
-    if (st.upset) { const u = st.upset, who = u.robots.join(' & '), vs = u.vs.join(' & ') || 'the favourite'; add('😲', 'Biggest Upset', u.team, [who + ' beat ' + vs + ' in round ' + u.round + '. The bookie gave it ' + pct(u.p) + '. The bookie is updating its CV.', 'Round ' + u.round + ': ' + who + ' at ' + pct(u.p) + ' odds sent ' + vs + ' to the scrap pile. Nobody saw it coming, least of all ' + vs + '.', who + ' won at ' + pct(u.p) + '. Proof that maths is just a suggestion.']); }
-    if (st.flop) { const f = st.flop; add('🫠', 'Missed the Big Shot', f.team, [f.robot + ' lost in round ' + f.round + ' as a ' + pct(f.p) + ' favourite. ' + nm2(f.team) + ', what happened?', nm2(f.team) + '\'s ' + f.robot + ' had ' + pct(f.p) + ' to win and still found a way. Impressive, really.', f.robot + ' (' + pct(f.p) + ' favourite) lost to ' + (f.by.join(' & ') || 'a nobody') + '. The punters want their money back.']); }
+    if (st.upset) { const u = st.upset, who = u.robots.join(' & '), vs = u.vs.join(' & ') || 'the favourite'; add('😲', 'Biggest Upset', u.team, [who + ' beat ' + vs + ' in round ' + u.round + '. The bookie had it as a ' + pct(u.p) + '. The bookie is updating its CV.', 'Round ' + u.round + ': ' + who + ' as a ' + pct(u.p) + ' sent ' + vs + ' to the scrap pile. Nobody saw it coming, least of all ' + vs + '.', who + ' won as a ' + pct(u.p) + '. Proof that maths is just a suggestion.']); }
+    if (st.flop) { const f = st.flop; add('🫠', 'Missed the Big Shot', f.team, [f.robot + ' lost in round ' + f.round + ' as a ' + pct(f.p) + '. ' + nm2(f.team) + ', what happened?', nm2(f.team) + '\'s ' + f.robot + ' was the ' + pct(f.p) + ' and still found a way. Impressive, really.', f.robot + ' (' + pct(f.p) + ') lost to ' + (f.by.join(' & ') || 'a nobody') + '. The punters want their money back.']); }
     // who helped the champion
     if (W >= 0) {
       const help = [0, 1, 2, 3].map(i => i === W ? -1 : (st.gave[i] ? st.gave[i][W] : 0) + 2 * (st.backed[i] ? st.backed[i][W] : 0) + 2 * (st.lostTo[i] ? st.lostTo[i][W] : 0));
@@ -5379,15 +5445,16 @@ html, body {
   const lerp = (a, b, u) => a + (b - a) * u;
 
   /* ---------- Layout B, the Workshop Bench (Kev, 9 Nov 2026) ----------
-   * World coordinates (the camera fits the whole bench, x −700..700, y −416..408, under the HTML top bar):
-   *   2 · rival tickets   y −416..−296: three tickets 458.7 × 120 (gap 12), left to right in seat order after you
-   *   3 · the pit         x −700..282, y −282..178: dark frame, a 40 px title strip, a concrete floor. The phase stage
-   *                        is drawn in its own space ("stage space": 360 high as before, as wide as the floor, ×1.13)
-   *   7 · log clipboard   x −700..−22, y 190..408 (HTML, placed over it); 4 · the sticky note right of it, x −8..282
+   * World coordinates at the narrowest (1400 wide; wider screens get a wider bench, see benchWidth), under the HTML top bar:
+   *   2 · rival tickets   y −416..−296: three tickets (gap 12), left to right in seat order after you
+   *   7 · log             x −700..−400, y −282..408: the side panel on the left (HTML, placed over its zone)
+   *   3 · the pit         x −386..282, y −282..256: dark frame, a 40 px title strip, a concrete floor. The phase stage is
+   *                        drawn in its own space ("stage space", the old 620 × 360 scale, as big as the floor)
+   *   4 · sticky note     under the pit, y 268..408 (HTML)
    *   5 · your rail       x 296..700: a 50 px team header, three work-order bays 404 × 150 (gap 6), then the Stash
    *                        (HTML) from y 246; 6 · the hand drawer (HTML) hangs at the bottom of the screen under it. */
   const BENCH = { W: 1400, x0: -700, top: -416, bottom: 408, tickH: 120, tickGap: 12, benchTop: -282, pitR: 282, pitH: 460, titleH: 40,
-    railX: 296, railW: 404, headH: 50, bayH: 150, bayGap: 6, noteW: 290, logTop: 190 };
+    railX: 296, railW: 404, headH: 50, bayH: 150, bayGap: 6, logW: 300, noteH: 140 };
   const STAGE_W = 620, STAGE_H = 360;   // the phase stage's own space
   const ARENA_W = 900, ARENA_H = 560;
   let LAYOUT = null;
@@ -5403,24 +5470,26 @@ html, body {
     if (LAYOUT && LAYOUT.W === W && LAYOUT.phone === narrowScreen()) return LAYOUT;
     BENCH.W = W; BENCH.x0 = -W / 2; BENCH.railX = W / 2 - BENCH.railW; BENCH.pitR = BENCH.railX - 14;
     const B = BENCH, tw = (B.W - 2 * B.tickGap) / 3;
-    const pit = { x: B.x0, y: B.benchTop, w: B.pitR - B.x0, h: B.pitH };
+    // Kev, 9 Nov (2nd look): the log back on the left as a side panel, the full height of the bench; the pit right of it,
+    // the sticky note (zone 4) under the pit
+    const log = { x: B.x0, y: B.benchTop, w: B.logW, h: B.bottom - B.benchTop };
+    const pitX = log.x + log.w + 14, pitH = B.bottom - B.benchTop - B.noteH - 12;
+    const pit = { x: pitX, y: B.benchTop, w: B.pitR - pitX, h: pitH };
+    const note = { x: pit.x, y: pit.y + pit.h + 12, w: pit.w, h: B.noteH };
     const floor = { x: pit.x + 12, y: pit.y + B.titleH, w: pit.w - 24, h: pit.h - B.titleH - 12 };
-    // Kev, 9 Nov: no wasted floor. The stage is 360 high and as wide as the floor (its functions centre on ax / use aw)
-    // (a phone shows only the stage, so there it keeps the old 620-wide shape and the camera can zoom in on it)
-    const s = floor.h / STAGE_H, stageW = narrowScreen() ? STAGE_W : floor.w / s;
-    const stage = { s, x: floor.x + (floor.w - stageW * s) / 2, y: floor.y, w: stageW * s, h: floor.h };
+    // the stage keeps its scale for a 620 × 360 stage and fills the floor (its functions centre on ax / ay and use aw / ah)
+    // (a phone shows only the stage, so there it keeps the old 620 × 360 shape and the camera zooms in on it)
+    const s = Math.min(floor.w / STAGE_W, floor.h / STAGE_H), stageW = narrowScreen() ? STAGE_W : floor.w / s, stageH = narrowScreen() ? STAGE_H : floor.h / s;
+    const stage = { s, x: floor.x + (floor.w - stageW * s) / 2, y: floor.y + (floor.h - stageH * s) / 2, w: stageW * s, h: stageH * s };
     const rail = { x: B.railX, y: B.benchTop, w: B.railW, h: B.headH + 3 * B.bayH + 2 * B.bayGap + 6 };
     const bays = [0, 1, 2].map(k => ({ x: rail.x, y: rail.y + B.headH + 6 + k * (B.bayH + B.bayGap), w: rail.w, h: B.bayH }));
     const stash = { x: rail.x, y: rail.y + rail.h + 10, w: rail.w, h: B.bottom - (rail.y + rail.h + 10) };
-    // under the pit: the log clipboard, and right of it the sticky note (zone 4), next to your rail and your hand
-    const log = { x: pit.x, y: B.logTop, w: pit.w - B.noteW - 14, h: B.bottom - B.logTop };
-    const note = { x: log.x + log.w + 14, y: B.logTop, w: B.noteW, h: B.bottom - B.logTop };
     const tickets = [0, 1, 2].map(k => ({ x: B.x0 + k * (tw + B.tickGap), y: B.top, w: tw, h: B.tickH }));
     // slots: one box per seat position (0 = you: the rail; 1–3 = the rival tickets), as before for boxOf and the hit tests
     const box2slot = (b, pos) => ({ pos, gx: b.x + b.w / 2, gy: b.y + b.h / 2, gw: b.w, gh: b.h });
     const slots = [box2slot(rail, 0)].concat(tickets.map((b, k) => box2slot(b, k + 1)));
-    // stage space for the phase stage functions: the pit's stage is 620 × 360 with its top-left corner at (0, 0)
-    LAYOUT = { W, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, tickets, slots, ax: stageW / 2, ay: STAGE_H / 2, aw: stageW, ah: STAGE_H };
+    // stage space for the phase stage functions: top-left corner at (0, 0), stageW × stageH
+    LAYOUT = { W, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, tickets, slots, ax: stageW / 2, ay: stageH / 2, aw: stageW, ah: stageH };
     return LAYOUT;
   }
   function getDynamicLayout() { return benchLayout(); }
@@ -5855,9 +5924,9 @@ html, body {
       ctx.fillStyle = '#4A4136'; ctx.font = '500 10.5px ' + F_SANS; ctx.textAlign = 'left';
       wrapLines(ctx, descOf(sName), cw - 20, 2).forEach((ln, li) => ctx.fillText(ln, bx + 10, by + 116 + li * 13));
       const hasRivals = G.teams.some(tm => tm.i !== HS && tm.robots.length > 0);
-      const tableAvg = Math.round(starterVsTableAvg(sName, viewerSeat) * 100), baseAvg = Math.round(starterOverallAvg(sName) * 100);
-      ctx.fillStyle = hasRivals && tableAvg >= 55 ? '#2F7D4A' : INK;
-      fitText(ctx, hasRivals ? `vs robots on the table: ${tableAvg}%` : `vs the other starters: ${baseAvg}%`, bx + 10, by + 152, cw - 20, '600', 10.5, F_MONO);
+      const tableAvg = starterVsTableAvg(sName, viewerSeat), baseAvg = starterOverallAvg(sName);   // bands only (Kev, 9 Nov)
+      ctx.fillStyle = bandOf(hasRivals ? tableAvg : baseAvg).col;
+      fitText(ctx, '🎩 ' + (hasRivals ? 'vs robots on the table: ' : 'vs the other starters: ') + bandOf(hasRivals ? tableAvg : baseAvg).short, bx + 10, by + 152, cw - 20, '600', 10.5, F_MONO);
       inkButton(ctx, bx + 10, by + ch - 34, cw - 20, 24, picked === sName ? 'KEEP ' + sName.toUpperCase() + ' ✓' : 'KEEP ' + sName.toUpperCase() + ' →', false);
       if (!picked) hitRegions.push({ kind: 'setup_draft', idx, x: bx, y: by, w: cw, h: ch });
       ctx.restore();
@@ -5904,9 +5973,9 @@ html, body {
   // a quiet clockwise ring in the pit: one dot per team, towards its zone (rivals up, you on the right), numbered in turn order
   function drawIntrigueRing(ctx, L, now) {
     const O = G.ivOrder; if (!O || !O.length) return;
-    const cx = L.ax, cy = L.ay - 12, R = 106;
+    const cx = L.ax, cy = L.ay - 26, R = Math.min(106, L.ah / 2 - 70);
     const cur = O.indexOf(G.intrigueTurn), done = cur >= 0 ? cur : (G.ivDone || 0);
-    const ANG = [0, 205, 270, 335];   // you (the rail, right) → the left, middle and right tickets: clockwise, like the seats
+    const ANG = [90, 180, 270, 360];   // evenly spaced, clockwise like the seats: you at the bottom, then the left, middle and right tickets (Kev, 9 Nov)
     const ang = ti => ANG[posOfTeam(ti)] * Math.PI / 180;
     ctx.save();
     ctx.strokeStyle = 'rgba(43,33,24,0.25)'; ctx.lineWidth = 2;
@@ -6061,9 +6130,18 @@ html, body {
     const tgW = drawBookieTags(ctx, r, bx + bw, by + 58, 12, 8, bw, 1);
     if (!tgW) { ctx.fillStyle = partsOf(r).length ? INK : DASH; fitText(ctx, partsOf(r).length ? partsOf(r).map(k => (LU.PARTS[k].kind === 'legendary' ? '🌟' : '') + partShort(k)).join(', ') : 'no parts', bx, by + 68, bw, '600', 9); }
     drawZoneButtons(ctx, r, bx, by + 73, bw, 12, false, true);
-    { const fo = fieldOdds(ti, r), cy = by + bh - 17; drawOddsChip(ctx, fo.p, bx, cy, bw, 16, 9.5, true); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: bw, h: 16 });
+    { const fo = fieldOdds(ti, r), cy = by + bh - 17; drawOddsChip(ctx, fo.p, bx, cy, bw, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: bw, h: 16 });
       const hb = helpBand(ti, r, fo.p); help(bx, cy, bw, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
     drawExhaustedOverlay(ctx, r, bx - 2, by - 2, bw + 4, bh + 4, true);
+    pickGlow(ctx, r, ti, bx - 3, by - 3, bw + 6, bh + 6);
+  }
+  // dragging a card that goes on one robot (Secret Upgrade, Overclock, We Have Your Number): the robots it can go on light up
+  function pickGlow(ctx, r, ti, x, y, w, h) {
+    if (!dragCard || !ROBOT_PICK.has(dragCard.card.name)) return;
+    const own = dragCard.card.name !== 'We Have Your Number';
+    if (own ? ti !== HS : ti === HS || !(r && !r.bounty && (r.wins || 0) >= bountyMin())) return;
+    const hov = mouse.wx >= x && mouse.wx <= x + w && mouse.wy >= y && mouse.wy <= y + h;
+    ctx.save(); ctx.strokeStyle = hov ? '#B23A2B' : HAZ; ctx.lineWidth = hov ? 4 : 2.5; if (!hov) ctx.setLineDash([6, 4]); rrect(ctx, x, y, w, h, 6); ctx.stroke(); ctx.restore();
   }
 
   /* ---------- 5 · your rail: the team header and your robots as work orders ---------- */
@@ -6136,7 +6214,7 @@ html, body {
     ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name : ''), tx, by + 62, tw, '600', 10.5);
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 76, tw, '600', 10.5);
     help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
-    { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
+    { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !isClient() && !iWait('upkeep');
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
     const actX = bx + 10, actY = by + 127, actW = bw - 20, actH = 18;
@@ -6158,6 +6236,7 @@ html, body {
       help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt());
     }
     drawExhaustedOverlay(ctx, r, bx, by + 8, bw, bh - 8, false);
+    pickGlow(ctx, r, ti, bx - 3, by - 3, bw + 6, bh + 6);
   }
 
   /* ---------- Opponent Reconnaissance Garages (Pos 1 West, Pos 2 North, Pos 3 East) ---------- */
@@ -6365,7 +6444,7 @@ html, body {
         ctx.fillStyle = INK; fitText(ctx, it.name, x + w / 2, yb + 68, w - 12, '400', 16, F_STEN);
         ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 84, w - 12, '500', 11);
         if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; fitText(ctx, P.kind === 'legendary' ? '🌟 LEGENDARY SLOT' : isChip(it.part) ? 'CHIP · IN A PART SLOT' : P.kind.toUpperCase() + ' · 1 OF 2 PART SLOTS', x + w / 2, yb + 100, w - 12, '700', 8.5, F_MONO);
-          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card)', esc(P.d) + '<br>Every robot has 2 part slots and 1 legendary slot. Drones: at most 3 per robot. A module part replaces the robot\'s own module. Parts stay on the robot (they move with it in a trade).'); }
+          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card)', esc(P.d) + '<br>' + partKindHelp(it.part)); }
         else if (it.crew && CREW[it.crew]) help(x + 4, yb + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
         else if (k === HOST_K) help(x + 4, yb + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
         { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, yb + 89, w - 8, 13, hl[0], hl[1]); }
@@ -6419,8 +6498,8 @@ html, body {
     }
     const p = fieldOdds(viewerSeat, bot).p, c = oddsChip(p);
     ctx.fillStyle = MUTED; fitText(ctx, '🎩 vs the field', x + w / 2, y + 168, w - 12, '600', 10.5);
-    ctx.fillStyle = c.col; fitText(ctx, bandOf(p).short + ' ' + pctTxt(p), x + w / 2, y + 186, w - 12, '700', 12.5, F_MONO);
-    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name + ' (' + pctTxt(p) + ')', 'The bookie\'s chance for <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts). ' + BAND_HELP);
+    ctx.fillStyle = c.col; fitText(ctx, bandOf(p).short, x + w / 2, y + 186, w - 12, '700', 12.5, F_MONO);
+    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name, 'The bookie\'s view of <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts). ' + BAND_HELP);
   }
 
   function drawBettingOnArena(ctx, L) {
@@ -6456,10 +6535,10 @@ html, body {
       // odds band + win-probability bar
       ctx.fillStyle = 'rgba(43,33,24,0.06)'; rrect(ctx, x + 12, y + 50, w - 24, 56, 4); ctx.fill();
       ctx.fillStyle = bd.col || INK;
-      const exactStr = scouted() ? ' (' + Math.round(F.p[s] * 100) + '%)' : '';
-      fitText(ctx, bd.name.toUpperCase() + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : '') + exactStr, x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
+      const doubt = robots.some(x2 => oddsDoubt(x2).length);
+      fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
-      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar is the win chance.');
+      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#8A4A10' : MUTED;
         fitText(ctx, dm.length ? '🔧 ' + dm.map(x2 => (robots.length > 1 ? x2.name + ': ' : '') + zoneTxt(x2)).join(' · ') : 'No damage · the bookie ignores face-down cards', x + w / 2, y + 100, w - 30, '600', 9.5);
@@ -6521,8 +6600,10 @@ html, body {
     const F = G.fight, rec = F && F.recap;
     pitHead('7 · FATE · THE RECAP', F && F.winner ? G.teams[F.winner.team].name.toUpperCase() + ' WIN' + (F.winners && F.winners.length > 1 ? '' : 'S') : '', F && F.winner ? G.teams[F.winner.team].col : HAZ);
     if (!rec) return;
-    const w = Math.min(L.aw - 40, 800), h = 300;
-    const x = L.ax - w / 2, y = L.ay - h / 2;
+    const D = F.dmg && F.dmg.t.length > 1 ? F.dmg : null, chH = D ? Math.min(150, Math.max(96, L.ah - 330)) : 0;
+    const w = Math.min(L.aw - 40, 800), h = Math.max(210, Math.min(300, L.ah - 24 - (D ? chH + 10 : 0)));
+    const x = L.ax - w / 2, y = L.ay - (h + (D ? chH + 10 : 0)) / 2;
+    if (D) drawDamageChart(ctx, D, rec, x, y + h + 10, w, chH);
     paperBox(ctx, x, y, w, h, INK, 2, PAPER2);
     const splitX = x + Math.round(w * 0.56);
     // left: the fight recap
@@ -6542,7 +6623,7 @@ html, body {
     if (!lines.length) { ctx.fillStyle = MUTED; fitText(ctx, 'Clean fight: nothing big happened.', x + 14, y + 74, splitX - x - 26, '500', 10.5); }
     else {
       // the 7 most important moments (KOs, cards played, breaks first), shown in time order
-      const top = y + 72 + (hl.length - 1) * 16, nShow = hl.length > 1 ? 9 : 10;
+      const top = y + 72 + (hl.length - 1) * 16, nShow = Math.max(3, Math.floor((h - 90 - (hl.length - 1) * 16) / 22));
       const show = lines.slice().sort((a, b) => (b.pri - a.pri) || (a.t - b.t)).slice(0, nShow).sort((a, b) => a.t - b.t);
       show.forEach((it, idx) => {
         const rowY = top + idx * 22;
@@ -6559,7 +6640,7 @@ html, body {
     ctx.strokeStyle = LINE; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(rx, y + 52); ctx.lineTo(rx + rw, y + 52); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = MUTED; fitText(ctx, 'Who bet on what, and what they got', rx, y + 42, rw, '500', 10);
     G.teams.forEach((tm, ti) => {
-      const rowY = y + 74 + ti * 30, bObj = (F.bets || []).find(b => b.team === ti);
+      const rowY = y + 74 + ti * Math.min(30, (h - 136) / 4), bObj = (F.bets || []).find(b => b.team === ti);
       ctx.fillStyle = tm.col; ctx.textAlign = 'left'; fitText(ctx, tm.name + (ti === HS ? ' (you)' : ''), rx, rowY, rw * 0.55, '700', 11);
       if (!bObj) { ctx.fillStyle = DASH; ctx.textAlign = 'right'; fitText(ctx, 'no bet', rx + rw, rowY, rw * 0.45, '600', 10, F_MONO); return; }
       const botName = F.sides ? sideLabel(F, bObj.side) : (F.robots[bObj.side]?.name || 'Bot');
@@ -6585,6 +6666,36 @@ html, body {
 
   // 2.0: the fight runs on its own full screen (src2/view.js); the board's pit just says so
   function battleFrame(L) { const k = Math.min(L.aw / ARENA_W, L.ah / ARENA_H); return { k, x0: L.ax - ARENA_W * k / 2, y0: L.ay - ARENA_H * k / 2 }; }
+  // the damage chart: x = fight time, y = damage taken (0–100), a line per robot in its team colour; grey bars = all the
+  // damage dealt in each 5 s, so you see where the fight was decided; ticks = cards played
+  function drawDamageChart(ctx, D, rec, x, y, w, h) {
+    paperBox(ctx, x, y, w, h, INK, 2, PAPER2);
+    const pl = x + 40, pr = x + w - 150, pt = y + 24, pb = y + h - 20, T = Math.max(10, D.t[D.t.length - 1]);
+    const X = t => pl + (pr - pl) * t / T, Y = d => pb - (pb - pt) * d / 100;
+    ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'DAMAGE OVER THE FIGHT', x + 10, y + 15, 260, '700', 10, F_MONO);
+    help(x, y, w, h, 'Damage over the fight', 'Each line is a robot\'s damage (its health bar from the fight screen, upside down), over the fight time. The grey bars are all the damage done in each 5 seconds: tall bars = where the fight was decided. Ticks at the bottom: cards played.');
+    // grid and axes
+    ctx.strokeStyle = LINE; ctx.lineWidth = 1;
+    for (const d of [0, 50, 100]) { ctx.beginPath(); ctx.moveTo(pl, Y(d)); ctx.lineTo(pr, Y(d)); ctx.stroke(); ctx.fillStyle = MUTED; ctx.textAlign = 'right'; fitText(ctx, d + '%', pl - 4, Y(d) + 3, 34, '600', 8.5, F_MONO); }
+    ctx.textAlign = 'center'; for (let t = 0; t <= T; t += T > 90 ? 30 : 15) { ctx.fillStyle = MUTED; fitText(ctx, t + 's', X(t), pb + 12, 30, '600', 8.5, F_MONO); }
+    // 5 s buckets of all damage dealt
+    const B = [], step = 5; let maxB = 1;
+    for (let i = 1; i < D.t.length; i++) { const k = Math.floor(D.t[i - 1] / step), inc = D.d[i].reduce((a, v, j) => a + Math.max(0, v - D.d[i - 1][j]), 0); B[k] = (B[k] || 0) + inc; }
+    B.forEach(v => { maxB = Math.max(maxB, v || 0); });
+    ctx.fillStyle = 'rgba(110,100,87,0.22)';
+    B.forEach((v, k) => { if (!v) return; const bh = (pb - pt) * 0.9 * v / maxB, x0 = X(k * step) + 1, x1 = X(Math.min(T, (k + 1) * step)) - 1; ctx.fillRect(x0, pb - bh, Math.max(1, x1 - x0), bh); });
+    // cards played
+    ctx.strokeStyle = '#2F6DB5'; ctx.lineWidth = 2;
+    (rec && rec.lines || []).filter(l => l.k === 'card').forEach(l => { ctx.beginPath(); ctx.moveTo(X(l.t), pb); ctx.lineTo(X(l.t), pb - 7); ctx.stroke(); });
+    // a line per robot
+    D.who.forEach((wh, j) => {
+      ctx.strokeStyle = wh.col; ctx.lineWidth = wh.house ? 1.5 : 2.5; if (wh.house) ctx.setLineDash([4, 3]);
+      ctx.beginPath(); D.t.forEach((t, i) => { const px = X(t), py = Y(D.d[i][j]); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.stroke(); ctx.setLineDash([]);
+      const ly = pt + 4 + j * 16, last = D.d[D.d.length - 1][j];
+      ctx.fillStyle = wh.col; ctx.fillRect(pr + 12, ly - 7, 12, 4);
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, wh.name + ' ' + last + '%', pr + 28, ly - 2, x + w - pr - 36, '600', 10);
+    });
+  }
   function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, S = F.S;
     pitHead('6 · FIGHT', 'ON ITS OWN SCREEN');
@@ -6666,12 +6777,15 @@ html, body {
     renderHand(true);
   });
 
+  const ROBOT_PICK = new Set(['Secret Upgrade', 'Overclock', 'We Have Your Number']);
   function tryPlayDraggedCard(dc, wx, wy) {
     const c = dc.card, t = me();
     if (G.phase === 'intrigue' && G.intrigueTurn === HS && c.phase !== 'fight') {
       const gHit = hitRegions.find(r => r.kind === 'garage' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);
       if ((c.target === 'rival' || c.target === 'any' || c.phase === 'security') && !gHit) return false;
-      act('play', dc.id, gHit ? gHit.team : null);
+      // dropped on one robot: Secret Upgrade / Overclock go on that robot of yours, a bounty on that rival robot (Kev, 9 Nov)
+      const bHit = ROBOT_PICK.has(c.name) ? hitRegions.find(r => r.kind === 'bay' && r.robot && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h) : null;
+      act('play', dc.id, gHit ? gHit.team : null, bHit && (!gHit || bHit.team === gHit.team) ? bHit.robot.id : null);
       return true;
     }
     return false;
