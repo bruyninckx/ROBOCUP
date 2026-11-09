@@ -5,6 +5,9 @@
 // Deterministic: fixed 120 Hz step and the seeded RNG only (no Math.random in here).
 (function (root) {
   'use strict';
+  // deterministic maths (dmath.js) must be in place before planck loads: node does it here, pages load dmath.js first
+  if (!root.planck && typeof require !== 'undefined') require('./dmath.js').install();
+  else if (!Math.__dmath && typeof console !== 'undefined') console.warn('ROBOCUS: dmath.js was not loaded before planck.js: fights may differ between browsers');
   const pl = root.planck || (typeof require !== 'undefined' ? require('planck') : null);
   const V = (x, y) => pl.Vec2(x, y);
   // tuning knobs: dmg = global damage scale, other keys = damage multiplier per cause (weapon key)
