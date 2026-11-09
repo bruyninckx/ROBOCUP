@@ -511,3 +511,54 @@ arena tags for this fight's arena (🪚 Saw specialist / Hates saws, ☠️, �
 Whirlwind, Vertigo, Ramrod: 1.25x the expected wins against higher levels), 🎲 Coin-flip brawler (Snapjaw: 61% blowouts),
 ⏱️ Quick finisher (Rocketeer, 35 s), 🧱 Grinder (Pincher, Wrecker, Gyro: 70 s+). The bounty already has its own badge.
 The bookie's chip boost is lowered (`src2/repair.js` `CHIP` 0.55 / 0.55 / 0.25 / 0 / −0.2, was 0.8 / 0.8 / 0.4).
+
+## Layout B: the Workshop Bench (Kev, 9 Nov)
+
+Kev picked layout B of the four layout boards, and the card-type sheet. The tabletop now uses it in full; the robots are drawn as before.
+
+**Seven fixed zones.** Only the pit and the sticky note change with the phase, so you always know where to look.
+
+1. **Top bar.** Round and seat, the 8 steps (0 Draft … 7 Fate), one dot per team (green: done; pulsing: we wait for them; ringed: their turn), the close-to-winning pill, the seat picker and the Online badge.
+2. **Rival tickets.** One per rival, in seat order after you. Each shows the fame bar, credits as coins, sponsor, cards in hand, Security Bots, Stash and crew. It also shows the three robots: picture, level, Fan tokens, weapon, one bookie note, damage and the odds chip. A ticket is a drop target for cards and a pick target for the host.
+3. **The pit.** A dark frame, a title strip (phase and a short note), and a concrete floor with hazard tape. The phase stage fills the whole floor: draft, fame race, Intrigue ring, market lots, bookie, recap.
+4. **Sticky note.** Under the pit, next to the log: what to do now and the button that moves on. It reads "YOUR MOVE", or "AT THE TABLE" when there is nothing to click.
+5. **Your rail.** Team header (fame, coins, crew, Security Bots, sponsor), your robots as work orders, then the Stash.
+6. **Hand drawer.** Under the rail. The cards spread to the rail's width.
+7. **Log clipboard.** Under the pit.
+
+**No wasted space** (Kev, 9 Nov). The bench is as wide as the screen's shape allows, from 1400 to 2000 world px. On a wide screen the tickets and the pit get wider; the rail keeps its width. The stage stretches to the floor, and the panels in it are centred.
+
+**Phones.** The sticky note, the Stash (only when it has parts) and the log (collapsed) stack under the top bar. The camera follows the stage, one of your robots, or the tickets with the rail, as before.
+
+**Card types** (hand, the card shown when played, the fight card auction). The type is the big signal: its colour, shape and a corner tag for when you play it. The family (what the card does) is the small chip under it.
+
+| Type | Look | Corner tag |
+|---|---|---|
+| Scheme | blue, square | INTRIGUE |
+| Reaction | orange, cut corner | ANY TIME |
+| Face-down | purple, dark and hatched | ON A ROBOT |
+| Security | steel, rounded corners | BLOCK |
+| Fight card | hazard stripes, dark face | LIVE |
+| Arena | olive, square corners | HOST STEP / BETS STEP |
+
+**Market lots** are framed by kind:
+
+| Lot | Look |
+|---|---|
+| Robot | green |
+| Level 4 robot | purple |
+| Part | teal |
+| Tuning chip | cyan with a circuit grid, round icon |
+| Legendary | gold with a double frame |
+| Crew | brown, rounded bottom |
+| Hosting | ink |
+
+**Fight screen** (src2/view.js; only the tabletop uses it). Light bench colours and paper fighter cards with a team-coloured top. The arena sits in the dark pit frame with the moments under it. The fight cards are on hazard stripes. A side card (`opts.info`) lists the bets, the bookie's odds and what comes next (7 Fate).
+
+**Fonts.** Saira Stencil One (names, titles), IBM Plex Sans (text) and IBM Plex Mono (numbers), from Google Fonts. Without internet the page falls back to the system fonts.
+
+**Checks** (9 Nov):
+- Screenshots of every phase at 1440×900, 1280×720, 1920×1080 and 390×844 (phone).
+- game-sim: 4 games, 0 page errors, no stalls.
+- mp-test: 4 seats, 0 desyncs, 0 errors.
+- sync-check: unchanged (the engine was not touched).
