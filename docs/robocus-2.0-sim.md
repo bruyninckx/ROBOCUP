@@ -415,3 +415,10 @@ Decisions (Kev, 9 Nov):
 - Level 3 robots sell below level 2 (6.5 against 7.6 Cr): left alone, an AI quirk; people set their own prices.
 - Seats with shuffled ties, pooled over 500 games: 26 / 26 / 22 / 26% wins.
 - The round 3 robot-card numbers are now the default (`BAL.cards`): Secret Upgrade +15% / +15%, Smudged Lens −25%, Sugar in the Tank 40%, Loose Bolts = one wheel at 30% until repaired, Overclock +35% drive power without extra heat. The balance is locked for the multiplayer build.
+
+## Round 5 set-up (9 Nov): Security Bots and the level gap
+
+`tools\run-sims5.cmd 100` (or `sh tools/run-sims5.sh 100`), every file in `tools/bal4/` (tags `o5_*`, `sims/round5.txt`):
+base (current defaults with the bounty card), sec12 / sec8 / sec5 (Security Bots in the Intrigue deck, was 18), gap8 / gap15
+(`levelBoost` 0.08 / 0.15, see `robocus-2.0-tabletop.md` "Level gap test").
+

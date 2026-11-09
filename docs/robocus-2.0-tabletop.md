@@ -377,3 +377,33 @@ their step). That needs no fight stream, but only works if the physics comes out
   5 lines); a second call into the host's spare-or-scrap step could crash after a slow player; a test bot in a room no
   longer plays a solo game before it connects.
 - Not tested here: real PeerJS/WebRTC between PCs (the cloud sandbox has no internet), as with 1.0.
+
+## We Have Your Number: the bounty card (Kev, 9 Nov)
+
+- Intrigue scheme, Sabotage family (harmful: a Security Bot can block it), fame gate 2, 3 copies, cash-in 1 Cr.
+- Effect: the target team's best ready robot (else its first robot) gets a bounty (`r.bounty = { by, round }`). A robot carries
+  one bounty at most. It stays on the robot when it is traded; it goes with the robot when the robot is scrapped.
+- Payout: when a marked robot is on the losing side of a fight, every winning team (not its owner) gets +`BAL.fame.bounty` (1)
+  fame (source `bounty`), then the mark is gone. The House Robot winning pays nobody and the mark stays.
+- Board: a red "🎯 BOUNTY +1 FAME" strip across the top of the robot's picture (hover help says who placed it).
+- AI: values it at the bounty fame × its fame weight × (0.6 + the target's threat); an AI host adds +0.08 to its odds against a
+  team with a marked robot when it decides whether to fight it itself. A team that is invited still chooses which robot to send,
+  so a marked robot can be kept out of fights (at the cost of not using it).
+- First AI games (6): drawn 3.2, played 2.2, landed 1.2 per game; bounties paid 0.7 fame a game.
+
+## Level gap test (Kev, 9 Nov)
+
+`BAL.levelBoost` (default 0): every level's power grade (weapon damage and HP) × (1 + levelBoost) ^ level, so every step
+between neighbouring levels gets the same boost (`src2/lineup.js` `grade`; the strength model adds 2.85 × ln(1 + boost) logits per
+level, so the bookie and the AI see it). Duels of every robot against every robot one level below, both starting sides
+(`gap.js` in the session notes; 100–216 fights a row, ±3–4 points):
+
+| boost | L1 vs L0 | L2 vs L1 | L3 vs L2 | L4 vs L3 |
+|---|---|---|---|---|
+| none | 65% | 61% | 65% | 62% |
+| flat 1 + 0.1 × level | 75% | 66% | 68% | 60% |
+| flat 1 + 0.2 × level | 76% | 78% | 81% | 69% |
+| compounding 8% per step (`gap8`) | 72% | 67% | 67% | 68% |
+| compounding 15% per step (`gap15`) | 75% | 77% | 78% | 69% |
+The flat version widened the low gaps most, so the setting compounds. Game test: `tools/bal4/gap8.json` and `gap15.json`.
+
