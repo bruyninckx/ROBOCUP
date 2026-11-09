@@ -1614,7 +1614,7 @@ html, body {
 
       const typeLbl = c.phase === 'fight' ? '⚡ Live' : c.phase === 'later' ? '🏟️ Arena' : c.phase === 'security' ? '🤖 Security' :
                       c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
-      const targetHint = c.name === 'We Have Your Number' ? 'Drag onto a rival robot with ' + bountyMin() + '+ 🎖' : c.name === 'Secret Upgrade' || c.name === 'Overclock' ? 'Drag onto one of your robots' : c.phase === 'security' ? 'Install: drag onto your rail' :
+      const targetHint = c.name === 'We Have Your Number' ? 'Drag onto a rival robot with ' + bountyMin() + '+ 🎖' : c.name === 'Secret Upgrade' || c.name === 'Overclock' ? 'Drag onto one of your robots' : ROBOT_PICK.has(c.name) ? 'Drag onto a rival robot' : c.phase === 'security' ? 'Install: drag onto your rail' :
                          c.phase === 'later' ? (c.step === 'host' ? 'Host step: play from the prompt' : 'Bets step: play from the prompt') :
                          c.phase === 'fight' ? 'Fight: tray on the fight screen' :
                          BLOCKERS.has(c.name) || WINDOW_ONLY.has(c.name) ? 'Auto: reaction window' :
@@ -2636,6 +2636,8 @@ html, body {
   }
   // a robot the player dropped a card on (Secret Upgrade, Overclock, We Have Your Number), else the usual pick
   const pickedOr = (X, fallback) => { const r = G.pickBot != null && X ? X.robots.find(b => b.id === G.pickBot) : null; return r || fallback; };
+  // Kev, 9 Nov: rival robot sabotage goes on the robot the card was dropped on (if it is ready), else on their best ready robot
+  const pickReady = X => { const r = pickedOr(X, null); return r && !r.exhausted ? r : bestReady(X); };
   function precheck(F, c, T) {
     const n = c.name;
     if (c.phase === 'later') return 'Arena card: the prompt offers it in the ' + (c.step === 'host' ? 'Host step (after the host bid)' : 'Bets step') + '. Or cash it in now.';
@@ -2741,14 +2743,14 @@ html, body {
         r.bounty = { by: F.i, round: G.round }; notify('🎯 <b>We Have Your Number:</b> ' + nm(F) + ' puts a bounty on ' + nm(T) + '\'s <b>' + esc(r.name) + '</b>. Whoever beats it in a fight gets +' + BAL.fame.bounty + ' fame.', '#b42318'); break; }
       case 'EMP the Garage': T.tamper.noMods = 1; T.schemeLog.push({ from: F.i, id }); say('🔧 EMP: ' + nm(T) + '\'s modules and helpers are offline next fight.'); break;
       case 'Sugar in the Tank': case 'Smudged Lens': case 'Secret Upgrade': case 'Overclock': {
-        const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = X === F ? pickedOr(X, bestReady(X)) : bestReady(X);
+        const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = X === F ? pickedOr(X, bestReady(X)) : pickReady(X);
         if (!r) break;
         tamperRobot(r, n === 'Sugar in the Tank' ? { sugar: 1 } : n === 'Smudged Lens' ? { lens: 1 } : n === 'Secret Upgrade' ? { up: 1 } : { oc: 1 });   // 2.0: applied by fightSpec
         (r.faceDown = r.faceDown || []).push({ from: F.i, id });
         notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
       }
-      case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = bestReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
-      case 'Rogue Firmware': { const r = bestReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
+      case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = pickReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = pickReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
+      case 'Rogue Firmware': { const r = pickReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
       case 'Tax Audit': { const p = payCr(T, 5, 'card'); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
       case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; addCr(T, payCr(F, 3 * k, 'card'), 'card'); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
@@ -4686,7 +4688,13 @@ html, body {
   function recordDamage(F, S) {
     const I = VW.integrity; if (!I) return;
     const D = F.dmg = F.dmg || { t: [], d: [], who: S.robots.map(R => ({ name: R.name, col: R.house ? '#6E6457' : R.spec && R.spec.pal ? R.spec.pal.col : '#6E6457', team: R.spec ? R.spec.teamName || '' : '', house: !!R.house })) };
-    D.t.push(Math.round(S.t * 10) / 10); D.d.push(S.robots.map(R => Math.round((1 - I(R)) * 100)));
+    D.t.push(Math.round(S.t * 10) / 10); // Kev, 9 Nov: a knocked-out robot counts as 0 health in the fight HUD, which made a big jump at the end of every chart;
+    // the chart shows the real damage instead and marks the KO with a badge
+    D.ko = D.ko || []; S.robots.forEach((R, j) => { if (!R.alive && D.ko[j] == null) D.ko[j] = Math.round(S.t * 10) / 10; });
+    D.d.push(S.robots.map(R => Math.round((1 - I(R.alive ? R : Object.create(R, { alive: { value: true } }))) * 100)));
+    // Kev, 9 Nov: mark the moment a robot loses a weapon part on the chart
+    D.wl = []; S.robots.forEach((R, j) => { const W = new Set((R.parts || []).filter(q => q.kind === 'weapon').map(q => q.label)); if (R.wmotor && R.wmotor.label) W.add(R.wmotor.label);   // a dead weapon motor puts the weapon out too
+      (R.stats && R.stats.lost || []).forEach(l => { if (W.has(l.label)) D.wl.push({ t: Math.round(l.t * 10) / 10, j, label: l.label, by: l.by || '' }); }); });
   }
   function fightStep(F, S) {
     if (S.over && S.endHash == null) S.endHash = fightHash(S);   // the fingerprint at the step the fight ends (the view runs a few seconds on)
@@ -5631,10 +5639,13 @@ html, body {
       if (f.kind === 'play' || f.kind === 'react') {
         const c = CARDS[f.card]; if (!c) { ctx.restore(); continue; }
         const big = f.kind === 'play', full = big ? 230 : 180, chh = (ticket ? full : Math.min(B.h - 70, full)) * (0.75 + 0.25 * pop), cw = chh * 0.68;
-        const cx = mid - cw / 2, cy = ticket ? B.y + B.h + 30 : B.y + B.h / 2 - chh / 2 + 6;   // under the ticket's turn tag
+        // Kev, 9 Nov: a card hanging from the leftmost ticket fell under the log panel; keep it inside the pit floor
+        const F = L.floor, cx = ticket && F ? Math.max(F.x + 10, Math.min(F.x + F.w - cw - 10, mid - cw / 2)) : mid - cw / 2;
+        const cy = ticket ? (F ? Math.max(B.y + B.h + 30, F.y + 22) : B.y + B.h + 30) : B.y + B.h / 2 - chh / 2 + 6;   // under the ticket's turn tag
+        const cm = cx + cw / 2;
         drawCardFace(ctx, c, cx, cy, cw, chh, c.t === 'F' && f.ti !== HS);
-        label(big ? '▶ ' + T.name.split(' ')[0].toUpperCase() + ' PLAYS' : (f.label || '✋ BLOCKS'), mid, cy - 8, big ? T.col : '#B23A2B', 12);
-        if (f.tgt != null) label('→ ' + G.teams[f.tgt].name, mid, cy + chh + 20, G.teams[f.tgt].col, 11);
+        label(big ? '▶ ' + T.name.split(' ')[0].toUpperCase() + ' PLAYS' : (f.label || '✋ BLOCKS'), cm, cy - 8, big ? T.col : '#B23A2B', 12);
+        if (f.tgt != null) label('→ ' + G.teams[f.tgt].name, cm, cy + chh + 20, G.teams[f.tgt].col, 11);
       } else if (f.kind === 'roll') {
         const sz = 56 * (0.7 + 0.3 * pop), dx = mid - sz / 2, dy = B.y + B.h / 2 - sz / 2 - 4;
         const face = t < 700 ? 1 + Math.floor(t / 60) % 6 : f.roll;   // tumbles, then lands on the real roll
@@ -6125,10 +6136,18 @@ html, body {
     ctx.fillStyle = '#B07A10'; fitText(ctx, r.level ? '★'.repeat(r.level) : 'starter', tx, by + 25, tw, '700', 10, r.level ? F_SANS : F_MONO);
     ctx.fillStyle = '#7C4D9E'; fitText(ctx, '🎖' + r.wins + (r.wins >= favWins(t) ? ' FAV' : ''), tx, by + 38, tw, '700', 9.5, F_MONO);
     help(tx, by + 16, tw, 26, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win; ' + favWins(t) + ' make a Fan Favourite.');
-    ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name), bx, by + 54, bw, '600', 9.5);
-    help(bx, by + 44, bw, 13, esc(r.name) + ': ' + esc(wepLabel(r.name)), esc(descOf(r.name)) + '<br><b>Parts</b>: ' + esc(partsTxt(r)) + '.');
+    // Kev, 9 Nov: bought parts vanished from a rival's ticket when a bookie tag took their line; they now share the weapon line
+    // and a count badge sits on the picture
+    const pts = partsOf(r), ptxt = pts.map(k => (LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? '🌟' : '') + partShort(k)).join(', ');
     const tgW = drawBookieTags(ctx, r, bx + bw, by + 58, 12, 8, bw, 1);
-    if (!tgW) { ctx.fillStyle = partsOf(r).length ? INK : DASH; fitText(ctx, partsOf(r).length ? partsOf(r).map(k => (LU.PARTS[k].kind === 'legendary' ? '🌟' : '') + partShort(k)).join(', ') : 'no parts', bx, by + 68, bw, '600', 9); }
+    ctx.textAlign = 'left';
+    if (tgW && pts.length) { ctx.fillStyle = INK; fitText(ctx, '🔧 ' + ptxt, bx, by + 54, bw, '700', 9.5); }   // the weapon name stays in the hover help
+    else { ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name), bx, by + 54, bw, '600', 9.5); }
+    help(bx, by + 44, bw, 13, esc(r.name) + ': ' + esc(wepLabel(r.name)), esc(descOf(r.name)) + '<br><b>Parts</b>: ' + esc(partsTxt(r)) + '.');
+    if (!tgW) { ctx.textAlign = 'left'; ctx.fillStyle = pts.length ? INK : DASH; fitText(ctx, pts.length ? ptxt : 'no parts', bx, by + 68, bw, '600', 9); }
+    if (pts.length) { const bw2 = 17, bx2 = bx + 1, by2 = by + ps - 14; ctx.fillStyle = '#2F6DB5'; rrect(ctx, bx2, by2, bw2, 13, 3); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '+' + pts.length, bx2 + bw2 / 2, by2 + 10, bw2 - 2, '700', 9, F_MONO); ctx.textAlign = 'left';
+      help(bx2, by2, bw2, 13, pts.length + ' part' + (pts.length === 1 ? '' : 's') + ' fitted', esc(ptxt) + '.'); }
     drawZoneButtons(ctx, r, bx, by + 73, bw, 12, false, true);
     { const fo = fieldOdds(ti, r), cy = by + bh - 17; drawOddsChip(ctx, fo.p, bx, cy, bw, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: bw, h: 16 });
       const hb = helpBand(ti, r, fo.p); help(bx, cy, bw, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
@@ -6138,8 +6157,8 @@ html, body {
   // dragging a card that goes on one robot (Secret Upgrade, Overclock, We Have Your Number): the robots it can go on light up
   function pickGlow(ctx, r, ti, x, y, w, h) {
     if (!dragCard || !ROBOT_PICK.has(dragCard.card.name)) return;
-    const own = dragCard.card.name !== 'We Have Your Number';
-    if (own ? ti !== HS : ti === HS || !(r && !r.bounty && (r.wins || 0) >= bountyMin())) return;
+    const n = dragCard.card.name, own = n === 'Secret Upgrade' || n === 'Overclock';
+    if (own ? ti !== HS : ti === HS || !r || r.exhausted || (n === 'We Have Your Number' && !(!r.bounty && (r.wins || 0) >= bountyMin()))) return;
     const hov = mouse.wx >= x && mouse.wx <= x + w && mouse.wy >= y && mouse.wy <= y + h;
     ctx.save(); ctx.strokeStyle = hov ? '#B23A2B' : HAZ; ctx.lineWidth = hov ? 4 : 2.5; if (!hov) ctx.setLineDash([6, 4]); rrect(ctx, x, y, w, h, 6); ctx.stroke(); ctx.restore();
   }
@@ -6673,7 +6692,7 @@ html, body {
     const pl = x + 40, pr = x + w - 150, pt = y + 24, pb = y + h - 20, T = Math.max(10, D.t[D.t.length - 1]);
     const X = t => pl + (pr - pl) * t / T, Y = d => pb - (pb - pt) * d / 100;
     ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'DAMAGE OVER THE FIGHT', x + 10, y + 15, 260, '700', 10, F_MONO);
-    help(x, y, w, h, 'Damage over the fight', 'Each line is a robot\'s damage (its health bar from the fight screen, upside down), over the fight time. The grey bars are all the damage done in each 5 seconds: tall bars = where the fight was decided. Ticks at the bottom: cards played.');
+    help(x, y, w, h, 'Damage over the fight', 'Each line is a robot\'s damage (its health bar from the fight screen, upside down), over the fight time. A KO badge marks a knock-out; the line keeps the real damage. The grey bars are all the damage done in each 5 seconds: tall bars = where the fight was decided. Ticks at the bottom: cards played. A red ⚔ badge: that robot lost its weapon (or the weapon motor died) there.');
     // grid and axes
     ctx.strokeStyle = LINE; ctx.lineWidth = 1;
     for (const d of [0, 50, 100]) { ctx.beginPath(); ctx.moveTo(pl, Y(d)); ctx.lineTo(pr, Y(d)); ctx.stroke(); ctx.fillStyle = MUTED; ctx.textAlign = 'right'; fitText(ctx, d + '%', pl - 4, Y(d) + 3, 34, '600', 8.5, F_MONO); }
@@ -6693,8 +6712,27 @@ html, body {
       ctx.beginPath(); D.t.forEach((t, i) => { const px = X(t), py = Y(D.d[i][j]); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.stroke(); ctx.setLineDash([]);
       const ly = pt + 4 + j * 16, last = D.d[D.d.length - 1][j];
       ctx.fillStyle = wh.col; ctx.fillRect(pr + 12, ly - 7, 12, 4);
-      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, wh.name + ' ' + last + '%', pr + 28, ly - 2, x + w - pr - 36, '600', 10);
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, wh.name + ' ' + last + '%' + (D.ko && D.ko[j] != null ? ' · KO' : ''), pr + 28, ly - 2, x + w - pr - 36, '600', 10);
     });
+    // a weapon lost: a red badge with a crossed-out sword on that robot's line
+    const wl = D.wl || [];
+    const atT = (j, t) => { let i = D.t.findIndex(v => v >= t); if (i < 0) i = D.t.length - 1; if (i === 0) return D.d[0][j]; const t0 = D.t[i - 1], t1 = D.t[i], f = t1 > t0 ? Math.max(0, Math.min(1, (t - t0) / (t1 - t0))) : 1; return D.d[i - 1][j] + (D.d[i][j] - D.d[i - 1][j]) * f; };
+    wl.forEach(e => {
+      const wh = D.who[e.j]; if (!wh) return;
+      const px = X(Math.min(T, e.t)), py = Y(atT(e.j, e.t)), r = 8;
+      ctx.fillStyle = '#B23A2B'; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = wh.col; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '700 10px ' + F_SANS; ctx.fillText('⚔', px, py + 3.5);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 5, py + 5); ctx.lineTo(px + 5, py - 5); ctx.stroke();
+      help(px - r, py - r, r * 2, r * 2, wh.name + ' loses a weapon', e.label + (/motor/i.test(e.label) ? ' died' : ' came off') + ' at ' + Math.round(e.t) + ' s' + (e.by ? ' (hit by ' + e.by + ')' : '') + '.');
+    });
+    (D.ko || []).forEach((t, j) => { if (t == null || !D.who[j]) return;
+      const px = X(Math.min(T, t)), py = Y(atT(j, t)); ctx.font = '700 9px ' + F_MONO; const tw = ctx.measureText('KO').width + 8;
+      ctx.fillStyle = INK; rrect(ctx, px - tw / 2, py - 18, tw, 13, 3); ctx.fill(); ctx.strokeStyle = D.who[j].col; ctx.lineWidth = 2; rrect(ctx, px - tw / 2, py - 18, tw, 13, 3); ctx.stroke();
+      ctx.fillStyle = HAZ; ctx.textAlign = 'center'; ctx.fillText('KO', px, py - 8.5);
+      help(px - tw / 2, py - 18, tw, 13, D.who[j].name + ' is out', 'Knocked out at ' + Math.round(t) + ' s. The line shows the damage it had taken by then.'); });
+    if (wl.length) { const ly = pt + 4 + D.who.length * 16 + 6; ctx.fillStyle = '#B23A2B'; ctx.beginPath(); ctx.arc(pr + 18, ly - 4, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '700 8px ' + F_SANS; ctx.fillText('⚔', pr + 18, ly - 1);
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, 'weapon lost', pr + 28, ly - 1, x + w - pr - 36, '600', 10); }
   }
   function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, S = F.S;
@@ -6777,7 +6815,7 @@ html, body {
     renderHand(true);
   });
 
-  const ROBOT_PICK = new Set(['Secret Upgrade', 'Overclock', 'We Have Your Number']);
+  const ROBOT_PICK = new Set(['Secret Upgrade', 'Overclock', 'We Have Your Number', 'Sugar in the Tank', 'Smudged Lens', 'Loose Bolts', 'Rogue Firmware']);
   function tryPlayDraggedCard(dc, wx, wy) {
     const c = dc.card, t = me();
     if (G.phase === 'intrigue' && G.intrigueTurn === HS && c.phase !== 'fight') {
