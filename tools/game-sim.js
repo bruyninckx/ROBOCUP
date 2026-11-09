@@ -165,7 +165,7 @@ function installHooks() {
         const out = { startFame: G.startFame, bal: D.BAL ? JSON.parse(JSON.stringify(D.BAL)) : null, over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
           fameBy: G.teams.map(t => t.fameBy || {}), ups, cstat: G.cstat || {}, cash: Object.fromEntries(Object.keys(G.cstat || {}).map(id => [id, C[id] ? { cash: C[id].cash, fam: C[id].fam, name: C[id].name, live: C[id].phase === 'fight', harmful: !!C[id].harmful, auction: !!C[id].auction } : null])),
           deckSize: D.DECK().length, fights: fights.length, fightCards: fends.map(f => (f.log || []).filter(x => x.k === 'card').length),
-          formats: fights.map(f => f.format), marketCr: market, betCr, hostBids: ev.filter(e => e.k === 'host_bid').length,
+          formats: fights.map(f => f.format), awards: (ev.find(e => e.k === 'awards') || {}).awards || null, marketCr: market, betCr, hostBids: ev.filter(e => e.k === 'host_bid').length,
           auctions: auctions.map(a => ({ r: a.r, cards: a.cards, wins: a.wins })), errs: D.PT.errs,
           errEvents: ev.filter(e => e.k === 'error').map(e => ({ msg: e.msg, n: e.n, stack: (e.stack || '').split('\n').slice(0, 3).join(' | ') })) };
         const X = window.__sim;
@@ -175,7 +175,7 @@ function installHooks() {
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
             reps: X.reps, ups: X.ups, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
-            fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
+            fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
             lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),
             house: (X.house || []).map(h => ({ swings: h.swings, hits: h.hits, dmg: h.dmg, near: h.near, nearN: h.nearN })),

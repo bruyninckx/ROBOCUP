@@ -29,6 +29,8 @@ const V2 = {
       'engine steps / fight (120 Hz)': f1(mean(fw.map(x => x.steps))),
       'fight time (s): mean, judges %': f1(mean(fx.filter(f => f.time != null).map(f => f.time))) + ', ' + pc(mean(fx.map(f => f.how === 'judges' ? 1 : 0))),
       'fight formats': Object.entries(S.sumBy(fx, 'format')).map(([k, v]) => k + ' ' + pc(v / fx.length)).join(' '),
+      'arenas (host picks)': Object.entries(S.sumBy(fx, 'arena')).sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + pc(v / fx.length)).join(' '),
+      'end credits: awards / game': f1(mean(g.map(r => (r.awards || []).length))),
       'repairs / team / round (crew, free, Cr)': f1(reps.length / ups.length) + ' (' + [how.crew, how.free, how.credits].map(x => f1((x || 0) / ups.length)).join(', ') + ')' + (how.unknown ? ' ?' + how.unknown : ''),
       'repairs by zone (drive / weapon / body)': ['drive', 'weapon', 'body'].map(k => pc(reps.filter(x => x.zone === k).length / reps.length)).join(' / '),
       'crew / team at upkeep; repair Cr / game': f1(mean(ups.map(u => u.crew))) + '; ' + per((how.credits || 0) * 2),
