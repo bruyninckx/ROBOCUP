@@ -1482,6 +1482,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (S.evt && S.evt.warnPts && S.evt.t < S.evt.warn) for (const q of S.evt.warnPts) { const dq = Math.hypot(p.x - q[0], p.y - q[1]); if (dq < q[2] + R.hl + 0.25) { tx = p.x + (p.x - q[0]) / (dq || 1) * 1.5; ty = p.y + (p.y - q[1]) / (dq || 1) * 1.5; speed = 1; } }
     // keep clear of the House Robot, and run when its mallet is winding up nearby
     if (S.house && !R.house) { const o = houseAvoid(S, R, p, tx, ty); if (o) { tx = o[0]; ty = o[1]; speed = o[2]; if (o[3]) R.kiting = 0.25; if (o[3] === 'flee') { R.unstick = 0; R.escape = 0; R.stuckT = 0; } } } // backing away from it: may reverse; running from the mallet: no backing-off moves
+    // keep clear of Floor Spikes (warning or up), unless shoving the enemy onto them
+    if (S.spikes) for (const k of S.spikes) { const ds = Math.hypot(p.x - k.x, p.y - k.y) || 0.01; if (ds < k.r + R.hl + 0.45 && !(w === 'wedge' && dist < 1.4)) { tx = p.x + (p.x - k.x) / ds * 1.5; ty = p.y + (p.y - k.y) / ds * 1.5; speed = 1; } }
     // keep clear of floor saws that are up (unless shoving the enemy onto one)
     for (const sw of S.sawState) { const ds = Math.hypot(p.x - sw.x, p.y - sw.y); if ((sw.up || (sw.t % 4) > 3.3) && ds < sw.r + R.hl + 0.7 && !(w === 'wedge' && dist < 1.4)) { tx = p.x + (p.x - sw.x) / ds * 1.5; ty = p.y + (p.y - sw.y) / ds * 1.5; } }
     // flipped and can self-right? do it
@@ -2274,9 +2276,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     hammer: { target: 'arena', label: 'Call the Hammer' }, launcher: { target: 'arena', label: 'Floor Launcher' }, supply: { target: 'arena', label: 'Supply Drop' },
     chiphack: { target: 'bot', label: 'Chip Hack' }, rattle: { target: 'bot', label: 'Rattle Loose' }, hype: { target: 'bot', label: 'Hype Surge', own: true },
     magnet: { target: 'arena', label: 'Electromagnet' }, smoke: { target: 'arena', label: 'Smoke Bomb' },
+    spikes: { target: 'arena', label: 'Floor Spikes' },
   };
   // live card strengths (the game's BAL.live sets these; the defaults are the cards as designed)
-  const LIVE_K = { overclockS: 3.5, fieldHp: 18, empStun: 0.9, empDmg: 5, oilS: 8, rattleLid: 0.3, hypeS: 6, magnetS: 2, smokeS: 5, supplyS: 12 };
+  const LIVE_K = { overclockS: 3.5, fieldHp: 18, empStun: 0.9, empDmg: 5, oilS: 8, rattleLid: 0.3, hypeS: 6, magnetS: 2, smokeS: 5, supplyS: 12, spikesWarn: 0.8, spikesS: 4, spikesR: 0.7, spikesDps: 9, spikesWheel: 14 };
   function command(S, c) { S.cmdQ = S.cmdQ || []; S.cmdQ.push(Object.assign({ tick: S.step + 1 }, c)); }
   function magnets(S) {
     for (const m of S.magnets) {
@@ -2334,6 +2337,24 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     else if (c.type === 'hype' && R) { R.hype = 0; R.rage = LIVE_K.hypeS; callout(S, 'RAGE!', at.x, at.y, true); }
     else if (c.type === 'magnet') { S.magnets = S.magnets || []; S.magnets.push({ x, y, life: LIVE_K.magnetS }); callout(S, 'MAGNET!', x, y, true); }
     else if (c.type === 'smoke') { S.smokes.push({ x, y, r: 1.3, life: LIVE_K.smokeS, owner: null, any: true }); S.fx.push({ type: 'smokebomb', x, y }); callout(S, 'SMOKE!', x, y, true); }
+    else if (c.type === 'spikes') { S.spikes = S.spikes || []; S.spikes.push({ x, y, r: LIVE_K.spikesR, t: 0, warn: LIVE_K.spikesWarn, dur: LIVE_K.spikesS }); callout(S, 'SPIKES INCOMING!', x, y, true); }
+  }
+  // Floor Spikes (live card): a warning ring, then spikes for spikesS seconds that hurt the chassis and puncture wheels.
+  // Only runs once the card was played (S.spikes is created then), so other fights stay bit-identical.
+  function spikes(S) {
+    for (const k of S.spikes) {
+      k.t += DT;
+      if (k.t < k.warn) continue;
+      if (!k.up) { k.up = true; callout(S, 'SPIKES!', k.x, k.y, true); }
+      for (const R of S.robots) {
+        if (!R.alive || R.airborne > 0 || R.inPit || R.house) continue;
+        const p = R.body.getPosition(); if (Math.hypot(p.x - k.x, p.y - k.y) > k.r + R.hl * 0.5) continue;
+        hit(S, R.chassis, LIVE_K.spikesDps * DT, { cause: 'spikes', x: p.x, y: p.y, noPen: true });
+        for (const s2 of R.slots) if (alivePart(s2.wheel)) hit(S, s2.wheel, LIVE_K.spikesWheel * DT, { cause: 'spikes', x: p.x, y: p.y, noPen: true });
+        if (S.step % 10 === 0) S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 8 });
+      }
+    }
+    S.spikes = S.spikes.filter(k => k.t < k.warn + k.dur);
   }
   // ---------- main step ----------
   // =====================================================================================================
@@ -3051,6 +3072,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     processContacts(S); processBegins(S); snags(S);
     projectiles(S);
     heatAndHazards(S);
+    if (S.spikes) spikes(S);
     let guard = 0; while (S.hitQ.length && guard++ < 50) { const q = S.hitQ; S.hitQ = []; for (const h of q) applyHit(S, h); }
     S.t += DT; S.step++;
     for (const R of S.robots) if (R.muzzle > 0) R.muzzle -= DT;
@@ -3818,6 +3840,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   function drawCratesAndWarnings() {
     const t = performance.now() / 1000;
     for (const o of S.oils) { const k = Math.min(1, o.life / 1.5); ctx.fillStyle = `rgba(18,14,10,${0.75 * k})`; ctx.beginPath(); ctx.ellipse(o.x, o.y, o.r, o.r * 0.82, o.x * 3, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(120,110,160,${0.25 * k})`; ctx.beginPath(); ctx.ellipse(o.x - o.r * 0.25, o.y - o.r * 0.2, o.r * 0.35, o.r * 0.15, 0.5, 0, 6.29); ctx.fill(); }
+    if (S.spikes) for (const k of S.spikes) { // Floor Spikes: warning ring, then a plate of steel spikes
+      if (k.t < k.warn) { ctx.save(); ctx.strokeStyle = `rgba(220,38,38,${0.5 + 0.4 * Math.sin(k.t * 25)})`; ctx.lineWidth = 0.05; ctx.setLineDash([0.12, 0.08]); ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, 6.29); ctx.stroke(); ctx.restore(); continue; }
+      const f = Math.min(1, (k.t - k.warn) / 0.15, (k.warn + k.dur - k.t) / 0.3);
+      ctx.fillStyle = `rgba(60,56,52,${0.55 * f})`; ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, 6.29); ctx.fill();
+      ctx.fillStyle = `rgba(200,200,205,${f})`; ctx.strokeStyle = `rgba(40,40,40,${f})`; ctx.lineWidth = 0.012;
+      for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) { const sx = k.x + i * 0.2 + (j % 2 ? 0.1 : 0), sy = k.y + j * 0.18; if (Math.hypot(sx - k.x, sy - k.y) > k.r - 0.08) continue; const h = 0.08 * f; ctx.beginPath(); ctx.moveTo(sx - 0.06, sy + 0.04); ctx.lineTo(sx + 0.06, sy + 0.04); ctx.lineTo(sx, sy + 0.04 - h * 1.6); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    }
     for (const m of S.mines) { ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(m.x, m.y, 0.07, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = m.arm > 0 ? '#E8C547' : (Math.sin(t * 10 + m.x) > 0 ? '#FF3B2B' : '#5A1A12'); ctx.beginPath(); ctx.arc(m.x, m.y, 0.025, 0, 6.29); ctx.fill(); ctx.strokeStyle = m.owner.id ? '#C8642B' : '#3F78A8'; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.arc(m.x, m.y, 0.1, 0, 6.29); ctx.stroke(); }
     for (const c of S.crates) {
       const age = S.t - c.t0, drop = Math.max(0, 1 - age / 0.5), sc = 1 + drop * 2.5, bob = Math.sin(t * 4) * 0.02;
