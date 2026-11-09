@@ -422,3 +422,19 @@ Decisions (Kev, 9 Nov):
 base (current defaults with the bounty card), sec12 / sec8 / sec5 (Security Bots in the Intrigue deck, was 18), gap8 / gap15
 (`levelBoost` 0.08 / 0.15, see `robocus-2.0-tabletop.md` "Level gap test").
 
+
+### Round 5 results (Kev's PC, 9 Nov; 6 variants x 100 games) and decision
+
+| | base | sec12 | sec8 | sec5 | gap8 | gap15 |
+|---|---|---|---|---|---|---|
+| attacks played / game | 17.2 | 20.1 | 21.7 | 25.8 | 15.5 | 16.6 |
+| attacks that land | 66% | 68% | 69% | 72% | 65% | 65% |
+| fame lost to cards / game | 3.5 | 4.5 | 4.7 | 7.0 | 3.0 | 3.4 |
+| runner-up within 1 / 2 fame | 47 / 77% | 42 / 70% | 50 / 66% | 44 / 73% | 45 / 71% | 37 / 67% |
+| bookie favourite wins | 69% | 71% | 69% | 68% | 70% | 73% |
+| lots unsold | 25% | 26% | 22% | 21% | 31% | 37% |
+| bounty fame / game | 0.9 | 1.3 | 1.6 | 1.6 | 0.9 | 1.2 |
+
+Fewer Security Bots: more attacks played and landed, more fame lost, no closer finishes (within noise), slightly longer games
+at 5. A wider level gap: more predictable fights, fewer close finishes, pricier robots, more unsold lots.
+**Kev, 9 Nov: keep both as they are** (18 Security Bots, `levelBoost` 0; the setting stays for later tests).
