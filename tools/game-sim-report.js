@@ -42,6 +42,8 @@ const V2 = {
       'parts / crew bought per game (avg Cr)': per(sold.filter(l => l.kind !== 'robot' && l.kind !== 'crew' && l.kind !== 'other').length) + ' (' + f1(mean(sold.filter(l => !['robot', 'crew', 'other'].includes(l.kind)).map(l => l.price))) + ') / ' + per(sold.filter(l => l.kind === 'crew').length) + ' (' + f1(mean(sold.filter(l => l.kind === 'crew').map(l => l.price))) + ')',
       'lots unsold': pc(1 - sold.length / Math.max(1, lots.length)),
       'level 4: lots / game, sold, fights / game': (() => { const l4 = lots.filter(l => l.level === 4); if (!l4.length) return '-'; const f4 = fx.filter(f => (f.x2 || []).some(e => e && e.level === 4)); return per(l4.length) + ', ' + pc(l4.filter(l => l.winner != null && l.winner >= 0).length / l4.length) + ', ' + per(f4.length); })(),
+      // credit flow (page 'cr' events; added 8 Nov, later: an AI hoarded 61 Cr in a playtest)
+      ...S.credits(g),
       'robots at end / team': f1(mean(g.flatMap(r => r.v2.robotsEnd.map(x => x.length)))),
       'trade-ins / game (scrap Cr, level)': (() => { const ti = g.flatMap(r => r.v2.tradeIns || []); return per(ti.length) + ' (' + (ti.length ? f1(mean(ti.map(x => x.cr))) + ' Cr, L' + f1(mean(ti.map(x => x.level))) : '-') + ')'; })(),
       'scrapped / game: host, debt; robotless': per(sc.filter(x => x.why === 'host').length) + ', ' + per(sc.filter(x => x.why === 'debt').length) + '; ' + per(sc.filter(x => x.why === 'none-left').length),
@@ -53,6 +55,47 @@ const V2 = {
       ...(() => { const hs = g.flatMap(r => r.v2.house || []); if (!hs.length) return { 'House Robot fights': '0' }; const sw = hs.reduce((a, h) => a + h.swings, 0), hi = hs.reduce((a, h) => a + h.hits, 0), dm = hs.flatMap(h => h.dmg);
         return { 'House Robot: fights, swings, hit %': hs.length + ', ' + sw + ', ' + pc(hi / Math.max(1, sw)), 'House Robot: dmg / hit, others within 1.5 m': f1(mean(dm)) + ', ' + pc(hs.reduce((a, h) => a + h.near, 0) / Math.max(1, hs.reduce((a, h) => a + h.nearN, 0))) }; })(),
     };
+  },
+  // credits: held per team at the end of each round (start + every logged change), income by source and spend by sink per game
+  INC: [['mechanics', 'mechanics'], ['backing fees', 'backing'], ['appearance', 'appearance'], ['cash-ins', 'cashin'], ['bets (net won)', 'bet'], ['sales', 'sale'], ['trades', 'trade'], ['card effects', 'card'], ['host deals', 'hostdeal'], ['other deals', 'deal'], ['sponsor/quirk/lot', 'sponsor|quirk|lot|catchup|other']],
+  OUT: [['market', 'market'], ['host bid', 'host'], ['bets staked', 'bet'], ['fight cards', 'fightcard'], ['repairs', 'repair'], ['backing paid', 'backing'], ['upkeep', 'upkeep'], ['2-per-side', 'wager'], ['card costs', 'card'], ['host deals', 'hostdeal'], ['other deals', 'deal'], ['trades', 'trade']],
+  held(r) {   // [round][team] credits at the end of each round
+    const c = r.v2.cr, h = r.v2.crStart.slice(), out = []; let k = 0;
+    for (let R = 1; R <= r.round; R++) { while (k < c.length && c[k][0] <= R) { h[c[k][1]] += c[k][2]; k++; } out[R] = h.slice(); }
+    return out;
+  },
+  credits(g) {
+    g = g.filter(r => r.v2 && r.v2.cr && r.v2.crStart && r.v2.crStart.length); if (!g.length) return {};
+    const n = g.length, per = x => f1(x / n), H = g.map(r => this.held(r));
+    const byR = Array.from({ length: 13 }, (_, i) => { const a = H.filter(h => h[i + 1]).map(h => mean(h[i + 1])); return a.length >= Math.max(Math.min(3, n), n / 4) ? f1(mean(a)) : '-'; });
+    const endW = g.map(r => r.cr[r.winner]), endO = g.flatMap(r => r.cr.filter((_, i) => i !== r.winner));
+    const late = H.map(h => { const v = h.slice(10).filter(Boolean).flat(); return v.length ? Math.max(...v) : null; }).filter(x => x != null);
+    const ev = g.flatMap(r => r.v2.cr), sum = (src, sg) => ev.filter(e => new RegExp('^(' + src + ')$').test(e[3]) && (sg > 0 ? e[2] > 0 : e[2] < 0)).reduce((a, e) => a + e[2], 0);
+    const unl = g.reduce((a, r) => a + r.cr.reduce((s, x, i) => s + Math.abs(x - this.held(r)[r.round][i]), 0), 0);
+    const inc = this.INC.map(([k, src]) => [k, src === 'bet' ? sum('bet', 1) + sum('bet', -1) : sum(src, 1)]), out = this.OUT.map(([k, src]) => [k, -sum(src, -1)]);
+    const host = ev.filter(e => e[3] === 'host' && e[2] < 0).map(e => -e[2]), rcr = ev.filter(e => e[3] === 'repair');
+    return {
+      'credits: end of game, mean / max (team)': f1(mean(g.flatMap(r => r.cr))) + ' / ' + Math.max(...g.flatMap(r => r.cr)),
+      'credits at end: winner / others': f1(mean(endW)) + ' / ' + f1(mean(endO)),
+      'credits held by round 1-13 (mean/team)': byR.join(' '),
+      'most held by a team, round 10+ (mean/game)': late.length ? f1(mean(late)) + ' (games ' + late.length + ', max ' + Math.max(...late) + ')' : '-',
+      'income / game (all teams)': inc.filter(x => x[1]).map(([k, v]) => k + ' ' + per(v)).join(', '),
+      'spend / game (all teams)': out.filter(x => x[1]).map(([k, v]) => k + ' ' + per(v)).join(', '),
+      'host bid price (hostings paid / game)': f1(mean(host)) + ' Cr (' + per(host.length) + ')',
+      'repairs paid with credits / game': per(rcr.length) + ' (' + per(-rcr.reduce((a, e) => a + e[2], 0)) + ' Cr)',
+      'credit changes not logged (Cr / game)': per(unl)
+    };
+  },
+  // backing fees (aiBacking / humanBacking deals): who earns them, how often, and do backers win more
+  backing(tag, g) {
+    g = g.filter(r => r.v2 && r.v2.cr); if (!g.length) return;
+    const n = g.length, rec = g.flatMap(r => r.v2.cr.filter(e => e[3] === 'backing' && e[2] > 0).map(e => ({ r: e[0], team: e[1], amt: e[2], g: r })));
+    const perTeam = g.flatMap(r => [0, 1, 2, 3].map(i => { const recv = r.v2.cr.filter(e => e[1] === i && e[3] === 'backing' && e[2] > 0).reduce((a, e) => a + e[2], 0), paid = -r.v2.cr.filter(e => e[1] === i && e[3] === 'backing' && e[2] < 0).reduce((a, e) => a + e[2], 0);
+      const inc = r.v2.cr.filter(e => e[1] === i && e[2] > 0).reduce((a, e) => a + e[2], 0); return { recv, paid, inc, win: r.winner === i }; }));
+    const top = perTeam.slice().sort((a, b) => b.recv - a.recv), q4 = top.slice(0, Math.ceil(top.length / 4)), rest = top.slice(Math.ceil(top.length / 4));
+    console.log('\n' + tag + ': backing fees (' + n + ' games)');
+    console.log('  payments / game ' + f1(rec.length / n) + ', avg ' + f1(mean(rec.map(x => x.amt))) + ' Cr, ' + f1(rec.reduce((a, x) => a + x.amt, 0) / n) + ' Cr / game; per team: received ' + f1(mean(perTeam.map(x => x.recv))) + ', paid ' + f1(mean(perTeam.map(x => x.paid))) + ' Cr / game');
+    console.log('  share of all team income ' + pc(perTeam.reduce((a, x) => a + x.recv, 0) / perTeam.reduce((a, x) => a + x.inc, 0)) + '; top quarter of backers (received ' + f1(mean(q4.map(x => x.recv))) + ' Cr, net ' + f1(mean(q4.map(x => x.recv - x.paid))) + ') win ' + pc(mean(q4.map(x => x.win ? 1 : 0))) + ', the rest (' + f1(mean(rest.map(x => x.recv))) + ' Cr) ' + pc(mean(rest.map(x => x.win ? 1 : 0))));
   },
   calib(fx) {   // per side: the bookie's p vs a win; the favourite; the stronger side by Repair2 strength (sum of exp per side)
     const bins = Array.from({ length: 10 }, () => ({ p: 0, w: 0, n: 0 })); let fav = 0, str = 0, n = 0, br = 0, br0 = 0, nb = 0, draw = 0, house = 0;
@@ -106,6 +149,7 @@ const V2 = {
     console.log('\n' + tag + ': fight cards (per game)   offered / won / avg price / played');
     Object.entries(C).sort((a, b) => b[1].off - a[1].off).forEach(([id, c]) => console.log('  ' + id.padEnd(18) + [c.off / g.length, c.won / g.length].map(f1).join(' / ') + ' / ' + (c.won ? f1(c.cr / c.won) : '-') + ' / ' + f1(c.played / g.length)));
     this.level4(tag, g, fx);
+    this.backing(tag, g);
     const E = {};
     D.res.forEach(r => { (r.pageErrs || []).forEach(m => { E['page: ' + m] = (E['page: ' + m] || 0) + 1; }); (r.errEvents || []).forEach(e => { E['game: ' + e.msg] = (E['game: ' + e.msg] || 0) + 1; }); ((r.v2 || {}).hookErrs || []).forEach(m => { E['sim hook: ' + m] = (E['sim hook: ' + m] || 0) + 1; }); if (r.crash) E['crash: ' + r.crash] = (E['crash: ' + r.crash] || 0) + 1; if (r.stall) E['stall'] = (E['stall'] || 0) + 1; if (!r.crash && !r.over) E['not over by round ' + r.round] = (E['not over by round ' + r.round] || 0) + 1; });
     console.log('\n' + tag + ': errors and stalls (games affected)' + (Object.keys(E).length ? '' : ': none'));

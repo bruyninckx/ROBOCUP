@@ -8,13 +8,14 @@
 //          --win (fame to win, default 12), --seed0 (first seed, default 1),
 //          --bal='{"repair":{"brokenTwo":true}}' (2.0: deep-merged into the page's BAL settings via ?bal=; see docs/robocus-2.0-sim.md),
 //          --balFile=path.json (the same from a file; --bal is merged on top),
-//          --ai (v2 or v1, default v2), --page (default prototypes/tabletop-prototype.html),
+//          --ai (v2 or v1, default v2), --aip='{"spendK":0}' (AI_PARAMS overrides for all 4 teams), --page (default prototypes/tabletop-prototype.html),
 //          --planck (local planck.min.js for 2.0 when the CDN can't be reached; default: node_modules/planck, then
 //          vendor/planck-1.4.3.min.js; --planck=cdn always uses the network), --maxRound (give up after, default 40)
 // The same seeds in two runs = the same shuffles to start with, so two settings compare like for like.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
+const AIP = arg('aip', null) ? JSON.parse(arg('aip')) : null;
 const AIV = +String(arg('ai', 'v2')).replace(/\D/g, ''), PAGE = arg('page', 'prototypes/tabletop-prototype.html'), MAXR = +arg('maxRound', 40);
 // BAL overrides (2.0): --balFile, then --bal on top; --start also goes in as BAL.startFame
 const BALF = arg('balFile', null), BAL = (() => {
@@ -139,12 +140,12 @@ function installHooks() {
       await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + (Object.keys(BAL).length ? '&bal=' + encodeURIComponent(JSON.stringify(BAL)) : '')); await p.waitForTimeout(150);
       const v2 = await p.evaluate(() => !!window.Repair2);
       if (v2 && !(await p.evaluate(() => !!window.planck))) throw new Error('planck.js did not load (pass --planck=<file>)');
-      await p.evaluate(([v, start, win]) => {
-        const D = window.ROBOCUS_DEBUG; D.ai({ versions: [v, v, v, v] }); D.tune({ win });
+      await p.evaluate(([v, start, win, aip]) => {
+        const D = window.ROBOCUS_DEBUG; D.ai(aip ? { versions: [v, v, v, v], params: [aip, aip, aip, aip] } : { versions: [v, v, v, v] }); D.tune({ win });
         if (start == null) return;
         const s = document.getElementById('pFame'); if (s) { if (![...s.options].some(o => +o.value === start)) s.add(new Option(start, start)); s.value = String(start); s.dispatchEvent(new Event('change')); }
         else { D.G.startFame = start; D.G.teams.forEach(t => { t.fame = start; }); }
-      }, [AIV, START, WIN]);
+      }, [AIV, START, WIN, AIP]);
       if (v2) await p.evaluate(installHooks);
       await p.click('#pAct2'); await p.evaluate(() => window.ROBOCUS_DEBUG.autopilot(true));
       let last = '', same = 0, stall = false;
@@ -181,7 +182,10 @@ function installHooks() {
             live: ev.filter(e => e.k === 'live_card').map(e => ({ r: e.r, team: e.team, id: e.id, type: e.type, t: e.t })),
             stepMs: X.stepMs, steps: X.steps, fightWall: X.fightWall,
             robotsEnd: G.teams.map(t => t.robots.map(r => ({ name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0) }))),
-            hostScrap: X.scraps.filter(s => s.why === 'host').length
+            hostScrap: X.scraps.filter(s => s.why === 'host').length,
+            // credit flow (page 'cr' events, one per change: [round, team, amount, source]); start credits from the setup snapshot
+            cr: ev.filter(e => e.k === 'cr').map(e => [e.r, e.team, e.amt, e.src]),
+            crStart: ((ev.find(e => e.k === 'phase') || {}).teams || []).map(t => t.cr)
           };
         }
         return out;
@@ -194,7 +198,7 @@ function installHooks() {
   await Promise.all(Array.from({ length: PAR }, async () => { while (next < SEED0 + N) await one(next++); }));
   const file = path.join(OUTD, TAG + '.json');
   const ok = res.find(r => r.startFame != null), balFull = ok && ok.bal; res.forEach(r => { delete r.bal; });   // the page's whole BAL: once per file
-  fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START != null ? START : ok ? ok.startFame : null, bal: BAL, balFile: BALF, balFull, win: WIN, ai: AIV, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res }));
+  fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START != null ? START : ok ? ok.startFame : null, bal: BAL, balFile: BALF, balFull, win: WIN, ai: AIV, aip: AIP, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res }));
   console.log('\nsaved ' + file + '  (summary: node tools/game-sim-report.js ' + TAG + ')');
   await b.close();
 })();
