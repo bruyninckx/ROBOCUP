@@ -48,6 +48,16 @@ From the design docs:
 
 ## Log
 
+- **2026-11-09 (Claude): Layout B "Workshop Bench" and the card-type system, in full.**
+  - `prototypes/tabletop-2.html`:
+    - New stylesheet and top bar; rival tickets; the pit with a title strip and floor; your rail of work orders.
+    - Sticky note, log and Stash placed over their zones; hand drawer under the rail.
+    - Typed cards and market lots; end credits restyled.
+    - The bench widens with the screen.
+  - `src2/view.js`: the fight screen in bench colours, plus a bets / what's-next card.
+  - Checks: game-sim (no errors), mp-test (0 desyncs), sync-check unchanged.
+  - Docs: docs/robocus-2.0-tabletop.md, "Layout B".
+
 Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 
 - 2026-11-09, Claude: **2.0: Lineup Arena matchup overview, tuning chips in the Lineup Arena, chip slot / release settings, fights at 2x (host sets the speed online)** (`tools/damage-lab/matrix.js` + `matrix-merge.js` + `matrix-data.json`, `ui.js` matchup grid and swing list, `prototypes/lineup-arena.html`; `prototypes/tabletop-2.html` `BAL.chips` `slot` / `fromRound`, `fightTick().sp`; `src2/view.js` 2x default; round 6 sims `tools/bal6/` + `run-sims6`; docs: tabletop and sim). Kev to decide on the chip slot.
