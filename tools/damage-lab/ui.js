@@ -706,6 +706,13 @@
   function drawCratesAndWarnings() {
     const t = performance.now() / 1000;
     for (const o of S.oils) { const k = Math.min(1, o.life / 1.5); ctx.fillStyle = `rgba(18,14,10,${0.75 * k})`; ctx.beginPath(); ctx.ellipse(o.x, o.y, o.r, o.r * 0.82, o.x * 3, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(120,110,160,${0.25 * k})`; ctx.beginPath(); ctx.ellipse(o.x - o.r * 0.25, o.y - o.r * 0.2, o.r * 0.35, o.r * 0.15, 0.5, 0, 6.29); ctx.fill(); }
+    if (S.spikes) for (const k of S.spikes) { // Floor Spikes: warning ring, then a plate of steel spikes
+      if (k.t < k.warn) { ctx.save(); ctx.strokeStyle = `rgba(220,38,38,${0.5 + 0.4 * Math.sin(k.t * 25)})`; ctx.lineWidth = 0.05; ctx.setLineDash([0.12, 0.08]); ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, 6.29); ctx.stroke(); ctx.restore(); continue; }
+      const f = Math.min(1, (k.t - k.warn) / 0.15, (k.warn + k.dur - k.t) / 0.3);
+      ctx.fillStyle = `rgba(60,56,52,${0.55 * f})`; ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, 6.29); ctx.fill();
+      ctx.fillStyle = `rgba(200,200,205,${f})`; ctx.strokeStyle = `rgba(40,40,40,${f})`; ctx.lineWidth = 0.012;
+      for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) { const sx = k.x + i * 0.2 + (j % 2 ? 0.1 : 0), sy = k.y + j * 0.18; if (Math.hypot(sx - k.x, sy - k.y) > k.r - 0.08) continue; const h = 0.08 * f; ctx.beginPath(); ctx.moveTo(sx - 0.06, sy + 0.04); ctx.lineTo(sx + 0.06, sy + 0.04); ctx.lineTo(sx, sy + 0.04 - h * 1.6); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    }
     for (const m of S.mines) { ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(m.x, m.y, 0.07, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = m.arm > 0 ? '#E8C547' : (Math.sin(t * 10 + m.x) > 0 ? '#FF3B2B' : '#5A1A12'); ctx.beginPath(); ctx.arc(m.x, m.y, 0.025, 0, 6.29); ctx.fill(); ctx.strokeStyle = m.owner.id ? '#C8642B' : '#3F78A8'; ctx.lineWidth = PX * 1.5; ctx.beginPath(); ctx.arc(m.x, m.y, 0.1, 0, 6.29); ctx.stroke(); }
     for (const c of S.crates) {
       const age = S.t - c.t0, drop = Math.max(0, 1 - age / 0.5), sc = 1 + drop * 2.5, bob = Math.sin(t * 4) * 0.02;
