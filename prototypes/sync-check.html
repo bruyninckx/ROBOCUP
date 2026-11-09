@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROBOCUS sync check</title>
+<!-- ROBOCUS 2.0 sync check (9 Nov): runs 23 fixed fights and shows one code. Same code on two browsers = they play fights
+     bit for bit the same, so online play can run fights on every screen from the seed. Code in tools/sync-check.js. -->
+<style>
+  :root { --bg: #f4efe6; --ink: #2b2118; --mut: #7a6e60; --card: #fffaf2; --line: #e2d8c8; --ok: #2f7d4a; --bad: #b42318; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1d1915; --ink: #efe7da; --mut: #a39886; --card: #27221c; --line: #3a332a; --ok: #6fcf8f; --bad: #ff8a7a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 8px 0; color: var(--mut); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 16px 0; }
+  .code { font: 700 40px/1.1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: 2px; }
+  .lab { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--mut); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--ink); color: var(--bg); cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; font: 13px ui-monospace, Menlo, Consolas, monospace; }
+  td { padding: 3px 6px; border-top: 1px solid var(--line); }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .bar > div { height: 100%; width: 0; background: var(--ink); transition: width .2s; }
+  .ok { color: var(--ok); font-weight: 600; } .bad { color: var(--bad); font-weight: 600; }
+  details summary { cursor: pointer; color: var(--mut); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ROBOCUS sync check</h1>
+  <p>Runs 23 test fights (about 20–60 seconds). Open this page on every browser you want to test and compare the code.
+     Same code everywhere = online fights can run on every screen.</p>
+  <div class="card">
+    <div class="lab">Your code</div>
+    <div class="code" id="total">…</div>
+    <div class="bar"><div id="bar"></div></div>
+    <p id="status">Loading the physics…</p>
+    <p id="cmp"></p>
+    <div class="row"><button id="copy" disabled>Copy result</button><span class="lab" id="ua"></span></div>
+  </div>
+  <div class="card">
+    <details><summary>Per fight</summary>
+      <table id="tab"></table>
+      <p>Maths code: <b id="math">…</b> (differs = this browser rounds sin/cos etc. differently)</p>
+    </details>
+  </div>
+</div>
+<script src="../src2/dmath.js"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
+<script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
+<script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
+<script src="../src2/engine.js"></script>
+<script src="../src2/lineup.js"></script>
+<script src="../tools/sync-check.js"></script>
+<script>
+(function () {
+  // code from Chrome 153 and node 22 (V8) on 9 Nov, with dmath.js; update when the engine or the test fights change
+  const REF = { total: '5185270f', math: '2cd6141c' };
+  const $ = id => document.getElementById(id);
+  const ua = navigator.userAgent, br = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'browser';
+  const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
+  $('ua').textContent = br + (os ? ' on ' + os : '');
+  if (!window.planck || !window.DamageLab || !window.Lineup || !window.SyncCheck) { $('status').textContent = 'Could not load the game files (no internet?).'; return; }
+  const DL = window.DamageLab, LU = window.Lineup, SC = window.SyncCheck;
+  let result = null;
+  setTimeout(() => {
+    const t0 = performance.now();
+    const rows = [];
+    const runAll = () => {
+      result = SC.run(DL, LU, (i, n, r) => rows.push(r));
+      const sec = ((performance.now() - t0) / 1000).toFixed(1);
+      $('bar').style.width = '100%';
+      $('total').textContent = result.total; $('math').textContent = result.math;
+      $('tab').innerHTML = result.fights.map((r, i) => `<tr><td>${i + 1}</td><td>${r.kind}</td><td>${r.code}</td><td>${r.secs} s</td></tr>`).join('');
+      $('status').textContent = 'Done in ' + sec + ' s.';
+      const same = result.total === REF.total;
+      $('cmp').innerHTML = same ? '<span class="ok">Matches the reference (Chrome).</span>' : '<span class="bad">Different from the reference (Chrome): ' + REF.total + '.</span>' + (result.math !== REF.math ? ' The maths code differs too.' : ' The maths code matches.');
+      $('copy').disabled = false;
+    };
+    $('status').textContent = 'Running the fights… (the page may freeze for a bit)';
+    $('bar').style.width = '30%';
+    setTimeout(runAll, 50);
+  }, 50);
+  $('copy').onclick = () => {
+    if (!result) return;
+    const txt = `ROBOCUS sync check: ${result.total} (maths ${result.math}) on ${$('ua').textContent}`;
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { $('copy').textContent = 'Copied'; }, () => { prompt('Copy this:', txt); });
+  };
+})();
+</script>
+</body>
+</html>
