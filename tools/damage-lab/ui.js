@@ -1118,7 +1118,7 @@
     const D = window.LU_MATRIX, AR = Object.keys(D.arenas).sort((a, b) => (b === 'open') - (a === 'open'));
     const names = Object.keys(LU.ROBOTS).sort((a, b) => LU.ROBOTS[a][0] - LU.ROBOTS[b][0] || LU.ROBOTS[a][1] - LU.ROBOTS[b][1]);
     const v = { arena: AR[0], show: 'win', lv: 'all' };
-    const get = (arena, a, b) => { const P = D.arenas[arena].pairs, x = P[a + '|' + b]; if (x) return { w: x[0], n: x[1], h: x[2], hw: x[3], hl: x[4], ko: x[5], t: x[6], bl: x[7] }; const y = P[b + '|' + a]; return y ? { w: y[1] - y[0], n: y[1], h: y[2], hw: y[4], hl: y[3], ko: y[5], t: y[6], bl: y[7] } : null; };
+    const get = (arena, a, b) => { const P = D.arenas[arena].pairs, x = P[a + '|' + b]; if (x) return { w: x[0], n: x[1], h: x[2], hw: x[3], hl: x[4], ko: x[5], t: x[6], bl: x[7], lh: x[8], cl: x[9] }; const y = P[b + '|' + a]; return y ? { w: y[1] - y[0], n: y[1], h: y[2], hw: y[4], hl: y[3], ko: y[5], t: y[6], bl: y[7], lh: y[8], cl: y[9] } : null; };
     const seg = (key, opts) => `<span class="seg" role="group">${opts.map(([k, l]) => `<button type="button" data-${key}="${k}" aria-pressed="${String(v[key] === k)}">${l}</button>`).join('')}</span>`;
     const lvName = t => t === 'all' ? 'All' : 'L' + t;
     const load = (a, b) => { st.mode = '1v1'; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === '1v1'))); S = null;
@@ -1133,9 +1133,9 @@
         const x = get(v.arena, a, b); if (!x) return '<td class="self">·</td>';
         const pw = Math.round(100 * x.w / x.n), even = pw >= 40 && pw <= 60;
         const val = v.show === 'win' ? pw : v.show === 'health' ? x.hw == null ? '–' : x.hw : Math.round(100 * x.ko / x.n);
-        const k = v.show === 'win' ? (pw - 50) / 50 : v.show === 'health' ? (x.hw == null ? 0 : (x.hw - 45) / 45) : (x.ko / x.n - 0.5) * 2;
+        const k = v.show === 'win' ? (pw - 50) / 50 : v.show === 'health' ? (x.hw == null ? 0 : (x.hw - 77) / 15) : (x.ko / x.n - 0.9) * 8;
         const tip = `${a} vs ${b}: ${a} wins ${x.w} of ${x.n}. When ${a} wins it has ${x.hw == null ? '–' : x.hw + '%'} health left; when ${b} wins, ${x.hl == null ? '–' : x.hl + '%'}. ${Math.round(100 * x.ko / x.n)}% knockouts, median ${x.t} s.`;
-        return `<td><button type="button" class="mcell${v.show === 'health' && even && x.h >= 60 ? ' swing' : ''}" data-a="${a}" data-b="${b}" style="--k:${Math.max(-1, Math.min(1, k)).toFixed(2)}" title="${tip}" aria-label="${tip}">${val}</button></td>`;
+        return `<td><button type="button" class="mcell${v.show === 'health' && even && x.h >= 80 ? ' swing' : ''}" data-a="${a}" data-b="${b}" style="--k:${Math.max(-1, Math.min(1, k)).toFixed(2)}" title="${tip}" aria-label="${tip}">${val}</button></td>`;
       };
       const avgOf = a => { const xs = rows.filter(b => b !== a).map(b => get(v.arena, a, b)).filter(Boolean); if (!xs.length) return '–';
         if (v.show === 'win') return Math.round(100 * xs.reduce((s2, x) => s2 + x.w, 0) / xs.reduce((s2, x) => s2 + x.n, 0));
@@ -1144,19 +1144,19 @@
       // the swing list: even pairs (8-12 of 20) sorted by how much health the winner usually keeps
       const ev = []; for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) { const x = get(v.arena, rows[i], rows[j]); if (!x) continue; const pw = x.w / x.n; if (pw >= 0.4 && pw <= 0.6) ev.push(Object.assign({ a: rows[i], b: rows[j] }, x)); }
       ev.sort((p, q) => q.h - p.h);
-      const evRow = x => `<tr><th scope="row"><button type="button" class="linkb" data-a="${x.a}" data-b="${x.b}">${x.a} vs ${x.b}</button> <span class="small">L${LU.ROBOTS[x.a][0]}${LU.ROBOTS[x.a][0] !== LU.ROBOTS[x.b][0] ? '/L' + LU.ROBOTS[x.b][0] : ''}</span></th><td>${x.w}–${x.n - x.w}</td><td><b>${x.h}%</b></td><td>${x.hw == null ? '–' : x.hw + '%'}</td><td>${x.hl == null ? '–' : x.hl + '%'}</td><td>${x.bl} of ${x.n}</td><td>${Math.round(100 * x.ko / x.n)}%</td><td>${x.t} s</td></tr>`;
-      const evHead = `<thead><tr><th scope="col">Matchup</th><th scope="col">Score</th><th scope="col">Winner's health</th><th scope="col">Left wins, health</th><th scope="col">Right wins, health</th><th scope="col">Blowouts</th><th scope="col">KO</th><th scope="col">Median</th></tr></thead>`;
-      const swing = ev.slice(0, 12), tight = ev.slice(-6).reverse();
+      const evRow = x => `<tr><th scope="row"><button type="button" class="linkb" data-a="${x.a}" data-b="${x.b}">${x.a} vs ${x.b}</button> <span class="small">L${LU.ROBOTS[x.a][0]}${LU.ROBOTS[x.a][0] !== LU.ROBOTS[x.b][0] ? '/L' + LU.ROBOTS[x.b][0] : ''}</span></th><td>${x.w}–${x.n - x.w}</td><td><b>${x.h}%</b></td><td>${x.lh == null ? '–' : x.lh + '%'}</td><td>${x.hw == null ? '–' : x.hw + '%'}</td><td>${x.hl == null ? '–' : x.hl + '%'}</td><td>${x.bl}</td><td>${x.cl == null ? '–' : x.cl}</td><td>${x.t} s</td></tr>`;
+      const evHead = `<thead><tr><th scope="col">Matchup</th><th scope="col">Score</th><th scope="col">Winner's health</th><th scope="col">Loser's health</th><th scope="col">Left wins, health</th><th scope="col">Right wins, health</th><th scope="col">Blowouts</th><th scope="col">Close</th><th scope="col">Median</th></tr></thead>`;
+      const nS = Math.min(12, Math.ceil(ev.length / 2)), swing = ev.slice(0, nS), tight = ev.slice(nS).slice(-6).reverse();   // never the same pair in both lists
       $('mxBody').innerHTML = `
         <div class="bar">${seg('arena', AR.map(k => [k, L.ARENAS[k] ? L.ARENAS[k].label.replace(/ \(.*/, '') : k]))}${seg('show', [['win', 'Win %'], ['health', "Winner's health"], ['ko', 'Knockouts']])}${seg('lv', lvOpts)}</div>
-        <p class="small">${v.show === 'win' ? 'How often the row robot beats the column robot (green: row wins more).' : v.show === 'health' ? "Chassis health the row robot has left when it wins (high: it won easily). Ringed cells: even matchups (40-60%) that are usually one-sided anyway." : 'How many fights end in a knockout instead of the judges.'} ${A.mode === 'same' ? 'This arena was only tested within each level.' : ''} ${D.fights || 20} fights a pair, half on each side. Click a cell to watch that fight.</p>
+        <p class="small">${v.show === 'win' ? 'How often the row robot beats the column robot (green: row wins more).' : v.show === 'health' ? "Health the row robot has left when it wins (all its parts; high: it won easily; green above the usual 77%, red below). Ringed cells: even matchups (40-60%) where the winner usually keeps 80%+." : 'How many fights end in a knockout instead of the judges.'} ${A.mode === 'same' ? 'This arena was only tested within each level.' : ''} ${D.fights || 20} fights a pair, half on each side. Click a cell to watch that fight.</p>
         <div class="tblwrap"><table class="mtab mx"><thead><tr><th scope="col"><span class="small">row vs column</span></th>${rows.map(b => `<th scope="col" title="${b}, level ${LU.ROBOTS[b][0]}">${b.slice(0, 5)}</th>`).join('')}<th scope="col">avg</th></tr></thead>
         <tbody>${rows.map(a => `<tr><th scope="row">${a} <span class="small">${'★'.repeat(LU.ROBOTS[a][0])}</span></th>${rows.map(b => cellOf(a, b)).join('')}<td class="avg">${avgOf(a)}</td></tr>`).join('')}</tbody></table></div>
         <h3 class="dvh">Even on paper, one-sided in the pit</h3>
-        <p class="small">Matchups that end about 10-10 over 20 fights, but the winner usually walks away with lots of health left: whoever gets the first good hit runs away with it. Blowouts = the winner kept 60%+ health.${ev.length ? '' : ' No even matchups in this selection.'}</p>
+        <p class="small">Matchups that end about 10-10 over 20 fights, but the winner usually walks away with lots of health left: whoever lands the first good hit runs away with it. Health = all parts of the robot. Over every fight the winner keeps 79% on the median and the loser 36%. Blowouts = fights (of 20) where the winner kept 85%+; close = the winner kept 60% or less.${ev.length ? '' : ' No even matchups in this selection.'}</p>
         ${swing.length ? `<div class="tblwrap"><table class="mtab ev">${evHead}<tbody>${swing.map(evRow).join('')}</tbody></table></div>
-        <h3 class="dvh">Nail-biters, for comparison</h3><p class="small">Even matchups where the winner is usually hanging on too.</p>
-        <div class="tblwrap"><table class="mtab ev">${evHead}<tbody>${tight.map(evRow).join('')}</tbody></table></div>` : ''}`;
+        ${tight.length ? `<h3 class="dvh">Nail-biters, for comparison</h3><p class="small">Even matchups where the winner is usually badly hurt too: these are the real slugging matches.</p>
+        <div class="tblwrap"><table class="mtab ev">${evHead}<tbody>${tight.map(evRow).join('')}</tbody></table></div>` : ''}` : ''}`;
       $('mxBody').querySelectorAll('[data-arena],[data-show],[data-lv]').forEach(bn => bn.onclick = () => { for (const key of ['arena', 'show', 'lv']) if (bn.dataset[key] != null) v[key] = bn.dataset[key]; draw(); });
       $('mxBody').querySelectorAll('.mcell, .linkb').forEach(bn => bn.onclick = () => load(bn.dataset.a, bn.dataset.b));
     }
