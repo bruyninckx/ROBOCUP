@@ -85,7 +85,7 @@ html, body {
   color: var(--muted);
   transition: all .2s ease;
 }
-#netBadge{font:700 11px system-ui;margin-left:4px;padding:2px 8px;border:1.5px dashed #999;border-radius:12px;background:#fff;color:#777;white-space:nowrap;cursor:help}
+#netBadge{font:700 11px system-ui;margin-left:4px;padding:2px 8px;border:1.5px solid #2B2118;border-radius:12px;background:#fff;color:#2B2118;white-space:nowrap;cursor:pointer}
 .win-watch { font-size: 11.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #fde8e8; color: #b42318; border: 1px solid #f3b4b4; white-space: nowrap; cursor: help; }
 .win-watch.one { background: #b42318; color: #fff; border-color: #b42318; animation: winPulse 1.4s ease-in-out infinite; }
 @keyframes winPulse { 50% { box-shadow: 0 0 0 4px rgba(180,35,24,.25); } }
@@ -507,7 +507,6 @@ html, body {
     <option value="2">Seat: Moss Gears</option>
     <option value="3">Seat: Plum Ohms</option>
   </select>
-  <span id="netBadge" data-help="🌐 Online|Online play comes to 2.0 later. For now 2.0 is played on one screen against three AI teams (the 1.0 game has online play).">🌐 online comes later</span>
 </div>
 
 <!-- Dynamic Prompt Pill -->
@@ -3180,8 +3179,10 @@ html, body {
         }
       } else {
         await sleep(400);
+        if (isClient()) return;   // this screen joined a room meanwhile (its solo game stops; the host runs the game)
         await aiIntrigueTurn(T);
       }
+      if (isClient()) return;
       updateHud();
     }
     G.intrigueTurn = -1; G.cashMode = false; G.ivOrder = null; G.ivDone = 0;
@@ -4240,14 +4241,12 @@ html, body {
       for (let c = 0; c < copies; c++) { list.push(Object.assign(clone(sp), { team: F.sides[e] })); botEnt.push(e); }
     });
     if (F.house && list.length < 4) { list.push(Object.assign(LU.build(HOUSE_NAME), { name: HOUSE_NAME, level: 0, teamName: 'House', team: 9 })); botEnt.push(-1); }   // keeps the preset's house colours
-    let S;
-    if (list.length === 2) S = DL.create({ a: list[0], b: list[1], seed, countdown: 2.99 });
-    else {
-      const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
-      S = DL.create({ mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99 });
-    }
-    return { S, botEnt };
+    const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99 } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99 };
+    return { S: DL.create(clone(bb)), botEnt, bb };
   }
+  // online (2.0): a client builds the same fight from F.bb (the engine's create options, as the host built them)
+  const fightFromBB = bb => DL.create(clone(bb));
   // which side won: a side index or 'house'
   function winSide(F, S, botEnt) {
     const res = S && S.result; if (!res) return -1;
@@ -4583,7 +4582,8 @@ html, body {
 
   /* ---------- Phase 6: the fight (2.0: the physics engine, shown full screen by src2/view.js) ---------- */
   // AI-only, fast, bot test and skipped fights run headless (no view)
-  const headless = () => !!(G.fast || BOT || HS < 0 || window.__fightHeadless);
+  const WATCH = /[?&]watch=1/.test(location.search);   // test bots (&bot=1) that still show fights in real time
+  const headless = () => !!(G.fast || (BOT && !WATCH) || HS < 0 || window.__fightHeadless);
   function runHeadless(F) {
     const S = F.S; S.countdown = 0;
     let n = 0; while (!S.over && n++ < 60 * 400) { DL.step(S); fightStep(F, S); S.fx.length = 0; }
@@ -4591,6 +4591,7 @@ html, body {
       const best = S.robots.slice().sort((a, b) => (b.alive - a.alive) || (DL.judge(b, S) - DL.judge(a, S)))[0];
       S.over = true; S.result = { winner: best.id, winTeam: best.team, winners: [best.id], how: 'judges', text: 'Time! The judges pick ' + best.name, t: S.t };
     }
+    if (S.endHash == null) S.endHash = fightHash(S);
     F.viewDone = true;
   }
   function startFight() {
@@ -4600,7 +4601,8 @@ html, body {
     F.fid = ++fightSeq; F.seed = seed; F.viewDone = false;
     if (F.house && fightBots(F) >= 4) F.house = false;
     const m = buildFight(F, seed, true);
-    F.S = m.S; F.B = m.S; F.botEnt = m.botEnt;   // F.B: older checks only ask "is a fight on"
+    F.S = m.S; F.B = m.S; F.botEnt = m.botEnt;
+    F.bb = m.bb; F.cmdLog = [];   // online: every screen runs this fight from F.bb, with the live cards in F.cmdLog   // F.B: older checks only ask "is a fight on"
     F.entBot = F.teams.map((_, e) => m.botEnt.indexOf(e));
     tlog('fight_start', { format: F.format, house: !!F.house, event: F.event ? F.event.kind : null, sides: F.sides, p: F.p, bands: (F.bands || []).map(b => b.name), mode: m.S.multi ? m.S.mode : '1v1',
       entrants: F.teams.map((ti, e) => ({ team: ti, robot: F.robots[e].name, b: ptBuild(F.robots[e]), faceDown: (F.robots[e].faceDown || []).map(x => x.id) })), bets: F.bets });
@@ -4626,7 +4628,7 @@ html, body {
    * Cards won in the Bets-step auction are played into the running fight: people from the card tray of the fight view
    * (src2/view.js), the AI by simple rules checked every 30 steps (0.25 s) (the same in a shown and a headless fight). A card
    * becomes DamageLab.command(S, ...), applied on the next engine step (deterministic). */
-  const liveCardsOf = T => [...new Set(T.hand.filter(id => CARDS[id] && CARDS[id].phase === 'fight'))];
+  const liveCardsOf = T => [...new Set(T.hand.filter(id => CARDS[id] && CARDS[id].phase === 'fight' && LIVE_ENG[id]))];   // (Swap the Entry is a Bets-step card)
   // the engine robots a team plays its "own" cards on: its fighters; a team not fighting: the side it bet on
   function liveOwn(F, ti) {
     const S = F.S, mine = S.robots.filter((R, i) => R.alive && F.botEnt[i] >= 0 && F.teams[F.botEnt[i]] === ti).map(R => R.id);
@@ -4647,12 +4649,15 @@ html, body {
   // play card `id` of team ti: o = { robot, x, y, crate }
   function playLive(F, ti, id, o) {
     const T = G.teams[ti], S = F && F.S, eng = LIVE_ENG[id];
-    if (!S || S.over || G.phase !== 'fight' || !eng || !T.hand.includes(id)) return false;
+    const no = why => { if (isRemote(ti)) tlog('live_reject', { team: ti, id, why, robot: o.robot, step: S ? S.step : -1 }); return false; };
+    if (!S || S.over || G.phase !== 'fight') return no('no fight');
+    if (!eng || !T.hand.includes(id)) return no('not in hand');
     const L0 = DL.LIVE[eng];
-    if ((L0.target === 'bot' || L0.own) && !liveValid(F, ti, id).includes(o.robot)) return false;
-    if (L0.target === 'arena' && !(Number.isFinite(o.x) && Number.isFinite(o.y))) return false;
+    if ((L0.target === 'bot' || L0.own) && !liveValid(F, ti, id).includes(o.robot)) return no('robot ' + o.robot + ' not in ' + liveValid(F, ti, id).join(','));
+    if (L0.target === 'arena' && !(Number.isFinite(o.x) && Number.isFinite(o.y))) return no('no spot');
     removeFromHand(T, id); discardCard(id);
     const cmd = { type: eng, by: T.name.split(' ')[0] }; if (o.robot != null) cmd.robot = o.robot; if (L0.target === 'arena') { cmd.x = o.x; cmd.y = o.y; } if (eng === 'supply') cmd.crate = o.crate || 'repair';
+    if (isNetGame()) { cmd.tick = S.step + LIVE_LEAD; (F.cmdLog = F.cmdLog || []).push(clone(cmd)); }   // online: lands a moment later on every screen
     DL.command(S, cmd);
     { const st = cst(id, ti); cstBy(id, ti, 'played'); cstBy(id, ti, 'landed'); st.played++; st.landed++; }
     { const L = liveStat(); L.played++; if (o.fallback) L.fallback++; }
@@ -4663,6 +4668,8 @@ html, body {
     if (!headless()) liveTray(F);
     return true;
   }
+  const botLive = { fid: 0, at: 0 };   // a test bot's last live card (kept outside G: a client's G is replaced by every snapshot)
+  const LIVE_LEAD = 30;   // online: a live card lands 30 steps (0.25 s) after the host plays it, so the other screens get it in time
   // the viewer's cards in the fight view's tray
   function liveTray(F) {
     if (HS < 0 || headless()) { VW.setCards([]); return; }
@@ -4670,13 +4677,23 @@ html, body {
     const key = JSON.stringify(list.map(c => [c.key, c.valid]));
     if (key === F.trayKey) return;   // only redraw the tray when something changed (a redraw mid-tap would lose the tap)
     F.trayKey = key;
-    VW.setCards(list, (id, o) => { if (!playLive(F, HS, id, o)) { F.trayKey = null; liveTray(F); } });
+    VW.setCards(list, (id, o) => {
+      if (isClient()) { act('combatCard', id, o.robot, o.x, o.y, o.crate); return; }   // the host plays it; the tray updates with its snapshot
+      if (!playLive(F, HS, id, o)) { F.trayKey = null; liveTray(F); }
+    });
   }
   ACT.combatCard = (S, id, bot, x, y, crate) => { const F = G.fight; if (F && F.S) playLive(F, S, id, { robot: bot, x, y, crate }); };
   // every engine step (shown or headless): the AI's cards, and the tray's robot list
   function fightStep(F, S) {
+    if (S.over && S.endHash == null) S.endHash = fightHash(S);   // the fingerprint at the step the fight ends (the view runs a few seconds on)
     if (S.countdown > 0 || S.over || S.step % 30) return;   // every 0.25 s (DT = 1/120)
     if (!headless() && S.step % 120 === 0) liveTray(F);
+    // a test bot (&bot=1) watching a fight plays its own team's cards by the AI rules, like a person would: a client sends them
+    if (BOT && !headless() && HS >= 0 && !window.__noBot && (botLive.fid !== F.fid || S.step - botLive.at >= 360)) {
+      for (const id of liveCardsOf(G.teams[HS])) { const m = aiLiveMoment(F, HS, id); if (!m) continue; botLive.fid = F.fid; botLive.at = S.step;
+        if (isClient()) act('combatCard', id, m.robot, m.x, m.y, m.crate); else playLive(F, HS, id, m); break; }
+    }
+    if (isClient()) return;
     for (const ti of [0, 1, 2, 3]) {
       if (isHuman(ti) && !(BOT && headless())) continue;   // people play their own (test bots in a headless fight use the AI rules)
       const T = G.teams[ti], ids = liveCardsOf(T);
@@ -4744,6 +4761,7 @@ html, body {
   };
   // a short fingerprint of how a fight ended
   function fightHash(S) {
+    if (S.endHash != null) return S.endHash;
     let h = S.step >>> 0;
     for (const R of S.robots) h = (Math.imul(h, 31) + Math.round(Math.max(0, R.chassis ? R.chassis.hp : 0) * 10) + (R.alive ? 1 : 0)) >>> 0;
     return h + ':' + (S.result ? S.result.winner : -1);
@@ -4881,7 +4899,7 @@ html, body {
   // Spare or scrap, with deals (Kev, 6 Nov): the loser's team pleads, rivals push to scrap; the host takes the offers of the side it picks
   async function fateStep() {
     if (!G.fight.loser) { nextCrate(); return; }   // no losing robot (safety net)
-    const F = G.fight, H = G.teams[G.host], L = G.teams[F.loser.team], lr = F.loser.robot;
+    const F = G.fight, H = G.teams[G.host], L = G.teams[F.loser.team], lr = F.loser.robot, loser0 = F.loser;
     const canScrap = lr.wins < favWins(L) && G.host !== L.i;
     if (!canScrap) {   // nothing to decide: the host's own robot, or a Fan Favourite
       resolveFate(false, G.host === L.i ? 'it is the host\'s own robot' : 'a Fan Favourite can\'t be scrapped');
@@ -4904,6 +4922,7 @@ html, body {
         if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: h, B: d.give });
       }
     }
+    if (G.fight !== F || F.loser !== loser0) return;   // online: another call already settled this robot while we waited on the players
     const offTxt = side => F.fateOffers[side].map(o => esc(G.teams[o.team].name) + ' ' + bundleText(o.B)).join(', ');
     if (F.fateOffers.spare.length || F.fateOffers.scrap.length) notify('👑 Offers to the host: ' + [F.fateOffers.spare.length ? '👍 spare: ' + offTxt('spare') : '', F.fateOffers.scrap.length ? '👎 scrap: ' + offTxt('scrap') : ''].filter(Boolean).join(' · '), H.col);
     G.fateBusy = false;
@@ -4918,6 +4937,7 @@ html, body {
 
   ACT.fate = (S, scrap) => { if (G.phase === 'after' && G.awaitingJudgment && G.host === S) resolveFate(!!scrap); };
   function resolveFate(scrap, safeWhy) {
+    if (!G.fight || !G.fight.loser) { G.awaitingJudgment = false; return; }   // already settled (a late second call)
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
@@ -4999,6 +5019,7 @@ html, body {
     if (g.crateChoices && g.crateChoices.robot) g.crateChoices.robot = L(g.crateChoices.robot);
   }
   let clientFight = null, desyncs = 0, resims = 0;
+  const checkedFids = new Set();
   function applySnap(m) {
     const old = G, g = JSON.parse(m.g);
     SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null;
@@ -5013,7 +5034,68 @@ html, body {
     if (fk(old) !== fk(G)) setCameraGoal(G.phase === 'fight' ? 'arena' : 'compound');
     updateHud();
   }
-  function clientFightSync() { /* 2.0: no online play yet */ }
+  /* Online fights (2.0, 9 Nov): a client builds the fight from F.bb, plays the live cards from F.cmdLog at their step, and
+   * follows the host's step (netTick). A card that arrives after its step replays the fight from the start with every card.
+   * When the host's fight is over the client finishes its own copy and compares the fingerprints (desync = playtest log). */
+  function clientFightSync() {
+    const F = G.fight;
+    if (!F || !F.bb || !F.fid) { if (clientFight && clientFight.shown) VW.close(); clientFight = null; return; }
+    if (!clientFight || clientFight.fid !== F.fid) {
+      if (clientFight && clientFight.shown) VW.close();
+      if (G.phase !== 'fight') {   // the fight was over before this screen saw it: run it here anyway and compare the result
+        if (F.hash && !checkedFids.has(F.fid)) {
+          checkedFids.add(F.fid);
+          const S = fightFromBB(F.bb); for (const c of F.cmdLog || []) DL.command(S, clone(c));
+          let g = 0; S.countdown = 0; while (!S.over && g++ < 120 * 400) { DL.step(S); S.fx.length = 0; }
+          const h = fightHash(S);   // S.over was just reached: this is the end step
+          tlog('fight_end', { fid: F.fid, hash: h, host: F.hash, same: h === F.hash, unseen: true });
+          if (h !== F.hash) { desyncs++; tlog('desync', { fid: F.fid, mine: h, host: F.hash }); console.warn('ROBOCUS fight desync', h, F.hash); }
+        }
+        clientFight = null; return;
+      }
+      const S = fightFromBB(F.bb);
+      clientFight = { fid: F.fid, S, cmdN: 0, checked: false, shown: false };
+      F.live = F.live || []; F.aiLiveAt = {};
+      fightBanners(F);
+      if (!headless()) {
+        clientFight.shown = true;
+        VW.play(S, { client: true, title: 'Round ' + G.round + ' · ' + fightTitle(F) + ': ' + Array.from({ length: F.nSides }, (_, sd) => sideLabel(F, sd)).join(' vs ') + (F.house ? ' + House Robot' : ''),
+          pace: () => clientPace(), onStep: S2 => { if (G.fight) fightStep(G.fight, S2); }, onEnd: () => { if (clientFight) clientFight.shown = false; } });
+      }
+    }
+    F.S = F.B = clientFight.S;
+    const log = F.cmdLog || [];
+    for (let i = clientFight.cmdN; i < log.length; i++) {
+      if (log[i].tick <= clientFight.S.step) { resimFight(F); break; }   // it came in late: replay the fight with every card
+      DL.command(clientFight.S, clone(log[i]));
+    }
+    clientFight.cmdN = log.length;
+    const finish = () => { const S = clientFight.S; let g = 0; S.countdown = 0; while (!S.over && g++ < 120 * 400) { DL.step(S); S.fx.length = 0; } if (S.endHash == null) S.endHash = fightHash(S); };
+    if (F.skipped && !clientFight.S.over) { finish(); if (clientFight.shown) { VW.close(); clientFight.shown = false; } }
+    if (G.phase !== 'fight' && F.hash && !clientFight.checked) {   // the host's fight is over: finish ours and compare
+      clientFight.checked = true; checkedFids.add(F.fid);
+      finish();
+      const h = fightHash(clientFight.S);
+      tlog('fight_end', { fid: F.fid, hash: h, host: F.hash, same: h === F.hash });
+      if (h !== F.hash) { desyncs++; tlog('desync', { fid: F.fid, mine: h, host: F.hash }); console.warn('ROBOCUS fight desync', h, F.hash); }
+      if (clientFight.shown) { VW.close(); clientFight.shown = false; }
+    }
+  }
+  // the step a client's fight should be at: the host's last step plus the time since (at most 24 steps ahead)
+  function clientPace() {
+    const F = G && G.fight;
+    if (!F || !clientFight || netTick.fid !== F.fid) return 0;   // no word from the host about this fight yet: wait at the start
+    return netTick.tick + Math.min(24, Math.floor((performance.now() - netTick.at) * 0.12));
+  }
+  function resimFight(F) {
+    resims++;
+    const target = clientFight.S.step, S = fightFromBB(F.bb);
+    for (const c of F.cmdLog || []) DL.command(S, clone(c));
+    while (S.step < target && !S.over) { DL.step(S); S.fx.length = 0; }
+    if (S.over && S.endHash == null) S.endHash = fightHash(S);
+    clientFight.S = F.S = F.B = S; clientFight.cmdN = (F.cmdLog || []).length;
+    if (clientFight.shown) VW.replace(S);
+  }
 
   /* ---------- BAL: apply the settings (at load, after ROBOCUS_DEBUG.bal, on a client snapshot) ----------
    * Decks, pacing knobs, the engine's live card numbers, and the card and crew texts that quote a number. */
@@ -5152,6 +5234,7 @@ html, body {
   let botBusy = false;
   function botStep() {
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
+    if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
     if (document.getElementById('ivModal') && !document.getElementById('ivModal').hidden) return;
     if (document.getElementById('dealModal') && !document.getElementById('dealModal').hidden) return;
     const t = me(), P = PS(), R = Math.random;
@@ -5203,7 +5286,7 @@ html, body {
     snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
     snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman,
-    fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.B && G.fight.rolloutDone ? { fid: G.fight.fid, tick: G.fight.B.tick } : null,
+    fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step } : null,
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
@@ -5297,7 +5380,7 @@ html, body {
   function boxOf(L, ti) { const sl = L.slots.find(x => x.pos === posOfTeam(ti)); return sl ? { x: sl.gx - sl.gw / 2, y: sl.gy - sl.gh / 2, w: sl.gw, h: sl.gh } : null; }
   const CARD_COL = c => c.phase === 'fight' ? '#d99000' : c.phase === 'later' ? '#b45309' : c.phase === 'security' ? '#6d28d9' : c.t === 'F' ? '#1f6feb' : c.t === 'R' ? '#5b4bd6' : '#222';
   function wrapLines(ctx, text, maxW, maxLines) {
-    const words = String(text).split(/\s+/), out = []; let line = '';
+    const words = String(text == null ? '' : text).split(/\s+/), out = []; let line = '';
     for (const wd of words) { const tr = line ? line + ' ' + wd : wd; if (ctx.measureText(tr).width > maxW && line) { out.push(line); line = wd; } else line = tr; }
     if (line) out.push(line);
     if (out.length > maxLines) { out.length = maxLines; out[maxLines - 1] = out[maxLines - 1].replace(/\s*\S*$/, '') + '…'; }
@@ -5582,22 +5665,6 @@ html, body {
   }
 
   /* ---------- Interactive Opening Setup & Starter Deck Draft on Arena Stage ---------- */
-  function wrapLines(ctx, text, maxW) {
-    const words = String(text || '').split(/\s+/);
-    const lines = [];
-    let cur = '';
-    for (const w of words) {
-      const test = cur ? cur + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW && cur) {
-        lines.push(cur);
-        cur = w;
-      } else {
-        cur = test;
-      }
-    }
-    if (cur) lines.push(cur);
-    return lines;
-  }
 
   function drawSetupOnArena(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
@@ -6895,6 +6962,12 @@ html, body {
     if (G && !G.over && (G.phase === 'upkeep' || G.phase === 'market')) renderStash();
     if (G && G.phase === 'fight' && G.fight && G.fight.S) {
       const F = G.fight;
+      // online host in a background tab: the browser stops the fight view's frames, so step the fight here (everyone waits on it)
+      if (NETROLE === 'host' && document.hidden && !F.viewDone && !headless()) {
+        const S = F.S; let n = Math.min(240, Math.round(dt * 120));
+        while (n-- > 0 && !S.over) { DL.step(S); fightStep(F, S); S.fx.length = 0; }
+        if (S.over && S.t > S.result.t + 2) { F.viewDone = true; VW.close(); }
+      }
       if (F.S.over && F.viewDone && !isClient()) aftermath();
     }
   }
@@ -6955,5 +7028,6 @@ html, body {
   requestAnimationFrame(loop);
 })();
 </script>
+<script src="../src2/net.js"></script>
 </body>
 </html>
