@@ -43,13 +43,17 @@
     quantum: { name: 'Quantum shield', kind: 'legendary', copies: 1, vs: 48, d: 'Legendary: the first real hit after it recharges is cancelled and the robot phases out for 1.5 s; recharges in 8 s.', apply: () => ({ qshield: true }) },
   };
   // a lineup robot with parts, as an engine spec
+  // level gap (Kev, 9 Nov: test wider gaps between levels): every level's power grade x (1 + levelBoost) ^ level, the same step
+  // between any two neighbouring levels (a flat 1 + boost x level widened the low gaps most); 0 = as measured
+  let levelBoost = 0;
+  const grade = name => { const r = ROBOTS[name] || ROBOTS4[name]; return r ? r[1] * Math.pow(1 + levelBoost, r[0]) : 1; };
   function build(name, parts = []) {
-    const P = L.PRESETS[name], r = ROBOTS[name] || ROBOTS4[name], p = r ? r[1] : 1;
+    const P = L.PRESETS[name], p = grade(name);
     let spec = { preset: name, dmgK: (P.dmgK || 1) * p, hpK: p };
     for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec)); }
     return spec;
   }
   function usePK() { Object.assign(L.ARC.pk, PK); }
-  const API = { ROBOTS, ROBOTS4, LEVELS, PK, PARTS, build, usePK };
+  const API = { ROBOTS, ROBOTS4, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Lineup = API;
 })(typeof window !== 'undefined' ? window : globalThis);
