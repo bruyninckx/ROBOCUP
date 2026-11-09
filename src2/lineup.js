@@ -41,6 +41,10 @@
     core: { name: 'Prototype core', kind: 'legendary', copies: 1, vs: 50, d: 'Legendary: weapon damage x1.3 and every part x1.3 HP.', apply: (sp, b) => ({ dmgK: b.dmgK * 1.3, hpK: b.hpK * 1.3 }) },
     hospital: { name: 'Field hospital', kind: 'legendary', copies: 1, vs: 55, d: 'Legendary: a full-strength medic drone and HP x1.1.', apply: (sp, b) => ({ helpers: (sp.helpers || []).concat(['fieldmedic']).slice(0, 3), hpK: b.hpK * 1.1 }) },
     quantum: { name: 'Quantum shield', kind: 'legendary', copies: 1, vs: 48, d: 'Legendary: the first real hit after it recharges is cancelled and the robot phases out for 1.5 s; recharges in 8 s.', apply: () => ({ qshield: true }) },
+    // tuning chips (Kev, 9 Nov): routines worked out for light robots; from level 2 up they can overload (engine CHIP_GLITCH)
+    matador: { name: 'Matador chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: waits in front of the enemy, sidesteps its charge and hits its side. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'matador' }) },
+    bait: { name: 'Wall Bait chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: stands in front of a wall or hazard and sidesteps at the last moment, so the enemy crashes in. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'bait' }) },
+    pester: { name: 'Pester chip', kind: 'chip', copies: 1, vs: 50, d: 'Tuning chip: circles at the edge of the enemy\'s reach and darts in when it is turned away. Made for level 1 frames: may glitch on heavier robots.', apply: () => ({ chip: 'pester' }) },
   };
   // a lineup robot with parts, as an engine spec
   // level gap (Kev, 9 Nov: test wider gaps between levels): every level's power grade x (1 + levelBoost) ^ level, the same step
@@ -50,6 +54,7 @@
   function build(name, parts = []) {
     const P = L.PRESETS[name], p = grade(name);
     let spec = { preset: name, dmgK: (P.dmgK || 1) * p, hpK: p };
+    if (parts.some(k => PARTS[k] && PARTS[k].kind === 'chip')) spec.lv = (ROBOTS[name] || ROBOTS4[name] || [0])[0];   // a tuning chip needs to know the frame it is on
     for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec)); }
     return spec;
   }

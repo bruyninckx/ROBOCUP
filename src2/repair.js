@@ -58,6 +58,9 @@
   // level 4 (docs/robocus-2.0-level4.md): measured about 0.3 above level 3 vs levels 2-3 (59% vs L3) and no more than level 3 vs
   // levels 0-1, so it counts as 4 levels minus L4_OFF (level 3 + 0.27 logits)
   const BOOST_K = 2.85;
+  // tuning chips (9 Nov): worth about 1.2 levels on a level 0-1 frame (level 1 + chip vs level 3: 37-43% instead of 22%), less on
+  // heavier frames because they overload (engine CHIP_GLITCH); measured with tools/damage-lab/chipfit.js
+  const CHIP = [0.8, 0.8, 0.4, 0, -0.2];
   const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 2.2, body: 0.15 };
   const gradeOf = name => { const r = LU && (LU.ROBOTS[name] || (LU.ROBOTS4 || {})[name]); return r ? r[1] : null; };
   function strength(spec, name, level, parts) {
@@ -65,7 +68,7 @@
     let s = (level || 0) * LEVEL - (level >= 4 ? L4_OFF : 0) + (g ? Math.log(g) * 0.6 : 0);
     // level gap test (Lineup.levelBoost, Kev 9 Nov): measured about +0.22 logits per level step for a boost of 8% (2.85 x ln(1 + boost))
     if (LU && LU.levelBoost) s += (level || 0) * BOOST_K * Math.log(1 + LU.levelBoost);
-    for (const k of parts || []) if (k) s += LU && LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? LEG : PART;
+    for (const k of parts || []) if (k) s += LU && LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? LEG : LU && LU.PARTS[k] && LU.PARTS[k].kind === 'chip' ? CHIP[Math.min(4, Math.max(0, level || 0))] : PART;
     if (spec && spec.wear) { const Z = zones(spec); for (const z of ZONES) { const q = Z[z.key]; s -= ZONE_COST[z.key] * (q.broken ? 1 : Math.max(0, (1 - q.f) * 0.8)); } }
     return s;
   }
