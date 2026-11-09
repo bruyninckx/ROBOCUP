@@ -642,7 +642,17 @@ html, body {
   /* AI versions (Kev, 7 Nov): AIV[team] = 1 (the AI as it was) or 2 (better decisions, driven by the numbers in AIP[team]).
    * Real games use AI_DEFAULT; the benchmark (tools/ai-bench.js) mixes versions and parameter sets to measure them. */
   // tuned by self-play 7 Nov (docs/ai-v2.md): hosting is worth more (3 → 6 Cr per host fame), parts less (partK 1 → 0.5)
-  const AI_PARAMS = { hostFame: 6, hostNoise: 0.25, reserve: 2, bidNoise: 0.25, partK: 0.5, betEdge: 0.05, betK: 0.5, feHp: 0.55, scrapThreat: 2, playMax: 2, playMin: 1 };
+  const AI_PARAMS = { hostFame: 6, hostNoise: 0.25, reserve: 2, bidNoise: 0.25, partK: 0.5, betEdge: 0.05, betK: 0.5, feHp: 0.55, scrapThreat: 2, playMax: 2, playMin: 1,
+    // surplus spending (Kev's playtest, 8 Nov: an AI held 61 Cr by round 10). Surplus = credits − aiReserve (next round's upkeep
+    // shortfall, debt, expected repair credits, reserve + spendRes for bets and reactions). A lot / the host bid / a fight card is
+    // worth value × min(1 + spendCap, 1 + spendK × surplus / 10); the extra over the old bid is paid from the surplus, at most
+    // spendShare of it on one lot. Repairs: with a surplus it also pays credits for damaged (not only broken) drive / weapon zones,
+    // and body zones once the surplus is spendBody+. spendK 0 = the AI as before. ai-bench (8 Nov): 0.3 / 0.4 as good as not spending, 0.5 / 0.6 a bit worse.
+    // spendLate: within this much fame of the win it also keeps a war chest (the richest rival's credits + 1) for the host bid that
+    // wins the game (hosting at match point is worth all its credits, and hoarders win those bids), at most spendWar.
+    // spendMkt: credit repairs (Upkeep, before the Market), host and fight-card extras only from the surplus above this, so they
+    // don't starve this or next round's Market (lot extras come after the base bids, from what is left above the reserve)
+    spendK: 0.3, spendCap: 0.4, spendShare: 0.5, spendRes: 3, spendBody: 6, spendLate: 3, spendWar: 12, spendMkt: 8 };
   let AI_DEFAULT = 2;
   let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS));
   // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
@@ -1210,7 +1220,7 @@ html, body {
     const busy = t.crew.find(c => R.used[c.uid] != null && R.used[c.uid] < CREW_ACTS(c.kind));
     if (busy) { R.used[busy.uid]++; return CREW[busy.kind].name; }
     if (readyCrew(t) > keepCrew) { const c = freshCrew(t)[0]; if (c) { R.used[c.uid] = 1; t.exMechs = (t.exMechs || 0) + 1; return CREW[c.kind].name; } }
-    if (credits && t.credits >= repairCr()) { t.credits -= repairCr(); return repairCr() + ' Cr'; }
+    if (credits && t.credits >= repairCr()) { addCr(t, -repairCr(), 'repair'); return repairCr() + ' Cr'; }
     return null;
   }
   // can team t pay n actions (credits: may it pay credits for the rest; keepCrew as above)?
@@ -1245,7 +1255,8 @@ html, body {
     const keep = Math.min(2, Math.max(0, ...t.hand.filter(id => CARDS[id] && CREW_CARDS.has(CARDS[id].name)).map(id => crewKeep(t, CARDS[id].name))));
     const likely = t.robots.filter(r => !(r.sitOut > 0)).sort((a, b) => baseStr(b) - baseStr(a)).slice(0, 2);   // the robots it is likely to send
     const order = [['weapon', true], ['drive', true], ['weapon', false], ['drive', false], ['body', false]];
-    const done = [];
+    const done = [], P = aiP(t);
+    let sur = Math.max(0, aiSurplus(t, false, 'spendRep') - (P.spendMkt || 0));   // keep spendMkt for this round's Market   // surplus: credits for damaged (not only broken) drive / weapon zones, body from spendBody
     for (let guard = 0; guard < 12; guard++) {
       // jobs in order; the first one it can pay for (a broken zone may cost more actions than are left: then the next job)
       const jobs = [];
@@ -1253,9 +1264,11 @@ html, body {
       let how = null, job = null;
       for (const j of jobs) {
         const n = repairCost(j.r, j.zk), short = Math.max(0, n - repairActs(t, keep));
-        const pay = j.broken && j.zk !== 'body' && t.credits >= short * repairCr() + 3;   // credits only for a broken weapon or drive, keeping 3 Cr
+        const cost = short * repairCr(), extra = sur > 0 && cost <= sur && (j.zk !== 'body' || sur >= (P.spendBody || 6));
+        const pay = (j.broken && j.zk !== 'body' && t.credits >= cost + 3) || extra;   // credits for a broken weapon or drive, keeping 3 Cr; more with a surplus
+        const c0 = t.credits;
         how = spendActs(t, n, keep, pay);
-        if (how) { job = j; break; }
+        if (how) { job = j; sur = Math.max(0, sur - (c0 - t.credits)); break; }
       }
       if (!job) break;
       doRepair(job.r, job.zk); logRepair(t, job.r, job.zk, how); done.push(esc(job.r.name) + ' ' + ZONE[job.zk].icon);
@@ -2032,12 +2045,14 @@ html, body {
         const l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;   // level 4 option: extra upkeep (default 0)
         const earn = t.mechs * BAL.mechanicCr, net = earn - bots - l4up - drones;
         t.ledger = { mechs: earn, bots: bots + l4up, drones, net };
+        const c0 = t.credits;
         if (t.credits + net < 0) { t.debt = -(t.credits + net); t.credits = 0; } else { t.debt = 0; t.credits += net; }
+        crLog(t, earn, 'mechanics'); crLog(t, t.credits - c0 - earn, 'upkeep');
       }
       if (G.round > 1 && (CATCHUP.purse || CATCHUP.cards)) {   // catch-up for trailing teams (3+ fame behind the leader)
         const top = Math.max(...G.teams.map(x => x.fame));
         if (top - t.fame >= 3) {
-          if (CATCHUP.purse) t.credits += CATCHUP.purse;
+          if (CATCHUP.purse) addCr(t, CATCHUP.purse, 'catchup');
           if (CATCHUP.cards) for (let c = 0; c < CATCHUP.cards; c++) t.hand.push(draw1());
           notify('🫂 Underdog: ' + nm(t) + ' is 3+ fame behind the leader' + (CATCHUP.purse ? ', +' + CATCHUP.purse + ' Cr' : '') + (CATCHUP.cards ? ', +' + CATCHUP.cards + ' Intrigue card' + (CATCHUP.cards > 1 ? 's' : '') : '') + '.', t.col);
         }
@@ -2106,7 +2121,7 @@ html, body {
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
         robotLeaves(t, r, null, 'debt'); t.debt--; returnStarter(r.name);
-        for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
+        for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
         notify('🧾 <b>' + esc(t.name) + '</b> can\'t pay its upkeep and scraps <b>' + esc(r.name) + '</b>.', '#d62828');
         if (!t.robots.length) noRobotsLeft(t);   // 2.0 (Kev, 8 Nov): no free Scrapbot
       }
@@ -2132,7 +2147,11 @@ html, body {
   // losing fame stops at BAL.fameFloor (1), or at the start fame if that is lower (a 0-fame start: 0); never raises fame
   const fameFloor = () => Math.min(BAL.fameFloor, G && G.startFame != null ? G.startFame : BAL.startFame);
   function addFame(t, d) { const old = t.fame; t.fame = d >= 0 ? Math.max(old, Math.min(WIN_FAME, old + d)) : Math.min(old, Math.max(fameFloor(), old + d)); return t.fame - old; }
-  function payCr(t, n) { const p = Math.min(t.credits, n); t.credits -= p; return p; }
+  // credit flow log (sim / playtest: income by source, spend by sink): one 'cr' event per change, no rule effect
+  let CR_SRC = 'other';
+  function crLog(t, amt, src) { if (amt && t) tlog('cr', { team: t.i, amt, src: src || CR_SRC }); }
+  function addCr(t, n, src) { t.credits += n; crLog(t, n, src); return n; }
+  function payCr(t, n, src) { const p = Math.min(t.credits, n); t.credits -= p; crLog(t, -p, src); return p; }
   function needOf(F, c) { return Math.max(0, c.need - (F.sponsor === 'blackwire' && c.phase === 'intrigue' ? 2 : 0)); }
   function schemeNeed(t, id) { return needOf(t, CARDS[id]); }
   function gateOk(c, F, T, extra) {
@@ -2358,7 +2377,7 @@ html, body {
   const stashOf = t => (t.stash = t.stash || []);
   function toStash(t, id, quiet) {
     if (stashOf(t).length >= STASH_MAX) {
-      const g = bankHalf(id); t.credits += g;
+      const g = bankHalf(id); addCr(t, g, 'sale');
       notify('📦 ' + nm(t) + '\'s Stash is full: ' + lotRef(id) + ' goes to the bank for ' + g + ' Cr.', t.col);
       return false;
     }
@@ -2368,7 +2387,7 @@ html, body {
   }
   function sellStash(t, k) {
     const id = stashOf(t).splice(k, 1)[0]; if (!id) return;
-    const g = bankHalf(id); t.credits += g;
+    const g = bankHalf(id); addCr(t, g, 'sale');
     notify('🏦 ' + nm(t) + ' sells ' + lotRef(id) + ' to the bank for ' + g + ' Cr (half value).', t.col);
     updateHud();
   }
@@ -2404,9 +2423,9 @@ html, body {
   const bundleEmpty = B => !B || (!B.cr && !B.sec && !(B.items || []).length);
   const tokRef = tok => { if (tok[0] === 'R' && tok[1] === ':') { const x = robotById(tok.slice(2)); return x ? '🤖 <b>' + esc(x.r.name) + '</b>' : 'a robot'; } if (tok[0] === 'C' && tok[1] === ':') { const x = crewByUid(tok.slice(2)); return x ? crewRef(x.c.kind) : 'crew'; } return lotRef(tok); };
   const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : '', B.sec ? B.sec + ' Security Bot' + (B.sec > 1 ? 's' : '') : ''].concat((B.items || []).map(tokRef)).filter(Boolean).join(' + ');
-  function transfer(from, to, B) {
+  function transfer(from, to, B, src) {
     if (bundleEmpty(B)) return;
-    if (B.cr) to.credits += payCr(from, B.cr);
+    if (B.cr) addCr(to, payCr(from, B.cr, src), src);
     if (B.sec) { const n = Math.min(B.sec, from.secBots || 0); from.secBots -= n; to.secBots = (to.secBots || 0) + n; }
     for (const id of B.items || []) {
       if (id.startsWith('R:')) {   // a robot with its fitted parts; its Chief Engineers stay home
@@ -2586,7 +2605,7 @@ html, body {
   function settleBacking(F, c, got, owed, backers) {
     const ok = F.fame + got >= needOf(F, c);
     F.ivBackers = ok ? (backers || owed.map(([o]) => o)).map(o => o.i) : [];
-    if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B); });
+    if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B, 'backing'); });
     else if (owed.some(([, B]) => !bundleEmpty(B))) notify('not enough backing, so nobody gets paid', '#888');
     return ok;
   }
@@ -2633,7 +2652,7 @@ html, body {
     await boardFx({ kind: 'react', ti: o.i, card: id, label: b.name === 'Not My Robot' ? '🙅 NOT MY ROBOT' : '✋ BLOCKS IT' });
     { const st = cst(id, o.i); cstBy(id, o.i, 'played'); st.played++; st.landed++; }
     removeFromHand(o, id); discardCard(id);
-    if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); p.credits += payCr(o, 3); }
+    if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); addCr(p, payCr(o, 3, 'card'), 'card'); }
     if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
     if (b.name === "Sponsor's Lawyers") { const k = G.discard.indexOf('security_bot'); if (k >= 0) { G.discard.splice(k, 1); o.hand.push('security_bot'); } }
     if (b.name === 'Not My Robot') {
@@ -2764,8 +2783,8 @@ html, body {
       ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, true)
       : rnd() < 0.65;
     const a = await ask(F), b = await ask(T);
-    if (a && b) { F.credits += 5; T.credits += 5; notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
-    else if (a !== b) { const D = a ? T : F, V = a ? F : T; D.credits += payCr(V, 2); notify('🐍 Joint Venture: ' + nm(D) + ' defects and takes the stakes from ' + nm(V) + '.', D.col); }
+    if (a && b) { addCr(F, 5, 'card'); addCr(T, 5, 'card'); notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
+    else if (a !== b) { const D = a ? T : F, V = a ? F : T; addCr(D, payCr(V, 2, 'card'), 'card'); notify('🐍 Joint Venture: ' + nm(D) + ' defects and takes the stakes from ' + nm(V) + '.', D.col); }
     else notify('🤝 Joint Venture: both defect. Nothing happens.', F.col);
   }
   async function hostileBuyout(F, T) {
@@ -2773,7 +2792,7 @@ html, body {
     const sell = isHuman(T.i)
       ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
       : T.robots.length >= 3 || T.fame <= 2;
-    if (sell) { r.exhausted = true; robotLeaves(T, r, F, 'buyout'); T.credits += payCr(F, 4); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
+    if (sell) { r.exhausted = true; robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
   }
   // Tag Team Licence: pick an ally; it may refuse for −1 fame
@@ -2787,12 +2806,12 @@ html, body {
     if (isHuman(ally.i)) {
       const B = aiBundle(F, ally, 1);
       yes = await askSeat(ally.i, '🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }]);
-      if (yes) transfer(F, ally, B);
+      if (yes) transfer(F, ally, B, 'deal');
     } else {
       yes = !(ally === leaderOf() && rnd() < 0.5);
       if (!yes && isHuman(F.i)) {   // sweeten the deal
         const d = await dealPanel({ title: '🤝 ' + esc(ally.name) + ' hesitates', intro: nm(ally) + ' would rather not team up. Make it worth their while?', from: ally, lock: 'Lock in offer' }, F.i);
-        if (d && !bundleEmpty(d.give) && bundleWorth(ally, d.give) >= 3) { transfer(F, ally, d.give); yes = true; notify('🤝 ' + nm(ally) + ' takes ' + bundleText(d.give) + ' and teams up.', ally.col); }
+        if (d && !bundleEmpty(d.give) && bundleWorth(ally, d.give) >= 3) { transfer(F, ally, d.give, 'deal'); yes = true; notify('🤝 ' + nm(ally) + ' takes ' + bundleText(d.give) + ' and teams up.', ally.col); }
       }
     }
     if (!yes) { addFame(ally, -1); notify('✋ ' + nm(ally) + ' refuses the Tag Team (−1 fame). The fight stays a duel.', ally.col); return; }
@@ -2806,20 +2825,20 @@ html, body {
   async function resolveScheme0(F, id, T) {
     const c = CARDS[id], n = c.name, say = h => notify(h, F.col);
     switch (n) {
-      case 'Overtime Shift': { const g = readyCrew(T); T.credits += g; say('💼 Overtime: ' + nm(T) + ' +' + g + ' Cr.'); break; }
-      case 'Smash and Grab': { const g = payCr(T, 3); F.credits += g; say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
-      case 'Crunch Week': { const m = readyCrew(F), s = secReady(F); F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; F.credits += m + s; say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + (m + s) + ' crew and bots for +' + (m + s) + ' Cr.'); break; }
-      case 'Scrapyard Salvage': F.credits += 3; say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
-      case 'Headhunter Fee': { const c = loseCrew(F); const g = c ? 2 * CREW[c.kind].value : 0; F.credits += g; say('💼 ' + nm(F) + ' sells its ' + (c ? crewRef(c.kind) : 'crew') + '\'s contract for +' + g + ' Cr.'); break; }
-      case 'Consulting Gig': { const g = 2 * readyCrew(T); T.credits += g; say('💼 Consulting: ' + nm(T) + ' +' + g + ' Cr.'); break; }
+      case 'Overtime Shift': { const g = readyCrew(T); addCr(T, g, 'card'); say('💼 Overtime: ' + nm(T) + ' +' + g + ' Cr.'); break; }
+      case 'Smash and Grab': { const g = payCr(T, 3, 'card'); addCr(F, g, 'card'); say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
+      case 'Crunch Week': { const m = readyCrew(F), s = secReady(F); F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; addCr(F, m + s, 'card'); say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + (m + s) + ' crew and bots for +' + (m + s) + ' Cr.'); break; }
+      case 'Scrapyard Salvage': addCr(F, 3, 'card'); say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
+      case 'Headhunter Fee': { const c = loseCrew(F); const g = c ? 2 * CREW[c.kind].value : 0; addCr(F, g, 'card'); say('💼 ' + nm(F) + ' sells its ' + (c ? crewRef(c.kind) : 'crew') + '\'s contract for +' + g + ' Cr.'); break; }
+      case 'Consulting Gig': { const g = 2 * readyCrew(T); addCr(T, g, 'card'); say('💼 Consulting: ' + nm(T) + ' +' + g + ' Cr.'); break; }
       case 'Industry Insider': T.hand.push(draw1(), draw1()); say('💼 ' + nm(T) + ' draws 2 Intrigue cards.'); break;
-      case 'Scrap Deal': F.credits += 5; say('💼 ' + nm(F) + ' closes a scrap deal: +5 Cr.'); break;
+      case 'Scrap Deal': addCr(F, 5, 'card'); say('💼 ' + nm(F) + ' closes a scrap deal: +5 Cr.'); break;
       case 'Joint Venture': await jointVenture(F, T); break;
-      case 'Fire Sale': { const r = F.robots.slice().sort((a, b) => power(a) - power(b))[0]; robotLeaves(F, r, null, 'fire sale'); F.credits += 2; say('💼 Fire Sale: ' + nm(F) + ' sells ' + esc(r.name) + ' to the bank for 2 Cr.'); break; }
+      case 'Fire Sale': { const r = F.robots.slice().sort((a, b) => power(a) - power(b))[0]; robotLeaves(F, r, null, 'fire sale'); addCr(F, 2, 'card'); say('💼 Fire Sale: ' + nm(F) + ' sells ' + esc(r.name) + ' to the bank for 2 Cr.'); break; }
       case 'Fan Meet': if (readyRobots(T).length >= 2) { addFame(T, 1); say('📣 Fan Meet: ' + nm(T) + ' +1 fame.'); } else say('📣 Fan Meet fizzles: ' + nm(T) + ' needs 2 ready robots.'); break;
       case 'Roadshow': if (readyRobots(T).length >= 3) { addFame(T, 2); say('📣 Roadshow: ' + nm(T) + ' +2 fame.'); } else say('📣 Roadshow fizzles: ' + nm(T) + ' needs 3 ready robots.'); break;
-      case 'Public Demo': payCr(F, 3); if (readyRobots(T).length >= 1) { addFame(T, 1); say('📣 Public Demo: ' + nm(T) + ' +1 fame.'); } break;
-      case 'Launch Party': for (const o of G.teams) if (o !== F) o.credits += payCr(F, 2); addFame(T, 1); say('📣 Launch Party: ' + nm(T) + ' +1 fame (everyone else got 2 Cr).'); break;
+      case 'Public Demo': payCr(F, 3, 'card'); if (readyRobots(T).length >= 1) { addFame(T, 1); say('📣 Public Demo: ' + nm(T) + ' +1 fame.'); } break;
+      case 'Launch Party': for (const o of G.teams) if (o !== F) addCr(o, payCr(F, 2, 'card'), 'card'); addFame(T, 1); say('📣 Launch Party: ' + nm(T) + ' +1 fame (everyone else got 2 Cr).'); break;
       case 'Team-Building Day': { const p = Math.min(1, Math.floor(readyCrew(T) / 2));   // Kev, 8 Nov: max +1 (was +2)
  T.exMechs = (T.exMechs || 0) + 2 * p; addFame(T, p); say('📣 Team-Building: ' + nm(T) + ' exhausts ' + 2 * p + ' crew, +' + p + ' fame.'); break; }
       case 'Underdog Story': { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame) { addFame(s[0], 2); say('📣 Underdog Story: ' + nm(s[0]) + ' +2 fame.'); } else say('📣 Underdog Story fizzles: the bottom is tied.'); break; }
@@ -2828,9 +2847,9 @@ html, body {
       case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': addFame(T, 1); say('📣 ' + esc(n) + ': ' + nm(T) + ' +1 fame.'); break;
       case 'Co-Branding Deal': { const o = lowestOther([T.i]); addFame(T, 1); addFame(o, 1); say('📣 Co-Branding: ' + nm(T) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, BAL.fame.fanFav); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
-      case 'Bribe Scandal': T.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Bribe Scandal: ' + nm(T) + ' −1 fame.'); break;
+      case 'Bribe Scandal': addCr(T, payCr(F, 3, 'card'), 'card'); await loseFame(T, 1); say('🗞️ Bribe Scandal: ' + nm(T) + ' −1 fame.'); break;
       case 'Inside Leak': loseCrew(F, 'the leak'); await loseFame(T, 1); say('🗞️ Inside Leak: ' + nm(T) + ' −1 fame.'); break;
-      case 'Paparazzi': { const o = lowestOther([F.i, T.i]); o.credits += payCr(F, 3); await loseFame(T, 1); say('🗞️ Paparazzi: ' + nm(T) + ' −1 fame.'); break; }
+      case 'Paparazzi': { const o = lowestOther([F.i, T.i]); addCr(o, payCr(F, 3, 'card'), 'card'); await loseFame(T, 1); say('🗞️ Paparazzi: ' + nm(T) + ' −1 fame.'); break; }
       case 'Robot Rights Protest': addFame(F, -2); for (const o of G.teams) if (o !== F) addFame(o, -1); say('🗞️ Robot Rights Protest: ' + nm(F) + ' −2 fame, every other team −1.'); break;
       case 'Rival Sponsor': { const o = lowestOther([F.i, T.i]); await loseFame(T, 1); addFame(o, 1); say('🗞️ Rival Sponsor: ' + nm(T) + ' −1, ' + nm(o) + ' +1 fame.'); break; }
       case 'Smear Campaign': await loseFame(T, 2); say('🗞️ Smear Campaign: ' + nm(T) + ' −2 fame.'); break;
@@ -2838,7 +2857,7 @@ html, body {
       case 'Rigged Ratings': { const o = lowestOther([F.i, T.i]); await loseFame(T, 2); addFame(F, 1); addFame(o, 1); say('🗞️ Rigged Ratings: ' + nm(T) + ' −2; ' + nm(F) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Kick When Down': case 'Skeleton Crew': case 'Leaked Footage': case 'Bankrupt!': await loseFame(T, 1); say('🗞️ ' + esc(n) + ': ' + nm(T) + ' −1 fame.'); break;
       case 'Poached Mechanic': { const c = loseCrew(T); say('🔧 ' + nm(F) + ' poaches ' + (c ? 'a ' + crewRef(c.kind) : 'nobody') + ' from ' + nm(T) + '.'); break; }
-      case 'Security Override': { const k = secReady(T); payCr(F, k); T.exSec = (T.exSec || 0) + k; say('🔧 Security Override: ' + nm(T) + '\'s ' + k + ' Security Bot' + (k === 1 ? ' is' : 's are') + ' exhausted.'); break; }
+      case 'Security Override': { const k = secReady(T); payCr(F, k, 'card'); T.exSec = (T.exSec || 0) + k; say('🔧 Security Override: ' + nm(T) + '\'s ' + k + ' Security Bot' + (k === 1 ? ' is' : 's are') + ' exhausted.'); break; }
       case 'EMP the Garage': T.tamper.noMods = 1; T.schemeLog.push({ from: F.i, id }); say('🔧 EMP: ' + nm(T) + '\'s modules and helpers are offline next fight.'); break;
       case 'Sugar in the Tank': case 'Smudged Lens': case 'Secret Upgrade': case 'Overclock': {
         const X = n === 'Secret Upgrade' || n === 'Overclock' ? F : T, r = bestReady(X);
@@ -2849,13 +2868,13 @@ html, body {
       }
       case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = bestReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = bestReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
       case 'Rogue Firmware': { const r = bestReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
-      case 'Tax Audit': { const p = payCr(T, 5); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
+      case 'Tax Audit': { const p = payCr(T, 5, 'card'); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
       case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
-      case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; T.credits += payCr(F, 3 * k); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
+      case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; addCr(T, payCr(F, 3 * k, 'card'), 'card'); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
       case 'Hostile Buyout': await hostileBuyout(F, T); break;
       case 'Corporate Raid': {   // the take is split evenly between the player and every backer; the remainder goes to the player
-        const take = payCr(T, 8), bk = [...new Set(F.ivBackers || [])].filter(i => i !== F.i && i !== T.i).map(i => G.teams[i]), each = Math.floor(take / (bk.length + 1));
-        bk.forEach(o => { o.credits += each; }); F.credits += take - each * bk.length;
+        const take = payCr(T, 8, 'card'), bk = [...new Set(F.ivBackers || [])].filter(i => i !== F.i && i !== T.i).map(i => G.teams[i]), each = Math.floor(take / (bk.length + 1));
+        bk.forEach(o => { addCr(o, each, 'card'); }); addCr(F, take - each * bk.length, 'card');
         say('🏢 Corporate Raid: ' + nm(F) + ' takes ' + take + ' Cr from ' + nm(T) + (bk.length ? ', split: ' + nm(F) + ' ' + (take - each * bk.length) + ', ' + bk.map(o => nm(o) + ' ' + each).join(', ') : '') + '.');
         tlog('raid', { from: T.i, take, split: [[F.i, take - each * bk.length]].concat(bk.map(o => [o.i, each])) });
         break;
@@ -2890,7 +2909,7 @@ html, body {
   }
   function cashIn(t, id) {
     if (!removeFromHand(t, id)) return 0;
-    discardCard(id); t.credits += CARDS[id].cash; cst(id, t.i).cashed++; cstBy(id, t.i, 'cashed');
+    discardCard(id); addCr(t, CARDS[id].cash, 'cashin'); cst(id, t.i).cashed++; cstBy(id, t.i, 'cashed');
     return CARDS[id].cash;
   }
   function endTurnHandLimit(t) {
@@ -3287,7 +3306,7 @@ html, body {
         if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>.<br>' + partForTxt(buyer, id), buyer.i);
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
         if (!yes) continue;
-        transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: [id] });
+        transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: [id] });
         notify('🤝 ' + nm(buyer) + ' buys ' + lotRef(id) + ' from ' + nm(A) + ' for ' + price + ' Cr.', buyer.col);
         updateHud();
       }
@@ -3305,7 +3324,7 @@ html, body {
       if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You have only one robot.', buyer.i);
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
-      transfer(buyer, A, { cr: price, items: [] }); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
+      transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
       notify('🤝 ' + nm(A) + ' sells its robot <b>' + esc(spare.name) + '</b> to ' + nm(buyer) + ' for ' + price + ' Cr.', A.col);
       updateHud();
     }
@@ -3316,7 +3335,7 @@ html, body {
       if (!A || rnd() < 0.4) continue;
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
       if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>.<br>For them: ' + partForTxt(A, id), P.i)) {
-        transfer(A, P, { cr: price, items: [] }); transfer(P, A, { cr: 0, items: [id] });
+        transfer(A, P, { cr: price, items: [] }, 'trade'); transfer(P, A, { cr: 0, items: [id] });
         notify('🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
       }
     }
@@ -3335,7 +3354,7 @@ html, body {
         : bundleWorth(O, d.give) - bundleWorth(O, d.want) >= 1;
       if (G.phase !== 'market' || G.marketStage !== 'open') { say(S, '⌛ Too late: the open market is closed.', '#b45309'); return; }
       if (yes) {
-        transfer(Me, O, d.give); transfer(O, Me, d.want);
+        transfer(Me, O, d.give, 'trade'); transfer(O, Me, d.want, 'trade');
         notify('🤝 Trade: ' + nm(Me) + ' gives ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', Me.col);
       } else notify('✋ ' + nm(O) + ' turns down ' + nm(Me) + '\'s trade (' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
     } finally { Me.trading = false; updateHud(); }
@@ -3381,6 +3400,26 @@ html, body {
     notify('👑 <b>Host bid:</b> every team bids in secret for the right to host this round.', '#111');
     updateHud();
   }
+  /* AI surplus spending (8 Nov, later; docs/robocus-2.0-tabletop.md "AI spending"): credits above what next round needs.
+   * No random numbers here, so spendK 0 plays exactly as before (same seeds, same games). */
+  function aiReserve(t, withRepairs = true) {
+    const P = aiP(t);
+    const bots = hasCrew(t, 'accountant') ? Math.min(1, t.robots.length) : t.robots.length, l4up = (BAL.level4.upkeep || 0) * t.robots.filter(r => r.level >= 4).length;
+    const drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
+    const upkeep = Math.max(0, bots + l4up + drones - t.mechs * BAL.mechanicCr);
+    let rep = 0;
+    if (withRepairs) {   // repair actions its two likeliest fighters need beyond its crew and free actions, at BAL.repair.credits each
+      const likely = t.robots.filter(r => !(r.sitOut > 0)).sort((a, b) => baseStr(b) - baseStr(a)).slice(0, 2);
+      const need = likely.reduce((a, r) => a + ['drive', 'weapon'].reduce((s, zk) => s + (zonesOf(r)[zk].damaged ? repairCost(r, zk) : 0), 0), 0);
+      const acts = t.crew.reduce((a, c) => a + CREW_ACTS(c.kind), 0) + (t.sponsor === 'aegis' ? RB().freeAegis : 0);
+      rep = Math.max(0, need - acts) * repairCr();
+    }
+    const war = P.spendLate != null && t.fame >= WIN_FAME - P.spendLate ? Math.min(P.spendWar || 99, Math.max(0, ...G.teams.filter(o => o !== t).map(o => o.credits + 1))) : 0;
+    return P.reserve + (P.spendRes || 0) + upkeep + (t.debt || 0) + Math.max(rep, war);
+  }
+  // f: one use switched off for the benchmark (params.off: spendLots / spendHost / spendCards / spendRep)
+  const aiSurplus = (t, withRepairs = true, f) => aiV2(t, 'spend') && (!f || aiV2(t, f)) && aiP(t).spendK > 0 ? Math.max(0, t.credits - aiReserve(t, withRepairs)) : 0;
+  const aiSpendMult = (t, sur) => { const P = aiP(t); return sur > 0 ? Math.min(1 + (P.spendCap || 0), 1 + P.spendK * sur / 10) : 1; };
   // AI host bid: what it is worth to this team, from the credits left after the lots
   // v2: hosting is worth its fame (none for a sole leader) plus picking the fights; everything when it wins the game
   function aiHostValue(t) {
@@ -3389,7 +3428,10 @@ html, body {
     return P.hostFame * fame + 1;
   }
   function aiHostBid(t) {
-    if (aiV2(t, 'host')) { const P = aiP(t); return Math.max(0, Math.min(Math.round(aiHostValue(t) * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0))); }
+    if (aiV2(t, 'host')) {
+      const P = aiP(t), v = aiHostValue(t), sur = Math.max(0, aiSurplus(t, true, 'spendHost') - (P.spendMkt || 0)), hv = v >= t.credits ? v : v + Math.min(sur, v * (aiSpendMult(t, sur) - 1));   // surplus: hosting is worth more (capped)
+      return Math.max(0, Math.min(Math.round(hv * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0)));
+    }
     const want = t.fame >= 9 ? 3 : 1.5;   // Kev, 7 Nov: no Apex-only bonus (it made AI Apex host most rounds and win 47%)
     return Math.max(0, Math.min(Math.round(want * (0.4 + rnd() * 1.1)), t.credits, Math.ceil(t.credits * 0.6)));
   }
@@ -3416,11 +3458,22 @@ html, body {
       const P = aiP(t); let budget = Math.max(0, t.credits - P.reserve - Math.min(2, Math.round(aiHostValue(t) / 2)));
       const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
       const bids = zeroBids();
-      for (const { k, v } of order) {
+      for (const { k, v } of order) {   // base bids: exactly the old rule (old reserve and budget)
         if (v <= 0.5) continue;
         let b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
         const mn = minBidOf(G.market[k]); if (mn && b < mn) b = v >= mn && budget >= mn ? mn : 0;   // level 4: at least the minimum, or nothing
         bids[k] = b; budget -= b;
+      }
+      // surplus: only ADDS to the base bids. Each lot it bid on is worth up to value × aiSpendMult; the extra comes from what is left
+      // above the full reserve (aiReserve) after the base bids, at most spendShare of the surplus per lot, highest value first
+      const sur0 = aiSurplus(t, true, 'spendLots'), mult = aiSpendMult(t, sur0);
+      let pool = Math.min(sur0, Math.max(0, t.credits - bids.reduce((a, b) => a + b, 0) - aiReserve(t)));
+      (G.aiSpend = G.aiSpend || {})[t.i] = { sur: sur0, mult, r: G.round };   // rebids use the same surplus
+      for (const { k, v } of order) {
+        if (pool <= 0) break;
+        if (v < 1 || !bids[k]) continue;
+        const add = Math.max(0, Math.min(pool, sur0 * (P.spendShare || 0.5), Math.round(bids[k] * (mult - 1))));
+        bids[k] += add; pool -= add;
       }
       return bids;
     }
@@ -3452,7 +3505,9 @@ html, body {
   function aiRebid(t, k, curBid, maxAdd) {
     if (maxAdd <= 0) return 0;
     if (aiV2(t, k === HOST_K ? 'host' : 'bids')) {   // v2: add up to what the lot is worth to it, no more
-      const worth = k === HOST_K ? aiHostValue(t) : aiLotValue(t, G.market[k]);
+      let worth = k === HOST_K ? aiHostValue(t) : aiLotValue(t, G.market[k]);
+      const sp = k === HOST_K ? { sur: Math.max(0, aiSurplus(t, true, 'spendHost') - (aiP(t).spendMkt || 0)) } : G.aiSpend && G.aiSpend[t.i] && G.aiSpend[t.i].r === G.round ? G.aiSpend[t.i] : null;   // surplus: worth more, as in the sealed bid
+      if (sp && sp.sur > 0 && worth >= 1.5 && worth < t.credits) worth += Math.min(sp.sur * (aiP(t).spendShare || 0.5), worth * (aiSpendMult(t, sp.sur) - 1));
       return Math.max(0, Math.min(maxAdd, Math.round(worth - curBid)));
     }
     if (k < NLOTS && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
@@ -3617,8 +3672,8 @@ html, body {
     if (!old || !t.robots.includes(old)) { t.robots.push(nr); return `New Bot: ${nr.name}`; }
     const cr = scrapMoney(old), parts = partLots(old);
     robotLeaves(t, old, null, 'trade-in'); returnStarter(old.name);
-    t.credits += cr;
-    for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;   // Vulture Salvage: +2 Cr whenever a bot is scrapped
+    addCr(t, cr, 'sale');
+    for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');   // Vulture Salvage: +2 Cr whenever a bot is scrapped
     t.robots.push(nr);
     stashParts(t, parts);
     tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round });
@@ -3657,7 +3712,7 @@ html, body {
     if (L.mech) { t.mechs++; return '+1 Mechanic'; }
     if (L.eng) { t.engPool++; return '+1 Chief Engineer'; }
     if (L.robot) {
-      if (t.robots.length >= 3 && !tradeInOn()) { t.credits += 2; if (L.starter) { returnStarter(L.starter); L.bot = null; } return 'Bays Full (+2 Cr)'; }
+      if (t.robots.length >= 3 && !tradeInOn()) { addCr(t, 2, 'sale'); if (L.starter) { returnStarter(L.starter); L.bot = null; } return 'Bays Full (+2 Cr)'; }
       let nr;
       if (L.bot) { nr = L.bot; L.bot = null; }   // the robot shown on the tile
       else nr = mkRobot(drawStarter() || pick(Object.keys(STARTERS)));
@@ -3669,7 +3724,7 @@ html, body {
       t.robots.push(nr);
       return `New Bot: ${nr.name}`;
     }
-    if (L.tape) { t.hand.push(draw1()); t.credits += 1; return '+1 Intrigue card, +1 Cr'; }
+    if (L.tape) { t.hand.push(draw1()); addCr(t, 1, 'lot'); return '+1 Intrigue card, +1 Cr'; }
     if (!r) return '';
     if (!canFit(r, L)) return 'No room on ' + r.name;
     if (L.part) {
@@ -3738,7 +3793,7 @@ html, body {
     const initCol = A.initialAll.map(b => b[k]);
     const addCol = A.rebidAdds.map(b => b[k]);
     if (w >= 0 && mx > 0) {
-      G.teams[w].credits -= mx;
+      addCr(G.teams[w], -mx, k === HOST_K ? 'host' : 'market');
     }
     if (k < NLOTS) {
       const lotId = G.market[k], L = LOTS[lotId];
@@ -3857,7 +3912,7 @@ html, body {
       const hostT = G.teams[G.host], res = A.results[0];
       const hf = CATCHUP.leaderhost && soleLeader() === hostT ? 0 : HOST_FAME;
       G.fameSrc = 'host'; hostT.fame += hf; G.fameSrc = null; G.hostFameGiven = hf;
-      if (hostT.sponsor === 'apex') hostT.credits += 2;
+      if (hostT.sponsor === 'apex') addCr(hostT, 2, 'sponsor');
       notify('👑 <b>' + esc(hostT.name) + '</b> is Arena Host' + (res && res.price ? ' for ' + res.price + ' Cr' : ' (nobody bid: random draw)') + ' (' + (hf ? '+' + hf + ' Fame' : 'no host fame: fame leader') + (hostT.sponsor === 'apex' ? ', +2 Cr Apex' : '') + ').', hostT.col);
       G.hostCount = (G.hostCounts || [])[G.host] || 1;
       tlog('wager', { host: G.host, count: G.hostCount });
@@ -3921,21 +3976,21 @@ html, body {
         if (yes === 'pay') {
           const d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want from ' + nm(W) + ' to leave its ' + lotRef(x.lot) + ' alone?', from: W, give: false, want: true, lock: 'Lock in demand' });
           const ask = d && d.want;
-          if (ask && !bundleEmpty(ask) && bundleWorth(W, ask) <= partWorth(W, x.lot) + 1) { transfer(W, o, ask); notify('💰 ' + nm(W) + ' pays you ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
+          if (ask && !bundleEmpty(ask) && bundleWorth(W, ask) <= partWorth(W, x.lot) + 1) { transfer(W, o, ask, 'deal'); notify('💰 ' + nm(W) + ' pays you ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
           if (ask && !bundleEmpty(ask)) notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
           yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
           if (!yes) continue;
         } else if (!isHuman(oi)) {
           if (isHuman(W.i)) {
             const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
-            if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
+            if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
             if (pay === 'deal') {
               const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' });
-              if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves your ' + lotRef(x.lot) + ' alone.', o.col); break; }
+              if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give, 'deal'); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves your ' + lotRef(x.lot) + ' alone.', o.col); break; }
               notify('✋ ' + nm(o) + ' isn\'t bought off.', o.col);
             }
           } else if (W.credits >= demand + 1 && partWorth(W, x.lot) >= demand && rnd() < 0.5) {
-            transfer(W, o, { cr: demand, items: [] }); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + ' safe.', W.col); break;
+            transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + ' safe.', W.col); break;
           }
         }
         { const ph = playHead(o, 'botched_install', W); logBegin(ph[0], o.col, ph[1], ph[2]); }
@@ -3946,7 +4001,7 @@ html, body {
         discardCard('botched_install');
         if (!d.blocked) {
           x.botched = true;
-          const back = Math.floor(x.price / 2); W.credits += back; o.credits += 1;
+          const back = Math.floor(x.price / 2); addCr(W, back, 'card'); addCr(o, 1, 'card');
           if (LOTS[x.lot] && LOTS[x.lot].legend) { if (!G.legends.includes(x.lot)) G.legends.unshift(x.lot); } else G.lots.unshift(x.lot);
           A.results[x.idx].target = '🔧 Botched: scrapped';
           notify('🔧 The install fails: ' + lotRef(x.lot) + ' is scrapped. ' + nm(W) + ' gets ' + back + ' Cr back, ' + nm(o) + ' takes 1 Cr.', o.col);
@@ -4007,7 +4062,7 @@ html, body {
     }
     let fmt = ev && ev.kind === 'mirror' ? 'mirror' : 'duel';
     if (fmt === 'duel' && G.hostCount === 2) {   // the host called 2 per side: pays 1 Cr (if it can)
-      if (G.teams[H].credits >= WAGER_COST) { G.teams[H].credits -= WAGER_COST; fmt = 'double'; notify('🤖🤖 Host ' + nm(G.teams[H]) + ' pays ' + WAGER_COST + ' Cr: this fight is <b>2 robots per side</b>.', G.teams[H].col); }
+      if (G.teams[H].credits >= WAGER_COST) { addCr(G.teams[H], -WAGER_COST, 'wager'); fmt = 'double'; notify('🤖🤖 Host ' + nm(G.teams[H]) + ' pays ' + WAGER_COST + ' Cr: this fight is <b>2 robots per side</b>.', G.teams[H].col); }
       else notify('🤖 Host ' + nm(G.teams[H]) + ' can\'t pay ' + WAGER_COST + ' Cr for 2 per side: it stays a duel.', G.teams[H].col);
     }
     G.pendingFormat = fmt;
@@ -4036,7 +4091,7 @@ html, body {
       if (!pick || (pick === 'in' && forceIn >= 0)) continue;
       const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' }, h);
       if (d && !bundleEmpty(d.give)) {
-        if (bundleWorth(host, d.give) >= 2) { transfer(Me, host, d.give); if (pick === 'in') forceIn = h; else forceOut.add(h); notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' from ' + nm(Me) + ' and ' + (pick === 'in' ? 'invites it.' : 'leaves it out.'), host.col); }
+        if (bundleWorth(host, d.give) >= 2) { transfer(Me, host, d.give, 'hostdeal'); if (pick === 'in') forceIn = h; else forceOut.add(h); notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' from ' + nm(Me) + ' and ' + (pick === 'in' ? 'invites it.' : 'leaves it out.'), host.col); }
         else notify('✋ ' + nm(host) + ' turns down ' + nm(Me) + '\'s ' + bundleText(d.give) + '.', host.col);
       }
     }
@@ -4144,7 +4199,7 @@ html, body {
   ACT.invite = S => {
     if (!(G.phase === 'arena' && G.host === S && !G.fight && G.pickTeams && G.pickTeams.length === 2)) return;
     const pk = G.pickTeams.slice(), H = G.teams[G.host];
-    (G.inviteOffers || []).forEach(o => { if ((o.want === 'in') === pk.includes(o.team)) { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (o.want === 'in' ? 'invited' : 'left out') + ').', G.teams[o.team].col); } });
+    (G.inviteOffers || []).forEach(o => { if ((o.want === 'in') === pk.includes(o.team)) { transfer(G.teams[o.team], H, o.B, 'hostdeal'); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (o.want === 'in' ? 'invited' : 'left out') + ').', G.teams[o.team].col); } });
     G.inviteOffers = [];
     G.pickTeams = null;
     invite(pk);
@@ -4209,7 +4264,7 @@ html, body {
     if (F && F.format === 'double' && !F.seconds) await addSeconds(F);
     await treacherousStep(F);
     // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
-    { const paid = new Set(); F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; if (!r) return; T.credits += (r.wins >= favWins(T) ? 4 : 2 * r.wins) + (paid.has(ti) ? 0 : 2); paid.add(ti); }); }   // 2 Cr per invited team + 2 per Fan token (FAV: 6 total)
+    { const paid = new Set(); F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; if (!r) return; addCr(T, (r.wins >= favWins(T) ? 4 : 2 * r.wins) + (paid.has(ti) ? 0 : 2), 'appearance'); paid.add(ti); }); }   // 2 Cr per invited team + 2 per Fan token (FAV: 6 total)
     // 2.0 bookie: every side's strength (Repair2, open information only); P(side) ∝ exp(strength)
     if (F.house && fightBots(F) >= 4) { F.house = false; notify('🏠 No room for the House Robot: a 2.0 fight has at most 4 robots.', '#b45309'); }
     { const copies = F.format === 'mirror' ? 2 : 1;
@@ -4336,7 +4391,7 @@ html, body {
       const lowFame = Math.min(...tied.map(x => G.teams[x.ti].fame)), best = tied.filter(x => G.teams[x.ti].fame === lowFame);
       if (best.length > 1) { discardCard(id); lines.push(cardRef(id) + ': tie at ' + top + ' Cr between ' + best.map(x => nm(G.teams[x.ti])).join(' and ') + ' (same fame), nobody gets it'); continue; }
       const w = best[0], T = G.teams[w.ti];
-      T.credits -= w.amt; T.hand.push(id); winners.add(w.ti);
+      addCr(T, -w.amt, 'fightcard'); T.hand.push(id); winners.add(w.ti);
       A.won.push({ team: w.ti, id, price: w.amt });
       cst(id, w.ti).drawn++;
       if (LIVE_ENG[id]) liveStat().won++;
@@ -4377,7 +4432,8 @@ html, body {
       const noMod = !mine.some(k => { if (!F.robots[k]) return false; const sp = spec2(F.robots[k], F.teams[k]); return sp.mod && sp.mod !== 'none'; });
       const useful = id => id === 'swap_the_entry' ? (bet || fights ? 0.3 : 0) : !mine.length && LIVE_ENG[id] ? 0 : id === 'trigger' && noMod ? 0 : LIVE_ENG[id] ? Math.max(0, liveValue(id)) / 100 * 3 : 0;
       const free = T.credits - (bet ? bet.amt : 0) - (aiV2(T) ? P.reserve : 1);
-      const vals = F.auction.cards.map(id => useful(id) * stake * (0.8 + 0.4 * rnd()));
+      const cm = aiSpendMult(T, Math.max(0, aiSurplus(T, true, 'spendCards') - (bet ? bet.amt : 0) - (P.spendMkt || 0)));   // keeps spendMkt for next round's Market   // surplus: a card is worth more (capped)
+      const vals = F.auction.cards.map(id => useful(id) * stake * cm * (0.8 + 0.4 * rnd()));
       const bestK = vals.indexOf(Math.max(...vals)), mn = auctionMin();
       return vals.map((v, k) => { const w = k === bestK ? v : v * 0.5; let amt = Math.floor(w + rnd()); /* random rounding: fewer exact ties */ if (amt < mn) amt = w >= mn - 0.5 ? mn : 0; return amt >= 1 && free >= amt ? amt : 0; });
     });
@@ -4469,14 +4525,14 @@ html, body {
       if (hs < 0) continue;
       const amt = Math.min(mb[hs], t.credits);
       F.bets.push({ team: h, side: hs, amt });
-      t.credits -= amt;
+      addCr(t, -amt, 'bet');
       if (isNetGame()) notify('🎲 <b>' + esc(t.name) + '</b> bets ' + amt + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
       else notify('🎲 You bet ' + amt + ' Cr on <b>' + esc(sideLabel(F, hs)) + '</b> (' + F.bands[hs].name + ').', t.col);
     }
     for (const x of (F.aiBets || aiPlanBets(F))) {   // the AI's bets (planned when the step began, public all along)
       const T = G.teams[x.team]; if (isHuman(T.i)) continue;
       const amt = Math.min(x.amt, T.credits); if (amt < 1) continue;
-      T.credits -= amt; F.bets.push({ team: T.i, side: x.side, amt });
+      addCr(T, -amt, 'bet'); F.bets.push({ team: T.i, side: x.side, amt });
       notify(`🎲 <b>${esc(T.name)}</b> bet ${amt} Cr on <b>${esc(sideLabel(F, x.side))}</b> (${F.pay[x.side]}×).`, T.col);
     }
     resolveCardAuction(F);
@@ -4500,7 +4556,7 @@ html, body {
           const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
           if (how === 'pay') {
             const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' });
-            if (d && !bundleEmpty(d.want) && bundleWorth(W, d.want) <= 3) { transfer(W, o, d.want); notify('💰 ' + nm(W) + ' pays you ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
+            if (d && !bundleEmpty(d.want) && bundleWorth(W, d.want) <= 3) { transfer(W, o, d.want, 'deal'); notify('💰 ' + nm(W) + ' pays you ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
             notify('✋ ' + nm(W) + ' won\'t pay. You swap.', W.col);
           }
         }
@@ -4512,7 +4568,7 @@ html, body {
       if (!pick) continue;
       if (!isHuman(ti) && isHuman(pick.ti)) {   // the AI threatens you first
         const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
-        { const P = G.teams[pick.ti]; if (pay && P.credits >= 2) { transfer(P, o, { cr: 2, items: [] }); notify('💰 ' + nm(P) + ' pays ' + nm(o) + ' 2 Cr to keep its line-up.', P.col); continue; } }
+        { const P = G.teams[pick.ti]; if (pay && P.credits >= 2) { transfer(P, o, { cr: 2, items: [] }, 'deal'); notify('💰 ' + nm(P) + ' pays ' + nm(o) + ' 2 Cr to keep its line-up.', P.col); continue; } }
       }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
       const ph = playHead(o, 'swap_the_entry', G.teams[pick.ti]); logBegin(ph[0], o.col, ph[1], ph[2]);
@@ -4756,7 +4812,7 @@ html, body {
     F.robots.forEach(r => { if (r) r.lastFight = G.round; });
     if (G.host >= 0 && F.robots.some(r => quirkOf(r) === 'Headline Act')) { G.teams[G.host].fame += 1; notify('✦ Headline Act: the Railgunner fought, so host ' + nm(G.teams[G.host]) + ' gains +1 extra fame.', G.teams[G.host].col); }
     if (ws === -1 || ws === 'house') {
-      for (const x of F.bets) { G.teams[x.team].credits += x.amt; x.payout = x.amt; }
+      for (const x of F.bets) { addCr(G.teams[x.team], x.amt, 'bet'); x.payout = x.amt; }
       notify(ws === 'house' ? '🏠 The House Robot wins! Nobody gets fame; bets refunded.' : 'Arena Draw! Bets refunded.', '#111');
       G.awaitingJudgment = false;
       if (checkWin()) return;   // no fate step after a draw: check here (Headline Act can still give the host its last fame)
@@ -4774,7 +4830,7 @@ html, body {
       G.fameSrc = 'fan';
       r.wins++;   // rulebook: no prize money, credits come from bets and appearance money
       if (r.wins === favWins(T)) T.fame += BAL.fame.fanFav;
-      if (quirkOf(r) === 'Hotshot') { T.credits += 1; notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
+      if (quirkOf(r) === 'Hotshot') { addCr(T, 1, 'quirk'); notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
       G.fameSrc = 'quirk';
       if (quirkOf(r) === 'Showstopper' && G.host >= 0 && G.host !== ti && G.teams[G.host].fame > 0) { G.teams[G.host].fame -= 1; T.fame += 1; notify('✦ Showstopper: ' + esc(r.name) + ' steals the show: ' + nm(T) + ' takes the host\'s +1 fame from ' + nm(G.teams[G.host]) + '.', T.col); }
     });
@@ -4792,11 +4848,11 @@ html, body {
       if (x.side === ws) {
         const pay = Math.round(x.amt * payFor(G.teams[x.team], F, ws));
         x.payout = pay;
-        G.teams[x.team].credits += pay;
+        addCr(G.teams[x.team], pay, 'bet');
         notify('🪙 <b>' + esc(G.teams[x.team].name) + '</b> won ' + pay + ' Cr on their bet!', G.teams[x.team].col);
       } else if (G.teams[x.team].sponsor === 'lucky') {
         x.payout = 1;
-        G.teams[x.team].credits += 1;
+        addCr(G.teams[x.team], 1, 'bet');
       } else {
         x.payout = 0;
       }
@@ -4863,10 +4919,10 @@ html, body {
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
-      offs.forEach(o => { transfer(G.teams[o.team], H, o.B); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
+      offs.forEach(o => { transfer(G.teams[o.team], H, o.B, 'hostdeal'); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
       robotLeaves(T, robot, null, 'host scrap'); returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
-      for (const v of G.teams) if (v.sponsor === 'vulture') v.credits += 2;
+      for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
       if (!T.robots.length) noRobotsLeft(T);   // 2.0 (Kev, 8 Nov): no free Scrapbot
