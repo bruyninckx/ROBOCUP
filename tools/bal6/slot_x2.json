@@ -1,0 +1,1 @@
+{ "_note": "own chip slot, 2 copies of each chip (6 chips in the lot deck)", "chips": {"slot": true}, "lots": {"partCopies": {"matador": 2, "bait": 2, "pester": 2}} }
