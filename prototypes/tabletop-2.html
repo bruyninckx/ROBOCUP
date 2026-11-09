@@ -359,6 +359,7 @@ html, body {
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
 <script src="../src2/engine.js"></script>
 <script src="../src2/lineup.js"></script>
+<script src="../src2/matrix.js"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
 <script src="../src2/repair.js"></script>
 <script src="../src2/view.js"></script>
 <script>
@@ -396,7 +397,7 @@ html, body {
     crewDeck: ['mechanic', 'mechanic', 'mechanic', 'mechanic'],
     lots: {                       // the Market lot deck (4 lots a round stays fixed)
       robot: 4, crew: 4,          // New Robot / New Crew lots (crew 4: Kev, 9 Nov, round 7; was 7)
-      partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1 },   // copies per part id (src2/lineup.js PARTS key); others: its own copies
+      partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1, repair: 0, armourkit: 0, bodyguard: 0 },   // Kev, 9 Nov: fewer protect/heal cards: Repair kit, Armour kit, Bodyguard out; Tow cable, Sensor scrambler, Overdrive in   // copies per part id (src2/lineup.js PARTS key); others: its own copies
       kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
     },
     // tuning chips (Kev, 9 Nov sims): slot true = a chip gets its own slot (it does not use one of the 2 part slots);
@@ -1121,24 +1122,54 @@ html, body {
    * ============================================================================ */
   const rivalsOf = ti => G.teams.filter(T => T.i !== ti).flatMap(T => T.robots.map(r => ({ T, r })));
   function fieldOdds(ti, r) {   // robot r vs every robot of the other teams
-    const s = str2(r), per = rivalsOf(ti).map(x => ({ T: x.T, r: x.r, p: R2.winP(s, str2(x.r)) }));
+    const per = rivalsOf(ti).map(x => ({ T: x.T, r: x.r, p: pairP(r, x.r, 'open') }));
     return { per, done: true, p: per.length ? per.reduce((a, x) => a + x.p, 0) / per.length : 0.5 };
   }
-  const duelP = (ra, rb) => R2.winP(str2(ra), str2(rb));
+  /* Kev, 9 Nov: the bookie reads the Lineup Arena matchup table (src2/matrix.js: every robot against every other, 20 fights a pair).
+   * A robot as it comes (no parts, no damage) gets its real matchup odds, shown as a 20% range. Parts and damage shift those odds
+   * by the strength model (the change from the robot as new); the bookie then shows a band only. */
+  const MXT = (window.LU_MATRIX && window.LU_MATRIX.arenas) || {};
+  function mxP(a, b, arena) {
+    for (const ar of [arena, 'open']) { const P = ar && MXT[ar] && MXT[ar].pairs; if (!P) continue;
+      if (P[a + '|' + b]) return { p: P[a + '|' + b][0] / P[a + '|' + b][1], n: P[a + '|' + b][1], arena: ar };
+      if (P[b + '|' + a]) return { p: 1 - P[b + '|' + a][0] / P[b + '|' + a][1], n: P[b + '|' + a][1], arena: ar }; }
+    return null;
+  }
+  // what a level gap usually gives on open floor (the counter tags compare a matchup with this)
+  const MX_EXP = (() => { const P = MXT.open && MXT.open.pairs, lv = n => (LU.ROBOTS[n] || LU.ROBOTS4[n] || [0])[0], by = {}; if (!P) return {};
+    for (const k in P) { const [a, b] = k.split('|'), p = P[k][0] / P[k][1], d = lv(a) - lv(b); (by[d] = by[d] || []).push(p); (by[-d] = by[-d] || []).push(1 - p); }
+    const o = {}; for (const d in by) o[d] = by[d].reduce((x, y) => x + y, 0) / by[d].length; return o; })();
+  const baseLv = r => (LU.ROBOTS[r.name] || LU.ROBOTS4[r.name] || [r.level || 0])[0];
+  const isStock = r => !!r && !partsOf(r).length && !(r.wear && R2.ZONES.some(z => { const q = zonesOf(r)[z.key]; return q.damaged || q.broken; }));
+  const logit = p => Math.log(p / (1 - p)), sigm = x => 1 / (1 + Math.exp(-x));
+  function pairP(ra, rb, arena) {
+    const m = mxP(ra.name, rb.name, arena);
+    if (!m) return R2.winP(str2(ra) + (arena ? arenaFit(ra, arena) : 0), str2(rb) + (arena ? arenaFit(rb, arena) : 0));
+    const fit = arena && m.arena !== arena ? arenaFit(ra, arena) - arenaFit(rb, arena) : 0;   // open-floor data in another arena: the arena fit on top
+    const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, [])) - (str2(rb) - R2.strength(null, rb.name, rb.level, []));
+    return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, m.p))) + delta + fit)));
+  }
+  // a counter: the matchup is 25+ points off what the level gap usually gives
+  function counterOf(ra, rb) {
+    const m = mxP(ra.name, rb.name, 'open'), e = MX_EXP[baseLv(ra) - baseLv(rb)]; if (!m || e == null) return null;
+    const d = m.p - e; return Math.abs(d) >= 0.25 ? { good: d > 0, p: m.p, e } : null;
+  }
+  const rangeTxt = p => { const lo = Math.min(80, Math.floor(p * 5) * 20); return lo + '–' + (lo + 20) + '%'; };
+  const duelP = (ra, rb) => pairP(ra, rb, G && G.fight && G.fight.arena);
   // click an odds chip: this robot's chance against each rival robot on its own (like 1.0's scout panel, no scout needed)
   function openMatchups(ti, r) {
     let el = document.getElementById('scoutPanel');
     if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
     const T = G.teams[ti], F = fieldOdds(ti, r);
     const chip = (p, rr) => { const c = oddsChip(p, false, rr); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
-    const rows = F.per.slice().sort((a, b) => a.T.i - b.T.i || b.p - a.p).map(x => '<tr' + (x.r.exhausted ? ' style="opacity:.55"' : '') + '><td><b style="color:' + x.T.col + '">' + esc(x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + ' <span style="color:#b45309">' + ('★'.repeat(x.r.level) || '·') + '</span>' + (x.r.exhausted ? ' 😴' : '') + '</td><td class="sc-w">' + esc(wepLabel(x.r.name)) + '<br><span class="sc-note">' + esc(zoneTxt(x.r)) + '</span></td><td>' + chip(x.p) + '</td></tr>').join('');
+    const rows = F.per.slice().sort((a, b) => a.T.i - b.T.i || b.p - a.p).map(x => '<tr' + (x.r.exhausted ? ' style="opacity:.55"' : '') + '><td><b style="color:' + x.T.col + '">' + esc(x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + ' <span style="color:#b45309">' + ('★'.repeat(x.r.level) || '·') + '</span>' + (x.r.exhausted ? ' 😴' : '') + '</td><td class="sc-w">' + esc(wepLabel(x.r.name)) + '<br><span class="sc-note">' + esc(zoneTxt(x.r)) + '</span></td><td>' + chip(x.p, isStock(x.r) ? r : null) + (counterOf(r, x.r) ? (counterOf(r, x.r).good ? ' 🎯' : ' ⚠️') : '') + '</td></tr>').join('');
     el.hidden = false;
     el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
       '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + ' <span style="color:#b45309">' + ('★'.repeat(r.level) || 'starter') + '</span></h3>' +
       '<div class="sc-sub">' + esc(wepLabel(r.name)) + ' · Parts: ' + esc(partsTxt(r)) + '<br>Damage: ' + esc(zoneTxt(r)) + '</div>' +
       '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
       (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>bookie</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
-      '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from levels, fitted parts and the damage they carry now. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
+      '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from the Lineup Arena matchup table (20 fights a pair), shifted by fitted parts and damage. Robots as they come show the arena range (e.g. 40–60%); changed robots show a band. 🎯 = counter pick (much better than the level gap says), ⚠️ = bad matchup. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
       '<div class="iv-btns"><button class="secondary sc-close">Close</button></div></div>';
     const close = () => { el.hidden = true; };
     el.querySelector('.sc-x').onclick = close; el.querySelector('.sc-close').onclick = close;
@@ -1162,7 +1193,8 @@ html, body {
   function oddsChip(p, compact, r) {
     if (p == null) return { text: compact ? '…' : 'Bookie…', col: '#9a968c' };
     const bd = bandOf(p);
-    return { text: (compact ? BAND_ABBR[bd.name] : bd.short) + (oddsDoubt(r).length ? ' ???' : ''), col: bd.col };
+    const rng = isStock(r) && !oddsDoubt(r).length;   // a robot as it comes: the Lineup Arena range
+    return { text: rng ? (compact ? rangeTxt(p).replace('–', '-') : rangeTxt(p) + ' · ' + bd.short) : (compact ? BAND_ABBR[bd.name] : bd.short) + (oddsDoubt(r).length ? ' ???' : ''), col: bd.col };
   }
   function lotBuild(r, L) { return L && L.part && r && canFit(r, L) ? withPart(r, L.part) : null; }
   // a module part replaces the robot's own module
@@ -1243,7 +1275,7 @@ html, body {
   const helpAttr = (title, body) => ' data-help="' + (title + '|' + body).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"';
 
   // ---- help texts ----
-  const BAND_HELP = 'The bookie\'s bands, from its surest pick to its longest shot: <b>Heavy fav</b> · <b>Favourite</b> · <b>Even</b> · <b>Underdog</b> · <b>Heavy dog</b>.';
+  const BAND_HELP = 'The bookie\'s bands, from its surest pick to its longest shot: <b>Heavy fav</b> · <b>Favourite</b> · <b>Even</b> · <b>Underdog</b> · <b>Heavy dog</b>. A robot as it comes (no parts, no damage) also shows its chance as a 20% range from the Lineup Arena results.';
   const healWord = () => RB().bodyHeal === 0.5 ? 'half' : Math.round(RB().bodyHeal * 100) + '%';
   const ZONE_HELP = () => 'Damage stays after a fight. Repairs work on three zones: <b>⚙ Drive</b> (wheels, tracks, drive motors), <b>⚔ Weapon</b> (the weapon, its motor, turret or arm) and <b>⛨ Body</b> (chassis, armour, top plate, battery, radio, chip, module, drones). ' + (zoneActs({ broken: true }) === 1 && zoneActs({ damaged: true }) === 1 ? 'One repair action puts a whole zone back to new.' : 'Repairing puts a whole zone back to new: ' + actsWord(zoneActs({ damaged: true })) + ' for a damaged zone, ' + actsWord(zoneActs({ broken: true })) + ' for a broken one.') + ' Body parts that are still there heal back to ' + healWord() + ' by themselves every Upkeep.';
   const LEVEL_HELP = 'Robots come in levels: 0 (starters) to 3 (★★★)' + (BAL.level4.on ? ', and level 4 (★★★★, end game) from round ' + BAL.level4.fromRound : '') + '. A robot wins about 6 fights in 10 against one a level below. A part closes about one level, a legendary part about two.';
@@ -4175,6 +4207,10 @@ html, body {
     const out = []; if (!r) return out;
     const a = G && G.fight && G.fight.arena;
     if (a && ARENA_TAG[a]) { const f = arenaFit(r, a), T = ARENA_TAG[a]; if (Math.abs(f) >= 0.45) out.push({ ic: T[0], label: f > 0 ? T[1] : T[2], good: f > 0, help: 'The bookie: on ' + esc(ARENA_INFO[a] ? ARENA_INFO[a].name : a) + ' ' + esc(r.name) + (f > 0 ? ' does much better' : ' does much worse') + ' than on the open floor (measured in test fights; the odds count it).' }); }
+    { const F = G && G.fight, e = F && F.robots ? F.robots.indexOf(r) : -1;   // Kev, 9 Nov: a counter matchup in this duel (Lineup Arena table)
+      if (e >= 0 && F.robots.length === 2 && F.robots[1 - e]) { const o = F.robots[1 - e], c = counterOf(r, o);
+        if (c) out.push(c.good ? { ic: '🎯', label: 'Counter pick', good: true, help: 'The bookie: in the Lineup Arena ' + esc(r.name) + ' beats ' + esc(o.name) + ' ' + Math.round(c.p * 100) + '% of the time, where its level gap usually gives ' + Math.round(c.e * 100) + '%. Its weapon and shape just suit this opponent.' }
+          : { ic: '⚠️', label: 'Bad matchup', good: false, help: 'The bookie: in the Lineup Arena ' + esc(r.name) + ' beats ' + esc(o.name) + ' only ' + Math.round(c.p * 100) + '% of the time, where its level gap usually gives ' + Math.round(c.e * 100) + '%. This opponent is a bad match for it.' }); } }
     if ((r.parts || []).some(isChip) && (r.level || 0) <= 1) { const k = r.parts.find(isChip); out.push({ ic: '💾', label: 'Chip-tuned', good: true, help: 'The bookie is nervous: a light robot with the ' + esc(LU.PARTS[k].name) + '. Chips are made for level 0-1 frames: a level 1 robot with a chip beats level 3 robots 28-43% of the time instead of 23%.' }); }
     const hh = HITTER[r.name];
     if (hh && out.length < 2) out.push({ ic: '🔨', label: 'Hard hitter', good: null, help: 'The bookie: even when ' + esc(r.name) + ' loses, it leaves its mark. The winner loses ' + hh[0] + '% of its health on average (robots of its level: ' + hh[1] + '%). Expect a damaged winner: good to know for the next fight and for Fate.' });
@@ -4259,7 +4295,9 @@ html, body {
       let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(str2(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
       if (F.house) ss = ss.map(x => x * HOUSE_ODDS);   // the House Robot is neutral and almost never wins (it doesn't count for the KO), but it shakes the odds up
       const mx = Math.max(...ss), ex = ss.map(s => Math.exp(s - mx)), tot = ex.reduce((a, b) => a + b, 0);
-      F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot))); }
+      F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot)));
+      if (F.nSides === 2 && F.robots.length === 2 && copies === 1 && !F.house && F.robots[0] && F.robots[1]) { const p0 = Math.max(0.03, Math.min(0.95, pairP(F.robots[F.sides[0] === 0 ? 0 : 1], F.robots[F.sides[0] === 0 ? 1 : 0], F.arena))); F.p = [p0, 1 - p0]; }   // a duel: the Lineup Arena matchup
+    }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
     if (F.robots.some(r => quirkOf(r) === 'Underrated')) notify('✦ Underrated: the bookie lists Artillery\'s side one band lower than its numbers.', '#111');
@@ -5350,7 +5388,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -6576,7 +6614,8 @@ html, body {
       ctx.fillStyle = 'rgba(43,33,24,0.06)'; rrect(ctx, x + 12, y + 50, w - 24, 56, 4); ctx.fill();
       ctx.fillStyle = bd.col || INK;
       const doubt = robots.some(x2 => oddsDoubt(x2).length);
-      fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
+      const stockDuel = F.nSides === 2 && F.robots.length === 2 && F.robots.every(x2 => x2 && isStock(x2)) && !doubt;
+      fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + (stockDuel ? ' ' + rangeTxt(F.p[s]) : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
       help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
