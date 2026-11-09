@@ -1058,6 +1058,8 @@ html, body {
     return rest.concat(cr ? [cr * repairCr() + ' Cr'] : []).join(' + ') || null;
   }
   const actsWord = n => n + ' repair action' + (n === 1 ? '' : 's');
+  // Kev, 9 Nov: what a repair really costs once the free repair actions run out (shown in red)
+  const repairCrFor = (t, n) => Math.max(0, n - repairActs(t)) * repairCr();
   const repairTxt = t => { const n = repairActs(t); return actsWord(n) + ' left' + (n ? '' : ' (then ' + repairCr() + ' Cr each)'); };
   // the repair rules in one line, for help texts
   const repairRulesTxt = () => {
@@ -3524,7 +3526,7 @@ html, body {
       drone: '<b>Drone:</b> a small helper that flies next to your robot in the fight (shoots, shields or repairs). It can be shot down; fix it with the ⛨ Body repairs.',
       module: '<b>Module:</b> a special device (a shield, jump jets, a repair arm…). A robot holds one module: on a robot that came with one, this one replaces it' + (mods.length ? ' (yours: ' + mods.join(', ') + ')' : '') + '.',
       stat: '<b>Upgrade:</b> makes the robot itself stronger.',
-      chip: '<b>Tuning chip:</b> a new routine for the robot\'s brain (how it moves and attacks). One chip per robot. Made for level 0–1 robots: on heavier frames it can glitch.',
+      chip: '<b>Tuning chip:</b> a new routine for the robot\'s brain (how it moves and attacks). One chip per robot. Made for level 0–1 robots: on them it also drives nimbly (+25% push, +20% speed, sharper turns). On heavier frames it can glitch.',
       legendary: '<b>Legendary part:</b> one of a kind. It goes in the robot\'s own legendary slot (one per robot).'
     }[P.kind] || '';
     return what + '<br>' + (P.kind === 'legendary' ? '' : 'It takes 1 of the robot\'s 2 part slots. ') + 'Parts stay on the robot (they go with it in a trade).';
@@ -5698,11 +5700,12 @@ html, body {
       const fill = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#FBF1D2' : PAPER2, edge = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#C99A1E' : '#4C8A3F', fg = st === 'broken' ? '#fff' : st === 'dmg' ? '#8A6A10' : '#4C8A3F';
       ctx.fillStyle = fill; rrect(ctx, bx, y, bw, h, 3); ctx.fill();
       ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
-      ctx.fillStyle = fg; ctx.textAlign = 'center';
+      ctx.fillStyle = clickable && st === 'dmg' && repairCrFor(G.teams[HS], zoneActs(q)) ? '#B23A2B' : fg; ctx.textAlign = 'center';
       const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
       if (small) fitText(ctx, z.icon + stTxt, bx + bw / 2, y + h / 2 + 3.5, bw - 2, '700', 8.5, F_MONO);
-      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st !== 'ok' ? ' · FIX' : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
-      const hz = helpZone(r, z.key); help(bx, y, bw, h, hz[0], hz[1] + (clickable && st !== 'ok' ? '<br><i>Click: spend ' + actsWord(zoneActs(q)) + ' on it.</i>' : ''));
+      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
+      const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
+      help(bx, y, bw, h, hz[0] + (crN ? ' · <span style="color:#B23A2B">costs ' + crN + ' Cr</span>' : ''), (crN ? '<div style="background:#B23A2B;color:#fff;font-weight:700;padding:5px 8px;border-radius:4px;margin:2px 0 6px">🪙 This repair costs ' + crN + ' Cr: you have ' + actsWord(repairActs(G.teams[HS])) + ' left, extra actions are ' + repairCr() + ' Cr each.</div>' : '') + hz[1] + (clickable && st !== 'ok' ? '<br><i>Click: spend ' + actsWord(zoneActs(q)) + ' on it' + (crN ? ' (' + crN + ' Cr)' : '') + '.</i>' : ''));
       if (clickable && st !== 'ok') hitRegions.push({ kind: 'zone_fix', robot: r, zone: z.key, x: bx, y, w: bw, h });
     });
     ctx.textAlign = 'left';
@@ -6637,39 +6640,36 @@ html, body {
     const F = G.fight, rec = F && F.recap;
     pitHead('7 · FATE · THE RECAP', F && F.winner ? G.teams[F.winner.team].name.toUpperCase() + ' WIN' + (F.winners && F.winners.length > 1 ? '' : 'S') : '', F && F.winner ? G.teams[F.winner.team].col : HAZ);
     if (!rec) return;
-    const D = F.dmg && F.dmg.t.length > 1 ? F.dmg : null, chH = D ? Math.min(150, Math.max(96, L.ah - 330)) : 0;
-    const w = Math.min(L.aw - 40, 800), h = Math.max(210, Math.min(300, L.ah - 24 - (D ? chH + 10 : 0)));
-    const x = L.ax - w / 2, y = L.ay - (h + (D ? chH + 10 : 0)) / 2;
-    if (D) drawDamageChart(ctx, D, rec, x, y + h + 10, w, chH);
+    // Kev, 9 Nov: one recap card. Left: the headline, the damage chart and 3 highlights (no wall of text); right: the bets
+    const D = F.dmg && F.dmg.t.length > 1 ? F.dmg : null;
+    const w = Math.min(L.aw - 40, 860), h = Math.max(240, Math.min(440, L.ah - 24));
+    const x = L.ax - w / 2, y = L.ay - h / 2;
     paperBox(ctx, x, y, w, h, INK, 2, PAPER2);
-    const splitX = x + Math.round(w * 0.56);
-    // left: the fight recap
+    const splitX = x + Math.round(w * 0.6), lw = splitX - x - 26;
     ctx.fillStyle = INK; ctx.textAlign = 'left';
-    ctx.font = '400 15px ' + F_STEN; const hl = wrapLines(ctx, rec.headline, splitX - x - 26, 2);
+    ctx.font = '400 15px ' + F_STEN; const hl = wrapLines(ctx, rec.headline, lw, 2);
     hl.forEach((ln, i) => ctx.fillText(ln, x + 14, y + 22 + i * 16));
     const hy = y + 22 + (hl.length - 1) * 16;
     help(x + 8, y + 8, splitX - x - 16, 18 + (hl.length - 1) * 16, 'Fight recap', esc(rec.headline) + (rec.turning ? '<br>⭐ Turning point at ' + rec.turning.t + ' s' + (rec.turning.line ? ': ' + esc(rec.turning.line.text) : '') + '.' : ''));
-    if (rec.upset) { ctx.fillStyle = '#B07A10'; ellText(ctx, rec.upset, x + 14, hy + 16, splitX - x - 26, '700 10.5px ' + F_SANS); }
-    else {
-      const sumTxt = Array.isArray(rec.summary) ? rec.summary.join('  ') : (rec.summary || '');
-      ctx.fillStyle = MUTED; ellText(ctx, sumTxt, x + 14, hy + 16, splitX - x - 26, '500 10px ' + F_SANS);
-      help(x + 8, hy + 6, splitX - x - 16, 13, 'What each robot lost', esc(sumTxt) + '<br>Damage stays on the robots until it is repaired in Upkeep.');
-    }
-    ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(x + 14, y + 52 + (hl.length - 1) * 16); ctx.lineTo(splitX - 12, y + 52 + (hl.length - 1) * 16); ctx.stroke(); ctx.setLineDash([]);
-    const lines = rec.lines || [];
-    if (!lines.length) { ctx.fillStyle = MUTED; fitText(ctx, 'Clean fight: nothing big happened.', x + 14, y + 74, splitX - x - 26, '500', 10.5); }
-    else {
-      // the 7 most important moments (KOs, cards played, breaks first), shown in time order
-      const top = y + 72 + (hl.length - 1) * 16, nShow = Math.max(3, Math.floor((h - 90 - (hl.length - 1) * 16) / 22));
-      const show = lines.slice().sort((a, b) => (b.pri - a.pri) || (a.t - b.t)).slice(0, nShow).sort((a, b) => a.t - b.t);
-      show.forEach((it, idx) => {
-        const rowY = top + idx * 22;
-        ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, it.t.toFixed(1) + 's', x + 14, rowY, 36, '600', 10, F_MONO);
-        ctx.fillStyle = it.k === 'break' || it.k === 'ko' ? '#B23A2B' : it.k === 'card' ? '#2F6DB5' : it.k === 'event' ? MUTED : INK;
-        ellText(ctx, (it.turn ? '⭐ ' : '') + it.text, x + 54, rowY, splitX - x - 66, (it.k === 'card' || it.turn ? '700' : '500') + ' 10.5px ' + F_SANS);
-        help(x + 8, rowY - 13, splitX - x - 16, 19, it.t.toFixed(1) + ' s' + (it.turn ? ' · ⭐ turning point' : ''), esc(it.detail || it.text) + (it.turn ? '<br>Around here the winner took the health lead for good.' : ''));
-      });
-    }
+    const sumTxt = Array.isArray(rec.summary) ? rec.summary.join('  ') : (rec.summary || '');
+    if (rec.upset) { ctx.fillStyle = '#B07A10'; ellText(ctx, rec.upset, x + 14, hy + 16, lw, '700 10.5px ' + F_SANS); }
+    else { ctx.fillStyle = MUTED; ellText(ctx, sumTxt, x + 14, hy + 16, lw, '500 10px ' + F_SANS); }
+    help(x + 8, hy + 6, splitX - x - 16, 13, 'What each robot lost', esc(sumTxt) + '<br>Damage stays on the robots until it is repaired in Upkeep.');
+    // 3 highlights: the most important moments (KOs, cards, breaks first), in time order
+    const lines = rec.lines || [], rowH = 20;
+    const show = lines.slice().sort((a, b) => (b.pri - a.pri) || (a.t - b.t)).slice(0, 3).sort((a, b) => a.t - b.t);
+    const hlTop = y + h - 14 - Math.max(1, show.length) * rowH + 12;
+    const cTop = hy + 26, cH = hlTop - cTop - 22;
+    if (D && cH > 70) drawDamageChart(ctx, D, rec, x + 10, cTop, splitX - x - 20, cH);
+    ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(x + 14, hlTop - 18); ctx.lineTo(splitX - 12, hlTop - 18); ctx.stroke(); ctx.setLineDash([]);
+    if (!show.length) { ctx.fillStyle = MUTED; fitText(ctx, 'Clean fight: nothing big happened.', x + 14, hlTop, lw, '500', 10.5); }
+    show.forEach((it, idx) => {
+      const rowY = hlTop + idx * rowH;
+      ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, Math.round(it.t) + 's', x + 14, rowY, 34, '600', 10, F_MONO);
+      ctx.fillStyle = it.k === 'break' || it.k === 'ko' ? '#B23A2B' : it.k === 'card' ? '#2F6DB5' : it.k === 'event' ? MUTED : INK;
+      ellText(ctx, (it.turn ? '⭐ ' : '') + it.text, x + 50, rowY, splitX - x - 62, (it.k === 'card' || it.turn || it.k === 'ko' ? '700' : '500') + ' 10.5px ' + F_SANS);
+      help(x + 8, rowY - 13, splitX - x - 16, 18, Math.round(it.t) + ' s' + (it.turn ? ' · ⭐ turning point' : ''), esc(it.detail || it.text) + (it.turn ? '<br>Around here the winner took the health lead for good.' : '') + (lines.length > 3 ? '<br><i>The full fight is in the log.</i>' : ''));
+    });
     ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(splitX, y + 10); ctx.lineTo(splitX, y + h - 10); ctx.stroke();
     // right: the bets and payouts
     const rx = splitX + 14, rw = x + w - rx - 12;
@@ -6706,51 +6706,45 @@ html, body {
   // the damage chart: x = fight time, y = damage taken (0–100), a line per robot in its team colour; grey bars = all the
   // damage dealt in each 5 s, so you see where the fight was decided; ticks = cards played
   function drawDamageChart(ctx, D, rec, x, y, w, h) {
-    paperBox(ctx, x, y, w, h, INK, 2, PAPER2);
-    const pl = x + 40, pr = x + w - 150, pt = y + 24, pb = y + h - 20, T = Math.max(10, D.t[D.t.length - 1]);
+    // Kev, 9 Nov: sits inside the recap card; a line per robot (damage taken), KO and ⚔ badges, the legend in one row under it
+    const nW = D.who.length, legH = 16 * Math.ceil(nW / 2);
+    const pl = x + 32, pr = x + w - 8, pt = y + 16, pb = y + h - 16 - legH, T = Math.max(10, D.t[D.t.length - 1]);
     const X = t => pl + (pr - pl) * t / T, Y = d => pb - (pb - pt) * d / 100;
-    ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'DAMAGE OVER THE FIGHT', x + 10, y + 15, 260, '700', 10, F_MONO);
-    help(x, y, w, h, 'Damage over the fight', 'Each line is a robot\'s damage (its health bar from the fight screen, upside down), over the fight time. A KO badge marks a knock-out; the line keeps the real damage. The grey bars are all the damage done in each 5 seconds: tall bars = where the fight was decided. Ticks at the bottom: cards played. A red ⚔ badge: that robot lost its weapon (or the weapon motor died) there.');
-    // grid and axes
+    ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'DAMAGE TAKEN', x + 4, y + 8, 160, '700', 9.5, F_MONO);
+    help(x, y, w, h, 'Damage over the fight', 'Each line is a robot\'s damage taken over the fight time. KO: knocked out there (the line keeps its real damage). Red ⚔: it lost its weapon (or the weapon motor died). Ticks at the bottom: cards played.');
     ctx.strokeStyle = LINE; ctx.lineWidth = 1;
-    for (const d of [0, 50, 100]) { ctx.beginPath(); ctx.moveTo(pl, Y(d)); ctx.lineTo(pr, Y(d)); ctx.stroke(); ctx.fillStyle = MUTED; ctx.textAlign = 'right'; fitText(ctx, d + '%', pl - 4, Y(d) + 3, 34, '600', 8.5, F_MONO); }
-    ctx.textAlign = 'center'; for (let t = 0; t <= T; t += T > 90 ? 30 : 15) { ctx.fillStyle = MUTED; fitText(ctx, t + 's', X(t), pb + 12, 30, '600', 8.5, F_MONO); }
-    // 5 s buckets of all damage dealt
-    const B = [], step = 5; let maxB = 1;
-    for (let i = 1; i < D.t.length; i++) { const k = Math.floor(D.t[i - 1] / step), inc = D.d[i].reduce((a, v, j) => a + Math.max(0, v - D.d[i - 1][j]), 0); B[k] = (B[k] || 0) + inc; }
-    B.forEach(v => { maxB = Math.max(maxB, v || 0); });
-    ctx.fillStyle = 'rgba(110,100,87,0.22)';
-    B.forEach((v, k) => { if (!v) return; const bh = (pb - pt) * 0.9 * v / maxB, x0 = X(k * step) + 1, x1 = X(Math.min(T, (k + 1) * step)) - 1; ctx.fillRect(x0, pb - bh, Math.max(1, x1 - x0), bh); });
-    // cards played
+    for (const d of [0, 50, 100]) { ctx.beginPath(); ctx.moveTo(pl, Y(d)); ctx.lineTo(pr, Y(d)); ctx.stroke(); ctx.fillStyle = MUTED; ctx.textAlign = 'right'; fitText(ctx, d + '%', pl - 4, Y(d) + 3, 28, '600', 8.5, F_MONO); }
+    ctx.textAlign = 'center'; for (let t = 0; t <= T; t += T > 90 ? 30 : 15) { ctx.fillStyle = MUTED; fitText(ctx, t + 's', X(t), pb + 11, 30, '600', 8.5, F_MONO); }
     ctx.strokeStyle = '#2F6DB5'; ctx.lineWidth = 2;
-    (rec && rec.lines || []).filter(l => l.k === 'card').forEach(l => { ctx.beginPath(); ctx.moveTo(X(l.t), pb); ctx.lineTo(X(l.t), pb - 7); ctx.stroke(); });
-    // a line per robot
-    D.who.forEach((wh, j) => {
-      ctx.strokeStyle = wh.col; ctx.lineWidth = wh.house ? 1.5 : 2.5; if (wh.house) ctx.setLineDash([4, 3]);
-      ctx.beginPath(); D.t.forEach((t, i) => { const px = X(t), py = Y(D.d[i][j]); if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }); ctx.stroke(); ctx.setLineDash([]);
-      const ly = pt + 4 + j * 16, last = D.d[D.d.length - 1][j];
-      ctx.fillStyle = wh.col; ctx.fillRect(pr + 12, ly - 7, 12, 4);
-      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, wh.name + ' ' + last + '%' + (D.ko && D.ko[j] != null ? ' · KO' : ''), pr + 28, ly - 2, x + w - pr - 36, '600', 10);
-    });
-    // a weapon lost: a red badge with a crossed-out sword on that robot's line
-    const wl = D.wl || [];
+    (rec && rec.lines || []).filter(l => l.k === 'card').forEach(l => { ctx.beginPath(); ctx.moveTo(X(l.t), pb); ctx.lineTo(X(l.t), pb - 6); ctx.stroke(); });
     const atT = (j, t) => { let i = D.t.findIndex(v => v >= t); if (i < 0) i = D.t.length - 1; if (i === 0) return D.d[0][j]; const t0 = D.t[i - 1], t1 = D.t[i], f = t1 > t0 ? Math.max(0, Math.min(1, (t - t0) / (t1 - t0))) : 1; return D.d[i - 1][j] + (D.d[i][j] - D.d[i - 1][j]) * f; };
-    wl.forEach(e => {
-      const wh = D.who[e.j]; if (!wh) return;
-      const px = X(Math.min(T, e.t)), py = Y(atT(e.j, e.t)), r = 8;
-      ctx.fillStyle = '#B23A2B'; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = wh.col; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '700 10px ' + F_SANS; ctx.fillText('⚔', px, py + 3.5);
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 5, py + 5); ctx.lineTo(px + 5, py - 5); ctx.stroke();
-      help(px - r, py - r, r * 2, r * 2, wh.name + ' loses a weapon', e.label + (/motor/i.test(e.label) ? ' died' : ' came off') + ' at ' + Math.round(e.t) + ' s' + (e.by ? ' (hit by ' + e.by + ')' : '') + '.');
+    D.who.forEach((wh, j) => {   // a line stops where its robot was knocked out
+      const end = D.ko && D.ko[j] != null ? D.ko[j] : Infinity;
+      ctx.strokeStyle = wh.col; ctx.lineWidth = wh.house ? 1.5 : 2.5; if (wh.house) ctx.setLineDash([4, 3]);
+      ctx.beginPath(); let started = false;
+      D.t.forEach((t, i) => { if (t > end + 0.01) return; const px = X(t), py = Y(D.d[i][j]); if (started) ctx.lineTo(px, py); else { ctx.moveTo(px, py); started = true; } });
+      if (end !== Infinity) ctx.lineTo(X(Math.min(T, end)), Y(atT(j, end)));
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+    (D.wl || []).forEach(e => {
+      const wh = D.who[e.j]; if (!wh || (D.ko && D.ko[e.j] != null && e.t > D.ko[e.j] + 0.01)) return;
+      const px = X(Math.min(T, e.t)), py = Y(atT(e.j, e.t)), r = 6.5;
+      ctx.fillStyle = '#B23A2B'; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = wh.col; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '700 8px ' + F_SANS; ctx.fillText('⚔', px, py + 3);
+      help(px - r, py - r, r * 2, r * 2, wh.name + ' loses its weapon', esc(e.label) + (/motor/i.test(e.label) ? ' died' : ' came off') + ' at ' + Math.round(e.t) + ' s' + (e.by ? ' (hit by ' + esc(e.by) + ')' : '') + '.');
     });
     (D.ko || []).forEach((t, j) => { if (t == null || !D.who[j]) return;
-      const px = X(Math.min(T, t)), py = Y(atT(j, t)); ctx.font = '700 9px ' + F_MONO; const tw = ctx.measureText('KO').width + 8;
-      ctx.fillStyle = INK; rrect(ctx, px - tw / 2, py - 18, tw, 13, 3); ctx.fill(); ctx.strokeStyle = D.who[j].col; ctx.lineWidth = 2; rrect(ctx, px - tw / 2, py - 18, tw, 13, 3); ctx.stroke();
-      ctx.fillStyle = HAZ; ctx.textAlign = 'center'; ctx.fillText('KO', px, py - 8.5);
-      help(px - tw / 2, py - 18, tw, 13, D.who[j].name + ' is out', 'Knocked out at ' + Math.round(t) + ' s. The line shows the damage it had taken by then.'); });
-    if (wl.length) { const ly = pt + 4 + D.who.length * 16 + 6; ctx.fillStyle = '#B23A2B'; ctx.beginPath(); ctx.arc(pr + 18, ly - 4, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '700 8px ' + F_SANS; ctx.fillText('⚔', pr + 18, ly - 1);
-      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, 'weapon lost', pr + 28, ly - 1, x + w - pr - 36, '600', 10); }
+      const px = X(Math.min(T, t)), py = Y(atT(j, t)); ctx.font = '700 8.5px ' + F_MONO; const tw = ctx.measureText('KO').width + 7;
+      ctx.fillStyle = INK; rrect(ctx, px - tw / 2, py - 6, tw, 12, 3); ctx.fill(); ctx.strokeStyle = D.who[j].col; ctx.lineWidth = 2; rrect(ctx, px - tw / 2, py - 6, tw, 12, 3); ctx.stroke();
+      ctx.fillStyle = HAZ; ctx.textAlign = 'center'; ctx.fillText('KO', px, py + 3);
+      help(px - tw / 2, py - 6, tw, 12, D.who[j].name + ' is out', 'Knocked out at ' + Math.round(t) + ' s, with this much damage taken.'); });
+    // legend: two per row under the plot
+    const cw = (w - 8) / 2;
+    D.who.forEach((wh, j) => {
+      const lx = x + 4 + (j % 2) * cw, ly = pb + 24 + Math.floor(j / 2) * 16, last = D.d[D.d.length - 1][j];
+      ctx.fillStyle = wh.col; ctx.fillRect(lx, ly - 6, 12, 4);
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, wh.name + ' ' + last + '%' + (D.ko && D.ko[j] != null ? ' · KO' : ''), lx + 16, ly - 1, cw - 20, '600', 10);
+    });
   }
   function drawLiveBattleInArena(ctx, now, L) {
     const F = G.fight, S = F.S;
