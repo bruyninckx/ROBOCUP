@@ -415,7 +415,7 @@ html, body {
     level4: {                     // level 4 end-game robots (docs/robocus-2.0-level4.md; Kev, 8 Nov: "we need level 4 in the game")
       on: true, fromRound: 6,     // their lots start in this round (Kev, 8 Nov: 6, was 7)
       perGame: 8,                 // of the 8, drawn at random per game (8 = all; Kev, 8 Nov: 8, was 4)
-      lotEvery: 1,                // from fromRound: a level 4 lot every N rounds (1 = every round) while any are left
+      lotEvery: 2,                // from fromRound: a level 4 lot every N rounds while any are left (Kev, 10 Nov: 2, was 1: about 6 a game were bought, almost as many as levels 1-3 together)
       minBid: 5,                  // lowest winning bid for a level 4 lot (lower = unsold, back to its deck)
       upkeep: 0,                  // extra Cr per level 4 robot every Upkeep (option: 1; the Accountant does not cover it)
       announce: true,             // name next round's level 4 robot a round ahead (like the legendary parts)
@@ -1146,7 +1146,7 @@ html, body {
     const m = mxP(ra.name, rb.name, arena);
     if (!m) return R2.winP(str2(ra) + (arena ? arenaFit(ra, arena) : 0), str2(rb) + (arena ? arenaFit(rb, arena) : 0));
     const fit = arena && m.arena !== arena ? arenaFit(ra, arena) - arenaFit(rb, arena) : 0;   // open-floor data in another arena: the arena fit on top
-    const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, [])) - (str2(rb) - R2.strength(null, rb.name, rb.level, []));
+    const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (str2(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
     return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, m.p))) + delta + fit)));
   }
   // a counter: the matchup is 25+ points off what the level gap usually gives
@@ -1154,6 +1154,50 @@ html, body {
     const m = mxP(ra.name, rb.name, 'open'), e = MX_EXP[baseLv(ra) - baseLv(rb)]; if (!m || e == null) return null;
     const d = m.p - e; return Math.abs(d) >= 0.25 ? { good: d > 0, p: m.p, e } : null;
   }
+  /* Kev, 10 Nov: which part suits which robot. Every deck part on every robot vs 4 robots a level up (32 fights a pair, same seeds
+   * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
+   * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
+  const PART_FIT = {"Angler":{"jam":[1,34],"core":[1,47]},"Brawler":{"medic":[1,38],"booster":[1,41],"powerkit":[1,44],"hospital":[1,47],"shield":[-1,-19],"mines":[-1,-16],"popper":[-1,-25],"jam":[-1,-12]},"Forklift":{"mines":[1,31],"tow":[1,38],"pester":[-1,-12]},"Juggernaut":{"shield":[1,28]},"Lodestone":{"shield":[1,31],"hull":[1,31],"pester":[-1,-22]},"Mincer":{"popper":[1,50],"pester":[1,41]},"Orbiter":{"matador":[1,53]},"Pincher":{"medic":[1,41]},"Popcorn":{"overdrive":[1,41],"pester":[-1,-16]},"Ramrod":{"booster":[1,38],"emp":[1,47],"powerkit":[1,53],"pester":[-1,-22]},"Rocketeer":{"jam":[1,31],"overdrive":[1,31],"pester":[1,25]},"Sawblast":{"overdrive":[1,53],"shield":[-1,-9]},"Scythe":{"booster":[1,63]},"Thumper":{"matador":[1,28],"booster":[-1,-16],"tow":[-1,-9],"overdrive":[-1,0]},"Thwacker":{"tow":[1,34]},"Vertigo":{"weapon":[1,34],"core":[1,44],"pester":[-1,-37]},"Whaler":{"jam":[1,25],"overdrive":[1,47],"matador":[-1,-12]},"Whirlwind":{"bait":[1,28],"pester":[1,28],"shield":[-1,0]},"Blowtorch":{"tow":[-1,-25]},"Corkscrew":{"overdrive":[-1,-22],"bait":[-1,-19],"pester":[-1,-37]},"Grandmaster":{"pester":[-1,-3]},"Hydra":{"shield":[-1,-16]},"Jouster":{"bait":[-1,-19]},"Rumbler":{"tow":[-1,-9]},"Wrecker":{"powerkit":[-1,-16]}};
+  /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
+   * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
+  const EPIC = {
+    'Ramrod|powerkit': ['Freight Train', 38, 93], 'Whaler|overdrive': ['Killer Whale', 17, 67, ['ice']],
+    'Orbiter|matador': ['Matador Moon', 39, 78, ['ice']], 'Brawler|powerkit': ['Heavyweight', 50, 86, ['ice']], 'Popcorn|overdrive': ['Popcorn Blast', 36, 69],
+    'Scythe|booster': ['Grim Rush', 33, 63, ['ice']],
+    'Ramrod|emp': ['Stun Ram', 38, 79, ['cage', 'ice', 'killbox', 'saws']],
+    // Kev, 10 Nov (more epic combos): 28 more candidates re-tested on fresh seeds, then in every arena; these five gain 30+ points, well above their part's average
+    'Ramrod|booster': ['Rocket Ram', 38, 90, ['ice']], 'Orbiter|popper': ['Pinball', 39, 75, ['saws']], 'Thwacker|tow': ['Whiplash', 44, 81],
+    'Brawler|medic': ['Cornerman', 50, 83, ['cage']], 'Angler|jam': ['Blackout Lure', 39, 75, ['saws']],   // Kev, 10 Nov: keep it for open floor, where it holds
+  };   // 10 Nov double check: every arena, own level and two levels up. Stun Ram (Ramrod + EMP) dropped to a great fit (only +7 to +28 off open floor);
+       // the 4th field: arenas where the combo does not hold (on the Ice Rink these gain 0-9 points; Grim Rush loses 20)
+  const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
+  /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
+   * every level 3 and 4 robot; the best re-tested on fresh seeds (scratch tri.js, stack.js). [parts, wins vs bare L3/L4: stock, fully kitted,
+   * and vs L3/L4 that carry Weapon overhaul + Reinforced hull + Prototype core]. Parts stack about evenly (+20 points each); these four
+   * stay level with a one-level gap even when the big robots are kitted too. */
+  const TRIPLE = {
+    Scythe: [['booster', 'powerkit', 'core'], 27, 92, 31], Gyro: [['tow', 'jammer', 'hospital'], 35, 96, 31],
+    Brawler: [['powerkit', 'gunner', 'hospital'], 19, 92, 31], Mauler: [['gunner', 'weapon', 'core'], 35, 88, 23],
+  };
+  const tripleOf = r => { const t = r && TRIPLE[r.name]; return t && t[0].every(k => partsOf(r).includes(k)) ? t : null; };
+  // the Market: this part would complete (or be the 2nd of) a giant-slayer build on a robot that has the rest
+  const tripleTargets = k => G.teams.flatMap(T => T.robots.filter(r => { const t = TRIPLE[r.name]; if (!t || !t[0].includes(k) || partsOf(r).includes(k)) return false;
+    return t[0].filter(x => x !== k).every(x => partsOf(r).includes(x)) && canFit(r, LOTS['p_' + k] || { part: k }); }).map(r => ({ T, r, t: TRIPLE[r.name] })));
+  /* Kev, 10 Nov: free-for-all and 2v2 specialists. 1,200 four-robot free-for-alls and 1,200 2v2s with random lineups (open floor, scratch
+   * ffa.js / tv.js): each robot's wins against what its duel strength (the matchup table) predicts. In a free-for-all the duel favourite
+   * wins less than its duel numbers say (FFA win = 10 + 0.59 x the duel-based share), and these robots are far off even that,
+   * the same way on both halves of the fights (split-half r = 0.81): [points above / below]. 2v2 follows duel strength (r = 0.22 for
+   * anything extra); only two robots are clearly worse partners. */
+  const FFA_FIT = { Mauler: 17, Orbiter: 14, Ramrod: 14, Thwacker: 14, Rocketeer: 13, Gyro: 11, Vertigo: 11, Whirlwind: 11, Trebuchet: -19, Corkscrew: -18, Forklift: -17, Jouster: -11 };
+  const TEAM_FIT = { Snapjaw: -10, Trebuchet: -11 };
+  const epicOf = (name, k, arena) => { const e = EPIC[name + '|' + k]; if (!e) return null; const a = arena === undefined ? ARENA_NOW() : arena; return e[3] && a && e[3].includes(a) ? null : e; };
+  const epicWhere = e => !e || !e[3] ? '' : e[3].length >= 4 ? ' (open floor only)' : ' (not on ' + e[3].map(a => ARENA_INFO[a] ? ARENA_INFO[a].name : a).join(', ') + ')';
+  const epicsOn = r => partsOf(r).map(k => epicOf(r.name, k) ? { k, e: epicOf(r.name, k) } : null).filter(Boolean);
+  // every robot on the table this part would make an epic combo with (for the Market)
+  const epicTargets = k => G.teams.flatMap(T => T.robots.filter(r => epicOf(r.name, k) && canFit(r, LOTS['p_' + k] || { part: k })).map(r => ({ T, r, e: epicOf(r.name, k) })));
+  const fitOf = r => partsOf(r).map(k => PART_FIT[r.name] && PART_FIT[r.name][k] ? { k, f: PART_FIT[r.name][k][0], d: PART_FIT[r.name][k][1] } : null).filter(Boolean);
+  const fitAdj = r => (tripleOf(r) ? 0.6 : 0) + fitOf(r).reduce((a, x) => a + (epicOf(r.name, x.k) ? 0.7 : 0.3) * x.f, 0) + epicsOn(r).filter(x => !(PART_FIT[r.name] && PART_FIT[r.name][x.k])).length * 0.7;   // the bookie knows these: +-0.3 logit a fit
+  const fitNote = (name, k) => { const ep = epicOf(name, k); if (ep) return ' · ⚡ EPIC: ' + ep[0]; const x = PART_FIT[name] && PART_FIT[name][k]; return x ? (x[0] > 0 ? ' · 🧩 great fit' : ' · 🧩 poor fit') : ''; };
   const rangeTxt = p => { const lo = Math.min(80, Math.floor(p * 5) * 20); return lo + '–' + (lo + 20) + '%'; };
   const duelP = (ra, rb) => pairP(ra, rb, G && G.fight && G.fight.arena);
   // click an odds chip: this robot's chance against each rival robot on its own (like 1.0's scout panel, no scout needed)
@@ -1210,7 +1254,8 @@ html, body {
     if (!nb) return undefined;
     const a = fieldOdds(ti, r).p, b = fieldOdds(ti, nb).p;
     const so = swapOut(r, L), swT = so ? ' (replaces its ' + so + ')' : '', swS = so ? ' ⇄' : '';
-    return { text: shiftTxt(a, b) + swT, short: shiftTxt(a, b) + swS, col: b > a + 0.005 ? '#17803a' : b < a - 0.005 ? '#d62828' : '#777' };
+    const fn = fitNote(r.name, L.part);
+    return { text: shiftTxt(a, b) + swT + fn, short: shiftTxt(a, b) + swS + (fn ? ' 🧩' : ''), col: b > a + 0.005 ? '#17803a' : b < a - 0.005 ? '#d62828' : '#777' };
   }
   // 1.0's counter tags (▲ / ▼ weapon classes) don't exist in 2.0: the helpers stay, with nothing to show
   const clsShort = k => k, clsName = k => k;
@@ -1403,11 +1448,11 @@ html, body {
 
   const analystNote = () => {
     if (!hasCrew(me(), 'analyst') || G.phase !== 'market') return '';
-    const nx = G.lots.length >= NLOTS ? G.lots.slice(-NLOTS).reverse() : null;
+    const nx = G.nextMarket && G.nextRound === G.round + 1 ? G.nextMarket : null;
     const nmOf = id => id === 'robot' ? 'New Robot' : id === 'crew' ? 'New Crew' : LOTS[id] ? LOTS[id].name : id;
-    return '<br>🔮 <b>Market Analyst, next round:</b> ' + (nx ? nx.map(nmOf).join(', ') + (G.legendNext ? ' (the last slot goes to the legendary)' : '') : 'the lot deck reshuffles, no peek');
+    return '<br>🔮 <b>Market Analyst, next round:</b> ' + (nx ? nx.map(nmOf).join(', ') + ' (the Analyst sees the mystery crate too)' : 'not dealt yet');
   };
-  const legendNote = () => analystNote() + (G.legendNext ? '<br>🌟 <b>Next round:</b> ' + lotRef(G.legendNext) + ' (legendary). Save up!' : '');
+  const legendNote = () => analystNote() + (G.nextMarket && G.nextRound === G.round + 1 ? '<br>🔭 <b>Next round:</b> ' + G.nextMarket.map((id, k) => conveyorShown(k) ? lotRef(id) : '📦 mystery crate').join(' · ') : '');
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
@@ -1756,7 +1801,7 @@ html, body {
       deck: shuffle(DECK_TEMPLATE.slice()), discard: [], auctionDeck: shuffle(AUCTION_TEMPLATE.slice()), auctionDiscard: [], prevHost: -1, intrigueTurn: -1, startFame: G0fame,
       lots: lotDeck(),
       robotDeck: [], robotDecks: { 1: shuffle(robotsOfLevel(1)), 2: shuffle(robotsOfLevel(2)), 3: shuffle(robotsOfLevel(3)), 4: [] }, crewDeck: shuffle(CREW_DECK()),
-      legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null, l4Next: null,
+      legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null, l4Next: null, nextMarket: null, nextRound: 0, bargainK: null, nextBargain: false,
       fight: null, over: false, crateChoices: null,
       stats: newStats(),   // the end-of-game awards' tally (Kev, 9 Nov)
       sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
@@ -3152,27 +3197,33 @@ html, body {
     G.marketResults = null;
     G.marketAuction = null;
     setCameraGoal('compound');
-    if (G.lots.length < NLOTS) G.lots = lotDeck();
-    G.market = [];
-    for (let k = 0; k < NLOTS; k++) G.market.push(dealLot());
-    // the legendary announced last round takes the last slot; then maybe announce the next one
-    if (G.legendNext) {
-      const lg = G.legendNext; G.legendNext = null;
-      const old = G.market[NLOTS - 1]; if (LOTS[old] && LOTS[old].starter) returnStarter(LOTS[old].starter); else G.lots.unshift(old);
-      G.market[NLOTS - 1] = lg;
-      notify('🌟 <b>Legendary in the Market:</b> ' + lotRef(G.market[NLOTS - 1]) + ' (one copy).', '#b45309');
-    }
+    // Kev, 10 Nov: the conveyor. This round's lots were dealt (and shown) a round ahead; see dealMarket
+    const binId = G.nextBargain && G.nextMarket && G.nextRound === G.round ? G.nextMarket[NLOTS - 1] : null;
+    if (G.nextMarket && G.nextRound === G.round && G.nextMarket.length === NLOTS) G.market = G.nextMarket; else G.market = dealMarket(G.round);
+    G.nextMarket = null; G.nextBargain = false; G.bargainK = binId ? NLOTS - 1 : null;
+    for (const id of G.market) { const Lx = LOTS[id]; if (!Lx) continue;
+      if (Lx.legend) notify('🌟 <b>Legendary in the Market:</b> ' + lotRef(id) + ' (one copy).', '#b45309');
+      else if (Lx.robot && isL4(Lx.starter)) notify('⭐ <b>Level 4 in the Market:</b> ' + esc(Lx.starter) + ' (★★★★, ' + esc(wepLabel(Lx.starter)) + '). Lowest winning bid ' + BAL.level4.minBid + ' Cr.', '#7c3aed'); }
+    // Kev, 10 Nov: the bookie calls out an epic combo on offer
+    for (const id of G.market) { const Lx = LOTS[id]; if (!Lx || !Lx.part) continue;
+      for (const q of tripleTargets(Lx.part)) notify('👑 <b>Giant-slayer build in reach:</b> ' + lotRef(id) + ' would complete <b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ' (' + q.t[0].map(k => esc(LU.PARTS[k].name)).join(' + ') + ').', '#7C4D9E');
+      for (const q of epicTargets(Lx.part)) notify('⚡ <b>Epic combo in the Market:</b> ' + lotRef(id) + ' on <b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ' = <b>' + esc(q.e[0]) + '</b> (wins ' + q.e[1] + '% → ' + q.e[2] + '% against robots a level up' + esc(epicWhere(q.e)) + ').', '#B07A10'); }
     // Kev, 6 Nov: rounds 1–5 always offer at least one robot (a team that lost robots must be able to rebuild)
     // 2.0 (no free Scrapbot): also every round in which a team has no robots left
     if ((G.round <= robotLotRounds() || G.teams.some(t => !t.robots.length)) && !G.market.some(id => LOTS[id] && LOTS[id].robot)) {
-      const k = G.market.findIndex(id => !(LOTS[id] && LOTS[id].legend));
-      if (k >= 0) { const old = G.market[k]; if (LOTS[old] && LOTS[old].crew) G.crewDeck.unshift(LOTS[old].crew); else G.lots.unshift(old); G.market[k] = dealRobot(); }   // the part goes to the bottom of the lot deck
+      const free = id => !(LOTS[id] && LOTS[id].legend);
+      const k = free(G.market[NLOTS - 1]) ? NLOTS - 1 : G.market.findIndex(free);   // the mystery slot first: the lots shown a round ahead stay as promised
+      if (k >= 0) { returnLot(G.market[k]); G.market[k] = dealRobot(); }   // the part goes to the bottom of the lot deck
     }
     if (G.round >= 2 && G.round % 2 === 0 && G.legends.length) {
       G.legendNext = G.legends.pop();
       notify('🌟 <b>Next round\'s Market:</b> ' + lotRef(G.legendNext) + ' (legendary). Save your credits!', '#b45309');
     }
     l4Market();
+    if (G.bargainK != null && G.market[G.bargainK] !== binId) { G.lots.unshift(binId); G.bargainK = null; }   // a late robot swap took the slot: the part goes back to the deck
+    // the conveyor: next round's lots, three of them face up (plus an announced legendary / level 4), one mystery crate
+    G.nextMarket = dealMarket(G.round + 1); G.nextRound = G.round + 1;
+    notify('🔭 <b>Next round\'s Market:</b> ' + G.nextMarket.map((id, k) => conveyorShown(k) ? lotRef(id) : '📦 a mystery crate').join(' · ') + '.', '#4A5560');
     for (let s = 0; s < 4; s++) { PS(s).bids = zeroBids(); PS(s).install = []; }
     G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
     updateHud();
@@ -3196,12 +3247,12 @@ html, body {
       n = n || l4Draw();
       if (n) {
         const free = id => !(LOTS[id] && LOTS[id].legend);
-        let k = G.market.findIndex(id => free(id) && !(LOTS[id] && (LOTS[id].robot || LOTS[id].crew)));
+        let k = free(G.market[NLOTS - 1]) ? NLOTS - 1 : -1;   // the mystery slot first (the conveyor's promise)
+        if (k < 0) k = G.market.findIndex(id => free(id) && !(LOTS[id] && (LOTS[id].robot || LOTS[id].crew)));
         if (k < 0) k = G.market.findIndex(id => free(id) && !(LOTS[id] && LOTS[id].robot));
         if (k < 0) k = G.market.findIndex(free);
         if (k >= 0) {
-          const old = G.market[k];
-          if (LOTS[old] && LOTS[old].starter) returnStarter(LOTS[old].starter); else if (LOTS[old] && LOTS[old].crew) G.crewDeck.unshift(LOTS[old].crew); else G.lots.unshift(old);
+          returnLot(G.market[k]);
           G.market[k] = robotLot(n);
           notify('⭐ <b>Level 4 in the Market:</b> ' + esc(n) + ' (★★★★, ' + esc(wepLabel(n)) + '). Lowest winning bid ' + BAL.level4.minBid + ' Cr.', '#7c3aed');
         } else G.robotDecks[4].push(n);
@@ -3372,12 +3423,20 @@ html, body {
     if (L.robot) return robotWant(t, id, L.legend ? 6 : 4);
     if (L.crew) return crewWant(t, L.crew);
     if (L.crewLot) return 2.5;
-    if (!canTake(t, id)) return 0;
-    return partWorth(t, id) * aiP(t).partK;
+    // Kev, 10 Nov: the AI knows the bookie's combo tags. Its own epic combo or great fit is worth more; a rival's epic part is worth
+    // a denial bid (it goes to the Stash) even when none of its robots can use it
+    const own = L.part ? Math.max(0, ...t.robots.filter(r => canFit(r, L)).map(r => epicOf(r.name, L.part, null) ? 3.5 : PART_FIT[r.name] && PART_FIT[r.name][L.part] ? 1.2 * PART_FIT[r.name][L.part][0] : 0)) : 0;
+    const deny = L.part && stashOf(t).length < STASH_MAX && epicTargets(L.part).concat(tripleTargets(L.part)).some(q => q.T !== t) ? 2.5 : 0;
+    if (!canTake(t, id)) return deny;
+    const bin = G.bargainK != null && G.market[G.bargainK] === id ? BARGAIN_OFF : 0;
+    return Math.max(deny, partWorth(t, id) * aiP(t).partK + own + bin);
   }
+  // a part face up on the conveyor that makes an epic combo (or completes a giant-slayer build) for one of this team's robots
+  const aiSavesFor = t => G.nextMarket && G.nextRound === G.round + 1 && G.nextMarket.some((id, k) => { const L = LOTS[id]; return conveyorShown(k) && L && L.part && epicTargets(L.part).concat(tripleTargets(L.part)).some(q => q.T === t); });
   function aiBids(t) {
     if (aiV2(t, 'bids')) {
       const P = aiP(t); let budget = Math.max(0, t.credits - P.reserve - Math.min(2, Math.round(aiHostValue(t) / 2)));
+      if (aiSavesFor(t)) budget = Math.max(0, budget - 4);   // keeps credits back for next round's epic part
       const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
       const bids = zeroBids();
       for (const { k, v } of order) {   // base bids: exactly the old rule (old reserve and budget)
@@ -3511,6 +3570,41 @@ html, body {
     const n = drawStarter();
     return n ? robotLot(n) : 'mech';
   }
+  /* ---------- the conveyor (Kev, 10 Nov): every Market is dealt a round ahead and three of its lots lie face up ----------
+   * A guaranteed mix: slot 0 a robot (rounds 1..robotLevels.rounds, else a wild lot), slots 1-2 two part lots of different groups
+   * (drone / module / upgrade-or-chip), slot 3 the mystery crate (wild, face down until its round). An announced legendary or
+   * level 4 robot takes the mystery slot and is shown. Parts are found from the top of the shuffled lot deck. */
+  const partKindOf = id => typeof id === 'string' && id.startsWith('p_') && LU.PARTS[id.slice(2)] ? LU.PARTS[id.slice(2)].kind : null;
+  const mixGroup = id => { const k = partKindOf(id); return k === 'stat' || k === 'chip' ? 'tune' : k; };
+  function returnLot(old) { const Lo = LOTS[old]; if (Lo && Lo.starter) returnStarter(Lo.starter); else if (Lo && Lo.crew) G.crewDeck.unshift(Lo.crew); else if (old && !(Lo && Lo.legend)) G.lots.unshift(old); else if (Lo && Lo.legend && !G.legends.includes(old)) G.legends.unshift(old); }
+  function drawLotWhere(pred) {
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = G.lots.length - 1; i >= 0; i--) if (pred(G.lots[i])) return G.lots.splice(i, 1)[0];
+      G.lots = lotDeck().concat(G.lots);   // nothing left that fits: a fresh deck under what is left
+    }
+    return null;
+  }
+  function dealMarket(round) {
+    const r0 = G.round; G.round = round;   // robot levels and chip hold-back go by the round the lots are for
+    try {
+      const out = [null, null, null, null], used = new Set(), held = id => isChip((id || '').slice(2)) && partKindOf(id) === 'chip' && round < (BAL.chips.fromRound || 1);
+      const open = id => id === 'crew' ? (() => { const k = G.crewDeck.pop(); return k ? crewLot(k) : 'mech'; })() : id === 'robot' ? dealRobot() : id;
+      const part = () => { const id = drawLotWhere(x => partKindOf(x) && partKindOf(x) !== 'legendary' && !held(x) && !used.has(mixGroup(x))); if (id) used.add(mixGroup(id)); return id; };
+      const wild = () => { const id = drawLotWhere(x => !held(x) && (!partKindOf(x) || !used.has(mixGroup(x)))) || drawLotWhere(x => !held(x)); if (id && partKindOf(id)) used.add(mixGroup(id)); return id; };
+      out[1] = part(); out[2] = part();
+      if (round <= robotLotRounds() || G.teams.some(t => !t.robots.length)) { const ri = G.lots.lastIndexOf('robot'); if (ri >= 0) G.lots.splice(ri, 1); out[0] = dealRobot(); } else out[0] = open(wild());
+      out[3] = open(wild());
+      for (let k = 0; k < NLOTS; k++) if (!out[k]) out[k] = open(drawLotWhere(() => true)) || 'mech';
+      // the specials announced for this round take the mystery slot (a second one takes a part slot)
+      if (G.legendNext) { returnLot(out[NLOTS - 1]); out[NLOTS - 1] = G.legendNext; G.legendNext = null; }
+      if (G.l4Next && l4Due(round)) { let n = G.l4Next; G.l4Next = null; if (G.teams.some(t => t.robots.some(r => r.name === n))) n = null;
+        if (n) { const k = LOTS[out[NLOTS - 1]] && LOTS[out[NLOTS - 1]].legend ? 2 : NLOTS - 1; returnLot(out[k]); out[k] = robotLot(n); } }
+      return out;
+    } finally { G.round = r0; }
+  }
+  // which of next round's lots are face up: the first three, and an announced special in the mystery slot
+  const conveyorShown = k => { const id = G.nextMarket && G.nextMarket[k], Lx = LOTS[id]; return k < NLOTS - 1 || !!G.nextBargain || !!(Lx && (Lx.legend || (Lx.robot && isL4(Lx.starter)))); };
+  const BARGAIN_OFF = 1;   // the bargain bin: an unsold part comes back in the mystery slot next round, this many credits off the winning bid
   function dealLot() {
     let id = G.lots.pop();
     // chips held back until BAL.chips.fromRound: to the bottom of the deck, deal the next lot (if the deck has anything else)
@@ -3589,7 +3683,7 @@ html, body {
     if (!L || !L.part) return L ? L.text : '';
     if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : LU.PARTS[L.part].kind === 'chip' && partsOf(r).some(isChip) ? 'it already has a tuning chip' : slotParts(r).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
     const ti = ownerOf(r) ? ownerOf(r).i : viewerSeat, a = fieldOdds(ti, r).p, b = fieldOdds(ti, withPart(r, L.part)).p;
-    return shiftTxt(a, b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '');
+    return shiftTxt(a, b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '') + fitNote(r.name, L.part);
   }
   const lotGainShort = () => '';
   const weaponSwapNote = () => '';
@@ -3733,7 +3827,7 @@ html, body {
     const initCol = A.initialAll.map(b => b[k]);
     const addCol = A.rebidAdds.map(b => b[k]);
     if (w >= 0 && mx > 0) {
-      addCr(G.teams[w], -mx, k === HOST_K ? 'host' : 'market');
+      addCr(G.teams[w], -(k === G.bargainK ? Math.max(0, mx - BARGAIN_OFF) : mx), k === HOST_K ? 'host' : 'market');   // the bargain bin: 1 Cr off
     }
     if (k < NLOTS) {
       const lotId = G.market[k], L = LOTS[lotId];
@@ -3741,6 +3835,14 @@ html, body {
       else if (L.starter) { returnStarter(L.starter); L.bot = null; }   // an unsold robot goes back to its deck
       else if (L.legend && !G.legends.includes(lotId)) G.legends.unshift(lotId);   // an unsold legendary comes back later
       else if (L.crew) G.crewDeck.unshift(L.crew);                                 // unsold crew goes back to the crew deck
+      else if (L.part) {   // Kev, 10 Nov: an unsold part used to vanish until the deck was rebuilt. Now: the bargain bin, else the bottom of the deck
+        const nx = G.nextMarket && G.nextRound === G.round + 1 ? G.nextMarket : null, cur = nx && LOTS[nx[NLOTS - 1]];
+        const special = cur && (cur.legend || (cur.robot && isL4(cur.starter)));
+        if (nx && !G.nextBargain && G.bargainK == null && !special) {   // one bargain at a time, never two rounds running: the mystery crate keeps its turn
+          returnLot(nx[NLOTS - 1]); nx[NLOTS - 1] = lotId; G.nextBargain = true;
+          notify('🏷️ <b>Bargain bin:</b> ' + lotRef(lotId) + ' found no buyer. It is back next round, ' + BARGAIN_OFF + ' Cr off the winning bid.', '#4A5560');
+        } else G.lots.unshift(lotId);
+      }
       A.results.push({
         idx: k, id: lotId, name: L.name, icon: L.icon, text: L.text,
         winner: w, price: mx, bids: col, initBids: initCol, addBids: addCol,
@@ -4198,7 +4300,7 @@ html, body {
    * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
    * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
    * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
-  const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",42,32],"Wrecker":["grind",71],"Whirlwind":["giant",44,29],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",53,37],"Ramrod":["giant",56,37]};
+  const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",40,31],"Wrecker":["grind",71],"Blowtorch":["giant",29,20],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",40,27],"Ramrod":["giant",40,27]};   // giant killers re-measured after the 9 Nov level moves
   // 🔨 hard hitters (Kev, 9 Nov: "a bot that always does a lot of damage, even if it loses"). Lineup Arena matrix, equal-level
   // duels on the open floor: the health its winner loses when this robot loses, vs the level's average. Tagged at 6+ points.
   const HITTER = { Wrecker: [32, 24], Buzzkill: [31, 24], Whirlwind: [37, 28], Sawblast: [42, 30], Angler: [31, 25] };
@@ -4211,6 +4313,11 @@ html, body {
       if (e >= 0 && F.robots.length === 2 && F.robots[1 - e]) { const o = F.robots[1 - e], c = counterOf(r, o);
         if (c) out.push(c.good ? { ic: '🎯', label: 'Counter pick', good: true, help: 'The bookie: in the Lineup Arena ' + esc(r.name) + ' beats ' + esc(o.name) + ' ' + Math.round(c.p * 100) + '% of the time, where its level gap usually gives ' + Math.round(c.e * 100) + '%. Its weapon and shape just suit this opponent.' }
           : { ic: '⚠️', label: 'Bad matchup', good: false, help: 'The bookie: in the Lineup Arena ' + esc(r.name) + ' beats ' + esc(o.name) + ' only ' + Math.round(c.p * 100) + '% of the time, where its level gap usually gives ' + Math.round(c.e * 100) + '%. This opponent is a bad match for it.' }); } }
+    for (const x of epicsOn(r)) { const P = LU.PARTS[x.k]; if (!P) continue;
+      out.push({ ic: '⚡', label: 'Epic: ' + x.e[0], good: true, col: '#B07A10', help: '<b>Epic combo.</b> The bookie: ' + esc(r.name) + ' with the ' + esc(P.name) + ' is one of the best combos in the game. Against robots a level up it wins ' + x.e[2] + '% of its fights, ' + x.e[1] + '% without it' + esc(epicWhere(x.e)) + '.' }); }
+    for (const x of fitOf(r)) { const P = LU.PARTS[x.k]; if (!P || epicOf(r.name, x.k)) continue;
+      out.push(x.f > 0 ? { ic: '🧩', label: 'Great fit', good: true, help: 'The bookie: the ' + esc(P.name) + ' suits ' + esc(r.name) + '. In tests against robots a level up it took its wins up by ' + x.d + ' points, more than this part does for most robots.' }
+        : { ic: '🧩', label: 'Poor fit', good: false, help: 'The bookie: the ' + esc(P.name) + ' does not suit ' + esc(r.name) + '. In tests against robots a level up it changed its wins by ' + (x.d > 0 ? '+' : '') + x.d + ' points, where this part usually helps.' }); }
     if ((r.parts || []).some(isChip) && (r.level || 0) <= 1) { const k = r.parts.find(isChip); out.push({ ic: '💾', label: 'Chip-tuned', good: true, help: 'The bookie is nervous: a light robot with the ' + esc(LU.PARTS[k].name) + '. Chips are made for level 0-1 frames: a level 1 robot with a chip beats level 3 robots 28-43% of the time instead of 23%.' }); }
     const hh = HITTER[r.name];
     if (hh && out.length < 2) out.push({ ic: '🔨', label: 'Hard hitter', good: null, help: 'The bookie: even when ' + esc(r.name) + ' loses, it leaves its mark. The winner loses ' + hh[0] + '% of its health on average (robots of its level: ' + hh[1] + '%). Expect a damaged winner: good to know for the next fight and for Fate.' });
@@ -4219,6 +4326,11 @@ html, body {
       : st[0] === 'coin' ? { ic: '🎲', label: 'Coin-flip brawler', good: null, help: 'The bookie: ' + st[1] + '% of ' + esc(r.name) + '\'s fights are blowouts, one way or the other. Whoever lands the first big hit runs away with it.' }
       : st[0] === 'quick' ? { ic: '⏱️', label: 'Quick finisher', good: null, help: 'The bookie: ' + esc(r.name) + '\'s fights last ' + st[1] + ' s on average (most last about 55 s). Blink and it is over.' }
       : { ic: '🧱', label: 'Grinder', good: null, help: 'The bookie: ' + esc(r.name) + '\'s fights last ' + st[1] + ' s on average (most last about 55 s). It wears robots down.' });
+    { const t = tripleOf(r); if (t) out.push({ ic: '👑', label: 'Giant-slayer build', good: true, col: '#7C4D9E', help: '<b>Giant-slayer build.</b> The bookie: ' + esc(r.name) + ' with ' + t[0].map(k => esc(LU.PARTS[k].name)).join(' + ') + ' beats level 3 and 4 robots ' + t[2] + '% of the time (' + t[1] + '% as it comes), and still ' + t[3] + '% when they are fully kitted too.' }); }
+    { const F = G && G.fight, inF = F && F.robots && F.robots.includes(r);
+      if (inF && F.format === 'ffa' && FFA_FIT[r.name]) { const v = FFA_FIT[r.name]; out.unshift(v > 0 ? { ic: '🌀', label: 'Brawl master', good: true, help: 'The bookie: in four-way free-for-alls ' + esc(r.name) + ' wins ' + v + ' points more often than its duel record says. It picks its moments while the others trade hits.' } : { ic: '🌀', label: 'Lost in a melee', good: false, help: 'The bookie: in four-way free-for-alls ' + esc(r.name) + ' wins ' + (-v) + ' points less often than its duel record says. It locks onto one robot and gets hit from the side.' }); }
+      if (inF && F.format === '2v2' && TEAM_FIT[r.name]) out.unshift({ ic: '🤝', label: 'Lone wolf', good: false, help: 'The bookie: in 2v2 fights ' + esc(r.name) + '\'s team wins ' + (-TEAM_FIT[r.name]) + ' points less often than the robots\' duel records say' + (r.name === 'Trebuchet' ? ' (its throws hit its own partner too).' : '.') }); }
+    out.sort((x, y) => (y.ic === '👑') - (x.ic === '👑') || (y.ic === '⚡') - (x.ic === '⚡'));   // a giant-slayer build and an epic combo always show
     return out.slice(0, 2);
   }
   // draws the tags right-aligned, ending at xr; returns the width used (nMax: at most that many tags)
@@ -4228,7 +4340,7 @@ html, body {
     for (const tg of tags.slice().reverse()) {
       const txt = tg.ic + ' ' + tg.label.toUpperCase(); ctx.font = '700 ' + fs + 'px ' + F_MONO;
       const w = Math.min(maxW - used, ctx.measureText(txt).width + 10); if (w < 30) break;
-      const col = tg.good === true ? '#2F7D4A' : tg.good === false ? '#B23A2B' : '#7C4D9E';
+      const col = tg.col || (tg.good === true ? '#2F7D4A' : tg.good === false ? '#B23A2B' : '#7C4D9E');
       x -= w; ctx.fillStyle = PAPER2; rrect(ctx, x, yTop, w, h, 2); ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 1.5; rrect(ctx, x + 0.75, yTop + 0.75, w - 1.5, h - 1.5, 2); ctx.stroke();
       ctx.fillStyle = col; ctx.textAlign = 'center'; fitText(ctx, txt, x + w / 2, yTop + h - (h - fs) / 2 - 1.5, w - 6, '700', fs, F_MONO);
@@ -4296,6 +4408,10 @@ html, body {
       if (F.house) ss = ss.map(x => x * HOUSE_ODDS);   // the House Robot is neutral and almost never wins (it doesn't count for the KO), but it shakes the odds up
       const mx = Math.max(...ss), ex = ss.map(s => Math.exp(s - mx)), tot = ex.reduce((a, b) => a + b, 0);
       F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot)));
+      if (F.format === 'ffa' && F.nSides > 2) {   // Kev, 10 Nov: free-for-all odds calibrated on 1,200 simulated FFAs (duel favourites win less), plus the specialists
+        const q = F.p.map((p, sd) => Math.max(0.02, 0.104 + 0.59 * p + F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r && FFA_FIT[r.name] ? FFA_FIT[r.name] / 100 : 0), 0))), qt = q.reduce((a, b) => a + b, 0);
+        F.p = q.map(x => Math.max(0.03, Math.min(0.95, x / qt))); }
+      if (F.format === '2v2') F.p = F.p.map((p, sd) => Math.max(0.03, Math.min(0.95, p + F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r && TEAM_FIT[r.name] ? TEAM_FIT[r.name] / 100 : 0) - (F.sides[e] !== sd && r && TEAM_FIT[r.name] ? TEAM_FIT[r.name] / 100 : 0), 0))));
       if (F.nSides === 2 && F.robots.length === 2 && copies === 1 && !F.house && F.robots[0] && F.robots[1]) { const p0 = Math.max(0.03, Math.min(0.95, pairP(F.robots[F.sides[0] === 0 ? 0 : 1], F.robots[F.sides[0] === 0 ? 1 : 0], F.arena))); F.p = [p0, 1 - p0]; }   // a duel: the Lineup Arena matchup
     }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
@@ -5388,7 +5504,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -6400,6 +6516,33 @@ html, body {
     ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.font = '700 16px ' + F_MONO; ctx.fillText('−', x + 14, y + 19.5); ctx.fillText('+', x + w - 14, y + 19.5);
     ctx.fillStyle = col || INK; fitText(ctx, txt, x + w / 2, y + 19, w - 64, '700', 15, F_MONO);
   }
+  // the conveyor strip under the lots: next round's Market, three lots face up and the mystery crate (Kev, 10 Nov)
+  function drawConveyor(ctx, cx, y, w) {
+    const h = 34, x = cx - w / 2, lw = 92, n = NLOTS, cw = (w - lw - 8 - (n - 1) * 6) / n;
+    paperBox(ctx, x, y, w, h, INK, 1.5, PAPER2);
+    ctx.fillStyle = INK; rrect(ctx, x, y, lw, h, 4); ctx.fill();
+    ctx.fillStyle = HAZ; ctx.textAlign = 'center'; fitText(ctx, 'NEXT ROUND', x + lw / 2, y + 14, lw - 8, '400', 12, F_STEN);
+    ctx.fillStyle = '#EDE6D9'; fitText(ctx, '🔭 save up or deny', x + lw / 2, y + 27, lw - 8, '600', 8.5, F_MONO);
+    help(x, y, lw, h, '🔭 Next round\'s Market', 'Three of next round\'s lots lie face up, so you can save credits for the part you need or plan to outbid a rival for it. The 📦 mystery crate stays shut until its round. A legendary or a level 4 robot is always announced.');
+    G.nextMarket.forEach((id, k) => {
+      const bx = x + lw + 6 + k * (cw + 6), by = y + 4, bh = h - 8, Lx = LOTS[id], shown = conveyorShown(k);
+      if (!shown || !Lx) {
+        ctx.strokeStyle = DASH; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); rrect(ctx, bx, by, cw, bh, 4); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = MUTED; ctx.textAlign = 'center'; fitText(ctx, '📦 ? mystery crate', bx + cw / 2, by + bh / 2 + 4, cw - 8, '700', 10.5, F_MONO);
+        help(bx, by, cw, bh, '📦 Mystery crate', 'One lot of next round\'s Market stays face down: a part, a robot or crew.'); return; }
+      const K = lotKind(id), ep = Lx.part ? epicTargets(Lx.part).concat(tripleTargets(Lx.part).map(q => ({ T: q.T, r: q.r, e: ['Giant-slayer build', q.t[1], q.t[2]] }))) : [];
+      const mine = Lx.part ? me().robots.filter(r => PART_FIT[r.name] && PART_FIT[r.name][Lx.part] && canFit(r, Lx)).map(r => ({ r, f: PART_FIT[r.name][Lx.part] })) : [];
+      ctx.fillStyle = PAPER; rrect(ctx, bx, by, cw, bh, 4); ctx.fill();
+      ctx.strokeStyle = ep.length ? '#B07A10' : K.col || INK; ctx.lineWidth = ep.length ? 3 : 2; rrect(ctx, bx, by, cw, bh, 4); ctx.stroke();
+      const mark = (ep.length ? '⚡' : '') + (mine.some(m => m.f[0] > 0) && !ep.some(q => q.T.i === HS) ? '🧩' : '');
+      const bin = k === NLOTS - 1 && G.nextBargain;
+      ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, (bin ? '🏷️ ' : '') + (mark ? mark + ' ' : '') + Lx.icon + ' ' + Lx.name, bx + cw / 2, by + 11, cw - 8, '700', 10.5);
+      ctx.fillStyle = K.col || MUTED; fitText(ctx, Lx.robot && Lx.starter ? ('★'.repeat(levelOf(Lx.starter)) || 'starter') + ' · ' + wepLabel(Lx.starter) : bin ? 'BARGAIN · ' + BARGAIN_OFF + ' CR OFF' : Lx.part ? LU.PARTS[Lx.part].kind.toUpperCase() : 'CREW', bx + cw / 2, by + 22, cw - 8, '700', 8.5, F_MONO);
+      help(bx, by, cw, bh, '🔭 Next round: ' + Lx.icon + ' ' + esc(Lx.name), esc(Lx.text || '') + (Lx.desc ? '<br>' + esc(Lx.desc) : '') +
+        ep.map(q => '<br>⚡ <b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ': <b>' + esc(q.e[0]) + '</b> (wins ' + q.e[1] + '% → ' + q.e[2] + '% against robots a level up).').join('') +
+        mine.filter(m => !epicOf(m.r.name, Lx.part, null)).map(m => '<br>🧩 ' + (m.f[0] > 0 ? '<b style="color:#2F7D4A">Great fit</b>' : '<b style="color:#B23A2B">Poor fit</b>') + ' on your ' + esc(m.r.name) + '.').join(''));
+    });
+  }
   function drawMarketOnArena(ctx, L) {
     const x0 = L.ax - L.aw / 2, y0 = L.ay - L.ah / 2;
 
@@ -6503,10 +6646,21 @@ html, body {
       help(L.ax - 230, y + h + 8, 460, 22, 'Credits left', 'What every team has left after the lots: that is all they can bid for hosting.');
     } else pitHead(G.marketStage === 'open' ? '3 · MARKET · OPEN MARKET' : '3 · MARKET · SEALED BIDS', G.marketStage === 'open' ? 'TRADE FIRST · THESE LOTS COME UP NEXT' : 'NOBODY SEES YOUR BIDS UNTIL ALL LOCK');
 
+    if (G.marketStage !== 'host' && G.nextMarket && G.nextRound === G.round + 1) drawConveyor(ctx, L.ax, y + h + 22, Math.min(L.aw - 16, Math.max(totalW, 620)));
     items.forEach((it, j) => {
       const k = it.k, x = startX + j * (w + gap), bid = (PS().bids || [])[k] || 0, K = lotKind(it.id), yb = y + 18;
       const noFit = k < NLOTS && !canTake(me(), it.id);
       drawLotFrame(ctx, K, x, y, w, h, { dim: noFit, edge: bid > 0 ? INK : null, lw: bid > 0 ? 4 : 3 });
+      if (k === G.bargainK && G.marketStage !== 'host') { ctx.fillStyle = '#2F6DB5'; rrect(ctx, x + 6, y + h + 2, w - 12, 16, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🏷️ BARGAIN BIN · ' + BARGAIN_OFF + ' CR OFF', x + w / 2, y + h + 14, w - 20, '700', 9.5, F_MONO);
+        help(x + 6, y + h + 2, w - 12, 16, '🏷️ Bargain bin', 'Nobody bought this part last round. Whoever wins it now pays ' + BARGAIN_OFF + ' Cr less than their bid (a bid of ' + BARGAIN_OFF + ' gets it free). Unsold again, it goes back into the deck.'); }
+      { const tt = it.part && k < NLOTS ? tripleTargets(it.part) : [];
+        const ep = (it.part && k < NLOTS ? epicTargets(it.part) : []).concat(tt.map(q => ({ T: q.T, r: q.r, e: ['Giant-slayer ' + q.r.name, q.t[1], q.t[2]], tri: true })));   // Kev, 10 Nov: an epic combo on the table: the bookie flags the lot
+        if (ep.length) { const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 260);
+          ctx.save(); ctx.strokeStyle = 'rgba(232,197,71,' + pulse.toFixed(2) + ')'; ctx.lineWidth = 5; rrect(ctx, x - 5, y - 5, w + 10, h + 10, 9); ctx.stroke(); ctx.restore();
+          const t0 = ep[0], txt = (t0.tri ? '👑 COMPLETES GIANT-SLAYER' : '⚡ EPIC: ' + t0.e[0].toUpperCase()) + (ep.length > 1 ? ' +' + (ep.length - 1) : '');
+          ctx.fillStyle = '#B07A10'; rrect(ctx, x + 6, y - 22, w - 12, 18, 4); ctx.fill(); ctx.strokeStyle = t0.T.col; ctx.lineWidth = 2; rrect(ctx, x + 6, y - 22, w - 12, 18, 4); ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, txt, x + w / 2, y - 9, w - 20, '700', 10, F_MONO);
+          help(x + 6, y - 22, w - 12, 18, '⚡ Epic combo in the Market', ep.map(q => q.tri ? '<b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ' has the rest: this part completes its <b>👑 Giant-slayer build</b> (' + q.e[2] + '% against bare level 3-4 robots, ' + q.e[1] + '% as it comes).' : '<b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ' + this part = <b>' + esc(q.e[0]) + '</b>: wins ' + q.e[2] + '% against robots a level up (' + q.e[1] + '% without)' + esc(epicWhere(q.e)) + '.').join('<br>') + '<br>One of the best robot + part combos in the game. Expect a bidding war.'); } }
       if (bid > 0) { ctx.fillStyle = HAZ; ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, x + w - 46, y - 9, 44, 16, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'BID ' + bid, x + w - 24, y + 3, 40, '700', 9, F_MONO); }
       if (LOTS[it.id] && LOTS[it.id].robot && isL4(LOTS[it.id].starter)) help(x, y, w, 18, '★★★★ Level 4', 'End-game robot, one of ' + BAL.level4.perGame + ' this game, from round ' + BAL.level4.fromRound + '. ' + esc(BAL.level4.priceNote) + ' ' + BAL.level4.minBid + ' Cr: a lower top bid leaves it unsold (it comes back later).');
       if (LOTS[it.id] && LOTS[it.id].legend) help(x, y, w, 18, '🌟 Legendary', 'One copy in the whole game, announced one round ahead. Unsold, it comes back later.');
