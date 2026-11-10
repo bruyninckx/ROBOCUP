@@ -4,17 +4,20 @@
   'use strict';
   const L = root.DamageLab || (typeof require !== 'undefined' ? require('./engine.js') : null);
   // power grade p: weapon damage x p and every part's HP x p
+  // Kev, 9 Nov balance check: level 4 x1.07 (Grandmaster, Trebuchet, Lodestone x1.12), Whaler / Sawblast x1.08, Ramrod / Forklift x0.95, Mauler x1.06;
+  // second pass: Trebuchet x1.06, Hydra x0.96, Mauler x1.05, Rumbler x1.04; levels moved: Whirlwind 1 -> 2, Juggernaut 2 -> 1, Grandmaster 4 -> 3 (it fought like a level 3);
+  // third pass: Grandmaster x0.94 (strong as a level 3), Lodestone x1.06, Hornet x1.05, Rumbler x1.05
   const ROBOTS = {
-    Haymaker: [0, 0.761], Rumbler: [0, 0.881], Thumper: [0, 0.935], Jouster: [0, 0.925], Popcorn: [0, 0.947], Blowtorch: [0, 1.037], Buzzkill: [0, 0.971], Snapjaw: [0, 0.963], Wrecker: [0, 1.1],
-    Hornet: [1, 0.984], Whirlwind: [1, 1.021], Mincer: [1, 1.137], Scythe: [1, 1.081], Mauler: [1, 1.093], Rocketeer: [1, 1.014],
-    Juggernaut: [2, 1.138], Gyro: [2, 1.034], Pincher: [2, 1.185], Brawler: [2, 1.056], Thwacker: [2, 1.022],
-    Whaler: [3, 1.136], Forklift: [3, 1.141], Vertigo: [3, 1.163], Sawblast: [3, 1.175], Ramrod: [3, 1.213],
+    Haymaker: [0, 0.761], Rumbler: [0, 0.962], Thumper: [0, 0.935], Jouster: [0, 0.925], Popcorn: [0, 0.947], Blowtorch: [0, 1.037], Buzzkill: [0, 0.971], Snapjaw: [0, 0.963], Wrecker: [0, 1.1],
+    Hornet: [1, 1.033], Whirlwind: [2, 1.021], Mincer: [1, 1.137], Scythe: [1, 1.081], Mauler: [1, 1.217], Rocketeer: [1, 1.014],
+    Juggernaut: [1, 1.138], Gyro: [2, 1.034], Pincher: [2, 1.185], Brawler: [2, 1.056], Thwacker: [2, 1.022],
+    Whaler: [3, 1.227], Forklift: [3, 1.084], Vertigo: [3, 1.163], Sawblast: [3, 1.269], Ramrod: [3, 1.152],
   };
   // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
-  const ROBOTS4 = { Hydra: [4, 1.18], Corkscrew: [4, 0.97], Trebuchet: [4, 1.16], Angler: [4, 1.1], Lodestone: [4, 1.01], Orbiter: [4, 1.18], Tarantula: [4, 1.17], Grandmaster: [4, 1.05] };
+  const ROBOTS4 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
-  const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 1.8, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
+  const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 2.4, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
   const plates = sp => { const a = Object.assign({}, sp.armour); for (const k of ['front', 'side', 'rear', 'top']) if (!(k === 'front' && L.frontTool(sp.weapon))) a[k] = Math.min(3, a[k] + 1); return a; };
   const drone = k => (sp) => ({ helpers: (sp.helpers || []).concat([k]).slice(0, 3) });
   // kind: drone / module / stat / legendary. copies = cards in the deck. vs = win % of a level-n robot with it vs level n+1 (legendary: n+2), stock 38% / 25%
@@ -34,7 +37,7 @@
     popper: { name: 'Pop-up flipper', kind: 'module', copies: 1, vs: 45, d: 'On contact: hit and shove x1.8 (replaces the module).', apply: () => ({ mod: 'popper' }) },
     tow: { name: 'Tow cable', kind: 'module', copies: 1, vs: 52, d: 'Hooks the enemy up close and slings it into the nearest wall, every 8 s (replaces the module).', apply: () => ({ mod: 'tow' }) },
     jam: { name: 'Sensor scrambler', kind: 'module', copies: 1, vs: 48, d: 'Scrambles the enemy within 3 m: it steers haywire and its module goes offline for 3 s, every 6 s (replaces the module).', apply: () => ({ mod: 'jam' }) },
-    overdrive: { name: 'Overdrive', kind: 'stat', copies: 1, vs: 49, d: 'Weapon damage x1.6, but every hit it lands strains its own weapon motor.', apply: (sp, b) => ({ dmgK: b.dmgK * 1.6, overdrive: 0.12 }) },
+    overdrive: { name: 'Overdrive', kind: 'stat', copies: 1, vs: 49, d: 'Weapon damage x1.55, but every hit it lands strains its own weapon motor.', apply: (sp, b) => ({ dmgK: b.dmgK * 1.55, overdrive: 0.12 }) },
     repair: { name: 'Repair kit', kind: 'module', copies: 1, vs: 42, d: 'Repairs the robot when it is not being hit (x4; replaces the module).', apply: () => ({ mod: 'repair' }) },
     weapon: { name: 'Weapon overhaul', kind: 'stat', copies: 2, vs: 52, d: 'Weapon damage x1.35.', apply: (sp, b) => ({ dmgK: b.dmgK * 1.35 }) },
     hull: { name: 'Reinforced hull', kind: 'stat', copies: 2, vs: 52, d: 'Every part x1.45 HP.', apply: (sp, b) => ({ hpK: b.hpK * 1.45 }) },

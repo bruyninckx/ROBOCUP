@@ -1,10 +1,22 @@
-// node partfit.js parts1.json : per part, effect in strength units (log-odds vs the panel, compared with the stock robot). One level = 0.62.
-const d = require('./' + process.argv[2]);
-const byB = {}; for (const [i, j, w] of d.res) { byB[i] = byB[i] || [0, 0]; byB[i][0] += w; byB[i][1]++; }
-const lg = (w, t) => { const p = (w + 0.5) / (t + 1); return Math.log(p / (1 - p)); };
-const stock = {}, rows = {};
-for (const [k, r, pk] of d.meta) { const [w, t] = byB[k] || [0, 0]; if (pk === 'stock') stock[r] = lg(w, t); }
-for (const [k, r, pk] of d.meta) { if (pk === 'stock') continue; const [w, t] = byB[k] || [0, 0]; (rows[pk] = rows[pk] || {})[r] = lg(w, t) - stock[r]; }
-const out = Object.entries(rows).map(([pk, per]) => { const v = Object.values(per), avg = v.reduce((a, b) => a + b, 0) / v.length, sd = Math.sqrt(v.reduce((a, b) => a + (b - avg) ** 2, 0) / v.length); return { pk, avg, sd, lvl: avg / 0.62, good: v.filter(x => x >= 0.4).length, bad: v.filter(x => x < 0).length, n: v.length, per }; }).sort((a, b) => b.avg - a.avg);
-for (const o of out) console.log(o.pk.padEnd(18), 'avg', o.avg.toFixed(2).padStart(5), '= ' + o.lvl.toFixed(2) + ' levels', ' sd', o.sd.toFixed(2), ' robots >=0.4:', o.good + '/' + o.n, ' worse:', o.bad, ' ', Object.entries(o.per).map(([r, x]) => r.slice(0, 5) + ' ' + x.toFixed(1)).join(' '));
-require('fs').writeFileSync(process.argv[2].replace('.json', '.fit.json'), JSON.stringify(out));
+// node fit.js lane nLanes -> fit/<robot>.json: every deck part on the robot vs 4 robots one level up (level 4: own level), 4 seeds x 2 sides
+const D = './';
+const L = require(D + 'engine.js'), LU = require(D + 'lineup.js'); LU.usePK();
+const [lane, nl] = process.argv.slice(2).map(Number), fs = require('fs');
+const all = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), lv = n => all[n][0], names = Object.keys(all).sort();
+const OFF = new Set(['laser', 'waller', 'blocker', 'spotter', 'repair', 'armourkit', 'bodyguard']);
+const parts = ['none', ...Object.keys(LU.PARTS).filter(k => !OFF.has(k) && LU.PARTS[k].kind !== 'legendary' || ['core', 'hospital', 'quantum'].includes(k))];
+const health = R => { let h = 0, m = 0; for (const q of R.parts.concat(R.internals || [])) { m += q.maxHp; h += q.attached === false ? 0 : Math.max(0, Math.min(q.hp, q.maxHp)); } return m ? 100 * h / m : 0; };
+names.forEach((a, ia) => {
+  if (ia % nl !== lane) return;
+  const up = names.filter(b => lv(b) === Math.min(4, lv(a) + 1) && b !== a), opp = [0, 1, 2, 3].map(i => up[Math.floor(i * up.length / 4)]).filter((x, i, A) => A.indexOf(x) === i);
+  const out = { robot: a, level: lv(a), opp, parts: {} };
+  for (const pt of parts) { const f = [];
+    opp.forEach((b, ib) => { for (let s = 0; s < 4; s++) for (const side of [0, 1]) {
+      const A = LU.build(a, pt === 'none' ? [] : [pt]), B = LU.build(b);
+      const S = L.create({ a: side ? B : A, b: side ? A : B, seed: 12000 + ib * 101 + s * 13 + side, arena: 'open' });
+      while (!S.over && S.t < 200) { L.step(S); S.fx.length = 0; }
+      const me = S.robots[side]; f.push([S.result.winner === side ? 1 : 0, Math.round(health(me) - health(me.enemy)), s]);
+    } });
+    out.parts[pt] = f; }
+  fs.mkdirSync('fit', { recursive: true }); fs.writeFileSync('fit/' + a + '.json', JSON.stringify(out)); console.log('done', a);
+});
