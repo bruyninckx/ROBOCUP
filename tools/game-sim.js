@@ -41,7 +41,7 @@ const PLANCK = (() => {
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
+  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; return o; };
@@ -110,6 +110,15 @@ function installHooks() {
           e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
+        // access check (Kev, 10 Nov): what the Market offered each round, who won it, and what every team's robots carried
+        const teamSnap = () => g.teams.map(t => ({ fame: t.fame, cr: t.credits, robots: t.robots.map(r => ({ n: r.name, lv: r.level, parts: (r.parts || []).slice(), leg: r.leg || null, ex: !!r.exhausted })) }));
+        const lotName = id => { const Lx = D.LOTS && D.LOTS[id]; return Lx ? (Lx.part ? 'part:' + Lx.part : Lx.starter ? 'robot:' + Lx.starter : Lx.crew ? 'crew' : id) : id; };
+        if (e && e.k === 'phase' && g.phase === 'market' && g.marketStage === 'open' && !X.snaps.some(q => q.k === 'offer' && q.r === g.round)) X.snaps.push({ k: 'offer', r: g.round, lots: (g.market || []).map(lotName), teams: teamSnap() });
+        // the conveyor: next round's face-up lots are known one phase event later (dealt at the end of startMarket)
+        if (e && e.k === 'phase' && g.phase === 'market') { const q = X.snaps.filter(q => q.k === 'offer' && q.r === g.round).pop(); if (q && !q.next && g.nextMarket && g.nextRound === g.round + 1) q.next = g.nextMarket.slice(0, 3).map(lotName); }
+        if (e && e.k === 'market') X.snaps.push({ k: 'sold', r: g.round, lots: (e.lots || []).map(q => ({ id: lotName(q.id), winner: q.winner, price: q.price })) });
+        if (e && e.k === 'fight_start' && g.fight) X.snaps.push({ k: 'fight', r: g.round, format: g.fight.format, arena: g.fight.arena || 'open', ents: g.fight.teams.map((ti, i) => ({ team: ti, n: g.fight.robots[i] && g.fight.robots[i].name })), teams: teamSnap() });
+        if (e && e.k === 'game_over') X.snaps.push({ k: 'end', r: g.round, teams: teamSnap() });
         if (e && e.k === 'market') e.fameNow = g.teams.map(t => t.fame);   // fame when the lots are sold (who buys level 4: leader or not)
         if (e && e.k === 'phase' && e.ph === 'intrigue') {
           if (!X.ups.some(u => u.r === g.round && u.after)) for (const t of g.teams) { const u = X.ups.filter(u => u.r === g.round && u.team === t.i).pop(); if (u) { u.after = teamDamage(t); u.crAfter = t.credits; } }
@@ -174,7 +183,7 @@ function installHooks() {
           const L = D.LOTS;
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
-            reps: X.reps, ups: X.ups, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
+            reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
             lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),
