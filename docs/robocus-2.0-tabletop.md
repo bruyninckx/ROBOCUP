@@ -604,3 +604,8 @@ Kev picked layout B of the four layout boards, and the card-type sheet. The tabl
 - **KO meters on the fight screen.** Under the health bar: ⚙ Drive (wheels and their motors), 🔋 Power (battery and radio), ⛨ Chassis; the weakest one is outlined when under 50%. A red pulsing bar counts down a count-out: "CAN'T DRIVE · COUNT-OUT 4 s" (6 s rule) or "CRIPPLED, NOT MOVING · REFS COUNT n s" (12 s rule).
 - **Repair cost in red.** When your free repair actions are used up, a zone button says "FIX 4 CR" and its help box opens with a red line: what the repair costs and why.
 - Parts: about half the 24 part cards protect or heal. Kev did not like swapping in the engine's unused modules (grapple, jets, oil, smoke, self-destruct); still open.
+
+## The conveyor: next round's Market face up (Kev, 10 Nov)
+
+Every Market is dealt a round ahead. Three of next round's lots lie face up (strip under the lots, a log line, the prompt bar); the fourth is a mystery crate. A Market always has a robot in rounds 1-5 and two part lots of different groups (drone / module / upgrade-or-chip). Legendaries and level 4 robots take the mystery slot and are announced. The bookie marks conveyor lots that make an epic combo (⚡) or are a great fit for your robots (🧩). Numbers and the before/after test: docs/robocus-2.0-balance-check.md sections 12-13.
+- **Bargain bin (Kev, 10 Nov):** the first part nobody buys in a round comes back next round in the mystery slot, shown on the conveyor, 1 Cr off the winning bid. Level 4 lots now come every 2nd round from round 6.
