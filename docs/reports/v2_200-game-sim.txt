@@ -1,0 +1,127 @@
+                                             v2_200                                                                                                                                                                                         
+settings                                     start 0, win 12, AI v2                                                                                                                                                                         
+BAL overrides                                none                                                                                                                                                                                           
+games finished / run                         200 / 200                                                                                                                                                                                      
+page errors                                  0                                                                                                                                                                                              
+rounds: mean                                 11.6                                                                                                                                                                                           
+rounds: median (10%–90%)                     12 (10–14)                                                                                                                                                                                     
+rounds histogram                             8:2 9:13 10:32 11:43 12:65 13:24 14:14 15:6 16:1                                                                                                                                               
+Intrigue deck size                           137                                                                                                                                                                                            
+Intrigue cards drawn / game                  149.7                                                                                                                                                                                          
+share of the deck seen                       109%                                                                                                                                                                                           
+cards cashed in / game (Cr)                  57.8 (68.4 Cr)                                                                                                                                                                                 
+attacks played / game                        14.1                                                                                                                                                                                           
+attacks that land                            67%                                                                                                                                                                                            
+Security Bot rolls / game                    5.0                                                                                                                                                                                            
+fights / game                                11.3                                                                                                                                                                                           
+live cards played / fight                    0.8                                                                                                                                                                                            
+auction: cards won / fight (Cr each)         0.9 (1.1 Cr)                                                                                                                                                                                   
+avg credits held per team (upkeep)           8.8                                                                                                                                                                                            
+Market spend / game (all teams)              145.7                                                                                                                                                                                          
+bets staked / game                           31.8                                                                                                                                                                                           
+win share by seat 1-4                        23% 28% 27% 22% (±3% each)                                                                                                                                                                     
+final fame by seat 1-4                       9.5 9.7 9.8 9.5                                                                                                                                                                                
+fame: fights+host+fan / net cards (share)    27.5 / 10.8 (72%)                                                                                                                                                                              
+fame / game by source                        cards + 13.7, win 12.1, host 11.3, cards − -3.0, win:grand final 2.2, fan 2.2, fav -0.3                                                                                                        
+close finish: runner-up within 1 / 2 fame    48% / 80%                                                                                                                                                                                      
+fame gap winner - last                       5.1                                                                                                                                                                                            
+— 2.0 —                                                                                                                                                                                                                                     
+sec / game: wall (throughput)                17.6 (8.8 s at par 2)                                                                                                                                                                          
+engine: sec / fight, share of game           1.1 s, 67%                                                                                                                                                                                     
+engine steps / fight (120 Hz)                6446.8                                                                                                                                                                                         
+fight time (s): mean, judges %               53.7, 6%                                                                                                                                                                                       
+fight formats                                duel 53% double 29% 2v2 17% mirror 0% ffa 0%                                                                                                                                                   
+arenas (host picks)                          open 85% saws 6% killbox 5% ice 3% cage 2%                                                                                                                                                     
+end credits: awards / game                   11.5                                                                                                                                                                                           
+chips: sold / game, price, first round       1.7, 1.4 Cr, R6.2                                                                                                                                                                              
+chips: fighters with one, their level        6%, L1.4 (124/102/61/36/48)                                                                                                                                                                    
+chips: chip sides win vs bookie p            60% vs 56% (361 sides)                                                                                                                                                                         
+repairs / team / round (crew, free, Cr)      0.9 (0.5, 0.3, 0.1)                                                                                                                                                                            
+repairs by zone (drive / weapon / body)      45% / 36% / 19%                                                                                                                                                                                
+crew / team at upkeep; repair Cr / game      2.5; 7.9                                                                                                                                                                                       
+damaged zones at upkeep -> left after        2.2 -> 1.3 per team (41% fixed)                                                                                                                                                                
+fighters with damage: drive                  8% (5% broken)                                                                                                                                                                                 
+fighters with damage: weapon                 5% (1% broken)                                                                                                                                                                                 
+fighters with damage: body                   36% (33% broken)                                                                                                                                                                               
+fight cards: won / fight, price              0.9, 1.1 Cr (44% of offered)                                                                                                                                                                   
+fight cards: Cr spent / game (all teams)     10.9                                                                                                                                                                                           
+fight cards: played / fight (of won)         0.8 (87%)                                                                                                                                                                                      
+robots bought / game: L0 L1 L2 L3 L4         0.0 2.1 2.0 2.5 6.1                                                                                                                                                                            
+robot price by level L0 L1 L2 L3 L4          - 6.7 7.5 6.7 9.0                                                                                                                                                                              
+parts / crew bought per game (avg Cr)        17.6 (2.1) / 2.9 (2.6)                                                                                                                                                                         
+lots unsold                                  27%                                                                                                                                                                                            
+level 4: lots / game, sold, fights / game    6.4, 95%, 4.4                                                                                                                                                                                  
+credits: end of game, mean / max (team)      10.3 / 67                                                                                                                                                                                      
+credits at end: winner / others              14.8 / 8.7                                                                                                                                                                                     
+credits held by round 1-13 (mean/team)       6.7 5.9 6.6 7.3 7.9 7.7 7.9 8.3 9.0 9.4 9.9 10.6 -                                                                                                                                             
+most held by a team, round 10+ (mean/game)   21.5 (games 185, max 67)                                                                                                                                                                       
+income / game (all teams)                    mechanics 114.9, backing fees 21.3, appearance 91.6, cash-ins 68.4, bets (net won) 8.4, sales 10.9, trades 11.8, card effects 49.3, host deals 29.1, other deals 0.5, sponsor/quirk/lot 11.2   
+spend / game (all teams)                     market 145.7, host bid 80.0, bets staked 31.8, fight cards 10.9, repairs 24.2, backing paid 21.3, upkeep 47.6, 2-per-side 3.3, card costs 32.4, host deals 29.1, other deals 0.5, trades 11.8  
+host bid price (hostings paid / game)        7.0 Cr (11.4)                                                                                                                                                                                  
+repairs paid with credits / game             12.1 (24.2 Cr)                                                                                                                                                                                 
+credit changes not logged (Cr / game)        0.0                                                                                                                                                                                            
+robots at end / team                         2.6                                                                                                                                                                                            
+trade-ins / game (scrap Cr, level)           3.6 (2.8 Cr, L1.8)                                                                                                                                                                             
+scrapped / game: host, debt; robotless       2.5, 0.0; 0.8                                                                                                                                                                                  
+bookie favourite wins (n)                    75% (2260)                                                                                                                                                                                     
+stronger side (Repair2) wins                 74%                                                                                                                                                                                            
+bookie Brier (vs coin flip)                  0.169 (0.249)                                                                                                                                                                                  
+draws / House Robot wins                     0% / 0%                                                                                                                                                                                        
+House Robot: fights, swings, hit %           9, 33, 9%                                                                                                                                                                                      
+House Robot: dmg / hit, others within 1.5 m  95.0, 9%                                                                                                                                                                                       
+
+v2_200: bookie calibration (every side of every fight; p = bookie odds)
+  p band     sides   bookie p   actual win
+  0.0-0.1      545         6%           9%
+  0.1-0.2      481        15%          16%
+  0.2-0.3      416        25%          24%
+  0.3-0.4      440        34%          36%
+  0.4-0.5      401        44%          48%
+  0.5-0.6      378        55%          52%
+  0.6-0.7      424        65%          63%
+  0.7-0.8      440        74%          76%
+  0.8-0.9      456        85%          84%
+  0.9-1.0      560        94%          91%
+  favourite wins by format: duel 74% (1201), double 78% (661), 2v2 73% (384), mirror 67% (3), ffa 45% (11)
+
+v2_200: fight cards (per game)   offered / won / avg price / played
+  field_eng         2.1 / 0.6 / 1.0 / 0.6
+  waypoint          2.0 / 0.5 / 1.0 / 0.5
+  supply            1.5 / 1.1 / 1.1 / 1.0
+  hammer            1.5 / 1.1 / 1.2 / 1.1
+  overclock         1.5 / 0.4 / 1.0 / 0.4
+  swap_the_entry    1.4 / 1.2 / 1.4 / 0.8
+  smoke             1.4 / 1.0 / 1.0 / 1.0
+  rattle            1.4 / 0.4 / 1.0 / 0.4
+  emp_card          1.4 / 0.4 / 1.0 / 0.4
+  oil_card          1.4 / 0.5 / 1.0 / 0.5
+  magnet            1.4 / 0.4 / 1.0 / 0.4
+  spikes            1.4 / 0.4 / 1.0 / 0.4
+  hype              1.4 / 1.0 / 1.0 / 1.0
+  chiphack          1.4 / 0.5 / 1.0 / 0.5
+  launcher          1.3 / 0.4 / 1.0 / 0.4
+
+v2_200: level 4 robots (200 games)
+  by round      R6 200/198  R7 200/195  R8 199/192  R9 195/182  R10 180/166  R11 149/141  R12 101/96  R13 37/34  R14 12/11  R15 5/5   (lots offered / sold)
+  per game      6.4 offered, 6.1 sold (95%), price 9.0 Cr (min 5, max 17)
+  buyer         leader 48%, 2nd 20%, 3rd 19%, last 13%   (fame rank when sold; ties share the higher rank)
+  fights        4.4 / game with a level 4 robot; per robot (fights, wins): Trebuchet 228 (67%), Angler 208 (62%), Corkscrew 205 (52%), Orbiter 200 (62%), Tarantula 192 (60%), Hydra 182 (62%), Lodestone 178 (71%)
+  duels, L4 vs  L0 76% (54), L1 60% (42), L2 71% (69), L3 49% (41), L4 50% (46)
+  all formats   a side with a level 4 robot wins 59% (1184 sides)
+  bookie        fights with level 4: favourite wins 77%, Brier 0.162 (coin 0.249); level 4 sides: bookie 58%, actual 59%
+    0.0-0.1     197   bookie   5%   actual   8%
+    0.1-0.2     196   bookie  15%   actual  15%
+    0.2-0.3     190   bookie  25%   actual  21%
+    0.3-0.4     167   bookie  35%   actual  32%
+    0.4-0.5     167   bookie  45%   actual  41%
+    0.5-0.6     164   bookie  55%   actual  59%
+    0.6-0.7     159   bookie  65%   actual  68%
+    0.7-0.8     175   bookie  75%   actual  79%
+    0.8-0.9     186   bookie  85%   actual  85%
+    0.9-1.0     196   bookie  94%   actual  92%
+
+v2_200: backing fees (200 games)
+  payments / game 10.4, avg 2.1 Cr, 21.3 Cr / game; per team: received 5.3, paid 5.3 Cr / game
+  share of all team income 5%; top quarter of backers (received 11.0 Cr, net 6.2) win 37%, the rest (3.4 Cr) 21%
+
+v2_200: errors and stalls (games affected): none

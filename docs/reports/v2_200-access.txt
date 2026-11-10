@@ -1,0 +1,15 @@
+games 200, rounds avg 11.6
+
+1. EXPOSURE of a given part (per game)
+  seen (offered, or face up on the conveyor) by round 2: 33% | by round 4: 58% | by round 6: 79% | never: 2%
+  times a part is offered per game: 1.5 | part lots that find a buyer: 61% | lots per round: part 2.5, robot 1.1, crew 0.3, mech 0.0
+
+2. BUILDS (per game)
+  epic combos completed: 0.58 | games with an epic chance in the Market: 83% | epic chances per game: 1.67 -> owner got it 37%, a rival took it 43%, unsold 20%
+  great fits fitted: 2.27 (chances 6.4 a game, owner got it 36%) | poor fits fitted: 0.17
+  giant-slayer builds completed: 0.00 | two of the three parts: 0.06
+  robots at the end with 0 / 1 / 2 / 3 parts: 41% / 19% / 28% / 12%
+
+3. ANSWERS (a rival robot that none of your robots beats 40% of the time; answer = a robot lot that beats it 60%+)
+  team-rounds facing such a robot: 64% | threats per game: 21.5
+  answer in the Market the same round: 57% | within 2 more rounds: 91% | ever: 95% (wait 0.6 rounds) | the team bought one: 59%

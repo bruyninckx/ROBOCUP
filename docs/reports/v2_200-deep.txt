@@ -1,0 +1,85 @@
+v2_200: 200 finished games of 200, 11.6 rounds on average
+fights joined: 2260
+
+1. ROBOTS  (a fighter counts once per fight; "bookie" = its side's odds; diff = wins above the odds)
+robot         L  bought/g  price  fights  wins   bookie   diff
+Blowtorch     0  0.00      -      406     35%    43%      -8
+Wrecker       0  0.00      -      402     41%    41%      +0
+Buzzkill      0  0.00      -      353     43%    41%      +2
+Snapjaw       0  0.00      -      277     40%    39%      +1
+Rumbler       0  0.00      -      254     40%    41%      -1
+Popcorn       0  0.00      -      183     37%    38%      -2
+Thumper       0  0.00      -      165     40%    43%      -3
+Jouster       0  0.00      -      90      38%    42%      -4
+Haymaker      0  0.00      -      51      33%    34%      -1
+Scythe        1  0.33      6.5    207     48%    48%      +0
+Hornet        1  0.39      6.5    205     49%    50%      -1
+Mincer        1  0.36      6.9    201     48%    51%      -2
+Rocketeer     1  0.36      6.4    200     48%    49%      -2
+Mauler        1  0.35      7.1    195     54%    54%      0
+Juggernaut    1  0.31      6.9    176     55%    50%      +5
+Gyro          2  0.39      7.4    229     54%    48%      +5
+Thwacker      2  0.43      7.3    226     59%    51%      +7
+Brawler       2  0.43      7.4    221     48%    56%      -7
+Whirlwind     2  0.39      7.4    220     45%    49%      -4
+Pincher       2  0.37      7.7    207     51%    53%      -1
+Forklift      3  0.47      7.2    144     55%    54%      +1
+Sawblast      3  0.45      7.1    135     64%    59%      +5
+Ramrod        3  0.43      6.7    128     62%    58%      +3
+Vertigo       3  0.42      6.5    106     54%    55%      -1
+Whaler        3  0.36      6.5    105     63%    63%      0
+Grandmaster   3  0.37      6.1    95      47%    58%      -11
+Trebuchet     4  0.91      9.3    228     67%    58%      +8
+Angler        4  0.85      8.9    208     62%    61%      +1
+Corkscrew     4  0.91      8.7    205     52%    56%      -5
+Orbiter       4  0.88      9.1    200     62%    59%      +3
+Tarantula     4  0.86      9.0    192     60%    60%      0
+Hydra         4  0.85      8.9    182     62%    57%      +4
+Lodestone     4  0.83      9.1    178     71%    61%      +10
+by level: L0 2181 fighters, wins 39% (bookie 41%) | L1 1184 fighters, wins 50% (bookie 50%) | L2 1103 fighters, wins 52% (bookie 51%) | L3 713 fighters, wins 58% (bookie 58%) | L4 1393 fighters, wins 62% (bookie 59%)
+
+2. PARTS  (offered / sold per game, price; fighters carrying it)
+part        offered  sold   price  fighters  wins   bookie   diff
+booster     1.58     68%    2.4    337       58%    60%      -2
+weapon      2.43     44%    1.4    247       71%    67%      +4
+hull        2.40     43%    1.4    283       70%    66%      +4
+medic       1.51     67%    2.1    280       60%    59%      +1
+gunner      1.50     67%    1.9    287       60%    62%      -2
+quantum     1.16     86%    3.1    356       63%    64%      -1
+hospital    1.10     90%    3.3    426       61%    64%      -3
+core        1.15     86%    3.3    385       68%    66%      +2
+jam         1.50     65%    2.1    269       55%    58%      -3
+jammer      1.49     65%    1.9    331       55%    60%      -5
+shield      1.45     65%    2.0    240       59%    58%      +1
+emp         1.45     64%    2.1    268       65%    63%      +2
+tow         1.38     63%    2.1    264       68%    60%      +8
+mines       1.39     61%    2.0    258       59%    60%      -1
+popper      1.42     56%    1.9    217       53%    57%      -3
+powerkit    1.26     59%    2.1    198       65%    60%      +5
+overdrive   1.22     54%    2.1    197       63%    66%      -2
+matador     1.23     47%    1.6    139       50%    52%      -2
+pester      1.25     46%    1.4    110       68%    58%      +10
+bait        1.16     44%    1.2    122       64%    60%      +4
+by parts carried: 0 parts: 3705 fighters, wins 43% (bookie 43%) | 1 parts: 1135 fighters, wins 51% (bookie 51%) | 2 parts: 1123 fighters, wins 60% (bookie 59%) | 3 parts: 611 fighters, wins 70% (bookie 71%)
+
+3. BOOKIE TAGS IN REAL FIGHTS
+tag                   n     wins   bookie   diff
+⚡ Epic combo          166   58%    57%      +1
+🧩 Great fit          491   62%    61%      +1
+🧩 Poor fit           31    71%    67%      +4
+👑 2+ of a slayer build22    82%    68%      +14
+🎯 Counter pick (duel)382   75%    81%      -6
+⚠️ Bad matchup (duel) 382   25%    19%      +6
+🌀 Brawl master (FFA) 12    25%    33%      -8
+🌀 Lost in a melee    4     25%    15%      +10
+
+4. FIGHTS: 11.3 a game; the bookie's favourite loses 25% of them
+  formats: duel 53% (fav wins 74%, 49 s) | double 29% (fav wins 78%, 57 s) | 2v2 17% (fav wins 73%, 61 s) | mirror 0% (fav wins 67%, 23 s) | ffa 0% (fav wins 45%, 78 s)
+  arenas:  open 85% (fav wins 74%) | saws 6% (fav wins 82%) | cage 2% (fav wins 69%) | ice 3% (fav wins 86%) | killbox 5% (fav wins 77%)
+  long shots (winner had 20% or less): 0.63 a game
+
+5. THE ARC
+  lead changes per game: 2.3 | the winner led (or shared the lead) at half-time in 46% of games | winner's rank at half-time 1st-4th: 46% / 27% / 18% / 10%
+  comebacks (the winner was 3+ fame behind the leader at some Market): 43% | biggest gap overcome, average: 2.5
+  winner's robots at the end: 2.8 robots, level 3.0, parts 1.4 | others: 2.6 robots, level 2.5, parts 1.0
+  wins by seat: 23% / 28% / 27% / 22% | winning fame 12.2, last place 7.1
