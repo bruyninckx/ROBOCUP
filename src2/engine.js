@@ -73,7 +73,7 @@
     fieldmedic: { label: 'Field hospital medic', hp: 45, r: 0.1, mass: 3, col: '#2FD27A', ic: '+', d: 'Hangs behind its robot and patches it up: chassis +4 HP/s, parts +3 HP/s, puts out battery fires and restarts a burnt-out motor after 9 s, while it stays close.' },  // legendary (ROBOCUS 2.0): a medic drone that always runs at full strength
     gunner: { label: 'Gun drone', hp: 45, r: 0.1, mass: 3, col: '#E8C547', ic: 'G', d: 'Orbits its robot and fires 2 small shots per second at the enemy.' },
     laser: { label: 'Laser drone', hp: 40, r: 0.1, mass: 3, col: '#FF5A3C', ic: 'L', d: 'Hangs back about 2 m and burns the enemy with a thin beam that heats parts up.' },
-    booster: { label: 'Booster drone', hp: 60, r: 0.11, mass: 4, col: '#FF8A2A', ic: 'B', d: 'Docks on the back and pushes: +50% push, +15% speed, weapon overdrive (+15% damage) and a nitro kick every 4.5 s when lined up.' },
+    booster: { label: 'Booster drone', hp: 60, r: 0.11, mass: 4, col: '#FF8A2A', ic: 'B', d: 'Docks on the back and pushes: +50% push, +15% speed, weapon overdrive (+8% damage) and a nitro kick every 7 s when lined up.' },
     blocker: { label: 'Blocker drone', hp: 150, r: 0.17, mass: 10, col: '#8E9088', ic: 'X', physical: true, d: 'Heavy armoured disc that throws itself in front of the enemy: takes the charges, hits and shots.' },
     bodyguard: { label: 'Bodyguard drone', hp: 90, r: 0.13, mass: 4, col: '#47A8FF', ic: 'U', d: 'Hovers between its robot and the enemy weapon: takes 40% of every hit for it and eats bullets, beams, flames and saw discs.' },
     waller: { label: 'Waller drone', hp: 45, r: 0.1, mass: 3, col: '#7FD1CC', ic: 'W', d: 'Every 4.5 s raises an energy wall towards the enemy for 3.5 s: stops shots and charges.' },
@@ -418,7 +418,7 @@
       } else if (k === 'booster' && near < R.hl + 0.45) {
         R.boostK = 1.5;
         const err = Math.abs(wrap(Math.atan2(ep.y - rp.y, ep.x - rp.x) - R.body.getAngle()));
-        if (d.cool <= 0 && E.alive && ul > 1.2 && ul < 3.2 && err < 0.3 && R.airborne <= 0) { R.nitro = Math.max(R.nitro || 0, 1.2); d.cool = 4.5; S.fx.push({ type: 'dash', robot: R.id }); callout(S, 'BOOST!', rp.x, rp.y, false); }
+        if (d.cool <= 0 && E.alive && ul > 1.2 && ul < 3.2 && err < 0.3 && R.airborne <= 0) { R.nitro = Math.max(R.nitro || 0, 1.2); d.cool = 7; /* Kev, 9 Nov parts check: 4.5 s made it as strong as a legendary */ S.fx.push({ type: 'dash', robot: R.id }); callout(S, 'BOOST!', rp.x, rp.y, false); }
       } else if (k === 'waller' && d.cool <= 0 && E.alive && ul > 1.0 && ul < 4.5) {
         const cx = rp.x + ux * (R.hl + 0.6), cy = rp.y + uy * (R.hl + 0.6);
         if (S.robots.some(Q => { const q = Q.body.getPosition(); return Math.hypot(q.x - cx, q.y - cy) < Q.hl + 0.25; }) || Math.abs(cx) > HALF - 0.3 || Math.abs(cy) > HALF - 0.3) d.cool = 0.3;
@@ -761,7 +761,7 @@
     if (atk && S.multi) { if (atk.team === R.team) d *= ARC.ff; else { R.lastAtk = atk; R.lastAtkT = S.t; } }
     // Overdrive (stat part, Kev 9 Nov): the weapon hits much harder but strains itself: its motor (or the weapon) takes a share of every hit it lands
     if (atk && atk.spec.overdrive && own && h.cause !== 'strain' && d > 0) { const wq = atk.wmotor && atk.wmotor.hp > 0 ? atk.wmotor : atk.parts.find(q => q.kind === 'weapon' && q.attached && q.hp > 0); if (wq) hit(S, wq, d * atk.spec.overdrive, { src: atk, cause: 'strain', inner: wq === atk.wmotor }); }
-    if (atk) d *= (atk.over > 0 ? 1.8 : 1) * (atk.rage > 0 ? 1.4 : 1) * (atk.spotting ? 1.25 : 1) * (atk.boostK > 1 ? 1.15 : 1) * (atk.berserk > 0 ? 1.3 : 1);
+    if (atk) d *= (atk.over > 0 ? 1.8 : 1) * (atk.rage > 0 ? 1.4 : 1) * (atk.spotting ? 1.25 : 1) * (atk.boostK > 1 ? 1.08 : 1) * (atk.berserk > 0 ? 1.3 : 1);
     // side / rear hits: tracked for every robot, +25% for the flanker chip
     if (atk && !h.inner && h.blp && part.body === R.body && h.cause !== 'landing' && h.cause !== 'heat' && h.cause !== 'fire') {
       const bx = h.blp[0], by = h.blp[1], rear = bx < -R.hl * 0.35, sideHit = Math.abs(by) > R.hw * 0.75 && bx < R.hl * 0.7;
@@ -1241,7 +1241,7 @@
   }
 
   const CHIP_GLITCH = [0, 0, 0.15, 0.3, 0.45];
-  const CHIP_K = { matador: 3, pester: 2.4, bait: 2.4, baitStun: 2 };   // pay-offs: counter-strike damage, side/back damage, stun after a crash   // by level: chance per 4 s that the chip overloads (a 1 s glitch)
+  const CHIP_K = { matador: 3, pester: 2.4, bait: 3, baitStun: 2.5 };   // pay-offs: counter-strike damage, side/back damage, stun after a crash   // by level: chance per 4 s that the chip overloads (a 1 s glitch)
   function chipThink(S, R) {
     const E = R.enemy, b = R.body, p = b.getPosition(), ep = E.body.getPosition(), ev = E.body.getLinearVelocity();
     const dx = ep.x - p.x, dy = ep.y - p.y, dist = Math.hypot(dx, dy) || 0.001, ux = dx / dist, uy = dy / dist;
