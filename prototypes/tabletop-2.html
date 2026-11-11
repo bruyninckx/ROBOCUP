@@ -393,7 +393,9 @@ html, body {
     startCredits: 8,
     // Kev, 8 Nov (round 2 "combo"): 2 Mechanics + Accountant + Analyst; more engineers in the crew deck; 7 crew lots; lean part lots
     // Kev, 9 Nov (round 7): crew = Mechanics only (was 2 Mechanics + Accountant + Analyst, 13-card crew deck, 7 crew lots)
-    startCrew: { mechanic: 2, chief: 0, accountant: 0, analyst: 0 }, sovereignMechanics: 4,
+    startCrew: { mechanic: 2, chief: 0, accountant: 0, analyst: 0 }, sovereignMechanics: 3,   // Kev, 11 Nov: was 4 (Sovereign won 45% of 224 AI seats; 35% with 3)
+    aiStyles: true,           // solo games: every AI team gets a style (AI_STYLES), named in the log
+   
     crewDeck: ['mechanic', 'mechanic', 'mechanic', 'mechanic'],
     lots: {                       // the Market lot deck (4 lots a round stays fixed)
       robot: 4, crew: 4,          // New Robot / New Crew lots (crew 4: Kev, 9 Nov, round 7; was 7)
@@ -429,7 +431,7 @@ html, body {
       actsDamaged: 1, actsBroken: 1,
       brokenTwo: true,            // switch: a broken zone costs 2 actions (same as actsBroken: 2) (Kev, 8 Nov: on)
       bodyHeal: 0.5,              // body parts heal back to this every Upkeep for free
-      freeLoser: 1, freeLoserVulture: 2, freeAegis: 1,
+      freeLoser: 1, freeLoserVulture: 2, freeAegis: 2,   /* freeAegis: Kev, 11 Nov: was 1 (Aegis won 14% of 207 AI seats; 25% with 2) */
     },
     mechanicCr: 1,                // credits each Mechanic earns in Upkeep
     // robot upkeep: 'all' = every robot costs 1 Cr (the Accountant: only the first); 'first' = only your first robot costs 1 Cr for
@@ -481,9 +483,26 @@ html, body {
     // don't starve this or next round's Market (lot extras come after the base bids, from what is left above the reserve)
     spendK: 0.3, spendCap: 0.4, spendShare: 0.5, spendRes: 3, spendBody: 6, spendLate: 3, spendWar: 12, spendMkt: 8,
     // Kev, 11 Nov: bid against a team that keeps hosting (see hostDenyValue): +2 Cr per round it hosted of the last 3, up to +3 more for its fame lead
-    hostDeny: 2, hostDenyLead: 3 };
+    hostDeny: 2, hostDenyLead: 3,
+    /* Kev, 11 Nov: grudges and favours (G.rel, see relAdd). grudgeK: how much harder it goes after a team that hurt it (per grudge
+     * point, on top of the fame threat); loyalK: how much it spares a team that helped it (per favour point); stab: 1 = it turns on
+     * a team that helped it once that team is within 3 fame of the win. fameCurve: what 1 fame is worth in credits by the leader's
+     * fame (0-3, 4-6, 7-9, 10+), see tools/worth-report.js (AI games: about 0.1-1 / 0.4-1.2 / 2 / 4-10 Cr); null = hostFame at every stage.
+     * moneyCap: never bid more than the richest rival could (its credits + 1). */
+    grudgeK: 0.15, loyalK: 0.1, stab: 0, fameCurve: null, moneyCap: 1 };
+  // AI styles for tests (game-sim --aip0='{"style":"vengeful"}') and for solo games
+  const AI_STYLES = {
+    vengeful:    { grudgeK: 0.6, loyalK: 0.05 },
+    loyal:       { grudgeK: 0.2, loyalK: 0.4 },
+    backstabber: { grudgeK: 0.1, loyalK: -0.15, stab: 1 },
+    investor:    { fameCurve: [2, 3, 5, 10] },
+    showman:     { hostFame: 8, playMax: 3 },
+    schemer:     { playMax: 4, playMin: 0.6 },
+    miser:       { spendK: 0, hostFame: 4 },
+    bully:       { hostMin: 9, cashAll: true },
+  };
   let AI_DEFAULT = 2;
-  let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS));
+  let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS)), AIP_SET = false;
   // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
   const aiV2 = (t, f) => (AIV[t.i] || 1) >= 2 && !(f && (aiP(t).off || []).includes(f));
   const aiP = t => AIP[t.i] || AI_PARAMS;
@@ -497,9 +516,9 @@ html, body {
   const SHORT = { hp: 'HP', armor: 'AR', speed: 'SP', turret: 'TU', fp: 'FP', acc: 'AC', bullet: 'BU' };
 
   const SPONSORS = {
-    aegis:     { name: 'Aegis Heavy',         tag: 'Free Upkeep Patch', text: 'One free repair action every Upkeep.' },
+    aegis:     { name: 'Aegis Heavy',         tag: 'Free Upkeep Patch', text: 'Two free repair actions every Upkeep.' },
     blackwire: { name: 'Blackwire Syndicate', tag: 'Dirty Tricks',      text: '+1 Card in Upkeep; Intrigue schemes need 2 less Fame.' },
-    sovereign: { name: 'Sovereign Foundry',   tag: 'Deep Pockets',      text: 'Start with 4 Mechanics & win every Market lot tie (not the host bid).' },
+    sovereign: { name: 'Sovereign Foundry',   tag: 'Deep Pockets',      text: 'Start with 3 Mechanics & win every Market lot tie (not the host bid).' },
     apex:      { name: 'Apex Media',          tag: 'Prime Time',        text: '+2 Cr when you Host; Fan Favourite at 2 wins (not 3).' },
     lucky:     { name: 'Lucky Seven',         tag: 'House Edge',        text: 'Bet up to 5 Cr; winning bets pay one band better; losing bets refund 1 Cr.' },
     vulture:   { name: 'Vulture Salvage',     tag: 'Scrap Bounty',      text: '+2 Cr whenever a bot is scrapped; 2 free repair actions after a loss (not 1).' },
@@ -1891,6 +1910,11 @@ html, body {
       else { const deal = shuffle(free.slice()).slice(0, 2); t.sponsor = pick(deal); free = free.filter(k => k !== t.sponsor); }   // AI: dealt 2 of the rest, keeps 1
       t.mechs = t.sponsor === 'sovereign' ? BAL.sovereignMechanics : (BAL.startCrew.mechanic || 0);
     });
+    if (BAL.aiStyles && !AIP_SET) {   // Kev, 11 Nov: AI teams with a character (grudges, loyalty, backstabbing, card play, hosting)
+      const pool = shuffle(['vengeful', 'loyal', 'backstabber', 'schemer', 'showman', 'steady']); G.aiStyle = [null, null, null, null];
+      G.teams.forEach((t, i) => { if (isHuman(i)) return; const st = pool.pop(); G.aiStyle[i] = st; AIP[i] = Object.assign({}, AI_PARAMS, AI_STYLES[st] || null); });
+      const txt = G.teams.filter(t => !isHuman(t.i)).map(t => nm(t) + ': ' + G.aiStyle[t.i]).join(' · '); if (txt) notify('🎭 The rivals: ' + txt + '.', '#4A5560');
+    }
     for (const h of humanSeats()) { const sp = SPONSORS[G.teams[h].sponsor]; say(h, `Signed with <b>${esc(sp.name)}</b> (${esc(sp.tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}starter robot!`, G.teams[h].col); }
     G.setupStep = 'draft1';
     startDraftRound();
@@ -1967,7 +1991,7 @@ html, body {
   function startRound() {
     G.phase = 'upkeep';
     G.tieOrder = seatPerm(G.round);   // this round's seat order for ties and reactions (seat fairness)
-    G.hostCount = 1; G.hostFameGiven = 0;
+    G.hostCount = 1; G.hostFameGiven = 0; relFade();
     G.crateChoices = null; G.gather = null;
     for (let s = 0; s < 4; s++) { const P = PS(s); P.hostCount = 1; P.choose = false; P.skipTurn = false; }
     setCameraGoal('compound');
@@ -2518,6 +2542,9 @@ html, body {
   function aiWillBack(o, F, T, c, off) {
     const lead = leaderOf();
     if (T && T.i === o.i) return false;
+    { const P = aiP(o), g = relOf(o.i, F.i), gt = T && T !== F ? relOf(o.i, T.i) : 0;   // no help for a team it holds a grudge against; glad to help against one
+      if (g <= -2 && rnd() < Math.min(0.9, (P.grudgeK || 0) * -g * 1.5)) return false;
+      if (gt <= -2 && c.harmful && rnd() < Math.min(0.9, 0.3 + (P.grudgeK || 0) * -gt)) return true; }
     if (c.name === 'Corporate Raid' && T) off += Math.min(8, T.credits) / 2;   // a backer gets a share of the take
     if (T && T === lead && o !== lead && c.harmful) return rnd() < 0.85;
     if (F === lead || F.fame >= 9) return off >= 3 && rnd() < 0.4;
@@ -2559,7 +2586,7 @@ html, body {
   function settleBacking(F, c, got, owed, backers) {
     const ok = F.fame + got >= needOf(F, c);
     F.ivBackers = ok ? (backers || owed.map(([o]) => o)).map(o => o.i) : [];
-    if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B, 'backing'); });
+    if (ok) owed.forEach(([o, B]) => { if (!bundleEmpty(B)) transfer(F, o, B, 'backing'); if (o && o.i !== F.i) relAdd(F.i, o.i, 1); });   // a backer is remembered as a friend
     if (ok && G.stats && G.stats.backed) owed.forEach(([o]) => { if (o && o.i !== F.i) G.stats.backed[o.i][F.i]++; });
     else if (owed.some(([, B]) => !bundleEmpty(B))) notify('not enough backing, so nobody gets paid', '#888');
     return ok;
@@ -2872,6 +2899,12 @@ html, body {
     const st = cst(id, F.i); cstBy(id, F.i, 'played'); st.played++; st[d.blocked ? 'blocked' : 'landed']++; if (!d.blocked) cstBy(id, F.i, 'landed');
     const before = G.teams.map(t => [t.credits, t.fame]);
     if (!d.blocked && c.harmful && d.T && d.T !== F && G.stats) { G.stats.attacks[F.i]++; G.stats.hit[d.T.i]++; }
+    if (c.harmful && d.T && d.T !== F) {   // grudges: an attack is remembered (more when it lands); hitting a team that helped you is a backstab
+      const helped = relOf(F.i, d.T.i) >= 1;
+      if (helped) { notify('🗡️ ' + nm(F) + ' turns on ' + nm(d.T) + ', who helped it before.', F.col); if (G.stats) G.stats.stabs = (G.stats.stabs || 0) + 1; G.rel[F.i][d.T.i] = 0; }
+      relAdd(d.T.i, F.i, (d.blocked ? -1 : -2) - (helped ? 1.5 : 0));
+      if (G.stats) G.stats.grudgeHits = (G.stats.grudgeHits || 0) + (relOf(F.i, d.T.i) <= -2 ? 1 : 0);
+    }
     if (d.blocked && c.harmful && G.stats && G.stats.blocked) G.stats.blocked[F.i]++;
     if (!d.blocked) await resolveScheme(F, id, d.T);
     F.ivBackers = null;
@@ -2936,12 +2969,29 @@ html, body {
    * harm to a rival weighted by how close that rival is to winning, times the chance it gets past Security Bots),
    * the best card is played first and the values are worked out again after each play (so a Security Override
    * opens the way for the next attack). Cards worth less than about a credit stay in hand. */
+  /* Kev, 11 Nov: grudges and favours. G.rel[a][b] < 0: team a holds a grudge against b (b hit it with a card, scrapped its robot,
+   * refused to back it); > 0: b did a a favour (backed its scheme, spared its robot). Fades by 15% a round. Open information:
+   * the log says when a grudge forms and when a team turns on one that helped it. */
+  const relOf = (a, b) => (G.rel && G.rel[a] && G.rel[a][b]) || 0;
+  function relAdd(a, b, d, quiet) {
+    if (a === b || a == null || b == null) return;
+    if (!G.rel) G.rel = [0, 1, 2, 3].map(() => [0, 0, 0, 0]);
+    const was = G.rel[a][b]; G.rel[a][b] = Math.max(-6, Math.min(4, was + d));
+    if (!quiet && was > -2 && G.rel[a][b] <= -2 && !isHuman(a)) notify('😠 ' + nm(G.teams[a]) + ' holds a grudge against ' + nm(G.teams[b]) + '.', G.teams[a].col);
+  }
+  const relFade = () => { if (G.rel) G.rel = G.rel.map(r => r.map(v => Math.abs(v) < 0.2 ? 0 : v * 0.85)); };
+  // what 1 fame is worth to this AI in credits
+  const fameCr = t => { const P = aiP(t), c = P.fameCurve; if (!c) return P.hostFame; const m = Math.max(...G.teams.map(x => x.fame)) * 12 / WIN_FAME; return c[m <= 3 ? 0 : m <= 6 ? 1 : m <= 9 ? 2 : 3]; };
   const aiThreat = (F, T) => {
     if (!T || T === F) return 0;
     const fs = G.teams.map(t => t.fame), mx = Math.max(...fs), mn = Math.min(...fs);
     let th = 0.35 + 0.65 * (mx > mn ? (T.fame - mn) / (mx - mn) : 0.5);
     if (T.fame >= WIN_FAME - 2) th *= 1.5; if (T.fame >= WIN_FAME - 1) th *= 1.5;
-    { const n = (G.hostHist || []).slice(-3).filter(h => h === T.i).length; if (n >= 2 && aiP(F).hostDeny) th += 0.3 * n; }   // Kev, 11 Nov: a team that keeps hosting draws the cards, as it would at a real table
+    { const n = (G.hostHist || []).slice(-3).filter(h => h === T.i).length; if (n >= 2 && aiP(F).hostDeny) th += 0.3 * n; }
+    { const P = aiP(F), r = relOf(F.i, T.i);   // grudges and favours; a backstabber forgets favours once the friend is close to winning
+      if (r < 0) th += (P.grudgeK || 0) * -r; else if (r > 0 && !(P.stab && T.fame >= WIN_FAME - 3)) th -= (P.loyalK || 0) * r;
+      if (r > 0 && P.stab && T.fame >= WIN_FAME - 3) th += 0.3;
+      th = Math.max(0.05, th); }   // Kev, 11 Nov: a team that keeps hosting draws the cards, as it would at a real table
     return th;
   };
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
@@ -2995,7 +3045,7 @@ html, body {
     return 0;
   }
   function aiCardValue(F, c, T) {
-    const P = aiP(F), fc = P.hostFame * (F.fame >= WIN_FAME - 2 ? 1.6 : 1), n = c.name, th = aiThreat(F, T), harm = fc * th;
+    const P = aiP(F), fc = fameCr(F) * (F.fame >= WIN_FAME - 2 && !P.fameCurve ? 1.6 : 1), n = c.name, th = aiThreat(F, T), harm = fc * th;
     // fame a rival can actually lose: it stops at the floor (0 at a 0-fame start), so a smear on a team at the floor is worth nothing
     const lowO = lowestOther([F.i, T ? T.i : -1]), myFame = k => k * fc, foeFame = k => (T ? Math.min(k, Math.max(0, T.fame - fameFloor())) : k) * harm;
     const winsNow = k => F.fame + k >= WIN_FAME ? 40 : 0;   // a card that wins the game is worth everything
@@ -3409,7 +3459,7 @@ html, body {
   function aiHostValue(t) {
     const P = aiP(t), fame = CATCHUP.leaderhost && soleLeader() === t ? 0 : HOST_FAME;
     if (fame && t.fame + fame >= WIN_FAME) return t.credits;
-    return P.hostFame * fame + 1 + hostDenyValue(t);
+    return fameCr(t) * fame + 1 + hostDenyValue(t);
   }
   /* Kev, 11 Nov (playtest: Kev hosted 9 of 10 rounds for 7-13 Cr, put his best robot against the weakest every time and won 13-7-3-0):
    * a team that keeps hosting is buying a win a round. Taking the host seat away from it is worth credits to everyone else:
@@ -3425,7 +3475,8 @@ html, body {
     if (aiV2(t, 'host')) {
       const P = aiP(t), v = aiHostValue(t), sur = Math.max(0, aiSurplus(t, true, 'spendHost') - (P.spendMkt || 0)), hv = v >= t.credits ? v : v + Math.min(sur, v * (aiSpendMult(t, sur) - 1));   // surplus: hosting is worth more (capped)
       const bid = Math.max(0, Math.min(Math.round(hv * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0)));
-      return P.hostMin ? Math.max(bid, Math.min(P.hostMin, t.credits)) : bid;   // hostMin: a test AI that always goes for the host seat ("the bully")
+      const capped = P.moneyCap ? Math.min(bid, Math.max(...G.teams.filter(o => o !== t).map(o => o.credits)) + 1) : bid;
+      return P.hostMin ? Math.max(capped, Math.min(P.hostMin, t.credits)) : capped;   // hostMin: a test AI that always goes for the host seat ("the bully")
     }
     const want = t.fame >= 9 ? 3 : 1.5;   // Kev, 7 Nov: no Apex-only bonus (it made AI Apex host most rounds and win 47%)
     return Math.max(0, Math.min(Math.round(want * (0.4 + rnd() * 1.1)), t.credits, Math.ceil(t.credits * 0.6)));
@@ -3480,6 +3531,7 @@ html, body {
         const add = Math.max(0, Math.min(pool, sur0 * (P.spendShare || 0.5), Math.round(bids[k] * (mult - 1))));
         bids[k] += add; pool -= add;
       }
+      if (P.moneyCap) { const cap = Math.max(...G.teams.filter(o => o !== t).map(o => o.credits)) + 1; return bids.map(b => Math.min(b, cap)); }   // Kev, 11 Nov: nobody can outbid more than they hold
       return bids;
     }
     let budget = t.credits;
@@ -3659,7 +3711,7 @@ html, body {
     const v = robotVal(s) + l4 + off + (p - 0.5) * 2 + (lead > 0 ? lead * 1.2 : lead * 0.6);
     if (t.robots.length < 3) return v + (t.robots.length === 0 ? 3 : t.robots.length === 1 ? 1 : 0);
     if (!tradeInOn()) return 1;
-    const old = aiTradeInPick(t), keep = old ? BENCH_K * robotVal(bareStr(old)) + (old.wins >= favWins(t) ? BAL.fame.fanFav * aiP(t).hostFame : 0) : 0;
+    const old = aiTradeInPick(t), keep = old ? BENCH_K * robotVal(bareStr(old)) + (old.wins >= favWins(t) ? BAL.fame.fanFav * fameCr(t) : 0) : 0;
     return Math.max(0, v - keep + scrapMoney(old));
   }
   // the lowest winning bid for a lot (0 = any bid); level 4 robot lots: BAL.level4.minBid
@@ -4596,7 +4648,7 @@ html, body {
       const P = aiP(T), e = F.teams.indexOf(T.i), bet = F.pubBets[T.i];
       const fights = e >= 0, famePer = F.event && F.event.kind === 'final' ? 2 : 1;
       // what winning this fight is worth to it: fame (at its host-fame rate) if it fights, its bet's payout if it bet
-      const stake = (fights ? famePer * (aiV2(T) ? P.hostFame : 3) * 0.5 : 0) + (bet ? bet.amt * (payFor(T, F, bet.side) - 1) : 0);
+      const stake = (fights ? famePer * (aiV2(T) ? fameCr(T) : 3) * 0.5 : 0) + (bet ? bet.amt * (payFor(T, F, bet.side) - 1) : 0);
       if (stake <= 0) return [0, 0];
       // 2.0: a live card is worth its measured swing in win points (LIVE_VALUE) × what the fight is worth to it; a team that
       // only bet can still use it for the side it backs. Swap the Entry as in 1.0.
@@ -5167,6 +5219,7 @@ html, body {
       robotLeaves(T, robot, null, 'host scrap'); if (G.stats) G.stats.scrapped[T.i]++; returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
       for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
+      relAdd(T.i, G.host, -3);   // a scrapped robot is not forgotten
       if (removeFromHand(T, 'blaze_of_glory')) { discardCard('blaze_of_glory'); addFame(T, 1); notify('🔥 ' + cardRef('blaze_of_glory') + ': ' + nm(T) + ' +1 fame for the scrapped robot.', T.col); }
       if (!T.robots.length) noRobotsLeft(T);   // 2.0 (Kev, 8 Nov): no free Scrapbot
     } else if (safeWhy) {
@@ -5539,7 +5592,7 @@ html, body {
 
   /* test hook for automated play-throughs (read-only use) */
   window.ROBOCUS_DEBUG = { bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
-    ai: o => { if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
+    ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
   /* ---------- end-of-game awards (Kev, 9 Nov): a tally kept by the host during the game (G.stats), turned into awards when
