@@ -1,0 +1,99 @@
+<title>ROBOCUS 3D Arena (sketch)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #E9E4DA; --panel: #F6F2EA; --ink: #2B2118; --muted: #6E6457; --line: #CFC6B7;
+  --steel: #3F78A8; --rust: #C8642B; --hazard: #E8C547; --good: #4C8A3F; --warn: #C99A1E; --bad: #B23A2B; --chip: #E1DACD;
+  --f-display: "Saira Stencil One", "Arial Black", Impact, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --steel: #6E9CC4; --rust: #E08A57; --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #1D1A16; --panel: #27231E; --ink: #EDE6DA; --muted: #A79C8C; --line: #3E3830; --chip: #332E27;
+  --steel: #6E9CC4; --rust: #E08A57; --good: #79B46A; --warn: #E0B848; --bad: #E06A58; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 14px 16px 40px; }
+h1 { font: 400 28px/1.1 var(--f-display); margin: 4px 0 2px; letter-spacing: 0.5px; }
+.lede { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.stage { position: relative; background: #2E2A25; border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3; touch-action: none; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--f-mono); }
+.bars { position: absolute; left: 10px; right: 10px; top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+.bar1 { flex: 1 1 200px; background: rgba(20,16,12,0.62); color: #F3ECE0; border-radius: 7px; padding: 5px 8px; font-size: 12px; border-left: 4px solid var(--c); }
+.bar1 b { font-family: var(--f-body); font-weight: 600; font-size: 13px; }
+.meter { height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--c); }
+.chips { color: #E8C547; font-size: 11px; min-height: 14px; }
+.clock { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); background: rgba(20,16,12,0.62); color: #F3ECE0; padding: 2px 10px; border-radius: 6px; font-size: 13px; }
+.call { position: absolute; transform: translate(-50%, -50%); font: 400 26px/1 var(--f-display); color: #FFF4D6; -webkit-text-stroke: 1.5px #2B2118; paint-order: stroke fill; white-space: nowrap; transition: opacity 0.3s; }
+.call.big { font-size: 40px; color: #E8C547; }
+.result { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); background: rgba(20,16,12,0.8); color: #F3ECE0; padding: 12px 18px; border-radius: 10px; font: 500 16px/1.35 var(--f-body); text-align: center; max-width: 86%; }
+.result h2 { font: 400 30px/1.1 var(--f-display); margin: 0 0 4px; color: #E8C547; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.panel + .panel { margin-top: 12px; }
+.panel h2 { font: 600 13px/1.2 var(--f-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 8px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 3px; }
+select, input[type=number] { width: 100%; font: 14px var(--f-body); padding: 7px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+button { font: 600 13px var(--f-body); padding: 8px 11px; border-radius: 7px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+button.go { background: var(--rust); border-color: var(--rust); color: #fff; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--rust); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); margin-top: 8px; }
+.small { font-size: 12px; color: var(--muted); }
+#log { list-style: none; margin: 10px 0 0; padding: 0; font: 12px/1.4 var(--f-mono); color: var(--muted); max-height: 170px; overflow: auto; }
+#log li.big { color: var(--ink); font-weight: 600; }
+.notes { margin-top: 14px; color: var(--muted); font-size: 13px; max-width: 80ch; }
+.notes li { margin: 3px 0; }
+@media (max-width: 600px) {
+  .stage { aspect-ratio: 1 / 1.1; }
+  .bars { gap: 5px; left: 6px; right: 6px; top: 6px; }
+  .bar1 { flex: 1 1 40%; padding: 3px 6px; font-size: 11px; }
+  .bar1 b { font-size: 12px; }
+  .call { font-size: 18px; } .call.big { font-size: 28px; }
+}
+</style>
+<div class="wrap">
+  <h1>ROBOCUS 3D Arena</h1>
+  <p class="lede">A sketch of a 3D look on top of the normal 2.0 fight engine. Same robots, same physics and same seeds as the Lineup Arena; only the drawing is new. Drag the arena to turn the camera, scroll or pinch to zoom.</p>
+  <div class="grid">
+    <div>
+      <div class="stage" id="stage">
+        <canvas id="gl" aria-label="3D arena: robots fighting"></canvas>
+        <div class="hud" id="hud"><div class="bars" id="bars"></div><div class="clock" id="clock">0:00</div><div id="calls"></div><div id="result" class="result" hidden></div></div>
+      </div>
+      <ul id="log" aria-live="polite"></ul>
+    </div>
+    <div>
+      <div class="panel">
+        <h2>Fight</h2>
+        <label for="mode">Mode</label>
+        <select id="mode"><option value="1v1">1 v 1</option><option value="ffa">Free-for-all (4 robots)</option></select>
+        <div id="pickers"></div>
+        <label for="arenaSel">Arena</label><select id="arenaSel"></select>
+        <label for="seed">Seed</label><input type="number" id="seed" min="1" value="7">
+        <div class="row"><button type="button" class="go" id="fight">Fight</button><button type="button" id="newseed">New seed</button><button type="button" id="rand">Random robots</button></div>
+        <div class="row"><button type="button" id="pause">Pause</button><button type="button" data-speed="0.5">0.5×</button><button type="button" data-speed="1" aria-pressed="true">1×</button><button type="button" data-speed="2">2×</button></div>
+      </div>
+      <div class="panel">
+        <h2>Camera</h2>
+        <label for="tilt">Tilt from straight down: <span id="tiltV">32°</span></label>
+        <input type="range" id="tilt" min="0" max="65" value="32">
+        <div class="row"><button type="button" data-view="0">Top-down</button><button type="button" data-view="32">Tilted</button><button type="button" data-view="58">Low</button></div>
+        <label class="check"><input type="checkbox" id="follow" checked> Follow the action</label>
+        <label class="check"><input type="checkbox" id="shadows" checked> Shadows</label>
+      </div>
+    </div>
+  </div>
+  <ul class="notes">
+    <li><b>What is real here:</b> every part is the engine's own shape, pulled up into 3D, so armour tearing off, wheels flying and dents all come from the fight itself.</li>
+    <li><b>What is acted out:</b> the engine is flat, so height, flips and tilts are animated from what it already tracks (in the air, lifted by a wedge or fork, upside down).</li>
+    <li><b>Not drawn yet:</b> legs, overhead axes and some level 4 arms are plain blocks; lasers and drone beams are missing.</li>
+  </ul>
+</div>
