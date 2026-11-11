@@ -173,7 +173,7 @@ function installHooks() {
         const market = ev.filter(e => e.k === 'market').map(e => e.lots.reduce((a, l) => a + (l.winner != null && l.winner >= 0 ? (l.price || 0) : 0), 0));
         const betCr = fights.reduce((a, f) => a + (f.bets || []).reduce((s, x) => s + (x && (x.amt || x.amount) || 0), 0), 0);
         const auctions = ev.filter(e => e.k === 'card_auction');
-        const out = { startFame: G.startFame, bal: D.BAL ? JSON.parse(JSON.stringify(D.BAL)) : null, over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
+        const out = { sponsors: G.teams.map(t => t.sponsor), rel: G.rel || null, stabs: (G.stats && G.stats.stabs) || 0, grudgeHits: (G.stats && G.stats.grudgeHits) || 0, attacksBy: G.stats && G.stats.attacks ? G.stats.attacks.slice() : null, hitOn: G.stats && G.stats.hit ? G.stats.hit.slice() : null, startFame: G.startFame, bal: D.BAL ? JSON.parse(JSON.stringify(D.BAL)) : null, over: G.over, round: G.round, winner: G.over ? w.i : -1, fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits),
           fameBy: G.teams.map(t => t.fameBy || {}), ups, cstat: G.cstat || {}, cash: Object.fromEntries(Object.keys(G.cstat || {}).map(id => [id, C[id] ? { cash: C[id].cash, fam: C[id].fam, name: C[id].name, live: C[id].phase === 'fight', harmful: !!C[id].harmful, auction: !!C[id].auction } : null])),
           deckSize: D.DECK().length, fights: fights.length, fightCards: fends.map(f => (f.log || []).filter(x => x.k === 'card').length),
           formats: fights.map(f => f.format), awards: (ev.find(e => e.k === 'awards') || {}).awards || null, marketCr: market, betCr, hostBids: ev.filter(e => e.k === 'host_bid').length,
