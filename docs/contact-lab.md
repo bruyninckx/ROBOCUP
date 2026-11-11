@@ -18,8 +18,8 @@ Goal: make what a bump does depend on where and how it lands, and make it visibl
 
 ## How it looks (11 Nov, Kev: show it, don't only label it)
 
-- **Get under:** the propped robot tilts. It is drawn shorter across the lifted axis (hinged on the edge still on the floor), a touch wider at the raised edge, with the slope shaded and the raised edge lit, a dark lip where the underside shows, and its shadow stretched out under the raised edge. It is drawn over the robot whose nose is under it, so the wedge visibly disappears beneath it. The wheels in the air spin freely; when it drops back there is a puff of dust and a small shake. Drawing only (`ui.js`, `tilt*`); the sim is unchanged.
-- **Tipped over:** a short roll animation over the lifted axis instead of a jump cut.
+- **Get under** (redone 11 Nov: Kev disliked the skewed robot): the robot is never skewed or squashed. Lift shows as in 2D games: the robot rises slightly up the screen away from its shadow, the shadow spills out under the raised edge, the hull's side wall comes into view along the raised edge with that side's tyres spinning in the air, and the top gets a light change (raised edge lit, slope in shade). It is drawn over the robot whose nose is under it. Dust and a small shake when it drops back. Drawing only (`ui.js`, `tilt*`).
+- **Tipped over:** a short hop up the screen with a twist, the shadow staying on the floor, instead of the old coin-flip squash.
 - A prop lasts about 0.6 s of fight time (up to 2.2 s while the robot underneath keeps pushing), so it is easiest to see at ½× or ¼×.
 
 ## First numbers (72 fights, 18 pairs from all 33 robots, open floor)

@@ -4052,36 +4052,48 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // ---------- tilt (contact experiments: a robot propped up on someone's nose, or rolling over) ----------
   // Top-down, a robot with one edge off the floor looks shorter across that axis (it hinges on the edge still down),
   // its top catches the light differently, and the raised edge throws its shadow further out.
-  const TILT = { max: 0.62, wob: 0.06, H: 0.16, roll: 0.5 };
+  // The robot is never skewed or squashed: it stays a rigid drawing. Lift is shown the way 2D games show height:
+  // the robot rises a little up the screen away from its shadow, the shadow spills out under the raised edge,
+  // and the hull's side wall (with its wheels) comes into view along the raised edge.
+  const TILT = { max: 0.62, wob: 0.04, roll: 0.55, hop: 0.24, wall: 0.2, nudge: 0.6 };
   function tiltAxis(R) { const u = R.tiltU || [1, 0]; return [u[0], u[1], Math.abs(u[0]) * R.hl + Math.abs(u[1]) * R.hw]; }
-  function tiltK(R) { // 1 = flat; smaller = more tilted
-    if (R.rollFx) { const f = Math.min(1, R.rollFx.t / TILT.roll); return Math.max(0.06, Math.abs(Math.cos(Math.PI * f))); }
-    return Math.cos(R.tiltV || 0);
+  function tiltLift(R) { // how high the middle of the robot is off the floor (m)
+    if (R.rollFx) return Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * TILT.hop;
+    return Math.sin(R.tiltV || 0) * tiltAxis(R)[2] * 0.5;
   }
-  function tiltBody(R) {
-    const k = tiltK(R); if (k > 0.999) return;
-    const [ux, uy, e] = tiltAxis(R), c = k - 1, piv = R.rollFx ? 0 : e; // a roll turns over the middle, a prop hinges on the far edge
-    ctx.transform(1 + c * ux * ux, c * ux * uy, c * ux * uy, 1 + c * uy * uy, c * piv * ux, c * piv * uy);
-    if (R.rollFx) return;
-    const w = 1 + (1 - k) * 0.35; // the raised edge is nearer the camera: a touch wider across
-    ctx.translate(ux * e * 0.4, uy * e * 0.4); ctx.transform(1 + (w - 1) * uy * uy, -(w - 1) * ux * uy, -(w - 1) * ux * uy, 1 + (w - 1) * ux * ux, 0, 0); ctx.translate(-ux * e * 0.4, -uy * e * 0.4);
+  function tiltBody(R, a, sc) {
+    const z = tiltLift(R); if (z < 0.001) return;
+    const k = z * TILT.nudge / sc; ctx.translate(-k * Math.sin(a), -k * Math.cos(a)); // straight up the screen, whatever way the robot faces
+    if (R.rollFx) { const f = Math.min(1, R.rollFx.t / TILT.roll); ctx.rotate(Math.sin(Math.PI * 2 * f) * 0.16 * (R.tiltU ? Math.sign(R.tiltU[0] + R.tiltU[1] || 1) : 1)); } // a twist in the air as it goes over
   }
-  function tiltShadow(R, a) {
+  function tiltShadow(R, a) { // the raised edge throws its shadow further out (the shadow may stretch; the robot does not)
     const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 1.2 : Math.sin(R.tiltV || 0); if (t < 0.01) return;
-    const [ux, uy, e] = tiltAxis(R), H = TILT.H * t * 2 * e / 0.25;
-    const lx = Math.cos(-a) * 0.7071 - Math.sin(-a) * 0.7071, ly = Math.sin(-a) * 0.7071 + Math.cos(-a) * 0.7071; // light from the top left, in the robot's frame
-    const g = H / (2 * e); // shadow shift grows from 0 at the edge on the floor to H at the raised edge
+    const [ux, uy, e] = tiltAxis(R), H = 0.16 * t * 2 * e / 0.25;
+    const lx = Math.cos(-a) * 0.7071 - Math.sin(-a) * 0.7071, ly = Math.sin(-a) * 0.7071 + Math.cos(-a) * 0.7071, g = H / (2 * e);
+    if (R.rollFx) { ctx.translate(lx * H * 0.5, ly * H * 0.5); return; }
     ctx.transform(1 + g * lx * ux, g * ly * ux, g * lx * uy, 1 + g * ly * uy, g * e * lx, g * e * ly);
   }
-  function tiltShade(R) {
-    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) : Math.sin(R.tiltV || 0); if (t < 0.02) return;
+  function tiltSide(R) { // the side wall of the raised edge, tipped up into view, with the wheels on that side
+    if (R.rollFx) return; const t = Math.sin(R.tiltV || 0); if (t < 0.03) return;
+    const [ux, uy, e] = tiltAxis(R), px = -uy, py = ux, L = Math.abs(ux) * R.hw + Math.abs(uy) * R.hl, w = t * TILT.wall;
+    const P = (d, q) => [ux * d + px * q, uy * d + py * q];
+    const q0 = P(e - 0.01, -L), q1 = P(e - 0.01, L), q2 = P(e + w, L * 0.97), q3 = P(e + w, -L * 0.97);
+    const gr = ctx.createLinearGradient(ux * e, uy * e, ux * (e + w), uy * (e + w)); gr.addColorStop(0, '#1C1813'); gr.addColorStop(1, '#4A433B');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]); ctx.lineTo(q3[0], q3[1]); ctx.closePath(); ctx.fill();
+    for (const s of R.slots) { if (!s.wheel || !s.wheel.attached || s.lp[0] * ux + s.lp[1] * uy < e * 0.25) continue; // tyres on the raised side, spinning in the air
+      const [x0, y0, x1, y1] = bbox(s.wheel.verts), half = (Math.abs(px) * (x1 - x0) + Math.abs(py) * (y1 - y0)) / 2, c = (x0 + x1) / 2 * px + (y0 + y1) / 2 * py;
+      const a0 = P(e + w * 0.12, c - half), a1 = P(e + w * 0.12, c + half), a2 = P(e + w * 0.92, c + half), a3 = P(e + w * 0.92, c - half);
+      ctx.fillStyle = RUBBER; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.lineTo(a3[0], a3[1]); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 1.6; const st = 0.03, off = (((s.spin || 0) * 0.07) % st + st) % st;
+      for (let q = c - half + off; q < c + half; q += st) { const b0 = P(e + w * 0.12, q), b1 = P(e + w * 0.92, q); ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke(); } }
+    ctx.strokeStyle = 'rgba(255,240,210,0.55)'; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.moveTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.stroke(); // lit bottom rim
+    ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+  }
+  function tiltShade(R) { // a light change on the top: the slope down to the floor in shade, the raised edge catching the light
+    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 0.6 : Math.sin(R.tiltV || 0); if (t < 0.02) return;
     const [ux, uy, e] = tiltAxis(R), gr = ctx.createLinearGradient(-ux * e, -uy * e, ux * e, uy * e);
-    gr.addColorStop(0, `rgba(0,0,0,${0.32 * t})`); gr.addColorStop(0.55, `rgba(0,0,0,${0.08 * t})`); gr.addColorStop(1, `rgba(255,240,210,${0.22 * t})`); // the slope down to the floor in shade, the raised edge lit
-    ctx.fillStyle = gr; ctx.fillRect(-R.hl - 0.05, -R.hw - 0.05, R.hl * 2 + 0.1, R.hw * 2 + 0.1);
-    if (!R.rollFx) { // the raised edge: underside showing as a dark lip
-      ctx.strokeStyle = `rgba(20,14,8,${0.7 * t})`; ctx.lineWidth = PX * 3; ctx.beginPath();
-      const px = -uy, py = ux, L = Math.abs(ux) * R.hw + Math.abs(uy) * R.hl; ctx.moveTo(ux * e + px * L, uy * e + py * L); ctx.lineTo(ux * e - px * L, uy * e - py * L); ctx.stroke();
-    }
+    gr.addColorStop(0, `rgba(0,0,0,${0.22 * t})`); gr.addColorStop(0.6, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(255,240,210,${0.16 * t})`);
+    ctx.save(); for (const q of R.parts) if (q.attached && q.body === R.body && q.kind !== 'wheel') { path(q.outline); ctx.fillStyle = gr; ctx.fill(); } ctx.restore();
   }
   function tiltTick(R, rdt) {
     if (R.prop) { const L = Math.hypot(R.prop.lx, R.prop.ly) || 1; R.tiltU = [R.prop.lx / L, R.prop.ly / L]; }
@@ -4106,7 +4118,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); tiltShadow(R, a); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); tiltBody(R);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); tiltBody(R, a, sc); tiltSide(R);
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
