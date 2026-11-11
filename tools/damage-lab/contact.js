@@ -1,5 +1,5 @@
 // Contact experiments (Kev, 11 Nov): how often each new bump outcome happens, and what it does to fights.
-// node contact.js [fightsPerPair=6] [switches=slide,under,crush,gut | none] [check]   → per-fight counts, fight length, share of results that change.
+// node contact.js [fightsPerPair=6] [switches=slide,under,crush,gut,crack,frag,bend,grindout | none] [check]   → per-fight counts, fight length, share of results that change.
 // "check" compares the engine with every switch off against a reference engine file (ORIG=/path/engine.js): must be identical.
 const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
 const N = +process.argv[2] || 6, sw = (process.argv[3] || 'slide,under,crush,gut').split(',').filter(k => k && k !== 'none');
@@ -7,7 +7,7 @@ const all = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), names = Object.keys(all);
 const pairs = []; for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) pairs.push([names[i], names[j]]);
 const pick = pairs.filter((_, k) => k % (+process.env.EVERY || 9) === 0);
 function fight(a, b, seed, on) {
-  for (const k of ['slide', 'under', 'crush', 'gut']) L.ARC.cx[k] = on.includes(k); L.ARC.cx.count = true;
+  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) L.ARC.cx[k] = on.includes(k); L.ARC.cx.count = true;
   const S = L.create({ a: LU.build(a), b: LU.build(b), seed, arena: 'open' });
   while (!S.over && S.t < 200) { L.step(S); S.fx.length = 0; }
   return S;

@@ -27,6 +27,19 @@ Goal: make what a bump does depend on where and how it lands, and make it visibl
 Per fight with all four on: about 10 hull-on-hull bumps, 3.3 slides (0.7 spin-outs, 0.4 T-bones), 1.9 get-unders, 0.8 crushes, 6 gut hits. Tip-overs are rare (about 1 in 25 fights).
 Fights 56 s → 52 s, knockouts 92% → 93%, a different winner in 21% of fights (same seeds). Per-robot win rates are not measured yet (too few fights).
 
+## Wear: cracks, fragments, bends, saw grooves (11 Nov, second pass)
+
+Four more switches in `ARC.cx` (`crack`, `frag`, `bend`, `grindout`), also off by default and bit-identical when off. Knobs: `WEAR` in `engine.js`. All marks live in the part's own frame, so they move with the robot and stay on pieces that fly off.
+
+| Switch | What happens | Effect on the fight |
+|---|---|---|
+| **Cracks** | Piercing hits (spear, harpoon, fangs, crusher, spikes, axe and hammer, big hits of any kind) start a crack at the hit point. On the chassis it runs inwards the way the blow went, as a star of 1-3 cracks for a hard stab, and can fork; it shows through the top plate. On a plate or blade it runs along it both ways. Every later hit near a crack tip makes it longer; any hard hit makes the worst crack creep. | A cracked part takes up to 1.8x damage. A hit near a chassis crack goes 1.7x deeper into the internals. A chassis crack that reaches a motor, battery or radio damages it ("the crack runs into the drum motor"). A plate (or spear) whose crack runs most of its length splits: a strip falls off (SPLIT!). |
+| **Fragments** | A destroyed plate or front weapon breaks into 2-3 pieces, along its worst crack if it has one, instead of flying off whole. A cracked shell's top plate breaks in two when it comes off. | Mostly visual: more debris on the floor. |
+| **Bending** | Blunt hits (hammer, ram, walls, landings, crushes, spinners, drums...) bend a plate in for good: the plate visibly kinks with fold lines. A blow to the side of a spear bends it. | A side plate bent into a wheel drags on it (less drive, sparks, WHEEL RUB!) until the plate is gone. A bent wedge lip can't get under any more. A bent spear points off to the side, so it misses or hits off-centre. |
+| **Saw grooves** | Saws, grinders, buzzsaws, augers cut a notch where they stay on a part: bright cut metal, glowing while the saw is in it. | Hits on the groove do more damage. Deep enough and a plate is sawn through (SAWN THROUGH!, the smaller piece falls off; on a spear the tip falls off), or the chassis is opened up (SAWN OPEN!, a smoking wound). |
+
+First numbers (54 fights, 18 pairs, wear switches only): per fight 3.3 cracks (0.65 run into a part inside), 4.1 bends (0.9 wheel rubs), 2.7 fragment breaks, 0.4 saw cut-throughs. Splits along a crack are rare. Knockouts 93% → 98%. The winner changed in 37% of fights, but part of that is chaos: any change sends a fight down a different path, so this overstates the real balance shift. Per-robot balance not measured.
+
 ## Not done / ideas
 
 - Per-robot balance with the switches on (needs a full matrix run on Kev's PC).

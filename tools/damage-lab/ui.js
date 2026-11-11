@@ -240,10 +240,41 @@
       ctx.strokeStyle = `rgba(255,250,240,${0.22 + 0.2 * k})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.ellipse(d.x + d.r * 0.08, d.y + d.r * 0.08, d.r * 0.7, d.r * 0.45, d.x * 7 + d.y * 3, 3.6, 5.8); ctx.stroke();
       if (d.a > 12) { ctx.strokeStyle = 'rgba(25,18,10,0.55)'; ctx.lineWidth = PX; ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = (d.x * 31 + d.y * 17 + i * 2.1) % 6.28; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + Math.cos(a) * d.r * 1.3, d.y + Math.sin(a) * d.r * 1.3); } ctx.stroke(); }
     }
+    if (part.bends || part.cracks || part.grooves) drawWear(part);
     if (part.heat > 25) { ctx.fillStyle = `rgba(255,${120 - part.heat * 0.5},20,${Math.min(0.55, (part.heat - 25) / 150)})`; ctx.fillRect(-2, -2, 4, 4); }
     ctx.restore();
     path(part.outline); ctx.lineWidth = PX * 2.2; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
   }
+  // ---------- wear (contact experiments): cracks, bends, saw grooves ----------
+  function crackPath(c, w, col, ox, oy) {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'miter'; ctx.lineCap = 'round';
+    for (const t of c.tips) { if (t.pts.length < 2) continue; ctx.beginPath(); ctx.moveTo(t.pts[0][0] + ox, t.pts[0][1] + oy); for (let k = 1; k < t.pts.length; k++) ctx.lineTo(t.pts[k][0] + ox, t.pts[k][1] + oy); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+  }
+  function drawCracks(cracks, big) {
+    for (const c of cracks) {
+      const w = PX * Math.min(big ? 3.8 : 3.2, 1.4 + c.len * (big ? 8 : 20));
+      if (big) crackPath(c, w * 3.2, 'rgba(14,9,5,0.16)', 0, 0); // a dirty halo along the crack so it reads at a distance
+      crackPath(c, w + PX * 1.6, 'rgba(255,245,228,0.35)', PX * 0.9, PX * 0.9); // lit lower lip
+      crackPath(c, w, 'rgba(14,9,5,0.92)', 0, 0);
+      if (c.len > 0.04) { ctx.fillStyle = 'rgba(14,9,5,0.85)'; ctx.beginPath(); for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28, r = (k % 2 ? 0.012 : 0.022) * Math.min(1.6, 0.6 + c.len * 6); k ? ctx.lineTo(c.o[0] + Math.cos(a) * r, c.o[1] + Math.sin(a) * r) : ctx.moveTo(c.o[0] + r, c.o[1]); } ctx.closePath(); ctx.fill(); } // the impact point
+    }
+  }
+  function drawWear(part) {
+    if (part.bends && part.bAx) { const A = part.bAx; // folds where the plate is bent
+      for (const b of part.bends) { if (b.depth < 0.006) continue; const k = Math.min(1, b.depth / 0.04);
+        for (const [o, al] of [[0, 0.75], [-WEAR_R * 0.55, 0.35], [WEAR_R * 0.55, 0.35]]) { const sx = b.s + o, sh = A.inn * b.depth * (o ? 0.45 : 1);
+          const P = (t, d) => A.ax === 0 ? [sx + d, t + sh] : [t + sh, sx + d];
+          let q0 = P(A.tlo - 0.02, 0), q1 = P(A.thi + 0.02, 0); ctx.strokeStyle = `rgba(14,9,5,${al * k})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+          q0 = P(A.tlo - 0.02, 0.012); q1 = P(A.thi + 0.02, 0.012); ctx.strokeStyle = `rgba(255,248,235,${al * k * 0.6})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke(); } } }
+    if (part.cracks) drawCracks(part.cracks, false);
+    if (part.grooves) for (const g of part.grooves) { if (g.depth < 0.004) continue; // bright cut metal round the notch, glowing while the saw is in it
+      const hot = S && part.attached ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
+      if (hot > 0) { const gr = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, r * 2.4); gr.addColorStop(0, `rgba(255,190,80,${0.85 * hot})`); gr.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gr; ctx.fillRect(g.x - r * 2.4, g.y - r * 2.4, r * 4.8, r * 4.8); }
+      ctx.strokeStyle = 'rgba(236,236,226,0.9)'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, 6.29); ctx.stroke();
+      ctx.strokeStyle = 'rgba(150,150,140,0.7)'; ctx.lineWidth = PX * 1; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(g.x, g.y, r * (1.25 + k * 0.08), 0, 6.29); ctx.stroke(); } }
+  }
+  const WEAR_R = (L.WEAR && L.WEAR.bendR) || 0.17;
   function wheelTread(part, spin) {
     const [x0, y0, x1, y1] = bbox(part.verts), len = x1 - x0, step = 0.035, off = ((spin * 0.07) % step + step) % step;
     ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 2;
@@ -400,6 +431,7 @@
         if (!dead) { ctx.fillStyle = Math.sin(performance.now() / 90) > 0 ? '#9BE38A' : '#2F8A4A'; ctx.fillRect(cx - 0.02, cy - 0.02, 0.04, 0.04); }
         for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
       }
+      if (R.chassis.cracks && R.chassis.cracks.length) drawCracks(R.chassis.cracks, true); // cracks in the shell show through the top plate
       drawTop(R, i); drawLamps(R);
       if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
@@ -713,7 +745,7 @@
     if (d.key === 'twinsaw') { drawBuzz(d, { buzzW: 0, buzzMax: 100, buzzR: 0.12 }); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
-    const fill = d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
+    const fill = d.fillAs ? d.fillAs : d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
     drawPart(d, fill, d.robot, d.kind === 'wheel' ? () => wheelTread(d, d.spin || 0) : null);
     ctx.restore();
   }
@@ -963,7 +995,10 @@
   }
   function toScreen(x, y) { return [W / 2 + ((x - cam.x) * cam.z) * K, W / 2 + ((y - cam.y) * cam.z) * K]; }
 
+  // test hook (headless screenshots): window.DL_TEST.follow(zoom) keeps the camera on the robots
+  let testFollow = 0; window.DL_TEST = { state: () => S, follow: z => { testFollow = z; } };
   function draw() {
+    if (testFollow && S) { const al = S.robots.filter(R => !R.inPit); const mx = al.reduce((a, R) => a + R.body.getPosition().x, 0) / al.length, my = al.reduce((a, R) => a + R.body.getPosition().y, 0) / al.length; cam.x = cam.tx = mx; cam.y = cam.ty = my; cam.z = cam.tz = testFollow; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#3A3530'; ctx.fillRect(0, 0, W, W);
     const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
     ctx.setTransform(K * cam.z, 0, 0, K * cam.z, W / 2 - (cam.x + sx) * K * cam.z, W / 2 - (cam.y + sy) * K * cam.z);
@@ -1094,7 +1129,7 @@
   document.querySelectorAll('[data-speed]').forEach(bn => bn.onclick = () => { st.speed = +bn.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === bn))); });
   $('drama').onchange = e => { st.drama = e.target.checked; };
   // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on
-  for (const k of ['slide', 'under', 'crush', 'gut']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
+  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
   $('arenaSel').innerHTML = Object.entries(L.ARENAS).map(([k, v]) => `<option value="${k}"${k === st.arena ? ' selected' : ''}>${v.label}</option>`).join('');
   $('arenaSel').onchange = e => { st.arena = e.target.value; start(); };
 

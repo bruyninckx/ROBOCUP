@@ -146,6 +146,11 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         <label class="chk" title="A low nose (wedge, flipper, wedge hull) gets under a higher edge: those wheels leave the floor, and a narrow robot can tip over."><input id="cx-under" type="checkbox"> Get under</label>
         <label class="chk" title="A robot held against a wall, or between two robots, takes damage for as long as it is squeezed."><input id="cx-crush" type="checkbox"> Pin &amp; crush</label>
         <label class="chk" title="A hit on a side whose armour plate was torn off goes deep into the internals and leaves a smoking wound."><input id="cx-gut" type="checkbox"> Gut shots</label>
+        <span class="small"><b>Wear:</b></span>
+        <label class="chk" title="Piercing hits (spear, axe, fangs, spikes) crack plates and the chassis. Cracks grow with every hit, weaken the part, run into the parts inside, and a cracked plate splits."><input id="cx-crack" type="checkbox"> Cracks</label>
+        <label class="chk" title="A destroyed plate or weapon breaks into pieces (along its cracks if it has any); a cracked top plate breaks in two."><input id="cx-frag" type="checkbox"> Fragments</label>
+        <label class="chk" title="Blunt hits bend plates in for good. A side plate bent into a wheel drags on it; a bent wedge lip can't get under; a bent spear points off to the side."><input id="cx-bend" type="checkbox"> Bending</label>
+        <label class="chk" title="Saws and grinders cut a groove where they stay in contact. Deep enough and the plate is sawn through, or the chassis is opened up."><input id="cx-grindout" type="checkbox"> Saw grooves</label>
         <span class="small">Change a box, then Replay: same fight, new rules.</span>
       </div>
       <div class="card" id="reportCard" hidden><div class="report" id="report"></div></div>

@@ -13,7 +13,7 @@
   const TUNE = { buzzsaw: 1, sawrocket: 1, rocket: 1, harpoon: 1, dmg: 0.68, spinner: 1.15, drum: 0.62, flipper: 1.6, hammer: 0.75, crusher: 1.5, medium: 0.8, flame: 0.72, glove: 0.85, spear: 0.9, flail: 1.25 };
   const NOKNOB = { squeeze: 1, strain: 1, wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
   // arcade knobs: knock = extra knockback from weapon hits, fly = how far torn-off parts fly
-  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
+  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, crack: false, frag: false, bend: false, grindout: false, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
   const DT = 1 / 120, G = 9.8, HALF = 4; // arena is 8 x 8 m, centred on 0,0
   const TAU = Math.PI * 2;
   // Contact experiments (Kev, 11 Nov): what a bump does depends on where and how it lands. Four switches in ARC.cx, all off by default:
@@ -800,6 +800,7 @@
       }
     }
     if (part.kind === 'chassis') d *= 0.5;
+    if (ARC.cx.crack || ARC.cx.grindout) d = wearPre(S, R, part, h, d);
     const before = part.hp;
     part.hp -= d;
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
@@ -821,7 +822,7 @@
       const target = R.chipExposed && R.chipPart.hp > 0 && S.rng() < 0.35 ? R.chipPart : nearestInternal(R, blp);
       if (target) hit(S, target, amt, { src: h.src, cause: h.cause, top: h.top, x: h.x, y: h.y, inner: true });
     };
-    if (part.kind === 'chassis') toInternal(d * 0.55 * pen * gutK);
+    if (part.kind === 'chassis') toInternal(d * 0.55 * pen * gutK * (h.cxPen || 1));
     else if (part.kind === 'armour' && d > part.thr * 3) toInternal((d - part.thr * 3) * 0.25 * pen);
     else if (part.kind === 'wheel' && part.slot) hit(S, part.slot.motor, d * 0.25, { src: h.src, cause: h.cause, x: h.x, y: h.y });
     else if (part.kind === 'weapon' && R.wmotor && d > 10) hit(S, R.wmotor, d * 0.15, { src: h.src, cause: h.cause, x: h.x, y: h.y });
@@ -833,6 +834,7 @@
       else if (r < 0.28 && R.radio.hp > 0) { R.glitch = 1 + S.rng() * 1.5; say(S, `${R.name}: radio glitch`, R.id); }
     }
     if (part.key === 'chip' && part.hp > 0 && d > 1.5 && !(R.chipCd > 0) && R.alive) chipFx(S, R, d);
+    if ((ARC.cx.crack || ARC.cx.bend || ARC.cx.grindout) && part.hp > 0) wearPost(S, R, part, h, d, atk);
     // state labels
     const f = part.hp / part.maxHp;
     if (part.hp <= 0 && before > 0) destroyPart(S, part, h, -part.hp);
@@ -897,6 +899,7 @@
       const c0 = centroid(part.home); for (let i = 0; i < 3; i++) spawnLoose(S, R, 'Fibreglass shard', [[-0.05, -0.02], [0.05, -0.03], [0.01, 0.04]], c0, 0.2, [(S.rng() - 0.5) * 8, (S.rng() - 0.5) * 8]);
       const wpS = R.body.getWorldPoint(V(c0[0], c0[1])); S.fx.push({ type: 'shatter', x: wpS.x, y: wpS.y });
     }
+    if (ARC.cx.frag && part.bumper !== 'fibre' && part.body === R.body && !part.sep && (part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'spear' || part.key === 'wedge' || part.key === 'flipper' || part.key === 'jaws')))) fragment(S, R, part, h);
     detach(S, part, kick);
     { const wpC = part.body.getPosition(); callout(S, part.kind === 'wheel' ? (part.leg ? 'LEG OFF!' : 'WHEEL GONE!') : part.key === 'blade' || part.key === 'ball' || part.key === 'glove' || part.key === 'buzz' ? 'WEAPON GONE!' : part.kind === 'armour' ? 'ARMOUR OFF!' : 'RIPPED OFF!', wpC.x, wpC.y, false); }
     const verb = part.kind === 'wheel' ? 'torn off' : part.kind === 'armour' ? 'ripped off' : part.key === 'blade' ? 'snapped off and flies away' : 'broken off';
@@ -909,7 +912,13 @@
     L0.hp -= ld; if (h.lp && R.body === (h.part ? h.part.body : R.body)) addDent(L0, h.blp || h.lp, ld * 1.5);
     if (L0.hp > 0) { if (L0.hp / L0.maxHp < 0.4 && L0.state !== 'loose') { L0.state = 'loose'; say(S, `${R.name}: top plate rattling loose`, R.id); } return; }
     L0.attached = false; L0.hp = 0; R.topArmour = 0; R.chipExposed = true;
-    const fly = spawnLoose(S, R, 'Top plate', L0.verts.map(q => [q[0] * 0.9, q[1] * 0.9]), [0, 0], 2 + R.spec.armour.top * 2, [(S.rng() - 0.5) * 9, (S.rng() - 0.5) * 9]);
+    let lidV = L0.verts.map(q => [q[0] * 0.9, q[1] * 0.9]), lidM = 2 + R.spec.armour.top * 2;
+    if (ARC.cx.frag && R.chassis.cracks && R.chassis.cracks.length) { // a cracked shell: the top plate breaks in two along the worst crack
+      const c = R.chassis.cracks.reduce((a, b) => a.len > b.len ? a : b), P = c.tips.flatMap(t => t.pts), a0 = P[0], a1 = P[P.length - 1]; let tx = a1[0] - a0[0], ty = a1[1] - a0[1]; const tl = Math.hypot(tx, ty) || 1;
+      const pr = c.len > 0.05 ? splitPoly(lidV, a0[0], a0[1], -ty / tl, tx / tl) : null;
+      if (pr) { const [A, B] = pr, cb2 = centroid(B), ka = Math.abs(area(A)) / Math.abs(area(lidV)); lidV = A; const pc = spawnLoose(S, R, 'Top plate piece', B.map(q => [q[0] - cb2[0], q[1] - cb2[1]]), cb2, lidM * (1 - ka), [(S.rng() - 0.5) * 9, (S.rng() - 0.5) * 9]); if (pc) { pc.lid = true; pc.col = 'lid'; } lidM *= ka; cxCount(S, R, 'frag'); }
+    }
+    const fly = spawnLoose(S, R, 'Top plate', lidV, [0, 0], lidM, [(S.rng() - 0.5) * 9, (S.rng() - 0.5) * 9]);
     if (fly) { fly.noHit = R; fly.noHitT = S.t + 0.6; fly.lid = true; fly.dents = L0.dents.slice(); fly.col = 'lid'; }
     const p = R.body.getPosition(); S.fx.push({ type: 'detach', x: p.x, y: p.y }); callout(S, 'LID OFF!', p.x, p.y, true);
     R.stats.lost.push({ t: S.t, label: 'Top plate', cause: h.cause || 'impact', by: h.src && h.src !== R ? h.src.name : '' });
@@ -969,6 +978,9 @@
     nb.setLinearVelocity(V(v.x + kick[0] * F + (S.rng() - 0.5) * 1.5 * F, v.y + kick[1] * F + (S.rng() - 0.5) * 1.5 * F)); nb.setAngularVelocity(spin);
     b.destroyFixture(part.fx);
     part.verts = verts; part.outline = part.outline.map(shift); part.dents = part.dents.map(d => Object.assign({}, d, { x: d.x - c[0], y: d.y - c[1] }));
+    if (part.cracks) part.cracks.forEach(cr => { cr.o = shift(cr.o); cr.tips.forEach(t => { t.pts = t.pts.map(shift); }); });
+    if (part.grooves) part.grooves.forEach(g => { g.x -= c[0]; g.y -= c[1]; });
+    if (part.bends && part.bAx) { part.bends.forEach(b => { b.s -= c[part.bAx.ax]; }); part.bAx = Object.assign({}, part.bAx, { lo: part.bAx.lo - c[part.bAx.ax], hi: part.bAx.hi - c[part.bAx.ax] }); }
     part.body = nb; part.wheelRoll = part.kind === 'wheel';
     part.fx = nb.createFixture({ shape: pl.Polygon(verts.map(p => V(p[0], p[1]))), density: part.mass / area(verts), friction: 0.5, restitution: 0.2, userData: { part } });
     if (part.slot) part.slot.wheel = null;
@@ -985,7 +997,7 @@
     S.fx.push({ type: 'ko', robot: R.id });
   }
 
-  const CAUSES = { squeeze: 'crushed against a wall', strain: 'overdrive strain', tail: 'thwack tail', lifter: 'lifter fork', batram: 'battering ram', vdisc: 'vertical disc', shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
+  const CAUSES = { crack: 'crack', squeeze: 'crushed against a wall', strain: 'overdrive strain', tail: 'thwack tail', lifter: 'lifter fork', batram: 'battering ram', vdisc: 'vertical disc', shell: 'shell spinner', sweeper: 'sweeper axe', twinsaw: 'twin grinders', clapper: 'clapper arms', wrench: 'wrenched free', buzzsaw: 'buzzsaw', rocket: 'rocket', harpoon: 'harpoon', drone: 'drone', dronegun: 'gun drone', dronelaser: 'laser drone', popper: 'pop-up flipper', mine: 'mine', boom: 'self-destruct blast', glove: 'boxing glove', spear: 'spear', flail: 'flail', spikeplate: 'spiked bumper', ceiling: 'ceiling hammer', piston: 'floor bumper', spinner: 'spinner', drum: 'drum', flipper: 'flipper', hammer: 'axe', crusher: 'crusher', wedge: 'wedge', rapid: 'rapid gun', medium: 'gun', heavy: 'cannon', laser: 'laser', mortar: 'mortar', saw: 'saw disc', flame: 'flames', ram: 'ram', wall: 'wall', spikes: 'spikes', floorsaw: 'floor saw', landing: 'hard landing', slam: 'thrown into the wall', debris: 'debris', fire: 'fire', heat: 'heat', impact: 'impact' };
   const causeLabel = c => CAUSES[c] || c || 'hit';
 
   // ---------- contacts -> damage ----------
@@ -1060,7 +1072,7 @@
         S.fx.push({ type: 'boing', x: c.x, y: c.y }); if (mag > 60) callout(S, 'BOING!', c.x, c.y, false);
       }
       // wedge gets under: the other robot loses grip for a moment
-      if (py.attached && py.key === 'wedge' && px.attached && px.robot !== py.robot) {
+      if (py.attached && py.key === 'wedge' && !py.bentUp && px.attached && px.robot !== py.robot) {
         const W = py.robot.body, fwd = W.getWorldVector(V(1, 0)), vv = W.getLinearVelocity();
         if (fwd.x * vv.x + fwd.y * vv.y > 0.6) px.robot.lifted = Math.max(px.robot.lifted, 0.4);
       }
@@ -1092,7 +1104,7 @@
   function cxCount(S, R, k) { S.cx = S.cx || {}; S.cx[k] = (S.cx[k] || 0) + 1; const st = R.stats.cx || (R.stats.cx = {}); st[k] = (st[k] || 0) + 1; }
   function cxFace(R, lx, ly) { return lx > R.hl * 0.6 ? 'Front' : lx < -R.hl * 0.6 ? 'Rear' : ly < 0 ? 'Left' : 'Right'; }
   // how low the front edge sits: 0 = a wedge or flipper scraping the floor, 1 = wedge hull, 2 = chamfered / round hull, 3 = square box (or upside down)
-  function cxNose(R) { if (R.flipped) return 3; if (R.parts.some(q => q.attached && q.hp > 0 && (q.key === 'wedge' || q.key === 'flipper'))) return 0; const n = { wedge: 1, chamfer: 2, round: 2, box: 3 }[R.spec.shape]; return n == null ? 3 : n; }
+  function cxNose(R) { if (R.flipped) return 3; if (R.parts.some(q => q.attached && q.hp > 0 && !q.bentUp && (q.key === 'wedge' || q.key === 'flipper'))) return 0; const n = { wedge: 1, chamfer: 2, round: 2, box: 3 }[R.spec.shape]; return n == null ? 3 : n; }
   // how low an edge of the victim sits: its own nose at the front; a side or rear with its plate on = 2, bare = 3
   function cxSkirt(T, face) { if (T.flipped) return 3; if (face === 'Front') return cxNose(T); const pl = T.parts.find(q => q.kind === 'armour' && q.label.startsWith(face)); return pl && pl.attached ? 2 : 3; }
   function cxBump(S, pa, pb, c) {
@@ -1184,6 +1196,196 @@
         }
       } else { R.pinT = Math.max(0, (R.pinT || 0) - DT * 2); if (R.pinT <= 0) R.crushing = false; }
     }
+  }
+
+  // ---------- wear experiments (Kev, 11 Nov): cracks, fragments, bends, saw grooves (ARC.cx.crack / frag / bend / grindout) ----------
+  // Everything lives in the part's own frame (the robot's frame while it is attached), so it moves with the robot and can be drawn.
+  const WEAR = { crackMin: 5, crackK: 0.0055, vib: 0.0022, seg: 0.022, splitAt: 0.62, bendMin: 7, bendK: 0.0034, bendMax: 0.075, bendR: 0.17, rubMin: 0.006, grooveK: 0.0012, cutK: 0.85, chOpen: 0.05, weakMax: 2.2 };
+  const PIERCE = { spear: 1, harpoon: 1, fang: 0.9, crusher: 0.7, spikeplate: 0.7, sweeper: 0.6, hammer: 0.55, auger: 0.5, spikes: 0.5, shrapnel: 0.5, flail: 0.4, spinner: 0.4, tail: 0.35, slam: 0.3 };
+  const GRINDY = { saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, orbdisc: 1, gmsaw: 1 };
+  const BLUNT = { impact: 1, ram: 1, wall: 1, slam: 1, landing: 1, squeeze: 1, hammer: 1, batram: 1, glove: 1, punch: 1, tail: 1, flail: 1, clapper: 1, crusher: 1, drum: 1, lifter: 1, flipper: 1, treb: 1, wedge: 1, spinner: 1, shell: 1, vdisc: 1, debris: 1, spikeplate: 1 };
+  const wbb = vs => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of vs) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } return [x0, y0, x1, y1]; };
+  function wAxis(part) { const [x0, y0, x1, y1] = wbb(part.verts), c = centroid(part.verts), lx = x1 - x0 >= y1 - y0; // long axis, and which way is in (towards the robot's middle)
+    return lx ? { ax: 0, len: x1 - x0, th: y1 - y0, lo: x0, hi: x1, tlo: y0, thi: y1, inn: c[1] > 0 ? -1 : 1 } : { ax: 1, len: y1 - y0, th: x1 - x0, lo: y0, hi: y1, tlo: x0, thi: x1, inn: c[0] > 0 ? -1 : 1 }; }
+  function inPoly(vs, x, y) { let c = false; for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) { const [xi, yi] = vs[i], [xj, yj] = vs[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+  function splitPoly(vs, px, py, nx, ny) { // cut a convex polygon by a line (point, normal) into two convex pieces
+    const A = [], B = [], sd = q => (q[0] - px) * nx + (q[1] - py) * ny;
+    for (let i = 0; i < vs.length; i++) { const a = vs[i], b = vs[(i + 1) % vs.length], da = sd(a), db = sd(b);
+      (da <= 0 ? A : B).push(a.slice());
+      if ((da < 0 && db > 0) || (da > 0 && db < 0)) { const t = da / (da - db), m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; A.push(m); B.push(m.slice()); } }
+    if (A.length < 3 || B.length < 3 || Math.abs(area(A)) < 0.0004 || Math.abs(area(B)) < 0.0004) return null;
+    return [A, B];
+  }
+  function wRebuild(part) { // outline = shape + bends + dents + saw grooves (drawing only)
+    part.outline = subdivide(part.verts);
+    if (part.bends && part.bAx) { const A = part.bAx; for (const q of part.outline) for (const b of part.bends) { const k = Math.max(0, 1 - Math.abs(q[A.ax] - b.s) / WEAR.bendR); q[1 - A.ax] += A.inn * b.depth * k; } }
+    const c = centroid(part.verts);
+    for (const d of part.dents) for (const q of part.outline) { const dist = Math.hypot(q[0] - d.x, q[1] - d.y); if (dist < d.r * 1.6) { const k = d.d * Math.pow(1 - dist / (d.r * 1.6), 2), vx = c[0] - q[0], vy = c[1] - q[1], L = Math.hypot(vx, vy) || 1, mv = Math.min(k, L * 0.45); q[0] += vx / L * mv; q[1] += vy / L * mv; } }
+    if (part.grooves) for (const g of part.grooves) for (const q of part.outline) { const dist = Math.hypot(q[0] - g.x, q[1] - g.y), w = 0.026; if (dist < w) { const vx = c[0] - q[0], vy = c[1] - q[1], L = Math.hypot(vx, vy) || 1, mv = Math.min(g.depth * (1 - (dist / w) ** 2), L * 0.8); q[0] += vx / L * mv; q[1] += vy / L * mv; } }
+  }
+  function wRefit(R, part, verts) { // give an attached part a new shape (new fixture)
+    const f = part.fx, ud = f.getUserData(), fr = f.getFriction(), re = f.getRestitution(), g = f.getFilterGroupIndex(), cb = f.getFilterCategoryBits(), mb = f.getFilterMaskBits();
+    part.body.destroyFixture(f);
+    part.fx = part.body.createFixture({ shape: pl.Polygon(verts.map(q => V(q[0], q[1]))), density: part.mass / Math.abs(area(verts)), friction: fr, restitution: re, filterGroupIndex: g, filterCategoryBits: cb, filterMaskBits: mb });
+    part.fx.setUserData(ud); part.verts = verts;
+  }
+  function wInside(part, x, y) { return inPoly(part.verts, x, y); }
+  // break a piece off an attached part along a line; keep: 'near' (the piece nearer the robot's middle) or 'big'
+  function wSplit(S, R, part, px, py, nx, ny, keep, label) {
+    const pr = splitPoly(part.verts, px, py, nx, ny); if (!pr) return null;
+    const [A, B] = pr, ca = centroid(A), cb2 = centroid(B);
+    const aKeep = keep === 'big' ? Math.abs(area(A)) >= Math.abs(area(B)) : Math.hypot(ca[0], ca[1]) <= Math.hypot(cb2[0], cb2[1]);
+    const K = aKeep ? A : B, O = aKeep ? B : A, kr = Math.abs(area(K)) / Math.abs(area(part.verts)), co = centroid(O);
+    const om = part.mass * (1 - kr); part.mass *= kr; part.hp = Math.max(1, part.hp * kr); part.thr *= kr;
+    wRefit(R, part, K);
+    const keepIn = q => inPoly(K, q[0], q[1]);
+    const oDents = part.dents.filter(d => !keepIn([d.x, d.y])); part.dents = part.dents.filter(d => keepIn([d.x, d.y]));
+    if (part.cracks) part.cracks = part.cracks.filter(c => keepIn(c.o));
+    if (part.grooves) part.grooves = part.grooves.filter(g => keepIn([g.x, g.y]));
+    if (part.bends) part.bends = part.bends.filter(b => b.s > Math.min(...K.map(q => q[part.bAx.ax])) && b.s < Math.max(...K.map(q => q[part.bAx.ax])));
+    wRebuild(part);
+    let kx = co[0], ky = co[1]; const kl = Math.hypot(kx, ky) || 1; kx /= kl; ky /= kl; const wa = R.body.getAngle(), wx = kx * Math.cos(wa) - ky * Math.sin(wa), wy = kx * Math.sin(wa) + ky * Math.cos(wa);
+    const pc = spawnLoose(S, R, label || (part.label + ' piece'), O.map(q => [q[0] - co[0], q[1] - co[1]]), co, Math.max(0.3, om), [wx * 2.2 + (S.rng() - 0.5), wy * 2.2 + (S.rng() - 0.5)]);
+    if (pc) { pc.dents = oDents.map(d => Object.assign({}, d, { x: d.x - co[0], y: d.y - co[1] })); pc.fillAs = part.kind === 'armour' ? '#8A8C84' : part.key === 'spear' ? '#C9CBC4' : null; wRebuild(pc); }
+    const wp = R.body.getWorldPoint(V(co[0], co[1])); S.fx.push({ type: 'shatter', x: wp.x, y: wp.y, small: true });
+    return pc;
+  }
+  function wNear(part, x, y, r) { if (part.cracks) for (const c of part.cracks) for (const t of c.tips) for (const q of t.pts) if (Math.hypot(q[0] - x, q[1] - y) < r) return true; return false; }
+  // before a hit lands: cracked or sawn-into metal gives way more easily; cracks in the chassis let hits reach the insides
+  function wearPre(S, R, part, h, d) {
+    if (!h.lp || part.kind === 'internal' || !part.attached) return d;
+    let k = 1; const sz = Math.max(...wbb(part.verts).slice(2).map((v, i) => v - wbb(part.verts)[i]));
+    if (part.cracks && part.cracks.length) k += Math.min(0.8, part.cracks.reduce((a, c) => a + c.len, 0) / sz * 1.2);
+    if (part.grooves) for (const g of part.grooves) if (Math.hypot(g.x - h.lp[0], g.y - h.lp[1]) < 0.06) k += Math.min(1, g.depth / Math.max(0.03, wAxis(part).th));
+    if (part.kind === 'chassis') {
+      if (wNear(part, h.lp[0], h.lp[1], 0.09) || (part.grooves && part.grooves.some(g => g.depth > WEAR.chOpen && Math.hypot(g.x - h.lp[0], g.y - h.lp[1]) < 0.09))) h.cxPen = 1.7;
+      k = 1 + (k - 1) * 0.3;
+    }
+    return d * Math.min(WEAR.weakMax, k);
+  }
+  // after a hit lands on a part that survived it
+  function wearPost(S, R, part, h, d, atk) {
+    if (!part.attached || part.hp <= 0 || part.body !== R.body || !h.lp || h.inner) return;
+    const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'spear' || part.key === 'wedge' || part.key === 'flipper' || part.key === 'jaws'));
+    if (!ok) return;
+    const soft = part.bumper === 'rubber' || part.bumper === 'spring';
+    if (ARC.cx.crack && !soft) {
+      const pk = PIERCE[h.cause] || (d >= 22 ? 0.3 : 0);
+      if (pk && d >= WEAR.crackMin && S.rng() < Math.min(1, pk * d / 10)) crackHit(S, R, part, h, d * pk, atk);
+      else if (part.cracks && part.cracks.length && d >= 8 && !GRINDY[h.cause]) { const c = part.cracks.reduce((a, b) => a.len > b.len ? a : b); crackGrow(S, R, part, c, d * WEAR.vib, h, atk); } // shaken: the worst crack creeps on
+    }
+    if (ARC.cx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
+    if (ARC.cx.grindout && GRINDY[h.cause] && part.attached) grooveHit(S, R, part, h, d, atk);
+  }
+  function crackHit(S, R, part, h, amt, atk) {
+    const [x, y] = h.lp; part.cracks = part.cracks || [];
+    let best = null, bd = 0.08;
+    for (const c of part.cracks) { const ends = [c.o].concat(c.tips.map(t => t.pts[t.pts.length - 1])); for (const q of ends) { const dd = Math.hypot(q[0] - x, q[1] - y); if (dd < bd) { bd = dd; best = c; } } }
+    if (!best && part.cracks.length >= 4) best = part.cracks.reduce((a, b) => Math.hypot(a.o[0] - x, a.o[1] - y) < Math.hypot(b.o[0] - x, b.o[1] - y) ? a : b);
+    if (!best) {
+      // start a new crack at the hit point (pulled just inside the part)
+      const c0 = centroid(part.verts); let ox = x, oy = y; for (let i = 0; i < 6 && !inPoly(part.verts, ox, oy); i++) { ox += (c0[0] - ox) * 0.25; oy += (c0[1] - oy) * 0.25; }
+      const c = { o: [ox, oy], tips: [], len: 0, born: S.t, hitInt: {} };
+      if (part.kind === 'chassis') { // runs inwards, the way the blow was going
+        let dx = -ox, dy = -oy; if (h.dir) { const a = -R.body.getAngle(); dx = h.dir[0] * Math.cos(a) - h.dir[1] * Math.sin(a); dy = h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a); if (dx * -ox + dy * -oy < 0) { dx = -dx; dy = -dy; } }
+        const an = Math.atan2(dy, dx) + (S.rng() - 0.5) * 0.8, nt = amt >= 12 ? 3 : amt >= 7 ? 2 : 1; // a hard stab starts a star of cracks
+        for (let i = 0; i < nt; i++) { const ai = an + (i - (nt - 1) / 2) * 0.75; c.tips.push({ pts: [[ox, oy]], base: ai, cur: ai }); }
+      } else { // a plate or blade: runs along it both ways from the hit
+        const A = wAxis(part), an = A.ax === 0 ? 0 : Math.PI / 2; c.tips.push({ pts: [[ox, oy]], base: an, cur: an }, { pts: [[ox, oy]], base: an + Math.PI, cur: an + Math.PI });
+      }
+      part.cracks.push(c); best = c; cxCount(S, R, 'crack');
+      const wp = R.body.getWorldPoint(V(ox, oy)); if (amt >= 9) callout(S, 'CRACKED!', wp.x, wp.y, false);
+      if (atk && S.t - (part.crackSaid == null ? -9 : part.crackSaid) > 3) { part.crackSaid = S.t; say(S, `${atk.name}'s ${causeLabel(h.cause)} cracks ${R.name}'s ${part.label.toLowerCase()}`, atk.id); }
+    }
+    crackGrow(S, R, part, best, amt * WEAR.crackK * (part.kind === 'chassis' ? 2.4 : 1), h, atk); // the shell is big: its cracks run further
+  }
+  function crackGrow(S, R, part, c, L, h, atk) {
+    if (!part.attached) return;
+    const chas = part.kind === 'chassis', A = chas ? null : wAxis(part), live = c.tips.filter(t => !t.done); if (!live.length) return;
+    const share = L / live.length;
+    for (const t of live) {
+      let add = 0;
+      while (add < share - 1e-4) {
+        const seg = Math.min(WEAR.seg * (chas ? 1.4 : 1), share - add), lim = chas ? 0.4 : 0.3;
+        t.cur = t.base + clamp(t.cur - t.base + (S.rng() - 0.5) * 0.7, -lim, lim); // straight-ish runs with sharp kinks, like cracked steel
+        const last = t.pts[t.pts.length - 1]; let nx = last[0] + Math.cos(t.cur) * seg, ny = last[1] + Math.sin(t.cur) * seg;
+        if (A) { const k = 1 - A.ax, m = 0.008; const v = [nx, ny]; v[k] = clamp(v[k], A.tlo + m, A.thi - m); nx = v[0]; ny = v[1]; }
+        if (!inPoly(part.verts, nx, ny)) { t.done = true; break; }
+        t.pts.push([nx, ny]); add += seg; c.len += seg;
+        if (chas) {
+          for (const q of R.internals) if (q.hp > 0 && !c.hitInt[q.key + q.label] && Math.hypot(q.lp[0] - nx, q.lp[1] - ny) < 0.075) { // the crack runs into something inside
+            c.hitInt[q.key + q.label] = 1; hit(S, q, 6 + c.len * 25, { src: atk, cause: h.cause, x: h.x, y: h.y, inner: true });
+            say(S, `${R.name}: the crack runs into the ${q.label.toLowerCase()}`, atk ? atk.id : R.id); cxCount(S, R, 'crackin');
+          }
+          if (S.rng() < 0.08 && part.cracks.length < 7) { const an = t.cur + (S.rng() < 0.5 ? -1 : 1) * (0.6 + S.rng() * 0.5); part.cracks.push({ o: [nx, ny], tips: [{ pts: [[nx, ny]], base: an, cur: an }], len: 0, born: S.t, hitInt: c.hitInt }); } // it forks
+        }
+      }
+    }
+    if (A) { // a plate splits along the crack once it runs most of the way along
+      const xs = c.tips.flatMap(t => t.pts.map(q => q[A.ax])), ext = Math.max(...xs) - Math.min(...xs);
+      if (ext >= WEAR.splitAt * A.len || c.tips.every(t => t.done)) {
+        const ts = c.tips.flatMap(t => t.pts.map(q => q[1 - A.ax])), mid = ts.reduce((a, b) => a + b, 0) / ts.length, px = A.ax === 0 ? 0 : mid, py = A.ax === 0 ? mid : 0;
+        const pc = wSplit(S, R, part, px, py, A.ax === 0 ? 0 : 1, A.ax === 0 ? 1 : 0, 'near', part.label + ' sliver');
+        if (pc) { cxCount(S, R, 'split'); const wp = pc.body.getPosition(); callout(S, 'SPLIT!', wp.x, wp.y, true); say(S, `${R.name}: ${part.label.toLowerCase()} splits along the crack, a strip of it falls off`, atk ? atk.id : R.id, true); }
+        else c.tips.forEach(t => { t.done = true; });
+      }
+    }
+  }
+  function bendHit(S, R, part, h, d, atk) {
+    const amt = Math.min(WEAR.bendMax, d * WEAR.bendK);
+    if (part.key === 'spear') { // bent sideways: the tip now points off to one side
+      const a = -R.body.getAngle(); let dy = h.dir ? h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a) : (h.lp[1] > 0 ? -1 : 1);
+      const old = part.bendA || 0, nw = clamp(old + Math.sign(dy || 1) * d * 0.0035, -0.35, 0.35), da = nw - old; if (Math.abs(da) < 0.004) return;
+      part.bendA = nw; const bx = R.hl + 0.02, cs = Math.cos(da), sn = Math.sin(da);
+      wRefit(R, part, part.verts.map(([x, y]) => x > bx + 0.01 ? [bx + (x - bx) * cs - y * sn, (x - bx) * sn + y * cs] : [x, y])); wRebuild(part);
+      if (Math.abs(nw) >= 0.12 && !part.bentSaid) { part.bentSaid = true; cxCount(S, R, 'bend'); const wp = R.body.getWorldPoint(V(R.hl + 0.3, 0)); callout(S, 'BENT!', wp.x, wp.y, false); say(S, `${R.name}: spear bent, it points off to the side now`, atk ? atk.id : R.id, true); }
+      return;
+    }
+    if (part.kind === 'weapon' && part.key !== 'wedge') return;
+    part.bAx = part.bAx || wAxis(part); part.bends = part.bends || [];
+    const A = part.bAx, sAt = h.lp[A.ax]; let b = part.bends.find(q => Math.abs(q.s - sAt) < WEAR.bendR * 0.5);
+    if (!b) { if (part.bends.length >= 4) return; b = { s: clamp(sAt, A.lo, A.hi), depth: 0 }; part.bends.push(b); }
+    const was = b.depth; b.depth = Math.min(WEAR.bendMax, b.depth + amt); if (b.depth - was < 0.001) return;
+    wRebuild(part);
+    if (was < 0.02 && b.depth >= 0.02) { cxCount(S, R, 'bend'); const wp = R.body.getWorldPoint(V(A.ax === 0 ? b.s : centroid(part.verts)[0], A.ax === 0 ? centroid(part.verts)[1] : b.s)); callout(S, 'BENT!', wp.x, wp.y, false); }
+    if (part.key === 'wedge' && b.depth >= 0.03 && !part.bentUp) { part.bentUp = true; say(S, `${R.name}: wedge lip bent up, it can't get under any more`, atk ? atk.id : R.id, true); }
+    // a side plate pushed in far enough drags on the wheels behind it
+    if (part.kind === 'armour' && A.ax === 0) {
+      const sd = Math.sign(centroid(part.verts)[1]), plIn = Math.min(...part.verts.map(q => Math.abs(q[1])));
+      for (const sl of R.slots) { if (Math.sign(sl.lp[1]) !== sd || !alivePart(sl.wheel)) continue;
+        const [wx0, , wx1] = wbb(sl.wheel.verts), wOut = Math.max(...sl.wheel.verts.map(q => Math.abs(q[1]))), gap = Math.max(0.004, plIn - wOut);
+        let push = 0; for (const q of part.bends) { const dx = q.s < wx0 ? wx0 - q.s : q.s > wx1 ? q.s - wx1 : 0; push = Math.max(push, q.depth * Math.max(0, 1 - dx / WEAR.bendR)); }
+        if (push > gap + WEAR.rubMin) { const r0 = sl.rub || 0; sl.rub = clamp((push - gap) / 0.025, 0.25, 1); sl.rubBy = part;
+          if (!r0) { cxCount(S, R, 'rub'); const wp = R.body.getWorldPoint(V(sl.lp[0], sl.lp[1])); callout(S, 'WHEEL RUB!', wp.x, wp.y, false); say(S, `${R.name}: ${part.label.toLowerCase()} bent into the ${sl.wheel.label.toLowerCase()}, it drags`, atk ? atk.id : R.id, true); } } }
+    }
+  }
+  function grooveHit(S, R, part, h, d, atk) {
+    part.grooves = part.grooves || []; const [x, y] = h.lp;
+    let g = part.grooves.find(q => Math.hypot(q.x - x, q.y - y) < 0.035);
+    if (!g) { if (part.grooves.length >= 6) return; g = { x, y, depth: 0, drawn: 0, hot: S.t }; part.grooves.push(g); }
+    g.depth += d * WEAR.grooveK; g.hot = S.t; g.x += (x - g.x) * 0.05; g.y += (y - g.y) * 0.05;
+    if (g.depth - g.drawn > 0.003) { g.drawn = g.depth; wRebuild(part); }
+    if (part.kind === 'chassis') {
+      if (g.depth > WEAR.chOpen && !g.open) { g.open = true; cxCount(S, R, 'cut'); (R.wounds = R.wounds || []).length < 6 && R.wounds.push([g.x, g.y]); const wp = R.body.getWorldPoint(V(g.x, g.y)); callout(S, 'SAWN OPEN!', wp.x, wp.y, true); say(S, `${atk ? atk.name + "'s saw" : 'A saw'} cuts right into ${R.name}'s chassis`, atk ? atk.id : R.id, true); }
+      return;
+    }
+    const A = wAxis(part);
+    if (g.depth >= A.th * WEAR.cutK) { // sawn through: the part comes apart at the groove
+      const pc = wSplit(S, R, part, g.x, g.y, A.ax === 0 ? 1 : 0, A.ax === 0 ? 0 : 1, part.kind === 'weapon' ? 'near' : 'big', part.label + ' (sawn off)');
+      if (pc) { cxCount(S, R, 'cut'); const wp = pc.body.getPosition(); callout(S, 'SAWN THROUGH!', wp.x, wp.y, true); say(S, `${R.name}: ${part.label.toLowerCase()} sawn clean through`, atk ? atk.id : R.id, true); }
+      else g.depth = A.th * 0.5;
+    }
+  }
+  // when a part is destroyed it can break into pieces: along its cracks if it has any, else across
+  function fragment(S, R, part, h) {
+    const A = wAxis(part); let px, py, nx, ny;
+    const c = part.cracks && part.cracks.length ? part.cracks.reduce((a, b) => a.len > b.len ? a : b) : null;
+    if (c && c.len > 0.03) { const P = c.tips.flatMap(t => t.pts), a0 = P[0], a1 = P[P.length - 1]; let tx = a1[0] - a0[0], ty = a1[1] - a0[1]; const tl = Math.hypot(tx, ty) || 1; px = (a0[0] + a1[0]) / 2; py = (a0[1] + a1[1]) / 2; nx = -ty / tl; ny = tx / tl; }
+    else { const q = h.blp || h.lp || centroid(part.verts); px = q[0]; py = q[1]; const an = (A.ax === 0 ? 0 : Math.PI / 2) + (S.rng() - 0.5) * 1.0; nx = Math.cos(an); ny = Math.sin(an); }
+    let n = 0;
+    if (wSplit(S, R, part, px, py, nx, ny, 'big', part.label + ' fragment')) n++;
+    if (h.dmg * TUNE.dmg >= 18 || part.mass > 6) { const cc = centroid(part.verts), an = (A.ax === 0 ? 0 : Math.PI / 2) + (S.rng() - 0.5) * 1.2; if (wSplit(S, R, part, cc[0], cc[1], Math.cos(an), Math.sin(an), 'big', part.label + ' fragment')) n++; }
+    if (n) { cxCount(S, R, 'frag'); const wp = R.body.getWorldPoint(V(px, py)); callout(S, 'SHATTERED!', wp.x, wp.y, n > 1); }
   }
 
   // begin-contacts: drum kicks and saw discs
@@ -1333,7 +1535,9 @@
         if (nim && nim.turn !== 1) { const avg = (R.ctl.L + R.ctl.R) / 2; thr = clamp(avg + (thr - avg) * nim.turn, -1, 1); }   // sharper turns
         if (!R.alive) thr = 0;
         if (mo.stuck > 0 && mo.hp > 0) thr = mo.stuckDir;
+        if (s.rub && !(s.rubBy && s.rubBy.attached)) s.rub = 0; // the plate it rubbed on is gone
         let mf = mo.hp > 0 ? (mo.hp / mo.maxHp < 0.35 ? 0.55 : 1) : 0;
+        if (s.rub) mf *= 1 - 0.45 * s.rub;
         if (mo.heat > 85) mf *= 0.4;
         let F = thr * Fw * mf * pw * clamp(1 - (vf * Math.sign(thr)) / vmax, 0, 1);
         if (bent) F *= 1 + 0.6 * Math.sin(s.spin * 1.0);
@@ -1351,7 +1555,8 @@
           const me = m / n, jl = clamp(-vl * me, -muSide * load * DT, muSide * load * DT);
           b.applyLinearImpulse(V(right.x * jl, right.y * jl), p, true);
           const brake = thr === 0 && mo.hp > 0 && R.alive ? 0.12 : 0.012;
-          const jr = clamp(-vf * me * brake, -mu * load * DT, mu * load * DT);
+          const jr = clamp(-vf * me * (brake + (s.rub ? 0.1 * s.rub : 0)), -mu * load * DT, mu * load * DT);
+          if (s.rub && Math.abs(vf) > 0.4 && S.step % 5 === 0) S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 6 + 8 * s.rub, small: true });
           b.applyLinearImpulse(V(fwd.x * jr, fwd.y * jr), p, true);
         }
       } else if (ground > 0) { // missing wheel: that corner scrapes the floor
@@ -3150,6 +3355,6 @@
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
   const L4 = Object.keys(PRESETS).filter(k => PRESETS[k].l4);
-  const API = { CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { WEAR, splitPoly, CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
