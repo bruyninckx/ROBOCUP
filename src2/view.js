@@ -990,6 +990,19 @@
       const lost = R.stats.lost.length; P.lost.textContent = lost ? `Lost this fight: ${R.stats.lost.slice(-3).map(q => q.label).join(', ')}${lost > 3 ? ` +${lost - 3} more` : ''}` : 'Nothing lost this fight';
       drawDiagram(P.diag, R);
     }
+    fitPanels();
+  }
+  // no scrolling: a column whose robot panels are taller than the screen draws them smaller (never below half size)
+  let fitTick = 0;
+  function fitPanels() {
+    if (fitTick++ % 12 || !root || window.matchMedia('(max-width:900px),(orientation:portrait)').matches) return;
+    for (const col of [root.querySelector('.fv-left'), root.querySelector('.fv-right')]) {
+      if (!col || !col.clientHeight) continue;
+      let z = col._z || 1; const need = col.scrollHeight, have = col.clientHeight;
+      if (need > have + 1) z = Math.max(0.5, z * have / need * 0.985);
+      else if (z < 1 && need < have * 0.93) z = Math.min(1, z * 1.03);
+      if (z !== col._z) { col._z = z; for (const el of col.children) el.style.zoom = z; }
+    }
   }
   function pushFeed() {
     const box = root.querySelector('.fv-feed');
@@ -1014,9 +1027,12 @@
   .fv-top button.go{font:400 16px "Saira Stencil One",Impact,sans-serif;letter-spacing:1px;background:#2B2118;color:#E8C547;border-color:#2B2118}
   .fv-main{flex:1;display:grid;grid-template-columns:minmax(270px,1fr) auto minmax(270px,1fr);gap:12px;padding:12px;min-height:0}
   .fv-arena{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:0;background:#3A3530;border:3px solid #2B2118;border-radius:6px;padding:10px;align-self:center}
-  .fv-arena canvas{width:min(calc(100vh - 180px),calc(100vw - 650px));height:min(calc(100vh - 180px),calc(100vw - 650px));min-width:280px;min-height:280px;border-radius:3px;display:block;outline:4px dashed #E8C547;outline-offset:2px}
-  .fv-col{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
-  .fv-left,.fv-right{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+  .fv-arena canvas{width:min(calc((100vh - 180px) * .85),calc(100vw - 650px));height:min(calc((100vh - 180px) * .85),calc(100vw - 650px));min-width:280px;min-height:280px;border-radius:3px;display:block;outline:4px dashed #E8C547;outline-offset:2px}
+  /* Kev, 11 Nov: no scrolling in the fight view. The arena is 15% smaller, a wide robot panel puts its damage diagram next to
+     its part list, and fitPanels() shrinks the panels of a column that still does not fit. */
+  .fv-col{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
+  .fv-left,.fv-right{display:flex;flex-direction:column;gap:10px;overflow:hidden;min-height:0;flex:1;container-type:inline-size}
+  @container (min-width:360px){.fv-body{grid-template-columns:minmax(130px,34%) 1fr;align-items:start}.fv-diag{height:150px}}
   .fv-panel{background:#F6F2EA;border:2px solid #2B2118;border-top:10px solid var(--tc);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:7px}
   .fv-panel.out{opacity:.55}
   .fv-panel header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
@@ -1047,13 +1063,13 @@
   .fv-card b{font-size:18px}.fv-card span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .fv-card[aria-pressed=true]{background:#E8C547;color:#1A1A12;outline:3px solid #E8C547}
   .fv-card:disabled{opacity:.45;cursor:default}
-  .fv-info{flex:0 0 auto;background:#FFFDF8;border:2px solid #2B2118;border-radius:6px;padding:8px 12px;font-size:12.5px;line-height:1.4;overflow:auto;max-height:150px}
+  .fv-info{flex:0 0 auto;background:#FFFDF8;border:2px solid #2B2118;border-radius:6px;padding:8px 12px;font-size:12.5px;line-height:1.4;overflow:hidden;max-height:190px}
   .fv-info[hidden]{display:none}
   .fv-info h4{margin:0 0 3px;font:700 11px "IBM Plex Mono",monospace;letter-spacing:1px;color:#6E6457}
   .fv-info .fv-ib{display:flex;justify-content:space-between;gap:8px}.fv-info .fv-ib i{font:600 12px "IBM Plex Mono",monospace;font-style:normal;white-space:nowrap}
   .fv-info .fv-next{margin-top:6px;padding-top:5px;border-top:2px dashed #CFC6B7;font-weight:600}
   .fv.aiming canvas{cursor:crosshair}
-  .fv.has-cards .fv-arena canvas{width:min(calc(100vh - 275px),calc(100vw - 650px));height:min(calc(100vh - 275px),calc(100vw - 650px))}
+  .fv.has-cards .fv-arena canvas{width:min(calc((100vh - 275px) * .85),calc(100vw - 650px));height:min(calc((100vh - 275px) * .85),calc(100vw - 650px))}
   .fv-feed{width:100%;height:52px;overflow:auto;padding:0 2px;font:12px "IBM Plex Mono",monospace}
   .fv-ev{border-left:4px solid var(--c);padding:1px 7px;margin:2px 0;color:#EDE6DA;background:rgba(0,0,0,.3);border-radius:0 3px 3px 0}
   @media (max-width:900px),(orientation:portrait){
