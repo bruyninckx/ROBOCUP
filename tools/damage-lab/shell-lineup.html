@@ -141,6 +141,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         </span>
         <select id="arenaSel" aria-label="Arena"></select>
       </div>
+      <div class="bar" id="cxbar"><span class="small"><b>Test: contact physics</b></span>
+        <label class="chk" title="A hard hit on the side or a corner breaks the tyres' grip: the robot slides or spins out. Tracks hold on better."><input id="cx-slide" type="checkbox"> Slide &amp; spin-out</label>
+        <label class="chk" title="A low nose (wedge, flipper, wedge hull) gets under a higher edge: those wheels leave the floor, and a narrow robot can tip over."><input id="cx-under" type="checkbox"> Get under</label>
+        <label class="chk" title="A robot held against a wall, or between two robots, takes damage for as long as it is squeezed."><input id="cx-crush" type="checkbox"> Pin &amp; crush</label>
+        <label class="chk" title="A hit on a side whose armour plate was torn off goes deep into the internals and leaves a smoking wound."><input id="cx-gut" type="checkbox"> Gut shots</label>
+        <span class="small">Change a box, then Replay: same fight, new rules.</span>
+      </div>
       <div class="card" id="reportCard" hidden><div class="report" id="report"></div></div>
       <div class="card">
         <h2>Fight log</h2>

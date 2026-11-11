@@ -188,6 +188,8 @@
       else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
+      else if (e.type === 'creak') { const R = S.robots[e.robot]; R.crushFx = 0.35; sparks(e.x, e.y, 5 * e.power); shake = Math.min(0.1, shake + 0.02); for (let i = 0; i < 4; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 1.6) * 0.7, vy: Math.sin(i * 1.6) * 0.7, life: 0.5, max: 0.5, s: 0.08 }); }
+      else if (e.type === 'gut') { sparks(e.x, e.y, 14); for (let i = 0; i < 3; i++) smoke(e.x, e.y, true, 0.06); shards(e.x, e.y, 3); }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
       else if (e.type === 'ko') { shake = Math.min(0.2, shake + 0.08); if (st.drama) { slowT = 1.2; const R = S.robots[e.robot], p = R.body.getPosition(); cam.tx = p.x * 0.6; cam.ty = p.y * 0.6; cam.tz = 1.5; } }
     }
@@ -198,6 +200,9 @@
     for (const R of S.robots) {
       const b = R.body;
       const wp = lp => b.getWorldPoint(planck.Vec2(lp[0], lp[1]));
+      // contact experiments: open wounds where a plate is gone keep sparking and smoking; tyres that broke loose smoke
+      if (R.wounds && !R.inPit) for (const w of R.wounds) if (Math.random() < dt * 2.5) { const q = wp(w); if (Math.random() < 0.5) sparks(q.x, q.y, 3); else smoke(q.x, q.y, true, 0.04); }
+      if (R.slideT > 0 && !(R.airborne > 0) && !R.inPit) for (const s of R.slots) if (Math.random() < dt * 25) { const q = wp(s.lp); smoke(q.x, q.y, false, 0.05); }
       if (!R.alive && !R.inPit && Math.random() < dt * 14) { const p = b.getPosition(); smoke(p.x + (Math.random() - 0.5) * 0.3, p.y + (Math.random() - 0.5) * 0.3, true, 0.1); }
       for (const q of R.internals) {
         if (R.inPit) break;
@@ -313,9 +318,9 @@
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
     const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R);
-    let sc = 1 + air * 0.28 + (carried ? 0.1 : 0), alpha = 1;
+    let sc = 1 + air * 0.28 + (carried ? 0.1 : 0) + (R.prop ? 0.06 : 0), alpha = 1;
     if (R.inPit) { const k = Math.min(1, (S.t - R.inPit) / 0.8); sc = 1 - k * 0.65; alpha = 1 - k * 0.7; }
-    const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0);
+    const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0) + (R.prop ? 0.07 : 0);
     R.trailPts = R.trailPts || []; if (frameN % 2 === 0) { R.trailPts.push([p.x, p.y, a]); if (R.trailPts.length > 7) R.trailPts.shift(); }
     const vel = b.getLinearVelocity(), fast = Math.hypot(vel.x, vel.y) > 3.5 || R.airborne > 0;
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
@@ -363,6 +368,8 @@
     // power-up and rage effects
     if (!R.inPit) {
       const t = performance.now() / 1000;
+      if (R.prop) { const ax = Math.atan2(R.prop.ly, R.prop.lx) + a, rr = Math.hypot(R.hl, R.hw) + 0.06; ctx.strokeStyle = '#FFD27A'; ctx.lineWidth = PX * 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(p.x, p.y, rr, ax - 0.7, ax + 0.7); ctx.stroke(); ctx.lineCap = 'butt'; } // the edge that is off the floor
+      if (R.crushFx > 0) { ctx.strokeStyle = `rgba(226,60,40,${Math.min(1, R.crushFx * 3)})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.12 + R.crushFx * 0.3, 0, 6.29); ctx.stroke(); } // squeezed: a ring closing in
       if (R.shield > 0) { ctx.strokeStyle = `rgba(71,168,255,${0.5 + (R.shieldFlash > 0 ? 0.5 : 0.2 * Math.sin(t * 8))})`; ctx.fillStyle = 'rgba(71,168,255,0.12)'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.32, 0, 6.29); ctx.fill(); ctx.stroke(); }
       if (R.rage > 0) { ctx.strokeStyle = `rgba(255,60,30,${0.45 + 0.3 * Math.sin(t * 14)})`; ctx.lineWidth = PX * 5; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.22 + 0.03 * Math.sin(t * 20), 0, 6.29); ctx.stroke(); if (Math.random() < 0.5) fire(p.x + (Math.random() - 0.5) * 0.6, p.y + (Math.random() - 0.5) * 0.6); }
       if (R.over > 0) { ctx.strokeStyle = `rgba(178,102,255,${0.6 + 0.3 * Math.sin(t * 18)})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.12, t * 3, t * 3 + 6.29); ctx.stroke(); ctx.setLineDash([]); }
@@ -1042,6 +1049,8 @@
   document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); togglePause(); } });
   document.querySelectorAll('[data-speed]').forEach(bn => bn.onclick = () => { st.speed = +bn.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === bn))); });
   $('drama').onchange = e => { st.drama = e.target.checked; };
+  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on
+  for (const k of ['slide', 'under', 'crush', 'gut']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
   $('arenaSel').innerHTML = Object.entries(L.ARENAS).map(([k, v]) => `<option value="${k}"${k === st.arena ? ' selected' : ''}>${v.label}</option>`).join('');
   $('arenaSel').onchange = e => { st.arena = e.target.value; start(); };
 
@@ -1062,7 +1071,7 @@
     }
     stepParticles(rdt * (ts || (hitStop > 0 ? 0 : 0)));
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
-    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
+    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.crushFx > 0) R.crushFx -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
     for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) if (!Number.isFinite(cam[k])) cam[k] = k.endsWith('z') ? 1 : 0; // never lose the arena to a bad number
     if (!Number.isFinite(shake)) shake = 0;
