@@ -5704,8 +5704,11 @@ html, body {
    *   4 · sticky note     under the pit, y 268..408 (HTML)
    *   5 · your rail       x 296..700: a 50 px team header, three work-order bays 404 × 150 (gap 6), then the Stash
    *                        (HTML) from y 246; 6 · the hand drawer (HTML) hangs at the bottom of the screen under it. */
-  const BENCH = { W: 1400, x0: -700, top: -416, bottom: 408, tickH: 120, tickGap: 12, benchTop: -282, pitR: 282, pitH: 460, titleH: 40,
-    railX: 296, railW: 404, headH: 50, bayH: 150, bayGap: 6, logW: 300, noteH: 140 };
+  /* Kev, 11 Nov (layout pass): the pit a bit smaller on the screen, what is in it about 12% smaller (PIT_K; the Market cards with it),
+   * the rival tickets 8% bigger (TICK_K: drawn larger, see drawScaled). The fight itself still fills the pit floor. */
+  const TICK_K = 1.08, PIT_K = 0.88;
+  const BENCH = { W: 1400, x0: -700, top: -416, bottom: 408, tickH: Math.round(120 * TICK_K), tickGap: 12, benchTop: -282 + Math.round(120 * TICK_K) - 120, pitR: 282, pitH: 460, titleH: 40,
+    railX: 296, railW: 404, headH: 50, bayH: 150, bayGap: 6, logW: 320, noteH: 140 };
   const STAGE_W = 620, STAGE_H = 360;   // the phase stage's own space
   const ARENA_W = 900, ARENA_H = 560;
   let LAYOUT = null;
@@ -5723,14 +5726,15 @@ html, body {
     const B = BENCH, tw = (B.W - 2 * B.tickGap) / 3;
     // Kev, 9 Nov (2nd look): the log back on the left as a side panel, the full height of the bench; the pit right of it,
     // the sticky note (zone 4) under the pit
-    const log = { x: B.x0, y: B.benchTop, w: B.logW, h: B.bottom - B.benchTop };
+    // Kev, 11 Nov: on a wide screen the extra width goes mostly to the log (70% of it, up to 560), not to the pit
+    const log = { x: B.x0, y: B.benchTop, w: narrowScreen() ? B.logW : Math.min(560, B.logW + Math.round((W - 1400) * 0.7)), h: B.bottom - B.benchTop };
     const pitX = log.x + log.w + 14, pitH = B.bottom - B.benchTop - B.noteH - 12;
     const pit = { x: pitX, y: B.benchTop, w: B.pitR - pitX, h: pitH };
     const note = { x: pit.x, y: pit.y + pit.h + 12, w: pit.w, h: B.noteH };
     const floor = { x: pit.x + 12, y: pit.y + B.titleH, w: pit.w - 24, h: pit.h - B.titleH - 12 };
     // the stage keeps its scale for a 620 × 360 stage and fills the floor (its functions centre on ax / ay and use aw / ah)
     // (a phone shows only the stage, so there it keeps the old 620 × 360 shape and the camera zooms in on it)
-    const s = Math.min(floor.w / STAGE_W, floor.h / STAGE_H), stageW = narrowScreen() ? STAGE_W : floor.w / s, stageH = narrowScreen() ? STAGE_H : floor.h / s;
+    const s = Math.min(floor.w / STAGE_W, floor.h / STAGE_H) * (narrowScreen() ? 1 : PIT_K), stageW = narrowScreen() ? STAGE_W : floor.w / s, stageH = narrowScreen() ? STAGE_H : floor.h / s;
     const stage = { s, x: floor.x + (floor.w - stageW * s) / 2, y: floor.y + (floor.h - stageH * s) / 2, w: stageW * s, h: stageH * s };
     const rail = { x: B.railX, y: B.benchTop, w: B.railW, h: B.headH + 3 * B.bayH + 2 * B.bayGap + 6 };
     const bays = [0, 1, 2].map(k => ({ x: rail.x, y: rail.y + B.headH + 6 + k * (B.bayH + B.bayGap), w: rail.w, h: B.bayH }));
@@ -5992,7 +5996,7 @@ html, body {
     hitRegions.push({ kind: 'arena', x: P.x, y: P.y, w: P.w, h: P.h });
 
     // 2 · rival tickets and 5 · your rail
-    L.slots.forEach(slot => { const ti = teamAtPos(slot.pos), t = G.teams[ti]; if (slot.pos === 0) drawRail(ctx, slot, ti, t, now); else drawTicket(ctx, slot, ti, t, now); });
+    L.slots.forEach(slot => { const ti = teamAtPos(slot.pos), t = G.teams[ti]; if (slot.pos === 0) drawRail(ctx, slot, ti, t, now); else drawScaled(ctx, slot.gx - slot.gw / 2, slot.gy - slot.gh / 2, TICK_K, () => drawTicket(ctx, { pos: slot.pos, gx: slot.gx - slot.gw / 2 + slot.gw / TICK_K / 2, gy: slot.gy - slot.gh / 2 + slot.gh / TICK_K / 2, gw: slot.gw / TICK_K, gh: slot.gh / TICK_K }, ti, t, now)); });
 
     // 3 · the phase stage, in stage space (620 × 360) scaled into the floor; its hit and help boxes go back to world space
     PIT_HEAD = null;
@@ -6317,6 +6321,15 @@ html, body {
 
   /* ---------- Controlling Player's Large Command Garage (Pos 0 — South) ---------- */
   /* ---------- 2 · a rival's ticket: who they are (fame, credits, sponsor, cards, Security Bots, Stash) and their three robots ---------- */
+  // draws fn k times larger around (ox, oy): the mouse is mapped into fn's own space while it draws, and the click and help
+  // regions it adds are mapped back to the board
+  function drawScaled(ctx, ox, oy, k, fn) {
+    const h0 = hitRegions.length, p0 = helpRegions.length, mx = mouse.wx, my = mouse.wy;
+    mouse.wx = ox + (mx - ox) / k; mouse.wy = oy + (my - oy) / k;
+    ctx.save(); ctx.translate(ox, oy); ctx.scale(k, k); ctx.translate(-ox, -oy);
+    try { fn(); } finally { ctx.restore(); mouse.wx = mx; mouse.wy = my; }
+    for (const list of [hitRegions.slice(h0), helpRegions.slice(p0)]) for (const r of list) { r.x = ox + (r.x - ox) * k; r.y = oy + (r.y - oy) * k; r.w *= k; r.h *= k; }
+  }
   function drawTicket(ctx, slot, ti, t, now) {
     const x0 = slot.gx - slot.gw / 2, y0 = slot.gy - slot.gh / 2, W = slot.gw, H = slot.gh;
     const isDragTarget = dragCard && (dragCard.card.target === 'rival' || dragCard.card.target === 'any');
