@@ -19,6 +19,7 @@ Goal: make what a bump does depend on where and how it lands, and make it visibl
 ## How it looks (11 Nov, Kev: show it, don't only label it)
 
 - **Get under** (redone 11 Nov: Kev disliked the skewed robot): the robot is never skewed or squashed. Lift shows as in 2D games: the robot rises slightly up the screen away from its shadow, the shadow spills out under the raised edge, the hull's side wall comes into view along the raised edge with that side's tyres spinning in the air, and the top gets a light change (raised edge lit, slope in shade). It is drawn over the robot whose nose is under it. Dust and a small shake when it drops back. Drawing only (`ui.js`, `tilt*`).
+- **Readability pass** (Kev: too subtle): the robot is only ~80 px wide at full-arena view and a lift lasts ~0.6 s, so the cues were made cartoon-sized (side wall up to 0.36 m, measured past the armour so plates don't hide it; bigger rise and shadow), the tilt is held 0.35 s after the lift ends, sparks and dust scrape where the nose is under, the drama cam leans in (zoom ~1.9, slow-mo) on a get-under or tip-over, and the UNDER! text is gone because it sat on top of the very thing it named.
 - **Tipped over:** a short hop up the screen with a twist, the shadow staying on the floor, instead of the old coin-flip squash.
 - A prop lasts about 0.6 s of fight time (up to 2.2 s while the robot underneath keeps pushing), so it is easiest to see at ½× or ¼×.
 

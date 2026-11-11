@@ -1482,7 +1482,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (c.J < CXK.underJ || S.t - (T.propEnd == null ? -9 : T.propEnd) < CXK.underCd) return;
     const L = Math.hypot(lt.x, lt.y) || 1;
     T.prop = { t: 0.6, total: 0, lx: lt.x / L, ly: lt.y / L, by: A, face, rolled: false }; A.underT = 0.6;
-    cxCount(S, T, 'under'); callout(S, 'UNDER!', c.x, c.y, false); say(S, `${A.name} gets under ${T.name}'s ${face.toLowerCase()}: wheels off the floor`, A.id);
+    cxCount(S, T, 'under'); // no UNDER! text: the lift itself is drawn (Kev: show it, don't label it) S.fx.push({ type: 'under', x: c.x, y: c.y, robot: T.id }); say(S, `${A.name} gets under ${T.name}'s ${face.toLowerCase()}: wheels off the floor`, A.id);
   }
   // crush: every push on a hull this step (from the post-solve listener), as a direction and a size
   function pressNote(S, c, J) {
@@ -3891,7 +3891,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
-      else if (e.type === 'tip') { const R = S.robots[e.robot]; R.tiltU = [e.ux, e.uy]; R.rollFx = { t: 0 }; R.tiltV = 0; }
+      else if (e.type === 'under') { if (st.drama && slowT <= 0) { slowT = 0.7; cam.tx = e.x * 0.7; cam.ty = e.y * 0.7; cam.tz = 1.9; } } // drama cam: lean in so the lift can be seen
+      else if (e.type === 'tip') { const R = S.robots[e.robot]; R.tiltU = [e.ux, e.uy]; R.rollFx = { t: 0 }; R.tiltV = 0; if (st.drama) { slowT = 1.0; const q = R.body.getPosition(); cam.tx = q.x * 0.7; cam.ty = q.y * 0.7; cam.tz = 2.0; } }
       else if (e.type === 'creak') { const R = S.robots[e.robot]; R.crushFx = 0.35; sparks(e.x, e.y, 5 * e.power); shake = Math.min(0.1, shake + 0.02); for (let i = 0; i < 4; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 1.6) * 0.7, vy: Math.sin(i * 1.6) * 0.7, life: 0.5, max: 0.5, s: 0.08 }); }
       else if (e.type === 'gut') { sparks(e.x, e.y, 14); for (let i = 0; i < 3; i++) smoke(e.x, e.y, true, 0.06); shards(e.x, e.y, 3); }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
@@ -4055,8 +4056,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // The robot is never skewed or squashed: it stays a rigid drawing. Lift is shown the way 2D games show height:
   // the robot rises a little up the screen away from its shadow, the shadow spills out under the raised edge,
   // and the hull's side wall (with its wheels) comes into view along the raised edge.
-  const TILT = { max: 0.62, wob: 0.04, roll: 0.55, hop: 0.24, wall: 0.2, nudge: 0.6 };
-  function tiltAxis(R) { const u = R.tiltU || [1, 0]; return [u[0], u[1], Math.abs(u[0]) * R.hl + Math.abs(u[1]) * R.hw]; }
+  const TILT = { max: 0.7, wob: 0.04, roll: 0.6, hop: 0.34, wall: 0.36, nudge: 1.3, hold: 0.35 };
+  function tiltAxis(R) { const u = R.tiltU || [1, 0]; let e = Math.abs(u[0]) * R.hl + Math.abs(u[1]) * R.hw;
+    for (const q of R.parts) if (q.attached && q.body === R.body && q.kind !== 'weapon') for (const v of q.verts) e = Math.max(e, v[0] * u[0] + v[1] * u[1]);
+    return [u[0], u[1], e]; }
   function tiltLift(R) { // how high the middle of the robot is off the floor (m)
     if (R.rollFx) return Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * TILT.hop;
     return Math.sin(R.tiltV || 0) * tiltAxis(R)[2] * 0.5;
@@ -4068,7 +4071,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   }
   function tiltShadow(R, a) { // the raised edge throws its shadow further out (the shadow may stretch; the robot does not)
     const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 1.2 : Math.sin(R.tiltV || 0); if (t < 0.01) return;
-    const [ux, uy, e] = tiltAxis(R), H = 0.16 * t * 2 * e / 0.25;
+    const [ux, uy, e] = tiltAxis(R), H = 0.3 * t * 2 * e / 0.25;
     const lx = Math.cos(-a) * 0.7071 - Math.sin(-a) * 0.7071, ly = Math.sin(-a) * 0.7071 + Math.cos(-a) * 0.7071, g = H / (2 * e);
     if (R.rollFx) { ctx.translate(lx * H * 0.5, ly * H * 0.5); return; }
     ctx.transform(1 + g * lx * ux, g * ly * ux, g * lx * uy, 1 + g * ly * uy, g * e * lx, g * e * ly);
@@ -4086,7 +4089,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       ctx.fillStyle = RUBBER; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.lineTo(a3[0], a3[1]); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 1.6; const st = 0.03, off = (((s.spin || 0) * 0.07) % st + st) % st;
       for (let q = c - half + off; q < c + half; q += st) { const b0 = P(e + w * 0.12, q), b1 = P(e + w * 0.92, q); ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke(); } }
-    ctx.strokeStyle = 'rgba(255,240,210,0.55)'; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.moveTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.stroke(); // lit bottom rim
+    ctx.strokeStyle = 'rgba(255,240,210,0.8)'; ctx.lineWidth = PX * 2.6; ctx.beginPath(); ctx.moveTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.stroke(); // lit bottom rim
     ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
   }
   function tiltShade(R) { // a light change on the top: the slope down to the floor in shade, the raised edge catching the light
@@ -4097,10 +4100,12 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   }
   function tiltTick(R, rdt) {
     if (R.prop) { const L = Math.hypot(R.prop.lx, R.prop.ly) || 1; R.tiltU = [R.prop.lx / L, R.prop.ly / L]; }
-    const target = R.prop ? TILT.max * Math.min(1, 0.55 + R.prop.total * 0.9) + TILT.wob * Math.sin(performance.now() / 70) : 0;
-    R.tiltV = (R.tiltV || 0) + (target - (R.tiltV || 0)) * Math.min(1, rdt * (R.prop ? 14 : 9)); // snaps up, settles back down a bit slower
-    if (!R.prop && R.tiltV > 0.12 && R.wasProp) { const p = R.body.getPosition(); for (let i = 0; i < 5; i++) spawn({ t: 'dust', x: p.x + R.tiltU[0] * R.hl, y: p.y + R.tiltU[1] * R.hl, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.5, max: 0.5, s: 0.07 }); shake = Math.min(0.1, shake + 0.03); } // drops back down with a thump
-    R.wasProp = !!R.prop;
+    if (R.prop) R.tiltHoldT = TILT.hold; else if (R.tiltHoldT > 0) R.tiltHoldT -= rdt;
+    const held = R.prop || R.tiltHoldT > 0, target = held ? TILT.max * (R.prop ? Math.min(1, 0.6 + R.prop.total * 0.9) : 1) + TILT.wob * Math.sin(performance.now() / 70) : 0;
+    if (R.prop && R.tiltU && Math.random() < rdt * 30) { const b = R.body, [ux, uy, e] = tiltAxis(R), q = b.getWorldPoint(planck.Vec2(ux * e, uy * e)); if (Math.random() < 0.5) sparks(q.x, q.y, 4); else spawn({ t: 'dust', x: q.x, y: q.y, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, life: 0.45, max: 0.45, s: 0.06 }); }
+    R.tiltV = (R.tiltV || 0) + (target - (R.tiltV || 0)) * Math.min(1, rdt * (held ? 16 : 8)); // snaps up, settles back down a bit slower
+    if (!held && R.tiltV > 0.12 && R.wasProp) { const p = R.body.getPosition(); for (let i = 0; i < 5; i++) spawn({ t: 'dust', x: p.x + R.tiltU[0] * R.hl, y: p.y + R.tiltU[1] * R.hl, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.5, max: 0.5, s: 0.07 }); shake = Math.min(0.1, shake + 0.03); } // drops back down with a thump
+    R.wasProp = !!held;
     if (R.rollFx) { R.rollFx.t += rdt; if (R.rollFx.t >= TILT.roll) R.rollFx = null; }
   }
   function drawRobot(R, i) {

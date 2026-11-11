@@ -1143,7 +1143,7 @@
     if (c.J < CXK.underJ || S.t - (T.propEnd == null ? -9 : T.propEnd) < CXK.underCd) return;
     const L = Math.hypot(lt.x, lt.y) || 1;
     T.prop = { t: 0.6, total: 0, lx: lt.x / L, ly: lt.y / L, by: A, face, rolled: false }; A.underT = 0.6;
-    cxCount(S, T, 'under'); callout(S, 'UNDER!', c.x, c.y, false); say(S, `${A.name} gets under ${T.name}'s ${face.toLowerCase()}: wheels off the floor`, A.id);
+    cxCount(S, T, 'under'); // no UNDER! text: the lift itself is drawn (Kev: show it, don't label it) S.fx.push({ type: 'under', x: c.x, y: c.y, robot: T.id }); say(S, `${A.name} gets under ${T.name}'s ${face.toLowerCase()}: wheels off the floor`, A.id);
   }
   // crush: every push on a hull this step (from the post-solve listener), as a direction and a size
   function pressNote(S, c, J) {
