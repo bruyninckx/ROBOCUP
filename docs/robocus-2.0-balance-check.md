@@ -385,3 +385,82 @@ To do, in order: 2 (one setting, BAL.level4.lotEvery), 6 (bargain bin), 5 (epic 
   At most two epic combos a robot (plus Ramrod's open-floor Stun Ram): Ramrod + Gun drone (+40), Orbiter + Wall Bait (+33) and Orbiter + Sensor scrambler (+31) also passed but would make everything on those robots "epic". Short 10-game check: 2.9 epic chances a game (was 1.7).
 
 **Open: the robots that are off their odds.** Looked at the 200 games by format: Lodestone, Trebuchet and Thwacker are spot on in duels (66 / 66%, 69 / 69%, 54 / 50%) and only beat their odds in double duels and 2v2 (+14, +10, +9). Grandmaster and Blowtorch are below their odds in both. Tried giving team fights table-based strengths (Bradley-Terry ratings from the matchup table instead of level and grade): no better over 60 games (mean robot gap 8.0 vs 7.4 points), so it was taken out again. This needs fight-level study (how these robots play with a partner, and how Grandmaster and Blowtorch fight when damaged) before changing anything.
+
+## 17. The robots that were off their odds: it was the damage (11 Nov)
+
+Kev's decision 4: find why Grandmaster and the others play differently in real games; the bookie stays honest.
+
+**What the 200 games said, fight by fight** (6,574 fighters; then checked on 120 more games held back):
+- It is not about a few robots. **Every damaged robot won less than its odds, every healthy one more**, at every level and in every format: healthy +4 points, a broken zone -7, a broken Drive -18. Healthy robot against a hurt one in a duel: 79% wins where the odds said 69%.
+- Stock, healthy duels (the matchup table alone) were fine: every 20% band within 4 points.
+- The robots on the list are the ones that suffer most (or least) from a broken Body: Brawler -24 with a broken Body and +0 healthy; Grandmaster -25 / -7; Blowtorch -15 / -3; Lodestone -1 / +14.
+
+**Why: the wear study** (`tools/damage-lab/wear-study.js`, `wear-report.js`, `wear-fit.js`). Every robot was sent into fights, the damage it carried out was kept as the game keeps it (with the free Upkeep heal), and each of the 623 damaged copies fought the same 16 fights as the robot as new (9,968 fights).
+
+| State (Drive and Weapon repaired, as in most real fights) | Wins as new | Wins damaged | Real cost | The bookie charged |
+|---|---|---|---|---|
+| Body broken | 48% | 31% | 0.74 | 0.15 |
+| ... only armour gone (1-2 pieces) | 49-51% | 40% | 0.4 | 0.15 |
+| ... 4 or more pieces gone | 47% | 21% | 1.2 | 0.15 |
+| ... **processor chip dead** | 46% | 14% | 1.6 | 0.15 |
+
+(cost in strength; one level = 0.62)
+
+- **A dead processor chip was hidden inside "Body broken".** The robot starts its next fight "brain fried": it wanders on backup control at 60% power. Brawler, Corkscrew, Forklift, Rocketeer and Grandmaster won 0 of 16 with a dead chip. In the 200 games about 6% of all fighters walked in like that, and nothing on screen said so.
+- Armour matters very differently per robot: Thumper, Forklift, Rocketeer, Wrecker, Corkscrew, Grandmaster, Thwacker and Blowtorch lose 1.2-1.5 with their armour gone; Whirlwind, Lodestone, Buzzkill, Juggernaut and Angler lose almost nothing.
+- Drive: one wheel gone was priced right (1.2); two or more were far too cheap (real 3.2-3.8, charged 2.2-2.6).
+
+**Changed**
+- `src2/repair.js`: damage is priced by what is lost. `BODY_COST[robot] = [armour and top plate gone, chip dead]` from the study, Drive by wheels and motors lost (1.5 / 2.6 / 3.4), Weapon gone 3.0. A first 100-game check showed damaged robots still 6-9 points under these lab costs, so armour is x 1.2 and a dead chip + 0.6.
+- The game says it: a red **🧠 CHIP FRIED** strip on the robot, "(🧠 chip fried)" in the damage line, and a bookie tag that always shows. Two more damage tags when a Body is broken: **🩹 Needs its armour** and **🩹 Shrugs it off**.
+- The AI repairs by strength won back (it used to do Body last, and only with spare credits), so it pays to replace a fried chip.
+- Left alone: the robots themselves, the matchup table, team-fight odds. Table-based ratings for team fights were tested again offline on 3,500 recorded fights: no real gain.
+
+**200 AI games again** (`v2_200b`, reports in docs/reports/v2_200b-*.txt): 200 / 200 finished, 0 errors, 11.5 rounds, seats 29 / 25 / 27 / 20%.
+
+| | Before (section 14) | Now |
+|---|---|---|
+| Bookie's error (Brier, lower is better; a coin = 0.25) | 0.169 | **0.152** |
+| Healthy fighters, wins vs odds | +4 | +1 |
+| Body broken | -7 | +1 |
+| Favourite loses | 25% | 22% |
+| Grandmaster / Blowtorch / Brawler / Lodestone | -11 / -8 / -7 / +10 | **+2 / -4 / -1 / +1** |
+
+Still off: Corkscrew -11 (102 fights), Trebuchet +7, Orbiter +8, Mauler +8, Thwacker +6. A fried chip, a broken Drive or a lost weapon still win 9-10% where the odds say 16-18%: the odds cannot go below 3-5%, and these robots are close to that floor. 6% of fighters still walk in with a fried chip (a team with one robot has no choice).
+
+## 18. Kev's playtest: the host snowball (11 Nov)
+
+Kev's game (log 2026-11-10T21-40): he cashed in almost every card, won the host bid in 9 of 10 rounds for 7-13 Cr (the AIs bid 6-8), put his best robot against the weakest every time (odds 80-97%) and won 13-7-3-0. Hosting cost him 80 Cr; appearance money (38), cash-ins (40), AI offers to the host (18) and backing fees (16) paid for it.
+
+**Is it the strategy or the player?** A test AI that does only this ("the bully": always bids 9 for the host seat, cashes every card, otherwise the normal AI) in seat 0 against three normal AIs, 60 games each (`node tools/game-sim.js ... --aip0='{"hostMin":9,"cashAll":true}'`):
+
+| Table | Bully wins | Bully hosts |
+|---|---|---|
+| Normal AIs | **63%** | most rounds |
+| AIs bid to deny (+2 Cr per round the same rival hosted of the last 3, +3 for its fame lead) | 50% | 58% |
+| AIs bid much harder (deny 3 + lead 4, host fame 8) | 48% | 54% |
+| Rule: a repeat host's bid counts 3 Cr less per round in a row (bully bids 12) | 43% | 54% |
+| Rule: **last round's host cannot bid for the host seat** | **30%** | 43% |
+
+A fair seat wins about 25%. The bully wins about 80% of the fights it hosts for itself, so bidding against it only makes it pay a little more; the seat itself is the problem.
+
+**Kev (11 Nov): no host ban. Hosting is essential; other mechanisms should fight it.** So the AIs now defend the way a table of people would, three steps, each 60 games against the same bully:
+
+| Normal AIs plus... | Bully wins | Bully's income from host deals |
+|---|---|---|
+| nothing | 63% | 20 Cr |
+| 1. bid to deny a repeat host (`hostDeny 2, hostDenyLead 3`) | 50% | |
+| 2. and stop paying the host to spare every robot | 37% | 6 Cr |
+| 3. and aim their cards at a team that keeps hosting | **28%** | |
+
+1. **Deny bids.** +2 Cr on the host bid per round the same rival hosted of the last 3 (from 2), up to +3 for its fame lead.
+2. **Spare pleas.** The AI used to pay the host after every lost fight. Now only for a robot worth saving (level + parts + 2 per win, +3 for its last robot, at least 2) and only when the host has a reason to scrap it (the loser is within 2 fame of the host, or leads). AIs also stop paying to be invited or left out by a fame leader who hosted 2 of the last 3 rounds.
+3. **Card targets.** A team that hosted 2-3 of the last 3 rounds counts as a bigger threat (+0.3 per round) when the AI picks who to hit.
+
+The bully still hosts 54% of rounds and still wins 76% of the fights it hosts for itself; it now pays for it and gets hit for it. 60 normal AI games with all three: 60 / 60 finished, 0 errors, 11.6 rounds, host spend unchanged (20 Cr a team).
+
+**Cash everything, on its own** (no host bids, 60 games): 37% wins. The casher gets 3.9 Cr a round from cards (2.6 cards at 1.5 Cr) against 1.4 for a normal AI, and spends it on the host seat (41% of rounds). A mild edge over the AI's own card play; card values left alone (Kev: cards are stronger between people).
+
+`BAL.hostRule` (noRepeat / streakTax) stays in the code, off.
+
+**Multiplayer and screen check (11 Nov):** `PAGE=tabletop-2.html node tools/mp-test.js 3 5 10` and the chaos run (drop-out and rejoin, host skips a player, AI takes a seat, save loaded): both OK, 0 desyncs, 0 errors. This is the local transport in one browser, not separate devices on a network. The 🧠 FRIED strip, the CHIP FRIED tag and the red Body chip show on the robot tickets.
