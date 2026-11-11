@@ -1238,17 +1238,19 @@
     const aKeep = keep === 'big' ? Math.abs(area(A)) >= Math.abs(area(B)) : Math.hypot(ca[0], ca[1]) <= Math.hypot(cb2[0], cb2[1]);
     const K = aKeep ? A : B, O = aKeep ? B : A, kr = Math.abs(area(K)) / Math.abs(area(part.verts)), co = centroid(O);
     const om = part.mass * (1 - kr); part.mass *= kr; part.hp = Math.max(1, part.hp * kr); part.thr *= kr;
-    wRefit(R, part, K);
+    wRefit(R, part, K); if (part.vBase) { part.vBase = K.map(v => v.slice()); part.kinks = []; part.kAx = wAxis(part); }
     const keepIn = q => inPoly(K, q[0], q[1]);
     const oDents = part.dents.filter(d => !keepIn([d.x, d.y])); part.dents = part.dents.filter(d => keepIn([d.x, d.y]));
     if (part.cracks) part.cracks = part.cracks.filter(c => keepIn(c.o));
     if (part.grooves) part.grooves = part.grooves.filter(g => keepIn([g.x, g.y]));
     if (part.bends) part.bends = part.bends.filter(b => b.s > Math.min(...K.map(q => q[part.bAx.ax])) && b.s < Math.max(...K.map(q => q[part.bAx.ax])));
     wRebuild(part);
-    let kx = co[0], ky = co[1]; const kl = Math.hypot(kx, ky) || 1; kx /= kl; ky /= kl; const wa = R.body.getAngle(), wx = kx * Math.cos(wa) - ky * Math.sin(wa), wy = kx * Math.sin(wa) + ky * Math.cos(wa);
-    const pc = spawnLoose(S, R, label || (part.label + ' piece'), O.map(q => [q[0] - co[0], q[1] - co[1]]), co, Math.max(0.3, om), [wx * 2.2 + (S.rng() - 0.5), wy * 2.2 + (S.rng() - 0.5)]);
-    if (pc) { pc.dents = oDents.map(d => Object.assign({}, d, { x: d.x - co[0], y: d.y - co[1] })); pc.fillAs = part.kind === 'armour' ? '#8A8C84' : part.key === 'spear' ? '#C9CBC4' : null; wRebuild(pc); }
-    const wp = R.body.getWorldPoint(V(co[0], co[1])); S.fx.push({ type: 'shatter', x: wp.x, y: wp.y, small: true });
+    const PB = part.body, wco = PB.getWorldPoint(V(co[0], co[1])), rco = R.body.getLocalPoint(wco), da = PB.getAngle() - R.body.getAngle(), dc = Math.cos(da), dsn = Math.sin(da);
+    let wx = wco.x - R.body.getWorldCenter().x, wy = wco.y - R.body.getWorldCenter().y; const kl = Math.hypot(wx, wy) || 1; wx /= kl; wy /= kl;
+    const pv = PB.getLinearVelocityFromWorldPoint(wco), rv = R.body.getLinearVelocityFromWorldPoint(wco);
+    const pc = spawnLoose(S, R, label || (part.label + ' piece'), O.map(q => { const x = q[0] - co[0], y = q[1] - co[1]; return [x * dc - y * dsn, x * dsn + y * dc]; }), [rco.x, rco.y], Math.max(0.3, om), [wx * 2.2 + (S.rng() - 0.5) + (pv.x - rv.x), wy * 2.2 + (S.rng() - 0.5) + (pv.y - rv.y)]);
+    if (pc) { pc.dents = PB === R.body ? oDents.map(d => Object.assign({}, d, { x: d.x - co[0], y: d.y - co[1] })) : []; pc.fillAs = part.kind === 'armour' ? '#8A8C84' : part.key === 'spear' || part.key === 'blade' ? '#C9CBC4' : '#9A9C94'; wRebuild(pc); }
+    const wp = wco; S.fx.push({ type: 'shatter', x: wp.x, y: wp.y, small: true });
     return pc;
   }
   function wNear(part, x, y, r) { if (part.cracks) for (const c of part.cracks) for (const t of c.tips) for (const q of t.pts) if (Math.hypot(q[0] - x, q[1] - y) < r) return true; return false; }
@@ -1266,8 +1268,9 @@
   }
   // after a hit lands on a part that survived it
   function wearPost(S, R, part, h, d, atk) {
-    if (!part.attached || part.hp <= 0 || part.body !== R.body || !h.lp || h.inner) return;
-    const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'spear' || part.key === 'wedge' || part.key === 'flipper' || part.key === 'jaws'));
+    if (!part.attached || part.hp <= 0 || !h.lp || h.inner) return;
+    if (part.body !== R.body) { if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key] && kinkCause(h.cause)) kinkHit(S, R, part, h, d, atk); return; } // weapons on their own body (spinner bar, axe arm...) can only bend
+    const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'wedge' || BARS[part.key]));
     if (!ok) return;
     const soft = part.bumper === 'rubber' || part.bumper === 'spring';
     if (ARC.cx.crack && !soft) {
@@ -1275,7 +1278,8 @@
       if (pk && d >= WEAR.crackMin && S.rng() < Math.min(1, pk * d / 10)) crackHit(S, R, part, h, d * pk, atk);
       else if (part.cracks && part.cracks.length && d >= 8 && !GRINDY[h.cause]) { const c = part.cracks.reduce((a, b) => a.len > b.len ? a : b); crackGrow(S, R, part, c, d * WEAR.vib, h, atk); } // shaken: the worst crack creeps on
     }
-    if (ARC.cx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
+    if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key]) { if (kinkCause(h.cause)) kinkHit(S, R, part, h, d, atk); }
+    else if (ARC.cx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
     if (ARC.cx.grindout && GRINDY[h.cause] && part.attached) grooveHit(S, R, part, h, d, atk);
   }
   function crackHit(S, R, part, h, amt, atk) {
@@ -1334,14 +1338,7 @@
   }
   function bendHit(S, R, part, h, d, atk) {
     const amt = Math.min(WEAR.bendMax, d * WEAR.bendK);
-    if (part.key === 'spear') { // bent sideways: the tip now points off to one side
-      const a = -R.body.getAngle(); let dy = h.dir ? h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a) : (h.lp[1] > 0 ? -1 : 1);
-      const old = part.bendA || 0, nw = clamp(old + Math.sign(dy || 1) * d * 0.0035, -0.35, 0.35), da = nw - old; if (Math.abs(da) < 0.004) return;
-      part.bendA = nw; const bx = R.hl + 0.02, cs = Math.cos(da), sn = Math.sin(da);
-      wRefit(R, part, part.verts.map(([x, y]) => x > bx + 0.01 ? [bx + (x - bx) * cs - y * sn, (x - bx) * sn + y * cs] : [x, y])); wRebuild(part);
-      if (Math.abs(nw) >= 0.12 && !part.bentSaid) { part.bentSaid = true; cxCount(S, R, 'bend'); const wp = R.body.getWorldPoint(V(R.hl + 0.3, 0)); callout(S, 'BENT!', wp.x, wp.y, false); say(S, `${R.name}: spear bent, it points off to the side now`, atk ? atk.id : R.id, true); }
-      return;
-    }
+    if (part.kind === 'weapon' && BARS[part.key]) return kinkHit(S, R, part, h, d, atk);
     if (part.kind === 'weapon' && part.key !== 'wedge') return;
     part.bAx = part.bAx || wAxis(part); part.bends = part.bends || [];
     const A = part.bAx, sAt = h.lp[A.ax]; let b = part.bends.find(q => Math.abs(q.s - sAt) < WEAR.bendR * 0.5);
@@ -1358,6 +1355,57 @@
         let push = 0; for (const q of part.bends) { const dx = q.s < wx0 ? wx0 - q.s : q.s > wx1 ? q.s - wx1 : 0; push = Math.max(push, q.depth * Math.max(0, 1 - dx / WEAR.bendR)); }
         if (push > gap + WEAR.rubMin) { const r0 = sl.rub || 0; sl.rub = clamp((push - gap) / 0.025, 0.25, 1); sl.rubBy = part;
           if (!r0) { cxCount(S, R, 'rub'); const wp = R.body.getWorldPoint(V(sl.lp[0], sl.lp[1])); callout(S, 'WHEEL RUB!', wp.x, wp.y, false); say(S, `${R.name}: ${part.label.toLowerCase()} bent into the ${sl.wheel.label.toLowerCase()}, it drags`, atk ? atk.id : R.id, true); } } }
+    }
+  }
+  // ---- bending weapons (Kev, 11 Nov: realistically) ----
+  // A weapon is treated as a beam held at its root (the end nearest the robot, or the hub of a spinner bar).
+  // A blow bends it like a cantilever: the bending moment is force x distance from the root, so a hit at the tip bends it far
+  // more than one near the mount, and nothing happens below the yield moment (it springs back). The bend forms where the beam is
+  // weakest: at its earlier kink, else at a crack or saw groove between root and hit, else just out from the root where the
+  // moment peaks. The part beyond the kink swings the way it was pushed. Bent hard where it is also cracked or sawn, it snaps.
+  const BARS = { spear: 1, blade: 1, flipper: 1, lifter: 1, sweeper: 1, tail: 1, fang: 1, clapper: 1, jaws: 1 };
+  const KINK = { yield: 3.2, k: 0.011, perHit: 0.14, max: 0.6, snap: 0.42, rootK: 0.15 };
+  const NOKINK = { heat: 1, fire: 1, strain: 1, flame: 1, laser: 1, emp: 1, pit: 1, crack: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, gmsaw: 1, orbdisc: 1 };
+  const kinkCause = c => !NOKINK[c]; // any knock bends a weapon, weapon clashes included; heat and saws don't
+  function kinkShape(base, ax, kinks, c) { // base outline -> bent outline (kinks from the root outwards)
+    let vs = base.map(v => v.slice());
+    for (const kk of kinks.slice().sort((a, b) => Math.abs(a.s - a.r) - Math.abs(b.s - b.r))) {
+      const out = []; // insert the points where the kink line crosses the outline, then swing everything beyond it
+      for (let i = 0; i < vs.length; i++) { const a = vs[i], b = vs[(i + 1) % vs.length], da = (a[ax] - kk.s) * kk.side, db = (b[ax] - kk.s) * kk.side; out.push(a);
+        if ((da < 0 && db > 0) || (da > 0 && db < 0)) { const t = da / (da - db); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); } }
+      const pv = ax === 0 ? [kk.s, c] : [c, kk.s], cs = Math.cos(kk.th), sn = Math.sin(kk.th);
+      vs = out.map(v => (v[ax] - kk.s) * kk.side > 1e-6 ? [pv[0] + (v[0] - pv[0]) * cs - (v[1] - pv[1]) * sn, pv[1] + (v[0] - pv[0]) * sn + (v[1] - pv[1]) * cs] : v);
+    }
+    return vs;
+  }
+  function kinkHit(S, R, part, h, d, atk) {
+    if (!part.vBase) { part.vBase = part.verts.map(v => v.slice()); part.kAx = wAxis(part); part.kinks = []; }
+    const A = part.kAx, ax = A.ax, B = part.body, rc = B.getLocalPoint(R.body.getWorldCenter());
+    const r = clamp(rc[ax === 0 ? 'x' : 'y'], A.lo, A.hi), sHit = h.lp[ax], side = Math.sign(sHit - r), lever = Math.abs(sHit - r);
+    if (!side || lever < 0.04) return;
+    const M = d / Math.max(0.1, part.tough) * lever, stiff = Math.sqrt(part.maxHp / 60) * (part.tough < 0.3 ? 1.5 : 1); // tough < 0.3: the light, hard spinner bar
+    const over = M - KINK.yield * stiff; if (over <= 0) return; // springs back
+    let push = 0; if (h.dir) { const a = -B.getAngle(), lx = h.dir[0] * Math.cos(a) - h.dir[1] * Math.sin(a), ly = h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a); push = Math.sign(ax === 0 ? ly : lx); }
+    if (!push) { const cc = centroid(part.vBase); push = -Math.sign(h.lp[1 - ax] - cc[1 - ax]) || 1; }
+    let kk = part.kinks.find(q => q.side === side);
+    if (!kk) { // the weakest spot between root and hit: a crack or groove, else just out from the root
+      let at = r + side * KINK.rootK * (side > 0 ? A.hi - r : r - A.lo), why = '';
+      const weak = [].concat((part.cracks || []).map(c => c.o), (part.grooves || []).filter(g => g.depth > 0.004).map(g => [g.x, g.y]));
+      for (const q of weak) if ((q[ax] - r) * side > 0.02 && (sHit - q[ax]) * side > 0.02) { at = q[ax]; why = 'weak'; }
+      kk = { s: at, r, side, th: 0, why }; part.kinks.push(kk);
+    }
+    const dth = Math.min(KINK.perHit, over * KINK.k / stiff) * push * (ax === 0 ? side : -side);
+    const was = Math.abs(kk.th), before = kk.th; kk.th = clamp(kk.th + dth, -KINK.max, KINK.max); if (Math.abs(kk.th - before) < 0.002) return;
+    const cline = (A.tlo + A.thi) / 2;
+    wRefit(R, part, kinkShape(part.vBase, ax, part.kinks, cline)); wRebuild(part);
+    part.kinkSum = part.kinks.reduce((a, q) => a + Math.abs(q.th), 0);
+    const nm = part.key === 'blade' ? 'spinner bar' : part.label.toLowerCase(), wp = B.getWorldPoint(V(ax === 0 ? kk.s : cline, ax === 0 ? cline : kk.s));
+    if (was < 0.1 && Math.abs(kk.th) >= 0.1) { cxCount(S, R, 'wbend'); callout(S, 'BENT!', wp.x, wp.y, false);
+      say(S, `${R.name}: ${nm} bent ${Math.round(Math.abs(kk.th) * 57)}°` + (part.key === 'blade' ? ', it wobbles' : part.key === 'spear' ? ', the tip points off to the side' : '') + (kk.why ? ' (at the crack)' : ''), atk ? atk.id : R.id, true); }
+    const weakHere = (part.cracks || []).some(c => Math.abs(c.o[ax] - kk.s) < 0.05) || (part.grooves || []).some(g => Math.abs((ax === 0 ? g.x : g.y) - kk.s) < 0.05 && g.depth > 0.006);
+    if ((Math.abs(kk.th) >= KINK.snap && weakHere) || Math.abs(kk.th) >= KINK.max) { // bent too far, or bent hard where it was already weak: it snaps there
+      const pc = wSplit(S, R, part, ax === 0 ? kk.s : 0, ax === 0 ? 0 : kk.s, ax === 0 ? 1 : 0, ax === 0 ? 0 : 1, 'near', (part.key === 'blade' ? 'Spinner bar' : part.label) + ' tip');
+      if (pc) { part.kinkSum = 0; cxCount(S, R, 'snap'); const q = pc.body.getPosition(); callout(S, 'SNAPPED!', q.x, q.y, true); say(S, `${R.name}: ${nm} snaps where it was bent`, atk ? atk.id : R.id, true); }
     }
   }
   function grooveHit(S, R, part, h, d, atk) {
@@ -2082,7 +2130,7 @@
         R.bladeW = Math.abs(R.blade.body.getAngularVelocity() - b.getAngularVelocity());
         if (R.wmotor.hp > 0 && ok) R.wmotor.heat += 1.2 * DT;
         if (R.blade.state === 'bent' && R.bladeW > 10) { // imbalance shakes the robot
-          const imb = (1 - R.blade.hp / R.blade.maxHp) * 0.035, F = Math.min(900, R.blade.mass * R.bladeW * R.bladeW * imb), ba = R.blade.body.getAngle();
+          const imb = (1 - R.blade.hp / R.blade.maxHp) * 0.035 + (R.blade.kinkSum || 0) * 0.07, F = Math.min(900, R.blade.mass * R.bladeW * R.bladeW * imb), ba = R.blade.body.getAngle();
           b.applyForce(V(Math.cos(ba) * F, Math.sin(ba) * F), R.blade.body.getPosition(), true);
         }
       } else R.bladeW = 0;

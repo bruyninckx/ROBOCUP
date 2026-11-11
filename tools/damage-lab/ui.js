@@ -241,7 +241,7 @@
       ctx.strokeStyle = `rgba(255,250,240,${0.22 + 0.2 * k})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.ellipse(d.x + d.r * 0.08, d.y + d.r * 0.08, d.r * 0.7, d.r * 0.45, d.x * 7 + d.y * 3, 3.6, 5.8); ctx.stroke();
       if (d.a > 12) { ctx.strokeStyle = 'rgba(25,18,10,0.55)'; ctx.lineWidth = PX; ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = (d.x * 31 + d.y * 17 + i * 2.1) % 6.28; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + Math.cos(a) * d.r * 1.3, d.y + Math.sin(a) * d.r * 1.3); } ctx.stroke(); }
     }
-    if (part.bends || part.cracks || part.grooves) drawWear(part);
+    if (part.bends || part.cracks || part.grooves || part.kinks) drawWear(part);
     if (part.heat > 25) { ctx.fillStyle = `rgba(255,${120 - part.heat * 0.5},20,${Math.min(0.55, (part.heat - 25) / 150)})`; ctx.fillRect(-2, -2, 4, 4); }
     ctx.restore();
     path(part.outline); ctx.lineWidth = PX * 2.2; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
@@ -268,6 +268,12 @@
           const P = (t, d) => A.ax === 0 ? [sx + d, t + sh] : [t + sh, sx + d];
           let q0 = P(A.tlo - 0.02, 0), q1 = P(A.thi + 0.02, 0); ctx.strokeStyle = `rgba(14,9,5,${al * k})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
           q0 = P(A.tlo - 0.02, 0.012); q1 = P(A.thi + 0.02, 0.012); ctx.strokeStyle = `rgba(255,248,235,${al * k * 0.6})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke(); } } }
+    if (part.kinks && part.kAx) { const A = part.kAx; // a bent weapon: a fold across the beam where it gave, scuffed paint either side
+      for (const kk of part.kinks) { const a = Math.abs(kk.th); if (a < 0.03) continue; const k = Math.min(1, a / 0.25);
+        const P = (q, o) => A.ax === 0 ? [kk.s + o, q] : [q, kk.s + o];
+        let q0 = P(A.tlo - 0.03, 0), q1 = P(A.thi + 0.03, 0); ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * k})`; ctx.lineWidth = PX * (1.8 + 2 * k); ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        q0 = P(A.tlo - 0.03, kk.side * 0.012); q1 = P(A.thi + 0.03, kk.side * 0.012); ctx.strokeStyle = `rgba(255,248,235,${0.35 + 0.35 * k})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        ctx.fillStyle = `rgba(60,50,40,${0.25 * k})`; const w = 0.03 + 0.05 * k; const r0 = P(A.tlo - 0.03, -w), r1 = P(A.thi + 0.03, w); ctx.fillRect(Math.min(r0[0], r1[0]), Math.min(r0[1], r1[1]), Math.abs(r1[0] - r0[0]), Math.abs(r1[1] - r0[1])); } }
     if (part.cracks) drawCracks(part.cracks, false);
     if (part.grooves) for (const g of part.grooves) { if (g.depth < 0.004) continue; // bright cut metal round the notch, glowing while the saw is in it
       const hot = S && part.attached ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
