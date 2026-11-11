@@ -26,10 +26,10 @@
   // per zone: health 0..1 (worst part), broken (something lost or dead), damaged (shown on the card), labels
   function zones(spec) {
     const R = probe(spec), w = spec.wear || {}, Z = {};
-    for (const z of ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, labels: [], lost: [] };
+    for (const z of ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, labels: [], lost: [], mods: [] };
     const f = q => Math.max(0, q.hp) / q.maxHp;
     for (const q of R.parts) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (!q.attached) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
-    for (const q of R.internals) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (q.hp <= 0) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
+    for (const q of R.internals) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (q.key === 'module') z.mods.push(q.label); if (q.hp <= 0) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
     const B = Z.body; B.labels.push('Top plate'); if (!R.lid.attached) { B.broken = true; B.f = 0; B.lost.push('Top plate'); } else B.f = Math.min(B.f, f(R.lid));
     (w.drones || []).forEach((d, i) => { if (d <= 0) { B.broken = true; B.f = 0; B.lost.push('drone ' + (i + 1)); } else B.f = Math.min(B.f, d); });
     for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD;
@@ -61,7 +61,7 @@
   // tuning chips (9 Nov): worth about 1.2 levels on a level 0-1 frame (level 1 + chip vs level 3: 37-43% instead of 22%), less on
   // heavier frames because they overload (engine CHIP_GLITCH); measured with tools/damage-lab/chipfit.js
   const CHIP = [0.55, 0.55, 0.25, 0, -0.2];   // Kev, 9 Nov: lowered (was 0.8 / 0.8 / 0.4): round 6 sims, chip robots won 4-8 points below the bookie's odds
-  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 2.2, body: 0.15 };
+  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 3.0, body: 0.15 };   // body: see BODY_COST below
   const gradeOf = name => { const r = LU && (LU.ROBOTS[name] || (LU.ROBOTS4 || {})[name]); return r ? r[1] : null; };
   function strength(spec, name, level, parts) {
     const g = gradeOf(name);
@@ -69,10 +69,32 @@
     // level gap test (Lineup.levelBoost, Kev 9 Nov): measured about +0.22 logits per level step for a boost of 8% (2.85 x ln(1 + boost))
     if (LU && LU.levelBoost) s += (level || 0) * BOOST_K * Math.log(1 + LU.levelBoost);
     for (const k of parts || []) if (k) s += LU && LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? LEG : LU && LU.PARTS[k] && LU.PARTS[k].kind === 'chip' ? CHIP[Math.min(4, Math.max(0, level || 0))] : PART;
-    if (spec && spec.wear) { const Z = zones(spec); for (const z of ZONES) { const q = Z[z.key]; s -= ZONE_COST[z.key] * (q.broken ? 1 : Math.max(0, (1 - q.f) * 0.8)); } }
+    if (spec && spec.wear) s -= wearCost(spec, name);
     return s;
   }
+  /* Kev, 11 Nov: what carried-over damage really costs (tools/damage-lab/wear-study.js: 623 damaged states out of real fights, each
+   * sent into 16 fights next to the same robot as new; wear-fit.js). The old flat charge for a broken Body (0.15) was far too low:
+   * on average it costs 0.74, and it differs a lot by robot. A dead processor chip ("brain fried": it wanders on backup control)
+   * is the worst of it. BODY_COST[robot] = [all armour and the top plate gone, processor chip dead]; in between by pieces lost.
+   * Drive: one wheel or motor gone 1.5, two 2.6, three or more 3.4. Weapon gone 3.0 (lab values 1.2 / 2.2 / 3.0 and 2.6, raised below). */
+  const BODY_COST = { Angler: [0.4, 0.6], Blowtorch: [1.2, 1], Brawler: [1.1, 1.5], Buzzkill: [0.3, 1], Corkscrew: [1.4, 1.6], Forklift: [1.5, 1.4], Grandmaster: [1.3, 1.1], Gyro: [0.8, 0.6], Haymaker: [0.6, 1.1], Hornet: [0.8, 0.9], Hydra: [0.8, 0.6], Jouster: [0.8, 1], Juggernaut: [0.3, 0.7], Lodestone: [0.1, 0.5], Mauler: [0.8, 0.7], Mincer: [0.8, 1.1], Orbiter: [0.8, 1], Pincher: [0.7, 1], Popcorn: [0.5, 0.6], Ramrod: [0.7, 0.8], Rocketeer: [1.5, 1.2], Rumbler: [0.9, 0.9], Sawblast: [0.7, 0.4], Scythe: [0.9, 1], Snapjaw: [0.9, 0.9], Tarantula: [0.6, 1.3], Thumper: [1.5, 1.2], Thwacker: [1.3, 0.9], Trebuchet: [0.8, 1.5], Vertigo: [0.9, 1.1], Whaler: [0.9, 0.7], Whirlwind: [0, 1.1], Wrecker: [1.4, 1] };
+  const BODY_DEF = [0.8, 1.0], DRIVE_LOST = [0, 1.5, 2.6, 3.4], DRONE_COST = 0.4, MODULE_COST = 0.4;
+  // in whole games (100 AI games, 11 Nov) damaged robots still won 6-9 points less than these lab costs said (they also meet
+  // parts and cards): armour x 1.2, a dead chip + 0.6, drive and weapon a step up
+  const ARM_K = 1.2, CHIP_ADD = 0.6;
+  const bodyCostOf = name => BODY_COST[name] || BODY_DEF;
+  function wearCost(spec, name) {
+    const Z = zones(spec); let c = 0;
+    const d = Z.drive; c += d.broken ? DRIVE_LOST[Math.min(3, Math.max(1, d.lost.length))] : ZONE_COST.drive * Math.max(0, 1 - d.f) * 0.5;
+    const w = Z.weapon; c += w.broken ? ZONE_COST.weapon : ZONE_COST.weapon * Math.max(0, 1 - w.f) * 0.8;
+    const b = Z.body, bc = bodyCostOf(name);
+    if (b.broken) { const chip = b.lost.some(l => /chip/i.test(l)), dr = b.lost.filter(l => /^drone /.test(l)).length, mod = b.lost.filter(l => b.mods.includes(l)).length, arm = b.lost.length - (chip ? 1 : 0) - dr - mod;
+      c += ARM_K * bc[0] * Math.min(4, arm) / 4 + (chip ? bc[1] + CHIP_ADD : 0) + dr * DRONE_COST + mod * MODULE_COST; }
+    else c += 0.4 * Math.max(0, 1 - b.f);
+    return c;
+  }
+  const chipDead = spec => !!(spec && spec.wear && zones(spec).body.lost.some(l => /chip/i.test(l)));
   const winP = (sa, sb) => 1 / (1 + Math.exp(-(sa - sb)));
-  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST };
+  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST, BODY_COST, wearCost, chipDead, bodyCostOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Repair2 = API;
 })(typeof window !== 'undefined' ? window : globalThis);
