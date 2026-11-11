@@ -229,3 +229,5 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - game-sim: --aip0 / --aipR (one AI style against another), host and chip state per fight; deep-report section 6 (damage).
 - Host snowball without a rule change (Kev: no host ban): deny bids + value-based spare pleas + card targets on a repeat host: bully 63% -> 28%. Cash-everything alone: 37%.
 - mp-test and chaos run OK on this build (local transport).
+- Evening: grudges and favours (G.rel), backstab log lines, AI styles (AI_STYLES, on in solo games), money cap on AI bids. tools/worth-report.js (fame and cards in credits), sponsor-report.js, seat-report.js.
+- Sponsors: Sovereign 4 -> 3 Mechanics (45% -> 35% wins), Aegis 1 -> 2 free repairs (14% -> 24%). Open: Vulture 17%, Apex 19%, Sovereign and Blackwire about 34%.
