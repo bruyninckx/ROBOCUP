@@ -464,3 +464,48 @@ The bully still hosts 54% of rounds and still wins 76% of the fights it hosts fo
 `BAL.hostRule` (noRepeat / streakTax) stays in the code, off.
 
 **Multiplayer and screen check (11 Nov):** `PAGE=tabletop-2.html node tools/mp-test.js 3 5 10` and the chaos run (drop-out and rejoin, host skips a player, AI takes a seat, save loaded): both OK, 0 desyncs, 0 errors. This is the local transport in one browser, not separate devices on a network. The 🧠 FRIED strip, the CHIP FRIED tag and the red Body chip show on the robot tickets.
+
+## 19. AI styles, grudges, sponsors, and what fame and cards are worth (11 Nov, evening)
+
+**What fame is worth in credits** (`node tools/worth-report.js <runs>`, docs/reports/worth.txt). For every round: each team's fame, credits, robots and cards, and who won in the end. Two sets of normal AI games (420 and 510 games) give the same shape but not the same numbers, so these are ranges:
+
+| Leader's fame at that point | 1 fame is worth | 1 robot is worth | 1 card in hand |
+|---|---|---|---|
+| 0-3 | 0.1-1.0 Cr | 5.6-5.7 Cr | 0-0.5 Cr |
+| 4-6 | 0.4-1.2 Cr | 4.4-5.4 Cr | 1.1-1.7 Cr |
+| 7-9 | 2.1-2.2 Cr | 5.7-6.1 Cr | 0.9-2.6 Cr |
+| 10-11 | 4-10 Cr | 5.4-10 Cr | 3.3-3.4 Cr |
+
+Early fame hardly decides who wins (leaders get hit, comebacks are common); credits and robots do. In the last stretch one fame is worth several times more. The AI prices fame at 6 Cr all game. An AI that follows a rising curve instead ("investor": 2 / 3 / 5 / 10 Cr) hosts less (17% of rounds) and wins 26% of 50 games: no better, so the flat 6 stays.
+
+**What a card is worth** (same report, part 2): per play, what the player and the others gained, with fame at 6 Cr. Nearly every card is worth more played than cashed (cash-in 0-2 Cr): the +1 fame Publicity cards about 5 Cr, Roadshow 9, Underdog Story 12, the income cards 2.5-5, smears 3-5 (blocked 40-45% of the time), Tax Audit 1.6, Hype Reel 1, Shill Bidder 0. With early fame worth about 1 Cr or less, cashing the fame cards early costs little; late it throws away several credits a card. That is why "cash everything" works early and why Kev still won with it.
+
+**Grudges and favours** (new, `G.rel`): a team remembers who hit it with a card (-2 landed, -1 blocked), who scrapped its robot (-3) and who backed its schemes (+1); it fades 15% a round. A grudge makes that team a bigger target and stops backing; a favour does the opposite. The log says "😠 X holds a grudge against Y" and "🗡️ X turns on Y, who helped it before". In 400 AI games: 11 attacks a game, 3.2 of them on a grudge target, 0.56 backstabs.
+
+**AI styles** (`AI_STYLES`; test with `--aip0='{"style":"vengeful"}'`), one in seat 0 against three normal AIs, 50 games each (±6 points; fair is 25%):
+
+| Style | What it does | Wins |
+|---|---|---|
+| schemer | plays up to 4 cards a turn, lower bar | 32% |
+| backstabber | forgets favours; turns on a helper within 3 fame of the win | 28% |
+| investor | fame priced by the curve above | 26% |
+| miser | no surplus spending, low host bids | 26% |
+| normal | | 22% |
+| showman | values hosting more, 3 cards a turn | 22% |
+| loyal | spares teams that helped it | 16% |
+| vengeful | goes hard after anyone who hurt it | 10% |
+
+Revenge and loyalty cost games; playing more cards and dropping friends pay a little. In solo games every AI team now gets a style (`BAL.aiStyles`), named in the log at the start. All AIs: mild grudges and loyalty by default, and they never bid more than the richest rival could (its credits + 1).
+
+**Sponsors** (`node tools/sponsor-report.js <runs>`; normal AI seats only):
+
+| Sponsor | Before (about 205 seats each) | After (about 130 seats each) |
+|---|---|---|
+| Sovereign Foundry | **45%** | 35% |
+| Blackwire Syndicate | 29% | 33% |
+| Vulture Salvage | 24% | 17% |
+| Apex Media | 20% | 19% |
+| Lucky Seven | 19% | 23% |
+| Aegis Heavy | **14%** | 24% |
+
+**Changed:** Sovereign Foundry starts with 3 Mechanics (was 4; others have 2: the extra 2 Cr a round compounded, and it was Kev's sponsor in the snowball game). Aegis Heavy gets 2 free repair actions every Upkeep (was 1). Still uneven: Sovereign and Blackwire high, Vulture and Apex low (±4 points on these counts).

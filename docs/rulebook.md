@@ -44,7 +44,7 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 | --- | --- |
 | Aegis Heavy | Repairs 25 damage on each robot for free every Upkeep |
 | Blackwire Syndicate | Draws 1 extra Intrigue card in Upkeep; Intrigue schemes need 2 less fame |
-| Sovereign Foundry | Starts with 4 Mechanics; wins every Market lot tie outright (not the host bid) |
+| Sovereign Foundry | Starts with 3 Mechanics; wins every Market lot tie outright (not the host bid) |
 | Apex Media | +2 credits when it hosts; Fan Favourite at 2 wins (not 3) |
 | Lucky Seven | Bets up to 5 credits; a winning bet pays one band better (Even pays like Underdog); a losing bet refunds 1 credit |
 | Vulture Salvage | +2 credits whenever any robot is scrapped; keeps 2 Scrap Crate items |
