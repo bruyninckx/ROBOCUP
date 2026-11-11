@@ -324,6 +324,7 @@ html, body {
     <option value="2">Seat: Moss Gears</option>
     <option value="3">Seat: Plum Ohms</option>
   </select>
+  <button type="button" class="seat-select" id="sndBtn" title="Sound on or off">🔊</button>
 </div>
 
 <!-- 4 · sticky note: your move (placed over the pit's top-right corner) -->
@@ -361,6 +362,7 @@ html, body {
 <script src="../src2/lineup.js"></script>
 <script src="../src2/matrix.js"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
 <script src="../src2/repair.js"></script>
+<script src="../src2/sound.js"></script><!-- quiet arena and fame sound -->
 <script src="../src2/view.js"></script>
 <script>
 /* ============================================================================
@@ -1437,7 +1439,20 @@ html, body {
     }).join('');
     if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
   }
+  /* Kev, 11 Nov: a chime when fame changes (brighter for your own team) and a short fanfare at the win. It compares the fame
+   * on screen with what was there before, so it works the same for the host, for players online and after a card or a fight. */
+  const SNDF = { fame: null, round: 0, over: false };
+  function fameSound() {
+    const S = window.RSound; if (!S || !G || !G.teams) return;
+    const now = G.teams.map(t => t.fame);
+    if (!SNDF.fame || G.phase === 'setup' || G.round < SNDF.round) { SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over; return; }
+    const d = now.map((f, i) => f - SNDF.fame[i]), mine = d[viewerSeat] || 0, other = d.find((x, i) => i !== viewerSeat && x) || 0;
+    if (G.over && !SNDF.over) { const w = now.indexOf(Math.max(...now)); S.win(w === viewerSeat); }
+    else if (mine) S.fame(mine, true); else if (other) S.fame(other, false);
+    SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over;
+  }
   function updateHud() {
+    try { fameSound(); } catch (e) {}
     try { renderAwards(); } catch (e) { console.warn('awards', e); }
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
     renderStash();
@@ -7261,6 +7276,7 @@ html, body {
   }
 
   /* ---------- Top Pill & Hand Controls ---------- */
+  { const sb = document.getElementById('sndBtn'), SND = window.RSound; if (sb) { if (!SND) sb.hidden = true; else { const show = () => { sb.textContent = SND.muted() ? '🔇' : '🔊'; }; show(); SND.onChange(show); sb.onclick = () => SND.toggle(); } } }
   $('#seatSel').onchange = e => {
     viewerSeat = +e.target.value; if (HS >= 0) HS = viewerSeat;
     updateHud();
