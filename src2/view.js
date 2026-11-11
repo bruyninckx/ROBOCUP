@@ -79,18 +79,30 @@
   // ---------- camera, drama ----------
   const cam = { x: 0, y: 0, z: 1, tx: 0, ty: 0, tz: 1 }; let shake = 0, slowT = 0, banner = null, hitStop = 0, flash = 0;
   let calls = []; // floating comic callouts
+  let sndCd = -2;
   const CRATE_COL = { nitro: '#FF8A2A', overcharge: '#B266FF', repair: '#4CC26A', shield: '#47A8FF' }, CRATE_ICON = { nitro: 'N', overcharge: '⚡', repair: '+', shield: 'S' };
   function consumeFx() {
     const SND = window.RSound;
     for (const e of S.fx) {
       if (SND) {   // Kev, 11 Nov: quiet arena sound (src2/sound.js), from the same events as the effects
         const ty = e.type;
-        if (ty === 'bigHit') SND.play(e.power >= 20 ? 'clang' : 'hit', e.power / 40);
-        else if (ty === 'spark') { if (!e.small && e.power >= 18) SND.play('hit', e.power / 60); }
+        if (ty === 'bigHit') { const w = SND.forCause(e.cause); SND.play(w || (e.power >= 20 ? 'clang' : 'hit'), e.power / 40); if (w && e.power >= 26) SND.play('clang', e.power / 50); }   // the weapon's own sound, plus a clang on a heavy one
+        else if (ty === 'spark') { if (!e.small && e.power >= 30 && e.nx != null) SND.play(e.metal ? 'crash' : 'bang', e.power / 70); else if (!e.small && e.power >= 18) SND.play('hit', e.power / 60); }   // robots slamming together, a robot into the wall
         else if (ty === 'detach') SND.play('crunch');
         else if (ty === 'boom') SND.play('boom');
-        else if (ty === 'thud' || ty === 'punch' || ty === 'slam' || ty === 'piston' || ty === 'shatter') SND.play('thud', ty === 'slam' ? 1 : 0.5);
+        else if (ty === 'thud' || ty === 'shatter') SND.play('thud', 0.5);
+        else if (ty === 'punch') SND.play('thunk', 0.8);
+        else if (ty === 'slam') SND.play('bang', 1);
+        else if (ty === 'piston' || ty === 'boing') SND.play('boing');
         else if (ty === 'emp' || ty === 'chipzap' || ty === 'chipfry') SND.play('zap');
+        else if (ty === 'scorch') { if (e.r <= 0.05) SND.play('flame'); }
+        else if (ty === 'launch') SND.play('whoosh');
+        else if (ty === 'grapple') SND.play('twang');
+        else if (ty === 'jets' || ty === 'dash') SND.play('jet');
+        else if (ty === 'shieldhit' || ty === 'ewall') SND.play('ping');
+        else if (ty === 'ricochet') SND.play('shot', 0.3);
+        else if (ty === 'pickup') SND.play('blip');
+        else if (ty === 'smokebomb') SND.play('puff');
         else if (ty === 'ko') SND.play('ko');
       }
       if (e.type === 'spark') sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny);
@@ -791,6 +803,7 @@
       ctx.globalAlpha = 1; if (bot) ctx.restore();
     }
     if (S.t > S.timeLimit - 30 && !S.over && S.countdown <= 0) { ctx.fillStyle = Math.sin(performance.now() / 120) > 0 ? '#FF5A3C' : HAZ; ctx.font = `400 ${13 * s}px "Saira Stencil One", Impact, sans-serif`; ctx.textAlign = 'center'; ctx.fillText('SUDDEN DEATH', W / 2, 48 * s); }
+    if (window.RSound) { const n0 = S.countdown > 0 ? Math.ceil(S.countdown) : S.t < 0.8 ? -1 : -2; if (n0 !== sndCd) { sndCd = n0; if (n0 > 0) window.RSound.play('ping'); else if (n0 === -1) window.RSound.play('bell'); } }   // 3, 2, 1, bell
     if (S.countdown > 0) {
       const n = Math.ceil(S.countdown), k = S.countdown % 1;
       ctx.font = `400 ${(90 + 40 * k) * s}px "Saira Stencil One", Impact, sans-serif`; ctx.textAlign = 'center';
