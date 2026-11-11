@@ -1081,6 +1081,11 @@
     const J = c.J, Jd = cause === 'wall' || cause === 'debris' || cause === 'spikes' ? Math.min(J, 45) : J; // walls and loose junk can crush, but not infinitely
     let d = Math.max(0, Jd - 7) * 0.2 * sharp * px.tough;
     if (!px.attached && cause !== 'spinner' && cause !== 'flail' && cause !== 'shell' && cause !== 'sweeper') return; // debris barely matters
+    if (ARC.cx.bend && px.attached && px.kind === 'weapon' && BARS[px.key] && J > 20 && px.hp > 0) {
+      const lq = px.body.getLocalPoint(V(c.x, c.y)), va = px.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)), vo = uy.part && uy.part.body ? uy.part.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)) : V(0, 0);
+      let rx = vo.x - va.x, ry = vo.y - va.y; const rl = Math.hypot(rx, ry); // pushed the way the other thing moves relative to it: a spinner's arm is knocked back against its spin
+      kinkHit(S, px.robot, px, { lp: [lq.x, lq.y], dir: rl > 0.3 ? [rx / rl, ry / rl] : [c.nx, c.ny], J, cause }, 0, src);
+    }
     if (d < 0.8) return;
     const lp = px.body.getLocalPoint(V(c.x, c.y));
     const blp = px.attached && px.body === px.robot.body ? [lp.x, lp.y] : null;
@@ -1098,7 +1103,7 @@
       const close = (vs.x - vt.x) * ux + (vs.y - vt.y) * uy2;
       if (close > 1.6) { src.ramCd = 1.8; d += Math.min(22, 5 + close * 4); knock(px.robot, ux * 55, uy2 * 55); px.robot.stun = Math.max(px.robot.stun, 0.25); S.fx.push({ type: 'punch', x: c.x, y: c.y, power: 20 }); callout(S, 'RAMMED!', c.x, c.y, close > 3); }
     }
-    hit(S, px, d, { src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' || cause === 'tail' ? 1.3 : cause === 'batram' ? 1.2 : 0.8, ignoreThr: cause === 'spear' });
+    hit(S, px, d, { cxc: ARC.cx.bend ? 1 : undefined, src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' || cause === 'tail' ? 1.3 : cause === 'batram' ? 1.2 : 0.8, ignoreThr: cause === 'spear' });
   }
 
   // ---------- contact experiments (ARC.cx) ----------
@@ -1269,7 +1274,7 @@
   // after a hit lands on a part that survived it
   function wearPost(S, R, part, h, d, atk) {
     if (!part.attached || part.hp <= 0 || !h.lp || h.inner) return;
-    if (part.body !== R.body) { if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key] && kinkCause(h.cause)) kinkHit(S, R, part, h, d, atk); return; } // weapons on their own body (spinner bar, axe arm...) can only bend
+    if (part.body !== R.body) { if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key] && kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); return; } // weapons on their own body (spinner bar, axe arm...) can only bend
     const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'wedge' || BARS[part.key]));
     if (!ok) return;
     const soft = part.bumper === 'rubber' || part.bumper === 'spring';
@@ -1278,7 +1283,7 @@
       if (pk && d >= WEAR.crackMin && S.rng() < Math.min(1, pk * d / 10)) crackHit(S, R, part, h, d * pk, atk);
       else if (part.cracks && part.cracks.length && d >= 8 && !GRINDY[h.cause]) { const c = part.cracks.reduce((a, b) => a.len > b.len ? a : b); crackGrow(S, R, part, c, d * WEAR.vib, h, atk); } // shaken: the worst crack creeps on
     }
-    if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key]) { if (kinkCause(h.cause)) kinkHit(S, R, part, h, d, atk); }
+    if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key]) { if (kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); }
     else if (ARC.cx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
     if (ARC.cx.grindout && GRINDY[h.cause] && part.attached) grooveHit(S, R, part, h, d, atk);
   }
@@ -1364,7 +1369,7 @@
   // weakest: at its earlier kink, else at a crack or saw groove between root and hit, else just out from the root where the
   // moment peaks. The part beyond the kink swings the way it was pushed. Bent hard where it is also cracked or sawn, it snaps.
   const BARS = { spear: 1, blade: 1, flipper: 1, lifter: 1, sweeper: 1, tail: 1, fang: 1, clapper: 1, jaws: 1 };
-  const KINK = { yield: 3.2, k: 0.011, perHit: 0.14, max: 0.6, snap: 0.42, rootK: 0.15 };
+  const KINK = { yield: 3.2, k: 0.011, bladeK: 2.2, perHit: 0.14, max: 0.6, snap: 0.42, rootK: 0.15 };
   const NOKINK = { heat: 1, fire: 1, strain: 1, flame: 1, laser: 1, emp: 1, pit: 1, crack: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, gmsaw: 1, orbdisc: 1 };
   const kinkCause = c => !NOKINK[c]; // any knock bends a weapon, weapon clashes included; heat and saws don't
   function kinkShape(base, ax, kinks, c) { // base outline -> bent outline (kinks from the root outwards)
@@ -1386,7 +1391,7 @@
     if (B !== R.body) for (let je = B.getJointList(); je; je = je.next) { const j = je.joint; if (j.getType && j.getType() === 'revolute-joint') { rc = j.getBodyA() === B ? j.getLocalAnchorA() : j.getLocalAnchorB(); break; } }
     const r = clamp(rc[ax === 0 ? 'x' : 'y'], A.lo, A.hi), sHit = h.lp[ax], side = Math.sign(sHit - r), lever = Math.abs(sHit - r);
     if (!side || lever < 0.04) return;
-    const M = d / Math.max(0.1, part.tough) * lever, stiff = Math.sqrt(part.maxHp / 60) * (part.tough < 0.3 ? 1.5 : 1); // tough < 0.3: the light, hard spinner bar
+    const M = (h.J != null ? Math.max(0, h.J - 7) * 0.2 : d / Math.max(0.1, part.tough)) * lever, stiff = Math.sqrt(part.maxHp / 60), kK = part.key === 'blade' ? KINK.bladeK : 1; // a spinner bar takes the biggest blows in the arena, end-on at speed: it bends readily
     const over = M - KINK.yield * stiff; if (over <= 0) return; // springs back
     let push = 0; if (h.dir) { const a = -B.getAngle(), lx = h.dir[0] * Math.cos(a) - h.dir[1] * Math.sin(a), ly = h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a); push = Math.sign(ax === 0 ? ly : lx); }
     if (!push) { const cc = centroid(part.vBase); push = -Math.sign(h.lp[1 - ax] - cc[1 - ax]) || 1; }
@@ -1397,7 +1402,7 @@
       for (const q of weak) if ((q[ax] - r) * side > 0.02 && (sHit - q[ax]) * side > 0.02) { at = q[ax]; why = 'weak'; }
       kk = { s: at, r, side, th: 0, why }; part.kinks.push(kk);
     }
-    const dth = Math.min(KINK.perHit, over * KINK.k / stiff) * push * (ax === 0 ? side : -side);
+    const dth = Math.min(KINK.perHit, over * KINK.k * kK / stiff) * push * (ax === 0 ? side : -side);
     const was = Math.abs(kk.th), before = kk.th; kk.th = clamp(kk.th + dth, -KINK.max, KINK.max); if (Math.abs(kk.th - before) < 0.002) return;
     const cline = (A.tlo + A.thi) / 2;
     wRefit(R, part, kinkShape(part.vBase, ax, part.kinks, cline)); wRebuild(part);

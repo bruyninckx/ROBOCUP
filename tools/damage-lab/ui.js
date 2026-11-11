@@ -747,7 +747,16 @@
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
-    if (w > 0.2) { ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(0, 0, 0.53, 0, 6.29); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.5, a + k * Math.PI, a + k * Math.PI + 0.9); ctx.stroke(); } }
+    // each arm's reach and where its tip points (a bent arm is shorter and trails): a bent bar sweeps two circles, not one
+    const arm = sg => { let r = 0, an = sg > 0 ? 0 : Math.PI; for (const q of part.outline) if (q[0] * sg > 0) { const d = Math.hypot(q[0], q[1]); if (d > r) { r = d; an = Math.atan2(q[1], q[0]); } } return [r || 0.5, an]; };
+    const [rA, aA] = arm(1), [rB, aB] = arm(-1), bent = Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08;
+    if (w > 0.2) {
+      const R0 = Math.max(rA, rB) + 0.01, off = bent ? (rA - rB) * 0.5 : 0; // the out-of-balance bar throws its swept disc off centre
+      ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(Math.cos(a) * off, Math.sin(a) * off, R0, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2;
+      for (const [rr, aa] of [[rA, aA], [rB, aB]]) { ctx.beginPath(); ctx.arc(0, 0, rr - 0.02, a + aa, a + aa + 0.9); ctx.stroke(); }
+      if (bent) { const rs = Math.min(rA, rB) - 0.02; ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, rs, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the bent arm's shorter track
+    }
     ctx.rotate(a);
     if (w > 0.4) { ctx.globalAlpha = 0.35; for (const o of [-0.25, -0.12]) { ctx.save(); ctx.rotate(o); path(part.outline); ctx.fillStyle = '#B9BBB4'; ctx.fill(); ctx.restore(); } ctx.globalAlpha = 1; }
     drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
