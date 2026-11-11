@@ -81,7 +81,18 @@
   let calls = []; // floating comic callouts
   const CRATE_COL = { nitro: '#FF8A2A', overcharge: '#B266FF', repair: '#4CC26A', shield: '#47A8FF' }, CRATE_ICON = { nitro: 'N', overcharge: '⚡', repair: '+', shield: 'S' };
   function consumeFx() {
+    const SND = window.RSound;
     for (const e of S.fx) {
+      if (SND) {   // Kev, 11 Nov: quiet arena sound (src2/sound.js), from the same events as the effects
+        const ty = e.type;
+        if (ty === 'bigHit') SND.play(e.power >= 20 ? 'clang' : 'hit', e.power / 40);
+        else if (ty === 'spark') { if (!e.small && e.power >= 18) SND.play('hit', e.power / 60); }
+        else if (ty === 'detach') SND.play('crunch');
+        else if (ty === 'boom') SND.play('boom');
+        else if (ty === 'thud' || ty === 'punch' || ty === 'slam' || ty === 'piston' || ty === 'shatter') SND.play('thud', ty === 'slam' ? 1 : 0.5);
+        else if (ty === 'emp' || ty === 'chipzap' || ty === 'chipfry') SND.play('zap');
+        else if (ty === 'ko') SND.play('ko');
+      }
       if (e.type === 'spark') sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny);
       else if (e.type === 'bigHit') {
         shake = Math.min(0.2, shake + e.power * 0.005); shards(e.x, e.y, Math.min(12, e.power / 4));
@@ -1093,13 +1104,14 @@
     root.className = 'fv'; root.hidden = true;
     root.innerHTML = `<div class="fv-top"><h2 class="fv-title">Fight</h2>
       <button type="button" data-sp="1" aria-pressed="false">1×</button><button type="button" data-sp="2" aria-pressed="true">2×</button><button type="button" data-sp="4" aria-pressed="false">4×</button>
-      <button type="button" class="fv-pause" aria-pressed="false">Pause</button><button type="button" class="fv-skip">Skip to result</button><button type="button" class="fv-done go" hidden>Continue</button></div>
+      <button type="button" class="fv-snd" title="Sound on or off">🔊</button><button type="button" class="fv-pause" aria-pressed="false">Pause</button><button type="button" class="fv-skip">Skip to result</button><button type="button" class="fv-done go" hidden>Continue</button></div>
       <div class="fv-main"><div class="fv-col"><div class="fv-left"></div><div class="fv-info" hidden></div></div><div class="fv-arena"><canvas aria-label="Arena"></canvas><div class="fv-feed" aria-live="off"></div></div><div class="fv-right"></div></div>
       <div class="fv-foot"><div class="fv-cards" hidden><div class="fv-hint"></div><div class="fv-tray"></div></div></div>`;
     cv = root.querySelector('canvas'); ctx = cv.getContext('2d');
     cv.addEventListener('pointerdown', onCanvasDown);
     cv.addEventListener('pointermove', e => { if (aim) hover = toWorld(e.clientX, e.clientY); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && aim && root && !root.hidden) cancelAim(); });
+    { const sb = root.querySelector('.fv-snd'), SND = window.RSound; if (sb) { if (!SND) sb.hidden = true; else { const show = () => { sb.textContent = SND.muted() ? '🔇' : '🔊'; }; show(); sb.onclick = () => { SND.toggle(); show(); }; } } }
     root.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { V.speed = +b.dataset.sp; root.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
     const pb = root.querySelector('.fv-pause'); pb.onclick = () => { V.paused = !V.paused; pb.setAttribute('aria-pressed', String(V.paused)); pb.textContent = V.paused ? 'Go on' : 'Pause'; };
     root.querySelector('.fv-skip').onclick = skip;
