@@ -220,3 +220,12 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
   - Refined garage & bay dimensions (`570x144` horizontal, `200x430` vertical) with compact 3-bay docking slots, dashed blueprint empty bays, and seamless dynamic corridor blast doors.
 - 2026-11-01, Antigravity: redesigned `prototypes/tabletop-prototype.html` after `/grill-me` with Kev — replaced webpage HTML boxes/tables/forms with a full-viewport minimalist architectural Scrapyard Compound (`<canvas>` world with 4 surrounding Team Garages, 3 physical Robot Bays per garage, animated mechanics, sliding blast doors, and smooth camera zoom into the central Arena Pit) plus a Hearthstone-style arched hand of cards (`Intrigue Schemes` dragged onto garages + `Live Combat Cards` like *Remote Trigger*, *Pilot Waypoint*, *Target Overclock*, *Oil Canister*, and *EMP Grenade* dragged into the Arena mid-fight with a curved targeting arrow).
 - 2026-11-01, Claude: set up the shared folder: README, AGENTS.md, GEMINI.md, this file, design docs in `docs/`, the two prototypes in `prototypes/`, git repo.
+
+## 11 Nov: damage pricing, chip fried, host snowball
+- Wear study (tools/damage-lab/wear-study.js, wear-report.js, wear-fit.js): a broken Body costs 0.74 strength on average (bookie charged 0.15), a dead processor chip 1.6. src2/repair.js prices damage by what is lost (BODY_COST per robot, Drive by wheels lost).
+- Game: 🧠 CHIP FRIED strip and tag, 🩹 damage tags, AI repairs by strength won back.
+- 200 AI games (v2_200b): bookie error 0.169 -> 0.152; Grandmaster, Blowtorch, Brawler, Lodestone back inside the noise. Open: Corkscrew -11.
+- Kev's playtest (host snowball): a "bully" test AI wins 63% against normal AIs. AIs now bid to deny a repeat host (50%). Rule options in BAL.hostRule (off): noRepeat brings it to 30%. Kev to decide.
+- game-sim: --aip0 / --aipR (one AI style against another), host and chip state per fight; deep-report section 6 (damage).
+- Host snowball without a rule change (Kev: no host ban): deny bids + value-based spare pleas + card targets on a repeat host: bully 63% -> 28%. Cash-everything alone: 37%.
+- mp-test and chaos run OK on this build (local transport).
