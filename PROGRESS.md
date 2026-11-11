@@ -232,3 +232,4 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Evening: grudges and favours (G.rel), backstab log lines, AI styles (AI_STYLES, on in solo games), money cap on AI bids. tools/worth-report.js (fame and cards in credits), sponsor-report.js, seat-report.js.
 - Sponsors: Sovereign 4 -> 3 Mechanics (45% -> 35% wins), Aegis 1 -> 2 free repairs (14% -> 24%). Open: Vulture 17%, Apex 19%, Sovereign and Blackwire about 34%.
 - Layout pass (Kev): what is in the pit 12% smaller (PIT_K 0.88, Market cards with it), rival tickets 8% bigger (TICK_K 1.08, drawScaled), log 300 -> 320 wide and it takes 70% of the extra width on wide screens. The fight still fills the pit floor.
+- Fight view (Kev: no scrolling on any screen): arena 15% smaller, robot panels put the damage diagram next to the part list, and a column that still does not fit draws its panels smaller (src2/view.js fitPanels). Checked at 1900x940 and 1366x720 with 2 robots a side.
