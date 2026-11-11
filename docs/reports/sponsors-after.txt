@@ -1,0 +1,8 @@
+200 games | attacks a game 9.7, on a grudge target 2.9, backstabs 0.43
+sponsor      seats  wins   fame   (normal AIs only; a fair share is 25%)
+sovereign    124    35%    9.9  ±4
+blackwire    136    33%    10.0  ±4
+aegis        132    24%    8.9  ±4
+lucky        131    23%    9.0  ±4
+apex         136    19%    9.0  ±4
+vulture      141    17%    8.9  ±4
