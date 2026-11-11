@@ -1439,6 +1439,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const J = c.J, Jd = cause === 'wall' || cause === 'debris' || cause === 'spikes' ? Math.min(J, 45) : J; // walls and loose junk can crush, but not infinitely
     let d = Math.max(0, Jd - 7) * 0.2 * sharp * px.tough;
     if (!px.attached && cause !== 'spinner' && cause !== 'flail' && cause !== 'shell' && cause !== 'sweeper') return; // debris barely matters
+    if (ARC.cx.bend && px.attached && px.hp > 0 && WARP[px.key] && J > 25) { const lq = px.body.getLocalPoint(V(c.x, c.y)); warpHit(S, px.robot, px, { lp: [lq.x, lq.y], J, cause }, src); }
+    if (ARC.cx.bend && px.attached && px.hp > 0 && BOWS[px.key] && px.body === px.robot.body && J > 45) { const lq = px.body.getLocalPoint(V(c.x, c.y)); bendHit(S, px.robot, px, { lp: [lq.x, lq.y], cause }, (J - 7) * 0.1, src); }
     if (ARC.cx.bend && px.attached && px.kind === 'weapon' && BARS[px.key] && J > 20 && px.hp > 0) {
       const lq = px.body.getLocalPoint(V(c.x, c.y)), va = px.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)), vo = uy.part && uy.part.body ? uy.part.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)) : V(0, 0);
       let rx = vo.x - va.x, ry = vo.y - va.y; const rl = Math.hypot(rx, ry); // pushed the way the other thing moves relative to it: a spinner's arm is knocked back against its spin
@@ -1702,7 +1704,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   function bendHit(S, R, part, h, d, atk) {
     const amt = Math.min(WEAR.bendMax, d * WEAR.bendK);
     if (part.kind === 'weapon' && BARS[part.key]) return kinkHit(S, R, part, h, d, atk);
-    if (part.kind === 'weapon' && part.key !== 'wedge') return;
+    if (part.kind === 'weapon' && !BOWS[part.key]) return; // a drum or a flipper plate bows along its length
     part.bAx = part.bAx || wAxis(part); part.bends = part.bends || [];
     const A = part.bAx, sAt = h.lp[A.ax]; let b = part.bends.find(q => Math.abs(q.s - sAt) < WEAR.bendR * 0.5);
     if (!b) { if (part.bends.length >= 4) return; b = { s: clamp(sAt, A.lo, A.hi), depth: 0 }; part.bends.push(b); }
@@ -1726,7 +1728,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // more than one near the mount, and nothing happens below the yield moment (it springs back). The bend forms where the beam is
   // weakest: at its earlier kink, else at a crack or saw groove between root and hit, else just out from the root where the
   // moment peaks. The part beyond the kink swings the way it was pushed. Bent hard where it is also cracked or sawn, it snaps.
-  const BARS = { spear: 1, blade: 1, flipper: 1, lifter: 1, sweeper: 1, tail: 1, fang: 1, clapper: 1, jaws: 1 };
+  const BARS = { spear: 1, blade: 1, lifter: 1, sweeper: 1, tail: 1, fang: 1, clapper: 1, hydra: 1, angler: 1, auger: 1, vdisc: 1 };
+  const BOWS = { drum: 1, flipper: 1, jaws: 1, wedge: 1 }; // wide plates and drums bow along their length
+  const KSTIFF = { hydra: 0.55, angler: 0.55, fang: 0.45, tail: 0.45, lifter: 0.6, clapper: 0.65, auger: 0.8 }; // short or slender beams: tuned so each weapon visibly bends in a fair share of fights (Kev, 11 Nov)
+  const HUB = { vdisc: 1 }; // on the robot's body but held in the middle (an axle): two halves, each bends on its own
   const KINK = { yield: 3.2, k: 0.011, bladeK: 2.2, perHit: 0.14, max: 0.6, snap: 0.42, rootK: 0.15 };
   const NOKINK = { heat: 1, fire: 1, strain: 1, flame: 1, laser: 1, emp: 1, pit: 1, crack: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, gmsaw: 1, orbdisc: 1 };
   const kinkCause = c => !NOKINK[c]; // any knock bends a weapon, weapon clashes included; heat and saws don't
@@ -1746,14 +1751,18 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // the root: where it is held. On its own body (spinner bar, axe arm) that is the joint's pin (a spinner's hub, so each arm
     // of the bar is its own beam and bends on its own); on the robot's body it is the end nearest the robot's middle.
     const A = part.kAx, ax = A.ax, B = part.body; let rc = B.getLocalPoint(R.body.getWorldCenter());
-    if (B !== R.body) for (let je = B.getJointList(); je; je = je.next) { const j = je.joint; if (j.getType && j.getType() === 'revolute-joint') { rc = j.getBodyA() === B ? j.getLocalAnchorA() : j.getLocalAnchorB(); break; } }
+    if (B !== R.body) { const wc = R.body.getWorldCenter(); let bd = 1e9; for (let je = B.getJointList(); je; je = je.next) { const jj = je.joint; if (!jj.getType || jj.getType() !== 'revolute-joint') continue; const la = jj.getBodyA() === B ? jj.getLocalAnchorA() : jj.getLocalAnchorB(), w = B.getWorldPoint(la), dd = Math.hypot(w.x - wc.x, w.y - wc.y); if (dd < bd) { bd = dd; rc = la; } } }
+    else if (HUB[part.key]) { const cc = centroid(part.vBase); rc = V(cc[0], cc[1]); }
     const r = clamp(rc[ax === 0 ? 'x' : 'y'], A.lo, A.hi), sHit = h.lp[ax], side = Math.sign(sHit - r), lever = Math.abs(sHit - r);
-    if (!side || lever < 0.04) return;
-    const M = (h.J != null ? Math.max(0, h.J - 7) * 0.2 : d / Math.max(0.1, part.tough)) * lever, stiff = Math.sqrt(part.maxHp / 60), kK = part.key === 'blade' ? KINK.bladeK : 1; // a spinner bar takes the biggest blows in the arena, end-on at speed: it bends readily
+    if (!side || lever < 0.04 || (r <= A.lo + 1e-6 && side < 0) || (r >= A.hi - 1e-6 && side > 0)) return; // held at one end: only the free side can bend
+    const M = (h.J != null ? Math.max(0, h.J - 7) * 0.2 : d / Math.max(0.1, part.tough)) * lever, stiff = Math.sqrt(part.maxHp / 60) * (KSTIFF[part.key] || 1), kK = part.key === 'blade' ? KINK.bladeK : 1; // a spinner bar takes the biggest blows in the arena, end-on at speed: it bends readily
     const over = M - KINK.yield * stiff; if (over <= 0) return; // springs back
     let push = 0; if (h.dir) { const a = -B.getAngle(), lx = h.dir[0] * Math.cos(a) - h.dir[1] * Math.sin(a), ly = h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a); push = Math.sign(ax === 0 ? ly : lx); }
     if (!push) { const cc = centroid(part.vBase); push = -Math.sign(h.lp[1 - ax] - cc[1 - ax]) || 1; }
     let kk = part.kinks.find(q => q.side === side);
+    if (h.dir) { const a = -B.getAngle(), lx = h.dir[0] * Math.cos(a) - h.dir[1] * Math.sin(a), ly = h.dir[0] * Math.sin(a) + h.dir[1] * Math.cos(a), along = Math.abs(ax === 0 ? lx : ly), across = Math.abs(ax === 0 ? ly : lx);
+      if (along > across) { // end-on: it buckles, and a bent bar buckles further the way it already bends
+        const sgnK = ax === 0 ? side : -side; push = kk && Math.abs(kk.th) > 0.005 ? Math.sign(kk.th) * sgnK : (S.rng() < 0.5 ? -1 : 1); } }
     if (!kk) { // the weakest spot between root and hit: a crack or groove, else just out from the root
       let at = r + side * (part.key === 'blade' ? 0.3 : KINK.rootK) * (side > 0 ? A.hi - r : r - A.lo), why = ''; // a spinner bar gives out along the arm, past the hub boss
       const weak = [].concat((part.cracks || []).map(c => c.o), (part.grooves || []).filter(g => g.depth > 0.004).map(g => [g.x, g.y]));
@@ -1773,6 +1782,29 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       const pc = wSplit(S, R, part, ax === 0 ? kk.s : 0, ax === 0 ? 0 : kk.s, ax === 0 ? 1 : 0, ax === 0 ? 0 : 1, 'near', (part.key === 'blade' ? 'Spinner bar' : part.label) + ' tip');
       if (pc) { part.kinkSum = 0; cxCount(S, R, 'snap'); const q = pc.body.getPosition(); callout(S, 'SNAPPED!', q.x, q.y, true); say(S, `${R.name}: ${nm} snaps where it was bent`, atk ? atk.id : R.id, true); }
     }
+  }
+  // ---- discs warp (a 'taco') ----
+  // A spinning disc hit hard on its rim folds along a line through its middle: the half that was hit tips up out of the plane,
+  // so from above that half looks shorter. It is then out of balance (it shakes its robot while it spins) and only part of its
+  // edge still bites (saws and grinders cut less). Discs are stiff: only big rim impacts do it, and it builds up.
+  const WARP = { orbdisc: 1, twinsaw: 1, buzz: 1, gmsaw: 1, shell: 1 };
+  const WRP = { yield: 6, k: 0.004, perHit: 0.08, max: 0.45, fold: 0.42 };
+  function warpShape(base, ux, uy, w) { const sq = 1 - WRP.fold * w / WRP.max; return base.map(([x, y]) => { const d = x * ux + y * uy; return d > 0 ? [x - (1 - sq) * d * ux, y - (1 - sq) * d * uy] : [x, y]; }); }
+  function warpHit(S, R, part, h, atk) {
+    if (!part.vBase) part.vBase = part.verts.map(v => v.slice());
+    const M = Math.max(0, h.J - 7) * 0.2, stiff = Math.sqrt(part.maxHp / 60) * (part.key === 'shell' ? 1 : 0.6); // saw blades are thin plate
+    const over = M - WRP.yield * stiff; if (over <= 0) return;
+    if (part.foldA == null) part.foldA = Math.atan2(h.lp[1], h.lp[0]); // the half that took the first big hit is the one that folds
+    const was = part.warp || 0; part.warp = Math.min(WRP.max, was + Math.min(WRP.perHit, over * WRP.k / stiff)); if (part.warp - was < 0.002) return;
+    wRefit(R, part, warpShape(part.vBase, Math.cos(part.foldA), Math.sin(part.foldA), part.warp)); wRebuild(part);
+    if (was < 0.12 && part.warp >= 0.12) { cxCount(S, R, 'warp'); const q = part.body.getPosition(); callout(S, 'WARPED!', q.x, q.y, false);
+      say(S, `${R.name}: ${part.key === 'shell' ? 'shell knocked out of round' : (part.label || 'disc').toLowerCase() + ' warped'}, it wobbles`, atk ? atk.id : R.id, true); }
+  }
+  function warpStep(S) { // a warped disc or a bent spinner bar shakes its robot while it spins
+    for (const R of S.robots) for (const q of R.parts) { if (!q.attached || !q.warp || q.body === R.body) continue;
+      const w = q.body.getAngularVelocity() - R.body.getAngularVelocity(); if (Math.abs(w) < 5) continue;
+      const F = Math.min(500, q.mass * w * w * q.warp * 0.0022), a = q.body.getAngle() + q.foldA, bp = q.body.getWorldCenter();
+      q.body.applyForce(V(Math.cos(a) * F, Math.sin(a) * F), bp, true); }
   }
   function grooveHit(S, R, part, h, d, atk) {
     part.grooves = part.grooves || []; const [x, y] = h.lp;
@@ -2525,11 +2557,16 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if (R.swing > 0) {
         R.swing -= DT;
         if (R.swing <= 0) { // the axe lands
-          const q = front(0.32, 0), target = topPartAt(S, q.x, q.y, R);
+          const q = front(0.32 - Math.abs(R.armBend || 0) * 0.3, (R.armBend || 0) * 0.62), target = topPartAt(S, q.x, q.y, R);
           if (target) {
             const lp = target.body.getLocalPoint(q);
             hit(S, target, 34 * Math.min(1, pw), { src: R, cause: 'hammer', top: true, lp: [lp.x, lp.y], blp: target.body === target.robot.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, pen: 1.4 });
             target.robot.lifted = 0.3;
+            if (ARC.cx.bend && R.arm.hp > 0 && (target.kind === 'chassis' || target.kind === 'armour')) { // a blow that lands off-centre on hard metal wrenches the handle sideways
+              const was = R.armBend || 0, dir = was ? Math.sign(was) : (S.rng() < 0.5 ? -1 : 1), add = (0.012 + S.rng() * 0.03) * Math.min(1, pw) * (target.kind === 'armour' && target.bumper === 'rubber' ? 0.3 : 1);
+              R.armBend = clamp(was + dir * add, -0.45, 0.45);
+              if (Math.abs(was) < 0.12 && Math.abs(R.armBend) >= 0.12) { cxCount(S, R, 'wbend'); callout(S, 'BENT!', q.x, q.y, false); say(S, `${R.name}: axe handle bent, it lands off to the side now`, R.id, true); }
+            }
             S.fx.push({ type: 'spark', x: q.x, y: q.y, power: 50 });
           } else S.fx.push({ type: 'thud', x: q.x, y: q.y });
           R.cool = 1.0; R.recover = 0.6;
@@ -3041,6 +3078,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   }
   // a spinning blade body cuts whatever it touches and throws it along its edge
   function grind(S, R, part, sf, dmg, cause, knockK) {
+    if (part.warp) dmg *= 1 - 0.6 * part.warp / WRP.max;
     const sb = part.body, spin = sb.getAngularVelocity() - R.body.getAngularVelocity(); let bit = null;
     for (let ce = sb.getContactList(); ce; ce = ce.next) {
       const cc = ce.contact; if (!cc.isTouching()) continue;
@@ -3714,6 +3752,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     S.world.step(DT, 8, 3);
     processContacts(S); processBegins(S); snags(S);
     if (ARC.cx.slide || ARC.cx.under || ARC.cx.crush) cxStep(S);
+    if (ARC.cx.bend) warpStep(S);
     projectiles(S);
     heatAndHazards(S);
     if (S.spikes) spikes(S);
@@ -4351,10 +4390,16 @@ window.LU_MATRIX = {"made":"2026-11-09","arenas":{"cage":{"mode":"same","pairs":
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? Math.abs(R.buzzW || 0) / (R.buzzMax || 110) : 0;
     ctx.save(); ctx.translate(p.x, p.y);
     const bk = R && R.buzzR ? R.buzzR / 0.14 : 1; ctx.scale(bk, bk);
-    if (w > 0.3) { ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(0, 0, 0.17, 0, 6.29); ctx.fill(); }
+    const wp = part.warp ? part.warp / 0.45 : 0, fa = part.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp;
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; }; // the folded half, foreshortened
+    if (w > 0.3) { const o = wp * 0.025; ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(Math.cos(a + fa) * o, Math.sin(a + fa) * o, 0.17, 0, 6.29); ctx.fill();
+      if (wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, 0.15 * (1 - 0.42 * wp * 0.5), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.rotate(a); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
-    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125; k ? ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : ctx.moveTo(Math.cos(t) * r, Math.sin(t) * r); }
+    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (wp > 0.05) { ctx.fillStyle = `rgba(20,14,8,${0.18 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * 0.14, Math.sin(t) * 0.14); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half in shade
+      ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * 0.15, fx * 0.15); ctx.lineTo(fy * 0.15, -fx * 0.15); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,248,235,${0.3 + 0.3 * wp})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.moveTo(-fy * 0.15 - fx * 0.01, fx * 0.15 - fy * 0.01); ctx.lineTo(fy * 0.15 - fx * 0.01, -fx * 0.15 - fy * 0.01); ctx.stroke(); } // the fold
     ctx.fillStyle = '#6F7169'; ctx.beginPath(); ctx.arc(0, 0, 0.04, 0, 6.29); ctx.fill(); ctx.stroke();
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.5 * w})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.09, k * 2.1, k * 2.1 + 1.2); ctx.stroke(); } }
     ctx.restore();
@@ -4408,10 +4453,11 @@ window.LU_MATRIX = {"made":"2026-11-09","arenas":{"cage":{"mode":"same","pairs":
     }
     if (w === 'hammer' && R.arm.hp > 0) {
       let s = 0; if (R.swing > 0) s = 1 - R.swing / 0.2; else if (R.recover > 0) s = R.recover / 0.6;
-      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s);
-      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(hx, 0); ctx.stroke();
+      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s), ab = R.armBend || 0, kx = -0.25 + (hx + 0.25) * 0.45, ex = kx + (hx - kx) * Math.cos(ab), ey = (hx - kx) * Math.sin(ab); // bent handle: kinked partway along
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(kx, 0); ctx.lineTo(ex, ey); ctx.stroke();
       ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
-      ctx.save(); ctx.translate(hx, 0); ctx.scale(k, k);
+      if (Math.abs(ab) > 0.03) { ctx.strokeStyle = 'rgba(14,9,5,0.8)'; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(kx, -0.035 * k); ctx.lineTo(kx, 0.035 * k); ctx.stroke(); }
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(ab); ctx.scale(k, k);
       ctx.fillStyle = '#B9BBB4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.05, -0.16], [0.06, -0.12], [0.06, 0.12], [-0.05, 0.16], [-0.02, 0]]); ctx.fill(); ctx.stroke();
       ctx.restore(); bolt(-0.25, 0);
     }
@@ -4565,6 +4611,7 @@ window.LU_MATRIX = {"made":"2026-11-09","arenas":{"cage":{"mode":"same","pairs":
       ctx.fillStyle = '#9A9C94'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
       for (const sg of [1, -1]) { ctx.beginPath(); ctx.moveTo(sg * (rad - 0.04), -sg * 0.05); ctx.lineTo(sg * (rad + 0.07), -sg * 0.025); ctx.lineTo(sg * (rad + 0.07), sg * 0.025); ctx.lineTo(sg * (rad - 0.04), sg * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
+      if (part.warp) { const fa = part.foldA, wp = part.warp / 0.45; ctx.strokeStyle = `rgba(14,9,5,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(-Math.sin(fa) * rad, Math.cos(fa) * rad); ctx.lineTo(Math.sin(fa) * rad, -Math.cos(fa) * rad); ctx.stroke(); }
       ctx.fillStyle = R && R.alive ? col.col : '#4A4540'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.62, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.stroke();
       ctx.fillStyle = R && R.alive ? col.dark : '#3A3530'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.22, 0, 6.29); ctx.fill(); ctx.stroke();
       for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283; bolt(Math.cos(t) * rad * 0.8, Math.sin(t) * rad * 0.8); }
