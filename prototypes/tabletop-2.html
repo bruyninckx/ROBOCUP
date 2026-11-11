@@ -438,6 +438,8 @@ html, body {
     // Kev, 8 Nov: a robot lot won with a full garage (3 bays) = trade-in: scrap one of your robots for base + perLevel × its level Cr,
     // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
     tradeIn: { on: true, base: 1, perLevel: 1 },
+    // Kev, 11 Nov (test options, both off): noRepeat = last round's host cannot bid for the host seat; streakTax = a host's bid counts this many Cr less per round it has hosted in a row
+    hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
@@ -477,7 +479,9 @@ html, body {
     // wins the game (hosting at match point is worth all its credits, and hoarders win those bids), at most spendWar.
     // spendMkt: credit repairs (Upkeep, before the Market), host and fight-card extras only from the surplus above this, so they
     // don't starve this or next round's Market (lot extras come after the base bids, from what is left above the reserve)
-    spendK: 0.3, spendCap: 0.4, spendShare: 0.5, spendRes: 3, spendBody: 6, spendLate: 3, spendWar: 12, spendMkt: 8 };
+    spendK: 0.3, spendCap: 0.4, spendShare: 0.5, spendRes: 3, spendBody: 6, spendLate: 3, spendWar: 12, spendMkt: 8,
+    // Kev, 11 Nov: bid against a team that keeps hosting (see hostDenyValue): +2 Cr per round it hosted of the last 3, up to +3 more for its fame lead
+    hostDeny: 2, hostDenyLead: 3 };
   let AI_DEFAULT = 2;
   let AIV = [AI_DEFAULT, AI_DEFAULT, AI_DEFAULT, AI_DEFAULT], AIP = [0, 1, 2, 3].map(() => Object.assign({}, AI_PARAMS));
   // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
@@ -1016,7 +1020,9 @@ html, body {
   const zoneState = q => q.broken ? 'broken' : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
   const wrecked = r => { const Z = zonesOf(r); return Z.weapon.broken || Z.drive.broken; };
   const hurt = r => Math.max(0, baseStr(r) - str2(r));   // strength its damage costs
-  const zoneTxt = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? bad.map(z => z.icon + ' ' + z.label + ' ' + zoneState(Z[z.key])).join(' · ') : 'no damage'; };
+  // Kev, 11 Nov: a dead processor chip carries over inside "Body broken" and all but loses the next fight (the robot wanders on backup control): say so
+  const chipFried = r => !!(r && r.wear && zonesOf(r).body.lost.some(l => /chip/i.test(l)));
+  const zoneTxt = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? bad.map(z => z.icon + ' ' + z.label + ' ' + zoneState(Z[z.key]) + (z.key === 'body' && chipFried(r) ? ' (🧠 chip fried)' : '')).join(' · ') : 'no damage'; };
   const me = () => G.teams[viewerSeat];
   const ownerOf = r => G && G.teams.find(t => t.robots.includes(r));
   /* ---------- repairs (Kev, 8 Nov): crew repair actions in Upkeep ----------
@@ -1078,6 +1084,8 @@ html, body {
   // (how many ready crew each needs: Team-Building Day 2, Press Tour 3 minus its ready Security Bots, the rest 1)
   const CREW_CARDS = new Set(['Overtime Shift', 'Consulting Gig', 'Headhunter Fee', 'Inside Leak', 'Fall Guy', 'Team-Building Day', 'Press Tour', 'Crunch Week', 'Museum Donation']);
   const crewKeep = (t, n) => n === 'Team-Building Day' ? 2 : n === 'Press Tour' ? Math.max(0, 3 - secReady(t)) : 1;
+  // what repairing one zone wins back (strength, logits)
+  function zoneGain(r, zk) { const sp = spec2(r), s0 = R2.strength(sp, r.name, r.level, partsOf(r)); R2.repairZone(sp, zk); return R2.strength(sp, r.name, r.level, partsOf(r)) - s0; }
   function aiRepairs(t) {
     const keep = Math.min(2, Math.max(0, ...t.hand.filter(id => CARDS[id] && CREW_CARDS.has(CARDS[id].name)).map(id => crewKeep(t, CARDS[id].name))));
     const likely = t.robots.filter(r => !(r.sitOut > 0)).sort((a, b) => baseStr(b) - baseStr(a)).slice(0, 2);   // the robots it is likely to send
@@ -1087,12 +1095,13 @@ html, body {
     for (let guard = 0; guard < 12; guard++) {
       // jobs in order; the first one it can pay for (a broken zone may cost more actions than are left: then the next job)
       const jobs = [];
-      for (const [zk, brokenOnly] of order) for (const r of likely) { const q = zonesOf(r)[zk]; if (q.damaged && (!brokenOnly || q.broken) && !jobs.some(j => j.r === r && j.zk === zk)) jobs.push({ r, zk, broken: q.broken }); }
+      for (const [zk, brokenOnly] of order) for (const r of likely) { const q = zonesOf(r)[zk]; if (q.damaged && (!brokenOnly || q.broken) && !jobs.some(j => j.r === r && j.zk === zk)) jobs.push({ r, zk, broken: q.broken, gain: zoneGain(r, zk) }); }
+      jobs.sort((a, b) => b.gain - a.gain);   // Kev, 11 Nov: the repair that wins back the most strength first (a fried chip or lost armour can matter more than a dented weapon)
       let how = null, job = null;
       for (const j of jobs) {
         const n = repairCost(j.r, j.zk), short = Math.max(0, n - repairActs(t, keep));
-        const cost = short * repairCr(), extra = sur > 0 && cost <= sur && (j.zk !== 'body' || sur >= (P.spendBody || 6));
-        const pay = (j.broken && j.zk !== 'body' && t.credits >= cost + 3) || extra;   // credits for a broken weapon or drive, keeping 3 Cr; more with a surplus
+        const cost = short * repairCr(), extra = sur > 0 && cost <= sur && (j.zk !== 'body' || j.gain >= 0.6 || sur >= (P.spendBody || 6));
+        const pay = (j.broken && (j.zk !== 'body' || j.gain >= 1) && t.credits >= cost + 3) || extra;   // credits for a broken weapon or drive, keeping 3 Cr; more with a surplus
         const c0 = t.credits;
         how = spendActs(t, n, keep, pay);
         if (how) { job = j; sur = Math.max(0, sur - (c0 - t.credits)); break; }
@@ -2932,6 +2941,7 @@ html, body {
     const fs = G.teams.map(t => t.fame), mx = Math.max(...fs), mn = Math.min(...fs);
     let th = 0.35 + 0.65 * (mx > mn ? (T.fame - mn) / (mx - mn) : 0.5);
     if (T.fame >= WIN_FAME - 2) th *= 1.5; if (T.fame >= WIN_FAME - 1) th *= 1.5;
+    { const n = (G.hostHist || []).slice(-3).filter(h => h === T.i).length; if (n >= 2 && aiP(F).hostDeny) th += 0.3 * n; }   // Kev, 11 Nov: a team that keeps hosting draws the cards, as it would at a real table
     return th;
   };
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
@@ -3080,6 +3090,7 @@ html, body {
   async function aiIntrigueTurn(F) {
     while (removeFromHand(F, 'security_bot')) F.secBots = (F.secBots || 0) + 1;   // install bots as garage assets
     let plays = 0, askedBacking = false;
+    if (aiP(F).cashAll) { for (const id of F.hand.slice()) if (CARDS[id] && CARDS[id].cash) cashIn(F, id); endTurnHandLimit(F); return; }   // test AI: every card straight to credits
     if (aiV2(F, 'ivplay')) {   // value order, worked out again after every play
       const tried = new Set();
       while (plays < aiP(F).playMax) {
@@ -3398,12 +3409,23 @@ html, body {
   function aiHostValue(t) {
     const P = aiP(t), fame = CATCHUP.leaderhost && soleLeader() === t ? 0 : HOST_FAME;
     if (fame && t.fame + fame >= WIN_FAME) return t.credits;
-    return P.hostFame * fame + 1;
+    return P.hostFame * fame + 1 + hostDenyValue(t);
+  }
+  /* Kev, 11 Nov (playtest: Kev hosted 9 of 10 rounds for 7-13 Cr, put his best robot against the weakest every time and won 13-7-3-0):
+   * a team that keeps hosting is buying a win a round. Taking the host seat away from it is worth credits to everyone else:
+   * hostDeny Cr for each of the last 3 rounds the same rival hosted (from 2), more when that rival also leads on fame. */
+  function hostDenyValue(t) {
+    const P = aiP(t); if (!P.hostDeny) return 0;
+    const last = (G.hostHist || []).slice(-3), cnt = {}; for (const h of last) if (h !== t.i) cnt[h] = (cnt[h] || 0) + 1;
+    const b = Object.keys(cnt).map(Number).sort((x, y) => cnt[y] - cnt[x])[0]; if (b == null || cnt[b] < 2) return 0;
+    const lead = G.teams[b].fame - t.fame;
+    return P.hostDeny * cnt[b] + (lead > 0 ? Math.min(P.hostDenyLead || 0, lead) : 0);
   }
   function aiHostBid(t) {
     if (aiV2(t, 'host')) {
       const P = aiP(t), v = aiHostValue(t), sur = Math.max(0, aiSurplus(t, true, 'spendHost') - (P.spendMkt || 0)), hv = v >= t.credits ? v : v + Math.min(sur, v * (aiSpendMult(t, sur) - 1));   // surplus: hosting is worth more (capped)
-      return Math.max(0, Math.min(Math.round(hv * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0)));
+      const bid = Math.max(0, Math.min(Math.round(hv * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0)));
+      return P.hostMin ? Math.max(bid, Math.min(P.hostMin, t.credits)) : bid;   // hostMin: a test AI that always goes for the host seat ("the bully")
     }
     const want = t.fame >= 9 ? 3 : 1.5;   // Kev, 7 Nov: no Apex-only bonus (it made AI Apex host most rounds and win 47%)
     return Math.max(0, Math.min(Math.round(want * (0.4 + rnd() * 1.1)), t.credits, Math.ceil(t.credits * 0.6)));
@@ -3413,6 +3435,8 @@ html, body {
     G.hostCounts = G.teams.map(t => isHuman(t.i) ? (PS(t.i).hostCount || 1) : aiHostCount(t));
     const all = G.teams.map(t => { const b = zeroBids(); b[HOST_K] = Math.min(t.credits, isHuman(t.i) ? ((PS(t.i).bids || [])[HOST_K] || 0) : aiHostBid(t)); return b; });
     G.teams.forEach((t, i) => { if (t.shill && all[i][HOST_K]) all[i][HOST_K] = Math.max(0, all[i][HOST_K] - t.shill); });
+    { const HR = BAL.hostRule || {}, hist = G.hostHist || [], streak = i => { let n = 0; for (let k = hist.length - 1; k >= 0 && hist[k] === i; k--) n++; return n; };
+      G.teams.forEach((t, i) => { if (HR.noRepeat && streak(i) >= 1) all[i][HOST_K] = 0; else if (HR.streakTax && all[i][HOST_K]) all[i][HOST_K] = Math.max(0, all[i][HOST_K] - HR.streakTax * streak(i)); }); }
     G.marketAuction = { all, initialAll: all.map(b => b.slice()), rebidAdds: G.teams.map(zeroBids), curK: HOST_K, lastK: HOST_K, hostOnly: true, wins: [], results: [], tie: null };
     stepMarketAuction();
   }
@@ -3850,6 +3874,7 @@ html, body {
       });
     } else {
       G.host = w >= 0 ? w : Math.floor(rnd() * 4);
+      (G.hostHist = G.hostHist || []).push(G.host);   // Kev, 11 Nov: who hosted (the AI bids against a team that keeps hosting)
       const hostT = G.teams[G.host];
       A.results.push({
         idx: HOST_K, id: 'host', name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters',
@@ -4113,6 +4138,7 @@ html, body {
       G.inviteOffers = [];
       for (const T of G.teams) {
         if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
+        if (G.teams[H].fame > T.fame && (G.hostHist || []).slice(-3).filter(h => h === H).length >= 2) continue;   // Kev, 11 Nov: no gifts for a leader who keeps hosting (his playtest: 18 Cr of these paid half his host bids)
         const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p;
         const want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
         if (want && rnd() < 0.55) { const B = aiBundle(T, G.teams[H], 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B)) G.inviteOffers.push({ team: T.i, want, B }); }
@@ -4330,7 +4356,12 @@ html, body {
     { const F = G && G.fight, inF = F && F.robots && F.robots.includes(r);
       if (inF && F.format === 'ffa' && FFA_FIT[r.name]) { const v = FFA_FIT[r.name]; out.unshift(v > 0 ? { ic: '🌀', label: 'Brawl master', good: true, help: 'The bookie: in four-way free-for-alls ' + esc(r.name) + ' wins ' + v + ' points more often than its duel record says. It picks its moments while the others trade hits.' } : { ic: '🌀', label: 'Lost in a melee', good: false, help: 'The bookie: in four-way free-for-alls ' + esc(r.name) + ' wins ' + (-v) + ' points less often than its duel record says. It locks onto one robot and gets hit from the side.' }); }
       if (inF && F.format === '2v2' && TEAM_FIT[r.name]) out.unshift({ ic: '🤝', label: 'Lone wolf', good: false, help: 'The bookie: in 2v2 fights ' + esc(r.name) + '\'s team wins ' + (-TEAM_FIT[r.name]) + ' points less often than the robots\' duel records say' + (r.name === 'Trebuchet' ? ' (its throws hit its own partner too).' : '.') }); }
-    out.sort((x, y) => (y.ic === '👑') - (x.ic === '👑') || (y.ic === '⚡') - (x.ic === '⚡'));   // a giant-slayer build and an epic combo always show
+    // Kev, 11 Nov: damage tags. A fried chip always shows; a broken Body shows when it matters much more or much less than usual for this robot
+    if (chipFried(r)) out.unshift({ ic: '🧠', label: 'Chip fried', good: false, help: 'The bookie: ' + esc(r.name) + '\'s processor chip is dead. It fights on backup control and loses almost every fight until its ⛨ Body is repaired.' });
+    else if (r.wear && zonesOf(r).body.broken) { const bc = R2.bodyCostOf(r.name)[0];
+      if (bc >= 1.2) out.push({ ic: '🩹', label: 'Needs its armour', good: false, help: 'The bookie: ' + esc(r.name) + ' fights much worse with armour missing (most robots lose a little; this one loses a lot). Its ⛨ Body is broken: repair it in Upkeep.' });
+      else if (bc <= 0.4) out.push({ ic: '🩹', label: 'Shrugs it off', good: true, help: 'The bookie: missing armour hardly bothers ' + esc(r.name) + '. Its ⛨ Body is broken, but it fights almost as well as new.' }); }
+    out.sort((x, y) => (y.ic === '🧠') - (x.ic === '🧠') || (y.ic === '👑') - (x.ic === '👑') || (y.ic === '⚡') - (x.ic === '⚡'));   // a fried chip, a giant-slayer build and an epic combo always show
     return out.slice(0, 2);
   }
   // draws the tags right-aligned, ending at xr; returns the width used (nMax: at most that many tags)
@@ -5096,7 +5127,10 @@ html, body {
     G.fateBusy = true; updateHud();
     for (const T of G.teams) {
       if (T === H || isHuman(T.i)) continue;
-      if (T === L) { const B = aiBundle(T, H, Math.min(T.credits - 1, 1 + 2 * lr.wins + (rnd() < 0.5 ? 1 : 0))); if (!bundleEmpty(B)) F.fateOffers.spare.push({ team: T.i, B }); }
+      if (T === L) {   // Kev, 11 Nov: the AI used to pay the host every time (his playtest: 18 Cr, half his host bids). Now only for a robot worth saving, and only from a host with a reason to scrap it
+        const worth = (lr.level || 0) + partsOf(lr).length + 2 * lr.wins + (L.robots.length <= 1 ? 3 : 0), danger = L.fame >= H.fame - 2 || L === leaderOf();
+        if (worth < 2 || !danger) continue;
+        const B = aiBundle(T, H, Math.min(T.credits - 1, worth, 1 + 2 * lr.wins + (rnd() < 0.5 ? 1 : 0))); if (!bundleEmpty(B)) F.fateOffers.spare.push({ team: T.i, B }); }
       else if (canScrap && L === leaderOf() && rnd() < 0.6) { const B = aiBundle(T, H, 1 + (rnd() < 0.5 ? 1 : 0)); if (!bundleEmpty(B)) F.fateOffers.scrap.push({ team: T.i, B }); }
     }
     for (const h of humanSeats()) {
@@ -6469,8 +6503,18 @@ html, body {
     help(x, y, w, h, '🔩 Loose Bolts', esc(r.name) + '\'s ' + esc(what) + ' was left loose by ' + esc(G.teams[r.loose.by] ? G.teams[r.loose.by].name : 'a rival') + '. It stays damaged until you repair that zone in Upkeep.');
     return h;
   }
+  function drawFriedBadge(ctx, r, x, yBottom, w, small) {
+    if (!chipFried(r)) return 0;
+    const h = small ? 12 : 16, y = yBottom - h;
+    ctx.fillStyle = 'rgba(178,58,43,0.94)'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    fitText(ctx, small ? '🧠 FRIED' : '🧠 CHIP FRIED', x + w / 2, y + h - (small ? 3 : 4.5), w - 4, '700', small ? 8 : 9.5, F_MONO);
+    help(x, y, w, h, '🧠 Chip fried', esc(r.name) + '\'s processor chip is dead. It fights on backup control: slow and wandering, and it loses almost every fight. Repair ⛨ Body in Upkeep to replace the chip.');
+    return h;
+  }
   function drawEmpBadge(ctx, r, t, x, yBottom, w, small) {
     yBottom -= drawLooseBadge(ctx, r, x, yBottom, w, small);
+    yBottom -= drawFriedBadge(ctx, r, x, yBottom, w, small);
     if (!(t.tamper && t.tamper.noMods) || !r) return;
     const sp = spec2(r, t), mod = sp.mod && sp.mod !== 'none', dr = (sp.helpers || []).length;
     if (!mod && !dr) return;
