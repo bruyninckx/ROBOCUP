@@ -1379,7 +1379,10 @@
   }
   function kinkHit(S, R, part, h, d, atk) {
     if (!part.vBase) { part.vBase = part.verts.map(v => v.slice()); part.kAx = wAxis(part); part.kinks = []; }
-    const A = part.kAx, ax = A.ax, B = part.body, rc = B.getLocalPoint(R.body.getWorldCenter());
+    // the root: where it is held. On its own body (spinner bar, axe arm) that is the joint's pin (a spinner's hub, so each arm
+    // of the bar is its own beam and bends on its own); on the robot's body it is the end nearest the robot's middle.
+    const A = part.kAx, ax = A.ax, B = part.body; let rc = B.getLocalPoint(R.body.getWorldCenter());
+    if (B !== R.body) for (let je = B.getJointList(); je; je = je.next) { const j = je.joint; if (j.getType && j.getType() === 'revolute-joint') { rc = j.getBodyA() === B ? j.getLocalAnchorA() : j.getLocalAnchorB(); break; } }
     const r = clamp(rc[ax === 0 ? 'x' : 'y'], A.lo, A.hi), sHit = h.lp[ax], side = Math.sign(sHit - r), lever = Math.abs(sHit - r);
     if (!side || lever < 0.04) return;
     const M = d / Math.max(0.1, part.tough) * lever, stiff = Math.sqrt(part.maxHp / 60) * (part.tough < 0.3 ? 1.5 : 1); // tough < 0.3: the light, hard spinner bar
@@ -1388,7 +1391,7 @@
     if (!push) { const cc = centroid(part.vBase); push = -Math.sign(h.lp[1 - ax] - cc[1 - ax]) || 1; }
     let kk = part.kinks.find(q => q.side === side);
     if (!kk) { // the weakest spot between root and hit: a crack or groove, else just out from the root
-      let at = r + side * KINK.rootK * (side > 0 ? A.hi - r : r - A.lo), why = '';
+      let at = r + side * (part.key === 'blade' ? 0.3 : KINK.rootK) * (side > 0 ? A.hi - r : r - A.lo), why = ''; // a spinner bar gives out along the arm, past the hub boss
       const weak = [].concat((part.cracks || []).map(c => c.o), (part.grooves || []).filter(g => g.depth > 0.004).map(g => [g.x, g.y]));
       for (const q of weak) if ((q[ax] - r) * side > 0.02 && (sHit - q[ax]) * side > 0.02) { at = q[ax]; why = 'weak'; }
       kk = { s: at, r, side, th: 0, why }; part.kinks.push(kk);

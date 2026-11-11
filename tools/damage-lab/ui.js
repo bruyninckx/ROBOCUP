@@ -1019,9 +1019,10 @@
   function toScreen(x, y) { return [W / 2 + ((x - cam.x) * cam.z) * K, W / 2 + ((y - cam.y) * cam.z) * K]; }
 
   // test hook (headless screenshots): window.DL_TEST.follow(zoom) keeps the camera on the robots
-  let testFollow = 0; window.DL_TEST = { state: () => S, follow: z => { testFollow = z; } };
+  let testFollow = 0, testOn = null; window.DL_TEST = { state: () => S, follow: (z, id) => { testFollow = z; testOn = id == null ? null : id; } };
   function draw() {
-    if (testFollow && S) { const al = S.robots.filter(R => !R.inPit); const mx = al.reduce((a, R) => a + R.body.getPosition().x, 0) / al.length, my = al.reduce((a, R) => a + R.body.getPosition().y, 0) / al.length; cam.x = cam.tx = mx; cam.y = cam.ty = my; cam.z = cam.tz = testFollow; }
+    if (testFollow && S && testOn != null) { const R = S.robots[testOn], q = (R.blade && R.blade.attached ? R.blade.body : R.body).getPosition(); cam.x = cam.tx = q.x; cam.y = cam.ty = q.y; cam.z = cam.tz = testFollow; }
+    else if (testFollow && S) { const al = S.robots.filter(R => !R.inPit); const mx = al.reduce((a, R) => a + R.body.getPosition().x, 0) / al.length, my = al.reduce((a, R) => a + R.body.getPosition().y, 0) / al.length; cam.x = cam.tx = mx; cam.y = cam.ty = my; cam.z = cam.tz = testFollow; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#3A3530'; ctx.fillRect(0, 0, W, W);
     const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
     ctx.setTransform(K * cam.z, 0, 0, K * cam.z, W / 2 - (cam.x + sx) * K * cam.z, W / 2 - (cam.y + sy) * K * cam.z);
