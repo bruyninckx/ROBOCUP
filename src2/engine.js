@@ -155,6 +155,11 @@
     // Kev, 9 Nov (arena layouts for the tabletop): a smaller cage and a slippery floor
     cage: { label: 'The Cage (6 x 6 m)', pit: false, saws: [], spikes: false, inset: 1 },        // the walls start 1 m in
     ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.4 },   // grip x 0.4 everywhere (legs keep their footing)
+    // Kev, 11 Nov (gang test: how many starters beat one stacked robot): an exotic floor. A turntable in the middle that
+    // flips direction every 10 s, two conveyor belts along the top and bottom walls (clockwise loop), floor saws where the
+    // belts end, and two spring pylons that throw robots back. Not in the tabletop's arena list.
+    crucible: { label: 'The Crucible (turntable, belts, saws, pylons)', pit: false, saws: [[3.15, -3.15], [-3.15, 3.15]], spikes: false, exotic: true,
+      table: { r: 1.25, w: 1.1, flip: 10 }, belts: [{ y0: -3.85, y1: -3.05, vx: 1.3 }, { y0: 3.05, y1: 3.85, vx: -1.3 }], pylons: [[0, -2.15], [0, 2.15]], pylonR: 0.24 },
   };
   const PIT = 0.65; // half size of the centre pit
   // bumpers: the material of the armour plates. blunt / sharp = damage taken from blunt / sharp hits
@@ -275,6 +280,8 @@
       S.walls.push({ body: wb, axis, sgn, home: [cx, cy] });
     }
     S.arena.saws.forEach((p, i) => S.sawState.push({ x: p[0], y: p[1], r: 0.36, up: false, t: i * 1.3, spin: 0 }));
+    if (S.arena.pylons) S.pylons = S.arena.pylons.map(([x, y]) => { const pb = world.createBody({ type: 'static', position: V(x, y) }); pb.createFixture({ shape: pl.Circle(S.arena.pylonR), friction: 0.2, restitution: 1.15, userData: { wall: true, pylon: true } }); return { x, y, r: S.arena.pylonR, body: pb, hitT: -9 }; });
+    if (S.arena.table) S.table = { a: 0, dir: 1, w: S.arena.table.w };
     world.on('post-solve', (c, imp) => {
       const m = c.getManifold(); let J = 0;
       for (let i = 0; i < m.pointCount; i++) J += imp.normalImpulses[i];
@@ -298,16 +305,18 @@
       if ((ra && ra.airborne > 0.12 && ub.part && !ub.part.attached) || (rb && rb.airborne > 0.12 && ua.part && !ua.part.attached)) c.setEnabled(false);
     });
     const r = S.rng;
-    if (opts.robots && opts.robots.length > 2) { // 2v2 or free-for-all: up to 4 robots, each with a team
+    if (opts.robots && (opts.robots.length > 2 || (opts.mode === 'gang' && opts.robots.length === 2))) { // 2v2 or free-for-all: up to 4 robots, each with a team
       S.multi = true; S.mode = opts.mode || 'ffa';
-      const list = opts.robots.slice(0, 4), n = list.length, seen = {};
+      const list = opts.robots.slice(0, S.mode === 'gang' ? 10 : 4), n = list.length, seen = {};
       list.forEach((o, i) => {
-        const team = S.mode === '2v2' ? (o.team != null ? o.team : i % 2) : i;
+        const team = S.mode === 'gang' ? (i ? 0 : 1) : S.mode === '2v2' ? (o.team != null ? o.team : i % 2) : i;
         // spawn: 2v2 = teams on opposite sides, FFA = the corners
         const mates = list.filter((q, j) => (S.mode === '2v2' ? (q.team != null ? q.team : j % 2) : j) === team), k = mates.indexOf(o);
-        let x, y; if (S.mode === '2v2') { x = team ? 2.6 : -2.6; y = (k ? 1 : -1) * 1.7 + (r() - 0.5) * 0.6; } else { const c = [[-2.6, -2.6], [2.6, 2.6], [2.6, -2.6], [-2.6, 2.6]][i]; x = c[0]; y = c[1]; }
+        let x, y; if (S.mode === 'gang') { const g = n - 1, col = g > 5 ? (i - 1) % 2 : 0, row = g > 5 ? (i - 1) >> 1 : i - 1, rows = g > 5 ? Math.ceil(g / 2) : g; // gang (up to 9): the boss on the right, the gang in one or two columns on the left
+          if (!i) { x = 2.6; y = (r() - 0.5) * 0.6; } else { x = -2.7 + col * 0.95; y = rows > 1 ? -2.5 + 5 * row / (rows - 1) : 0; y += (r() - 0.5) * 0.2; } }
+        else if (S.mode === '2v2') { x = team ? 2.6 : -2.6; y = (k ? 1 : -1) * 1.7 + (r() - 0.5) * 0.6; } else { const c = [[-2.6, -2.6], [2.6, 2.6], [2.6, -2.6], [-2.6, 2.6]][i]; x = c[0]; y = c[1]; }
         if (INSET) { const f = (HALF - INSET) / HALF; x *= f; y *= f; }
-        const spec = normSpec(o); let nm = spec.name || spec.preset || WEAPONS[spec.weapon].label; seen[nm] = (seen[nm] || 0) + 1; if (seen[nm] > 1) spec.name = nm + ' ' + ['', 'II', 'III', 'IV'][seen[nm] - 1];
+        const spec = normSpec(o); let nm = spec.name || spec.preset || WEAPONS[spec.weapon].label; seen[nm] = (seen[nm] || 0) + 1; if (seen[nm] > 1) spec.name = nm + ' ' + ['', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][seen[nm] - 1];
         const R = makeRobot(S, spec, i, x, y, Math.atan2(-y, -x) + (r() - 0.5) * 0.4); R.team = team; R.home = [x, y]; R.orbit = r() < 0.5 ? 1 : -1; S.robots.push(R);
       });
       for (const R of S.robots) R.enemy = S.robots.filter(Q => Q.team !== R.team).sort((a, b) => (R.house ? 0 : (a.house ? 1 : 0) - (b.house ? 1 : 0)) || dist2(R, a) - dist2(R, b))[0]; // nobody picks the House Robot first
@@ -2962,6 +2971,25 @@
   Object.assign(CALL, { hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
   Object.assign(SHARP, { auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
+  // The Crucible: turntable + conveyor belts drag whatever stands on them (like floor friction towards the moving surface),
+  // spring pylons throw robots back (restitution > 1); the knock counts as a wall slam
+  function exoticFloor(S) {
+    const A = S.arena, T = S.table;
+    if (T) { if (A.table.flip && S.step % Math.round(A.table.flip / DT) === 0 && S.step) { T.dir = -T.dir; S.fx.push({ type: 'callout', text: 'TABLE REVERSES!', x: 0, y: 0, big: false }); } T.a += T.dir * T.w * DT; }
+    const drag = (body, grip, airborne) => {
+      if (airborne > 0) return; const c = body.getWorldCenter(), v = body.getLinearVelocity(), m = body.getMass(); let sx = null, sy = 0, sw = null;
+      if (T && Math.hypot(c.x, c.y) < A.table.r) { const w = T.dir * T.w; sx = -w * c.y; sy = w * c.x; sw = w; }
+      else if (A.belts) for (const bt of A.belts) if (c.y > bt.y0 && c.y < bt.y1) { sx = bt.vx; sy = 0; break; }
+      if (sx == null) return;
+      const k = Math.min(1, 3.2 * grip * DT);
+      body.applyLinearImpulse(V((sx - v.x) * m * k, (sy - v.y) * m * k), c, true);
+      if (sw != null) body.applyAngularImpulse((sw - body.getAngularVelocity()) * body.getInertia() * k * 0.6, true);
+    };
+    for (const R of S.robots) { if (R.inPit) continue; const legs = R.spec.drive === 'legs'; drag(R.body, legs ? 0.5 : 1, R.airborne); }
+    for (const d of S.debris) if (!d.gone && d.body) drag(d.body, 1.4, 0);
+  }
+  function pylonCalls(S) { for (const q of S.contactQ) { const ua = q.fa.getUserData() || {}, ub = q.fb.getUserData() || {}; const o = ua.pylon ? ub : ub.pylon ? ua : null;
+    if (o && o.part && o.part.attached && q.J > 25) { const pp = S.pylons.find(P => Math.hypot(P.x - q.x, P.y - q.y) < P.r + 0.3); if (pp && S.t - pp.hitT > 0.4) { pp.hitT = S.t; callout(S, 'BOING!', q.x, q.y, false); } } } }
   function step(S) {
     if (S.countdown > 0) { S.countdown -= DT; return; }
     if (S.cmdQ && S.cmdQ.length) { const due = S.cmdQ.filter(c => c.tick <= S.step); if (due.length) { S.cmdQ = S.cmdQ.filter(c => c.tick > S.step); for (const c of due) applyCmd(S, c); } }
@@ -2970,7 +2998,9 @@
     if (S.multi) retarget(S);
     for (const R of S.robots) { think(S, R); modules(S, R); drive(S, R); weapons(S, R); }
     drones(S); gadgets(S);
+    if (S.arena.exotic) exoticFloor(S);
     S.world.step(DT, 8, 3);
+    if (S.pylons) pylonCalls(S);
     processContacts(S); processBegins(S); snags(S);
     projectiles(S);
     heatAndHazards(S);
@@ -3008,9 +3038,9 @@
   function finishTeam(S, team, how, sc) {
     S.over = true;
     const W = S.robots.filter(R => R.team === team), lead = W.slice().sort((a, b) => (b.alive - a.alive) || (judge(b, S) - judge(a, S)))[0];
-    const names = W.map(R => R.name).join(' & '), standing = W.filter(R => R.alive).length;
-    const text = how === 'KO' ? (S.mode === '2v2' ? `${names} win${standing === 1 ? ` (${W.find(R => R.alive) ? W.find(R => R.alive).name + ' still standing' : 'last one down'})` : ', both still standing'}` : `${lead.name} is the last robot standing`)
-      : `Time! Judges pick ${S.mode === '2v2' ? names : lead.name} (${sc.map(x => Math.round(x[1])).join(' to ')})`;
+    const standing = W.filter(R => R.alive).length, names = S.mode === 'gang' && W.length > 2 ? `The gang of ${W.length}` : W.map(R => R.name).join(' & ');
+    const text = how === 'KO' ? ((S.mode === '2v2' || S.mode === 'gang') ? `${names} win${standing === 1 ? ` (${W.find(R => R.alive) ? W.find(R => R.alive).name + ' still standing' : 'last one down'})` : W.length > 2 ? ` (${standing} still standing)` : ', both still standing'}` : `${lead.name} is the last robot standing`)
+      : `Time! Judges pick ${S.mode === '2v2' || S.mode === 'gang' ? names : lead.name} (${sc.map(x => Math.round(x[1])).join(' to ')})`;
     const order = S.robots.slice().sort((a, b) => (b.alive - a.alive) || ((b.koT || 0) - (a.koT || 0)));
     S.result = { winner: lead.id, winTeam: team, winners: W.map(R => R.id), how, text, t: S.t, order: order.map(R => R.id) };
     say(S, S.result.text, lead.id, true);
@@ -3028,6 +3058,6 @@
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
   const L4 = Object.keys(PRESETS).filter(k => PRESETS[k].l4);
-  const API = { HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { exoticFloor, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -9,15 +9,34 @@
   const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
     teal: { name: 'Steel', col: '#2E8F9E', dark: '#1F6470', light: '#6CC0CC' }, red: { name: 'Rust', col: '#B8423A', dark: '#80281F', light: '#E07C72' } };
+  PAL.sky = { name: 'Sky', col: '#3E8FC9', dark: '#2A6590', light: '#86BDE3' }; PAL.olive = { name: 'Olive', col: '#7D8A2E', dark: '#59621F', light: '#B4C06A' }; PAL.slate = { name: 'Slate', col: '#5D6B85', dark: '#414C60', light: '#9AA6BE' };
+  const GANG_PAL = [PAL.steel, PAL.moss, PAL.violet, PAL.teal, PAL.sky, PAL.olive, PAL.slate];
   const curMode = () => S && S.multi ? S.mode : st.mode;
-  const TC = i => (typeof S !== 'undefined' && S && S.robots && S.robots[i] && S.robots[i].spec.pal) || (curMode() === '2v2' ? [PAL.steel, PAL.rust, PAL.teal, PAL.red] : [PAL.steel, PAL.rust, PAL.moss, PAL.violet])[i] || PAL.steel;
-  const nBots = () => st.mode === '1v1' ? 2 : 4;
+  const TC = i => (typeof S !== 'undefined' && S && S.robots && S.robots[i] && S.robots[i].spec.pal) || (curMode() === 'gang' ? (i ? GANG_PAL[(i - 1) % 7] : PAL.rust) : (curMode() === '2v2' ? [PAL.steel, PAL.rust, PAL.teal, PAL.red] : [PAL.steel, PAL.rust, PAL.moss, PAL.violet])[i]) || PAL.steel;
+  const nBots = () => st.mode === '1v1' ? 2 : st.mode === 'gang' ? 1 + st.gangN : 4;
+  // gang mode (Kev, 11 Nov): one robot (the boss, card 1) against a gang of 1-9 robots of one level (card 2)
+  const gangList = () => { const pool = LU ? Object.keys(LU.ROBOTS).filter(k => LU.ROBOTS[k][0] === st.gangLv) : ['Wrecker'];
+    if (st.gangPick !== 'mix') return Array(st.gangN).fill(st.gangPick);
+    const r = vrng(st.seed * 31 + 5), deck = []; while (deck.length < st.gangN) { const d = pool.slice(); for (let k = d.length - 1; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [d[k], d[j]] = [d[j], d[k]]; } deck.push(...d); } return deck.slice(0, st.gangN); };
+  function buildGangCard() {
+    const el = $('bot1'), names = LU ? Object.keys(LU.ROBOTS).filter(k => LU.ROBOTS[k][0] === st.gangLv) : [];
+    el.style.borderTopColor = PAL.steel.col;
+    const lvOpts = (LU ? LU.LEVELS : []).map((lab, t) => `<option value="${t}"${t === st.gangLv ? ' selected' : ''}>${lab}</option>`).join('');
+    el.innerHTML = `<div class="bot-head"><div><div class="team" style="color:${PAL.steel.col}">The gang · <b>level ${st.gangLv}</b></div><h2>${st.gangN} robot${st.gangN > 1 ? 's' : ''}</h2></div></div>
+      <div class="grid2"><label for="gN">How many<select id="gN">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => `<option value="${k}"${k === st.gangN ? ' selected' : ''}>${k}</option>`).join('')}</select></label><label for="gLv">Level<select id="gLv">${lvOpts}</select></label></div>
+      <div class="grid2" style="grid-template-columns:1fr"><label for="gPick">Who<select id="gPick"><option value="mix"${st.gangPick === 'mix' ? ' selected' : ''}>A mix (shuffled by the seed, no repeats before all are in)</option>${names.map(k => `<option value="${k}"${k === st.gangPick ? ' selected' : ''}>All ${k}</option>`).join('')}</select></label></div>
+      <p class="wdesc">No parts. Friendly fire does 35%. In this fight: ${gangList().map((k, j) => `<b style="color:${GANG_PAL[j % 7].col}">${k}</b>`).join(', ')}.</p>
+      <p class="wdesc small">The boss starts on the right, the gang in a line on the left (two lines from 6 up). Judges after 3 minutes score each side's total.</p>`;
+    $('gN').onchange = e => { st.gangN = +e.target.value; buildGangCard(); start(); };
+    $('gLv').onchange = e => { st.gangLv = +e.target.value; st.gangPick = 'mix'; buildGangCard(); start(); };
+    $('gPick').onchange = e => { st.gangPick = e.target.value; buildGangCard(); start(); };
+  }
   const INK = '#2B2118', STEEL = '#9A9C94', STEEL_D = '#6F7169', RUBBER = '#2A2622', HAZ = '#E8C547';
   const INT_COL = { battery: '#E8C547', radio: '#4C9A5A', motor: '#B87333', wmotor: '#8B6BB1', turret: '#8C8F86', arm: '#8C8F86', module: '#47A8FF', thruster: '#FF8A2A' };
   const MOD_ICON = { shield: ['S', '#47A8FF'], emp: ['E', '#7FD4FF'], grapple: ['G', '#C9A227'], jets: ['J', '#FF8A2A'], oil: ['O', '#3B3530'], mines: ['M', '#D24B3A'], repair: ['+', '#4CC26A'], boom: ['!', '#E0402B'], quantum: ['Q', '#F2C94C'], smoke: ['~', '#9A958C'], popper: ['P', '#D9B43A'], tow: ['T', '#C9A227'], jam: ['J', '#B07AE0'] };
   const $ = id => document.getElementById(id);
-  const st = { mode: '1v1', spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }, { preset: 'Whirlwind' }, { preset: 'Mauler' }], seed: 7, arena: 'open', speed: 1, drama: true, paused: false };
-  let S = null, reported = false, logN = 0;
+  const st = { gangN: 4, gangLv: 0, gangPick: 'mix', mode: '1v1', spec: [{ preset: 'Brawler' }, { preset: 'Juggernaut' }, { preset: 'Whirlwind' }, { preset: 'Mauler' }], seed: 7, arena: 'open', speed: 1, drama: true, paused: false };
+  let S = null, reported = false, logN = 0, _step = null;
   window.labState = () => S; window.labScreen = (x, y) => toScreen(x, y); // for test scripts (screenshots)
 
   // ---------- builder ----------
@@ -65,6 +84,7 @@
     const kg = L.weightOf(sp); $('kg' + i).textContent = kg + ' kg';
   }
   function buildCard(i) {
+    if (st.mode === 'gang' && i) { if (i === 1) buildGangCard(); return; }
     if (LU) return buildLineupCard(i);
     const el = $('bot' + i), sp = fullSpec(i), s = st.spec[i];
     el.style.borderTopColor = TC(i).col;
@@ -764,6 +784,32 @@
       const strip = (x0, y0, dx, dy, nx, ny) => { for (let k = 0; k < 14; k++) { const x = x0 + dx * k * 0.2, y = y0 + dy * k * 0.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx * 0.1 + nx * 0.13, y + dy * 0.1 + ny * 0.13); ctx.lineTo(x + dx * 0.2, y + dy * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke(); } };
       strip(-1.4, -H + 0.01, 1, 0, 0, 1); strip(-1.4, H, 1, 0, 0, -1); strip(-H, -1.4, 0, 1, 1, 0); strip(H, -1.4, 0, 1, -1, 0);
     }
+    if (A.belts) for (const bt of A.belts) { // conveyor belts: dark rubber with moving chevrons
+      const H = L.HALF, t = S.t, y0 = bt.y0, h = bt.y1 - bt.y0, d = Math.sign(bt.vx);
+      ctx.fillStyle = '#2E2A26'; ctx.fillRect(-H, y0, 2 * H, h);
+      ctx.save(); ctx.beginPath(); ctx.rect(-H, y0, 2 * H, h); ctx.clip();
+      const off = ((t * bt.vx) % 0.5 + 0.5) % 0.5; ctx.strokeStyle = 'rgba(232,197,71,0.55)'; ctx.lineWidth = 0.05;
+      for (let x = -H - 0.5 + off; x < H + 0.5; x += 0.5) { ctx.beginPath(); ctx.moveTo(x - d * 0.12, y0 + h * 0.2); ctx.lineTo(x + d * 0.08, y0 + h * 0.5); ctx.lineTo(x - d * 0.12, y0 + h * 0.8); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 0.012; for (let x = -H + (((t * bt.vx) % 0.12) + 0.12) % 0.12; x < H; x += 0.12) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + 0.05); ctx.moveTo(x, y0 + h - 0.05); ctx.lineTo(x, y0 + h); ctx.stroke(); }
+      ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.5; ctx.strokeRect(-H, y0, 2 * H, h);
+    }
+    if (A.table && S.table) { // the turntable: a steel plate with hazard rim and arrows showing which way it turns
+      const r = A.table.r, T = S.table;
+      ctx.save(); ctx.rotate(T.a);
+      ctx.fillStyle = '#8E8A80'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = 'rgba(40,34,28,0.35)'; ctx.lineWidth = 0.02; for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 0.25, Math.sin(a) * 0.25); ctx.lineTo(Math.cos(a) * (r - 0.12), Math.sin(a) * (r - 0.12)); ctx.stroke(); }
+      for (let k = 0; k < 24; k++) { ctx.strokeStyle = k % 2 ? INK : HAZ; ctx.lineWidth = 0.09; ctx.beginPath(); ctx.arc(0, 0, r - 0.045, k / 24 * 6.283, (k + 1) / 24 * 6.283); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(232,197,71,0.8)'; for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283, rr2 = r * 0.62; ctx.save(); ctx.rotate(a); ctx.translate(rr2, 0); ctx.rotate(T.dir > 0 ? Math.PI / 2 : -Math.PI / 2); ctx.beginPath(); ctx.moveTo(0.16, 0); ctx.lineTo(-0.08, -0.11); ctx.lineTo(-0.08, 0.11); ctx.closePath(); ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = '#5B554D'; ctx.beginPath(); ctx.arc(0, 0, 0.22, 0, 6.29); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.5; ctx.stroke();
+      ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.stroke();
+    }
+    if (S.pylons) for (const P of S.pylons) { // spring pylons: flash when something bounces off
+      const hot = S.t - P.hitT < 0.25;
+      ctx.fillStyle = 'rgba(20,14,8,0.3)'; ctx.beginPath(); ctx.arc(P.x + 0.05, P.y + 0.06, P.r + 0.03, 0, 6.29); ctx.fill();
+      ctx.fillStyle = hot ? '#FF8A3C' : '#C8642B'; ctx.beginPath(); ctx.arc(P.x, P.y, P.r, 0, 6.29); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 3; ctx.stroke();
+      ctx.strokeStyle = '#F2D27A'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.arc(P.x, P.y, P.r * 0.6, 0, 6.29); ctx.stroke();
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(P.x, P.y, 0.05, 0, 6.29); ctx.fill();
+    }
     for (const s of S.sawState) {
       ctx.fillStyle = '#5B554D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(s.x - 0.42, s.y - 0.08, 0.84, 0.16, 0.04); ctx.fill(); ctx.stroke();
       if (s.up) {
@@ -838,7 +884,17 @@
     const left = Math.max(0, S.timeLimit - S.t), m = Math.floor(left / 60), sec = Math.floor(left % 60);
     ctx.fillStyle = 'rgba(43,33,24,0.85)'; ctx.fillRect(W / 2 - 46 * s, 8 * s, 92 * s, 30 * s);
     ctx.fillStyle = '#F6F2EA'; ctx.font = `600 ${18 * s}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText(`${m}:${String(sec).padStart(2, '0')}`, W / 2, 23 * s);
-    for (const R of S.robots) {
+    if (S.mode === 'gang') for (const R of S.robots) { // gang: the boss's bar on the right, small bars for the gang down the left
+      const f = integrity(R), boss = !R.id, x = boss ? W - 212 * s : 12 * s, y = boss ? 8 * s : (8 + (R.id - 1) * 20) * s, w = boss ? 200 * s : 150 * s, h = boss ? 30 * s : 17 * s;
+      if (!R.alive) ctx.globalAlpha = 0.5;
+      ctx.fillStyle = 'rgba(43,33,24,0.85)'; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = TC(R.id).light; ctx.font = boss ? `400 ${15 * s}px "Saira Stencil One", Impact, sans-serif` : `600 ${9 * s}px IBM Plex Mono, monospace`; ctx.textAlign = boss ? 'right' : 'left'; ctx.fillText(R.name, boss ? x + w - 8 * s : x + 6 * s, y + (boss ? 10 : 6) * s);
+      ctx.font = `600 ${(boss ? 10 : 8) * s}px IBM Plex Mono, monospace`; ctx.fillStyle = '#CFC6B7'; ctx.textAlign = boss ? 'left' : 'right'; ctx.fillText(!R.alive ? 'OUT' : boss ? `${R.stats.kos || 0} KO · ${R.stats.lost.length} lost` : (R.stats.kos ? 'KO!' : ''), boss ? x + 8 * s : x + w - 6 * s, y + (boss ? 10 : 6) * s);
+      ctx.fillStyle = '#4A443D'; ctx.fillRect(x + 6 * s, y + h - 6 * s, w - 12 * s, 3.5 * s);
+      ctx.fillStyle = f > 0.5 ? '#79B46A' : f > 0.25 ? '#E0B848' : '#E06A58'; ctx.fillRect(boss ? x + w - 6 * s - (w - 12 * s) * f : x + 6 * s, y + h - 6 * s, (w - 12 * s) * f, 3.5 * s);
+      ctx.globalAlpha = 1;
+    }
+    else for (const R of S.robots) {
       const i0 = R.id, i = S.multi ? (R.home[0] > 0 ? 1 : 0) : i0, bot = S.multi && R.home[1] > 0; // i = right side
       if (bot) { ctx.save(); ctx.translate(0, W - 60 * s); }
       const x = i ? W - 12 * s - 200 * s : 12 * s, f = integrity(R);
@@ -866,8 +922,8 @@
       const R = S.robots[S.result.winner];
       const by = W * 0.24; ctx.fillStyle = 'rgba(43,33,24,0.82)'; ctx.fillRect(0, by - 52 * s, W, 104 * s);
       ctx.textAlign = 'center'; ctx.fillStyle = S.result.how === 'KO' ? HAZ : '#F6F2EA'; ctx.font = `400 ${46 * s}px "Saira Stencil One", Impact, sans-serif`;
-      ctx.fillText(S.result.how === 'KO' ? (S.multi ? (S.mode === '2v2' ? 'TEAM WINS' : 'LAST ONE STANDING') : 'KNOCKOUT') : 'TIME', W / 2, by - 16 * s);
-      const wn = S.multi && S.mode === '2v2' ? S.result.winners.map(k => S.robots[k].name).join(' & ') + ' win' : `${R.name} wins`;
+ ctx.fillText(S.mode === 'gang' ? (S.result.winTeam ? 'BOSS WINS' : 'THE GANG WINS') + (S.result.how === 'KO' ? '' : ' ON POINTS') : S.result.how === 'KO' ? (S.multi ? (S.mode === '2v2' ? 'TEAM WINS' : 'LAST ONE STANDING') : 'KNOCKOUT') : 'TIME', W / 2, by - 16 * s);
+      const wn = S.mode === 'gang' ? (S.result.winTeam ? `${S.robots[0].name} beats ${S.robots.length - 1} robots` : `${S.robots.length - 1} robots beat ${S.robots[0].name} (${S.robots.filter(Q => Q.id && Q.alive).length} still standing)`) : S.multi && S.mode === '2v2' ? S.result.winners.map(k => S.robots[k].name).join(' & ') + ' win' : `${R.name} wins`;
       ctx.fillStyle = TC(R.id).light; ctx.font = `600 ${15 * s}px IBM Plex Sans, sans-serif`; ctx.fillText(wn, W / 2, by + 22 * s);
     }
     if (slowT > 0 && !S.over) { ctx.fillStyle = HAZ; ctx.font = `600 ${12 * s}px IBM Plex Mono, monospace`; ctx.textAlign = S.multi ? 'center' : 'left'; ctx.fillText('SLOW-MO', S.multi ? W / 2 : 12 * s, S.multi ? W - 34 * s : W - 16 * s); }
@@ -1019,16 +1075,17 @@
   // ---------- control ----------
   function start() {
     const n = nBots(), specs = [], seen = {};
-    for (let i = 0; i < n; i++) { const sp = Object.assign(fullSpec(i), { name: nameOf(i) }); seen[sp.name] = (seen[sp.name] || 0) + 1; if (seen[sp.name] > 1) sp.name += ' ' + ['', 'II', 'III', 'IV'][seen[sp.name] - 1]; if (st.mode === '2v2') sp.team = i % 2; specs.push(sp); }
-    S = n > 2 ? L.create({ mode: st.mode, robots: specs, seed: st.seed, arena: st.arena, countdown: 2.99 }) : L.create({ a: specs[0], b: specs[1], seed: st.seed, arena: st.arena, countdown: 2.99 });
+    if (st.mode === 'gang') { specs.push(Object.assign(fullSpec(0), { name: nameOf(0) })); for (const k of gangList()) specs.push(L.normSpec(LU ? LU.build(k) : { preset: k })); }
+    else for (let i = 0; i < n; i++) { const sp = Object.assign(fullSpec(i), { name: nameOf(i) }); seen[sp.name] = (seen[sp.name] || 0) + 1; if (seen[sp.name] > 1) sp.name += ' ' + ['', 'II', 'III', 'IV'][seen[sp.name] - 1]; if (st.mode === '2v2') sp.team = i % 2; specs.push(sp); }
+    S = n > 2 || st.mode === 'gang' ? L.create({ mode: st.mode, robots: specs, seed: st.seed, arena: st.arena, countdown: 2.99, timeLimit: st.mode === 'gang' ? 180 : undefined }) : L.create({ a: specs[0], b: specs[1], seed: st.seed, arena: st.arena, countdown: 2.99 });
     reported = false; logN = 0; parts = []; calls = []; hitStop = 0; flash = 0; decalReset(); $('log').innerHTML = ''; $('reportCard').hidden = true;
     cam.x = cam.y = cam.tx = cam.ty = 0; cam.z = cam.tz = 1; slowT = 0; shake = 0;
-    for (let i = 0; i < 4; i++) { const el = $('bot' + i); if (el) el.hidden = i >= n; }
-    for (let i = 0; i < n; i++) sidePanel(i);
+    for (let i = 0; i < 4; i++) { const el = $('bot' + i); if (el) el.hidden = st.mode === 'gang' ? i > 1 : i >= n; }
+    for (let i = 0; i < (st.mode === 'gang' ? 1 : n); i++) sidePanel(i);
   }
   function setMode(m) {
     st.mode = m; document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === m)));
-    S = null; for (let i = 0; i < nBots(); i++) buildCard(i); start();
+    S = null; for (let i = 0; i < (m === 'gang' ? 2 : nBots()); i++) buildCard(i); start();
   }
   document.querySelectorAll('[data-mode]').forEach(bn => bn.onclick = () => setMode(bn.dataset.mode));
   function restart() { start(); }
@@ -1070,7 +1127,7 @@
     if (S) {
       for (const R of S.robots) R.drumSpin = (R.drumSpin || 0) + (R.drumE || 0) * rdt * ts * 3;
       draw(); pushLog();
-      if (frameN % 8 === 0) for (let i = 0; i < S.robots.length; i++) sidePanel(i);
+      if (frameN % 8 === 0) for (let i = 0; i < (S.mode === 'gang' ? 1 : S.robots.length); i++) sidePanel(i);
     }
     requestAnimationFrame(frame);
   }
@@ -1088,7 +1145,15 @@
   if (LU && $('qs')) {
     const out = $('qsOut'); let busy = false;
     const quick = async () => {
-      if (busy) return; busy = true; const N = +$('qsN').value || 20, a = fullSpec(0), b = fullSpec(1), na = nameOf(0), nb = nameOf(1) === na ? nameOf(1) + ' II' : nameOf(1);
+      if (busy) return; busy = true; const N = +$('qsN').value || 20;
+      if (st.mode === 'gang') { const seed0 = st.seed; let bw = 0, gko = 0; const T = [];
+        for (let k = 0; k < N; k++) { st.seed = seed0 * 101 + k; const robots = [Object.assign(fullSpec(0), { name: nameOf(0) })].concat(gangList().map(g => L.normSpec(LU.build(g))));
+          const S2 = L.create({ mode: 'gang', robots, seed: 9000 + st.seed, arena: st.arena, timeLimit: 180 }); while (!S2.over && S2.t < 260) { _step(S2); S2.fx.length = 0; }
+          if (S2.result.winTeam) bw++; else if (S2.result.how === 'KO') gko++; T.push(S2.t); out.textContent = `Running gang fight ${k + 1} of ${N}…`; await new Promise(r => setTimeout(r, 0)); }
+        st.seed = seed0; T.sort((x, y) => x - y);
+        out.innerHTML = `<b style="color:${PAL.rust.col}">${nameOf(0)}</b> beats the gang of ${st.gangN} (level ${st.gangLv}${st.gangPick === 'mix' ? ', mixed' : ', all ' + st.gangPick}) <b>${bw} of ${N}</b> (${Math.round(100 * bw / N)}%) · the gang wins ${N - bw} (${gko} by knockout) · median fight ${Math.round(T[T.length >> 1])} s · ${L.ARENAS[st.arena].label}`;
+        busy = false; return; }
+      const a = fullSpec(0), b = fullSpec(1), na = nameOf(0), nb = nameOf(1) === na ? nameOf(1) + ' II' : nameOf(1);
       let wa = 0, ko = 0; const T = [];
       for (let k = 0; k < N; k++) {
         const swap = k % 2 === 1, seed = 4000 + st.seed * 97 + k;
@@ -1175,5 +1240,5 @@
   buildCard(0); buildCard(1); buildCard(2); buildCard(3); paintFloor(); resize(); start();
   requestAnimationFrame(frame);
   // after the fight the sim keeps running so debris settles; we keep stepping until 4 s after the end
-  const _step = L.step; L.step = function (S2) { if (S2.over && S2.t > S2.result.t + 4) return; _step(S2); };
+  _step = L.step; L.step = function (S2) { if (S2.over && S2.t > S2.result.t + 4) return; _step(S2); };
 })();

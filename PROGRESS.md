@@ -237,3 +237,9 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Market: hovering "vs the field" on a robot lot lists its 1v1 against every rival robot in play (both as new, 20% range, counter marks, and the band as that rival stands now).
 - Sound (src2/sound.js, Web Audio, no files): quiet hits, big impacts, parts coming off, explosions and KO in the fight view; a chime when fame changes and a fanfare at the win. Mute button in the top bar and in the fight header (remembered). Checked that the sounds fire; nobody has listened to it yet.
 - Sound, second pass (Kev: too quiet, more crashes, robot noises): louder (0.5), crash and bang for robots slamming together and into walls, a sound per weapon family (spinners ring, saws buzz, hammers thunk, flippers hiss, guns, lasers, crushers, flames, rockets, hooks, jets, shields), countdown pings and a start bell. The engine's big-hit effect now carries its cause (view only).
+
+## 11 Nov: gang test (how many starters beat one stacked robot)
+- Engine: gang mode (`mode: 'gang'`, robot 0 = boss vs up to 9 robots) and an exotic lab arena, **The Crucible** (turntable that reverses every 10 s, conveyor belts top and bottom, floor saws at the belt ends, two spring pylons). Existing modes and arenas give identical fights (checked); the tabletop does not list the Crucible, so no effect on the game or multiplayer.
+- Lineup Arena: Gang button (card 2 = the gang: how many, level, mix or all one robot); Test runs gang fights.
+- Best stacked robot: Hydra + Weapon overhaul + Reinforced hull + Quantum shield (stack-search.js, stack-search2.js).
+- Result (gang.js, docs/robocus-2.0-gang-test.md): it beats all 9 starters 51% on open floor, 65% on the Crucible; with no parts Hydra loses to 3 starters (29%). Each part about +20 points. Angler with its best kit loses to 6 starters (21%): duel strength is not gang strength.

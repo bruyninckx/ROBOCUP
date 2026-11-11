@@ -137,7 +137,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         </span>
         <label class="chk"><input id="drama" type="checkbox" checked> Drama cam</label>
         <span class="seg" role="group" aria-label="Fight mode">
-          <button type="button" data-mode="1v1" aria-pressed="true">1v1</button><button type="button" data-mode="2v2" aria-pressed="false" title="Two teams of two: Steel (blues) vs Rust (oranges). Friendly fire does 35%.">2v2</button><button type="button" data-mode="ffa" aria-pressed="false" title="Four robots, one from each corner, last one standing wins">FFA</button>
+          <button type="button" data-mode="1v1" aria-pressed="true">1v1</button><button type="button" data-mode="2v2" aria-pressed="false" title="Two teams of two: Steel (blues) vs Rust (oranges). Friendly fire does 35%.">2v2</button><button type="button" data-mode="ffa" aria-pressed="false" title="Four robots, one from each corner, last one standing wins">FFA</button><button type="button" data-mode="gang" aria-pressed="false" title="One robot (card 1) against a gang of 1-9 robots of one level (card 2). Test runs gang fights.">Gang</button>
         </span>
         <select id="arenaSel" aria-label="Arena"></select>
       </div>
@@ -180,7 +180,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       <li><b>Parts (22 cards, 18 types).</b> Drones, modules and stat cards. A module part replaces the robot's own module. The % in the picker is how often a robot with that part beats robots one level up (stock: about 38%).</li>
       <li><b>Legendaries (3).</b> Prototype core, Field hospital and the reworked Quantum shield (phases out on the first real hit, recharges in 8 s). The % is against robots two levels up (stock: about 25%).</li>
       <li><b>Tuning chips (3).</b> Matador, Wall Bait and Pester: a fighting routine for light robots, one per robot. The % is a level 1 robot with the chip against level 3 (stock: about 23%). From level 2 up a chip can glitch (15 / 30 / 45% chance of a 1 s glitch every 4 s).</li>
-      <li><b>Arenas (5).</b> Open floor, Floor saws, Killbox, the Cage (6 x 6 m, walls 1 m in) and the Ice rink (grip x0.4; legs keep their footing). Pick one under the arena.</li>
+      <li><b>Arenas (6).</b> Open floor, Floor saws, Killbox, the Cage (6 x 6 m, walls 1 m in), the Ice rink (grip x0.4; legs keep their footing) and the exotic <b>Crucible</b> (lab only, not in the tabletop): a turntable in the middle that reverses every 10 s, conveyor belts along the top and bottom walls, floor saws where the belts end and two spring pylons. Pick one under the arena.</li>
+      <li><b>Gang mode.</b> One robot (card 1, with parts) against 1-9 robots of one level (card 2): how many starters does it take to beat a stacked robot? Test runs that many gang fights. Results: <code>docs/robocus-2.0-gang-test.md</code>.</li>
       <li><b>Same physics as the Damage Lab.</b> Parts tear off, robots get flipped, the arena strikes back. Same seed, same fight.</li>
       <li>Full write-up: <code>docs/robocus-2.0-lineup.md</code> in the ROBOCUP repo.</li>
     </ul>
