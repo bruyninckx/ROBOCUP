@@ -6841,7 +6841,20 @@ html, body {
     const p = fieldOdds(viewerSeat, bot).p, c = oddsChip(p);
     ctx.fillStyle = MUTED; fitText(ctx, '🎩 vs the field', x + w / 2, y + 168, w - 12, '600', 10.5);
     ctx.fillStyle = c.col; fitText(ctx, bandOf(p).short, x + w / 2, y + 186, w - 12, '700', 12.5, F_MONO);
-    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name, 'The bookie\'s view of <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts). ' + BAND_HELP);
+    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name, 'The bookie\'s view of <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts).' + fieldTable(bot, viewerSeat));
+  }
+  /* Kev, 11 Nov: the 1v1s behind "vs the field". For every rival robot in play: this robot against it with both as new
+   * (the Lineup Arena table, as a 20% range), a counter mark, and the band as that rival stands now when it has parts or damage. */
+  function fieldTable(bot, ti) {
+    const rows = [];
+    for (const T of G.teams) { if (T.i === ti || !T.robots.length) continue;
+      rows.push('<br><b style="color:' + T.col + '">' + esc(T.name) + '</b>');
+      for (const r of T.robots) {
+        const m = mxP(bot.name, r.name, 'open'), c = counterOf(bot, r), now = pairP(bot, r, 'open'), changed = !isStock(r);
+        rows.push('<br>' + esc(r.name) + ' ' + (r.level ? '★'.repeat(r.level) : '(starter)') + ': <b>' + (m ? rangeTxt(m.p) : bandOf(now).name) + '</b>' + (c ? (c.good ? ' 🎯' : ' ⚠️') : '') +
+          (changed ? ' · now ' + bandOf(now).short + ' (' + [partsOf(r).length ? partsOf(r).length + ' part' + (partsOf(r).length > 1 ? 's' : '') : '', zonesOf(r) && R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? 'damaged' : ''].filter(Boolean).join(', ') + ')' : ''));
+      } }
+    return rows.length ? '<br><b>1v1, both as new:</b> its chance to win.' + rows.join('') + '<br>🎯 counter pick · ⚠️ bad matchup.' : ' No rival robots in play.';
   }
 
   function drawBettingOnArena(ctx, L) {
