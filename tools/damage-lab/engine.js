@@ -796,7 +796,7 @@
       if (d >= 16 && !h.inner && h.x != null) callout(S, CALL[k] || 'SMASH!', h.x, h.y, d >= 30);
     }
     if (h.lp && part.kind !== 'internal') addDent(part, h.lp, d);
-    if (d >= 18) { let fx0 = h.x, fy0 = h.y; if (fx0 == null || fy0 == null) { const q = R.body.getPosition(); fx0 = q.x; fy0 = q.y; } S.fx.push({ type: 'bigHit', x: fx0, y: fy0, power: d }); }
+    if (d >= 18) { let fx0 = h.x, fy0 = h.y; if (fx0 == null || fy0 == null) { const q = R.body.getPosition(); fx0 = q.x; fy0 = q.y; } S.fx.push({ type: 'bigHit', x: fx0, y: fy0, power: d, cause: h.cause || null }); }   /* cause: for the sound of that weapon (view only) */
     // damage travels inwards
     const pen = h.noPen ? 0 : h.pen == null ? 1 : h.pen;
     const toInternal = (amt) => {
