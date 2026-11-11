@@ -16,6 +16,7 @@ const { chromium } = require('playwright'); const fs = require('fs'), path = req
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
 const AIP = arg('aip', null) ? JSON.parse(arg('aip')) : null;
+const AIP0 = arg('aip0', null) ? JSON.parse(arg('aip0')) : null, AIPR = arg('aipR', null) ? JSON.parse(arg('aipR')) : null;   // 11 Nov: seat 0 only / seats 1-3 only (test one AI style against another)
 const AIV = +String(arg('ai', 'v2')).replace(/\D/g, ''), PAGE = arg('page', 'prototypes/tabletop-prototype.html'), MAXR = +arg('maxRound', 40);
 // BAL overrides (2.0): --balFile, then --bal on top; --start also goes in as BAL.startFame
 const BALF = arg('balFile', null), BAL = (() => {
@@ -44,7 +45,7 @@ function installHooks() {
   const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
-  const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; return o; };
+  const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; if (Z.body && Z.body.lost && Z.body.lost.length) { o.lost = Z.body.lost.length; if (Z.body.lost.some(l => /chip/i.test(l))) o.fried = 1; } return o; };   // 11 Nov: body pieces lost, chip fried
   const teamDamage = t => { const o = { drive: 0, weapon: 0, body: 0, broken: 0 }; for (const r of t.robots) { const z = zoneSum(r); for (const k in z) if (z[k] !== 'ok') { o[k]++; if (z[k] === 'broken') o.broken++; } } return o; };
   let lastRepTeam = null; const snap = {};
   X.hookTeams = () => {
@@ -107,7 +108,8 @@ function installHooks() {
         const g = G();
         if (e && e.k === 'fight_start' && g.fight) {
           const F = g.fight;
-          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
+          e.host = g.host; e.hostFame = g.teams.map(t => t.fame);   // 11 Nov: who hosts, and the fame table at the fight
+          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), s0: R2.strength(null, r.name, r.level, []), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
         // access check (Kev, 10 Nov): what the Market offered each round, who won it, and what every team's robots carried
@@ -149,12 +151,12 @@ function installHooks() {
       await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + (Object.keys(BAL).length ? '&bal=' + encodeURIComponent(JSON.stringify(BAL)) : '')); await p.waitForTimeout(150);
       const v2 = await p.evaluate(() => !!window.Repair2);
       if (v2 && !(await p.evaluate(() => !!window.planck))) throw new Error('planck.js did not load (pass --planck=<file>)');
-      await p.evaluate(([v, start, win, aip]) => {
-        const D = window.ROBOCUS_DEBUG; D.ai(aip ? { versions: [v, v, v, v], params: [aip, aip, aip, aip] } : { versions: [v, v, v, v] }); D.tune({ win });
+      await p.evaluate(([v, start, win, aip, aip0, aipR]) => {
+        const D = window.ROBOCUS_DEBUG; D.ai(aip || aip0 || aipR ? { versions: [v, v, v, v], params: [Object.assign({}, aip, aip0), Object.assign({}, aip, aipR), Object.assign({}, aip, aipR), Object.assign({}, aip, aipR)] } : { versions: [v, v, v, v] }); D.tune({ win });
         if (start == null) return;
         const s = document.getElementById('pFame'); if (s) { if (![...s.options].some(o => +o.value === start)) s.add(new Option(start, start)); s.value = String(start); s.dispatchEvent(new Event('change')); }
         else { D.G.startFame = start; D.G.teams.forEach(t => { t.fame = start; }); }
-      }, [AIV, START, WIN, AIP]);
+      }, [AIV, START, WIN, AIP, AIP0, AIPR]);
       if (v2) await p.evaluate(installHooks);
       await p.click('#pAct2'); await p.evaluate(() => window.ROBOCUS_DEBUG.autopilot(true));
       let last = '', same = 0, stall = false;
@@ -184,7 +186,7 @@ function installHooks() {
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
-            fightsX: fstarts.map((e, i) => ({ r: e.r, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
+            fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
             lots: ev.filter(e => e.k === 'market').flatMap(e => e.lots.map(l => { const x = L[l.id] || {}; return { r: e.r, id: l.id, winner: l.winner, price: l.price || 0, kind: x.robot ? 'robot' : x.crew ? 'crew' : x.part ? (x.kind || 'part') : 'other', level: x.robot ? (window.Lineup && (Lineup.ROBOTS[x.starter || x.name] || (Lineup.ROBOTS4 || {})[x.starter || x.name] || [0])[0]) : null, name: x.name, fame: e.fameNow || null }; })),
             house: (X.house || []).map(h => ({ swings: h.swings, hits: h.hits, dmg: h.dmg, near: h.near, nearN: h.nearN })),

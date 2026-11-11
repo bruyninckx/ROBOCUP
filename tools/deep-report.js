@@ -71,4 +71,12 @@ const endR = games.flatMap(g => (g.v2.robotsEnd || []).flat()); const wR = games
 const prof = rs => 'level ' + mean(rs.map(r => r.level)).toFixed(1) + ', parts ' + mean(rs.map(r => r.parts)).toFixed(1);
 say('  winner\'s robots at the end: ' + (wR.length / games.length).toFixed(1) + ' robots, ' + prof(wR) + ' | others: ' + (oR.length / games.length / 3).toFixed(1) + ' robots, ' + prof(oR));
 const seat = [0, 0, 0, 0]; games.forEach(g => seat[g.winner]++); say('  wins by seat: ' + seat.map(x => pct(x / games.length)).join(' / ') + ' | winning fame ' + mean(games.map(g => Math.max(...g.fame))).toFixed(1) + ', last place ' + mean(games.map(g => Math.min(...g.fame))).toFixed(1));
+// 6. damage (11 Nov): how fighters arrive, and whether the bookie prices it
+{ const Dm = {}, st = e => { const z = e.z || {}; return z.fried ? '🧠 chip fried' : z.drive === 'broken' ? 'drive broken' : z.weapon === 'broken' ? 'weapon broken' : z.body === 'broken' ? 'body broken (armour, top plate)' : Object.values(z).some(v => v === 'damaged') ? 'damaged only' : 'healthy'; };
+  let nF = 0; for (const x of F) for (const e of x.ents) { nF++; add(Dm[st(e)] = Dm[st(e)] || acc(), x.f.win === e.side, x.f.p[e.side]); }
+  say('\n6. DAMAGE  (how fighters arrive at a fight)');
+  say(pad('state', 34) + pad('n', 6) + pad('share', 7) + pad('wins', 7) + pad('bookie', 9) + 'diff');
+  Object.keys(Dm).sort((a, b) => Dm[b].n - Dm[a].n).forEach(k => { const o = Dm[k]; say(pad(k, 34) + pad(o.n, 6) + pad(pct(o.n / nF), 7) + pad(pct(o.w / o.n), 7) + pad(pct(o.p / o.n), 9) + ((o.w - o.p) / o.n >= 0 ? '+' : '') + Math.round(100 * (o.w - o.p) / o.n)); });
+  const bands = {}; for (const x of F) if (x.f.p.length === 2) { const fm2 = x.f.format === 'duel' ? 'duel' : 'team'; for (const sd of [0, 1]) { const p = x.f.p[sd], k = fm2 + ' ' + (p < 0.2 ? '0-20%' : p < 0.4 ? '20-40%' : p < 0.6 ? '40-60%' : p < 0.8 ? '60-80%' : '80-100%'); add(bands[k] = bands[k] || acc(), x.f.win === sd, p); } }
+  say('  odds bands (side): ' + Object.keys(bands).sort().map(k => k + ': wins ' + pct(bands[k].w / bands[k].n) + ' / odds ' + pct(bands[k].p / bands[k].n)).join(' | ')); }
 console.log(L.join('\n'));
