@@ -1344,7 +1344,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if (S.step % 5 === 0) S.fx.push({ type: 'spark', x: sn.x, y: sn.y, power: 10 });
       const gone = !sn.pa.attached || !sn.pb.attached;
       if (gone || sn.t > sn.dur || fl > 7000) {
-        if (!gone) S.world.destroyJoint(sn.joint);
+        /* Kev, 11 Nov (playtest: Jouster's spear stayed "stuck" in Thumper after the armour it was stuck in had been ripped off,
+         * with a gap between them, for the rest of the fight): armour is part of the robot's body, so the weld held on after the
+         * plate was gone. The weld now always goes, unless the body it was on has left the world and taken it along. */
+        { let live = false; for (let j = S.world.getJointList(); j; j = j.getNext()) if (j === sn.joint) { live = true; break; } if (live) S.world.destroyJoint(sn.joint); }
         sn.done = true; A.snagged = B.snagged = 0;
         if (!gone && fl > 7000) { // wrenched free: the weaker part pays
           const loser = sn.pa.hp / sn.pa.maxHp < sn.pb.hp / sn.pb.maxHp ? sn.pa : sn.pb, other = loser === sn.pa ? B : A;
