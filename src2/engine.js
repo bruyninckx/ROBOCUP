@@ -1153,7 +1153,7 @@
           P.rolled = true;
           if (S.rng2() < clamp(R.prof.pTip * CXK.tipK, 0.05, 0.7)) {
             R.flipped = !R.flipped; R.airborne = 0.22; R.airMax = 0.2; R.flipChance = 0; R.thrownBy = P.by; P.t = 0;
-            const p = R.body.getPosition(); cxCount(S, R, 'tip'); callout(S, 'TIPPED OVER!', p.x, p.y, true); S.fx.push({ type: 'thud', x: p.x, y: p.y, power: 0.3 });
+            const p = R.body.getPosition(); cxCount(S, R, 'tip'); callout(S, 'TIPPED OVER!', p.x, p.y, true); S.fx.push({ type: 'tip', robot: R.id, ux: P.lx, uy: P.ly }); S.fx.push({ type: 'thud', x: p.x, y: p.y, power: 0.3 });
             say(S, `${P.by.name} tips ${R.name} over` + (R.flipped ? (R.W.invert ? ', it keeps driving' : ' onto its back') : ' back onto its wheels'), P.by.id, true);
           }
         }

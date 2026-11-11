@@ -16,6 +16,12 @@ Goal: make what a bump does depend on where and how it lands, and make it visibl
 | **Pin & crush** | A robot squeezed from two opposite sides (a pusher and a wall, or two robots) with more than 260 N for 0.3 s takes damage every 0.25 s on both squeezed parts (CRUSHED! / SANDWICHED!), red ring. | Pushers: tracks, wedges, heavy frames; teams in 2v2 and free-for-all. | Stay off the walls, spring or rubber bumpers, speed. |
 | **Gut shots** | A hit on a hull side whose plate was torn off sends 1.8x as much damage to the internals (GUT SHOT!), and the wound keeps sparking and smoking for the rest of the fight. | Anything that can reach the open side: flankers, fast robots. | Turn the open side away, repairs between fights. |
 
+## How it looks (11 Nov, Kev: show it, don't only label it)
+
+- **Get under:** the propped robot tilts. It is drawn shorter across the lifted axis (hinged on the edge still on the floor), a touch wider at the raised edge, with the slope shaded and the raised edge lit, a dark lip where the underside shows, and its shadow stretched out under the raised edge. It is drawn over the robot whose nose is under it, so the wedge visibly disappears beneath it. The wheels in the air spin freely; when it drops back there is a puff of dust and a small shake. Drawing only (`ui.js`, `tilt*`); the sim is unchanged.
+- **Tipped over:** a short roll animation over the lifted axis instead of a jump cut.
+- A prop lasts about 0.6 s of fight time (up to 2.2 s while the robot underneath keeps pushing), so it is easiest to see at ½× or ¼×.
+
 ## First numbers (72 fights, 18 pairs from all 33 robots, open floor)
 
 Per fight with all four on: about 10 hull-on-hull bumps, 3.3 slides (0.7 spin-outs, 0.4 T-bones), 1.9 get-unders, 0.8 crushes, 6 gut hits. Tip-overs are rare (about 1 in 25 fights).

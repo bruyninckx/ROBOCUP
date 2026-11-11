@@ -188,6 +188,7 @@
       else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
+      else if (e.type === 'tip') { const R = S.robots[e.robot]; R.tiltU = [e.ux, e.uy]; R.rollFx = { t: 0 }; R.tiltV = 0; }
       else if (e.type === 'creak') { const R = S.robots[e.robot]; R.crushFx = 0.35; sparks(e.x, e.y, 5 * e.power); shake = Math.min(0.1, shake + 0.02); for (let i = 0; i < 4; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 1.6) * 0.7, vy: Math.sin(i * 1.6) * 0.7, life: 0.5, max: 0.5, s: 0.08 }); }
       else if (e.type === 'gut') { sparks(e.x, e.y, 14); for (let i = 0; i < 3; i++) smoke(e.x, e.y, true, 0.06); shards(e.x, e.y, 3); }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
@@ -314,22 +315,64 @@
       starPath(d, d, r); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill(); // lit lower edge of the dent
       starPath(0, 0, r); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(); ctx.restore(); }
   }
+  // ---------- tilt (contact experiments: a robot propped up on someone's nose, or rolling over) ----------
+  // Top-down, a robot with one edge off the floor looks shorter across that axis (it hinges on the edge still down),
+  // its top catches the light differently, and the raised edge throws its shadow further out.
+  const TILT = { max: 0.62, wob: 0.06, H: 0.16, roll: 0.5 };
+  function tiltAxis(R) { const u = R.tiltU || [1, 0]; return [u[0], u[1], Math.abs(u[0]) * R.hl + Math.abs(u[1]) * R.hw]; }
+  function tiltK(R) { // 1 = flat; smaller = more tilted
+    if (R.rollFx) { const f = Math.min(1, R.rollFx.t / TILT.roll); return Math.max(0.06, Math.abs(Math.cos(Math.PI * f))); }
+    return Math.cos(R.tiltV || 0);
+  }
+  function tiltBody(R) {
+    const k = tiltK(R); if (k > 0.999) return;
+    const [ux, uy, e] = tiltAxis(R), c = k - 1, piv = R.rollFx ? 0 : e; // a roll turns over the middle, a prop hinges on the far edge
+    ctx.transform(1 + c * ux * ux, c * ux * uy, c * ux * uy, 1 + c * uy * uy, c * piv * ux, c * piv * uy);
+    if (R.rollFx) return;
+    const w = 1 + (1 - k) * 0.35; // the raised edge is nearer the camera: a touch wider across
+    ctx.translate(ux * e * 0.4, uy * e * 0.4); ctx.transform(1 + (w - 1) * uy * uy, -(w - 1) * ux * uy, -(w - 1) * ux * uy, 1 + (w - 1) * ux * ux, 0, 0); ctx.translate(-ux * e * 0.4, -uy * e * 0.4);
+  }
+  function tiltShadow(R, a) {
+    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 1.2 : Math.sin(R.tiltV || 0); if (t < 0.01) return;
+    const [ux, uy, e] = tiltAxis(R), H = TILT.H * t * 2 * e / 0.25;
+    const lx = Math.cos(-a) * 0.7071 - Math.sin(-a) * 0.7071, ly = Math.sin(-a) * 0.7071 + Math.cos(-a) * 0.7071; // light from the top left, in the robot's frame
+    const g = H / (2 * e); // shadow shift grows from 0 at the edge on the floor to H at the raised edge
+    ctx.transform(1 + g * lx * ux, g * ly * ux, g * lx * uy, 1 + g * ly * uy, g * e * lx, g * e * ly);
+  }
+  function tiltShade(R) {
+    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) : Math.sin(R.tiltV || 0); if (t < 0.02) return;
+    const [ux, uy, e] = tiltAxis(R), gr = ctx.createLinearGradient(-ux * e, -uy * e, ux * e, uy * e);
+    gr.addColorStop(0, `rgba(0,0,0,${0.32 * t})`); gr.addColorStop(0.55, `rgba(0,0,0,${0.08 * t})`); gr.addColorStop(1, `rgba(255,240,210,${0.22 * t})`); // the slope down to the floor in shade, the raised edge lit
+    ctx.fillStyle = gr; ctx.fillRect(-R.hl - 0.05, -R.hw - 0.05, R.hl * 2 + 0.1, R.hw * 2 + 0.1);
+    if (!R.rollFx) { // the raised edge: underside showing as a dark lip
+      ctx.strokeStyle = `rgba(20,14,8,${0.7 * t})`; ctx.lineWidth = PX * 3; ctx.beginPath();
+      const px = -uy, py = ux, L = Math.abs(ux) * R.hw + Math.abs(uy) * R.hl; ctx.moveTo(ux * e + px * L, uy * e + py * L); ctx.lineTo(ux * e - px * L, uy * e - py * L); ctx.stroke();
+    }
+  }
+  function tiltTick(R, rdt) {
+    if (R.prop) { const L = Math.hypot(R.prop.lx, R.prop.ly) || 1; R.tiltU = [R.prop.lx / L, R.prop.ly / L]; }
+    const target = R.prop ? TILT.max * Math.min(1, 0.55 + R.prop.total * 0.9) + TILT.wob * Math.sin(performance.now() / 70) : 0;
+    R.tiltV = (R.tiltV || 0) + (target - (R.tiltV || 0)) * Math.min(1, rdt * (R.prop ? 14 : 9)); // snaps up, settles back down a bit slower
+    if (!R.prop && R.tiltV > 0.12 && R.wasProp) { const p = R.body.getPosition(); for (let i = 0; i < 5; i++) spawn({ t: 'dust', x: p.x + R.tiltU[0] * R.hl, y: p.y + R.tiltU[1] * R.hl, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.5, max: 0.5, s: 0.07 }); shake = Math.min(0.1, shake + 0.03); } // drops back down with a thump
+    R.wasProp = !!R.prop;
+    if (R.rollFx) { R.rollFx.t += rdt; if (R.rollFx.t >= TILT.roll) R.rollFx = null; }
+  }
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
     const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R);
-    let sc = 1 + air * 0.28 + (carried ? 0.1 : 0) + (R.prop ? 0.06 : 0), alpha = 1;
+    let sc = 1 + air * 0.28 + (carried ? 0.1 : 0), alpha = 1;
     if (R.inPit) { const k = Math.min(1, (S.t - R.inPit) / 0.8); sc = 1 - k * 0.65; alpha = 1 - k * 0.7; }
-    const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0) + (R.prop ? 0.07 : 0);
+    const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0);
     R.trailPts = R.trailPts || []; if (frameN % 2 === 0) { R.trailPts.push([p.x, p.y, a]); if (R.trailPts.length > 7) R.trailPts.shift(); }
     const vel = b.getLinearVelocity(), fast = Math.hypot(vel.x, vel.y) > 3.5 || R.airborne > 0;
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
-    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
+    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); tiltShadow(R, a); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); tiltBody(R);
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
@@ -337,6 +380,7 @@
     const order = ['wheel', 'armour', 'weapon', 'chassis'];
     for (const kind of order) for (const q of mine) if (q.kind === kind) drawPart(q, fillFor(q, R, i), R, decorate(q, R, i));
     for (const q of mine) if (q.kind === 'armour' && q.bumper === 'spiked') spikesOn(q);
+    tiltShade(R);
     if (R.spec.weapon === 'glove' && R.tool && R.tool.attached) drawGlove(R);
     if (R.thruster) { const ok = R.thruster.hp > 0; ctx.fillStyle = ok ? '#5C5650' : '#1C1813'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.09, 0.09]) { ctx.beginPath(); ctx.moveTo(-R.hl + 0.02, y - 0.05); ctx.lineTo(-R.hl - 0.08, y - 0.065); ctx.lineTo(-R.hl - 0.08, y + 0.065); ctx.lineTo(-R.hl + 0.02, y + 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); if (ok) { ctx.fillStyle = R.dashT > 0 ? '#FFD27A' : '#2B2118'; ctx.fillRect(-R.hl - 0.082, y - 0.04, 0.012, 0.08); } } }
     if (!R.flipped) {
@@ -928,7 +972,7 @@
     drawCratesAndWarnings();
     for (const d of S.debris) drawDebris(d);
     // robot in the air is drawn last
-    const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
+    const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0) || ((a.tiltV || 0) > 0.05) - ((b.tiltV || 0) > 0.05));
     for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
     drawEwalls(); drawDrones();
@@ -1071,7 +1115,7 @@
     }
     stepParticles(rdt * (ts || (hitStop > 0 ? 0 : 0)));
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
-    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.crushFx > 0) R.crushFx -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
+    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.crushFx > 0) R.crushFx -= rdt; tiltTick(R, rdt); if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
     for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) if (!Number.isFinite(cam[k])) cam[k] = k.endsWith('z') ? 1 : 0; // never lose the arena to a bad number
     if (!Number.isFinite(shake)) shake = 0;
