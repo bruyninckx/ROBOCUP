@@ -50,32 +50,10 @@ ul.plain li{margin:6px 0}
 .stat div{background:var(--panel);border-radius:10px;padding:12px}
 .stat b{display:block;font:400 28px/1 "Saira Stencil One",Impact,sans-serif;color:var(--gold);margin-bottom:6px}
 .stat span{font-size:13.5px;color:var(--dim);line-height:1.35;display:block}
-/* matchups */
-.mu{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0}
-.mu.epic{border-color:var(--gold2)}
-.mu h4{margin:0 0 2px;font:700 16px "IBM Plex Sans",system-ui,sans-serif;color:#fff}
-.mu h4 em{font:600 11px "IBM Plex Mono",monospace;color:var(--gold);letter-spacing:.08em;font-style:normal;margin-left:6px;text-transform:uppercase}
-.mu .who{font:600 13px "IBM Plex Mono",monospace;color:var(--dim)}
-.mu p{margin:6px 0 8px;font-size:14.5px}
-.mu button,.clip button{min-height:44px;font:700 14.5px "IBM Plex Sans",system-ui,sans-serif;border-radius:8px;border:0;padding:8px 14px;cursor:pointer}
-.mu button{background:var(--gold);color:#15110D;margin:2px 6px 2px 0}
-.mu button.alt{background:var(--panel2);color:var(--ink);border:1px solid var(--line);font-weight:600}
-.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0}
-.bot{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;text-align:left;color:var(--ink);font:inherit;display:flex;flex-direction:column;gap:4px;min-height:44px}
-.bot:hover{border-color:var(--gold2)}
-.bot.a{border-color:var(--blue);box-shadow:0 0 0 2px rgba(121,164,203,.45)}
-.bot.b{border-color:#E59866;box-shadow:0 0 0 2px rgba(229,152,102,.45)}
-.bot canvas{width:100%;aspect-ratio:1;background:#BDB5A7;border-radius:6px;display:block}
-.bot .nm{font-weight:700;color:#fff;display:flex;justify-content:space-between;align-items:center}
-.bot .lv{font:600 11px "IBM Plex Mono",monospace;color:var(--gold);letter-spacing:.08em}
-.bot .wp{font-size:12.5px;color:var(--dim);line-height:1.3}
-.clip{background:var(--panel);border:1.5px solid var(--gold2);border-radius:12px;padding:14px;margin:14px 0}
-.clip .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
-.clip select{flex:1 1 130px;min-height:44px;font:600 15px "IBM Plex Sans",system-ui,sans-serif;background:var(--panel2);color:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-.clip .vs{font:400 20px "Saira Stencil One",Impact,sans-serif;color:var(--gold)}
-.clip .go{background:var(--gold);color:#15110D;flex:1 1 100%}
+.clipfig{margin:14px 0;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:center}
+.clipfig img{width:100%;height:auto;border-radius:8px;display:block;background:#BDB5A7}
+.clipfig figcaption{font-size:15px}
 .note{font-size:13px;color:var(--dim);margin:6px 0 0}
-#fv[hidden]{display:none}
 /* balance chart */
 .chart{background:var(--panel);border-radius:12px;padding:12px;margin:14px 0}
 .chart canvas{display:block;width:100%;touch-action:manipulation;cursor:crosshair}
@@ -88,6 +66,8 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
 @media (max-width:600px){
   main{padding:12px 10px 48px}
   nav.toc{columns:1}
+  .clipfig{grid-template-columns:1fr}
+  .clipfig img{max-width:340px;margin:0 auto}
   table:not(.num),table:not(.num) tbody,table:not(.num) tr,table:not(.num) td{display:block;width:100%}
   table:not(.num) tr:has(th){display:none}
   table:not(.num) tr{padding:8px 0;border-bottom:1px solid var(--line)}
@@ -104,7 +84,7 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
 
 <h1>ROBOCUS 2.0<small>THE RULEBOOK · SPARTACUS WITH ROBOTS</small></h1>
 <p class="lead">Four robotics teams scheme, bid, bet and fight until one reaches <b>12 fame</b>. The skeleton is <i>Spartacus: A Game of Blood &amp; Treachery</i>; the gladiators are physics-simulated robots that lose real parts. You don't need to remember Spartacus to read this: every rule is written out, with a purple note where it maps to the board game.</p>
-<p><a class="play" href="prototypes/tabletop-2.html">▶ Play ROBOCUS 2.0</a> <a class="play alt" href="#clip">Watch the robots first</a></p>
+<p><a class="play" href="prototypes/tabletop-2.html">▶ Play ROBOCUS 2.0</a> <a class="play alt" href="#s7">See three fights</a></p>
 <p class="tip"><b>Playing together:</b> one person opens the game, clicks the 🌐 badge in the top bar, chooses <b>Host a game</b> and sends the invite link. Everyone else opens the link on their own laptop, types a name, picks a colour and presses Ready. Empty seats are played by the AI. The game wants a laptop screen; this page reads fine on a phone.</p>
 
 <nav class="toc">
@@ -114,7 +94,7 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
 <a href="#s4"><span>04</span>Fame: every source</a>
 <a href="#s5"><span>05</span>Cards, backing and blocks</a>
 <a href="#s6"><span>06</span>Robots, parts and damage</a>
-<a href="#s7"><span>07</span>Watch them fight · epic combos</a>
+<a href="#s7"><span>07</span>Three fights</a>
 <a href="#s8"><span>08</span>Fight formats and arenas</a>
 <a href="#s9"><span>09</span>The bookie's tags</a>
 <a href="#s10"><span>10</span>The balance chart</a>
@@ -278,66 +258,17 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
 <p>So: always fix the Drive and the Weapon. A broken Body is survivable for most robots, <b>unless the red 🧠 CHIP FRIED strip is showing</b>: then the robot fights on backup control and loses nearly everything until its Body is repaired.</p>
 <p>A full garage (3 robots) can still bid on a robot: if you win, you trade one in for 1 credit plus its level, and its parts go to your Stash.</p>
 
-<h2 id="s7"><span class="no">07</span>Watch them fight</h2>
-<p>These run on the real 2.0 engine and the real fight screen. They play full screen at 2× speed; <b>Continue</b> brings you back. Every press is a new fight.</p>
+<h2 id="s7"><span class="no">07</span>Three fights</h2>
+<p>Three short clips from the real fight engine, each to make one point. The rest you should find out at the table.</p>
 
-<h3 id="epic">Epic combos, and why they work</h3>
-<p>Most parts help any robot about the same. Twelve robot-and-part pairs do far more than that: the game marks them with a gold <span class="tag y">⚡ Epic</span> tag and a ribbon on the Market lot. Four to try, each with and without the part. The numbers are measured; the "why" is our reading of the fights.</p>
+<figure class="clipfig"><img src="media/rules/weapon-beats-level.gif" alt="Thumper hammers Mincer until its chassis gives way" width="300" height="300" loading="lazy">
+<figcaption><b>1. Weapon beats level.</b> Blue is Thumper, a level 0 starter. Orange is Mincer, level 1, which has to drive its twin saws into you nose first. A hammer comes down on exactly that nose. Thumper wins this 19 times in 20. The bookie marks pairings like this with a <span class="tag g">🎯 Counter pick</span> tag, and there are about 150 of them.</figcaption></figure>
 
-<div class="mu epic"><h4>Freight Train <em>Ramrod + Power kit</em></h4><div class="who">vs robots a level up: 38% → 93%</div>
-<p>Ramrod's weapon is its own drive: it rams, bounces off and rams again. The Power kit's hot-wound motors and big battery make every charge faster and the next one sooner, so the kit upgrades the weapon, the armour and the reload at once.</p>
-<button data-a="Ramrod" data-pa="powerkit" data-b="Angler">▶ With the Power kit vs Angler</button><button class="alt" data-a="Ramrod" data-b="Angler">Without it</button></div>
+<figure class="clipfig"><img src="media/rules/the-right-part.gif" alt="Popcorn with Overdrive launches Mincer across the arena" width="300" height="300" loading="lazy">
+<figcaption><b>2. The right part on the right robot.</b> Same Mincer, now against Popcorn, another starter that normally loses this 9 times in 10. Here Popcorn carries Overdrive, and one flip ends it. Most parts help every robot about the same; a few robot-and-part pairs do far more. The game calls those <span class="tag y">⚡ Epic</span> and flags the Market lot in gold when one is on the table. There are a dozen. We are not listing them.</figcaption></figure>
 
-<div class="mu epic"><h4>Killer Whale <em>Whaler + Overdrive</em></h4><div class="who">vs robots a level up: 17% → 67% · not on the Ice Rink</div>
-<p>Overdrive adds 55% damage, and every hit it lands puts wear on its own weapon. A harpoon lands a handful of heavy hits in a fight, so Whaler gets nearly all of the upside for little of the cost, and the softest level 3 robot starts beating level 4.</p>
-<button data-a="Whaler" data-pa="overdrive" data-b="Orbiter">▶ With Overdrive vs Orbiter</button><button class="alt" data-a="Whaler" data-b="Orbiter">Without it</button></div>
-
-<div class="mu epic"><h4>Popcorn Blast <em>Popcorn + Overdrive</em></h4><div class="who">vs robots a level up: 36% → 69% · holds in every arena</div>
-<p>Same logic on a starter: a flipper fires rarely and each flip is a big single hit. With Overdrive a level 0 robot starts launching level 1 robots onto their lids. The cheapest epic in the game.</p>
-<button data-a="Popcorn" data-pa="overdrive" data-b="Mincer">▶ With Overdrive vs Mincer</button><button class="alt" data-a="Popcorn" data-b="Mincer">Without it</button></div>
-
-<div class="mu epic"><h4>Whiplash <em>Thwacker + Tow cable</em></h4><div class="who">vs robots a level up: 44% → 81%</div>
-<p>The Tow cable hooks the enemy and slings it into the nearest wall. Thwacker's spinning tail wants a target that is stunned and close; the cable delivers one every eight seconds.</p>
-<button data-a="Thwacker" data-pa="tow" data-b="Whaler">▶ With the Tow cable vs Whaler</button><button class="alt" data-a="Thwacker" data-b="Whaler">Without it</button></div>
-
-<details><summary>All twelve epic combos</summary>
-<table class="num">
-<tr><th>Combo</th><th>Robot + part</th><th>Without</th><th>With</th></tr>
-<tr><td>Freight Train</td><td>Ramrod + Power kit</td><td>38</td><td>93%</td></tr>
-<tr><td>Rocket Ram</td><td>Ramrod + Booster drone</td><td>38</td><td>90%</td></tr>
-<tr><td>Heavyweight</td><td>Brawler + Power kit</td><td>50</td><td>86%</td></tr>
-<tr><td>Cornerman</td><td>Brawler + Medic drone</td><td>50</td><td>83%</td></tr>
-<tr><td>Whiplash</td><td>Thwacker + Tow cable</td><td>44</td><td>81%</td></tr>
-<tr><td>Stun Ram</td><td>Ramrod + EMP burst (open floor)</td><td>38</td><td>79%</td></tr>
-<tr><td>Matador Moon</td><td>Orbiter + Matador chip</td><td>39</td><td>78%</td></tr>
-<tr><td>Pinball</td><td>Orbiter + Pop-up flipper</td><td>39</td><td>75%</td></tr>
-<tr><td>Blackout Lure</td><td>Angler + Sensor scrambler</td><td>39</td><td>75%</td></tr>
-<tr><td>Popcorn Blast</td><td>Popcorn + Overdrive</td><td>36</td><td>69%</td></tr>
-<tr><td>Killer Whale</td><td>Whaler + Overdrive</td><td>17</td><td>67%</td></tr>
-<tr><td>Grim Rush</td><td>Scythe + Booster drone</td><td>33</td><td>63%</td></tr>
-</table>
-<p class="note">Win % against every robot one level up, 30–42 fresh fights each. Several don't hold on the Ice Rink, where speed slides away; the tag switches off there.</p>
-<p>Above that sit four <span class="tag p">👑 Giant-slayer builds</span>: a small robot with three specific parts that beats bare level 3–4 robots about 9 times in 10. Scythe (Booster + Power kit + Prototype core), Gyro (Tow cable + Jammer + Field hospital), Brawler (Power kit + Gun drone + Field hospital), Mauler (Gun drone + Weapon overhaul + Prototype core). Nobody completed one in 400 AI games. Be the first.</p>
-</details>
-
-<h3>Upsets: weapon beats level</h3>
-<div class="mu"><h4>Thumper over Mincer <em>level 0 beats level 1, 19 of 20</em></h4>
-<p>Mincer has to drive its twin saws into you, nose first. Thumper's hammer comes down from above onto exactly that nose.</p>
-<button data-a="Thumper" data-b="Mincer">▶ Thumper vs Mincer</button></div>
-<div class="mu"><h4>Gyro over Hydra <em>level 2 beats level 4, 19 of 20</em></h4>
-<p>Hydra unfolds an arm over your weapon and slams your lid. Gyro is a spinning shell: there is no lid to hit, and the shell shreds a raised arm.</p>
-<button data-a="Gyro" data-b="Hydra">▶ Gyro vs Hydra</button></div>
-<div class="mu"><h4>Whirlwind over Trebuchet <em>level 2 beats level 4, 18 of 20</em></h4>
-<p>Trebuchet has to slide its scoops under you and lock its frame for half a second. A bar spinner makes those the worst half-seconds of its life.</p>
-<button data-a="Whirlwind" data-b="Trebuchet">▶ Whirlwind vs Trebuchet</button></div>
-
-<h3 id="clip">Pick your own</h3>
-<div class="clip">
-  <div class="row"><select id="selA" aria-label="Robot A"></select><span class="vs">VS</span><select id="selB" aria-label="Robot B"></select></div>
-  <div class="row"><button class="go" id="goBtn" type="button">▶ Fight</button></div>
-  <p class="note" id="clipNote">Loading the engine…</p>
-</div>
-<div class="gal" id="gal"></div>
+<figure class="clipfig"><img src="media/rules/end-game.gif" alt="Trebuchet scoops Vertigo and hurls it over its own back" width="300" height="300" loading="lazy">
+<figcaption><b>3. The end game looks different.</b> Blue is Trebuchet, a level 4 robot: it slides its scoops under you, locks its frame and throws you over its own back. Level 4 robots arrive from round 6 and each has a mechanism like this. Each also has a cheap robot it hates.</figcaption></figure>
 
 <h2 id="s8"><span class="no">08</span>Fight formats and arenas</h2>
 <p>The normal fight is a duel. Everything else is something a host or a card makes happen, and each format changes who should be afraid.</p>
@@ -491,22 +422,13 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
 <p class="foot">ROBOCUS 2.0 is a work in progress by Kev. Numbers are from AI games and lab fights up to 11 Nov 2026 and will move after the first playtest; where this page and the game disagree, the game wins. The idea and structure come from <i>Spartacus: A Game of Blood &amp; Treachery</i>.</p>
 
 </main>
-<div id="fv"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
-<script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
-<script>window.planck || document.write('<script src="vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="src2/dmath.js"></script>
-<script src="src2/engine.js"></script>
-<script src="src2/lineup.js"></script>
-<script src="src2/view.js"></script>
 <script>
 /* ---------- the balance chart (open floor, tools/damage-lab/matrix-data.json, 20 fights a pair; wins of the row robot, base 21) ---------- */
 (function () {
   'use strict';
   const M = {"n":["Haymaker","Popcorn","Snapjaw","Wrecker","Jouster","Buzzkill","Rumbler","Thumper","Blowtorch","Rocketeer","Mincer","Hornet","Juggernaut","Scythe","Mauler","Brawler","Whirlwind","Thwacker","Pincher","Gyro","Forklift","Grandmaster","Ramrod","Whaler","Vertigo","Sawblast","Corkscrew","Hydra","Orbiter","Tarantula","Trebuchet","Angler","Lodestone"],"l":[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4],"w":[".EI3A073H5243333034A1280302100000","6.A45CB8DH220J2043843161310101020","2A.9FC6E67AC35414A660201300055100","HGB.BCEDD305F11960003500401170000","AF59.A6879B5164A8531A144257406700","K888A.CH793B722G95204220001943212","D9E6E8.08I2G0G23AI2G2052011021100","HC67C3K.D8J5I60412937000500004054","37E7DDC7.6DFCA31AC445E5011A00A111","F3DHBB2CE.DB0A8A5E6I09212000D1521","IIAK9HI177.BD6K9FA2221B3003I71113","GI8FF94F599.3B5G6D91A38834G859700","HKH5JDK28K7H.I036G2E819G130260000","H1FJEI4EAAE92.CDE2B38G7218E91A010","HIGJGIIKHC0FK8.F8061EH2838A6E2301","HKJBA4HGJAB4H75.386F9AD5757230261","KGGECBAJAF5EE6CH.D23B911947A95I22","HHAKFF2I86A74IKC7.I16H74G8GB57520","GCEKHIIBGEIBI9EEI2.G61006A9561055","AGEKJK4HG2IJ6HJ5HJ4.18K040AJ5I220","JHKHAGIDFKIACC6B9EEJ.51EHD007C141","IJIFJIKK6BJHJ43AB3JCF.F5GH5302455","CEKKGIFKFI9CBDI7JDK0J5.G4BDE67763","KJJKGKIKKJHC4ICFJGKK6F4.BA20702B2","HHHGIKKFJIKHJJHDB4EG34G9.AC9460DC","KJKKFKJKJKKGHCCFGCAK739AA.77D7911","IKKJDJJKAKH4K6ADD4BAKF7I8D.J82GII","JJKJGBKKKK2CIBEIA9F1KH6KBD1.7IJCF","KKFDKGIKK7DFEJ6HBFEFDKEDG7CD.9J86","KJFKEHJGAJJBKAIKFDJ28IDKEDI2B.8AJ","KKJKDIJKJFJDKKHI2FKIJGDIKB411C.B8","KIKKKJKFJIJKKJKEIIFIGFE97J28CA9.4","KKKKKIKGJJHKKKJJIKFKJFHI8J25E1CG."]};
   const WEAP = { Haymaker: 'boxing glove', Rumbler: 'drum', Thumper: 'axe hammer', Jouster: 'spear', Popcorn: 'flipper', Blowtorch: 'flamethrower', Buzzkill: 'bar spinner', Snapjaw: 'crusher', Wrecker: 'flail', Hornet: 'spear + jump jets', Whirlwind: 'bar spinner + shield', Mincer: 'twin saws', Scythe: 'sweeper axe', Mauler: 'flail + repair', Rocketeer: 'rocket pod', Juggernaut: 'drum + grapple', Gyro: 'shell spinner', Pincher: 'clapper arms', Brawler: 'piston glove + EMP', Thwacker: 'thwack tail', Whaler: 'harpoon', Forklift: 'lifter fork', Vertigo: 'vertical disc', Sawblast: 'buzzsaw + rocket', Ramrod: 'battering ram', Grandmaster: 'three-tool carousel', Hydra: 'strike arm', Corkscrew: 'drill', Trebuchet: 'throwing arm', Angler: 'hook, winch and drum', Lodestone: 'electromagnet', Orbiter: 'orbiting saw discs', Tarantula: 'six legs + fangs' };
-  window.ROBO_WEAP = WEAP;
   const N = M.n.length, val = (i, j) => i === j ? null : parseInt(M.w[i][j], 21);
   const cv = document.getElementById('mx'), read = document.getElementById('mxRead'), ctx = cv.getContext('2d');
   let sel = null, geo = null;
@@ -560,57 +482,6 @@ summary{cursor:pointer;font-weight:700;color:#fff;min-height:28px}
   window.addEventListener('resize', draw);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
   draw();
-})();
-
-/* ---------- the fights ---------- */
-(function () {
-  'use strict';
-  const L = window.DamageLab, LU = window.Lineup, FV = window.RobocusView;
-  const note = document.getElementById('clipNote');
-  if (!L || !LU || !FV || !window.planck) { note.textContent = 'The engine did not load (offline?). Open the game itself to see the robots.'; document.querySelectorAll('.mu button').forEach(b => b.disabled = true); return; }
-  LU.usePK();
-  const ALL = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), W = window.ROBO_WEAP || {};
-  const NAMES = Object.keys(ALL).sort((a, b) => ALL[a][0] - ALL[b][0] || a.localeCompare(b));
-  const SHOW = ['Thumper', 'Wrecker', 'Popcorn', 'Buzzkill', 'Mincer', 'Mauler', 'Scythe', 'Gyro', 'Brawler', 'Thwacker', 'Ramrod', 'Vertigo', 'Whaler', 'Grandmaster', 'Hydra', 'Trebuchet', 'Tarantula', 'Orbiter', 'Lodestone', 'Corkscrew'];
-  const stars = n => n ? '★'.repeat(n) : 'STARTER';
-  const PAL = { A: { name: 'Blue', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, B: { name: 'Orange', col: '#C8642B', dark: '#8E431B', light: '#E59866' } };
-  function spec(name, side, parts) { const s = LU.build(name, parts || []); s.level = ALL[name][0]; s.pal = PAL[side]; s.teamName = side === 'A' ? 'Blue corner' : 'Orange corner'; return s; }
-  const selA = document.getElementById('selA'), selB = document.getElementById('selB');
-  for (const sel of [selA, selB]) {
-    let lv = -1, grp = null;
-    for (const n of NAMES) { if (ALL[n][0] !== lv) { lv = ALL[n][0]; grp = document.createElement('optgroup'); grp.label = lv ? 'Level ' + lv : 'Starters (level 0)'; sel.appendChild(grp); } const o = document.createElement('option'); o.value = n; o.textContent = n; grp.appendChild(o); }
-  }
-  selA.value = 'Thumper'; selB.value = 'Wrecker';
-  FV.mount(document.getElementById('fv'));
-  const gal = document.getElementById('gal');
-  let pickNext = 'A';
-  function markCards() { for (const el of gal.children) { el.classList.toggle('a', el.dataset.n === selA.value); el.classList.toggle('b', el.dataset.n === selB.value); } }
-  for (const n of SHOW) {
-    if (!ALL[n]) continue;
-    const el = document.createElement('button'); el.type = 'button'; el.className = 'bot'; el.dataset.n = n;
-    el.innerHTML = '<div class="nm"><span>' + n + '</span><span class="lv">' + stars(ALL[n][0]) + '</span></div><div class="wp">' + (W[n] || '') + '</div>';
-    try { const c = FV.portrait(spec(n, 'A'), 220); el.insertBefore(c, el.firstChild); } catch (e) { /* no picture, keep the card */ }
-    el.onclick = () => { if (pickNext === 'A') { selA.value = n; pickNext = 'B'; } else { selB.value = n; pickNext = 'A'; } markCards(); note.textContent = selA.value + ' vs ' + selB.value + ': press Fight.'; };
-    gal.appendChild(el);
-  }
-  selA.onchange = selB.onchange = markCards;
-  markCards();
-  note.textContent = 'Tap a robot for the blue corner, another for the orange corner, then Fight.';
-  let seed = 1 + Math.floor(Math.random() * 100000);
-  function fight(a, b, pa, backTo) {
-    let S;
-    try { S = L.create({ a: spec(a, 'A', pa), b: spec(b, 'B'), seed: seed++, countdown: 2.99 }); } catch (e) { note.textContent = 'Could not start that fight: ' + e.message; return; }
-    document.body.style.overflow = 'hidden';
-    const title = a + (pa && pa.length ? ' + ' + pa.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(' + ') : '') + ' vs ' + b;
-    FV.play(S, { title, onEnd: R => {
-      document.body.style.overflow = '';
-      const t = R && R.result ? R.result.text : '';
-      note.textContent = (t ? t + ' (' + Math.round(R.result.t) + ' s). ' : '') + 'Fight again for a different fight, or pick others.';
-      (backTo || document.getElementById('clip')).scrollIntoView({ block: 'center' });
-    } });
-  }
-  document.getElementById('goBtn').onclick = () => fight(selA.value, selB.value);
-  for (const b of document.querySelectorAll('.mu button')) b.onclick = () => fight(b.dataset.a, b.dataset.b, b.dataset.pa ? b.dataset.pa.split(',') : [], b.closest('.mu'));
 })();
 </script>
 </body>
