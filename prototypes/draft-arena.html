@@ -94,8 +94,14 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 #pilotHud { position: fixed; left: 50%; top: 6px; transform: translateX(-50%); z-index: 60; background: #2B2118; color: #E9E4DA; border: 2px solid #E8C547; border-radius: 8px; padding: 4px 6px 4px 12px; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; display: flex; gap: 10px; align-items: center; white-space: nowrap; max-width: calc(100vw - 130px); overflow: hidden; }
 #pilotHud b { font: 400 16px "Saira Stencil One", Impact, sans-serif; }
 #pilotHud .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #E9E4DA; vertical-align: -1px; margin-right: 4px; }
-@media (max-width: 760px) { #pilotHud span.help, #pilotHud i { display: none; } #pilotHud { left: auto; right: 64px; transform: none; } }
-#pilotHud button { min-height: 30px; padding: 3px 10px; font-size: 12px; background: #E8C547; color: #2B2118; border-color: #E8C547; }
+#pilotHud .trigs { display: flex; gap: 4px; }
+#pilotHud .tg { position: relative; overflow: hidden; min-height: 30px; padding: 2px 8px; font: 700 11.5px "IBM Plex Mono", monospace; background: #3a3128; color: #E9E4DA; border: 1.5px solid #6E6457; border-radius: 5px; cursor: pointer; }
+#pilotHud .tg kbd { font: 700 12px "IBM Plex Mono", monospace; background: #E8C547; color: #2B2118; border-radius: 3px; padding: 0 4px; margin-right: 4px; }
+#pilotHud .tg.ready { border-color: #E8C547; }
+#pilotHud .tg .cd { position: absolute; left: 0; bottom: 0; height: 3px; background: #E8C547; }
+#pilotHud .tg:disabled { opacity: .35; }
+@media (max-width: 760px) { #pilotHud span.help, #pilotHud i { display: none; } #pilotHud { left: 6px; right: 6px; top: auto; bottom: 6px; transform: none; max-width: none; white-space: normal; flex-wrap: wrap; } #pilotHud .trigs { flex-wrap: wrap; } #pilotHud .tg { min-height: 40px; flex: 1 1 30%; } }
+#pilotHud button#pilAuto { min-height: 30px; padding: 3px 10px; font-size: 12px; background: #E8C547; color: #2B2118; border-color: #E8C547; }
 #pilotHud i { font: 700 11.5px "IBM Plex Mono", monospace; font-style: normal; color: #E8C547; }
 </style>
 </head><body>
@@ -381,7 +387,31 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     S.cmdQ = S.cmdQ || []; S.cmdQ.push(c); cmdsOf(G.fight.id).push(c);
     NET.send(null, { t: 'cmd', id: G.fight.id, c });
   }
-  function hostInput(i, m) { if (!G || G.phase !== 'fight' || !G.fight || m.id !== G.fight.id) return; const k = G.fighters.findIndex(f => f.p === i); if (k >= 0) stampCmd(k, m); }
+  function hostInput(i, m) { if (!G || G.phase !== 'fight' || !G.fight || m.id !== G.fight.id) return; const k = G.fighters.findIndex(f => f.p === i); if (k < 0) return; if (m.trig) stampTrig(k, m.trig); else stampCmd(k, m); }
+  // combat triggers (Kev, AZERTY: arrows drive, the top letter row fires): the engine's live-card effects, each with its own cooldown.
+  // The host checks the cooldown on its fight and puts the spot (EMP, oil) in the command, so every screen applies the same thing.
+  const TRIGS = [
+    { key: 'a', type: 'trigger', name: 'Module', cd: 8, d: 'fire your own module now (EMP, hook, jets, shield…)' },
+    { key: 'z', type: 'overclock', name: 'Overclock', cd: 12, d: 'speed burst' },
+    { key: 'e', type: 'emp', name: 'EMP', cd: 18, d: 'EMP grenade on the nearest enemy (stuns, careful up close)' },
+    { key: 'r', type: 'field_eng', name: 'Field fix', cd: 25, d: 'clear jams and fires, patch the chassis' },
+    { key: 't', type: 'hype', name: 'Rage', cd: 20, d: 'go berserk for a few seconds' },
+    { key: 'y', type: 'oil', name: 'Oil', cd: 14, d: 'spill oil behind you' },
+  ];
+  const trigOf = key => TRIGS.find(t => t.key === key || t.type === key);
+  function lastTrig(id, k, type) { let t = -1e9; for (const c of cmdsOf(id)) if (c.src === k && c.type === type) t = Math.max(t, c.tick); return t; }
+  function stampTrig(k, key) {
+    const T = trigOf(key), S = local.liveS; if (!T || !S || !G.fight || G.fight.result || local.cmdId !== G.fight.id || S.over) return;
+    const R = S.robots[k]; if (!R || !R.alive) return;
+    if (T.type === 'trigger' && (!R.module || R.mod === 'none')) return;
+    const tick = S.step + LAG; if (tick < lastTrig(G.fight.id, k, T.type) + T.cd * 120) return;
+    const p = R.body.getPosition(), c = { tick, type: T.type, src: k, by: G.players[G.fighters[k].p].name };
+    if (T.type === 'emp') { let best = null, bd = 1e9; for (const Q of S.robots) { if (Q === R || !Q.alive || (S.mode === '2v2' && Q.team === R.team)) continue; const q = Q.body.getPosition(), dd = Math.hypot(q.x - p.x, q.y - p.y); if (dd < bd) { bd = dd; best = q; } } if (!best) return; c.x = +best.x.toFixed(3); c.y = +best.y.toFixed(3); }
+    else if (T.type === 'oil') { const a = R.body.getAngle(); c.x = +(p.x - Math.cos(a) * (R.hl + 0.5)).toFixed(3); c.y = +(p.y - Math.sin(a) * (R.hl + 0.5)).toFixed(3); }
+    else c.robot = k;
+    S.cmdQ = S.cmdQ || []; S.cmdQ.push(c); cmdsOf(G.fight.id).push(c);
+    NET.send(null, { t: 'cmd', id: G.fight.id, c });
+  }
   function nextRound() {
     if (G.phase !== 'fight' || !G.fight) return;
     if (!G.fight.applied) {
@@ -466,7 +496,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function rulesBox() {
     return `<div class="box"><h3 style="margin-top:0">How a round goes</h3><ol style="margin:0;padding-left:18px">
       <li>Pick 1 of 3 robots (any level, 0 to 4).</li><li>Pick 1 of 3 upgrades.</li><li>Pick 1 more of 3 upgrades.</li>
-      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Fight! You drive your robot (WASD / arrows or hold the mouse / a finger where to go), the weapon works by itself. Hands off = the AI drives. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
+      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Fight! Drive with the arrow keys (or hold the mouse / a finger where to go); A Z E R T Y fire combat triggers (module, overclock, EMP, field fix, rage, oil), each with a cooldown. The weapon works by itself. Hands off = the AI drives. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
       <p style="margin:8px 0 0"><b>💰 Budget on:</b> points are also your money. You start with some, everyone gets a few each round, a win pays 10 (2nd in free-for-all 4). Robots cost ${COST.lv} per level star (one free starter in every offer), upgrades ${COST.drone}, legendaries ${COST.legendary}, a reroll ${COST.reroll}. You may skip an upgrade. Spending lowers your score.</p>
       <p class="muted" style="margin-bottom:0">No balance yet: this is a test bench.</p></div>`;
   }
@@ -623,7 +653,8 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     const D = G.draft[ME], pal = G.mode === '2v2' ? TEAMPAL[G.fighters[k].team][G.fighters.filter(x => x.team === G.fighters[k].team).indexOf(G.fighters[k])] : PALS[G.players[ME].col], col = pal.col;
     const nm = (G.fight.bb.robots ? G.fight.bb.robots[k] : [G.fight.bb.a, G.fight.bb.b][k]).name;
     hud.hidden = false;
-    hud.innerHTML = `<b><span class="sw" style="background:${col}"></span>You: ${esc(nm)}</b> <span class="help">WASD / arrows or hold where to go · weapon fires itself</span> <i id="pilState">AI drives until you steer</i> <button type="button" id="pilAuto">Autopilot (Q)</button>`;
+    hud.innerHTML = `<b><span class="sw" style="background:${col}"></span>You: ${esc(nm)}</b> <span class="help">Arrows or hold where to go</span> <span class="trigs">${TRIGS.map(t => `<button type="button" class="tg" data-tg="${t.key}" title="${esc(t.name + ': ' + t.d + ' (every ' + t.cd + ' s)')}"><kbd>${t.key.toUpperCase()}</kbd>${esc(t.name)}<span class="cd"></span></button>`).join('')}</span> <i id="pilState">AI drives until you steer</i> <button type="button" id="pilAuto">Autopilot (P)</button>`;
+    hud.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => fireTrig(b.dataset.tg));
     hud.querySelector('#pilAuto').onclick = () => setAuto();
     const cv = document.querySelector('#fv .fv-arena canvas');
     if (cv && !cv.dataset.pil) { cv.dataset.pil = 1; cv.style.touchAction = 'none';
@@ -652,8 +683,17 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     if (x || y) { PIL.auto = false; PIL.lastD = ((Math.round(Math.atan2(y, x) / (Math.PI * 2) * 32) % 32) + 32) % 32; sendPilot({ d: PIL.lastD, go: 1 }); }
     else if (!PIL.auto) sendPilot({ d: PIL.lastD || 0, go: 0 });
   }
-  const KEYMAP = { w: 'w', arrowup: 'w', a: 'a', arrowleft: 'a', s: 's', arrowdown: 's', d: 'd', arrowright: 'd' };
-  document.addEventListener('keydown', e => { if (PIL.k < 0 || e.target.tagName === 'INPUT') return; const k = KEYMAP[e.key.toLowerCase()]; if (k) { e.preventDefault(); PIL.keys.add(k); pilotTick(); } else if (e.key.toLowerCase() === 'q') setAuto(); });
+  const KEYMAP = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' };   // arrows drive (Belgian AZERTY: the letters are the combat triggers)
+  document.addEventListener('keydown', e => { if (PIL.k < 0 || e.target.tagName === 'INPUT' || e.ctrlKey || e.metaKey || e.altKey) return; const key = e.key.toLowerCase(), k = KEYMAP[key];
+    if (k) { e.preventDefault(); PIL.keys.add(k); pilotTick(); } else if (key === 'p') setAuto(); else if (trigOf(key) && key.length === 1 && !e.repeat) { e.preventDefault(); fireTrig(key); } });
+  function fireTrig(key) { if (PIL.k < 0 || !G || !G.fight || G.fight.result) return; const R = myRobot(); if (!R || !R.alive || !trigReady(trigOf(key))) return;
+    const b = hud.querySelector('[data-tg="' + key + '"]'); if (b) { b.style.background = '#E8C547'; setTimeout(() => { b.style.background = ''; }, 150); }
+    if (isHost) stampTrig(PIL.k, key); else NET.send('host', { t: 'in', id: G.fight.id, trig: key }); }
+  function trigReady(T) { const S = local.liveS, R = myRobot(); if (!T || !S || !R || !R.alive) return false; if (T.type === 'trigger' && (!R.module || R.mod === 'none' || R.module.hp <= 0)) return false; return S.step + LAG >= lastTrig(G.fight.id, PIL.k, T.type) + T.cd * 120; }
+  setInterval(() => { if (PIL.k < 0 || hud.hidden || !local.liveS) return; const S = local.liveS;
+    for (const T of TRIGS) { const b = hud.querySelector('[data-tg="' + T.key + '"]'); if (!b) continue; const R = myRobot(), none = T.type === 'trigger' && R && (!R.module || R.mod === 'none' || R.module.hp <= 0);
+      b.disabled = !!none || !R || !R.alive; const left = lastTrig(G.fight.id, PIL.k, T.type) + T.cd * 120 - (S.step + LAG), f = Math.max(0, Math.min(1, 1 - left / (T.cd * 120)));
+      b.classList.toggle('ready', f >= 1 && !b.disabled); b.querySelector('.cd').style.width = (f * 100) + '%'; } }, 150);
   document.addEventListener('keyup', e => { const k = KEYMAP[e.key.toLowerCase()]; if (k) { PIL.keys.delete(k); pilotTick(); } });
   window.addEventListener('blur', () => { if (PIL.keys.size) { PIL.keys.clear(); pilotTick(); } });
   setInterval(() => { if (PIL.ptr) pilotTick(); }, 100);   // the robot moves under a still pointer: keep the direction fresh
@@ -666,7 +706,8 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       botBusy = false; if (!G) return;
       const D = G.draft[ME];
       if (G.phase === 'draft' && D && D.step !== 'done') { if (D.step === 'roll') send('roll', {}); else { const o = (D.step === 'robot' ? D.offers.robot : D.offers[D.step]).filter(k => !G.budget || G.players[ME].pts >= price(k)); if (G.budget && Math.random() < 0.15 && G.players[ME].pts >= COST.reroll) send('reroll', {}); else send('pick', { slot: D.step, k: o.length ? o[Math.floor(Math.random() * o.length)] : 'skip' }); } }
-      else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { if (PIL.k >= 0 && local.liveS && Math.random() < 0.6) { if (Math.random() < 0.15) setAuto(); else { PIL.auto = false; PIL.lastD = Math.floor(Math.random() * 32); sendPilot({ d: PIL.lastD, go: Math.random() < 0.85 ? 1 : 0 }); } } const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }
+      else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { if (PIL.k >= 0 && local.liveS && Math.random() < 0.25) fireTrig(TRIGS[Math.floor(Math.random() * TRIGS.length)].key);
+        if (PIL.k >= 0 && local.liveS && Math.random() < 0.6) { if (Math.random() < 0.15) setAuto(); else { PIL.auto = false; PIL.lastD = Math.floor(Math.random() * 32); sendPilot({ d: PIL.lastD, go: Math.random() < 0.85 ? 1 : 0 }); } } const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }
       else if (G.phase === 'fight' && local.watched === G.fight.id && G.fight.result && G.players[ME] && !G.players[ME].ready) send('ready', {});
       else if (isHost && G.phase === 'lobby' && +qs.get('autostart') && G.players.filter(p => !p.ai).length >= +qs.get('autostart')) send('start', {});
     }, 300);
