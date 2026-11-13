@@ -91,6 +91,12 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 .card:disabled { opacity: .45; cursor: not-allowed; }
 .card:disabled .price { background: var(--bad); color: #fff; }
 .wallet { font: 400 22px var(--f-display); }
+#pilotHud { position: fixed; left: 50%; top: 6px; transform: translateX(-50%); z-index: 60; background: #2B2118; color: #E9E4DA; border: 2px solid #E8C547; border-radius: 8px; padding: 4px 6px 4px 12px; font: 600 12px "IBM Plex Sans", system-ui, sans-serif; display: flex; gap: 10px; align-items: center; white-space: nowrap; max-width: calc(100vw - 130px); overflow: hidden; }
+#pilotHud b { font: 400 16px "Saira Stencil One", Impact, sans-serif; }
+#pilotHud .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #E9E4DA; vertical-align: -1px; margin-right: 4px; }
+@media (max-width: 760px) { #pilotHud span.help, #pilotHud i { display: none; } #pilotHud { left: auto; right: 64px; transform: none; } }
+#pilotHud button { min-height: 30px; padding: 3px 10px; font-size: 12px; background: #E8C547; color: #2B2118; border-color: #E8C547; }
+#pilotHud i { font: 700 11.5px "IBM Plex Mono", monospace; font-style: normal; color: #E8C547; }
 </style>
 </head><body>
 <div class="top"><span class="tag">TEST MODE</span><h1>ROBOCUS Draft Arena</h1><span class="grow"></span><span id="topInfo"></span></div>
@@ -163,7 +169,9 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function localTransport(room, isHost) {
     const id = isHost ? 'host' : 'c-' + myCid, ch = new BroadcastChannel('robocus-arena-' + room);
     const T = { id, ready: Promise.resolve() };
-    ch.onmessage = e => { const m = e.data; if (!m || m.from === id || (m.to && m.to !== id)) return; if (m.d && m.d.t === 'bye') { if (T.onlink) T.onlink(m.from, false); return; } if (T.onmsg) T.onmsg(m.from, m.d); };
+    const lag = +qs.get('lag') || 0; let due = 0;   // test: &lag=80 delays every message ~80 ms (order kept), like a real link
+    const deliver = m => { if (m.d && m.d.t === 'bye') { if (T.onlink) T.onlink(m.from, false); return; } if (T.onmsg) T.onmsg(m.from, m.d); };
+    ch.onmessage = e => { const m = e.data; if (!m || m.from === id || (m.to && m.to !== id)) return; if (!lag) return deliver(m); due = Math.max(due, performance.now() + lag * (0.6 + 0.8 * Math.random())); setTimeout(() => deliver(m), due - performance.now()); };
     T.send = (to, d) => ch.postMessage({ from: id, to, d });
     window.addEventListener('pagehide', () => ch.postMessage({ from: id, to: 'host', d: { t: 'bye' } }));
     return T;
@@ -195,7 +203,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 
   // ---------- state ----------
   let NET = null, isHost = false, ROOM = null, G = null, ME = -1, err = null;
-  const local = { watched: null, started: null, rollSeen: {}, rollAnim: 0, lastTick: null };
+  const local = { watched: null, started: null, rollSeen: {}, rollAnim: 0, lastTick: null, cmdsBy: {}, cmdId: null, liveS: null, replay: false, myEnd: null };
 
   /* =========================== HOST: the referee =========================== */
   const peerOf = {};   // peer id -> player index
@@ -226,11 +234,13 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       for (const k in peerOf) if (peerOf[k] === i) delete peerOf[k];
       peerOf[from] = i;
       broadcast();
+      if (G.fight && local.cmdId === G.fight.id) setTimeout(() => NET.send(from, { t: 'cmds', id: G.fight.id, list: cmdsOf(G.fight.id) }), 60);   // joined mid-fight: every input so far
       return;
     }
     if (m.t === 'act' && peerOf[from] != null) act(peerOf[from], m.a, m.o || {});
+    if (m.t === 'in' && peerOf[from] != null) hostInput(peerOf[from], m);
   }
-  function hostLink(from, up) { if (up || peerOf[from] == null) return; const p = G.players[peerOf[from]]; if (p) { p.on = false; say(p.name + ' left'); } delete peerOf[from]; maybeAdvance(); broadcast(); }
+  function hostLink(from, up) { if (up || peerOf[from] == null) return; const p = G.players[peerOf[from]]; if (p) { p.on = false; say(p.name + ' left'); const k = G.phase === 'fight' ? G.fighters.findIndex(f => f.p === peerOf[from]) : -1; if (k >= 0) stampCmd(k, { auto: 1 }); } delete peerOf[from]; maybeAdvance(); broadcast(); }
 
   // every click goes through here (the host's own clicks too)
   function act(i, a, o) {
@@ -329,34 +339,49 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     if (G.phase === 'draft' && G.fighters.every(f => G.draft[f.p].step === 'done')) startFight();
     else if (G.phase === 'fight' && G.fight && G.fight.result && G.players.every(p => p.ai || !p.on || p.ready)) nextRound();
   }
+  // the fight runs live on every screen (players drive): the host's own fight decides the result when it ends
   function startFight() {
-    G.phase = 'building';
+    const seed = 1 + Math.floor(Math.random() * 999999);
+    let arena = G.arena === 'random' ? ARENAS[Math.floor(Math.random() * ARENAS.length)] : G.arena;
+    if (arena === 'cage' && G.fighters.length > 2) arena = 'open';
+    const list = G.fighters.map(f => {
+      const p = G.players[f.p], D = G.draft[f.p];
+      const pal = G.mode === '2v2' ? TEAMPAL[f.team][G.fighters.filter(x => x.team === f.team).indexOf(f)] : PALS[p.col];
+      return Object.assign(LU.build(D.robot, D.ups), { name: D.robot, teamName: G.mode === '2v2' ? p.name + ' · ' + TEAMNAME[f.team] : p.name, level: ROBOTS[D.robot][0], pal, team: f.team });
+    });
+    { const seen = {}; for (const x of list) { seen[x.name] = (seen[x.name] || 0) + 1; if (seen[x.name] > 1) x.name += ' ' + ['', 'II', 'III', 'IV'][seen[x.name] - 1]; } }
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena } : { mode: G.mode === '2v2' ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena };
+    G.fight = { id: G.round + '-' + seed, bb, arena, result: null, winners: [], award: {}, applied: false };
+    G.phase = 'fight';
     broadcast();
-    setTimeout(() => {   // let the "wheeling in" screen paint: the referee runs the whole fight once (1-3 s) to know the result
-      const seed = 1 + Math.floor(Math.random() * 999999);
-      let arena = G.arena === 'random' ? ARENAS[Math.floor(Math.random() * ARENAS.length)] : G.arena;
-      if (arena === 'cage' && G.fighters.length > 2) arena = 'open';
-      const list = G.fighters.map(f => {
-        const p = G.players[f.p], D = G.draft[f.p];
-        const pal = G.mode === '2v2' ? TEAMPAL[f.team][G.fighters.filter(x => x.team === f.team).indexOf(f)] : PALS[p.col];
-        return Object.assign(LU.build(D.robot, D.ups), { name: D.robot, teamName: G.mode === '2v2' ? p.name + ' · ' + TEAMNAME[f.team] : p.name, level: ROBOTS[D.robot][0], pal, team: f.team });
-      });
-      const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena } : { mode: G.mode === '2v2' ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena };
-      const S = L.run(clone(bb), 200);
-      const r = S.result || { text: 'No result', winners: [] }, award = {};
-      let winners = [];
-      if (list.length === 2) winners = [G.fighters[r.winner]].filter(Boolean).map(f => f.p);
-      else if (G.mode === '2v2') winners = G.fighters.filter(f => f.team === r.winTeam).map(f => f.p);
-      else winners = r.order ? [G.fighters[r.order[0]].p] : [];
-      const A = AWARD(G.budget);
-      for (const w of winners) award[w] = A.win;
-      if (G.mode === 'ffa' && r.order && r.order[1] != null) award[G.fighters[r.order[1]].p] = A.second;
-      G.fight = { id: G.round + '-' + seed, bb, arena, result: { text: r.text, how: r.how, t: Math.round(r.t || S.t) }, winners, award, applied: false };
-      G.phase = 'fight';
-      say('Round ' + G.round + ': ' + r.text);
-      broadcast();
-    }, 60);
   }
+  function finishFight(S) {
+    const F = G.fight; if (!F || F.result || !S.over) return;
+    const r = S.result || { text: 'No result' }, award = {};
+    let winners = [];
+    if (G.fighters.length === 2) winners = [G.fighters[r.winner]].filter(Boolean).map(f => f.p);
+    else if (G.mode === '2v2') winners = G.fighters.filter(f => f.team === r.winTeam).map(f => f.p);
+    else winners = r.order ? [G.fighters[r.order[0]].p] : [];
+    const A = AWARD(G.budget);
+    for (const w of winners) award[w] = A.win;
+    if (G.mode === 'ffa' && r.order && r.order[1] != null) award[G.fighters[r.order[1]].p] = A.second;
+    Object.assign(F, { result: { text: r.text, how: r.how, t: Math.round(r.t || S.t) }, winners, award });
+    say('Round ' + G.round + ': ' + r.text);
+    maybeAdvance(); broadcast();
+  }
+  // driving: every input goes through the host, which stamps it LAG steps ahead on its own fight and sends it to every screen
+  // A screen never runs past (last host step it heard + LAG - 1): the host sends its clock after every input it stamped (one
+  // ordered link), so an input this screen has not heard of yet is always for a later step. BUF keeps the screen just behind that line.
+  const LAG = 6, BUF = 8;
+  { const step0 = L.step; L.step = S => { if (S.capStep != null && S.countdown <= 0 && S.step >= S.capStep) return; step0(S); }; }
+  const cmdsOf = id => local.cmdsBy[id] || (local.cmdsBy[id] = []);   // 50 ms to reach the host's fight; screens run 150 ms behind the host so the input is there in time
+  function stampCmd(k, o) {
+    const S = local.liveS; if (!S || !G.fight || G.fight.result || local.cmdId !== G.fight.id || S.over) return;
+    const c = { tick: S.step + LAG, type: 'pilot', robot: k, d: o.d | 0, go: o.go ? 1 : 0, auto: o.auto ? 1 : 0 };
+    S.cmdQ = S.cmdQ || []; S.cmdQ.push(c); cmdsOf(G.fight.id).push(c);
+    NET.send(null, { t: 'cmd', id: G.fight.id, c });
+  }
+  function hostInput(i, m) { if (!G || G.phase !== 'fight' || !G.fight || m.id !== G.fight.id) return; const k = G.fighters.findIndex(f => f.p === i); if (k >= 0) stampCmd(k, m); }
   function nextRound() {
     if (G.phase !== 'fight' || !G.fight) return;
     if (!G.fight.applied) {
@@ -370,14 +395,16 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     else startDraft();
   }
   // fight clock: the host sends where its fight is, clients follow (as the tabletop does)
-  setInterval(() => { if (isHost && NET && G && G.phase === 'fight' && VIEW.state && local.started === (G.fight && G.fight.id)) NET.send(null, { t: 'tick', id: G.fight.id, step: VIEW.state.step, sp: VIEW.V.speed, paused: VIEW.V.paused }); }, 250);
+  setInterval(() => { if (isHost && NET && G && G.phase === 'fight' && local.liveS && local.cmdId === (G.fight && G.fight.id)) NET.send(null, { t: 'tick', id: G.fight.id, step: local.liveS.step, sp: VIEW.V.speed, paused: false }); }, 50);
 
   /* =========================== CLIENT side =========================== */
   function send(a, o) { if (isHost) act(ME, a, o); else NET.send('host', { t: 'act', a, o }); }
   function clientMsg(from, m) {
     if (!m) return;
     if (m.t === 'state') { G = m.G; ME = m.you; render(); }
-    else if (m.t === 'tick') local.lastTick = { id: m.id, step: m.step, sp: m.sp, paused: m.paused, at: performance.now() };
+    else if (m.t === 'tick') { local.lastTick = { id: m.id, step: m.step, sp: m.sp, paused: m.paused, at: performance.now() }; if (!local.replay) VIEW.V.speed = m.sp; if (local.liveS && m.id === local.cmdId) local.liveS.capStep = m.step + LAG - 1; }
+    else if (m.t === 'cmd') { cmdsOf(m.id).push(m.c); const S = local.liveS; if (S && m.id === local.cmdId) { if (m.c.tick > S.step) { S.cmdQ = S.cmdQ || []; S.cmdQ.push(m.c); } else resync(); } }
+    else if (m.t === 'cmds') { local.cmdsBy[m.id] = m.list.slice(); if (local.liveS && m.id === local.cmdId) resync(); }
     else if (m.t === 'bad') { err = m.why; render(); }
   }
 
@@ -415,7 +442,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     if (ph === 'lobby') main.innerHTML = lobby();
     else if (ph === 'draft') main.innerHTML = draftScreen();
     else if (ph === 'building') main.innerHTML = `<div class="box"><h2>Wheeling the robots in…</h2><p class="muted">Every screen plays the same fight from the same seed.</p>${fighterCards(true)}</div>`;
-    else if (ph === 'fight') main.innerHTML = local.watched === G.fight.id ? resultScreen() : `<div class="box"><h2>Fight on!</h2>${fighterCards(true)}<div class="row"><button class="go" data-a="watch">Watch the fight</button></div></div>`;
+    else if (ph === 'fight') main.innerHTML = local.watched === G.fight.id && G.fight.result ? resultScreen() : local.watched === G.fight.id ? `<div class="box"><h2>Waiting for the host's screen…</h2><p class="muted">The fight ends on the host's screen a moment later.</p>${fighterCards(true)}</div>` : `<div class="box"><h2>Fight on!</h2>${fighterCards(true)}<div class="row"><button class="go" data-a="watch">Back to the fight</button></div></div>`;
     else if (ph === 'over') main.innerHTML = overScreen();
     wire();
     if (BOT) botPlay();
@@ -439,7 +466,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function rulesBox() {
     return `<div class="box"><h3 style="margin-top:0">How a round goes</h3><ol style="margin:0;padding-left:18px">
       <li>Pick 1 of 3 robots (any level, 0 to 4).</li><li>Pick 1 of 3 upgrades.</li><li>Pick 1 more of 3 upgrades.</li>
-      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Watch the fight. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
+      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Fight! You drive your robot (WASD / arrows or hold the mouse / a finger where to go), the weapon works by itself. Hands off = the AI drives. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
       <p style="margin:8px 0 0"><b>💰 Budget on:</b> points are also your money. You start with some, everyone gets a few each round, a win pays 10 (2nd in free-for-all 4). Robots cost ${COST.lv} per level star (one free starter in every offer), upgrades ${COST.drone}, legendaries ${COST.legendary}, a reroll ${COST.reroll}. You may skip an upgrade. Spending lowers your score.</p>
       <p class="muted" style="margin-bottom:0">No balance yet: this is a test bench.</p></div>`;
   }
@@ -527,10 +554,11 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   }
   function resultScreen() {
     const F = G.fight, meWon = F.winners.includes(ME), meIn = !!fighterOf(ME), me = G.players[ME];
+    if (local.myEnd && local.myEnd.id === F.id && local.myEnd.text !== F.result.text && !local.warned) { local.warned = true; console.warn('ARENA desync', local.myEnd.text, '|', F.result.text); }
     const lead = G.players.map(p => p.pts + ((F.applied ? 0 : F.award[G.players.indexOf(p)]) || 0));
     const champ = lead.findIndex(v => v >= G.target) >= 0;
     return `<div class="box"><h2 class="${meIn ? (meWon ? 'win' : 'lose') : ''}">${meIn ? (meWon ? 'You win this round!' : 'Not this time') : 'Round ' + G.round + ' result'}</h2>
-      <p class="big" style="font-size:19px">${esc(F.result.text)}</p>${local.desync ? '<p class="lose">⚠ This screen saw a different ending (' + esc(local.desync) + '). The host\'s result counts. Tell Claude.</p>' : ''}<p class="status">${esc(L.ARENAS[F.arena] ? L.ARENAS[F.arena].label : F.arena)} · ${F.result.t} s · seed ${esc(F.bb.seed)}</p>
+      <p class="big" style="font-size:19px">${esc(F.result.text)}</p>${local.myEnd && local.myEnd.id === F.id && local.myEnd.text !== F.result.text ? '<p class="lose">⚠ This screen saw a different ending (' + esc(local.myEnd.text) + '). The host\'s result counts. Tell Claude.</p>' : ''}<p class="status">${esc(L.ARENAS[F.arena] ? L.ARENAS[F.arena].label : F.arena)} · ${F.result.t} s · seed ${esc(F.bb.seed)}</p>
       ${fighterCards(false)}
       ${champ ? '<p class="big win">Someone reached ' + G.target + ' points: the match ends after this round.</p>' : ''}
       <div class="row">${me && !me.ready ? `<button class="go" data-a="ready">${champ ? 'See the final standings' : 'Ready for the next round'}</button>` : '<span class="status">Waiting for the others…</span>'}
@@ -546,7 +574,8 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       const a = b.dataset.a;
       if (a === 'copy') { const i = $('#link'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } toast('Link copied'); return; }
-      if (a === 'watch') { local.started = null; local.watched = null; openFight(true); return; }
+      if (a === 'watch' && isHost && local.liveS) return;
+      if (a === 'watch') { const again = !!(G.fight && G.fight.result); if (again) local.watched = null; openFight(again); return; }
       if (a === 'roll') { local.rollAnim = performance.now() + 900; setTimeout(render, 950); }
       send(a, { slot: b.dataset.slot, k: b.dataset.k, i: +b.dataset.i });
     });
@@ -557,17 +586,77 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 
   // ---------- the fight view ----------
   let fvMounted = false;
-  function VIEW_SYNC() { if (G && G.phase === 'fight' && G.fight && local.started !== G.fight.id && local.watched !== G.fight.id) openFight(false); }
+  function VIEW_SYNC() { if (G && G.phase === 'fight' && G.fight && !G.fight.result && local.started !== G.fight.id) openFight(false); }
+  // again = a replay with every input; otherwise the live fight (the host's clock: the host plays it at its pace, others follow BUF steps behind)
   function openFight(again) {
     if (!fvMounted) { VIEW.mount($('#fv')); fvMounted = true; }
     const F = G.fight; local.started = F.id;
-    const S = L.create(clone(F.bb));
-    const live = !again && !isHost;
+    local.cmdId = F.id;
+    const S = L.create(clone(F.bb)); S.cmdQ = clone(cmdsOf(F.id));
+    local.replay = !!again; local.liveS = again ? null : S;
+    if (!again && !isHost) S.capStep = (local.lastTick && local.lastTick.id === F.id ? local.lastTick.step : 0) + LAG - 1;
+    if (!again) VIEW.V.speed = isHost ? (+qs.get('fast') || 1) : (local.lastTick && local.lastTick.sp) || 1;
+    const k = G.fighters.findIndex(f => f.p === ME);
     const info = '<h4>ROUND ' + G.round + ' · ' + esc(MODES[G.mode].label.toUpperCase()) + '</h4>' + G.fighters.map(f => { const p = G.players[f.p], D = G.draft[f.p]; return '<div class="fv-ib"><b style="color:' + (G.mode === '2v2' ? TEAMPAL[f.team][0].col : pcol(p)) + '">' + esc(p.name) + '</b><i>' + esc(D.robot) + (D.ups.length ? ' +' + D.ups.length : '') + '</i></div>'; }).join('');
-    VIEW.play(S, { title: 'Round ' + G.round + (again ? ' (replay)' : ''), info, client: live,
-      pace: live ? () => { const t = local.lastTick; if (!t || t.id !== F.id) return null; return t.step + (t.paused ? 0 : (performance.now() - t.at) / 1000 * 120 * t.sp); } : null,
-      onEnd: S2 => { local.watched = F.id; const mine = S2 && S2.result ? S2.result.text : ''; local.desync = mine && mine !== F.result.text ? mine : null; if (local.desync) console.warn('ARENA desync', mine, F.result.text); render(); } });
+    VIEW.play(S, { title: 'Round ' + G.round + (again ? ' (replay)' : ''), info, client: !again,
+      pace: !again && !isHost ? () => { const t = local.lastTick; if (!t || t.id !== F.id) return null; return t.step - BUF * t.sp + (t.paused ? 0 : (performance.now() - t.at) / 1000 * 120 * t.sp); } : null,
+      onStep: S2 => { if (isHost && !again && S2 === local.liveS && S2.over && !F.result) finishFight(S2); },
+      onEnd: S2 => { local.watched = F.id; if (!again && S2 && S2.result) local.myEnd = { id: F.id, text: S2.result.text }; local.liveS = null; local.replay = false; pilotHud(-1); render(); } });
+    pilotHud(again ? -1 : k);
   }
+  // a command reached this screen after its tick: rebuild the fight with every input and run it back to where it was
+  const RS = { n: 0 };
+  function resync() {
+    RS.n++;
+    const S0 = local.liveS; if (!S0 || !G.fight) return;
+    const S = L.create(clone(G.fight.bb)); S.cmdQ = clone(cmdsOf(G.fight.id));
+    let n = 0; while ((S.countdown > 0 || S.step < S0.step) && !S.over && n++ < 120 * 260) { L.step(S); S.fx.length = 0; }
+    S.capStep = S0.capStep; local.liveS = S; VIEW.replace(S);
+  }
+
+  // ---------- driving your robot: WASD / arrows, or hold the mouse / a finger on the arena where you want to go ----------
+  const PIL = { k: -1, keys: new Set(), ptr: null, sent: null, at: 0, auto: true };
+  const hud = document.createElement('div'); hud.id = 'pilotHud'; hud.hidden = true; document.body.appendChild(hud);
+  function pilotHud(k) {
+    PIL.k = k; PIL.keys.clear(); PIL.ptr = null; PIL.sent = null; PIL.auto = true;
+    if (k < 0 || !G) { hud.hidden = true; return; }
+    const D = G.draft[ME], pal = G.mode === '2v2' ? TEAMPAL[G.fighters[k].team][G.fighters.filter(x => x.team === G.fighters[k].team).indexOf(G.fighters[k])] : PALS[G.players[ME].col], col = pal.col;
+    const nm = (G.fight.bb.robots ? G.fight.bb.robots[k] : [G.fight.bb.a, G.fight.bb.b][k]).name;
+    hud.hidden = false;
+    hud.innerHTML = `<b><span class="sw" style="background:${col}"></span>You: ${esc(nm)}</b> <span class="help">WASD / arrows or hold where to go · weapon fires itself</span> <i id="pilState">AI drives until you steer</i> <button type="button" id="pilAuto">Autopilot (Q)</button>`;
+    hud.querySelector('#pilAuto').onclick = () => setAuto();
+    const cv = document.querySelector('#fv .fv-arena canvas');
+    if (cv && !cv.dataset.pil) { cv.dataset.pil = 1; cv.style.touchAction = 'none';
+      const at = e => { if (PIL.k < 0 || VIEW.aiming) return; PIL.ptr = VIEW.toWorld(e.clientX, e.clientY); pilotTick(); };
+      cv.addEventListener('pointerdown', e => { if (PIL.k < 0) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} at(e); });
+      cv.addEventListener('pointermove', e => { if (PIL.ptr) at(e); });
+      const up = () => { if (PIL.ptr) { PIL.ptr = null; pilotTick(); } };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    }
+  }
+  function myRobot() { const S = local.liveS; return S && PIL.k >= 0 ? S.robots[PIL.k] : null; }
+  function setAuto() { PIL.keys.clear(); PIL.ptr = null; PIL.auto = true; sendPilot({ auto: 1 }); }
+  function sendPilot(o) {
+    const key = o.auto ? 'auto' : o.d + ':' + o.go; if (key === PIL.sent) return;
+    PIL.sent = key; PIL.at = performance.now();
+    const st = hud.querySelector('#pilState'); if (st) st.textContent = o.auto ? 'Autopilot: the AI drives' : 'You are driving';
+    const m = { id: G.fight.id, d: o.d, go: o.go, auto: o.auto };
+    if (isHost) hostInput(ME, m); else NET.send('host', Object.assign({ t: 'in' }, m));
+  }
+  function pilotTick() {
+    if (PIL.k < 0 || !G || !G.fight || G.fight.result) return;
+    const R = myRobot(); if (!R || !R.alive) return;
+    let x = 0, y = 0;
+    const K = PIL.keys; if (K.has('a')) x--; if (K.has('d')) x++; if (K.has('w')) y--; if (K.has('s')) y++;
+    if (PIL.ptr) { const p = R.body.getPosition(); x = PIL.ptr[0] - p.x; y = PIL.ptr[1] - p.y; if (Math.hypot(x, y) < 0.25) { x = 0; y = 0; } }
+    if (x || y) { PIL.auto = false; PIL.lastD = ((Math.round(Math.atan2(y, x) / (Math.PI * 2) * 32) % 32) + 32) % 32; sendPilot({ d: PIL.lastD, go: 1 }); }
+    else if (!PIL.auto) sendPilot({ d: PIL.lastD || 0, go: 0 });
+  }
+  const KEYMAP = { w: 'w', arrowup: 'w', a: 'a', arrowleft: 'a', s: 's', arrowdown: 's', d: 'd', arrowright: 'd' };
+  document.addEventListener('keydown', e => { if (PIL.k < 0 || e.target.tagName === 'INPUT') return; const k = KEYMAP[e.key.toLowerCase()]; if (k) { e.preventDefault(); PIL.keys.add(k); pilotTick(); } else if (e.key.toLowerCase() === 'q') setAuto(); });
+  document.addEventListener('keyup', e => { const k = KEYMAP[e.key.toLowerCase()]; if (k) { PIL.keys.delete(k); pilotTick(); } });
+  window.addEventListener('blur', () => { if (PIL.keys.size) { PIL.keys.clear(); pilotTick(); } });
+  setInterval(() => { if (PIL.ptr) pilotTick(); }, 100);   // the robot moves under a still pointer: keep the direction fresh
 
   // ---------- test bot (&bot=1): plays itself ----------
   let botBusy = false;
@@ -577,15 +666,15 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       botBusy = false; if (!G) return;
       const D = G.draft[ME];
       if (G.phase === 'draft' && D && D.step !== 'done') { if (D.step === 'roll') send('roll', {}); else { const o = (D.step === 'robot' ? D.offers.robot : D.offers[D.step]).filter(k => !G.budget || G.players[ME].pts >= price(k)); if (G.budget && Math.random() < 0.15 && G.players[ME].pts >= COST.reroll) send('reroll', {}); else send('pick', { slot: D.step, k: o.length ? o[Math.floor(Math.random() * o.length)] : 'skip' }); } }
-      else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { VIEW.skip(); setTimeout(() => { const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }, 1500); }
-      else if (G.phase === 'fight' && local.watched === G.fight.id && G.players[ME] && !G.players[ME].ready) send('ready', {});
+      else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { if (PIL.k >= 0 && local.liveS && Math.random() < 0.6) { if (Math.random() < 0.15) setAuto(); else { PIL.auto = false; PIL.lastD = Math.floor(Math.random() * 32); sendPilot({ d: PIL.lastD, go: Math.random() < 0.85 ? 1 : 0 }); } } const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }
+      else if (G.phase === 'fight' && local.watched === G.fight.id && G.fight.result && G.players[ME] && !G.players[ME].ready) send('ready', {});
       else if (isHost && G.phase === 'lobby' && +qs.get('autostart') && G.players.filter(p => !p.ai).length >= +qs.get('autostart')) send('start', {});
     }, 300);
   }
-  if (BOT) setInterval(() => render(), 1500);
+  if (BOT) setInterval(() => render(), 700);
 
   // ---------- go ----------
-  window.ARENA = { get G() { return G; }, get ME() { return ME; }, VERSION, act: (a, o) => send(a, o || {}) };
+  window.ARENA = { get G() { return G; }, get ME() { return ME; }, local, get resyncs() { return RS.n; }, VERSION, act: (a, o) => send(a, o || {}) };
   if (qs.get('room') && qs.get('name') && (BOT || qs.get('auto') === '1')) connect(qs.get('room'), qs.get('host') === '1', qs.get('name'));
   else render();
 })();

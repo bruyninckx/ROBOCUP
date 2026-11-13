@@ -1759,6 +1759,9 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (R.escape > 0) { R.escape -= DT; tx = p.x * 0.2; ty = p.y * 0.2; speed = 1; }
     else if ((Math.abs(p.x) > HX - 0.75 || Math.abs(p.y) > HY - 0.75) && sp0 < 0.3 && !R.grab && !(dist < R.hl + E.hl + 0.9 && w === "wedge")) { R.wallT = (R.wallT || 0) + DT; if (R.wallT > 1.5) { R.escape = 1.1; R.wallT = 0; R.orbit = -R.orbit; } }
     else R.wallT = 0;
+    // a player drives this robot (Draft Arena, Kev 13 Nov): head for the stick direction, the weapon still works by itself. Off (null) = the AI as always.
+    const pil = R.pilot;
+    if (pil) { R.escape = 0; R.unstick = 0; R.stuckT = 0; const an = pil.d * TAU / 32; tx = p.x + Math.cos(an) * 2; ty = p.y + Math.sin(an) * 2; speed = pil.go ? 1 : 0; }
     let err = wrap(Math.atan2(ty - p.y, tx - p.x) - a);
     let fwdC;
     // gunners may back up instead of turning around
@@ -1783,6 +1786,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // close in but nothing is happening (both shoving, no damage): back off and come in again
     const close = dist < R.hl + E.hl + 0.9; if (!close) R.closeSince = null; else if (R.closeSince == null) R.closeSince = S.t;
     if (E.alive && close && S.t - Math.max(R.closeSince, R.lastHit || 0, E.lastHit || 0, R.reengaged || 0) > (R.proc === 'rammer' ? 3.5 : R.proc === 'flanker' ? 1.8 : 2.5) && !(R.boomArm > 0) && !(R.berserk > 0) && R.unstick <= 0 && !R.grab && !(w === 'wedge')) { R.unstick = 0.7 + S.rng() * 0.4; R.reengaged = S.t; R.orbit = -R.orbit; }
+    if (pil) { R.unstick = 0; R.stuckT = 0; }   // a driver backs off on their own
     const effort = (Math.abs(L) + Math.abs(Rr)) / 2, wv = Math.abs(b.getAngularVelocity());
     if (R.unstick > 0) { R.unstick -= DT; L = -0.9 + (R.orbit > 0 ? 0.6 : 0); Rr = -0.9 + (R.orbit > 0 ? 0 : 0.6); }
     else if (effort > 0.45 && sp < 0.15 && wv < 0.4 && !R.grab) {
@@ -1792,8 +1796,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if (R.stuckT > (pinning ? 2 : 1)) { R.unstick = 0.6 + S.rng() * 0.5; R.stuckT = 0; R.orbit = -R.orbit; }
     } else R.stuckT = Math.max(0, R.stuckT - DT * 0.5);
     // thwack tail: spin on the spot when the enemy is in reach of the tail
-    if (w === 'tail' && weaponOk(R) && E.alive && dist < R.hl + R.tailLen + E.hl + 0.8 && !(R.unstick > 0)) { const rel2 = wrap(Math.atan2(dy, dx) - a), fc = 0.45 * Math.cos(rel2) * (dist > R.hl + R.tailLen * 0.7 + E.hl ? 1 : -0.4); L = clamp(R.orbit * 0.85 + fc, -1, 1); Rr = clamp(-R.orbit * 0.85 + fc, -1, 1); R.thwack = 0.2; } // spin, and creep towards the enemy (back off when it is inside the tail)
-    if (L4W[w] && L4W[w].drive && !(R.unstick > 0)) { const o4 = L4W[w].drive(S, R, { E, dist, dx, dy, ok: weaponOk(R) }); if (o4) { L = o4[0]; Rr = o4[1]; } }
+    if (!pil && w === 'tail' && weaponOk(R) && E.alive && dist < R.hl + R.tailLen + E.hl + 0.8 && !(R.unstick > 0)) { const rel2 = wrap(Math.atan2(dy, dx) - a), fc = 0.45 * Math.cos(rel2) * (dist > R.hl + R.tailLen * 0.7 + E.hl ? 1 : -0.4); L = clamp(R.orbit * 0.85 + fc, -1, 1); Rr = clamp(-R.orbit * 0.85 + fc, -1, 1); R.thwack = 0.2; } // spin, and creep towards the enemy (back off when it is inside the tail)
+    if (L4W[w] && L4W[w].drive && !(R.unstick > 0) && !pil) { const o4 = L4W[w].drive(S, R, { E, dist, dx, dy, ok: weaponOk(R) }); if (o4) { L = o4[0]; Rr = o4[1]; } }
     if (R.fleeT > 0) { R.fleeT -= DT; L = Rr = R.flee; R.ctl.S = 0; } // the House Robot's mallet is coming down here: full throttle straight out
     else if (R.awayT > 0) { R.awayT -= DT; let e = wrap(Math.atan2(R.away[1], R.away[0]) - a), dir = 1; if (Math.abs(e) > Math.PI / 2) { e = wrap(e + Math.PI); dir = -1; } const tn = clamp(e * 2.2, -1, 1), fw = clamp(1.2 - Math.abs(e) / 1.2, 0, 1) * dir; L = clamp(fw + tn, -1, 1); Rr = clamp(fw - tn, -1, 1); R.ctl.S = 0; } // right next to the House Robot: get out
     // a damaged radio scrambles the commands
@@ -2548,6 +2552,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     S.magnets = S.magnets.filter(m => m.life > 0);
   }
   function applyCmd(S, c) {
+    if (c.type === 'pilot') { const P = S.robots[c.robot]; if (P) P.pilot = c.auto ? null : { d: c.d, go: c.go }; return; }   // a player drives (Draft Arena): direction d in 1/32 turns, go = throttle; auto = hand back to the AI
     const R = c.robot != null ? S.robots[c.robot] : null, who = c.by ? c.by + ': ' : '', lab = (LIVE[c.type] || {}).label || c.type;
     const x = c.x == null ? 0 : clamp(c.x, -HALF + 0.4, HALF - 0.4), y = c.y == null ? 0 : clamp(c.y, -HALF + 0.4, HALF - 0.4);
     if (R && !R.alive) return;
