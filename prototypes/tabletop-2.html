@@ -2450,7 +2450,7 @@ html, body {
    * their credits / Stash parts, for trades), lock: label }. Resolves to { give: {cr, items}, want: {cr, items} } or null. */
   function dealPanel(opts, seat = HS) {
     const N = window.ROBOCUS_NET;
-    if (isRemote(seat) && N) {   // the panel opens on that player's screen; the host gets back what they locked in
+    if (isRemote(seat) && N && !isClient()) {   // host: the panel opens on that player's screen; the host gets back what they locked in (a client shows its own panel: its seat is 'remote' in SEATS too)
       const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null });
       return N.deal(seat, o).then(st => st && st.give ? st : null);
     }
