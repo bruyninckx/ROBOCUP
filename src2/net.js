@@ -113,6 +113,7 @@
     })));
     T.send = (to, d) => { if (to) { const c = conns[to]; if (c && c.open) c.send(d); } else Object.values(conns).forEach(c => { if (c.open) c.send(d); }); };
     T.close = () => { try { T.peer.destroy(); } catch (e) {} };
+    T.linked = () => !!(conns.host && conns.host.open);   // client: is the link to the host still open?
     return T;
   }
 
@@ -194,9 +195,10 @@
           p = { cid: d.cid, name, seat, ready: false };
           H.players.push(p);
         }
+        const wasHere = !!(p.connected && !p.gone);   // a repeat hello from a screen that never dropped: no "is back" line
         p.from = from; p.cid = d.cid; p.name = name; p.connected = true; p.seen = Date.now(); p.gone = false;
         send(p, { t: 'welcome', seat: p.seat, room, started: H.started });
-        if (H.started) { resync(p); GAME().notify('🔌 <b>' + esc(p.name) + '</b> is back.', '#111'); updatePause(); }
+        if (H.started) { resync(p); if (!wasHere) GAME().notify('🔌 <b>' + esc(p.name) + '</b> is back.', '#111'); updatePause(); }
         pushLobby(); return;
       }
       if (!p || p.gone) return;   // after a "bye", only a new hello counts (a closing tab can still send a message or two)
@@ -377,13 +379,17 @@
     let lost = false;
     setInterval(() => {
       if (C.joined) send({ t: 'hb' });
-      if (C.joined && Date.now() - C.lastHost > 6000 && !lost) {
+      if (C.joined && Date.now() - C.lastHost > 10000 && !lost) {   // 10 s: a slow screen busy with a big resync is not lost
         lost = true;
         let el = $('#netPause'); if (!el) { el = document.createElement('div'); el.id = 'netPause'; document.body.appendChild(el); }
         el.innerHTML = '<div class="np-box"><b>📡 Lost the host</b><br>Trying to reconnect… If the host closed the game, ask them to open it again.</div>';
       }
-      if (lost && T.connect) T.connect().then(hello).catch(() => {});
-      else if (lost) hello();
+      // one try every 3 s; a new link only when the old one is really closed (each new link = a hello = a full resync)
+      if (lost && Date.now() - (C.lastTry || 0) > 3000) {
+        C.lastTry = Date.now();
+        if (T.connect && !(T.linked && T.linked())) T.connect().then(hello).catch(() => {});
+        else hello();
+      }
     }, 1000);
     window.addEventListener('beforeunload', () => { try { send({ t: 'bye' }); } catch (e) {} });
     function drawClientPause(paused) {
@@ -401,7 +407,7 @@
         '<div class="nl-note">Rejoining a game? Use the same name as before.</div><div class="nl-row"><button class="sec" id="nlSolo">Play solo instead</button></div>' + verLine() + '</div>';
       const go = () => { C.name = $('#nlName').value.trim().slice(0, 20); if (!C.name) return; lsSet('robocus.name', C.name); el.querySelector('.nl-box').insertAdjacentHTML('beforeend', '<div class="nl-note" id="nlStage">Connecting… ' + esc(T.stageText || '') + '</div>');
         T.onstage = t => { const n = $('#nlStage'); if (n) n.textContent = 'Connecting… ' + t; };
-        T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.onstage = t => { T.stageText = t; T.relay = T2.relay; if (T.onstage) T.onstage(t); }; T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
+        T.ready.then(hello).catch(e => { if (mode !== 'local') { try { T.close(); } catch (x) {} const T2 = peerTransport(room, false); T2.onmsg = (f, d) => T.onmsg(f, d); T2.onstage = t => { T.stageText = t; T.relay = T2.relay; if (T.onstage) T.onstage(t); }; T2.ready.catch(() => {}); Object.assign(T, { ready: T2.ready, send: T2.send, close: T2.close, linked: () => !!(T2.linked && T2.linked()), connect: () => T2.connect ? T2.connect() : Promise.reject(new Error('not connected')) }); }
           const ty = String(e && (e.type || e.message));
           drawJoin(/unavailable|could not connect/i.test(ty) ? 'No game in room ' + room + ' right now. Check the code, or ask the host to open the game first.'
             : e && e.type === 'ice' ? 'Found the game, but ' + e.message + '. Some networks (mobile data, some routers and work Wi-Fi) block direct links between devices' + (T.relay ? ', even with the relay.' : '. A relay server fixes this (ask the host: README, "Online play").') + ' Try again, or try another network.'
