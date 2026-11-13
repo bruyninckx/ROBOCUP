@@ -6506,7 +6506,7 @@ html, body {
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 76, tw, '600', 10.5);
     help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
-    const myUpkeep = G.phase === 'upkeep' && ti === HS && !isClient() && !iWait('upkeep');
+    const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
     const actX = bx + 10, actY = by + 127, actW = bw - 20, actH = 18;
     const btn = (fill, txt, stroke) => { ctx.fillStyle = fill; rrect(ctx, actX, actY, actW, actH, 3); ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; rrect(ctx, actX, actY, actW, actH, 3); ctx.stroke(); } };
