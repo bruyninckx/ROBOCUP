@@ -18,7 +18,7 @@
   const ROBOTS4 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
   // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
   // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
-  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1] };
+  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1], Jukebox: [0, 1], Gaucho: [0, 1] };
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
   const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 2.4, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };

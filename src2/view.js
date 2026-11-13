@@ -471,6 +471,21 @@
     if (k > 0.05) { ctx.globalAlpha = Math.sin(t * (8 + 22 * k)) > 0 ? 0.95 : 0.25; ctx.fillStyle = '#FF3B2B'; ctx.beginPath(); ctx.arc(0, 0, 0.045, 0, 6.29); ctx.fill(); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(0, 0, 0.11, 0, 6.29); ctx.fill(); ctx.globalAlpha = 1; } // a strobe on the head too
     ctx.restore();
   }
+  // a steel record: dark disc, grooves, coloured label; spinning ones blur, flying ones glow
+  function drawRecord(q, spin, lifted) {
+    const b = q.body, p = b.getPosition(), a = b.getAngle(), r = 0.21, w = spin != null && spin > 0 ? spin : Math.min(1, Math.abs(b.getAngularVelocity()) / 130), fly = q.state === 'fly';
+    ctx.save(); ctx.translate(p.x, p.y);
+    if (lifted) { ctx.fillStyle = 'rgba(20,14,8,0.2)'; ctx.beginPath(); ctx.arc(0.1, 0.1, r, 0, 6.29); ctx.fill(); ctx.scale(1.12, 1.12); }
+    if (fly && w > 0.15) { ctx.strokeStyle = `rgba(255,90,200,${0.25 + 0.4 * w})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, r + 0.04, 0, 6.29); ctx.stroke(); const v = b.getLinearVelocity(); ctx.strokeStyle = `rgba(255,240,250,${0.25 * w})`; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-v.x * 0.04, -v.y * 0.04); ctx.lineTo(0, 0); ctx.stroke(); ctx.lineCap = 'butt'; }
+    ctx.rotate(a);
+    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,200,190,0.22)'; ctx.lineWidth = PX; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (0.5 + k * 0.12), 0, 6.29); ctx.stroke(); }
+    ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.8; for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(t) * r * 0.93, Math.sin(t) * r * 0.93); ctx.lineTo(Math.cos(t + 0.12) * r, Math.sin(t + 0.12) * r); ctx.stroke(); } // the saw teeth on the rim
+    if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.45 * w})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * 0.78, k * 2.1, k * 2.1 + 0.9); ctx.stroke(); } }
+    ctx.fillStyle = q.col || '#E8C547'; ctx.beginPath(); ctx.arc(0, 0, r * 0.34, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-r * 0.2, -r * 0.05, r * 0.4, r * 0.03); ctx.fillStyle = '#E4E1DA'; ctx.beginPath(); ctx.arc(0, 0, 0.012, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
   function drawL4(R, i) {
     const w = R.spec.weapon, b = R.body, t = performance.now() / 1000;
     if (w === 'mallet' && R.l4 && !R.inPit) drawMallet(R);
@@ -510,6 +525,35 @@
       for (const q of R.discs) if (q.attached) { const p = q.body.getPosition(); if (R.l4.mode !== 'docked') { ctx.strokeStyle = INK; ctx.lineWidth = 0.045; ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = 0.022; ctx.stroke(); } drawBuzz(q, { buzzW: q.spin, buzzMax: 95, buzzR: 0.13 / 0.15 * 0.14 }); }
       const a = R.rotor.getAngle(); ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(a); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -0.09, 0.04, 0.18); ctx.restore();
     }
+    if (w === 'jukebox' && R.records) {
+      const st = R.l4, tp = b.getWorldPoint(planck.Vec2(st.tableAt[0], st.tableAt[1]));
+      // turntable platter on the nose
+      ctx.fillStyle = '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(tp.x, tp.y, 0.235, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 1.2; ctx.beginPath(); ctx.arc(tp.x, tp.y, 0.22, 0, 6.29); ctx.stroke();
+      // the stack on its back (bottom first), then the record on the loader or the platter
+      for (const q of R.records.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.012; ctx.save(); ctx.translate(-k, -k); drawRecord(q, 0); ctx.restore(); }
+      for (const q of R.records) if ((q.state === 'table' || q.state === 'load') && q.attached) drawRecord(q, q.state === 'table' ? st.rpm : 0, q.state === 'load');
+      // the tone-arm loader: pivot on the side, arm to wherever it is carrying the record
+      if (R.loader.hp > 0) {
+        const pv = b.getWorldPoint(planck.Vec2(R.loader.lp[0], R.loader.lp[1])), at = st.armAt ? b.getWorldPoint(planck.Vec2(st.armAt[0], st.armAt[1])) : b.getWorldPoint(planck.Vec2(st.stackAt[0] + 0.12, st.stackAt[1] + 0.12));
+        ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.lineTo(at.x, at.y); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.026; ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(pv.x, pv.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C9A227'; ctx.fillRect(at.x - 0.03, at.y - 0.03, 0.06, 0.06);
+      }
+    }
+    if (w === 'bola' && R.launcher) {
+      const lp = b.getWorldPoint(planck.Vec2(R.launcher.lp[0], R.launcher.lp[1])), a = R.bolaA || b.getAngle(), ok = R.launcher.hp > 0;
+      if (R.gSaw && R.gSaw.attached) { const bp = R.gSaw.body.getPosition(), cp = b.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.gSaw, { buzzW: R.gSaw.spin, buzzMax: 110, buzzR: 0.15 }); }
+      // the launcher: a turret with a bola loaded (two balls and a cord) while it is ready
+      ctx.save(); ctx.translate(lp.x, lp.y); ctx.rotate(a); ctx.fillStyle = ok ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.06, 0.3, 0.12, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
+      if (ok && R.cool <= 0 && !(R.bolas && R.bolas.length)) { const sp = t * 6; ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.2 + Math.cos(sp) * 0.09, Math.sin(sp) * 0.09); ctx.lineTo(0.2 - Math.cos(sp) * 0.09, -Math.sin(sp) * 0.09); ctx.stroke(); for (const sg of [1, -1]) { ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0.2 + sg * Math.cos(sp) * 0.09, sg * Math.sin(sp) * 0.09, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); } }
+      ctx.restore();
+      // bolas in flight or wrapped: the cord and the two balls
+      for (const B of R.bolas || []) { const p0 = B.balls[0].getPosition(), p1 = B.balls[1].getPosition();
+        if (B.joint) { ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.014; ctx.setLineDash([0.03, 0.02]); ctx.stroke(); ctx.setLineDash([]); }
+        for (const q of [p0, p1]) { ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.arc(q.x, q.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(q.x - 0.015, q.y - 0.015, 0.018, 0, 6.29); ctx.fill(); } }
+    }
+    // a robot with a bola round its wheels: cord coils on the tied side
+    if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }
     if (w === 'beak' && R.beakRam) { // the upper beak: raised (drawn short and big), dropping, or closed on its victim
       const st = R.l4, k = R.grab ? 1 : st.mode === 'strike' ? 1 - st.t / 0.16 : 0, bend = R.beakBend || 0, sc = 1 + 0.45 * (1 - k), tipX = R.hl + 0.02 + 0.34 * k;
       ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(b.getAngle()); ctx.translate(0.15 * R.hl, 0); ctx.rotate(bend * 0.6); ctx.scale(sc, sc);
@@ -612,6 +656,7 @@
     if (sp > 2) { ctx.strokeStyle = `rgba(255,240,210,${Math.min(0.5, sp / 12)})`; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x - v.x * 0.07, p.y - v.y * 0.07); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.lineCap = 'butt'; }
     if (d.key === 'blade') { drawBlade(d, null); return; }
     if (d.key === 'buzz') { drawBuzz(d, null); return; }
+    if (d.key === 'record') { drawRecord(d); return; }
     if (d.key === 'orbdisc' || d.key === 'gmsaw') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 95, buzzR: 0.13 }); return; }
     if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }

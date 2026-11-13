@@ -37,6 +37,13 @@ Per robot: median fights 42-57 s, 22-29 big moments a minute, 3-5 enemy parts to
 - **Vertigo** flips Blacksmith (0-30%).
 - Rotisserie's next weakest matchup after Ramrod: Sawblast (50-70%).
 
+## Jukebox and Gaucho (13 Nov, later)
+
+- **Jukebox** (the disc jockey from 8 Nov, Kev: very novel) moved onto 2.0.1 as a candidate. Without its old knobs (grade 1.18, damage x1.9) it measured **level 0**: 58-61% vs level 0, 25-27% vs level 1. Changes on the way, all physical: bigger records (10 kg, 0.21 m, 130 rad/s), a stronger turntable motor, and the bite's damage now comes from the energy the rim loses in the cut (0.08 damage per joule) instead of a fixed number. Records warp and cut grooves under the 2.0.1 wear rules. Its limit is the rate of fire: about 6 throws a fight, 0.84 hits per throw, about 47 damage per hit. Heavier records also mean Lodestone (pulls loose junk up to 6 kg) no longer catches them.
+- **Gaucho** (new, projectiles): throws bolas, two steel balls on a cord, spun about their middle. Whatever they hit they wrap: round a wheel or a flank they tie that side's wheels (drive force x0.1, tracks x0.45) for 3 s, round the front they jam the weapon. Spinning weapons cut the cord. A nose saw finishes. The next bola only flies once the last one is off (the first version tied robots up for good: no fun). Measured **level 0 or below** (33% vs level 0, 47% on another seed set; with the 2.0.1 switches on 20%). The bola is a strong control effect with almost no damage of its own, so it fits the "add a weapon to a robot" track better than a robot of its own.
+
+Under the 2.0.1 switches (all eight on): Jukebox 61% vs level 0, 25% vs level 1, 7% vs level 2.
+
 ## Looks (Kev: higher levels look fierce, the weapon shows its strength at once)
 - Rotisserie (level 4): long hooked pincers with serrated teeth (bigger in the physics too: 0.53 m, re-measured afterwards, still level 4), a big nozzle, twin red fuel tanks, a fat flame.
 - Blacksmith: a big hammer block held high over the robot (drawn bigger while raised) that comes down onto the victim's lid; a glowing anvil.
@@ -50,6 +57,5 @@ Per robot: median fights 42-57 s, 22-29 big moments a minute, 3-5 enemy parts to
 - `node l4.js` already does the level and fun part (`VS=1,2,3`, `CX=all` for the 2.0.1 switches); the counterplay part needs a candidate-vs-candidate matrix.
 
 ## Not done
-- Jukebox (records that fly, 8 Nov) was built on a branch from main that was never pushed (`Claude outputs/robocus-l4-jukebox.bundle`). Under the new rule it would be a candidate at grade 1 (it used grade 1.18 and damage knob 1.9 there); not moved to 2.0.1 yet.
 - The eight level 4 robots and the lineup still use grades and knobs from before the new rule.
 - The AI doesn't use the 2.0.1 rules on purpose (aim for open plates, walls).

@@ -132,6 +132,8 @@
     beak: { label: 'Piercing beak', cat: 'front', mass: 12, invert: false, l4: true, d: 'Level 4 (after Robot Wars\' Razer): a hooked beak drops from above, pierces the lid, holds on and lifts the victim off its wheels to carry it to a wall.' },
     roaster: { label: 'Pincers + flamethrower', cat: 'front', mass: 12, invert: false, l4: true, d: 'Level 4 (after Sgt Bash): pincers grab and hold, a flamethrower roasts what they hold, and they turn it so the flames reach its sides.' },
     smith: { label: 'Tongs + hammer', cat: 'front', mass: 16, invert: false, l4: true, d: 'Level 4 (after Mr Psycho): tongs clamp the enemy to an anvil nose and an overhead hammer pounds it while it is held.' },
+    jukebox: { label: 'Record launcher', cat: 'front', mass: 10, invert: true, l4: true, d: 'Four steel records on its back. A loader drops one on the turntable, it spins up and flies: a heavy saw that bounces round the arena, curving off the walls. It picks spent records back up.' },
+    bola: { label: 'Bola launcher + nose saw', cat: 'front', mass: 10, invert: true, l4: true, d: 'Throws bolas: two steel balls on a cord that wrap whatever they hit. Round the wheels they tie that side up, round the front they tie the weapon. Then the nose saw goes in. Spinning weapons cut the cord.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
     mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
     carousel: { label: 'Tool carousel', cat: 'front', mass: 16, invert: true, l4: true, d: 'Level 4: a wedge, an axe and a saw on a turning carousel. Its brain picks the tool that counters the enemy.' },
@@ -221,6 +223,8 @@
     Grandmaster: { weapon: 'carousel', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'round', helpers: [], dmgK: 1.45, l4: true },
     // the House Robot (tabletop card "Unleash the House Robot"): neutral, huge, slow, a giant hammer; other robots keep away from it
     'Big Mallet': { weapon: 'mallet', chassis: 'giant', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 3, side: 3, rear: 2, top: 3 }, shape: 'chamfer', helpers: [], house: true, pal: { name: 'House', col: '#D9A520', dark: '#2E2A25', light: '#F2D27A' } },
+    Jukebox: { weapon: 'jukebox', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
+    Gaucho: { weapon: 'bola', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Talon: { weapon: 'beak', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Rotisserie: { weapon: 'roaster', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
     Blacksmith: { weapon: 'smith', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
@@ -1067,6 +1071,7 @@
     else if (uy.part) {
       const py = uy.part;
       sharp = py.sharp; if (py.attached) { src = py.robot; cause = py.kind === 'weapon' ? ({ blade: 'spinner', jaws: 'crusher', ball: 'flail', buzz: 'buzzsaw' }[py.key] || py.key) : py.bumper === 'spiked' ? 'spikeplate' : 'ram'; } else if (py.shrapBy && S.t < py.shrapT && py.shrapBy !== px.robot) { src = py.shrapBy; cause = 'shrapnel'; sharp = 1.1; } // level 4: magnet shrapnel
+      else if (py.key === 'record' && py.state === 'fly' && py.flyBy) { const own = py.flyBy === px.robot; src = own ? null : py.flyBy; cause = 'record'; sharp = 1.8 * (own ? JUKE.ffK : 1) * Math.min(1, Math.abs(py.body.getAngularVelocity()) / JUKE.rpm + 0.3); } // level 4: a flying record
       else if (py.key === 'orbdisc' && Math.abs(py.body.getAngularVelocity()) > 25) { src = null; cause = 'orbdisc'; sharp = 1.6; } // a loose orbit blade still cuts while it spins
       else { src = null; cause = 'debris'; sharp = Math.min(sharp, 0.45); }
       if (py.attached && px.attached && py.robot === px.robot) return;
@@ -1099,7 +1104,7 @@
     const blp = px.attached && px.body === px.robot.body ? [lp.x, lp.y] : null;
     let dir = null; if (uy.part && uy.part.body) { const v = uy.part.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)); const L = Math.hypot(v.x, v.y) || 1; dir = [v.x / L, v.y / L]; }
     // arcade knockback: weapon hits throw the victim
-    if (src && px.attached && (cause === 'spinner' || cause === 'flail' || cause === 'spear' || cause === 'shell' || cause === 'sweeper' || cause === 'tail' || cause === 'batram' || cause === 'orbdisc') && J > 12 && uy.part && uy.part.body) {
+    if (src && px.attached && (cause === 'spinner' || cause === 'flail' || cause === 'spear' || cause === 'shell' || cause === 'sweeper' || cause === 'tail' || cause === 'batram' || cause === 'orbdisc' || cause === 'record') && J > 12 && uy.part && uy.part.body) {
       const tb = px.robot.body, tp = tb.getWorldCenter(), spp = uy.part.body.getWorldCenter(); let kx = tp.x - spp.x, ky = tp.y - spp.y; const kl = Math.hypot(kx, ky) || 1;
       const mag = Math.min(140, J * 0.8) * ARC.knock; knock(px.robot, kx / kl * mag, ky / kl * mag, tp);
       if (mag > 40) { px.robot.airborne = Math.max(px.robot.airborne, 0.15); px.robot.airMax = Math.max(px.robot.airMax, 0.15); px.robot.thrownBy = src; }
@@ -1216,7 +1221,7 @@
   // Everything lives in the part's own frame (the robot's frame while it is attached), so it moves with the robot and can be drawn.
   const WEAR = { crackMin: 5, crackK: 0.0055, vib: 0.0022, seg: 0.022, splitAt: 0.62, bendMin: 7, bendK: 0.0034, bendMax: 0.075, bendR: 0.17, rubMin: 0.006, grooveK: 0.0012, cutK: 0.85, chOpen: 0.05, weakMax: 2.2 };
   const PIERCE = { spear: 1, harpoon: 1, fang: 0.9, crusher: 0.7, spikeplate: 0.7, sweeper: 0.6, hammer: 0.55, auger: 0.5, spikes: 0.5, shrapnel: 0.5, flail: 0.4, spinner: 0.4, tail: 0.35, slam: 0.3 };
-  const GRINDY = { saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, orbdisc: 1, gmsaw: 1 };
+  const GRINDY = { record: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, orbdisc: 1, gmsaw: 1 };
   const BLUNT = { impact: 1, ram: 1, wall: 1, slam: 1, landing: 1, squeeze: 1, hammer: 1, batram: 1, glove: 1, punch: 1, tail: 1, flail: 1, clapper: 1, crusher: 1, drum: 1, lifter: 1, flipper: 1, treb: 1, wedge: 1, spinner: 1, shell: 1, vdisc: 1, debris: 1, spikeplate: 1 };
   const wbb = vs => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of vs) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } return [x0, y0, x1, y1]; };
   function wAxis(part) { const [x0, y0, x1, y1] = wbb(part.verts), c = centroid(part.verts), lx = x1 - x0 >= y1 - y0; // long axis, and which way is in (towards the robot's middle)
@@ -1381,7 +1386,7 @@
   const KSTIFF = { hydra: 0.55, angler: 0.55, fang: 0.45, tail: 0.45, lifter: 0.6, clapper: 0.65, auger: 0.8 }; // short or slender beams: tuned so each weapon visibly bends in a fair share of fights (Kev, 11 Nov)
   const HUB = { vdisc: 1 }; // on the robot's body but held in the middle (an axle): two halves, each bends on its own
   const KINK = { yield: 3.2, k: 0.011, bladeK: 2.2, perHit: 0.14, max: 0.6, snap: 0.42, rootK: 0.15 };
-  const NOKINK = { heat: 1, fire: 1, strain: 1, flame: 1, laser: 1, emp: 1, pit: 1, crack: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, gmsaw: 1, orbdisc: 1 };
+  const NOKINK = { record: 1, heat: 1, fire: 1, strain: 1, flame: 1, laser: 1, emp: 1, pit: 1, crack: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, gmsaw: 1, orbdisc: 1 };
   const kinkCause = c => !NOKINK[c]; // any knock bends a weapon, weapon clashes included; heat and saws don't
   function kinkShape(base, ax, kinks, c) { // base outline -> bent outline (kinks from the root outwards)
     let vs = base.map(v => v.slice());
@@ -1435,7 +1440,7 @@
   // A spinning disc hit hard on its rim folds along a line through its middle: the half that was hit tips up out of the plane,
   // so from above that half looks shorter. It is then out of balance (it shakes its robot while it spins) and only part of its
   // edge still bites (saws and grinders cut less). Discs are stiff: only big rim impacts do it, and it builds up.
-  const WARP = { orbdisc: 1, twinsaw: 1, buzz: 1, gmsaw: 1, shell: 1 };
+  const WARP = { record: 1, orbdisc: 1, twinsaw: 1, buzz: 1, gmsaw: 1, shell: 1 };
   const WRP = { yield: 6, k: 0.004, perHit: 0.08, max: 0.45, fold: 0.42 };
   function warpShape(base, ux, uy, w) { const sq = 1 - WRP.fold * w / WRP.max; return base.map(([x, y]) => { const d = x * ux + y * uy; return d > 0 ? [x - (1 - sq) * d * ux, y - (1 - sq) * d * uy] : [x, y]; }); }
   function warpHit(S, R, part, h, atk) {
@@ -1636,6 +1641,7 @@
         if (mo.heat > 85) mf *= 0.4;
         let F = thr * Fw * mf * pw * clamp(1 - (vf * Math.sign(thr)) / vmax, 0, 1);
         if (bent) F *= 1 + 0.6 * Math.sin(s.spin * 1.0);
+        if (s.tangled > 0) { s.tangled -= DT; F *= trk ? 0.45 : 0.1; } // a bola wrapped round it (tracks shrug a cord off better)
         if (legs) F *= 0.75 + 0.5 * Math.max(0, Math.sin(s.spin * 0.7 + (s.tri ? Math.PI : 0))); // tripod gait
         const tmax = mu * load * 1.15 * fwdK;
         s.slip = Math.abs(F) > tmax ? 1 : 0;
@@ -2694,11 +2700,11 @@
   // =====================================================================================================
   const L4W = {};
   // weapons tall enough to hit a raised arm (Hydra, Angler) as it passes over a robot
-  const HIGHHIT = { blade: 1, ball: 1, shell: 1, sweeper: 1, tail: 1, vdisc: 1, buzz: 1, clapper: 1, twinsaw: 1, orbdisc: 1, hydra: 1, angler: 1, gmsaw: 1 };
+  const HIGHHIT = { record: 1, blade: 1, ball: 1, shell: 1, sweeper: 1, tail: 1, vdisc: 1, buzz: 1, clapper: 1, twinsaw: 1, orbdisc: 1, hydra: 1, angler: 1, gmsaw: 1 };
   const MAGNETIC = { steel: 1, spiked: 1, spring: 1 }; // bumper materials the electromagnet pulls (rubber and fibreglass don't)
-  const SPINNY = { spinner: 1, drum: 1, vdisc: 1, shell: 1, flail: 1, batram: 1, orbiter: 1, angler: 1, lodestone: 1, buzzsaw: 1, sawrocket: 1, twinsaw: 1 };
+  const SPINNY = { jukebox: 1, spinner: 1, drum: 1, vdisc: 1, shell: 1, flail: 1, batram: 1, orbiter: 1, angler: 1, lodestone: 1, buzzsaw: 1, sawrocket: 1, twinsaw: 1 };
   const BIGSPIN = { spinner: 1, shell: 1, vdisc: 1, flail: 1 };
-  const FLIPME = { drum: 1, vdisc: 1, batram: 1, angler: 1, lodestone: 1, lifter: 1, trebuchet: 1, clapper: 1, crusher: 1, glove: 1, corkscrew: 1, spear: 1, sawrocket: 1, buzzsaw: 1, twinsaw: 1, harpoon: 1, hammer: 1, fangs: 1 }; // front-weapon robots a flipper gets under
+  const FLIPME = { jukebox: 1, drum: 1, vdisc: 1, batram: 1, angler: 1, lodestone: 1, lifter: 1, trebuchet: 1, clapper: 1, crusher: 1, glove: 1, corkscrew: 1, spear: 1, sawrocket: 1, buzzsaw: 1, twinsaw: 1, harpoon: 1, hammer: 1, fangs: 1 }; // front-weapon robots a flipper gets under
   const l4front = (R, dx, dy) => R.body.getWorldPoint(V(R.hl + dx, dy));
   // drive a revolute joint to a target angle (P-controller on the motor)
   function jointTo(J, target, gain, torque, vmax) { if (!J) return; const e = wrap(target - J.getJointAngle()); J.setMotorSpeed(clamp(e * gain, -(vmax || 30), vmax || 30)); J.setMaxMotorTorque(torque); }
@@ -2753,6 +2759,7 @@
     else if (E.tool && E.tool.key === 'drum') spin = E.drumE || 0;
     else if (w === 'vdisc') spin = E.vE || 0;
     else if (E.buzz) spin = Math.abs(E.buzzW || 0) / (E.buzzMax || 110);
+    else if (E.records) spin = E.l4.rpm || 0;
     else if (E.discs) spin = E.l4 && E.l4.mode === 'out' ? 1 : 0.2;
     let reload = Math.max(0, E.cool || 0); if (w === 'flipper' && E.gas <= 0) reload = 9;
     const busy = !!(E.grab || E.carry || E.tether || E.clampT > 0 || E.punching > 0 || E.swing > 0 || E.recover > 0 || (E.l4 && E.l4.busy));
@@ -2767,7 +2774,7 @@
   function l4Drag(S, R, ep) { const hz = nearestHazard(S, ep.x, ep.y), p = R.body.getPosition(), hx = hz[0] - ep.x, hy = hz[1] - ep.y, hl = Math.hypot(hx, hy) || 1; return { tx: p.x + hx / hl * 2, ty: p.y + hy / hl * 2, speed: 1 }; }
   function weldForce(J) { try { const f = J.getReactionForce(1 / DT); return Math.hypot(f.x, f.y) || 0; } catch (e) { return 0; } }
   function partInFront(S, R, xs, ys) { for (const x of xs) for (const y of ys) { const q = l4front(R, x, y), t = topPartAt(S, q.x, q.y, R); if (t && t.robot !== R) return t; } return null; }
-  function spinningPart(q) { const T = q.robot; return (q.key === 'blade' && T.bladeW > 25) || (q.key === 'drum' && T.drumE > 0.4) || (q.key === 'vdisc' && T.vE > 0.4) || (q.key === 'shell' && T.bladeW > 12) || (q.key === 'orbdisc' && !q.docked) || (q.key === 'buzz' && Math.abs(T.buzzW || 0) > 40) || (q.key === 'gmsaw' && Math.abs(q.spin || 0) > 40); }
+  function spinningPart(q) { const T = q.robot; return (q.key === 'record' && q.state === 'table' && Math.abs(q.spin || 0) > 40) || (q.key === 'blade' && T.bladeW > 25) || (q.key === 'drum' && T.drumE > 0.4) || (q.key === 'vdisc' && T.vE > 0.4) || (q.key === 'shell' && T.bladeW > 12) || (q.key === 'orbdisc' && !q.docked) || (q.key === 'buzz' && Math.abs(T.buzzW || 0) > 40) || (q.key === 'gmsaw' && Math.abs(q.spin || 0) > 40); }
 
   // ---------------- CORKSCREW: a boring drill on a ram rail. Grinds, anchors after 0.8 s of biting, then bores inwards ----------------
   L4W.corkscrew = {
@@ -3536,10 +3543,227 @@
     think(S, R, c) { rwRight(S, R, R.hammerArm.hp > 0 && R.wmotor.hp > 0, 'hammer'); return R.grab ? l4Drag(S, R, c.ep) : null; }, // held: pin it against a wall too (squeezes it with the crush rule on)
   };
   Object.assign(PIERCE, { beak: 1.2, smith: 0.55 }); Object.assign(BLUNT, { beak: 1, smith: 1 }); BARS.pincer = 1; KSTIFF.pincer = 0.6;
+  // ---------------- JUKEBOX: four steel records stacked on its back. A tone-arm loader drops one on the turntable on its nose,
+  // the turntable spins it up, then it is let go: a heavy free saw that bounces round the arena (walls curve it with its spin),
+  // hurts anyone it touches (its own robot too, a bit), spins down, and lies there until someone picks it up again (ENCORE!) ----------------
+  // record states: stack (welded on the back, only the top one collides), load (on the loader arm, in the air), table (on the turntable joint),
+  // fly (free, spinning, dangerous), floor (spun down, loose junk that the loader can pick up), broken (destroyed)
+  const JUKE = { r: 0.21, mass: 10, rpm: 130, launch: 9, loadT: 0.7, english: 0.22, ffK: 0.4, eK: 0.08, keep: 0.86 }; // keep: spin kept after a hit or a wall. eK: damage per joule the rim loses in a bite (2.0.1: no knob, the energy decides)
+  function jukeFilter(q, on) { // on: collide like a normal part of this robot; 'free': collide with everything; off: no collisions
+    for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFilterData(on === 'free' ? { groupIndex: 0, categoryBits: 1, maskBits: 0xffff } : on ? { groupIndex: q.robot.group, categoryBits: 1, maskBits: 0xffff } : { groupIndex: q.robot.group, categoryBits: 0, maskBits: 0 });
+  }
+  L4W.jukebox = {
+    build(S, R, k) {
+      const { body, hl, hw } = k; R.records = [];
+      R.l4 = { stackAt: [-0.42 * hl, 0], tableAt: [hl + 0.1, 0], table: null, load: null, rpm: 0, spilled: false, last: -9 };
+      const circ = []; for (let n = 0; n < 16; n++) circ.push([Math.cos(n / 16 * TAU) * JUKE.r, Math.sin(n / 16 * TAU) * JUKE.r]);
+      for (let n = 0; n < 4; n++) {
+        const wp = body.getWorldPoint(V(R.l4.stackAt[0], R.l4.stackAt[1])), sb = S.world.createBody({ type: 'dynamic', position: wp, angle: body.getAngle() + n * 0.7, bullet: true, angularDamping: 0.22, linearDamping: 0.35 });
+        const q = k.addPart('record', 'Record ' + (n + 1), 'weapon', circ, { mass: JUKE.mass, hp: 110, sharp: 0.6, tough: 0.3, rest: 0.55, friction: 0.25, body: sb, z: 2 });
+        q.home = circ.map(v => [v[0] + R.l4.stackAt[0], v[1] + R.l4.stackAt[1]]); q.sep = true; q.idx = n; q.state = 'stack'; q.col = ['#E8C547', '#D24B3A', '#47A8FF', '#4CC26A'][n];
+        q.joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, body, sb, wp));
+        R.records.push(q);
+      }
+      R.records.forEach((q, n) => jukeFilter(q, n === 3)); // only the top record of the stack collides
+      R.loader = k.addInt('loader', 'Record loader', [-0.05 * hl, 0.55 * hw], 70, { top: true });
+      R.wmotor = k.addInt('wmotor', 'Turntable motor', [0.55 * hl, 0], 45);
+      for (let n = 0; n < 8; n++) lamp(R, -0.15 * hl + n * 0.052 - 0.18, -0.62 * hw, n < 4 ? '#4CC26A' : n < 6 ? '#E8C547' : '#FF3B2B', 'state', { src: 'rpm', at: n / 8, r: 0.018 }); // VU meter: the turntable's speed
+      lamp(R, 0.25 * hl, 0.55 * hw, '#FF5AC8', 'state', { src: 'live', strobe: true, r: 0.028 }); // ON AIR: a record is flying
+    },
+    ok: R => !!R.wmotor && R.records.some(q => q.state !== 'broken' && !q.gone),
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0, P = Math.min(1, c.pw), fwd = c.fwd;
+      const recs = R.records.filter(q => !q.gone);
+      for (const q of recs) { if (q.state !== 'broken' && q.hp <= 0) q.state = 'broken'; if (q.state !== 'table') q.sharp = 0.6; }
+      const stack = recs.filter(q => q.state === 'stack' && q.attached).sort((a, b2) => a.idx - b2.idx);
+      // the top of the stack is the only one that collides; a big hit on it knocks it loose
+      stack.forEach((q, n) => { const top = n === stack.length - 1; if (q.top !== top) { jukeFilter(q, top); q.top = top; } });
+      const top = stack[stack.length - 1];
+      if (top) { if (top.hpSeen != null && top.hpSeen - top.hp >= 12 && S.rng() < 0.5) loose(top, 2.5, 'KNOCKED LOOSE!'); top.hpSeen = top.hp; }
+      function loose(q, kick, say0) { // off the robot, onto the floor as junk
+        if (q.joint) { S.world.destroyJoint(q.joint); q.joint = null; }
+        q.attached = false; q.state = 'floor'; q.top = false; jukeFilter(q, 'free'); q.body.setBullet(true);
+        const a = S.rng() * TAU; q.body.setLinearVelocity(V(Math.cos(a) * kick + b.getLinearVelocity().x, Math.sin(a) * kick + b.getLinearVelocity().y));
+        if (!S.debris.includes(q)) S.debris.push(q); if (say0) { const p = q.body.getPosition(); callout(S, say0, p.x, p.y, false); }
+      }
+      // landing upside down spills the whole stack
+      if (R.flipped && !st.spilled && stack.length) { st.spilled = true; for (const q of stack) loose(q, 2 + S.rng() * 2); const p = b.getPosition(); callout(S, 'SPILLED!', p.x, p.y, true); say(S, `${R.name} lands upside down and spills its records`, R.id, true); }
+      if (!R.flipped) st.spilled = false;
+      // the turntable
+      const T = st.table;
+      if (T && T.joint && T.attached && T.state === 'table') {
+        T.joint.setMotorSpeed(on ? JUKE.rpm * P * (R.rage > 0 ? 1.15 : 1) : 0); T.joint.setMaxMotorTorque(on ? 60 * c.jk * P : 0.5);
+        T.spin = T.body.getAngularVelocity() - b.getAngularVelocity(); st.rpm = Math.min(1, Math.abs(T.spin) / JUKE.rpm);
+        T.sharp = 0.6 + 2.0 * st.rpm; // on the platter it is a horizontal disc spinner: a spun-up record hits like one
+        if (on && st.rpm > 0.3) grind(S, R, T, st.rpm, 12, 'record', 180);
+        if (on && R.wmotor.hp > 0) R.wmotor.heat += 0.7 * DT;
+      } else { st.rpm = Math.max(0, st.rpm - DT); if (T && T.state !== 'table') st.table = null; }
+      R.fx.rpm = st.rpm; R.fx.live = recs.some(q => q.state === 'fly') ? 1 : 0;
+      // flying records: hurt, ricochet with english, spin down to the floor
+      for (const q of recs) {
+        if (q.state !== 'fly') continue;
+        const w = q.body.getAngularVelocity(), sf = Math.min(1, Math.abs(w) / JUKE.rpm); q.spin = w;
+        if (Math.abs(w) < 15) { q.state = 'floor'; q.flyBy = null; continue; }
+        if (q.wallCd > 0) q.wallCd -= DT; if (q.hitCd > 0) q.hitCd -= DT;
+        for (let ce = q.body.getContactList(); ce; ce = ce.next) {
+          const cc = ce.contact; if (!cc.isTouching()) continue;
+          const fo = cc.getFixtureA().getBody() === q.body ? cc.getFixtureB() : cc.getFixtureA(), u = fo.getUserData() || {};
+          const wm = cc.getWorldManifold(null); if (!wm || !wm.points.length) continue; const cp = wm.points[0], sc = q.body.getPosition();
+          if (u.wall && !(q.wallCd > 0)) { // a spinning disc grabs the wall and kicks off sideways: bank shots curve
+            let nx = sc.x - cp.x, ny = sc.y - cp.y; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+            const tv = -w * JUKE.r * JUKE.english; q.body.applyLinearImpulse(V(-ny * tv * JUKE.mass, nx * tv * JUKE.mass), sc, true); q.body.setAngularVelocity(w * JUKE.keep);
+            q.wallCd = 0.15; q.banked = (q.banked || 0) + 1; if (S.step % 2 === 0) S.fx.push({ type: 'spark', x: cp.x, y: cp.y, power: 18 });
+          } else if (u.part && u.part.attached && !(u.part.robot === q.noHit && S.t < q.noHitT)) { // cuts whatever it touches; its own robot too (less)
+            const Q = u.part.robot, own = Q === q.flyBy, lp = u.part.body.getLocalPoint(cp);
+            let tx2 = -(cp.y - sc.y), ty2 = cp.x - sc.x; const tl = Math.hypot(tx2, ty2) || 1; tx2 = tx2 / tl * Math.sign(w); ty2 = ty2 / tl * Math.sign(w);
+            hit(S, u.part, 16 * DT * sf * (own ? JUKE.ffK : 1), { src: own ? null : q.flyBy, cause: 'record', lp: [lp.x, lp.y], blp: u.part.body === Q.body ? [lp.x, lp.y] : null, x: cp.x, y: cp.y, ignoreThr: true, pen: 0.9 });
+            knock(Q, tx2 * 200 * sf * DT * ARC.knock, ty2 * 200 * sf * DT * ARC.knock, cp);
+            if (!(q.hitCd > 0)) { q.hitCd = 0.15; q.body.setAngularVelocity(w * JUKE.keep); if (q.flyBy && !own) q.flyBy.l4.hits = (q.flyBy.l4.hits || 0) + 1; // the bite: the rim's energy goes into the cut
+              hit(S, u.part, 0.5 * (0.5 * JUKE.mass * JUKE.r * JUKE.r) * w * w * (1 - JUKE.keep * JUKE.keep) * JUKE.eK * (own ? JUKE.ffK : 1), { src: own ? null : q.flyBy, cause: 'record', lp: [lp.x, lp.y], blp: u.part.body === Q.body ? [lp.x, lp.y] : null, x: cp.x, y: cp.y, pen: 1.1 }); if (q.banked && !own && sf > 0.4) { callout(S, 'B-SIDE!', cp.x, cp.y, true); say(S, `${q.flyBy ? q.flyBy.name : 'A record'}'s record banks off the wall into ${Q.name}`, q.flyBy ? q.flyBy.id : 0, true); } q.banked = 0; }
+            if (S.step % 3 === 0) S.fx.push({ type: 'spark', x: cp.x, y: cp.y, power: 14, nx: tx2, ny: ty2 });
+          } else if (u.drone && u.drone.alive && u.drone.owner !== q.flyBy) damageDrone(S, u.drone, 16 * DT * sf, q.flyBy, cp.x, cp.y);
+        }
+      }
+      // the loader: carries a record from the stack (or the floor) to the turntable
+      const loaderOk = R.loader.hp > 0 && on && !R.flipped;
+      if (st.load) {
+        const L0 = st.load, q = L0.q; L0.t += DT; const k2 = Math.min(1, L0.t / JUKE.loadT), e = k2 * k2 * (3 - 2 * k2);
+        const from = L0.from, to = st.tableAt, lx = from[0] + (to[0] - from[0]) * e, ly = from[1] + (to[1] - from[1]) * e + Math.sin(Math.PI * e) * 0.22; // swings over on the loader's side
+        const wp = b.getWorldPoint(V(lx, ly)); q.body.setTransform(wp, q.body.getAngle() + DT * 3); q.body.setLinearVelocity(b.getLinearVelocityFromWorldPoint(wp)); q.body.setAngularVelocity(b.getAngularVelocity());
+        st.armAt = [lx, ly]; st.busy = true;
+        if (!q.attached || q.state === 'broken' || !loaderOk) { if (q.attached && q.state !== 'broken') loose(q, 1); st.load = null; st.busy = false; } // the loader lost it: it drops to the floor
+        else if (k2 >= 1) { // on the platter
+          const tp = b.getWorldPoint(V(st.tableAt[0], st.tableAt[1])); q.body.setTransform(tp, q.body.getAngle());
+          q.joint = S.world.createJoint(pl.RevoluteJoint({ enableMotor: true, motorSpeed: 0, maxMotorTorque: 10 }, b, q.body, tp)); q.state = 'table'; jukeFilter(q, true); for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFriction(0.25); st.table = q; st.load = null; st.busy = false;
+          if (L0.floor) { callout(S, 'ENCORE!', tp.x, tp.y, false); say(S, `${R.name} picks a record back up`, R.id); }
+        }
+        return;
+      }
+      st.armAt = null;
+      if (!loaderOk) return;
+      if (!st.table) {
+        const top2 = stack[stack.length - 1];
+        // pick one up off the floor (any record of its own that has spun down and lies within reach), else take the top of the stack
+        const pk = recs.find(q => q.state === 'floor' && !q.mag && Math.hypot(q.body.getPosition().x - b.getPosition().x, q.body.getPosition().y - b.getPosition().y) < R.hl + 0.7); // the loader reaches out 0.7 m
+        if (pk) { const lp = b.getLocalPoint(pk.body.getPosition()); S.debris.splice(S.debris.indexOf(pk), 1); pk.attached = true; pk.state = 'load'; jukeFilter(pk, false); st.load = { q: pk, t: 0, from: [lp.x, lp.y], floor: true }; }
+        else if (top2) { if (top2.joint) { S.world.destroyJoint(top2.joint); top2.joint = null; } top2.state = 'load'; top2.top = false; jukeFilter(top2, false); st.load = { q: top2, t: 0, from: st.stackAt.slice() }; }
+        return;
+      }
+      // let go: spun up, lined up on the enemy (with a lead), at range. The last record stays on as a spinner unless one is lying around to fetch
+      const q = st.table; if (!E.alive || st.rpm < 0.8 || !q.joint) return;
+      const ep = E.body.getPosition(), ev = E.body.getLinearVelocity(), pos = c.pos, d0 = Math.hypot(ep.x - pos.x, ep.y - pos.y), lead = d0 / JUKE.launch;
+      const ax = ep.x + ev.x * lead - pos.x, ay = ep.y + ev.y * lead - pos.y, err = Math.abs(wrap(Math.atan2(ay, ax) - b.getAngle()));
+      if (err < (d0 < 1.6 ? 0.3 : 0.1) && d0 < 4.6 && S.t - st.last > 0.6) { // point-blank too: the record slams straight in and bounces back within reach
+        S.world.destroyJoint(q.joint); q.joint = null; q.attached = false; q.state = 'fly'; q.flyBy = R; q.banked = 0; jukeFilter(q, 'free'); q.noHit = R; q.noHitT = S.t + 0.35;
+        for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFriction(0.05); // slick rim: it glances off and keeps its spin (the cut is the bite above)
+        const v = b.getLinearVelocity(); q.body.setLinearVelocity(V(v.x + fwd.x * JUKE.launch, v.y + fwd.y * JUKE.launch)); if (!S.debris.includes(q)) S.debris.push(q);
+        b.applyLinearImpulse(V(-fwd.x * JUKE.mass * 3, -fwd.y * JUKE.mass * 3), b.getWorldCenter(), true); st.table = null; st.last = S.t; st.rpm = 0; st.thrown = (st.thrown || 0) + 1;
+        const tp = q.body.getPosition(); callout(S, 'DROP THE DISC!', tp.x, tp.y, false); say(S, `${R.name} lets a record fly`, R.id);
+      }
+    },
+    think(S, R, c) {
+      const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive || R.fried) return null;
+      const recs = R.records.filter(q => !q.gone), ready = st.table && st.rpm > 0.8;
+      // nothing to throw: go and fetch the nearest record of its own lying on the floor (not right next to the enemy)
+      if (!st.table && !st.load && !recs.some(q => q.state === 'stack')) {
+        const fl = recs.filter(q => q.state === 'floor' && !q.mag).map(q => { const qp = q.body.getPosition(); return { q, d: Math.hypot(qp.x - p.x, qp.y - p.y), de: Math.hypot(qp.x - c.ep.x, qp.y - c.ep.y) }; }).filter(o => o.de > 0.8).sort((a, b2) => a.d - b2.d)[0];
+        if (fl) { const qp = fl.q.body.getPosition(); return { tx: qp.x, ty: qp.y, speed: 1 }; }
+        return null;
+      }
+      if (!ready) { // spinning up: keep out of reach, circle at 2.3 m
+        if (c.dist < 2.0) { const cur = Math.atan2(p.y - c.ep.y, p.x - c.ep.x) + R.orbit * 0.6; return { tx: c.ep.x + Math.cos(cur) * 2.3, ty: c.ep.y + Math.sin(cur) * 2.3, speed: 1 }; }
+        return { tx: c.ep.x, ty: c.ep.y, speed: 0.25 };
+      }
+      // ready: turn onto the enemy (with a lead) and let go; from far away close in to 3.5 m first
+      const lead = c.dist / JUKE.launch, tx = c.ep.x + c.ev.x * lead, ty = c.ep.y + c.ev.y * lead;
+      return { tx, ty, speed: c.dist > 3.5 ? 1 : 0.1 };
+    },
+  };
+  // ---------------- GAUCHO: a bola launcher. Two steel balls on a short cord, thrown spinning; whatever they hit, they wrap:
+  // round a wheel or a flank they tie that side's wheels up, round the front they tie the weapon. Then the nose saw goes in.
+  // Spinning weapons cut the cord. (Kev, 13 Nov: projectiles, but something new.)
+  const BOLA = { r: 0.055, mass: 1.6, half: 0.2, v: 9, spin: 18, life: 2.4, tie: 3.0, reload: 2.4 };
+  L4W.bola = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      { const px = hl + 0.12, body = k.body, sb = S.world.createBody({ type: 'dynamic', position: body.getWorldPoint(V(px, 0)), angle: body.getAngle(), bullet: true, angularDamping: 0.05 }); // the finisher: a saw on the nose
+        const circ = []; for (let n = 0; n < 12; n++) circ.push([Math.cos(n / 12 * TAU) * 0.15, Math.sin(n / 12 * TAU) * 0.15]);
+        R.gSaw = k.addPart('gmsaw', 'Nose saw', 'weapon', circ, { mass: 4.5, hp: 100, sharp: 2.4, tough: 0.3, rest: 0.1, friction: 0.7, body: sb, z: 2 });
+        R.gSaw.home = circ.map(v => [v[0] + px, v[1]]); R.gSaw.sep = true; R.gSaw.spin = 0;
+        R.gSaw.joint = S.world.createJoint(pl.RevoluteJoint({ enableMotor: true, motorSpeed: 0, maxMotorTorque: 7 }, body, sb, body.getWorldPoint(V(px, 0)))); }
+      R.wmotor = k.addInt('wmotor', 'Saw motor', [0.55 * hl, 0], 40);
+      R.launcher = k.addInt('launcher', 'Bola launcher', [-0.1 * hl, 0], 70, { top: true });
+      R.bolaA = R.body.getAngle(); R.bolas = []; R.l4 = { mode: 'idle' };
+      lamp(R, -0.6 * hl, -0.5 * hw, '#4CC26A', 'state', { src: 'ready', r: 0.025 }); lamp(R, -0.6 * hl, 0.5 * hw, '#FF8A2A', 'state', { src: 'tied', strobe: true, r: 0.025 });
+    },
+    ok: R => R.launcher.hp > 0 || alivePart(R.gSaw),
+    step(S, R, c) {
+      const b = R.body, E = c.E, on = c.ok && R.launcher.hp > 0 && power(R) > 0, pos = c.pos, P = Math.min(1, c.pw);
+      if (alivePart(R.gSaw) && R.gSaw.joint) { const sOn = c.ok && c.mf0 > 0; R.gSaw.joint.setMotorSpeed(sOn ? 110 * P : 0); R.gSaw.joint.setMaxMotorTorque(sOn ? 7 * c.jk * P : 0.4); R.gSaw.spin = R.gSaw.body.getAngularVelocity() - b.getAngularVelocity(); const sf = Math.min(1, Math.abs(R.gSaw.spin) / 110); if (sOn && sf > 0.25) grind(S, R, R.gSaw, sf, 18, 'gmsaw', 260); }
+      // the launcher turret tracks the enemy (with a lead)
+      if (E.alive) { const ep = E.body.getPosition(), ev = E.body.getLinearVelocity(), d0 = Math.hypot(ep.x - pos.x, ep.y - pos.y), ld = d0 / BOLA.v, want = Math.atan2(ep.y + ev.y * ld - pos.y, ep.x + ev.x * ld - pos.x), tr = 3 * DT * (c.jk < 1 ? 0.45 : 1); R.bolaA += clamp(wrap(want - R.bolaA), -tr, tr) + b.getAngularVelocity() * DT * 0.3; R.bolaErr = Math.abs(wrap(want - R.bolaA)); R.bolaD = d0; }
+      for (const Q of S.robots) if (Q.wmotor && Q.wmotor.bolaJam > 0) Q.wmotor.bolaJam -= DT / Math.max(1, S.robots.filter(X => X.spec.weapon === 'bola').length);
+      const tiedE = E.alive && (E.slots.some(s => s.tangled > 0) || (E.wmotor && E.wmotor.bolaJam > 0));
+      R.fx.ready = on && R.cool <= 0 ? 1 : 0; R.fx.tied = tiedE ? 1 : 0;
+      for (const B of R.bolas) this.fly(S, R, B);
+      R.bolas = R.bolas.filter(B => !B.done);
+      if (!on || R.cool > 0 || !E.alive || tiedE || R.bolas.length || R.bolaErr > 0.15 || R.bolaD < 1.1 || R.bolaD > 4.6) return;
+      // throw: two balls either side of the aim line, the pair spinning round its middle
+      const dx = Math.cos(R.bolaA), dy = Math.sin(R.bolaA), px = -dy, py = dx, cx = pos.x + dx * 0.35, cy = pos.y + dy * 0.35, v = b.getLinearVelocity(), balls = [];
+      for (const sg of [-1, 1]) {
+        const bb = S.world.createBody({ type: 'dynamic', position: V(cx + px * sg * BOLA.half, cy + py * sg * BOLA.half), bullet: true, linearDamping: 0.25, angularDamping: 0.5 });
+        bb.createFixture({ shape: pl.Circle(BOLA.r), density: BOLA.mass / (Math.PI * BOLA.r * BOLA.r), restitution: 0.3, friction: 0.6, filterGroupIndex: R.group, userData: { bola: true } });
+        balls.push(bb);
+      }
+      for (const [k2, bb] of balls.entries()) { const sg = k2 ? 1 : -1, tv = BOLA.spin * BOLA.half; bb.setLinearVelocity(V(v.x + dx * BOLA.v + dx * tv * sg, v.y + dy * BOLA.v + dy * tv * sg)); } // spun about the middle: one ball leads, one lags
+      const joint = S.world.createJoint(pl.DistanceJoint({ frequencyHz: 0, dampingRatio: 0, collideConnected: false }, balls[0], balls[1], balls[0].getPosition(), balls[1].getPosition()));
+      R.bolas.push({ balls, joint, t: 0, stuck: [null, null], welds: [], tie: null, done: false });
+      R.cool = BOLA.reload; b.applyLinearImpulse(V(-dx * 6, -dy * 6), b.getWorldCenter(), true); S.fx.push({ type: 'launch', x: cx, y: cy });
+    },
+    fly(S, R, B) {
+      B.t += DT;
+      const end = () => { for (const w of B.welds) if (w) S.world.destroyJoint(w); if (B.joint) S.world.destroyJoint(B.joint); for (const bb of B.balls) S.world.destroyBody(bb); B.done = true; };
+      if (B.tie) { B.tie.t -= DT; if (B.tie.t <= 0 || !B.tie.robot.alive) { const p = B.balls[0].getPosition(); callout(S, 'UNTIED!', p.x, p.y, false); end(); R.cool = Math.max(R.cool, BOLA.reload); } return; } // the next bola only once this one is off: no tie-lock
+      if (B.t > BOLA.life && !B.stuck.some(Boolean)) { end(); return; }
+      B.balls.forEach((bb, i) => {
+        if (B.stuck[i]) return;
+        for (let ce = bb.getContactList(); ce; ce = ce.next) {
+          const cc = ce.contact; if (!cc.isTouching()) continue;
+          const fo = cc.getFixtureA().getBody() === bb ? cc.getFixtureB() : cc.getFixtureA(), u = fo.getUserData() || {};
+          if (!u.part || !u.part.attached || u.part.robot === R) continue;
+          const P = u.part, p = bb.getPosition();
+          if (B.joint && (spinningPart(P) || ((P.key === 'blade' || P.key === 'shell') && P.robot.bladeW > 12))) { S.world.destroyJoint(B.joint); B.joint = null; callout(S, 'CUT!', p.x, p.y, false); return; } // a spinning weapon cuts the cord
+          B.welds[i] = S.world.createJoint(pl.WeldJoint({ frequencyHz: 8, dampingRatio: 0.7 }, bb, P.body, p)); B.stuck[i] = P;
+          const lp = P.body.getLocalPoint(p); hit(S, P, 5, { src: R, cause: 'bola', lp: [lp.x, lp.y], blp: P.body === P.robot.body ? [lp.x, lp.y] : null, x: p.x, y: p.y });
+          return;
+        }
+      });
+      // wrapped: once both balls are on it (or one has been on it a moment while the cord swings round), it is tied up
+      const st = B.stuck.filter(Boolean); if (!st.length) return;
+      B.wrapT = (B.wrapT || 0) + DT; if (st.length < 2 && B.wrapT < 0.3) return;
+      const T = st[0].robot; let what = '';
+      for (const P of st) {
+        if (P.robot !== T) continue;
+        const wp = P.body.getWorldPoint(V(centroid(P.verts)[0], centroid(P.verts)[1])), lp = T.body.getLocalPoint(wp);
+        if (P.kind === 'wheel' && P.slot) { P.slot.tangled = BOLA.tie; what = 'wheels'; }
+        else if (lp.x > T.hl * 0.45 && T.wmotor && P.kind === 'weapon') { T.wmotor.jam = Math.max(T.wmotor.jam, BOLA.tie * 0.8); T.wmotor.bolaJam = BOLA.tie * 0.8; what = what || 'weapon'; }
+        else { const sd = Math.sign(lp.y) || 1; for (const s of T.slots) if (Math.sign(s.lp[1]) === sd) s.tangled = BOLA.tie; what = 'wheels'; }
+      }
+      B.tie = { robot: T, t: BOLA.tie }; const p = T.body.getPosition();
+      callout(S, what === 'weapon' ? 'WEAPON TIED!' : 'TANGLED!', p.x, p.y, true); say(S, `${R.name}'s bola wraps round ${T.name}'s ${what || 'hull'}`, R.id, true);
+    },
+    think(S, R, c) {
+      const E = c.E, p = R.body.getPosition(); if (!E.alive) return null;
+      if (E.slots.some(s => s.tangled > 0) || (E.wmotor && E.wmotor.bolaJam > 0)) return { tx: c.ep.x, ty: c.ep.y, speed: 1 }; // tied up: go in with the saw
+      const cur = Math.atan2(p.y - c.ep.y, p.x - c.ep.x) + R.orbit * 0.45; // keep throwing range and circle
+      if (c.dist < 1.6) return { tx: p.x - c.dx / c.dist * 2, ty: p.y - c.dy / c.dist * 2, speed: 1 };
+      return { tx: c.ep.x + Math.cos(cur) * 2.8, ty: c.ep.y + Math.sin(cur) * 2.8, speed: 1 };
+    },
+  };
   // a judge-friendly name for each cause
-  Object.assign(CAUSES, { beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
-  Object.assign(CALL, { beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
-  Object.assign(SHARP, { beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
+  Object.assign(CAUSES, { bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
+  Object.assign(CALL, { record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
+  Object.assign(SHARP, { record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
   function step(S) {
     if (S.countdown > 0) { S.countdown -= DT; return; }

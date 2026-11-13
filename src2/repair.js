@@ -16,7 +16,7 @@
   function probe(spec) { return L.create({ a: spec, b: spec, seed: 1 }).robots[0]; }
   // level 4 parts (engine "ROBOCUS 2.0 LEVEL 4"): legs are wheels (Drive); arm segments, booms, discs, the carousel and its tools,
   // the coil, auger, hook and throwing arm are weapon parts or weapon internals (Weapon); the huge chassis is Body
-  const WEAPON_INT = new Set(['wmotor', 'turret', 'arm', 'ring', 'reel', 'coil', 'auger', 'rotor', 'carousel', 'tarm', 'winch', 'boom', 'fang', 'hook', 'beakram', 'nozzle', 'smitharm']);
+  const WEAPON_INT = new Set(['wmotor', 'turret', 'arm', 'ring', 'reel', 'coil', 'auger', 'rotor', 'carousel', 'tarm', 'winch', 'boom', 'fang', 'hook', 'beakram', 'nozzle', 'smitharm', 'loader', 'launcher']);
   function zoneOfPart(q) {
     if (q.kind === 'wheel' || q.leg) return 'drive';
     if (q.kind === 'weapon') return 'weapon';
