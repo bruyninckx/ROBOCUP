@@ -4,7 +4,8 @@
   const L = window.DamageLab;
   const LU = window.Lineup || null; // ROBOCUS 2.0 Lineup Arena: robots with levels and power grades, 2.0 part cards
   if (LU) LU.usePK();
-  if (LU && LU.ROBOTS4) { Object.assign(LU.ROBOTS, LU.ROBOTS4); if (LU.LEVELS.length < 5) LU.LEVELS.push('Level 4 (end game)'); } // Lineup Arena only: the end-game wave (the tabletop does not load this file)
+  if (LU && LU.ROBOTS4) { Object.assign(LU.ROBOTS, LU.ROBOTS4); if (LU.LEVELS.length < 5) LU.LEVELS.push('Level 4 (end game)'); }
+  const CAND = (LU && LU.CANDIDATES) || {}; if (LU) Object.assign(LU.ROBOTS, CAND); // candidates (grade 1, measured level, not in the game yet): their own group in the picker // Lineup Arena only: the end-game wave (the tabletop does not load this file)
   // robot colours: 1v1 and FFA use one colour per robot; in 2v2 robots 0 & 2 are team Steel (blues), 1 & 3 team Rust (oranges)
   const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
@@ -46,7 +47,7 @@
   function buildLineupCard(i) {
     const el = $('bot' + i), s = st.spec[i], sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
     el.style.borderTopColor = TC(i).col;
-    const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([, v]) => v[0] === t).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('');
+    const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([k2, v]) => v[0] === t && !CAND[k2]).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('') + (Object.keys(CAND).length ? `<optgroup label="Candidates (grade 1, measured level, not in the game)">${Object.entries(CAND).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, measured level ${v[0]})</option>`).join('')}</optgroup>` : '');
     // tuning chips (9 Nov): the % is a level 1 robot with the chip against level 3 (stock 23%), from tools/damage-lab/chipfit.js
     const CHIP_UP2 = { matador: 38, bait: 28, pester: 43 }, otherChip = slot => s.parts.some((k, j) => j !== slot && k && P[k] && P[k].kind === 'chip');
     const partOpts = (cur, leg, slot) => '<option value="">none</option>' + ['drone', 'module', 'stat', 'chip', 'legendary'].filter(k => leg ? k === 'legendary' : k !== 'legendary').map(kind => `<optgroup label="${kind === 'stat' ? 'Stat cards' : kind === 'legendary' ? 'Legendary' : kind === 'chip' ? 'Tuning chips (one per robot)' : kind[0].toUpperCase() + kind.slice(1) + 's'}">${Object.entries(P).filter(([, v]) => v.kind === kind).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}${kind === 'chip' && otherChip(slot) ? ' disabled' : ''}>${v.name} (${kind === 'chip' ? CHIP_UP2[k] + '% two levels up' : v.vs + '%'})</option>`).join('')}</optgroup>`).join('');
@@ -414,7 +415,7 @@
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
-    const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R);
+    const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R) || S.t < (R.trophyT || 0); // forks, or held up on a beak
     let sc = 1 + air * 0.28 + (carried ? 0.1 : 0), alpha = 1;
     if (R.inPit) { const k = Math.min(1, (S.t - R.inPit) / 0.8); sc = 1 - k * 0.65; alpha = 1 - k * 0.7; }
     const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0);
@@ -698,6 +699,40 @@
       if (R.l4.mode !== 'docked') { ctx.strokeStyle = `rgba(255,90,60,${0.15 + 0.25 * Math.min(1, spin)})`; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(c0.x, c0.y, R.r0 + (R.l4.ext || 0), 0, 6.29); ctx.stroke(); }
       for (const q of R.discs) if (q.attached) { const p = q.body.getPosition(); if (R.l4.mode !== 'docked') { ctx.strokeStyle = INK; ctx.lineWidth = 0.045; ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = 0.022; ctx.stroke(); } drawBuzz(q, { buzzW: q.spin, buzzMax: 95, buzzR: 0.13 / 0.15 * 0.14 }); }
       const a = R.rotor.getAngle(); ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(a); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -0.09, 0.04, 0.18); ctx.restore();
+    }
+    if (w === 'beak' && R.beakRam) { // the upper beak: raised (drawn short and big), dropping, or closed on its victim
+      const st = R.l4, k = R.grab ? 1 : st.mode === 'strike' ? 1 - st.t / 0.16 : 0, bend = R.beakBend || 0, sc = 1 + 0.45 * (1 - k), tipX = R.hl + 0.02 + 0.34 * k;
+      ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(b.getAngle()); ctx.translate(0.15 * R.hl, 0); ctx.rotate(bend * 0.6); ctx.scale(sc, sc);
+      const L0 = tipX - 0.15 * R.hl;
+      if (R.beakRam.hp > 0) {
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / sc;
+        path([[-0.1, -0.11], [L0 * 0.55, -0.12], [L0 * 0.92, -0.06], [L0 + 0.04, 0.02], [L0 - 0.02, 0.05], [L0 * 0.8, 0.0], [L0 * 0.55, 0.1], [-0.1, 0.11]]); ctx.fill(); ctx.stroke(); // hooked beak, the hook curls down at the tip
+        ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-0.08, -0.1, L0 * 0.6, 0.03);
+        ctx.fillStyle = R.grab ? '#FF3B2B' : '#2B2620'; ctx.beginPath(); ctx.arc(L0 + 0.02, 0.025, 0.018, 0, 6.29); ctx.fill();
+        bolt(-0.04, 0);
+      } else { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.moveTo(-0.08, -0.06); ctx.lineTo(0.06, 0.07); ctx.stroke(); }
+      ctx.restore();
+      if (R.grab) { const T = R.grab.robot, ap = T.body.getWorldPoint(planck.Vec2(st.alp[0], st.alp[1])); ctx.strokeStyle = 'rgba(255,59,43,0.75)'; ctx.lineWidth = PX * 2.5; ctx.setLineDash([PX * 4, PX * 3]); ctx.beginPath(); ctx.arc(ap.x, ap.y, 0.09 + 0.02 * Math.sin(t * 25), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    if (w === 'roaster' && R.pincers) {
+      for (const q of R.pincers) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; for (const x of [0.16, 0.28, 0.4]) { ctx.beginPath(); ctx.moveTo(x - 0.025, 0); ctx.lineTo(x, -q.side * 0.07); ctx.lineTo(x + 0.025, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); } bolt(0.03, 0); bolt(0.22, 0); }); // serrated teeth on the inside of each claw
+      { const tk = b.getWorldPoint(planck.Vec2(-0.55 * R.hl, 0)); ctx.save(); ctx.translate(tk.x, tk.y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#B8423A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.11, 0.11]) { rr(-0.14, y - 0.075, 0.28, 0.15, 0.07); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.1, y - 0.06, 0.2, 0.025); ctx.fillStyle = '#B8423A'; } ctx.fillStyle = HAZ; ctx.fillRect(-0.03, -0.2, 0.06, 0.4); ctx.restore(); } // twin fuel tanks on its back
+      const nz = b.getWorldPoint(planck.Vec2(R.nozzle.lp[0], R.nozzle.lp[1])), a = b.getAngle(), on = R.nozzle.hp > 0;
+      ctx.save(); ctx.translate(nz.x, nz.y); ctx.rotate(a); ctx.fillStyle = on ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.05, 0.3, 0.1, 0.01); ctx.fill(); ctx.stroke(); rr(0.26, -0.075, 0.08, 0.15, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C0392B'; ctx.beginPath(); ctx.arc(-0.05, 0.11, 0.045, 0, 6.29); ctx.fill(); ctx.stroke();
+      if (on && R.alive) { ctx.fillStyle = '#5AB0FF'; ctx.beginPath(); ctx.arc(0.3, 0, 0.012, 0, 6.29); ctx.fill(); } ctx.restore();
+      if (R.flameOn > 0) { const mz = b.getWorldPoint(planck.Vec2(R.hl - 0.05, 0)), hot = R.grab ? 1.4 : 1; for (let k2 = 0; k2 < 10; k2++) { const aa = a + (Math.random() - 0.5) * 0.6, v = (3 + Math.random() * 2.5) * hot; spawn({ t: 'fire', x: mz.x, y: mz.y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, life: 0.22 + Math.random() * 0.15, max: 0.37, s: 0.04 + Math.random() * 0.04 }); } }
+    }
+    if (w === 'smith' && R.hammerArm) { // the forge hammer: swings from the back over the anvil nose
+      const s0 = R.swing > 0 ? 1 - R.swing / 0.18 : R.recover > 0 ? R.recover / (R.grab ? 0.25 : 0.5) : 0, k = 1.55 - 0.55 * s0, T = R.grab ? R.grab.robot : null; // held high (drawn big) until it comes down
+      const piv = b.getWorldPoint(planck.Vec2(-0.15 * R.hl, 0)), aim = T ? T.body.getWorldPoint(planck.Vec2(-0.05 * T.hl, 0)) : b.getWorldPoint(planck.Vec2(R.hl + 0.3, 0)), rest = b.getWorldPoint(planck.Vec2(0.3 * R.hl, 0));
+      const hx = rest.x + (aim.x - rest.x) * s0, hy = rest.y + (aim.y - rest.y) * s0, ang = Math.atan2(hy - piv.y, hx - piv.x);
+      if (R.hammerArm.hp > 0) {
+        ctx.strokeStyle = INK; ctx.lineWidth = 0.075 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(piv.x, piv.y); ctx.lineTo(hx, hy); ctx.stroke(); ctx.strokeStyle = '#8C6A3A'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(k, k); ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; rr(-0.1, -0.18, 0.2, 0.36, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(-0.08, -0.16, 0.04, 0.32); ctx.fillStyle = '#2B2620'; ctx.fillRect(-0.1, -0.18, 0.2, 0.05); ctx.fillRect(-0.1, 0.13, 0.2, 0.05); ctx.restore();
+        bolt(piv.x, piv.y);
+      }
+      const an = b.getWorldPoint(planck.Vec2(R.hl - 0.04, 0)), glow = R.fx && R.fx.forge || 0; // the anvil face glows as the beats add up
+      ctx.save(); ctx.translate(an.x, an.y); ctx.rotate(b.getAngle()); ctx.fillStyle = `rgba(255,${140 - 60 * glow},40,${0.15 + 0.55 * glow})`; ctx.fillRect(-0.04, -R.hw * 0.5, 0.06, R.hw); ctx.restore();
     }
     if (w === 'carousel' && R.car) {
       const c0 = R.car.getPosition(), a = R.car.getAngle();

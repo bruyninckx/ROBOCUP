@@ -1,12 +1,13 @@
 // node l4.js [fights per opponent] [Robot,Robot] : level 4 robots vs the level 3 and level 2 lineup robots (power grades from lineup.js)
 // win %, median length, big moments / min, parts per fight, KO causes, worst matchup. Env: SEED0 (default 10001), VS=3|2|both, P=Robot:grade,...
 const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
+if (process.env.CX) for (const k of (process.env.CX === 'all' ? 'slide,under,crush,gut,crack,frag,bend,grindout' : process.env.CX).split(',')) L.ARC.cx[k] = true; // 2.0.1 contact and wear switches
 const N = +process.argv[2] || 10, only = process.argv[3] ? process.argv[3].split(',') : L.L4;
 const P4 = {}; if (process.env.P) for (const kv of process.env.P.split(',')) { const [k, v] = kv.split(':'); P4[k] = +v; }
 if (process.env.DMGK) for (const kv of process.env.DMGK.split(',')) { const [k, v] = kv.split(':'); L.PRESETS[k].dmgK = +v; }
 const lv = n => Object.keys(LU.ROBOTS).filter(k => LU.ROBOTS[k][0] === n);
 const VS = process.env.VS || 'both', opps = VS === 'both' ? lv(3).concat(lv(2)) : VS.split(',').map(Number).flatMap(lv); // VS=3, VS=2, VS=0,1 ...
-const spec4 = r => { const p = P4[r] || LU.ROBOTS4 && LU.ROBOTS4[r] && LU.ROBOTS4[r][1] || 1; return { preset: r, dmgK: (L.PRESETS[r].dmgK || 1) * p, hpK: p }; };
+const spec4 = r => { const g = (LU.ROBOTS4 || {})[r] || (LU.CANDIDATES || {})[r], p = P4[r] || (g && g[1]) || 1; return { preset: r, dmgK: (L.PRESETS[r].dmgK || 1) * p, hpK: p }; };
 const res = {};
 for (const r of only) {
   let T = [], big = 0, n = 0, parts = 0, ko = {}, per = {}, w3 = [0, 0], w2 = [0, 0], byLv = {};

@@ -129,6 +129,9 @@
     angler: { label: 'Gaff hook + drum', cat: 'front', mass: 15, invert: true, l4: true, d: 'Level 4: a pantograph hook snaps round, gaffs the enemy\'s back and winches it into a chest drum.' },
     lodestone: { label: 'Electromagnet + drum', cat: 'front', mass: 16, invert: true, l4: true, d: 'Level 4: pulls steel in, clamps it, then flips polarity and fires the junk it collected as shrapnel. Rubber and fibreglass are immune.' },
     orbiter: { label: 'Orbiting tether blades', cat: 'spin', mass: 14, invert: true, l4: true, d: 'Level 4: two saw discs docked in the flanks fly out on tethers and orbit the spinning robot, then reel back in. Can lasso.' },
+    beak: { label: 'Piercing beak', cat: 'front', mass: 12, invert: false, l4: true, d: 'Level 4 (after Robot Wars\' Razer): a hooked beak drops from above, pierces the lid, holds on and lifts the victim off its wheels to carry it to a wall.' },
+    roaster: { label: 'Pincers + flamethrower', cat: 'front', mass: 12, invert: false, l4: true, d: 'Level 4 (after Sgt Bash): pincers grab and hold, a flamethrower roasts what they hold, and they turn it so the flames reach its sides.' },
+    smith: { label: 'Tongs + hammer', cat: 'front', mass: 16, invert: false, l4: true, d: 'Level 4 (after Mr Psycho): tongs clamp the enemy to an anvil nose and an overhead hammer pounds it while it is held.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
     mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
     carousel: { label: 'Tool carousel', cat: 'front', mass: 16, invert: true, l4: true, d: 'Level 4: a wedge, an axe and a saw on a turning carousel. Its brain picks the tool that counters the enemy.' },
@@ -218,6 +221,9 @@
     Grandmaster: { weapon: 'carousel', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'round', helpers: [], dmgK: 1.45, l4: true },
     // the House Robot (tabletop card "Unleash the House Robot"): neutral, huge, slow, a giant hammer; other robots keep away from it
     'Big Mallet': { weapon: 'mallet', chassis: 'giant', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 3, side: 3, rear: 2, top: 3 }, shape: 'chamfer', helpers: [], house: true, pal: { name: 'House', col: '#D9A520', dark: '#2E2A25', light: '#F2D27A' } },
+    Talon: { weapon: 'beak', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
+    Rotisserie: { weapon: 'roaster', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
+    Blacksmith: { weapon: 'smith', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
     Doorstop: { weapon: 'wedge', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'big', armour: { front: 0, side: 3, rear: 2, top: 2 } },
     Rattler: { weapon: 'rapid', chassis: 'light', drive: '2wd', motor: 'std', battery: 'std', armour: { front: 1, side: 1, rear: 1, top: 1 } },
     Boomer: { weapon: 'heavy', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', armour: { front: 2, side: 2, rear: 1, top: 1 } },
@@ -3378,10 +3384,162 @@
       return null;
     },
   };
+  // ================= Robot Wars designs (Kev, 13 Nov): new level 4 mechanisms, built for the 2.0.1 contact and wear physics =================
+  // TALON: a hooked beak drops from above, pierces the lid (cracks!), holds on and carries the victim up off its wheels like a trophy.
+  // ROTISSERIE: rotating pincers grab and hold, a flamethrower roasts what they hold and the pincers turn it so the flames reach its sides.
+  // BLACKSMITH: tongs clamp the enemy against an anvil nose and an overhead hammer pounds it while it is held.
+  const RW = { beakDmg: 40, beakHold: 2.0, beakSqueeze: 28, flameHeat: 8, flameDmg: 1.8, roastT: 3.0, smithHold: 2.4, smithDmg: 20, smithBeat: 0.8 };
+  // the first point ahead of the nose that lands on the enemy's body (chassis or a plate) rather than its weapon; else the first part at all
+  function bodyAhead(S, R, xs, yo) { let first = null; for (const x of xs) { const q = l4front(R, x, yo || 0), t = topPartAt(S, q.x, q.y, R); if (!t || t.robot === R) continue; if (!first) first = { part: t, q }; if (t.body === t.robot.body && (t.kind === 'chassis' || t.kind === 'armour')) return { part: t, q }; } return first; }
+  function rwRight(S, R, can, what) { if (!(R.flipped && can && R.airborne <= 0)) return; R.selfRight += DT; if (R.selfRight > 1.0) { R.flipped = false; R.selfRight = 0; R.airborne = 0.3; say(S, `${R.name} pushes itself back over with its ${what}`, R.id); } }
+  function grabWeld(S, R, T, q, t) { const joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 6, dampingRatio: 0.7 }, R.body, T.body, q)); R.grab = { robot: T, joint, t }; return R.grab; }
+  function letGo(S, R, cool) { if (R.grab) { if (R.grab.joint) S.world.destroyJoint(R.grab.joint); R.grab = null; } R.cool = Math.max(R.cool, cool || 0); if (R.l4) R.l4.busy = false; }
+  L4W.beak = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      R.tool = k.addPart('wedge', 'Lower beak', 'weapon', [[hl, -hw * 0.75], [hl + 0.24, -hw * 0.32], [hl + 0.27, 0], [hl + 0.24, hw * 0.32], [hl, hw * 0.75]], { mass: 8, hp: 150, sharp: 0.3, tough: 0.35, friction: 0.08, z: 2 });
+      R.beakRam = k.addInt('beakram', 'Beak ram', [0.15 * hl, 0], 110, { top: true });
+      R.wmotor = k.addInt('wmotor', 'Beak hydraulics', [-0.35 * hl, 0.2 * hw], 45);
+      R.l4 = { mode: 'idle', t: 0, alp: null }; R.beakBend = 0;
+      lamp(R, hl * 0.55, -hw * 0.42, '#FF3B2B', 'state', { src: 'grip', r: 0.03 }); lamp(R, hl * 0.55, hw * 0.42, '#FF3B2B', 'state', { src: 'grip', r: 0.03 });
+      for (let n = 0; n < 4; n++) lamp(R, (0.25 - n * 0.2) * hl, 0, '#FFB020', 'chase', { idx: n, n: 4, src: 'strike', r: 0.02 });
+    },
+    ok: R => R.beakRam.hp > 0 && alivePart(R.tool),
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0, P = Math.min(1, c.pw);
+      R.fx.grip = R.grab ? 1 : 0; R.fx.strike = st.mode === 'strike' ? 1 : 0;
+      if (R.grab) { // holding: squeeze through the hole, keep it up off its wheels, carry it to a wall
+        const g = R.grab, T = g.robot; g.t -= DT; st.busy = true; T.lifted = Math.max(T.lifted, 0.12); T.trophyT = S.t + 0.1;
+        if (on && T.alive) { const ap = T.body.getWorldPoint(V(st.alp[0], st.alp[1])); hit(S, T.chassis, RW.beakSqueeze * DT * P, { src: R, cause: 'beak', top: true, lp: st.alp, blp: st.alp, x: ap.x, y: ap.y, pen: 1.8, ignoreThr: true }); if (S.step % 6 === 0) S.fx.push({ type: 'spark', x: ap.x, y: ap.y, power: 10 }); }
+        if (g.t <= 0 || !on || !T.alive || weldForce(g.joint) > 9000) { letGo(S, R, 1.3); const tp = T.body.getPosition(); if (T.alive && on) { knock(T, c.fwd.x * 40, c.fwd.y * 40); callout(S, 'DROPPED!', tp.x, tp.y, false); } }
+        return;
+      }
+      if (st.mode === 'strike') {
+        st.t -= DT; if (st.t > 0) return;
+        st.mode = 'idle'; R.cool = 1.2;
+        const off = R.beakBend * 0.6, ah = bodyAhead(S, R, [0.22, 0.32, 0.42, 0.52].map(x => x - Math.abs(R.beakBend) * 0.2), off), tp = ah && ah.part, q = ah ? ah.q : l4front(R, 0.3, off); // the beak reaches over a front weapon to the body behind it
+        if (!tp || !tp.robot.alive) { S.fx.push({ type: 'thud', x: q.x, y: q.y }); return; }
+        const T = tp.robot, lp = tp.body.getLocalPoint(q);
+        hit(S, tp, RW.beakDmg * P, { src: R, cause: 'beak', top: true, lp: [lp.x, lp.y], blp: tp.body === T.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, pen: 2.0, ignoreThr: true });
+        S.fx.push({ type: 'spark', x: q.x, y: q.y, power: 45 }); S.fx.push({ type: 'punch', x: q.x, y: q.y, power: 22 });
+        if (ARC.cx.bend && (tp.kind === 'chassis' || tp.kind === 'armour') && tp.bumper !== 'rubber' && Math.abs(lp.y) > 0.08) { // off-centre on hard metal: the beak is wrenched sideways
+          const was = R.beakBend; R.beakBend = clamp(was + Math.sign(lp.y) * (0.01 + S.rng() * 0.025) * P, -0.4, 0.4);
+          if (Math.abs(was) < 0.12 && Math.abs(R.beakBend) >= 0.12) { cxCount(S, R, 'wbend'); callout(S, 'BENT!', q.x, q.y, false); say(S, `${R.name}: beak bent, it strikes off to the side now`, R.id, true); }
+        }
+        // pierced the body: hold on (not a spinning weapon, not too heavy, not on its way up)
+        if (tp.body === T.body && T.airborne <= 0 && !spinningPart(tp) && T.body.getMass() < b.getMass() * 1.5 && !(T.quantumT > 0)) {
+          grabWeld(S, R, T, q, RW.beakHold); st.alp = [lp.x, lp.y]; st.busy = true; callout(S, 'TROPHY!', q.x, q.y, true); say(S, `${R.name}'s beak pierces ${T.name}'s ${tp.label.toLowerCase()} and lifts it off its wheels`, R.id, true);
+        } else callout(S, 'PECKED!', q.x, q.y, false);
+        return;
+      }
+      if (on && R.cool <= 0 && E.alive) { const tp = partInFront(S, R, [0.22, 0.32], [0, 0.1, -0.1]); if (tp && tp.robot.airborne <= 0) { st.mode = 'strike'; st.t = 0.16; } }
+    },
+    think(S, R, c) { rwRight(S, R, R.beakRam.hp > 0, 'beak'); return R.grab ? l4Drag(S, R, c.ep) : null; },
+  };
+  L4W.roaster = {
+    build(S, R, k) {
+      const { body, hl, hw } = k; R.pincers = [];
+      for (const sg of [-1, 1]) {
+        const px = hl + 0.02, py = sg * (hw - 0.02), ao = sg * 0.75, ab = S.world.createBody({ type: 'dynamic', position: body.getWorldPoint(V(px, py)), angle: body.getAngle() + ao, bullet: true, angularDamping: 0.6 });
+        const av = [[0, -0.06], [0.34, -0.065], [0.47, -0.03], [0.53, 0.05], [0.44, 0.065], [0, 0.06]].map(([x, y]) => [x, y * -sg]); // a big curved claw, tip hooked inwards (level 4 looks the part: Kev, 13 Nov)
+        const q = k.addPart('pincer', sg < 0 ? 'Left pincer' : 'Right pincer', 'weapon', av, { mass: 5.5, hp: 130, sharp: 1.1, tough: 0.3, rest: 0.2, friction: 0.9, body: ab, z: 2 });
+        q.home = av.map(v => [px + v[0] * Math.cos(ao) - v[1] * Math.sin(ao), py + v[0] * Math.sin(ao) + v[1] * Math.cos(ao)]);
+        q.joint = S.world.createJoint(pl.RevoluteJoint({ enableLimit: true, lowerAngle: sg < 0 ? -0.95 : -0.75, upperAngle: sg < 0 ? 0.75 : 0.95, referenceAngle: 0, enableMotor: true, motorSpeed: 0, maxMotorTorque: 10 }, body, ab, body.getWorldPoint(V(px, py))));
+        q.sep = true; q.side = sg; R.pincers.push(q);
+      }
+      R.nozzle = k.addInt('nozzle', 'Flame nozzle', [0.25 * hl, 0], 60, { top: true });
+      R.wmotor = k.addInt('wmotor', 'Pincer drive', [-0.3 * hl, 0.2 * hw], 42);
+      R.l4 = { mode: 'idle', close: 0, roll: 1 };
+      lamp(R, -0.55 * hl, 0, '#5AB0FF', 'state', { src: 'pilot', r: 0.03 }); // pilot light
+      for (let n = 0; n < 5; n++) lamp(R, -0.3 * hl + n * 0.07 - 0.14, -0.6 * hw, n < 2 ? '#E8C547' : n < 4 ? '#FF8A2A' : '#FF3B2B', 'state', { src: 'heat', at: n / 5, r: 0.018 }); // how hot the victim is
+    },
+    ok: R => R.pincers.some(alivePart) && R.nozzle.hp > 0,
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0, P = Math.min(1, c.pw), fwd = c.fwd;
+      R.fx.pilot = c.ok && R.nozzle.hp > 0 ? 1 : 0;
+      const T = R.grab ? R.grab.robot : E; let hot = 0; if (T && T.alive) for (const q of T.internals) hot = Math.max(hot, q.heat); R.fx.heat = Math.min(1, hot / 90);
+      // pincers: open wide, slam shut on a robot in the mouth, hold while gripping
+      const closing = R.grab || st.close > 0; if (st.close > 0) st.close -= DT;
+      for (const q of R.pincers) if (q.joint) { const inw = -q.side; q.joint.setMotorSpeed(closing ? inw * (R.grab ? 4 : 12) : -inw * 4); q.joint.setMaxMotorTorque(on ? (closing ? 120 : 30) * c.jk * P : 2); }
+      // the flamethrower: a short cone from the nose; at point blank on a held robot it is twice as hot
+      st.flame = false;
+      if (on && R.nozzle.hp > 0 && E.alive) {
+        const ep = E.body.getPosition(), dx = ep.x - c.pos.x, dy = ep.y - c.pos.y, d = Math.hypot(dx, dy), rel = Math.abs(wrap(Math.atan2(dy, dx) - b.getAngle()));
+        if (R.grab || (d < R.hl + E.hl + 1.0 && rel < 0.45)) {
+          st.flame = true; const k2 = R.grab ? 2 : 1, mz = l4front(R, -0.05, 0), ta = b.getAngle();
+          for (let i = -3; i <= 3; i++) {
+            const fa = ta + i * 0.1, end = [mz.x + Math.cos(fa) * 1.3, mz.y + Math.sin(fa) * 1.3], h = ray(S, [mz.x, mz.y], end, R.group);
+            if (h && h.drone) damageDrone(S, h.drone, 1.6 * DT, R, h.x, h.y);
+            if (h && h.part && h.part.attached && h.part.robot !== R) {
+              h.part.heat += RW.flameHeat * k2 * DT; const lp = h.part.body.getLocalPoint(V(h.x, h.y));
+              hit(S, h.part, RW.flameDmg * k2 * DT, { src: R, cause: 'flame', ignoreThr: true, noPen: true }); h.part.robot.lastHeater = R;
+              if (h.part.body === h.part.robot.body) { const inn = nearestInternal(h.part.robot, [lp.x, lp.y]); if (inn) inn.heat += 2.6 * k2 * DT; }
+            }
+          }
+        }
+      }
+      R.flameOn = st.flame ? 0.1 : 0;
+      if (R.grab) { // turn it on the spit: alternate twists, so the flames reach its sides and back
+        const g = R.grab, T2 = g.robot; g.t -= DT; st.busy = true; T2.lifted = Math.max(T2.lifted, 0.12);
+        if (on) { // turn it on the spit: its weapon swings away to one side, so the flames reach its flank (and its weapon misses)
+          const tp2 = T2.body.getPosition(), toR = Math.atan2(c.pos.y - tp2.y, c.pos.x - tp2.x), side = wrap(T2.body.getAngle() - toR); if (S.step % 90 === 0 && Math.abs(side) > 1.2) st.roll = -Math.sign(side) || st.roll;
+          const want = st.roll * 1.6, e = wrap(want - side); T2.body.applyTorque(clamp(e * 3, -1, 1) * 140 * T2.body.getMass() / 100 - T2.body.getAngularVelocity() * 12, true); }
+        if (g.t <= 0 || !on || !T2.alive || weldForce(g.joint) > 8500 || R.pincers.filter(alivePart).length < 2) { letGo(S, R, 1.4); if (T2.alive && on) { const tp = T2.body.getPosition(); knock(T2, fwd.x * 50, fwd.y * 50); callout(S, 'WELL DONE!', tp.x, tp.y, false); } }
+        return;
+      }
+      if (!on || R.cool > 0 || !E.alive) return;
+      const tg = partInFront(S, R, [0.18, 0.3], [0, 0.12, -0.12]);
+      if (tg && tg.robot.airborne <= 0) {
+        if (spinningPart(tg)) { R.cool = 0.8; return; }
+        st.close = 0.3;
+        const bent = R.pincers.some(q => q.kinkSum > 0.3); // bent claws don't close round anything any more
+        if (!bent && R.pincers.filter(alivePart).length === 2 && tg.robot.body.getMass() < b.getMass() * 1.4) { const q = l4front(R, 0.14, 0); grabWeld(S, R, tg.robot, q, RW.roastT); callout(S, 'ON THE SPIT!', q.x, q.y, true); say(S, `${R.name} grabs ${tg.robot.name} and turns the flames on`, R.id, true); }
+        else R.cool = 0.8;
+      }
+    },
+    think(S, R, c) { rwRight(S, R, R.pincers.some(alivePart) && R.wmotor.hp > 0, 'pincers'); return R.grab ? { tx: c.ep.x, ty: c.ep.y, speed: 0.15 } : null; }, // holding: stay put and cook
+  };
+  L4W.smith = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      R.tool = k.addPart('jaws', 'Tongs', 'weapon', [[hl, -hw * 0.95], [hl + 0.14, -hw * 0.9], [hl + 0.16, -hw * 0.55], [hl + 0.16, hw * 0.55], [hl + 0.14, hw * 0.9], [hl, hw * 0.95]], { mass: 11, hp: 150, sharp: 0.6, tough: 0.4, z: 2 });
+      R.hammerArm = k.addInt('smitharm', 'Hammer arm', [-0.15 * hl, 0], 130, { top: true });
+      R.wmotor = k.addInt('wmotor', 'Hammer ram', [-0.45 * hl, -0.25 * hw], 48);
+      R.l4 = { mode: 'idle', beats: 0 };
+      for (let n = 0; n < 3; n++) lamp(R, (0.35 - n * 0.22) * hl, hw * 0.6, '#FF8A2A', 'state', { src: 'forge', at: n / 3, r: 0.026 }); // forge lamps: the beats on the anvil
+      lamp(R, hl * 0.8, -hw * 0.6, '#FF3B2B', 'state', { src: 'grip', r: 0.025 });
+    },
+    ok: R => R.hammerArm.hp > 0 && alivePart(R.tool),
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0, P = Math.min(1, c.pw);
+      R.fx.grip = R.grab ? 1 : 0; R.fx.forge = Math.min(1, st.beats / 6);
+      if (R.swing > 0) { R.swing -= DT; if (R.swing <= 0) { // the hammer lands
+          const T0 = R.grab ? R.grab.robot : null, ah = T0 ? { q: T0.body.getWorldPoint(V(-0.05 * T0.hl, 0)) } : bodyAhead(S, R, [0.24, 0.34, 0.44]), q = ah ? ah.q : l4front(R, 0.24, 0), tp = ah ? topPartAt(S, q.x, q.y, R) : null; // on the anvil: straight on its lid
+          if (tp && tp.robot.alive) { const lp = tp.body.getLocalPoint(q); hit(S, tp, RW.smithDmg * P * (R.grab ? 1.15 : 1), { src: R, cause: 'smith', top: true, lp: [lp.x, lp.y], blp: tp.body === tp.robot.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, pen: 1.4 }); tp.robot.lifted = Math.max(tp.robot.lifted, 0.25); st.beats++; S.fx.push({ type: 'spark', x: q.x, y: q.y, power: 50 }); if (R.grab && st.beats % 3 === 0) callout(S, 'CLANG!', q.x, q.y, false); }
+          else S.fx.push({ type: 'thud', x: q.x, y: q.y });
+          R.recover = R.grab ? 0.25 : 0.5; R.cool = R.grab ? RW.smithBeat : 1.25; } }
+      if (R.recover > 0) R.recover -= DT;
+      if (R.grab) {
+        const g = R.grab, T = g.robot; g.t -= DT; st.busy = true;
+        if (on && R.cool <= 0 && !(R.swing > 0) && !(R.recover > 0)) R.swing = 0.18;
+        if (g.t <= 0 || !on || !T.alive || weldForce(g.joint) > 9000) { letGo(S, R, 1.5); st.beats = 0; }
+        return;
+      }
+      if (!on || R.cool > 0 || R.swing > 0 || R.recover > 0 || !E.alive) return;
+      const tg = partInFront(S, R, [0.2, 0.3], [0, 0.12, -0.12]);
+      if (tg && tg.robot.airborne <= 0) {
+        if (spinningPart(tg)) { R.cool = 0.8; return; }
+        if (tg.robot.body.getMass() < b.getMass() * 1.4 && !(tg.robot.quantumT > 0)) { const q = l4front(R, 0.1, 0); grabWeld(S, R, tg.robot, q, RW.smithHold); st.beats = 0; callout(S, 'ON THE ANVIL!', q.x, q.y, true); say(S, `${R.name}'s tongs clamp ${tg.robot.name} to the anvil`, R.id, true); }
+        else R.swing = 0.18; // too heavy to clamp: just hit it
+      }
+    },
+    think(S, R, c) { rwRight(S, R, R.hammerArm.hp > 0 && R.wmotor.hp > 0, 'hammer'); return R.grab ? l4Drag(S, R, c.ep) : null; }, // held: pin it against a wall too (squeezes it with the crush rule on)
+  };
+  Object.assign(PIERCE, { beak: 1.2, smith: 0.55 }); Object.assign(BLUNT, { beak: 1, smith: 1 }); BARS.pincer = 1; KSTIFF.pincer = 0.6;
   // a judge-friendly name for each cause
-  Object.assign(CAUSES, { gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
-  Object.assign(CALL, { hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
-  Object.assign(SHARP, { auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
+  Object.assign(CAUSES, { beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
+  Object.assign(CALL, { beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
+  Object.assign(SHARP, { beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
   function step(S) {
     if (S.countdown > 0) { S.countdown -= DT; return; }

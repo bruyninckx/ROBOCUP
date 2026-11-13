@@ -15,6 +15,9 @@
   };
   // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
   const ROBOTS4 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
+  // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
+  // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
+  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1] };
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
   const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 2.4, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
@@ -64,6 +67,6 @@
     return spec;
   }
   function usePK() { Object.assign(L.ARC.pk, PK); }
-  const API = { ROBOTS, ROBOTS4, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
+  const API = { ROBOTS, ROBOTS4, CANDIDATES, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Lineup = API;
 })(typeof window !== 'undefined' ? window : globalThis);
