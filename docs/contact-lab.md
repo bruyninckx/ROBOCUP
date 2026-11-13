@@ -1,4 +1,6 @@
-# ROBOCUS 2.0: Contact Lab (experiment, 11 Nov 2026)
+# ROBOCUS 2.0.1: Contact Lab (experiment, 11 Nov 2026)
+
+**Version 2.0.1, branch `robocus-2.0.1`. Kept off main on purpose (Kev, 13 Nov): 2.0 on main is what friends play.** Everything here is behind switches that are off by default.
 
 Kev: weapons have clear, fun outcomes, but a plain bump only shoves or lifts a little, and it is hard to see why one robot overpowers another.
 Goal: make what a bump does depend on where and how it lands, and make it visible.
