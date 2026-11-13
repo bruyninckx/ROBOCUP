@@ -1415,7 +1415,7 @@
     else R.wallT = 0;
     // a player drives this robot (Draft Arena, Kev 13 Nov): head for the stick direction, the weapon still works by itself. Off (null) = the AI as always.
     const pil = R.pilot;
-    if (pil) { R.escape = 0; R.unstick = 0; R.stuckT = 0; const an = pil.d * TAU / 32; tx = p.x + Math.cos(an) * 2; ty = p.y + Math.sin(an) * 2; speed = pil.go ? 1 : 0; }
+    if (pil) { R.escape = 0; R.unstick = 0; R.stuckT = 0; const an = pil.tank ? a : pil.d * TAU / 32; tx = p.x + Math.cos(an) * 2; ty = p.y + Math.sin(an) * 2; speed = pil.tank ? 0 : pil.go ? 1 : 0; }
     let err = wrap(Math.atan2(ty - p.y, tx - p.x) - a);
     let fwdC;
     // gunners may back up instead of turning around
@@ -1432,6 +1432,8 @@
     if (R.spec.drive === 'boost' && !(R.driveLock > 0) && !rev && Math.abs(err) < 0.25 && Math.hypot(tx - p.x, ty - p.y) > 1.3 && (melee && ok && !(R.kite > 0) ? dist < 3.4 && dist > 1.0 : R.kiting > 0 || dist > 3)) R.ctl.dash = true;
     let L = fwdC + turn, Rr = fwdC - turn;
     const mx = Math.max(1, Math.abs(L), Math.abs(Rr)); L /= mx; Rr /= mx;
+    // car-style driving (Kev): up = forward wherever it faces, left / right steer; standing still they turn on the spot, on the move they arc
+    if (pil && pil.tank) { const f = pil.thr || 0, tn = (pil.tn || 0) * (f ? 0.55 : 0.85) * (f < 0 ? -1 : 1); L = f + tn; Rr = f - tn; const m2 = Math.max(1, Math.abs(L), Math.abs(Rr)); L /= m2; Rr /= m2; R.ctl.S = 0; R.ctl.dash = false; }
     // unstick: pushing hard but not moving -> back off and turn
     const sp = Math.hypot(b.getLinearVelocity().x, b.getLinearVelocity().y);
     // a spinner whose bar got stopped backs off to spin up again
@@ -2206,7 +2208,7 @@
     S.magnets = S.magnets.filter(m => m.life > 0);
   }
   function applyCmd(S, c) {
-    if (c.type === 'pilot') { const P = S.robots[c.robot]; if (P) P.pilot = c.auto ? null : { d: c.d, go: c.go }; return; }   // a player drives (Draft Arena): direction d in 1/32 turns, go = throttle; auto = hand back to the AI
+    if (c.type === 'pilot') { const P = S.robots[c.robot]; if (P) P.pilot = c.auto ? null : c.tk != null ? { tank: 1, thr: c.tk, tn: c.tn } : { d: c.d, go: c.go }; return; }   // a player drives (Draft Arena): direction d in 1/32 turns + go = throttle, or tk = forward / back (1, -1) + tn = steer (1 right, -1 left on screen); auto = hand back to the AI
     const R = c.robot != null ? S.robots[c.robot] : null, who = c.by ? c.by + ': ' : '', lab = (LIVE[c.type] || {}).label || c.type;
     const x = c.x == null ? 0 : clamp(c.x, -HALF + 0.4, HALF - 0.4), y = c.y == null ? 0 : clamp(c.y, -HALF + 0.4, HALF - 0.4);
     if (R && !R.alive) return;

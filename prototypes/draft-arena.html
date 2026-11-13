@@ -384,6 +384,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function stampCmd(k, o) {
     const S = local.liveS; if (!S || !G.fight || G.fight.result || local.cmdId !== G.fight.id || S.over) return;
     const c = { tick: S.step + LAG, type: 'pilot', robot: k, d: o.d | 0, go: o.go ? 1 : 0, auto: o.auto ? 1 : 0 };
+    if (o.tk != null && !o.auto) { c.tk = Math.max(-1, Math.min(1, o.tk | 0)); c.tn = Math.max(-1, Math.min(1, o.tn | 0)); }   // car-style (arrow keys)
     S.cmdQ = S.cmdQ || []; S.cmdQ.push(c); cmdsOf(G.fight.id).push(c);
     NET.send(null, { t: 'cmd', id: G.fight.id, c });
   }
@@ -496,7 +497,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function rulesBox() {
     return `<div class="box"><h3 style="margin-top:0">How a round goes</h3><ol style="margin:0;padding-left:18px">
       <li>Pick 1 of 3 robots (any level, 0 to 4).</li><li>Pick 1 of 3 upgrades.</li><li>Pick 1 more of 3 upgrades.</li>
-      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Fight! Drive with the arrow keys (or hold the mouse / a finger where to go); A Z E R T Y fire combat triggers (module, overclock, EMP, field fix, rage, oil), each with a cooldown. The weapon works by itself. Hands off = the AI drives. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
+      <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Fight! Drive with the arrow keys like a car: up = forward wherever your robot faces, down = back, left / right steer (or hold the mouse / a finger where to go); A Z E R T Y fire combat triggers (module, overclock, EMP, field fix, rage, oil), each with a cooldown. The weapon works by itself. Hands off = the AI drives. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
       <p style="margin:8px 0 0"><b>💰 Budget on:</b> points are also your money. You start with some, everyone gets a few each round, a win pays 10 (2nd in free-for-all 4). Robots cost ${COST.lv} per level star (one free starter in every offer), upgrades ${COST.drone}, legendaries ${COST.legendary}, a reroll ${COST.reroll}. You may skip an upgrade. Spending lowers your score.</p>
       <p class="muted" style="margin-bottom:0">No balance yet: this is a test bench.</p></div>`;
   }
@@ -653,7 +654,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     const D = G.draft[ME], pal = G.mode === '2v2' ? TEAMPAL[G.fighters[k].team][G.fighters.filter(x => x.team === G.fighters[k].team).indexOf(G.fighters[k])] : PALS[G.players[ME].col], col = pal.col;
     const nm = (G.fight.bb.robots ? G.fight.bb.robots[k] : [G.fight.bb.a, G.fight.bb.b][k]).name;
     hud.hidden = false;
-    hud.innerHTML = `<b><span class="sw" style="background:${col}"></span>You: ${esc(nm)}</b> <span class="help">Arrows or hold where to go</span> <span class="trigs">${TRIGS.map(t => `<button type="button" class="tg" data-tg="${t.key}" title="${esc(t.name + ': ' + t.d + ' (every ' + t.cd + ' s)')}"><kbd>${t.key.toUpperCase()}</kbd>${esc(t.name)}<span class="cd"></span></button>`).join('')}</span> <i id="pilState">AI drives until you steer</i> <button type="button" id="pilAuto">Autopilot (P)</button>`;
+    hud.innerHTML = `<b><span class="sw" style="background:${col}"></span>You: ${esc(nm)}</b> <span class="help">↑ forward · ↓ back · ← → steer</span> <span class="trigs">${TRIGS.map(t => `<button type="button" class="tg" data-tg="${t.key}" title="${esc(t.name + ': ' + t.d + ' (every ' + t.cd + ' s)')}"><kbd>${t.key.toUpperCase()}</kbd>${esc(t.name)}<span class="cd"></span></button>`).join('')}</span> <i id="pilState">AI drives until you steer</i> <button type="button" id="pilAuto">Autopilot (P)</button>`;
     hud.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => fireTrig(b.dataset.tg));
     hud.querySelector('#pilAuto').onclick = () => setAuto();
     const cv = document.querySelector('#fv .fv-arena canvas');
@@ -668,20 +669,22 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function myRobot() { const S = local.liveS; return S && PIL.k >= 0 ? S.robots[PIL.k] : null; }
   function setAuto() { PIL.keys.clear(); PIL.ptr = null; PIL.auto = true; sendPilot({ auto: 1 }); }
   function sendPilot(o) {
-    const key = o.auto ? 'auto' : o.d + ':' + o.go; if (key === PIL.sent) return;
+    const key = o.auto ? 'auto' : o.tk != null ? 'k' + o.tk + ':' + o.tn : o.d + ':' + o.go; if (key === PIL.sent) return;
     PIL.sent = key; PIL.at = performance.now();
     const st = hud.querySelector('#pilState'); if (st) st.textContent = o.auto ? 'Autopilot: the AI drives' : 'You are driving';
-    const m = { id: G.fight.id, d: o.d, go: o.go, auto: o.auto };
+    const m = { id: G.fight.id, d: o.d, go: o.go, auto: o.auto, tk: o.tk, tn: o.tn };
     if (isHost) hostInput(ME, m); else NET.send('host', Object.assign({ t: 'in' }, m));
   }
   function pilotTick() {
     if (PIL.k < 0 || !G || !G.fight || G.fight.result) return;
     const R = myRobot(); if (!R || !R.alive) return;
     let x = 0, y = 0;
-    const K = PIL.keys; if (K.has('a')) x--; if (K.has('d')) x++; if (K.has('w')) y--; if (K.has('s')) y++;
+    // arrow keys, car-style (Kev): up = forward wherever the robot faces, down = back, left / right steer (on the spot when standing)
+    const K = PIL.keys;
+    if (K.size && !PIL.ptr) { PIL.auto = false; PIL.car = true; sendPilot({ tk: (K.has('w') ? 1 : 0) - (K.has('s') ? 1 : 0), tn: (K.has('d') ? 1 : 0) - (K.has('a') ? 1 : 0) }); return; }
     if (PIL.ptr) { const p = R.body.getPosition(); x = PIL.ptr[0] - p.x; y = PIL.ptr[1] - p.y; if (Math.hypot(x, y) < 0.25) { x = 0; y = 0; } }
-    if (x || y) { PIL.auto = false; PIL.lastD = ((Math.round(Math.atan2(y, x) / (Math.PI * 2) * 32) % 32) + 32) % 32; sendPilot({ d: PIL.lastD, go: 1 }); }
-    else if (!PIL.auto) sendPilot({ d: PIL.lastD || 0, go: 0 });
+    if (x || y) { PIL.auto = false; PIL.car = false; PIL.lastD = ((Math.round(Math.atan2(y, x) / (Math.PI * 2) * 32) % 32) + 32) % 32; sendPilot({ d: PIL.lastD, go: 1 }); }
+    else if (!PIL.auto) sendPilot(PIL.car ? { tk: 0, tn: 0 } : { d: PIL.lastD || 0, go: 0 });
   }
   const KEYMAP = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' };   // arrows drive (Belgian AZERTY: the letters are the combat triggers)
   document.addEventListener('keydown', e => { if (PIL.k < 0 || e.target.tagName === 'INPUT' || e.ctrlKey || e.metaKey || e.altKey) return; const key = e.key.toLowerCase(), k = KEYMAP[key];
@@ -707,7 +710,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       const D = G.draft[ME];
       if (G.phase === 'draft' && D && D.step !== 'done') { if (D.step === 'roll') send('roll', {}); else { const o = (D.step === 'robot' ? D.offers.robot : D.offers[D.step]).filter(k => !G.budget || G.players[ME].pts >= price(k)); if (G.budget && Math.random() < 0.15 && G.players[ME].pts >= COST.reroll) send('reroll', {}); else send('pick', { slot: D.step, k: o.length ? o[Math.floor(Math.random() * o.length)] : 'skip' }); } }
       else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { if (PIL.k >= 0 && local.liveS && Math.random() < 0.25) fireTrig(TRIGS[Math.floor(Math.random() * TRIGS.length)].key);
-        if (PIL.k >= 0 && local.liveS && Math.random() < 0.6) { if (Math.random() < 0.15) setAuto(); else { PIL.auto = false; PIL.lastD = Math.floor(Math.random() * 32); sendPilot({ d: PIL.lastD, go: Math.random() < 0.85 ? 1 : 0 }); } } const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }
+        if (PIL.k >= 0 && local.liveS && Math.random() < 0.6) { if (Math.random() < 0.15) setAuto(); else if (Math.random() < 0.6) { PIL.auto = false; PIL.car = true; sendPilot({ tk: [1, 1, 1, 0, -1][Math.floor(Math.random() * 5)], tn: Math.floor(Math.random() * 3) - 1 }); } else { PIL.auto = false; PIL.lastD = Math.floor(Math.random() * 32); sendPilot({ d: PIL.lastD, go: Math.random() < 0.85 ? 1 : 0 }); } } const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }
       else if (G.phase === 'fight' && local.watched === G.fight.id && G.fight.result && G.players[ME] && !G.players[ME].ready) send('ready', {});
       else if (isHost && G.phase === 'lobby' && +qs.get('autostart') && G.players.filter(p => !p.ai).length >= +qs.get('autostart')) send('start', {});
     }, 300);
