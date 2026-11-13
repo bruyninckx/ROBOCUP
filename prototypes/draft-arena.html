@@ -86,6 +86,11 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 .share { display: flex; gap: 6px; } .share input { flex: 1; min-width: 0; font: 600 12px var(--f-mono); }
 .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: var(--hazard); font: 700 13px var(--f-mono); padding: 8px 14px; border-radius: 6px; z-index: 9999; }
 .fv-ib b { font-weight: 700; }
+.price { font: 700 12px var(--f-mono); padding: 1px 7px; border-radius: 10px; background: var(--hazard); color: #2B2118; white-space: nowrap; }
+.price.free { background: var(--good); color: #fff; }
+.card:disabled { opacity: .45; cursor: not-allowed; }
+.card:disabled .price { background: var(--bad); color: #fff; }
+.wallet { font: 400 22px var(--f-display); }
 </style>
 </head><body>
 <div class="top"><span class="tag">TEST MODE</span><h1>ROBOCUS Draft Arena</h1><span class="grow"></span><span id="topInfo"></span></div>
@@ -135,6 +140,11 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   const BOTNAMES = ['Bot Bolt', 'Bot Rivet', 'Bot Sprocket', 'Bot Gasket', 'Bot Widget', 'Bot Cog'];
   const BONUS_AT = 5;   // d6: 5 or 6 earns a bonus upgrade (last on points gets +1)
   const MAXP = 8;
+  // points as budget (Kev, 13 Nov): one pool. You start with some, everyone gets a little each round, wins pay more,
+  // and robots / upgrades / rerolls cost points. Spending lowers your score: buy power now, or bank it.
+  const COST = { lv: 2, drone: 2, module: 2, stat: 2, chip: 2, legendary: 5, reroll: 1 };
+  const AWARD = b => b ? { win: 10, second: 4 } : { win: 3, second: 1 };
+  const price = k => ROBOTS[k] ? ROBOTS[k][0] * COST.lv : LU.PARTS[k] ? COST[LU.PARTS[k].kind] || 2 : 0;
   function weaponLabel(name) { const p = L.PRESETS[name]; const w = p && L.WEAPONS[p.weapon]; return w ? w.label : ''; }
   function chassisLabel(name) { const p = L.PRESETS[name]; const c = p && L.CHASSIS[p.chassis]; return c ? c.label.replace(/ \(.*\)/, '') : ''; }
   const PORT = new Map();
@@ -190,12 +200,12 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   /* =========================== HOST: the referee =========================== */
   const peerOf = {};   // peer id -> player index
   function newMatch(hostName) {
-    G = { v: VERSION, phase: 'lobby', mode: '1v1', target: 10, arena: 'open', round: 0, players: [], fighters: [], draft: {}, fight: null, log: [], champ: null };
+    G = { v: VERSION, phase: 'lobby', mode: '1v1', target: 60, budget: true, start: 10, income: 2, arena: 'open', round: 0, players: [], fighters: [], draft: {}, fight: null, log: [], champ: null };
     addPlayer({ name: hostName, cid: myCid, host: true });
     ME = 0;
   }
   function freeColour() { const used = new Set(G.players.map(p => p.col)); for (let i = 0; i < PALS.length; i++) if (!used.has(i)) return i; return G.players.length % PALS.length; }
-  function addPlayer(o) { const p = { name: o.name, cid: o.cid || null, ai: !!o.ai, host: !!o.host, pts: 0, fights: 0, wins: 0, on: true, ready: false, col: freeColour() }; G.players.push(p); return G.players.length - 1; }
+  function addPlayer(o) { const p = { name: o.name, cid: o.cid || null, ai: !!o.ai, host: !!o.host, pts: G.budget && G.phase === 'lobby' ? G.start : 0, fights: 0, wins: 0, on: true, ready: false, col: freeColour() }; G.players.push(p); return G.players.length - 1; }
   function addBot() { if (G.players.length >= MAXP) return; const used = new Set(G.players.map(p => p.name)); addPlayer({ name: BOTNAMES.find(n => !used.has(n)) || 'Bot ' + G.players.length, ai: true }); }
   function say(t) { G.log.push(t); if (G.log.length > 40) G.log.shift(); }
   let bcT = null;
@@ -226,20 +236,24 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function act(i, a, o) {
     const p = G.players[i]; if (!p) return;
     const me = p.host;
-    if (a === 'settings' && me) { if (o.mode && MODES[o.mode]) G.mode = o.mode; if (o.target) G.target = Math.max(3, Math.min(50, +o.target || 10)); if (o.arena && (o.arena === 'random' || ARENAS.includes(o.arena))) G.arena = o.arena; }
+    if (a === 'settings' && me) { if (o.mode && MODES[o.mode]) G.mode = o.mode; if (o.target) G.target = Math.max(3, Math.min(200, +o.target || 10)); if (o.arena && (o.arena === 'random' || ARENAS.includes(o.arena))) G.arena = o.arena;
+      if (o.budget != null && !!o.budget !== G.budget) { G.budget = !!o.budget; G.target = G.budget ? 60 : 10; if (G.phase === 'lobby') resetPoints(); }
+      if (o.start != null && o.start !== '') { G.start = Math.max(0, Math.min(99, +o.start || 0)); if (G.phase === 'lobby') resetPoints(); }
+      if (o.income != null && o.income !== '') G.income = Math.max(0, Math.min(20, +o.income || 0)); }
     else if (a === 'addBot' && me && G.phase !== 'draft') addBot();
     else if (a === 'kick' && me && G.phase !== 'draft' && G.phase !== 'fight') { const k = o.i; if (G.players[k] && !G.players[k].host) { G.players.splice(k, 1); for (const pid in peerOf) { if (peerOf[pid] === k) delete peerOf[pid]; else if (peerOf[pid] > k) peerOf[pid]--; } } }
-    else if (a === 'start' && me && (G.phase === 'lobby' || G.phase === 'over')) { if (G.phase === 'over') resetPoints(); startDraft(); }
+    else if (a === 'start' && me && (G.phase === 'lobby' || G.phase === 'over')) { resetPoints(); startDraft(); }
     else if (a === 'lobby' && me && G.phase === 'over') { resetPoints(); G.phase = 'lobby'; }
     else if (a === 'next' && me && G.phase === 'fight') nextRound();
     else if (a === 'autopick' && me && G.phase === 'draft') { for (const f of G.fighters) autoDraft(f.p, true); maybeAdvance(); }
     else if (a === 'pick' && G.phase === 'draft') pick(i, o.slot, o.k);
     else if (a === 'roll' && G.phase === 'draft') roll(i);
+    else if (a === 'reroll' && G.phase === 'draft') reroll(i);
     else if (a === 'ready' && G.phase === 'fight') { p.ready = true; maybeAdvance(); }
     broadcast();
     if (G.phase === 'draft') scheduleBots();
   }
-  function resetPoints() { for (const p of G.players) { p.pts = 0; p.fights = 0; p.wins = 0; } G.round = 0; G.champ = null; G.fight = null; }
+  function resetPoints() { for (const p of G.players) { p.pts = G.budget ? G.start : 0; p.fights = 0; p.wins = 0; } G.round = 0; G.champ = null; G.fight = null; }
 
   function startDraft() {
     const M = MODES[G.mode];
@@ -251,19 +265,35 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     let chosen = order.slice(0, need);
     if (G.mode === '2v2') { chosen.sort((a, b) => G.players[b].pts - G.players[a].pts); chosen = [chosen[0], chosen[1], chosen[2], chosen[3]]; G.fighters = chosen.map((p, k) => ({ p, team: [0, 1, 1, 0][k] })); }   // 1st + 4th vs 2nd + 3rd on points
     else G.fighters = chosen.map((p, k) => ({ p, team: k }));
+    if (G.budget && G.round > 0 && G.income) for (const p of G.players) p.pts += G.income;   // everyone, also who sits out
     G.round++; G.phase = 'draft'; G.draft = {}; G.fight = null;
     const top = Math.max(...G.players.map(p => p.pts)), low = Math.min(...G.fighters.map(f => G.players[f.p].pts));
     for (const f of G.fighters) {
       const under = top > 0 && G.players[f.p].pts === low && low < top;
-      G.draft[f.p] = { step: 'robot', offers: { robot: pickN(RNAMES, 3) }, robot: null, ups: [], roll: null, under };
+      G.draft[f.p] = { step: 'robot', offers: { robot: robotOffer() }, robot: null, ups: [], roll: null, under };
     }
     for (const p of G.players) p.ready = false;
     say('Round ' + G.round + ': ' + G.fighters.map(f => G.players[f.p].name).join(G.mode === 'ffa' ? ', ' : ' vs '));
   }
+  // with a budget there is always a free (level 0) robot in the offer
+  function robotOffer() { if (!G.budget) return pickN(RNAMES, 3); const free = RNAMES.filter(n => !ROBOTS[n][0]); const f = pickN(free, 1)[0]; return pickN([f].concat(pickN(RNAMES.filter(n => n !== f), 2)), 3); }
+  const canPay = (i, k) => !G.budget || k === 'skip' || G.players[i].pts >= price(k);
+  function pay(i, n) { if (G.budget && n) { G.players[i].pts -= n; G.draft[i].spent = (G.draft[i].spent || 0) + n; } }
+  function reroll(i) {
+    const D = G.draft[i]; if (!D || !G.budget || !['robot', 'up1', 'up2', 'bonus'].includes(D.step) || G.players[i].pts < COST.reroll) return;
+    pay(i, COST.reroll); D.rerolls = (D.rerolls || 0) + 1;
+    if (D.step === 'robot') D.offers.robot = robotOffer(); else D.offers[D.step] = upOffer(D);
+  }
+  // a pick for a bot or the host's auto-pick: something it can pay for (random or the first), else skip the upgrade
+  function choice(i, D, first) { const o = D.step === 'robot' ? D.offers.robot : D.offers[D.step], ok = o.filter(k => canPay(i, k)); return ok.length ? (first ? ok[0] : ok[Math.floor(Math.random() * ok.length)]) : 'skip'; }
   function upOffer(D) { return pickN(UPS.filter(k => !D.ups.includes(k)), 3); }
   function pick(i, slot, k) {
     const D = G.draft[i]; if (!D || D.step !== slot) return;
-    const offer = slot === 'robot' ? D.offers.robot : D.offers[slot]; if (!offer || !offer.includes(k)) return;
+    const offer = slot === 'robot' ? D.offers.robot : D.offers[slot]; if (!offer) return;
+    if (k === 'skip' ? !(G.budget && slot !== 'robot') : !offer.includes(k)) return;
+    if (!canPay(i, k)) return;
+    if (k !== 'skip') pay(i, price(k));
+    if (k === 'skip') { D.skipped = (D.skipped || 0) + 1; D.step = slot === 'up1' ? 'up2' : slot === 'up2' ? 'roll' : 'done'; if (D.step === 'up2') D.offers.up2 = upOffer(D); maybeAdvance(); return; }
     if (slot === 'robot') { D.robot = k; D.step = 'up1'; D.offers.up1 = upOffer(D); }
     else if (slot === 'up1') { D.ups.push(k); D.step = 'up2'; D.offers.up2 = upOffer(D); }
     else if (slot === 'up2') { D.ups.push(k); D.step = 'roll'; }
@@ -282,7 +312,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     let n = 0;
     while (D.step !== 'done' && n++ < 8) {
       if (D.step === 'roll') roll(i);
-      else { const o = D.step === 'robot' ? D.offers.robot : D.offers[D.step]; pick(i, D.step, all ? o[0] : o[Math.floor(Math.random() * o.length)]); }
+      else pick(i, D.step, choice(i, D, all));
     }
   }
   let botT = null;
@@ -291,7 +321,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     botT = setTimeout(() => {
       if (!G || G.phase !== 'draft') return;
       let moved = false;
-      for (const f of G.fighters) { const p = G.players[f.p], D = G.draft[f.p]; if (p.ai && D.step !== 'done') { if (D.step === 'roll') roll(f.p); else { const o = D.step === 'robot' ? D.offers.robot : D.offers[D.step]; pick(f.p, D.step, o[Math.floor(Math.random() * o.length)]); } moved = true; } }
+      for (const f of G.fighters) { const p = G.players[f.p], D = G.draft[f.p]; if (p.ai && D.step !== 'done') { if (D.step === 'roll') roll(f.p); else pick(f.p, D.step, choice(f.p, D)); moved = true; } }
       if (moved) { broadcast(); scheduleBots(); }
     }, 650);
   }
@@ -318,8 +348,9 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       if (list.length === 2) winners = [G.fighters[r.winner]].filter(Boolean).map(f => f.p);
       else if (G.mode === '2v2') winners = G.fighters.filter(f => f.team === r.winTeam).map(f => f.p);
       else winners = r.order ? [G.fighters[r.order[0]].p] : [];
-      for (const w of winners) award[w] = 3;
-      if (G.mode === 'ffa' && r.order && r.order[1] != null) award[G.fighters[r.order[1]].p] = 1;
+      const A = AWARD(G.budget);
+      for (const w of winners) award[w] = A.win;
+      if (G.mode === 'ffa' && r.order && r.order[1] != null) award[G.fighters[r.order[1]].p] = A.second;
       G.fight = { id: G.round + '-' + seed, bb, arena, result: { text: r.text, how: r.how, t: Math.round(r.t || S.t) }, winners, award, applied: false };
       G.phase = 'fight';
       say('Round ' + G.round + ': ' + r.text);
@@ -375,7 +406,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   function render(msg) {
     VIEW_SYNC();
     const main = $('#main'), side = $('#side');
-    $('#topInfo').innerHTML = G && ROOM ? `<span class="chip">Room ${esc(ROOM)}</span> <span class="chip">${esc(MODES[G.mode].label)}</span> ${G.round ? '<span class="chip">Round ' + G.round + '</span>' : ''} <span class="chip">First to ${G.target}</span>` : '';
+    $('#topInfo').innerHTML = G && ROOM ? `<span class="chip">Room ${esc(ROOM)}</span> <span class="chip">${esc(MODES[G.mode].label)}</span> ${G.round ? '<span class="chip">Round ' + G.round + '</span>' : ''} <span class="chip">First to ${G.target}</span>${G.budget ? ' <span class="chip">💰 Budget on</span>' : ''}` : '';
     if (err) { main.innerHTML = `<div class="box"><h2>Oops</h2><p>${esc(err)}</p><div class="row"><button class="go" onclick="location.href=location.pathname">Back to start</button></div></div>`; side.innerHTML = ''; return; }
     if (!NET) { main.innerHTML = startScreen(); side.innerHTML = rulesBox(); wireStart(); return; }
     if (!G) { main.innerHTML = `<div class="box"><h2>${esc(msg || 'Connecting…')}</h2><p class="muted">Room ${esc(ROOM)}</p></div>`; side.innerHTML = rulesBox(); return; }
@@ -409,6 +440,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     return `<div class="box"><h3 style="margin-top:0">How a round goes</h3><ol style="margin:0;padding-left:18px">
       <li>Pick 1 of 3 robots (any level, 0 to 4).</li><li>Pick 1 of 3 upgrades.</li><li>Pick 1 more of 3 upgrades.</li>
       <li>Roll a die: ${BONUS_AT}+ gives a bonus upgrade (last on points gets +1).</li><li>Watch the fight. Win = 3 points (free-for-all: 2nd place 1).</li></ol>
+      <p style="margin:8px 0 0"><b>💰 Budget on:</b> points are also your money. You start with some, everyone gets a few each round, a win pays 10 (2nd in free-for-all 4). Robots cost ${COST.lv} per level star (one free starter in every offer), upgrades ${COST.drone}, legendaries ${COST.legendary}, a reroll ${COST.reroll}. You may skip an upgrade. Spending lowers your score.</p>
       <p class="muted" style="margin-bottom:0">No balance yet: this is a test bench.</p></div>`;
   }
   function scoreboard() {
@@ -421,9 +453,9 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       if (G.phase === 'fight') return p.ai ? '' : p.ready ? '✓ ready' : 'watching';
       return '';
     };
-    return `<div class="box"><h3 style="margin-top:0">Points · first to ${G.target}</h3><div class="sb">${order.map(i => { const p = G.players[i];
+    return `<div class="box"><h3 style="margin-top:0">Points${G.budget ? ' (also your budget)' : ''} · first to ${G.target}</h3><div class="sb">${order.map(i => { const p = G.players[i];
       return `<div class="sb-row ${i === ME ? 'me' : ''} ${!p.on && !p.ai ? 'off' : ''}"><span class="sb-dot" style="background:${pcol(p)}"></span><div style="min-width:0"><div class="sb-name">${esc(p.name)}${p.host ? ' 👑' : ''}${p.ai ? ' 🤖' : ''}${!p.on && !p.ai ? ' (away)' : ''}</div>
-      <div class="sb-sub">${p.wins} W · ${p.fights} fights ${status(i) ? '· ' + status(i) : ''}</div></div><div class="sb-pts">${tot(i)}${pend(i) ? '<span class="status win"> +' + pend(i) + '</span>' : ''}</div></div>`; }).join('')}</div></div>`;
+      <div class="sb-sub">${p.wins} W · ${p.fights} fights${G.budget && G.draft[i] && G.draft[i].spent ? ' · spent ' + G.draft[i].spent : ''} ${status(i) ? '· ' + status(i) : ''}</div></div><div class="sb-pts">${tot(i)}${pend(i) ? '<span class="status win"> +' + pend(i) + '</span>' : ''}</div></div>`; }).join('')}</div></div>`;
   }
   function logBox() { return G.log.length ? `<div class="box" style="margin-top:12px"><h3 style="margin-top:0">Log</h3><div class="status" style="display:grid;gap:2px">${G.log.slice(-8).reverse().map(esc).map(t => '<div>' + t + '</div>').join('')}</div></div>` : ''; }
   function settingsRow() {
@@ -431,7 +463,9 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     const sel = (id, opts, cur) => `<select id="${id}" ${host ? '' : 'disabled'}>${opts.map(([v, t]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     return `<div class="row">${sel('sMode', Object.keys(MODES).map(k => [k, MODES[k].label]), G.mode)}
       ${sel('sArena', [['random', 'Random arena']].concat(ARENAS.map(k => [k, L.ARENAS[k].label])), G.arena)}
-      <label class="status">First to <input type="text" id="sTarget" value="${G.target}" ${host ? '' : 'disabled'} style="width:56px"></label></div>`;
+      <label class="status">First to <input type="text" id="sTarget" value="${G.target}" ${host ? '' : 'disabled'} style="width:56px"></label></div>
+      <div class="row"><label class="status"><input type="checkbox" id="sBudget" ${G.budget ? 'checked' : ''} ${host ? '' : 'disabled'}> 💰 Points are also your budget</label>
+      ${G.budget ? `<label class="status">Start with <input type="text" id="sStart" value="${G.start}" ${host && G.phase === 'lobby' ? '' : 'disabled'} style="width:48px"></label><label class="status">+ each round <input type="text" id="sIncome" value="${G.income}" ${host ? '' : 'disabled'} style="width:48px"></label>` : ''}</div>`;
   }
   function lobby() {
     const link = location.origin + location.pathname + '?room=' + ROOM + (qs.get('net') === 'local' ? '&net=local' : '');
@@ -440,7 +474,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       <div class="row"><span class="muted">Room code</span> <span class="code">${esc(ROOM)}</span></div>
       <div class="share"><input type="text" readonly value="${esc(link)}" id="link"><button data-a="copy">Copy link</button></div>
       <h3>Match</h3>${settingsRow()}
-      <p class="muted">${G.mode === '1v1' ? 'Two robots fight; everyone else watches and rotates in (fewest fights go first).' : G.mode === '2v2' ? 'Four robots, two teams. Teams are mixed every round: 1st + 4th on points against 2nd + 3rd.' : 'Three or four robots, last one standing. Winner 3 points, runner-up 1.'}</p>
+      <p class="muted">${G.mode === '1v1' ? 'Two robots fight; everyone else watches and rotates in (fewest fights go first).' : G.mode === '2v2' ? 'Four robots, two teams. Teams are mixed every round: 1st + 4th on points against 2nd + 3rd.' : 'Three or four robots, last one standing. Winner ' + AWARD(G.budget).win + ' points, runner-up ' + AWARD(G.budget).second + '.'}</p>
       <h3>Players (${G.players.length}/${MAXP})</h3>
       <div class="sb">${G.players.map((p, i) => `<div class="sb-row"><span class="sb-dot" style="background:${pcol(p)}"></span><div class="sb-name">${esc(p.name)}${p.host ? ' 👑 host' : ''}${p.ai ? ' 🤖' : ''}${!p.on && !p.ai ? ' (away)' : ''}</div>${isHost && !p.host ? `<button class="sm" data-a="kick" data-i="${i}">Remove</button>` : '<span></span>'}</div>`).join('')}</div>
       ${isHost ? `<div class="row"><button data-a="addBot" ${G.players.length >= MAXP ? 'disabled' : ''}>+ Add a bot</button><button class="go" data-a="start">Start the match</button></div>
@@ -453,12 +487,14 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     const si = STEP_ORDER.indexOf(D.step);
     const steps = ['Robot', 'Upgrade', 'Upgrade', 'Roll', 'Bonus'].map((t, k) => `<span class="${D.step === 'done' || k < si ? 'done' : k === si ? 'on' : ''}">${k + 1}. ${t}</span>`).join('');
     let body = '';
+    const pickStep = ['robot', 'up1', 'up2', 'bonus'].includes(D.step), cash = G.players[ME].pts;
+    const money = G.budget ? `<div class="row"><span class="wallet">💰 ${cash}</span><span class="status">points to spend${D.spent ? ' · spent ' + D.spent + ' this round' : ''}</span>${pickStep ? `<button class="sm" data-a="reroll" ${cash < COST.reroll ? 'disabled' : ''}>Reroll these 3 (${COST.reroll})</button>` : ''}${pickStep && D.step !== 'robot' ? '<button class="sm" data-a="pick" data-slot="' + D.step + '" data-k="skip">Skip, keep my points</button>' : ''}</div>` : '';
     if (D.step === 'robot') body = `<h2>Pick your robot</h2><div class="offers">${D.offers.robot.map(n => robotCard(n)).join('')}</div>`;
     else if (D.step === 'up1' || D.step === 'up2' || D.step === 'bonus') body = `<h2>${D.step === 'bonus' ? 'Bonus upgrade!' : D.step === 'up1' ? 'Pick an upgrade' : 'Pick one more upgrade'}</h2><div class="offers">${D.offers[D.step].map(k => upCard(k, D.step)).join('')}</div>`;
     else if (D.step === 'roll') body = `<h2>Roll for a bonus upgrade</h2><div class="dice">${dieHtml(0)}<div><p>Roll ${BONUS_AT} or more for a third upgrade.${D.under ? ' <b>Underdog: +1 to your roll</b> (lowest on points).' : ''}</p><button class="go" data-a="roll">Roll the die</button></div></div>`;
     else body = `<h2>Locked in</h2>${D.roll ? `<div class="dice">${dieHtml(D.roll.die, local.rollAnim > performance.now())}<div class="big ${D.roll.bonus ? 'win' : 'muted'}">${local.rollAnim > performance.now() ? 'Rolling…' : (D.roll.die + (D.under ? ' +1' : '') + (D.roll.bonus ? ': bonus upgrade picked' : ': no bonus this time'))}</div></div>` : ''}<p class="muted">Waiting for the others…</p>`;
     if (D.step === 'bonus' && D.roll) body = `<div class="dice" style="margin-bottom:10px">${dieHtml(D.roll.die)}<div class="big win">${D.roll.die}${D.under ? ' +1' : ''}: bonus!</div></div>` + body;
-    return `<div class="box"><div class="steps">${steps}</div>${body}${D.robot ? buildBox(D) : ''}${vsLine()}${hostDraftTools()}</div>`;
+    return `<div class="box"><div class="steps">${steps}</div>${money}${body}${D.robot ? buildBox(D) : ''}${vsLine()}${hostDraftTools()}</div>`;
   }
   function hostDraftTools() { return isHost ? `<div class="row"><button class="sm" data-a="autopick" title="For a player who left or is stuck">Auto-pick for anyone not done (host)</button></div>` : ''; }
   function vsLine() {
@@ -468,13 +504,15 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     else t = parts.join(' <span class="vs">vs</span> ');
     return `<h3>This round</h3><div>${t}</div>`;
   }
+  const afford = k => !G.budget || G.players[ME].pts >= price(k);
+  const priceTag = k => G.budget ? (price(k) ? `<span class="price">${price(k)} pts</span>` : '<span class="price free">free</span>') : '';
   function robotCard(n) {
     const lv = ROBOTS[n][0];
-    return `<button class="card" data-a="pick" data-slot="robot" data-k="${esc(n)}"><div class="k"><span>${stars(lv)}</span><span>${esc(chassisLabel(n))}</span></div><canvas data-port="${esc(n)}"></canvas><div class="n">${esc(n)}</div><div class="d">${esc(weaponLabel(n))}</div></button>`;
+    return `<button class="card" data-a="pick" data-slot="robot" data-k="${esc(n)}" ${afford(n) ? '' : 'disabled'}><div class="k"><span>${stars(lv)}</span>${priceTag(n)}<span>${esc(chassisLabel(n))}</span></div><canvas data-port="${esc(n)}"></canvas><div class="n">${esc(n)}</div><div class="d">${esc(weaponLabel(n))}</div></button>`;
   }
   function upCard(k, slot) {
     const U = LU.PARTS[k];
-    return `<button class="card" data-a="pick" data-slot="${slot}" data-k="${esc(k)}"><div class="k"><span class="kind-${U.kind}">${KIND[U.kind] || U.kind}</span></div><div class="n">${esc(U.name)}</div><div class="d">${esc(U.d)}</div></button>`;
+    return `<button class="card" data-a="pick" data-slot="${slot}" data-k="${esc(k)}" ${afford(k) ? '' : 'disabled'}><div class="k"><span class="kind-${U.kind}">${KIND[U.kind] || U.kind}</span>${priceTag(k)}</div><div class="n">${esc(U.name)}</div><div class="d">${esc(U.d)}</div></button>`;
   }
   function buildBox(D) { return `<div class="build"><canvas data-port="${esc(D.robot)}" data-ups="${esc(D.ups.join(','))}"></canvas><div><div class="big">${esc(D.robot)}</div><div class="pills">${D.ups.map(k => `<span class="pill">${esc(upName(k))}</span>`).join('') || '<span class="muted">no upgrades yet</span>'}</div></div></div>`; }
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -484,7 +522,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     return `<div class="fighters">${G.fighters.map(f => { const p = G.players[f.p], D = G.draft[f.p] || {}; const col = G.mode === '2v2' ? TEAMPAL[f.team][0].col : pcol(p);
       const aw = res ? (G.fight.award[f.p] || 0) : 0;
       return `<div class="fcard" style="border-left-color:${col}"><div class="who" style="color:${col}">${esc(p.name)}${G.mode === '2v2' ? ' · ' + TEAMNAME[f.team] : ''}</div><div class="rb">${esc(D.robot || '?')} ${D.robot ? stars(ROBOTS[D.robot][0]) : ''}</div>
-      <div class="pills" style="margin-top:4px">${(D.ups || []).map(k => `<span class="pill">${esc(upName(k))}</span>`).join('')}</div>${D.roll ? `<div class="status">rolled ${D.roll.die}${D.under ? '+1' : ''}${D.roll.bonus ? ' → bonus' : ''}</div>` : ''}
+      <div class="pills" style="margin-top:4px">${(D.ups || []).map(k => `<span class="pill">${esc(upName(k))}</span>`).join('')}</div>${D.roll ? `<div class="status">rolled ${D.roll.die}${D.under ? '+1' : ''}${D.roll.bonus ? ' → bonus' : ''}</div>` : ''}${G.budget ? `<div class="status">spent ${D.spent || 0}${D.rerolls ? ' (' + D.rerolls + ' reroll' + (D.rerolls > 1 ? 's' : '') + ')' : ''}${D.skipped ? ' · skipped ' + D.skipped : ''}</div>` : ''}
       ${res ? `<div class="award">${aw ? '+' + aw + ' points' : '<span class="muted">0 points</span>'}</div>` : ''}</div>`; }).join('')}</div>`;
   }
   function resultScreen() {
@@ -512,8 +550,8 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
       if (a === 'roll') { local.rollAnim = performance.now() + 900; setTimeout(render, 950); }
       send(a, { slot: b.dataset.slot, k: b.dataset.k, i: +b.dataset.i });
     });
-    const s = () => send('settings', { mode: $('#sMode').value, arena: $('#sArena').value, target: $('#sTarget').value });
-    ['#sMode', '#sArena', '#sTarget'].forEach(id => { const e = $(id); if (e && isHost) e.onchange = s; });
+    const s = () => send('settings', { mode: $('#sMode').value, arena: $('#sArena').value, target: $('#sTarget').value, budget: $('#sBudget').checked, start: $('#sStart') ? $('#sStart').value : '', income: $('#sIncome') ? $('#sIncome').value : '' });
+    ['#sMode', '#sArena', '#sTarget', '#sBudget', '#sStart', '#sIncome'].forEach(id => { const e = $(id); if (e && isHost) e.onchange = s; });
     document.querySelectorAll('canvas[data-port]').forEach(c => { const n = c.dataset.port, ups = c.dataset.ups ? c.dataset.ups.split(',') : []; const key = n + '|' + ups.join(','); let src = PORT.get(key); if (!src) { src = portrait(n, ups, 150); PORT.set(key, src); } c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); });
   }
 
@@ -538,7 +576,7 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
     setTimeout(() => {
       botBusy = false; if (!G) return;
       const D = G.draft[ME];
-      if (G.phase === 'draft' && D && D.step !== 'done') { if (D.step === 'roll') send('roll', {}); else { const o = D.step === 'robot' ? D.offers.robot : D.offers[D.step]; send('pick', { slot: D.step, k: o[Math.floor(Math.random() * o.length)] }); } }
+      if (G.phase === 'draft' && D && D.step !== 'done') { if (D.step === 'roll') send('roll', {}); else { const o = (D.step === 'robot' ? D.offers.robot : D.offers[D.step]).filter(k => !G.budget || G.players[ME].pts >= price(k)); if (G.budget && Math.random() < 0.15 && G.players[ME].pts >= COST.reroll) send('reroll', {}); else send('pick', { slot: D.step, k: o.length ? o[Math.floor(Math.random() * o.length)] : 'skip' }); } }
       else if (G.phase === 'fight' && local.watched !== G.fight.id && VIEW.state) { VIEW.skip(); setTimeout(() => { const b = document.querySelector('.fv-done'); if (b && !b.hidden) b.click(); }, 1500); }
       else if (G.phase === 'fight' && local.watched === G.fight.id && G.players[ME] && !G.players[ME].ready) send('ready', {});
       else if (isHost && G.phase === 'lobby' && +qs.get('autostart') && G.players.filter(p => !p.ai).length >= +qs.get('autostart')) send('start', {});
