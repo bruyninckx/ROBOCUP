@@ -132,6 +132,9 @@
     roaster: { label: 'Pincers + flamethrower', cat: 'front', mass: 12, invert: false, l4: true, d: 'Level 4 (after Sgt Bash): pincers grab and hold, a flamethrower roasts what they hold, and they turn it so the flames reach its sides.' },
     smith: { label: 'Tongs + hammer', cat: 'front', mass: 16, invert: false, l4: true, d: 'Level 4 (after Mr Psycho): tongs clamp the enemy to an anvil nose and an overhead hammer pounds it while it is held.' },
     jukebox: { label: 'Record launcher', cat: 'front', mass: 10, invert: true, l4: true, d: 'Four steel records on its back. A loader drops one on the turntable, it spins up and flies: a heavy saw that bounces round the arena, curving off the walls. It picks spent records back up.' },
+    scav: { label: 'Vacuum + air cannon', cat: 'front', mass: 10, invert: true, l4: true, d: 'No ammo of its own: a vacuum mouth sucks up the junk the fight tears off (wheels, plates, blades, records) and an air cannon fires it back. Every shot gets the same energy: light junk flies fast, heavy plates slow. Fired junk lands and gets sucked up again.' },
+    bricks: { label: 'Crane + iron blocks', cat: 'top', mass: 12, invert: false, l4: true, d: 'A slewing crane and a stack of 25 kg iron blocks. It swings a block out over the enemy and drops it: the fall is the hit. Hit or miss, the block stays in the arena as an obstacle, and the crane picks blocks back up.' },
+    anchor: { label: 'Wall anchor + spiked prow', cat: 'front', mass: 12, invert: true, l4: true, d: 'Fires an anchor into the arena wall, drives round it on the cable and winches in: the circle gets smaller and it goes faster (angular momentum). Then it lets go and flies into the enemy prow first. Needs a wall in reach; spinners cut the cable.' },
     bola: { label: 'Bola launcher + nose saw', cat: 'front', mass: 10, invert: true, l4: true, d: 'Throws bolas: two steel balls on a cord that wrap whatever they hit. Round the wheels they tie that side up, round the front they tie the weapon. Then the nose saw goes in. Spinning weapons cut the cord.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
     mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
@@ -223,6 +226,9 @@
     // the House Robot (tabletop card "Unleash the House Robot"): neutral, huge, slow, a giant hammer; other robots keep away from it
     'Big Mallet': { weapon: 'mallet', chassis: 'giant', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 3, side: 3, rear: 2, top: 3 }, shape: 'chamfer', helpers: [], house: true, pal: { name: 'House', col: '#D9A520', dark: '#2E2A25', light: '#F2D27A' } },
     Jukebox: { weapon: 'jukebox', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
+    Scavenger: { weapon: 'scav', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
+    Bricklayer: { weapon: 'bricks', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
+    Pendulum: { weapon: 'anchor', chassis: 'heavy', drive: 'omni', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
     Gaucho: { weapon: 'bola', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Talon: { weapon: 'beak', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Rotisserie: { weapon: 'roaster', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
@@ -1071,6 +1077,7 @@
       const py = uy.part;
       sharp = py.sharp; if (py.attached) { src = py.robot; cause = py.kind === 'weapon' ? ({ blade: 'spinner', jaws: 'crusher', ball: 'flail', buzz: 'buzzsaw' }[py.key] || py.key) : py.bumper === 'spiked' ? 'spikeplate' : 'ram'; } else if (py.shrapBy && S.t < py.shrapT && py.shrapBy !== px.robot) { src = py.shrapBy; cause = 'shrapnel'; sharp = 1.1; } // level 4: magnet shrapnel
       else if (py.key === 'record' && py.state === 'fly' && py.flyBy) { const own = py.flyBy === px.robot; src = own ? null : py.flyBy; cause = 'record'; sharp = 1.8 * (own ? JUKE.ffK : 1) * Math.min(1, Math.abs(py.body.getAngularVelocity()) / JUKE.rpm + 0.3); } // level 4: a flying record
+      else if (py.key === 'brick') { const own = py.robot === px.robot; src = own ? null : py.robot; cause = own ? 'wall' : 'brick'; sharp = own ? 0.25 : 0.5; } // level 4 candidate: a Bricklayer's iron block on the floor
       else if (py.key === 'orbdisc' && Math.abs(py.body.getAngularVelocity()) > 25) { src = null; cause = 'orbdisc'; sharp = 1.6; } // a loose orbit blade still cuts while it spins
       else { src = null; cause = 'debris'; sharp = Math.min(sharp, 0.45); }
       if (py.attached && px.attached && py.robot === px.robot) return;
@@ -1088,7 +1095,7 @@
         if (fwd.x * vv.x + fwd.y * vv.y > 0.6) px.robot.lifted = Math.max(px.robot.lifted, 0.4);
       }
     } else return;
-    const J = c.J, Jd = cause === 'wall' || cause === 'debris' || cause === 'spikes' ? Math.min(J, 45) : J; // walls and loose junk can crush, but not infinitely
+    const J = c.J, Jd = cause === 'wall' || cause === 'debris' || cause === 'spikes' || cause === 'brick' ? Math.min(J, 45) : J; // walls and loose junk can crush, but not infinitely
     let d = Math.max(0, Jd - 7) * 0.2 * sharp * px.tough;
     if (!px.attached && cause !== 'spinner' && cause !== 'flail' && cause !== 'shell' && cause !== 'sweeper') return; // debris barely matters
     if (ARC.cx.bend && px.attached && px.hp > 0 && WARP[px.key] && J > 25) { const lq = px.body.getLocalPoint(V(c.x, c.y)); warpHit(S, px.robot, px, { lp: [lq.x, lq.y], J, cause }, src); }
@@ -1654,7 +1661,7 @@
         if (ground > 0) {
           const me = m / n, jl = clamp(-vl * me, -muSide * load * DT, muSide * load * DT);
           b.applyLinearImpulse(V(right.x * jl, right.y * jl), p, true);
-          const brake = thr === 0 && mo.hp > 0 && R.alive ? 0.12 : 0.012;
+          const brake = thr === 0 && mo.hp > 0 && R.alive ? 0.12 : R.freewheel ? 0.004 : 0.012; // freewheel: a Pendulum on its cable (clutch out above top speed)
           const jr = clamp(-vf * me * (brake + (s.rub ? 0.1 * s.rub : 0)), -mu * load * DT, mu * load * DT);
           if (s.rub && Math.abs(vf) > 0.4 && S.step % 5 === 0) S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 6 + 8 * s.rub, small: true });
           b.applyLinearImpulse(V(fwd.x * jr, fwd.y * jr), p, true);
@@ -3541,7 +3548,7 @@
     },
     think(S, R, c) { rwRight(S, R, R.hammerArm.hp > 0 && R.wmotor.hp > 0, 'hammer'); return R.grab ? l4Drag(S, R, c.ep) : null; }, // held: pin it against a wall too (squeezes it with the crush rule on)
   };
-  Object.assign(PIERCE, { beak: 1.2, smith: 0.55 }); Object.assign(BLUNT, { beak: 1, smith: 1 }); BARS.pincer = 1; KSTIFF.pincer = 0.6;
+  Object.assign(PIERCE, { beak: 1.2, smith: 0.55, prow: 0.7 }); Object.assign(BLUNT, { beak: 1, smith: 1, brick: 1, junk: 1, plough: 1 }); BARS.pincer = 1; KSTIFF.pincer = 0.6;
   // ---------------- JUKEBOX: four steel records stacked on its back. A tone-arm loader drops one on the turntable on its nose,
   // the turntable spins it up, then it is let go: a heavy free saw that bounces round the arena (walls curve it with its spin),
   // hurts anyone it touches (its own robot too, a bit), spins down, and lies there until someone picks it up again (ENCORE!) ----------------
@@ -3759,10 +3766,316 @@
       return { tx: c.ep.x + Math.cos(cur) * 2.8, ty: c.ep.y + Math.sin(cur) * 2.8, speed: 1 };
     },
   };
+  // =====================================================================================================
+  // Three arena-physics candidates (Kev, 13 Nov: "really think about new design, look at the disc jockey").
+  // Like the Jukebox, each weapon has a life cycle in the arena; there is no damage knob anywhere:
+  // a hit's damage is the energy it carries times the same joules-to-damage rate as the Jukebox's records (JUKE.eK).
+  // =====================================================================================================
+  function freeBody(q) { for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFilterData({ groupIndex: 0, categoryBits: 1, maskBits: 0xffff }); }
+  function noCollide(q) { for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFilterData({ groupIndex: q.robot.group, categoryBits: 0, maskBits: 0 }); }
+  function inArena(S, x, y, m) { const lx = HALF - S.sq.x - m, ly = HALF - S.sq.y - m; return [clamp(x, -lx, lx), clamp(y, -ly, ly)]; }
+  function firstTouch(body, R, skipRobot) { // the first attached robot part (not R's) this body is touching
+    for (let ce = body.getContactList(); ce; ce = ce.next) {
+      const cc = ce.contact; if (!cc.isTouching()) continue;
+      const fo = cc.getFixtureA().getBody() === body ? cc.getFixtureB() : cc.getFixtureA(), u = fo.getUserData() || {};
+      if (!u.part || !u.part.attached || u.part.robot === R || u.part.robot === skipRobot) continue;
+      const wm = cc.getWorldManifold(null); if (!wm || !wm.points.length) continue;
+      return { part: u.part, p: wm.points[0] };
+    }
+    return null;
+  }
+
+  // ---------------- SCAVENGER: no ammo of its own. A vacuum mouth sucks up the junk the fight tears off (wheels, plates,
+  // records, blades, its own bits too) and an air cannon fires it back. The cannon gives every shot the same energy, so a light
+  // bolt flies fast and a heavy plate flies slow; the shot's damage is the energy it loses in the hit. Fired junk lands on the
+  // floor again and gets sucked back up: the messier the fight, the deadlier it gets.
+  const SCAV = { reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
+  function scavEdible(d) { return !d.gone && !d.attached && !d.mag && !d.inHopper && !d.shotBy && d.kind !== 'chassis' && d.key !== 'brick' && !(d.key === 'record' && d.state !== 'floor') && d.body && d.body.isActive() && d.body.getMass() <= SCAV.maxM; }
+  L4W.scav = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      R.tool = k.addPart('wedge', 'Intake scoop', 'weapon', [[hl, -hw - 0.04], [hl + 0.2, -hw * 0.85], [hl + 0.2, hw * 0.85], [hl, hw + 0.04]], { mass: 9, hp: 150, sharp: 0.3, tough: 0.35, friction: 0.05, z: 2 });
+      R.intake = k.addInt('intake', 'Vacuum fan', [0.35 * hl, 0], 60);
+      R.cannon = k.addInt('aircan', 'Air cannon', [-0.05 * hl, -0.35 * hw], 80, { top: true });
+      R.hopper = []; R.shots = []; R.l4 = { suck: 0, last: -9, fired: 0, ate: 0 };
+      for (let n = 0; n < SCAV.cap; n++) lamp(R, (-0.75 + n * 0.11) * hl, 0.62 * hw, '#E8C547', 'state', { src: 'ammo', at: n / SCAV.cap, r: 0.02 }); // ammo gauge
+      lamp(R, 0.62 * hl, -0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 }); lamp(R, 0.62 * hl, 0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 });
+    },
+    ok: R => R.intake.hp > 0 || R.cannon.hp > 0 || alivePart(R.tool),
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && power(R) > 0, P = Math.min(1, c.pw), fwd = c.fwd, M = l4front(R, 0.24, 0); // it works either way up (the mouth and the barrel go right through)
+      R.fx.ammo = R.hopper.length / SCAV.cap; R.fx.suck = st.suck;
+      // shots in flight: the bite is the energy the junk loses when it hits a robot
+      for (const sh of R.shots) {
+        const d = sh.d, v = d.body.getLinearVelocity(), v2 = v.x * v.x + v.y * v.y; sh.t += DT;
+        if (d.gone || !d.body.isActive()) { sh.done = true; continue; }
+        const tch = sh.t > 0.06 ? firstTouch(d.body, null, null) : firstTouch(d.body, R, null);
+        if (tch && tch.part.robot !== R) {
+          const T = tch.part.robot, mm = d.body.getMass(), lost = Math.max(0, 0.5 * mm * (sh.v2 - v2)), lp = tch.part.body.getLocalPoint(tch.p);
+          hit(S, tch.part, lost * JUKE.eK, { src: R, cause: 'junk', lp: [lp.x, lp.y], blp: tch.part.body === T.body ? [lp.x, lp.y] : null, x: tch.p.x, y: tch.p.y, pen: 1.0 });
+          st.hits = (st.hits || 0) + 1; st.dmg = (st.dmg || 0) + lost * JUKE.eK;
+          if (lost > 250) { callout(S, 'RETURN TO SENDER!', tch.p.x, tch.p.y, d.robot === T); if (d.robot === T) say(S, `${R.name} fires ${T.name}'s own ${d.label.toLowerCase()} back at it`, R.id, true); }
+          sh.done = true;
+        }
+        if (v2 < 9 || sh.t > 1.5) sh.done = true;
+        sh.v2 = v2;
+        if (sh.done) { d.body.setLinearDamping(sh.damp); d.shotBy = null; }
+      }
+      R.shots = R.shots.filter(s => !s.done);
+      // the vacuum: a cone in front of the mouth pulls loose junk in (the same pull on everything: light junk flies in, heavy plates creep)
+      st.suck = 0;
+      if (on && R.intake.hp > 0 && R.hopper.length < SCAV.cap) {
+        for (const d of S.debris) {
+          if (!scavEdible(d)) continue;
+          const dp = d.body.getPosition(), dx = M.x - dp.x, dy = M.y - dp.y, dd = Math.hypot(dx, dy); if (dd > SCAV.reach) continue;
+          if (dd > 0.2 && (-dx * fwd.x - dy * fwd.y) / dd < Math.cos(SCAV.cone)) continue;
+          let lipT = false; for (let ce = d.body.getContactList(); ce && !lipT; ce = ce.next) { const cc = ce.contact, fo = cc.getFixtureA().getBody() === d.body ? cc.getFixtureB() : cc.getFixtureA(); if (cc.isTouching() && (fo.getUserData() || {}).part === R.tool) lipT = true; }
+          if (dd < SCAV.mouth || lipT) { // swallowed: into the hopper (in reach of the mouth, or touching the scoop's lip)
+            d.inHopper = true; d.body.setLinearVelocity(V(0, 0)); d.body.setAngularVelocity(0); d.body.setActive(false); if (d.key === 'record') d.state = 'hopper';
+            S.debris.splice(S.debris.indexOf(d), 1); R.hopper.push(d); st.ate++;
+            if (S.rng() < 0.5) callout(S, 'SLURP!', M.x, M.y, false); say(S, `${R.name} sucks up ${d.robot === R ? 'its own' : d.robot.name + "'s"} ${d.label.toLowerCase()}`, R.id);
+            if (R.hopper.length >= SCAV.cap) break; continue;
+          }
+          const F = SCAV.suck * (1 - dd / SCAV.reach) * P; d.body.applyForceToCenter(V(dx / dd * F, dy / dd * F), true); st.suck = 1;
+        }
+        if (on) R.intake.heat += 0.4 * DT;
+      }
+      // the air cannon: lined up on the enemy (with a lead), in range
+      if (!on || R.cannon.hp <= 0 || !R.hopper.length || !E.alive || S.t - st.last < SCAV.reload * (c.jk < 1 ? 1.6 : 1)) return;
+      const d = R.hopper[R.hopper.length - 1], mm = d.body.getMass(), sp = Math.min(SCAV.vmax, Math.sqrt(2 * SCAV.shotE * P / mm));
+      const ep = E.body.getPosition(), ev = E.body.getLinearVelocity(), pos = c.pos, d0 = Math.hypot(ep.x - pos.x, ep.y - pos.y), ld = d0 / sp;
+      const err = Math.abs(wrap(Math.atan2(ep.y + ev.y * ld - pos.y, ep.x + ev.x * ld - pos.x) - b.getAngle()));
+      if (d0 > 4.2 || d0 < R.hl + E.hl + 0.15 || err > (d0 < 1.8 ? 0.22 : 0.1)) return;
+      R.hopper.pop(); st.last = S.t; st.fired++;
+      const mz = l4front(R, 0.32, 0), v = b.getLinearVelocity();
+      d.body.setActive(true); d.inHopper = false; if (d.key === 'record') d.state = 'floor';
+      d.body.setTransform(mz, b.getAngle()); d.body.setLinearVelocity(V(v.x + fwd.x * sp, v.y + fwd.y * sp)); d.body.setAngularVelocity((S.rng() - 0.5) * 20);
+      freeBody(d); d.body.setBullet(true); const damp = d.body.getLinearDamping(); d.body.setLinearDamping(0.15); // in the air it barely slows
+      S.debris.push(d); d.shotBy = R; R.shots.push({ d, t: 0, v2: sp * sp, damp });
+      b.applyLinearImpulse(V(-fwd.x * mm * sp, -fwd.y * mm * sp), b.getWorldCenter(), true); // recoil: a heavy shot shoves it back
+      S.fx.push({ type: 'launch', x: mz.x, y: mz.y }); S.fx.push({ type: 'boom', x: mz.x, y: mz.y, power: 5 }); callout(S, 'FWOOMP!', mz.x, mz.y, false);
+      say(S, `${R.name} fires ${d.robot === R ? 'its own' : d.robot.name + "'s"} ${d.label.toLowerCase()} out of its air cannon`, R.id);
+    },
+    think(S, R, c) {
+      const p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
+      // hungry: drive the mouth over the nearest junk that is not right next to the enemy
+      if (R.hopper.length < SCAV.cap && R.intake.hp > 0) {
+        const j = S.debris.filter(scavEdible).map(d => { const dp = d.body.getPosition(); return { d, dp, dm: Math.hypot(dp.x - p.x, dp.y - p.y), de: Math.hypot(dp.x - c.ep.x, dp.y - c.ep.y) }; })
+          .filter(o => o.de > 1.0 && (R.hopper.length === 0 || o.dm < 2.2)).sort((a, b2) => a.dm - b2.dm)[0];
+        if (j) return { tx: j.dp.x, ty: j.dp.y, speed: j.dm < 0.9 ? 0.45 : 1 };
+      }
+      if (!R.hopper.length || R.cannon.hp <= 0) return null; // nothing to fire: just shove with the scoop
+      // loaded: keep at 2-3 m and turn onto the lead point
+      const mm = R.hopper[R.hopper.length - 1].body.getMass(), sp = Math.min(SCAV.vmax, Math.sqrt(2 * SCAV.shotE / mm)), ld = c.dist / sp, tx = c.ep.x + c.ev.x * ld, ty = c.ep.y + c.ev.y * ld;
+      if (c.dist < 1.8) { const cur = Math.atan2(p.y - c.ep.y, p.x - c.ep.x) + R.orbit * 0.5; return { tx: c.ep.x + Math.cos(cur) * 2.6, ty: c.ep.y + Math.sin(cur) * 2.6, speed: 1 }; }
+      return { tx, ty, speed: c.dist > 3.4 ? 0.8 : 0.08 };
+    },
+  };
+
+  // ---------------- BRICKLAYER: a slewing crane on top and a stack of iron blocks on its back. It swings a block out over the
+  // enemy and lets go: the block's fall (mass x g x height) is the hit. Hit or miss, the block stays in the arena as an obstacle
+  // (a wall to pin against, cover from shots), and the crane picks blocks back up. Lighter as it lays them: faster.
+  // A crane can drop on any side, so it never has to face the enemy's weapon.
+  const BRICK = { n: 3, half: 0.17, mass: 25, reach: 1.3, rmin: 0.62, height: 1.3, swing: 0.45, slew: 6, back: 0.35, lift: 0.6, damp: 5 };
+  L4W.bricks = {
+    build(S, R, k) {
+      const { body, hl, hw } = k; R.bricks = [];
+      R.tool = k.addPart('plough', 'Dozer blade', 'weapon', [[hl, -hw - 0.06], [hl + 0.12, -hw - 0.08], [hl + 0.14, 0], [hl + 0.12, hw + 0.08], [hl, hw + 0.06]], { mass: 10, hp: 170, sharp: 0.3, tough: 0.3, z: 2 });
+      R.crane = k.addInt('crane', 'Crane', [0.05 * hl, 0], 90, { top: true });
+      R.l4 = { mode: 'idle', t: 0, T: 1, from: null, to: null, carry: null, stackAt: [-0.45 * hl, 0], laid: 0, drops: 0, hits: 0 };
+      const sq = rect(0, 0, BRICK.half, BRICK.half);
+      for (let n = 0; n < BRICK.n; n++) {
+        const wp = body.getWorldPoint(V(R.l4.stackAt[0], R.l4.stackAt[1])), sb = S.world.createBody({ type: 'dynamic', position: wp, angle: body.getAngle(), linearDamping: BRICK.damp, angularDamping: 6 });
+        const q = k.addPart('brick', 'Iron block ' + (n + 1), 'weapon', sq, { mass: BRICK.mass, hp: 320, sharp: 0.5, tough: 0.2, rest: 0.05, friction: 0.6, body: sb, z: 4 + n });
+        q.home = sq.map(v => [v[0] + R.l4.stackAt[0], v[1] + R.l4.stackAt[1]]); q.sep = true; q.idx = n; q.state = 'stack';
+        q.joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, body, sb, wp)); noCollide(q); R.bricks.push(q);
+      }
+      lamp(R, 0.05 * hl, 0, '#FFB020', 'state', { src: 'swing', strobe: true, r: 0.032 }); // the crane's warning beacon
+      for (let n = 0; n < BRICK.n; n++) lamp(R, -0.85 * hl, (n - 1) * 0.12, '#4CC26A', 'state', { src: 'load', at: n / BRICK.n, r: 0.02 });
+    },
+    ok: R => R.crane.hp > 0 || alivePart(R.tool),
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && R.crane.hp > 0 && power(R) > 0 && !R.flipped, P = Math.min(1, c.pw);
+      const live = R.bricks.filter(q => !q.gone), stack = live.filter(q => q.state === 'stack' && q.attached);
+      R.fx.swing = st.mode === 'out' || st.mode === 'lift' ? 1 : 0; R.fx.load = stack.length / BRICK.n;
+      const loose = (q, kick) => { // off the robot, onto the floor
+        if (q.joint) { S.world.destroyJoint(q.joint); q.joint = null; }
+        q.attached = false; q.state = 'floor'; freeBody(q); q.body.setLinearDamping(BRICK.damp);
+        if (kick) { const a = S.rng() * TAU; q.body.setLinearVelocity(V(Math.cos(a) * kick, Math.sin(a) * kick)); }
+        if (!S.debris.includes(q)) S.debris.push(q);
+      };
+      for (const q of stack) if (q.hp <= 0) loose(q, 1); // smashed off its back
+      if (R.flipped && stack.length) { for (const q of stack) loose(q, 1.5); const p = b.getPosition(); callout(S, 'SPILLED!', p.x, p.y, true); say(S, `${R.name} lands upside down and drops its iron blocks`, R.id, true); }
+      rwRight(S, R, R.crane.hp > 0, 'crane');
+      // a block on the hook: it moves with the crane (robot frame), up in the air, touching nothing
+      const hook = (lx, ly) => { const q = st.carry, wp = b.getWorldPoint(V(lx, ly)); q.body.setTransform(wp, b.getAngle() + (st.spin || 0)); q.body.setLinearVelocity(b.getLinearVelocityFromWorldPoint(wp)); q.body.setAngularVelocity(b.getAngularVelocity()); st.armAt = [lx, ly]; };
+      const arc = (from, to, e) => { const a0 = Math.atan2(from[1], from[0]), a1 = a0 + wrap(Math.atan2(to[1], to[0]) - a0), r0 = Math.hypot(from[0], from[1]), r1 = Math.hypot(to[0], to[1]), a = a0 + (a1 - a0) * e, r = r0 + (r1 - r0) * e; return [Math.cos(a) * r, Math.sin(a) * r]; };
+      if (st.mode !== 'idle') {
+        st.t += DT; const e0 = Math.min(1, st.t / st.T), e = e0 * e0 * (3 - 2 * e0);
+        if (st.carry && (!on || !st.carry.attached)) { const q = st.carry; st.carry = null; if (q.attached) loose(q, 0.5); st.mode = 'back'; st.t = 0; st.T = BRICK.back; st.from = st.armAt || [0, 0]; st.to = [0, 0]; } // the crane died: it drops what it holds
+        else if (st.mode === 'out' || st.mode === 'lift') hook(...arc(st.from, st.to, e));
+        else st.armAt = arc(st.from, st.to, e);
+        if (e0 < 1) return;
+        if (st.mode === 'out') this.drop(S, R, c);
+        else if (st.mode === 'lift') { const q = st.carry, wp = b.getWorldPoint(V(st.stackAt[0], st.stackAt[1])); q.body.setTransform(wp, b.getAngle()); q.joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, b, q.body, wp)); q.state = 'stack'; st.carry = null; st.mode = 'idle'; st.armAt = null; callout(S, 'RELOAD', wp.x, wp.y, false); }
+        else { st.mode = 'idle'; st.armAt = null; }
+        return;
+      }
+      if (!on || R.cool > 0) return;
+      // swing a block out over where the enemy will be when it gets there
+      if (stack.length && E.alive && E.airborne <= 0) {
+        const ep = E.body.getPosition(), ev = E.body.getLinearVelocity(), pos = c.pos;
+        let lp = b.getLocalPoint(ep); const top = stack[stack.length - 1], from = st.stackAt.slice(), T0 = BRICK.swing + Math.abs(wrap(Math.atan2(lp.y, lp.x) - Math.atan2(from[1], from[0]))) / BRICK.slew;
+        lp = b.getLocalPoint(V(ep.x + ev.x * T0, ep.y + ev.y * T0)); const r = Math.hypot(lp.x, lp.y);
+        if (r < BRICK.reach + 0.05 && r > BRICK.rmin && Math.hypot(ep.x - pos.x, ep.y - pos.y) < BRICK.reach + 0.25) {
+          const rr = clamp(r, BRICK.rmin, BRICK.reach); if (top.joint) { S.world.destroyJoint(top.joint); top.joint = null; }
+          top.state = 'hook'; st.carry = top; st.mode = 'out'; st.t = 0; st.T = T0; st.from = from; st.to = [lp.x / r * rr, lp.y / r * rr]; st.spin = (S.rng() - 0.5) * 0.6; st.busy = false;
+          return;
+        }
+      }
+      // lift a block off the floor back onto its back
+      if (stack.length < BRICK.n) {
+        const fl = live.filter(q => q.state === 'floor' && !q.gone).map(q => ({ q, lp: b.getLocalPoint(q.body.getPosition()) })).filter(o => { const r = Math.hypot(o.lp.x, o.lp.y); return r < BRICK.reach && r > 0.5; })[0];
+        if (fl) { const q = fl.q; S.debris.splice(S.debris.indexOf(q), 1); q.attached = true; q.state = 'hook'; noCollide(q); st.carry = q; st.mode = 'lift'; st.t = 0; st.T = BRICK.lift; st.from = [fl.lp.x, fl.lp.y]; st.to = st.stackAt.slice(); st.spin = 0; }
+      }
+    },
+    drop(S, R, c) {
+      const st = R.l4, b = R.body, q = st.carry, P = Math.min(1, c.pw), qp = q.body.getPosition(); st.carry = null; st.drops++;
+      // what is under the block: its middle first, then its corners
+      let tp = null, at = qp; for (const [ox, oy] of [[0, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const x = qp.x + ox * BRICK.half * 0.8, y = qp.y + oy * BRICK.half * 0.8, t = topPartAt(S, x, y, R); if (t && t.robot.alive) { tp = t; at = V(x, y); break; } }
+      if (q.joint) { S.world.destroyJoint(q.joint); q.joint = null; }
+      q.attached = false; q.state = 'floor'; freeBody(q); q.body.setLinearDamping(BRICK.damp); if (!S.debris.includes(q)) S.debris.push(q);
+      if (tp) {
+        const T = tp.robot, lp = tp.body.getLocalPoint(at), E0 = BRICK.mass * G * BRICK.height * P;
+        hit(S, tp, E0 * JUKE.eK, { src: R, cause: 'brick', top: true, lp: [lp.x, lp.y], blp: tp.body === T.body ? [lp.x, lp.y] : null, x: at.x, y: at.y, pen: 1.3 });
+        st.hits++; T.lifted = Math.max(T.lifted, 0.25); S.fx.push({ type: 'thud', x: at.x, y: at.y, power: 1 }); S.fx.push({ type: 'punch', x: at.x, y: at.y, power: 26 });
+        callout(S, 'BRICKED!', at.x, at.y, true); say(S, `${R.name} drops an iron block on ${T.name}'s ${tp.label.toLowerCase()}`, R.id, true);
+        // it bounces off the top and lands beside the robot
+        const tc = T.body.getPosition(); let ux = qp.x - tc.x, uy = qp.y - tc.y; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+        const out = Math.hypot(T.hl, T.hw) + BRICK.half * 1.45 + 0.02, [x2, y2] = inArena(S, tc.x + ux * out, tc.y + uy * out, BRICK.half + 0.02);
+        q.body.setTransform(V(x2, y2), q.body.getAngle()); q.body.setLinearVelocity(V(ux * 1.2, uy * 1.2));
+      } else {
+        const [x2, y2] = inArena(S, qp.x, qp.y, BRICK.half + 0.02); q.body.setTransform(V(x2, y2), q.body.getAngle()); q.body.setLinearVelocity(V(0, 0));
+        S.fx.push({ type: 'thud', x: x2, y: y2, power: 0.6 }); callout(S, 'THUD', x2, y2, false); st.laid++;
+      }
+      st.mode = 'back'; st.t = 0; st.T = BRICK.back; st.from = st.armAt || st.to; st.to = [0, 0]; R.cool = 0.25;
+    },
+    think(S, R, c) {
+      const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
+      const live = R.bricks.filter(q => !q.gone), stack = live.filter(q => q.state === 'stack' && q.attached);
+      // empty: go and stand next to a block lying on the floor (not right next to the enemy)
+      if (!stack.length && !st.carry) {
+        const fl = live.filter(q => q.state === 'floor').map(q => { const qp = q.body.getPosition(); return { qp, d: Math.hypot(qp.x - p.x, qp.y - p.y), de: Math.hypot(qp.x - c.ep.x, qp.y - c.ep.y) }; }).filter(o => o.de > 0.9).sort((a, b2) => a.d - b2.d)[0];
+        if (fl) { if (fl.d < BRICK.reach - 0.25) return { tx: p.x, ty: p.y, speed: 0 }; return { tx: fl.qp.x, ty: fl.qp.y, speed: 1 }; }
+        return null; // nothing to drop: shove with the dozer blade
+      }
+      // loaded: circle the enemy at crane reach, keeping out of line with its weapon
+      const ea = E.body.getAngle(), off = R.orbit * (Math.PI / 2 + 0.35), r = BRICK.reach - 0.25;
+      const want = Math.atan2(p.y - c.ep.y, p.x - c.ep.x), side = ea + off, cur = want + clamp(wrap(side - want), -0.6, 0.6);
+      return { tx: c.ep.x + Math.cos(cur) * r, ty: c.ep.y + Math.sin(cur) * r, speed: c.dist < r - 0.15 ? 0.6 : 1 };
+    },
+  };
+
+  // ---------------- PENDULUM: an anchor gun on top. It fires an anchor into the arena wall, drives round it on the cable, and
+  // winches the cable in: like a skater pulling her arms in, it goes faster as the circle gets smaller (angular momentum).
+  // Then it lets go and flies into the enemy, spiked prow first. It needs a wall within reach, the winch has only so much
+  // power (a heavy robot reels in slower), the anchor rips out under too much pull, and spinning weapons cut the cable.
+  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 3.0, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
+  L4W.anchor = {
+    build(S, R, k) {
+      const { hl, hw } = k;
+      R.tool = k.addPart('prow', 'Spiked prow', 'weapon', [[hl, -hw * 0.95], [hl + 0.24, -hw * 0.25], [hl + 0.3, 0], [hl + 0.24, hw * 0.25], [hl, hw * 0.95]], { mass: 16, hp: 230, sharp: 1.3, tough: 0.25, z: 2 });
+      R.winch = k.addInt('winch', 'Anchor winch', [-0.3 * hl, 0], 85, { top: true });
+      R.l4 = { mode: 'free', A: null, rope: null, shot: null, sense: 1, swings: 0, peak: 0 };
+      lamp(R, -0.3 * hl, 0, '#FF3B2B', 'state', { src: 'taut', strobe: true, r: 0.03 });
+      for (let n = 0; n < 5; n++) lamp(R, (0.35 - n * 0.14) * hl, -0.6 * hw, n < 3 ? '#4CC26A' : n < 4 ? '#E8C547' : '#FF3B2B', 'state', { src: 'speed', at: n / 5, r: 0.018 }); // speedometer
+    },
+    ok: R => R.winch.hp > 0 || alivePart(R.tool),
+    cut(S, R, why, big) { const st = R.l4; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
+    plan(S, R, E) { // like a real tether swing: running fast, fire the anchor sideways into the wall; the cable turns the run into a circle.
+      // Pick the wall point square to the way we are going, with the enemy ahead on that circle and closer to the anchor than we are.
+      const pos = R.body.getPosition(), v = R.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y), ep = E.body.getPosition(), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02; let best = null;
+      if (sp < PEND.runV) return null;
+      const pts = []; for (let s2 = -1; s2 <= 1.001; s2 += 0.0625) pts.push([lx, s2 * ly], [-lx, s2 * ly], [s2 * lx, ly], [s2 * lx, -ly]);
+      for (const [ax, ay] of pts) {
+        const rx = pos.x - ax, ry = pos.y - ay, rR = Math.hypot(rx, ry); if (rR > PEND.rope || rR < 1.4) continue;
+        if (Math.abs((rx * v.x + ry * v.y) / (rR * sp)) > 0.3) continue; // square to the run
+        const sense = Math.sign(rx * v.y - ry * v.x) || 1, rE = Math.hypot(ep.x - ax, ep.y - ay); if (rE < 0.9 || rE > rR - 0.4) continue;
+        const ang = wrap(Math.atan2(ep.y - ay, ep.x - ax) - Math.atan2(ry, rx)) * sense; if (ang < 0.35 || ang > 2.6) continue;
+        const sc = rR / rE - Math.abs(ang - 1.2) * 0.3; if (!best || sc > best.sc) best = { sc, A: [ax, ay], rE, rR, sense };
+      }
+      return best;
+    },
+    step(S, R, c) {
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && R.winch.hp > 0 && power(R) > 0 && !R.flipped, P = Math.min(1, c.pw), pos = b.getPosition(), v = b.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
+      R.fx.speed = Math.min(1, sp / 8); R.fx.taut = st.rope ? 1 : 0; st.peak = Math.max(st.peak, sp);
+      // the anchor in flight
+      if (st.mode === 'shot') {
+        st.shot.t += DT; const k2 = Math.min(1, st.shot.t / st.shot.T); st.shot.at = [pos.x + (st.A[0] - pos.x) * k2, pos.y + (st.A[1] - pos.y) * k2];
+        if (!on) { this.cut(S, R); return; }
+        if (k2 < 1) return;
+        st.Abody = S.world.createBody({ type: 'static', position: V(st.A[0], st.A[1]) });
+        const L0 = Math.hypot(pos.x - st.A[0], pos.y - st.A[1]);
+        st.rope = S.world.createJoint(pl.RopeJoint({ maxLength: L0, collideConnected: false, localAnchorA: V(0, 0), localAnchorB: V(0, 0) }, st.Abody, b));
+        st.mode = 'swing'; st.phase = 'reel'; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
+        S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its anchor into the wall`, R.id);
+        return;
+      }
+      if (st.mode === 'swing') {
+        st.t += DT;
+        if (!on || !E.alive) { this.cut(S, R); return; }
+        const ten = weldForce(st.rope); st.ten = ten;
+        if (ten > PEND.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); say(S, `${R.name}'s anchor rips out of the wall`, R.id); return; }
+        // spinning weapons cut the cable
+        for (const q of E.parts) {
+          if (!q.attached || !spinningPart(q)) continue; const qp = q.body.getPosition(), ax = st.A[0], ay = st.A[1], dx = pos.x - ax, dy = pos.y - ay, L2 = dx * dx + dy * dy || 1, tt = clamp(((qp.x - ax) * dx + (qp.y - ay) * dy) / L2, 0, 1);
+          if (Math.hypot(ax + dx * tt - qp.x, ay + dy * tt - qp.y) < 0.2) { this.cut(S, R, 'CABLE CUT!', true); say(S, `${E.name} cuts ${R.name}'s cable`, E.id, true); return; }
+        }
+        // the winch: reel in to the enemy's distance from the anchor; it can only pull so hard (power = pull x speed)
+        const rE = Math.hypot(c.E.body.getPosition().x - st.A[0], c.E.body.getPosition().y - st.A[1]), L = st.rope.getMaxLength();
+        if (st.phase === 'spin' && (sp > 0.85 * R.C.vmax || st.t > 1.4)) st.phase = 'reel'; // first get up to speed round the circle, then reel in
+        if (st.phase === 'reel' && L > rE + 0.05 && L > 0.7) { const vr = Math.min(PEND.reelV, PEND.winchP * P * c.jk / Math.max(200, ten)); st.rope.setMaxLength(Math.max(rE, L - vr * DT)); R.winch.heat += 0.5 * DT; }
+        // let go when the enemy is dead ahead along the way we are flying, or when we touch it, or when it takes too long
+        const ep = E.body.getPosition(), rx = ep.x - pos.x, ry = ep.y - pos.y, rd = Math.hypot(rx, ry), along = sp > 0.5 ? (rx * v.x + ry * v.y) / sp : 0, miss = sp > 0.5 ? Math.abs(rx * v.y - ry * v.x) / sp : 9;
+        const touching = firstTouch(b, R, null);
+        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.phase === 'reel') || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
+          const fast = sp > 5; this.cut(S, R, fast ? 'SLINGSHOT!' : null, fast); st.rel = (st.rel || 0) + 1; st.relV = (st.relV || 0) + sp;
+          if (fast) say(S, `${R.name} lets go of its cable and flies at ${E.name} at ${sp.toFixed(1)} m/s`, R.id, true);
+          R.cool = 0.9; st.release = S.t;
+        }
+        return;
+      }
+      // free: fire the anchor when there is a good wall point
+      R.freewheel = false;
+      if (!on || R.cool > 0 || !E.alive || E.airborne > 0) return;
+      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 1.5) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
+      st.A = pl0.A; st.sense = pl0.sense; st.mode = 'shot'; st.shot = { t: 0, T: pl0.rR / PEND.gunV, at: [pos.x, pos.y] };
+      S.fx.push({ type: 'launch', x: pos.x, y: pos.y });
+    },
+    think(S, R, c) {
+      const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
+      if (st.mode !== 'free') return null;
+      // set up: run fast along a line parallel to the wall nearest the enemy, about 1.8 m further out than it, past it
+      const lx = HALF - S.sq.x, ly = HALF - S.sq.y, wx = c.ep.x > 0 ? lx : -lx, wy = c.ep.y > 0 ? ly : -ly, dxw = Math.abs(wx - c.ep.x), dyw = Math.abs(wy - c.ep.y);
+      const nx = dxw < dyw ? Math.sign(wx) : 0, ny = dxw < dyw ? 0 : Math.sign(wy), dw = Math.min(dxw, dyw);
+      if (dw > 2.6) return null; // the enemy is out in the middle: no wall in reach, just ram it
+      const off = Math.min(dw + 1.8, PEND.rope - 0.4) - dw, bx = c.ep.x - nx * off, by = c.ep.y - ny * off, tx0 = ny, ty0 = nx; // runway through (bx, by), along (tx0, ty0)
+      const along = (p.x - bx) * tx0 + (p.y - by) * ty0, side = Math.abs(along) < 0.5 ? (st.runSide || R.orbit) : -Math.sign(along); st.runSide = side; // run to the far end
+      const [ax, ay] = inArena(S, bx + tx0 * side * 2.6, by + ty0 * side * 2.6, 0.6);
+      return { tx: ax, ty: ay, speed: 1 };
+    },
+    drive(S, R, c) { // on the cable: full throttle along the circle (the cable holds it in), steering to stay on the tangent
+      const st = R.l4; if (st.mode !== 'swing') return null; R.ctl.S = 0;
+      const b = R.body, p = b.getPosition(), rx = p.x - st.A[0], ry = p.y - st.A[1], rl = Math.hypot(rx, ry) || 1, ta = Math.atan2(st.sense * rx / rl, -st.sense * ry / rl), err = wrap(ta - b.getAngle());
+      const turn = clamp(err * 1.6, -1, 1), f = Math.abs(err) > 1.0 ? 0.2 : 1; let L = f + turn, Rr = f - turn; // well off the tangent: mostly turn first
+      const mx = Math.max(1, Math.abs(L), Math.abs(Rr)); return [L / mx, Rr / mx];
+    },
+  };
+
   // a judge-friendly name for each cause
-  Object.assign(CAUSES, { bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
-  Object.assign(CALL, { record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
-  Object.assign(SHARP, { record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
+  Object.assign(CAUSES, { junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
+  Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', prow: 'IMPALED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
+  Object.assign(SHARP, { prow: 1, record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
   function step(S) {
     if (S.countdown > 0) { S.countdown -= DT; return; }

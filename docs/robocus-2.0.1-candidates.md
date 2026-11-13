@@ -44,6 +44,35 @@ Per robot: median fights 42-57 s, 22-29 big moments a minute, 3-5 enemy parts to
 
 Under the 2.0.1 switches (all eight on): Jukebox 61% vs level 0, 25% vs level 1, 7% vs level 2.
 
+## Scavenger, Bricklayer and Pendulum (13 Nov, later): arena-physics designs
+
+Kev asked for really new designs in the spirit of the Jukebox. What makes the Jukebox new is that its weapon has a life cycle in the arena: it is loaded, thrown, lands, and gets picked up again. These three each have one. There is no damage knob in any of them: a hit does the energy it carries times the same joules-to-damage rate as the Jukebox's records (`JUKE.eK`, 0.08 per joule).
+
+| Candidate | Mechanism | The life cycle | Measured level |
+|---|---|---|---|
+| **Scavenger** | No ammo of its own. A vacuum mouth pulls in the loose junk in a cone in front (wheels, plates, records, blades, its own bits too, up to 9 kg), and an air cannon fires it back. Every shot gets the same energy (520 J): a light bolt flies fast, a heavy plate slow. The recoil shoves the Scavenger back by the shot's momentum. Works either way up. | Junk is sucked up, fired, lands, and gets sucked up again. It can fire an enemy's own wheel back at it ("RETURN TO SENDER!") and it eats loose Jukebox records. | **below 0** (11% vs level 0) |
+| **Bricklayer** | A slewing crane on top and three 25 kg iron blocks on its back. It swings a block out over where the enemy will be and lets go: the fall (mass x g x 1.3 m) is the hit. The crane turns all the way round, so it never has to face the enemy's weapon. | Hit or miss, the block stays on the floor as a heavy obstacle (cover, a wall to pin against). The crane lifts blocks back on. It gets lighter, so faster, as it lays them. Landing upside down spills the stack. | **below 0** (12% vs level 0) |
+| **Pendulum** | Fires an anchor into the arena wall while it runs, and the cable swings the run round into a circle. It winches in as it goes, and like a skater pulling her arms in it speeds up (angular momentum). Then it lets go and flies at the enemy, spiked prow first. The winch has limited power, the anchor rips out under too much pull, and spinning weapons cut the cable. It rolls on omni wheels: on normal wheels the tyres' side grip fights the cable and it never speeds up (measured). | Anchor, swing, reel, let go, re-anchor. Needs a wall within reach: in the middle of the arena it just rams. | **about 0** (41% vs level 0) |
+
+### Measured (fresh seeds 60001+, 10 fights per opponent, open floor, grade 1)
+
+| | vs L0 | vs L1 | vs L2 | with all eight 2.0.1 switches on: vs L0 / vs L1 |
+|---|---|---|---|---|
+| Scavenger | 11% | 8% | 4% | 9% / 12% |
+| Bricklayer | 12% | 17% | 10% | 17% / 23% |
+| Pendulum | 41% | 18% | 20% | 44% / 15% |
+
+In a four-robot free-for-all against level 0 and 1 robots (fair share 25%): Scavenger 4%, Bricklayer 8%, Pendulum 4%, Jukebox 29%.
+
+### Why they come out low (the physics, as measured)
+- **Scavenger**: its shots work (almost every shot hits, about 33 damage each), but there is no junk until the fight has torn parts off, so in a 1v1 it fights the first 30-40 s with just a scoop, and gets about 7 shots a fight. The physical lever is the shot energy (a bigger air tank).
+- **Bricklayer**: about half its drops land, for about 25 damage each, and most of it goes into the lid and top armour, which is where a falling block lands. The crane only reaches 1.3 m (a longer one with a 25 kg block would tip a 100 kg robot over), so it fights at touching distance. The physical levers are a taller crane (more drop height) or heavier blocks with a counterweight.
+- **Pendulum**: a heavy robot only reaches about 2.3 m/s on the open floor; on the cable it gets to 3-4 m/s, not the 6-8 the idea needs, because the arena is only 8 m and the enemy is rarely close to a wall. It beats slow robots that stay near walls (Haymaker 100%, Jouster 80%) and loses to anything that stays in the middle or flips it.
+
+None of them got any tuning towards a target. They stay in the catalogue at their measured level for the selection; the obvious physical levers are listed above if Kev wants to try a Mk II.
+
+Not built yet from the same list: Fire hose (a water jet that pushes without damage and puts fires out), Hamster (a rolling cage), Constrictor, Mothership, Pogo.
+
 ## Looks (Kev: higher levels look fierce, the weapon shows its strength at once)
 - Rotisserie (level 4): long hooked pincers with serrated teeth (bigger in the physics too: 0.53 m, re-measured afterwards, still level 4), a big nozzle, twin red fuel tanks, a fat flame.
 - Blacksmith: a big hammer block held high over the robot (drawn bigger while raised) that comes down onto the victim's lid; a glowing anvil.
