@@ -135,7 +135,7 @@
     jukebox: { label: 'Record launcher', cat: 'front', mass: 10, invert: true, l4: true, d: 'Four steel records on its back. A loader drops one on the turntable, it spins up and flies: a heavy saw that bounces round the arena, curving off the walls. It picks spent records back up.' },
     scav: { label: 'Vacuum + air cannon', cat: 'front', mass: 10, invert: true, l4: true, d: 'No ammo of its own: a vacuum mouth sucks up the junk the fight tears off (wheels, plates, blades, records) and an air cannon fires it back. Every shot gets the same energy: light junk flies fast, heavy plates slow. Fired junk lands and gets sucked up again.' },
     bricks: { label: 'Crane + iron blocks', cat: 'top', mass: 12, invert: false, l4: true, d: 'A slewing crane and a stack of 25 kg iron blocks. It swings a block out over the enemy and drops it: the fall is the hit. Hit or miss, the block stays in the arena as an obstacle, and the crane picks blocks back up.' },
-    anchor: { label: 'Wall anchor + spiked prow', cat: 'front', mass: 12, invert: true, l4: true, d: 'Fires an anchor into the arena wall, drives round it on the cable and winches in: the circle gets smaller and it goes faster (angular momentum). Then it lets go and flies into the enemy prow first. Needs a wall in reach; spinners cut the cable.' },
+    anchor: { label: 'Harpoon + bungee slingshot', cat: 'front', mass: 12, invert: true, l4: true, d: 'Fires a grapnel past the enemy into the wall, spikes itself to the floor and winches a heavy bungee tight. Then it lets go: the bungee flings it down the cable, spiked prow first. Get off the line while it charges; spinners cut the cable.' },
     bola: { label: 'Bola launcher + nose saw', cat: 'front', mass: 10, invert: true, l4: true, d: 'Throws bolas: two steel balls on a cord that wrap whatever they hit. Round the wheels they tie that side up, round the front they tie the weapon. Then the nose saw goes in. Spinning weapons cut the cord.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
     mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
@@ -229,7 +229,7 @@
     Jukebox: { weapon: 'jukebox', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
     Scavenger: { weapon: 'scav', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Bricklayer: { weapon: 'bricks', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
-    Pendulum: { weapon: 'anchor', chassis: 'heavy', drive: 'omni', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
+    Slingshot: { weapon: 'anchor', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
     Gaucho: { weapon: 'bola', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Talon: { weapon: 'beak', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Rotisserie: { weapon: 'roaster', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
@@ -3790,7 +3790,7 @@
   // records, blades, its own bits too) and an air cannon fires it back. The cannon gives every shot the same energy, so a light
   // bolt flies fast and a heavy plate flies slow; the shot's damage is the energy it loses in the hit. Fired junk lands on the
   // floor again and gets sucked back up: the messier the fight, the deadlier it gets.
-  const SCAV = { reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
+  const SCAV = { starter: 3, reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
   function scavEdible(d) { return !d.gone && !d.attached && !d.mag && !d.inHopper && !d.shotBy && d.kind !== 'chassis' && d.key !== 'brick' && !(d.key === 'record' && d.state !== 'floor') && d.body && d.body.isActive() && d.body.getMass() <= SCAV.maxM; }
   L4W.scav = {
     build(S, R, k) {
@@ -3799,6 +3799,13 @@
       R.intake = k.addInt('intake', 'Vacuum fan', [0.35 * hl, 0], 60);
       R.cannon = k.addInt('aircan', 'Air cannon', [-0.05 * hl, -0.35 * hw], 80, { top: true });
       R.hopper = []; R.shots = []; R.l4 = { suck: 0, last: -9, fired: 0, ate: 0 };
+      // it comes in with a starter load of scrap (3 x 2.5 kg) so it is not toothless before the fight makes junk; fired, it lands like any junk
+      for (let n = 0; n < SCAV.starter; n++) {
+        const vs = [[-0.08, -0.05], [0.06, -0.07], [0.09, 0.03], [0.0, 0.08], [-0.09, 0.04]].map(([x, y]) => [x * (1 + 0.15 * n), y]);
+        const sb = S.world.createBody({ type: 'dynamic', position: k.body.getPosition(), linearDamping: 0.9, angularDamping: 1.2 });
+        const part = { key: 'chunk', label: 'Scrap lump', kind: 'debris', verts: vs, outline: subdivide(vs), dents: [], body: sb, robot: R, attached: false, hp: 0, maxHp: 1, heat: 0, sharp: 0.4, tough: 1, wheelRoll: false, inHopper: true };
+        part.fx = sb.createFixture({ shape: pl.Polygon(vs.map(p => V(p[0], p[1]))), density: 2.5 / area(vs), friction: 0.5, restitution: 0.2, userData: { part } }); sb.setActive(false); R.hopper.push(part);
+      }
       for (let n = 0; n < SCAV.cap; n++) lamp(R, (-0.75 + n * 0.11) * hl, 0.62 * hw, '#E8C547', 'state', { src: 'ammo', at: n / SCAV.cap, r: 0.02 }); // ammo gauge
       lamp(R, 0.62 * hl, -0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 }); lamp(R, 0.62 * hl, 0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 });
     },
@@ -3977,107 +3984,115 @@
     },
   };
 
-  // ---------------- PENDULUM: an anchor gun on top. It fires an anchor into the arena wall, drives round it on the cable, and
-  // winches the cable in: like a skater pulling her arms in, it goes faster as the circle gets smaller (angular momentum).
-  // Then it lets go and flies into the enemy, spiked prow first. It needs a wall within reach, the winch has only so much
-  // power (a heavy robot reels in slower), the anchor rips out under too much pull, and spinning weapons cut the cable.
-  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 1.2, swingFirst: 0.5, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
+  // ---------------- SLINGSHOT (was Pendulum, 14 Nov): a harpoon gun on top fires a grapnel past the enemy into the arena wall.
+  // A spike drops into the floor to hold the robot, and the winch stretches a heavy bungee in the cable (energy = winch power x
+  // time, up to the bungee's limit). Spike up: the bungee flings the robot down the cable, spiked prow first, through whatever
+  // is in between and on towards the wall. The hit is the robot's own momentum (normal contact physics, no damage number).
+  // The swinging version (Pendulum) could not work: wheels' side grip fights a swinging cable, and the arena is too small to
+  // build speed (measured: 2-4 m/s). Counters: get off the line while it charges, spinners cut the cable, the middle of the
+  // arena (no wall in reach), and flippers (it can't charge upside down).
+  const SLING = { gunV: 22, rope: 6.5, k: 1600, winchP: 2600, Emax: 3400, hold: 6000, rip: 9500, cool: 1.4, minRun: 0.9 };
   L4W.anchor = {
     build(S, R, k) {
       const { hl, hw } = k;
       R.tool = k.addPart('prow', 'Spiked prow', 'weapon', [[hl, -hw * 0.95], [hl + 0.24, -hw * 0.25], [hl + 0.3, 0], [hl + 0.24, hw * 0.25], [hl, hw * 0.95]], { mass: 16, hp: 230, sharp: 1.3, tough: 0.25, z: 2 });
-      R.winch = k.addInt('winch', 'Anchor winch', [-0.3 * hl, 0], 85, { top: true });
-      R.l4 = { mode: 'free', A: null, rope: null, shot: null, sense: 1, swings: 0, peak: 0 };
-      lamp(R, -0.3 * hl, 0, '#FF3B2B', 'state', { src: 'taut', strobe: true, r: 0.03 });
-      for (let n = 0; n < 5; n++) lamp(R, (0.35 - n * 0.14) * hl, -0.6 * hw, n < 3 ? '#4CC26A' : n < 4 ? '#E8C547' : '#FF3B2B', 'state', { src: 'speed', at: n / 5, r: 0.018 }); // speedometer
+      R.winch = k.addInt('winch', 'Harpoon winch', [-0.3 * hl, 0], 85, { top: true });
+      R.l4 = { mode: 'free', A: null, rope: null, shot: null, E: 0, flings: 0, peak: 0 };
+      for (let n = 0; n < 6; n++) lamp(R, (0.3 - n * 0.12) * hl, -0.62 * hw, n < 3 ? '#4CC26A' : n < 5 ? '#E8C547' : '#FF3B2B', 'state', { src: 'charge', at: n / 6, r: 0.019 }); // the charge meter
+      lamp(R, -0.3 * hl, 0.5 * hw, '#FF3B2B', 'state', { src: 'spiked', strobe: true, r: 0.028 });
     },
     ok: R => R.winch.hp > 0 || alivePart(R.tool),
-    cut(S, R, why, big) { const st = R.l4; if (st.A && (st.mode === 'swing' || st.mode === 'shot')) st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t }; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
-    plan(S, R, E) { // like a real tether swing: running fast, fire the anchor sideways into the wall; the cable turns the run into a circle.
-      // Pick the wall point square to the way we are going, with the enemy ahead on that circle and closer to the anchor than we are.
-      const pos = R.body.getPosition(), v = R.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y), ep = E.body.getPosition(), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02; let best = null;
-      if (sp < PEND.runV) return null;
-      const pts = []; for (let s2 = -1; s2 <= 1.001; s2 += 0.0625) pts.push([lx, s2 * ly], [-lx, s2 * ly], [s2 * lx, ly], [s2 * lx, -ly]);
-      for (const [ax, ay] of pts) {
-        const rx = pos.x - ax, ry = pos.y - ay, rR = Math.hypot(rx, ry); if (rR > PEND.rope || rR < 1.4) continue;
-        if (Math.abs((rx * v.x + ry * v.y) / (rR * sp)) > 0.3) continue; // square to the run
-        const sense = Math.sign(rx * v.y - ry * v.x) || 1, rE = Math.hypot(ep.x - ax, ep.y - ay); if (rE < 0.9 || rE > rR - 0.4) continue;
-        const ang = wrap(Math.atan2(ep.y - ay, ep.x - ax) - Math.atan2(ry, rx)) * sense; if (ang < 0.35 || ang > 2.6) continue;
-        const sc = rR / rE - Math.abs(ang - 1.2) * 0.3; if (!best || sc > best.sc) best = { sc, A: [ax, ay], rE, rR, sense };
-      }
-      return best;
+    cut(S, R, why, big) {
+      const st = R.l4; if (st.A && st.mode !== 'free') st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t };
+      if (st.spike) { S.world.destroyJoint(st.spike); st.spike = null; } if (st.gnd) { S.world.destroyBody(st.gnd); st.gnd = null; }
+      st.mode = 'free'; st.E = 0; R.cool = Math.max(R.cool, SLING.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); }
+    },
+    aim(S, R, E) { // straight ahead to a wall: where would the grapnel land, and is the enemy on that line?
+      const b = R.body, pos = b.getPosition(), f = b.getWorldVector(V(1, 0)), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02;
+      const tx = f.x > 0 ? (lx - pos.x) / f.x : f.x < 0 ? (-lx - pos.x) / f.x : 1e9, ty = f.y > 0 ? (ly - pos.y) / f.y : f.y < 0 ? (-ly - pos.y) / f.y : 1e9, d = Math.min(tx, ty);
+      if (!(d > 1.6 && d < SLING.rope)) return null;
+      const ep = E.body.getPosition(), ex = ep.x - pos.x, ey = ep.y - pos.y, along = ex * f.x + ey * f.y, off = Math.abs(ex * f.y - ey * f.x);
+      const ev = E.body.getLinearVelocity(), T = 1.1, fx2 = ex + ev.x * T, fy2 = ey + ev.y * T, off2 = Math.abs(fx2 * f.y - fy2 * f.x), along2 = fx2 * f.x + fy2 * f.y; // where it will be when the bungee is wound up
+      return { A: [pos.x + f.x * d, pos.y + f.y * d], d, along, off, ok: along > SLING.minRun && along < d - 0.3 && off < E.hw + 0.25 && off2 < E.hw + 0.3 && along2 > 0.6 };
     },
     step(S, R, c) {
       const st = R.l4, b = R.body, E = c.E, on = c.ok && R.winch.hp > 0 && power(R) > 0 && !R.flipped, P = Math.min(1, c.pw), pos = b.getPosition(), v = b.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
-      R.fx.speed = Math.min(1, sp / 8); R.fx.taut = st.rope ? 1 : 0; st.peak = Math.max(st.peak, sp);
-      // the anchor in flight
-      if (st.mode === 'shot') {
-        st.shot.t += DT; const k2 = Math.min(1, st.shot.t / st.shot.T); st.shot.at = [pos.x + (st.A[0] - pos.x) * k2, pos.y + (st.A[1] - pos.y) * k2];
-        if (!on) { this.cut(S, R); return; }
-        if (k2 < 1) return;
-        st.Abody = S.world.createBody({ type: 'static', position: V(st.A[0], st.A[1]) });
-        const L0 = Math.hypot(pos.x - st.A[0], pos.y - st.A[1]);
-        st.rope = S.world.createJoint(pl.RopeJoint({ maxLength: L0, collideConnected: false, localAnchorA: V(0, 0), localAnchorB: V(0, 0) }, st.Abody, b));
-        (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift(); st.mode = 'swing'; st.phase = 'spin'; st.a0 = null; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
-        S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its anchor into the wall`, R.id);
+      R.fx.charge = st.E / SLING.Emax; R.fx.spiked = st.spike ? 1 : 0; st.peak = Math.max(st.peak, sp);
+      // the bite: when the flung robot hits the enemy, the energy the collision takes out of the pair (in their shared frame)
+      // goes into the hit at the same joules rate as the Jukebox's records (once per fling)
+      if (st.hotT > S.t && !st.bit && E.alive) {
+        const tch = firstTouch(b, R, null);
+        if (tch && tch.part.robot === E && st.vPrev) {
+          const ev = E.body.getLinearVelocity(), mA = b.getMass(), mB = E.body.getMass(), mu = mA * mB / (mA + mB);
+          const vb2 = (st.vPrev[0] - st.vPrev[2]) ** 2 + (st.vPrev[1] - st.vPrev[3]) ** 2, va2 = (v.x - ev.x) ** 2 + (v.y - ev.y) ** 2, lost = Math.max(0, 0.5 * mu * (vb2 - va2)), lp = tch.part.body.getLocalPoint(tch.p);
+          st.bit = true; st.hits = (st.hits || 0) + 1; st.dmg = (st.dmg || 0) + lost * JUKE.eK;
+          if (lost > 40) { hit(S, tch.part, lost * JUKE.eK, { src: R, cause: 'prow', lp: [lp.x, lp.y], blp: tch.part.body === E.body ? [lp.x, lp.y] : null, x: tch.p.x, y: tch.p.y, pen: 1.6 }); S.fx.push({ type: 'punch', x: tch.p.x, y: tch.p.y, power: Math.min(40, lost / 20) }); if (lost > 400) { callout(S, 'IMPALED!', tch.p.x, tch.p.y, true); say(S, `${R.name} slams into ${E.name} at ${Math.sqrt(vb2).toFixed(1)} m/s`, R.id, true); } }
+        }
+      }
+      { const ev = E.body.getLinearVelocity(); st.vPrev = [v.x, v.y, ev.x, ev.y]; }
+      if (st.mode === 'shot') { // the grapnel in flight
+        st.shot.t += DT; const k2 = Math.min(1, st.shot.t / st.shot.T), h = b.getWorldPoint(V(R.winch.lp[0], R.winch.lp[1])); st.shot.at = [h.x + (st.A[0] - h.x) * k2, h.y + (st.A[1] - h.y) * k2];
+        if (!on) { this.cut(S, R); return; } if (k2 < 1) return;
+        st.gnd = S.world.createBody({ type: 'static', position: pos }); st.spike = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, st.gnd, b, pos)); // the floor spike goes down
+        st.mode = 'charge'; st.E = 0; st.t = 0; (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift();
+        S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); S.fx.push({ type: 'thud', x: pos.x, y: pos.y, power: 0.5 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its grapnel into the wall and spikes itself to the floor`, R.id);
         return;
       }
-      if (st.mode === 'swing') {
-        st.t += DT;
-        if (!on || !E.alive) { this.cut(S, R); return; }
-        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls are closing in: the anchor's wall has moved
-        const ten = weldForce(st.rope); st.ten = ten;
-        if (ten > PEND.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); say(S, `${R.name}'s anchor rips out of the wall`, R.id); return; }
-        // spinning weapons cut the cable
-        for (const q of E.parts) {
-          if (!q.attached || !spinningPart(q)) continue; const qp = q.body.getPosition(), ax = st.A[0], ay = st.A[1], dx = pos.x - ax, dy = pos.y - ay, L2 = dx * dx + dy * dy || 1, tt = clamp(((qp.x - ax) * dx + (qp.y - ay) * dy) / L2, 0, 1);
-          if (Math.hypot(ax + dx * tt - qp.x, ay + dy * tt - qp.y) < 0.2) { this.cut(S, R, 'CABLE CUT!', true); say(S, `${E.name} cuts ${R.name}'s cable`, E.id, true); return; }
-        }
-        // the winch: reel in to the enemy's distance from the anchor; it can only pull so hard (power = pull x speed)
-        const rE = Math.hypot(c.E.body.getPosition().x - st.A[0], c.E.body.getPosition().y - st.A[1]), L = st.rope.getMaxLength();
-        const aNow = Math.atan2(pos.y - st.A[1], pos.x - st.A[0]); if (st.a0 == null) st.a0 = aNow; st.turned = Math.abs(wrap(aNow - st.a0));
-        if (st.phase === 'spin' && st.turned > PEND.swingFirst) st.phase = 'reel'; // swing round a bit first (the cable turns the run), then reel in: reeling a robot that is not going round just drags it
-        if (st.phase === 'reel' && L > rE + 0.05 && L > 0.7) { const vr = Math.min(PEND.reelV, PEND.winchP * P * c.jk / Math.max(200, ten)); st.rope.setMaxLength(Math.max(rE, L - vr * DT)); R.winch.heat += 0.5 * DT; }
-        // let go when the enemy is dead ahead along the way we are flying, or when we touch it, or when it takes too long
-        const ep = E.body.getPosition(), rx = ep.x - pos.x, ry = ep.y - pos.y, rd = Math.hypot(rx, ry), along = sp > 0.5 ? (rx * v.x + ry * v.y) / sp : 0, miss = sp > 0.5 ? Math.abs(rx * v.y - ry * v.x) / sp : 9;
-        const touching = firstTouch(b, R, null);
-        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.rope.getMaxLength() <= rE + 0.15) || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
-          const fast = sp > 5; this.cut(S, R, fast ? 'SLINGSHOT!' : null, fast); st.rel = (st.rel || 0) + 1; st.relV = (st.relV || 0) + sp;
-          if (fast) say(S, `${R.name} lets go of its cable and flies at ${E.name} at ${sp.toFixed(1)} m/s`, R.id, true);
-          R.cool = 0.9; st.release = S.t;
+      if (st.mode === 'charge') { // spiked down, the winch stretches the bungee
+        st.t += DT; if (!on || !E.alive) { this.cut(S, R); return; }
+        if (weldForce(st.spike) > SLING.hold) { this.cut(S, R, 'SPIKE TORN OUT!', false); return; } // shoved off its spike
+        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls closing in pull it out
+        st.E = Math.min(SLING.Emax, st.E + SLING.winchP * P * c.jk * DT); R.winch.heat += 0.6 * DT;
+        const ep = E.body.getPosition(), f = c.fwd, ex = ep.x - pos.x, ey = ep.y - pos.y, along = ex * f.x + ey * f.y, off = Math.abs(ex * f.y - ey * f.x);
+        const full = st.E >= SLING.Emax, leaving = st.E > SLING.Emax * 0.45 && off > E.hw + 0.1, close = along > 0 && along < R.hl + E.hl + 0.35 && off < E.hw + 0.3 && st.E > SLING.Emax * 0.3;
+        if (!(full || leaving || close) && st.t < 3) return;
+        // let go: the bungee's stretch e0 holds the energy (E = k e0^2 / 2); the rest length is the cable minus that stretch
+        const L0 = Math.hypot(st.A[0] - pos.x, st.A[1] - pos.y), e0 = Math.sqrt(2 * st.E / SLING.k); st.rest = Math.max(0.3, L0 - e0);
+        S.world.destroyJoint(st.spike); st.spike = null; S.world.destroyBody(st.gnd); st.gnd = null;
+        st.mode = 'fling'; st.t = 0; st.flings++; R.freewheel = true; st.E0 = st.E; st.hotT = S.t + 2.2; st.bit = false;
+        callout(S, 'SLINGSHOT!', pos.x, pos.y, st.E > SLING.Emax * 0.7); say(S, `${R.name}'s bungee flings it down the cable`, R.id, st.E > SLING.Emax * 0.7);
+        return;
+      }
+      if (st.mode === 'fling') { // the bungee pulls it towards the grapnel until it goes slack
+        st.t += DT; const dx = st.A[0] - pos.x, dy = st.A[1] - pos.y, L1 = Math.hypot(dx, dy) || 1, e = L1 - st.rest;
+        if (e <= 0 || st.t > 1.6 || !R.alive) { this.cut(S, R); R.cool = 0.6; st.E = 0; return; }
+        const F = SLING.k * e; b.applyForce(V(dx / L1 * F, dy / L1 * F), b.getWorldCenter(), true); st.E = 0.5 * SLING.k * e * e;
+        if (F > SLING.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); return; }
+        for (const q of E.parts) { // spinning weapons cut the cable
+          if (!q.attached || !spinningPart(q)) continue; const qp = q.body.getPosition(), ax = st.A[0], ay = st.A[1], ddx = pos.x - ax, ddy = pos.y - ay, L2 = ddx * ddx + ddy * ddy || 1, tt = clamp(((qp.x - ax) * ddx + (qp.y - ay) * ddy) / L2, 0, 1);
+          if (Math.hypot(ax + ddx * tt - qp.x, ay + ddy * tt - qp.y) < 0.2) { this.cut(S, R, 'CABLE CUT!', true); say(S, `${E.name} cuts ${R.name}'s cable`, E.id, true); return; }
         }
         return;
       }
-      // free: fire the anchor when there is a good wall point
-      R.freewheel = false;
+      if (R.freewheel && sp < 2) R.freewheel = false;
+      // free: fire when the enemy is on the line ahead and a wall is in reach behind it
       if (!on || R.cool > 0 || !E.alive || E.airborne > 0) return;
-      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 2.4) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
-      st.A = pl0.A; st.sense = pl0.sense; st.mode = 'shot'; st.shot = { t: 0, T: pl0.rR / PEND.gunV, at: [pos.x, pos.y] };
-      S.fx.push({ type: 'launch', x: pos.x, y: pos.y });
+      const a = this.aim(S, R, E); if (!a || !a.ok) return;
+      st.A = a.A; st.mode = 'shot'; st.shot = { t: 0, T: a.d / SLING.gunV, at: [pos.x, pos.y] }; S.fx.push({ type: 'launch', x: pos.x, y: pos.y }); callout(S, 'HARPOON!', pos.x, pos.y, false);
     },
     think(S, R, c) {
       const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
-      if (st.mode !== 'free') return null;
-      // set up: run fast along a line parallel to the wall nearest the enemy, about 1.8 m further out than it, past it
+      if (st.mode !== 'free') return { tx: st.A ? st.A[0] : c.ep.x, ty: st.A ? st.A[1] : c.ep.y, speed: 0 };
+      // set up: stand so the enemy is between us and the wall nearest to it, 2-3 m back, and face it
       const lx = HALF - S.sq.x, ly = HALF - S.sq.y, wx = c.ep.x > 0 ? lx : -lx, wy = c.ep.y > 0 ? ly : -ly, dxw = Math.abs(wx - c.ep.x), dyw = Math.abs(wy - c.ep.y);
       const nx = dxw < dyw ? Math.sign(wx) : 0, ny = dxw < dyw ? 0 : Math.sign(wy), dw = Math.min(dxw, dyw);
-      if (dw > 2.6) return null; // the enemy is out in the middle: no wall in reach, just ram it
-      const off = Math.min(dw + 1.8, PEND.rope - 0.4) - dw, bx = c.ep.x - nx * off, by = c.ep.y - ny * off, tx0 = ny, ty0 = nx; // runway through (bx, by), along (tx0, ty0)
-      const along = (p.x - bx) * tx0 + (p.y - by) * ty0, side = Math.abs(along) < 0.5 ? (st.runSide || R.orbit) : -Math.sign(along); st.runSide = side; // run to the far end
-      const [ax, ay] = inArena(S, bx + tx0 * side * 2.6, by + ty0 * side * 2.6, 0.6);
-      return { tx: ax, ty: ay, speed: 1 };
+      if (dw > SLING.rope - 2.4) return null; // the enemy is out in the middle: nothing to fling against, just ram it
+      const back = clamp(SLING.rope - dw - 0.4, 1.6, 2.8), [bx, by] = inArena(S, c.ep.x - nx * back, c.ep.y - ny * back, 0.55), dd = Math.hypot(bx - p.x, by - p.y);
+      if (dd > 0.5) return { tx: bx, ty: by, speed: dd > 1.2 ? 1 : 0.5 };
+      return { tx: c.ep.x, ty: c.ep.y, speed: 0.05 }; // in place: turn to face it (the gun fires straight ahead)
     },
-    drive(S, R, c) { // on the cable: full throttle along the circle (the cable holds it in), steering to stay on the tangent
-      const st = R.l4; if (st.mode !== 'swing') return null; R.ctl.S = 0;
-      const b = R.body, p = b.getPosition(), rx = p.x - st.A[0], ry = p.y - st.A[1], rl = Math.hypot(rx, ry) || 1, ta = Math.atan2(st.sense * rx / rl, -st.sense * ry / rl), err = wrap(ta - b.getAngle());
-      const turn = clamp(err * 1.6, -1, 1), f = Math.abs(err) > 1.0 ? 0.2 : 1; let L = f + turn, Rr = f - turn; // well off the tangent: mostly turn first
-      const mx = Math.max(1, Math.abs(L), Math.abs(Rr)); return [L / mx, Rr / mx];
+    drive(S, R, c) {
+      const st = R.l4;
+      if (st.mode === 'charge' || st.mode === 'shot') { R.ctl.S = 0; return [0, 0]; }
+      if (st.mode !== 'fling') return null;
+      R.ctl.S = 0; const b = R.body, p = b.getPosition(), ta = Math.atan2(st.A[1] - p.y, st.A[0] - p.x), err = wrap(ta - b.getAngle()), turn = clamp(err * 1.5, -0.4, 0.4);
+      return [clamp(1 + turn, -1, 1), clamp(1 - turn, -1, 1)];
     },
   };
 
   // a judge-friendly name for each cause
   Object.assign(CAUSES, { junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
-  Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', prow: 'IMPALED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
+  Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
   Object.assign(SHARP, { prow: 1, record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
   function step(S) {

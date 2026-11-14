@@ -44,7 +44,7 @@ Per robot: median fights 42-57 s, 22-29 big moments a minute, 3-5 enemy parts to
 
 Under the 2.0.1 switches (all eight on): Jukebox 61% vs level 0, 25% vs level 1, 7% vs level 2.
 
-## Scavenger, Bricklayer and Pendulum (13 Nov, later): arena-physics designs
+## Scavenger, Bricklayer and Pendulum (13 Nov, later): arena-physics designs (Pendulum since replaced by Slingshot, see the review below)
 
 Kev asked for really new designs in the spirit of the Jukebox. What makes the Jukebox new is that its weapon has a life cycle in the arena: it is loaded, thrown, lands, and gets picked up again. These three each have one. There is no damage knob in any of them: a hit does the energy it carries times the same joules-to-damage rate as the Jukebox's records (`JUKE.eK`, 0.08 per joule).
 
@@ -73,6 +73,33 @@ In a four-robot free-for-all against level 0 and 1 robots (fair share 25%): Scav
 None of them got any tuning towards a target. They stay in the catalogue at their measured level for the selection; the obvious physical levers are listed above if Kev wants to try a Mk II.
 
 Not built yet from the same list: Fire hose (a water jet that pushes without damage and puts fires out), Hamster (a rolling cage), Constrictor, Mothership, Pogo.
+
+## Review by snapshots (14 Nov): what was wrong, what changed
+
+Kev: "please review these new robots yourself by snapshotting fights, clearly the visual aspect is lacking, not sure about the actual damage of these mechanics, Pendulum for sure still broken." I filmed fights frame by frame in the Lineup Arena and audited the damage by cause (damage per minute, 6 level 0 opponents x 3 seeds).
+
+**Damage audit (per minute of fight, before -> after)**
+
+| | dealt by its weapon | win vs level 0 |
+|---|---|---|
+| Scavenger | junk 26 -> **192** | 11% -> **51%** |
+| Bricklayer | iron blocks 146 (unchanged) | 12% |
+| Pendulum -> Slingshot | prow 117 -> 98 | 41% -> **20%** |
+| (for scale) Jukebox | records 200 | 58% |
+| (for scale) Haymaker, level 0 | glove 121 | |
+
+**Scavenger.** The cannon was fine (almost every shot hits, about 33 per hit) but it starved: no junk until something broke. It now comes in with three 2.5 kg scrap lumps in its hopper. Fired, they land like any junk and get sucked back up, so it keeps firing all fight. Level 0 now. Looks: a big intake bell with a fan in the throat and dust streaming in, a glass hopper dome on the back with the junk tumbling in it, a fat air cannon down the middle with a hazard-striped muzzle that kicks back when it fires, two air tanks.
+
+**Bricklayer.** The damage was already there (146 a minute, more than Haymaker's glove); it loses because it fights at touching distance and soaks hits. Looks: a proper crane now: a yellow lattice boom, an operator cab with a window, a counterweight, a cable down to the block, the block drawn above every robot while it is up on the hook, and a landing marker.
+
+**Pendulum -> Slingshot.** The Pendulum was broken at the root: a swinging cable can't speed up a robot on wheels (side grip fights it) in an 8 m arena, so the anchor was out for under a second and it mostly just rammed with its spiked prow (that is where its 41% came from). It is now a **Slingshot**: a harpoon gun fires a grapnel past the enemy into the wall, a spike drops into the floor, the winch stretches a heavy bungee (2.6 kW for about 1.3 s, 3.4 kJ), then the spike comes up and the bungee flings it down the cable. Measured: 7 m/s flat out, 5-6 m/s at impact. The hit takes the energy the collision takes out of the two robots, at the Jukebox's joules rate (about 60 a hit at 5.5 m/s). It reads very clearly in the arena: HARPOON!, the cable and the stretched orange bungee (thinner and redder as it tightens), the dashed line it will fly down, the floor claws, SLINGSHOT!, IMPALED!. It is weaker than the old Pendulum (20% vs level 0, 10% vs level 1) because it sits spiked down for 1.3 s while the enemy walks off the line or hits it; spinners cut the cable (Whirlwind 10%). Its counterplay is exactly what was designed: move off the line, stay in the middle, cut the cable.
+
+**One thing for the selection to know.** The engine now has two ways to turn physics into damage: ordinary contact damage ((impulse - 7) x 0.2 x sharpness x toughness, used by rams, walls, and most weapons) and the energy rule the new robots use (joules x 0.08). A 5.5 m/s ram costs the target about 25 by the first and about 60 by the second. If the 200-robot catalogue is meant to be balanced by physics alone, these two should be brought onto one scale at some point.
+
+| | vs L0 | vs L1 | vs L2 | all 2.0.1 switches on: L0 / L1 / L2 |
+|---|---|---|---|---|
+| Scavenger (with starter scrap) | 51% | 17% | 10% | 41% / 12% / 4% |
+| Slingshot | 20% | 13% | 10% | 24% / 3% / 6% |
 
 ## Looks (Kev: higher levels look fierce, the weapon shows its strength at once)
 - Rotisserie (level 4): long hooked pincers with serrated teeth (bigger in the physics too: 0.53 m, re-measured afterwards, still level 4), a big nozzle, twin red fuel tanks, a fat flame.

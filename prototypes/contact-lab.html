@@ -493,7 +493,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     jukebox: { label: 'Record launcher', cat: 'front', mass: 10, invert: true, l4: true, d: 'Four steel records on its back. A loader drops one on the turntable, it spins up and flies: a heavy saw that bounces round the arena, curving off the walls. It picks spent records back up.' },
     scav: { label: 'Vacuum + air cannon', cat: 'front', mass: 10, invert: true, l4: true, d: 'No ammo of its own: a vacuum mouth sucks up the junk the fight tears off (wheels, plates, blades, records) and an air cannon fires it back. Every shot gets the same energy: light junk flies fast, heavy plates slow. Fired junk lands and gets sucked up again.' },
     bricks: { label: 'Crane + iron blocks', cat: 'top', mass: 12, invert: false, l4: true, d: 'A slewing crane and a stack of 25 kg iron blocks. It swings a block out over the enemy and drops it: the fall is the hit. Hit or miss, the block stays in the arena as an obstacle, and the crane picks blocks back up.' },
-    anchor: { label: 'Wall anchor + spiked prow', cat: 'front', mass: 12, invert: true, l4: true, d: 'Fires an anchor into the arena wall, drives round it on the cable and winches in: the circle gets smaller and it goes faster (angular momentum). Then it lets go and flies into the enemy prow first. Needs a wall in reach; spinners cut the cable.' },
+    anchor: { label: 'Harpoon + bungee slingshot', cat: 'front', mass: 12, invert: true, l4: true, d: 'Fires a grapnel past the enemy into the wall, spikes itself to the floor and winches a heavy bungee tight. Then it lets go: the bungee flings it down the cable, spiked prow first. Get off the line while it charges; spinners cut the cable.' },
     bola: { label: 'Bola launcher + nose saw', cat: 'front', mass: 10, invert: true, l4: true, d: 'Throws bolas: two steel balls on a cord that wrap whatever they hit. Round the wheels they tie that side up, round the front they tie the weapon. Then the nose saw goes in. Spinning weapons cut the cord.' },
     fangs: { label: 'Venom fangs', cat: 'front', mass: 8, invert: false, l4: true, d: 'Level 4: fangs that bite, hold and heat up what is inside. Built for a walker that pounces.' },
     mallet: { label: 'House mallet', cat: 'top', mass: 26, invert: false, house: true, d: 'House robot: a giant overhead hammer. Slow wind-up with a strobe, then it slams down where its target was. Rarely lands, hurts a lot. Can take a lid off.' },
@@ -587,7 +587,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     Jukebox: { weapon: 'jukebox', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
     Scavenger: { weapon: 'scav', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Bricklayer: { weapon: 'bricks', chassis: 'heavy', drive: 'tracks', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 1, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
-    Pendulum: { weapon: 'anchor', chassis: 'heavy', drive: 'omni', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
+    Slingshot: { weapon: 'anchor', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'chamfer', helpers: [], dmgK: 1, l4: true },
     Gaucho: { weapon: 'bola', chassis: 'medium', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Talon: { weapon: 'beak', chassis: 'heavy', drive: '4wd', motor: 'hot', battery: 'std', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 2 }, shape: 'wedge', helpers: [], dmgK: 1, l4: true },
     Rotisserie: { weapon: 'roaster', chassis: 'heavy', drive: '4wd', motor: 'std', battery: 'big', bumper: 'steel', proc: 'standard', mod: 'none', armour: { front: 0, side: 2, rear: 1, top: 1 }, shape: 'box', helpers: [], dmgK: 1, l4: true },
@@ -4148,7 +4148,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // records, blades, its own bits too) and an air cannon fires it back. The cannon gives every shot the same energy, so a light
   // bolt flies fast and a heavy plate flies slow; the shot's damage is the energy it loses in the hit. Fired junk lands on the
   // floor again and gets sucked back up: the messier the fight, the deadlier it gets.
-  const SCAV = { reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
+  const SCAV = { starter: 3, reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
   function scavEdible(d) { return !d.gone && !d.attached && !d.mag && !d.inHopper && !d.shotBy && d.kind !== 'chassis' && d.key !== 'brick' && !(d.key === 'record' && d.state !== 'floor') && d.body && d.body.isActive() && d.body.getMass() <= SCAV.maxM; }
   L4W.scav = {
     build(S, R, k) {
@@ -4157,6 +4157,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       R.intake = k.addInt('intake', 'Vacuum fan', [0.35 * hl, 0], 60);
       R.cannon = k.addInt('aircan', 'Air cannon', [-0.05 * hl, -0.35 * hw], 80, { top: true });
       R.hopper = []; R.shots = []; R.l4 = { suck: 0, last: -9, fired: 0, ate: 0 };
+      // it comes in with a starter load of scrap (3 x 2.5 kg) so it is not toothless before the fight makes junk; fired, it lands like any junk
+      for (let n = 0; n < SCAV.starter; n++) {
+        const vs = [[-0.08, -0.05], [0.06, -0.07], [0.09, 0.03], [0.0, 0.08], [-0.09, 0.04]].map(([x, y]) => [x * (1 + 0.15 * n), y]);
+        const sb = S.world.createBody({ type: 'dynamic', position: k.body.getPosition(), linearDamping: 0.9, angularDamping: 1.2 });
+        const part = { key: 'chunk', label: 'Scrap lump', kind: 'debris', verts: vs, outline: subdivide(vs), dents: [], body: sb, robot: R, attached: false, hp: 0, maxHp: 1, heat: 0, sharp: 0.4, tough: 1, wheelRoll: false, inHopper: true };
+        part.fx = sb.createFixture({ shape: pl.Polygon(vs.map(p => V(p[0], p[1]))), density: 2.5 / area(vs), friction: 0.5, restitution: 0.2, userData: { part } }); sb.setActive(false); R.hopper.push(part);
+      }
       for (let n = 0; n < SCAV.cap; n++) lamp(R, (-0.75 + n * 0.11) * hl, 0.62 * hw, '#E8C547', 'state', { src: 'ammo', at: n / SCAV.cap, r: 0.02 }); // ammo gauge
       lamp(R, 0.62 * hl, -0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 }); lamp(R, 0.62 * hl, 0.55 * hw, '#47A8FF', 'state', { src: 'suck', r: 0.026 });
     },
@@ -4335,107 +4342,115 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     },
   };
 
-  // ---------------- PENDULUM: an anchor gun on top. It fires an anchor into the arena wall, drives round it on the cable, and
-  // winches the cable in: like a skater pulling her arms in, it goes faster as the circle gets smaller (angular momentum).
-  // Then it lets go and flies into the enemy, spiked prow first. It needs a wall within reach, the winch has only so much
-  // power (a heavy robot reels in slower), the anchor rips out under too much pull, and spinning weapons cut the cable.
-  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 1.2, swingFirst: 0.5, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
+  // ---------------- SLINGSHOT (was Pendulum, 14 Nov): a harpoon gun on top fires a grapnel past the enemy into the arena wall.
+  // A spike drops into the floor to hold the robot, and the winch stretches a heavy bungee in the cable (energy = winch power x
+  // time, up to the bungee's limit). Spike up: the bungee flings the robot down the cable, spiked prow first, through whatever
+  // is in between and on towards the wall. The hit is the robot's own momentum (normal contact physics, no damage number).
+  // The swinging version (Pendulum) could not work: wheels' side grip fights a swinging cable, and the arena is too small to
+  // build speed (measured: 2-4 m/s). Counters: get off the line while it charges, spinners cut the cable, the middle of the
+  // arena (no wall in reach), and flippers (it can't charge upside down).
+  const SLING = { gunV: 22, rope: 6.5, k: 1600, winchP: 2600, Emax: 3400, hold: 6000, rip: 9500, cool: 1.4, minRun: 0.9 };
   L4W.anchor = {
     build(S, R, k) {
       const { hl, hw } = k;
       R.tool = k.addPart('prow', 'Spiked prow', 'weapon', [[hl, -hw * 0.95], [hl + 0.24, -hw * 0.25], [hl + 0.3, 0], [hl + 0.24, hw * 0.25], [hl, hw * 0.95]], { mass: 16, hp: 230, sharp: 1.3, tough: 0.25, z: 2 });
-      R.winch = k.addInt('winch', 'Anchor winch', [-0.3 * hl, 0], 85, { top: true });
-      R.l4 = { mode: 'free', A: null, rope: null, shot: null, sense: 1, swings: 0, peak: 0 };
-      lamp(R, -0.3 * hl, 0, '#FF3B2B', 'state', { src: 'taut', strobe: true, r: 0.03 });
-      for (let n = 0; n < 5; n++) lamp(R, (0.35 - n * 0.14) * hl, -0.6 * hw, n < 3 ? '#4CC26A' : n < 4 ? '#E8C547' : '#FF3B2B', 'state', { src: 'speed', at: n / 5, r: 0.018 }); // speedometer
+      R.winch = k.addInt('winch', 'Harpoon winch', [-0.3 * hl, 0], 85, { top: true });
+      R.l4 = { mode: 'free', A: null, rope: null, shot: null, E: 0, flings: 0, peak: 0 };
+      for (let n = 0; n < 6; n++) lamp(R, (0.3 - n * 0.12) * hl, -0.62 * hw, n < 3 ? '#4CC26A' : n < 5 ? '#E8C547' : '#FF3B2B', 'state', { src: 'charge', at: n / 6, r: 0.019 }); // the charge meter
+      lamp(R, -0.3 * hl, 0.5 * hw, '#FF3B2B', 'state', { src: 'spiked', strobe: true, r: 0.028 });
     },
     ok: R => R.winch.hp > 0 || alivePart(R.tool),
-    cut(S, R, why, big) { const st = R.l4; if (st.A && (st.mode === 'swing' || st.mode === 'shot')) st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t }; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
-    plan(S, R, E) { // like a real tether swing: running fast, fire the anchor sideways into the wall; the cable turns the run into a circle.
-      // Pick the wall point square to the way we are going, with the enemy ahead on that circle and closer to the anchor than we are.
-      const pos = R.body.getPosition(), v = R.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y), ep = E.body.getPosition(), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02; let best = null;
-      if (sp < PEND.runV) return null;
-      const pts = []; for (let s2 = -1; s2 <= 1.001; s2 += 0.0625) pts.push([lx, s2 * ly], [-lx, s2 * ly], [s2 * lx, ly], [s2 * lx, -ly]);
-      for (const [ax, ay] of pts) {
-        const rx = pos.x - ax, ry = pos.y - ay, rR = Math.hypot(rx, ry); if (rR > PEND.rope || rR < 1.4) continue;
-        if (Math.abs((rx * v.x + ry * v.y) / (rR * sp)) > 0.3) continue; // square to the run
-        const sense = Math.sign(rx * v.y - ry * v.x) || 1, rE = Math.hypot(ep.x - ax, ep.y - ay); if (rE < 0.9 || rE > rR - 0.4) continue;
-        const ang = wrap(Math.atan2(ep.y - ay, ep.x - ax) - Math.atan2(ry, rx)) * sense; if (ang < 0.35 || ang > 2.6) continue;
-        const sc = rR / rE - Math.abs(ang - 1.2) * 0.3; if (!best || sc > best.sc) best = { sc, A: [ax, ay], rE, rR, sense };
-      }
-      return best;
+    cut(S, R, why, big) {
+      const st = R.l4; if (st.A && st.mode !== 'free') st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t };
+      if (st.spike) { S.world.destroyJoint(st.spike); st.spike = null; } if (st.gnd) { S.world.destroyBody(st.gnd); st.gnd = null; }
+      st.mode = 'free'; st.E = 0; R.cool = Math.max(R.cool, SLING.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); }
+    },
+    aim(S, R, E) { // straight ahead to a wall: where would the grapnel land, and is the enemy on that line?
+      const b = R.body, pos = b.getPosition(), f = b.getWorldVector(V(1, 0)), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02;
+      const tx = f.x > 0 ? (lx - pos.x) / f.x : f.x < 0 ? (-lx - pos.x) / f.x : 1e9, ty = f.y > 0 ? (ly - pos.y) / f.y : f.y < 0 ? (-ly - pos.y) / f.y : 1e9, d = Math.min(tx, ty);
+      if (!(d > 1.6 && d < SLING.rope)) return null;
+      const ep = E.body.getPosition(), ex = ep.x - pos.x, ey = ep.y - pos.y, along = ex * f.x + ey * f.y, off = Math.abs(ex * f.y - ey * f.x);
+      const ev = E.body.getLinearVelocity(), T = 1.1, fx2 = ex + ev.x * T, fy2 = ey + ev.y * T, off2 = Math.abs(fx2 * f.y - fy2 * f.x), along2 = fx2 * f.x + fy2 * f.y; // where it will be when the bungee is wound up
+      return { A: [pos.x + f.x * d, pos.y + f.y * d], d, along, off, ok: along > SLING.minRun && along < d - 0.3 && off < E.hw + 0.25 && off2 < E.hw + 0.3 && along2 > 0.6 };
     },
     step(S, R, c) {
       const st = R.l4, b = R.body, E = c.E, on = c.ok && R.winch.hp > 0 && power(R) > 0 && !R.flipped, P = Math.min(1, c.pw), pos = b.getPosition(), v = b.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
-      R.fx.speed = Math.min(1, sp / 8); R.fx.taut = st.rope ? 1 : 0; st.peak = Math.max(st.peak, sp);
-      // the anchor in flight
-      if (st.mode === 'shot') {
-        st.shot.t += DT; const k2 = Math.min(1, st.shot.t / st.shot.T); st.shot.at = [pos.x + (st.A[0] - pos.x) * k2, pos.y + (st.A[1] - pos.y) * k2];
-        if (!on) { this.cut(S, R); return; }
-        if (k2 < 1) return;
-        st.Abody = S.world.createBody({ type: 'static', position: V(st.A[0], st.A[1]) });
-        const L0 = Math.hypot(pos.x - st.A[0], pos.y - st.A[1]);
-        st.rope = S.world.createJoint(pl.RopeJoint({ maxLength: L0, collideConnected: false, localAnchorA: V(0, 0), localAnchorB: V(0, 0) }, st.Abody, b));
-        (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift(); st.mode = 'swing'; st.phase = 'spin'; st.a0 = null; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
-        S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its anchor into the wall`, R.id);
+      R.fx.charge = st.E / SLING.Emax; R.fx.spiked = st.spike ? 1 : 0; st.peak = Math.max(st.peak, sp);
+      // the bite: when the flung robot hits the enemy, the energy the collision takes out of the pair (in their shared frame)
+      // goes into the hit at the same joules rate as the Jukebox's records (once per fling)
+      if (st.hotT > S.t && !st.bit && E.alive) {
+        const tch = firstTouch(b, R, null);
+        if (tch && tch.part.robot === E && st.vPrev) {
+          const ev = E.body.getLinearVelocity(), mA = b.getMass(), mB = E.body.getMass(), mu = mA * mB / (mA + mB);
+          const vb2 = (st.vPrev[0] - st.vPrev[2]) ** 2 + (st.vPrev[1] - st.vPrev[3]) ** 2, va2 = (v.x - ev.x) ** 2 + (v.y - ev.y) ** 2, lost = Math.max(0, 0.5 * mu * (vb2 - va2)), lp = tch.part.body.getLocalPoint(tch.p);
+          st.bit = true; st.hits = (st.hits || 0) + 1; st.dmg = (st.dmg || 0) + lost * JUKE.eK;
+          if (lost > 40) { hit(S, tch.part, lost * JUKE.eK, { src: R, cause: 'prow', lp: [lp.x, lp.y], blp: tch.part.body === E.body ? [lp.x, lp.y] : null, x: tch.p.x, y: tch.p.y, pen: 1.6 }); S.fx.push({ type: 'punch', x: tch.p.x, y: tch.p.y, power: Math.min(40, lost / 20) }); if (lost > 400) { callout(S, 'IMPALED!', tch.p.x, tch.p.y, true); say(S, `${R.name} slams into ${E.name} at ${Math.sqrt(vb2).toFixed(1)} m/s`, R.id, true); } }
+        }
+      }
+      { const ev = E.body.getLinearVelocity(); st.vPrev = [v.x, v.y, ev.x, ev.y]; }
+      if (st.mode === 'shot') { // the grapnel in flight
+        st.shot.t += DT; const k2 = Math.min(1, st.shot.t / st.shot.T), h = b.getWorldPoint(V(R.winch.lp[0], R.winch.lp[1])); st.shot.at = [h.x + (st.A[0] - h.x) * k2, h.y + (st.A[1] - h.y) * k2];
+        if (!on) { this.cut(S, R); return; } if (k2 < 1) return;
+        st.gnd = S.world.createBody({ type: 'static', position: pos }); st.spike = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, st.gnd, b, pos)); // the floor spike goes down
+        st.mode = 'charge'; st.E = 0; st.t = 0; (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift();
+        S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); S.fx.push({ type: 'thud', x: pos.x, y: pos.y, power: 0.5 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its grapnel into the wall and spikes itself to the floor`, R.id);
         return;
       }
-      if (st.mode === 'swing') {
-        st.t += DT;
-        if (!on || !E.alive) { this.cut(S, R); return; }
-        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls are closing in: the anchor's wall has moved
-        const ten = weldForce(st.rope); st.ten = ten;
-        if (ten > PEND.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); say(S, `${R.name}'s anchor rips out of the wall`, R.id); return; }
-        // spinning weapons cut the cable
-        for (const q of E.parts) {
-          if (!q.attached || !spinningPart(q)) continue; const qp = q.body.getPosition(), ax = st.A[0], ay = st.A[1], dx = pos.x - ax, dy = pos.y - ay, L2 = dx * dx + dy * dy || 1, tt = clamp(((qp.x - ax) * dx + (qp.y - ay) * dy) / L2, 0, 1);
-          if (Math.hypot(ax + dx * tt - qp.x, ay + dy * tt - qp.y) < 0.2) { this.cut(S, R, 'CABLE CUT!', true); say(S, `${E.name} cuts ${R.name}'s cable`, E.id, true); return; }
-        }
-        // the winch: reel in to the enemy's distance from the anchor; it can only pull so hard (power = pull x speed)
-        const rE = Math.hypot(c.E.body.getPosition().x - st.A[0], c.E.body.getPosition().y - st.A[1]), L = st.rope.getMaxLength();
-        const aNow = Math.atan2(pos.y - st.A[1], pos.x - st.A[0]); if (st.a0 == null) st.a0 = aNow; st.turned = Math.abs(wrap(aNow - st.a0));
-        if (st.phase === 'spin' && st.turned > PEND.swingFirst) st.phase = 'reel'; // swing round a bit first (the cable turns the run), then reel in: reeling a robot that is not going round just drags it
-        if (st.phase === 'reel' && L > rE + 0.05 && L > 0.7) { const vr = Math.min(PEND.reelV, PEND.winchP * P * c.jk / Math.max(200, ten)); st.rope.setMaxLength(Math.max(rE, L - vr * DT)); R.winch.heat += 0.5 * DT; }
-        // let go when the enemy is dead ahead along the way we are flying, or when we touch it, or when it takes too long
-        const ep = E.body.getPosition(), rx = ep.x - pos.x, ry = ep.y - pos.y, rd = Math.hypot(rx, ry), along = sp > 0.5 ? (rx * v.x + ry * v.y) / sp : 0, miss = sp > 0.5 ? Math.abs(rx * v.y - ry * v.x) / sp : 9;
-        const touching = firstTouch(b, R, null);
-        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.rope.getMaxLength() <= rE + 0.15) || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
-          const fast = sp > 5; this.cut(S, R, fast ? 'SLINGSHOT!' : null, fast); st.rel = (st.rel || 0) + 1; st.relV = (st.relV || 0) + sp;
-          if (fast) say(S, `${R.name} lets go of its cable and flies at ${E.name} at ${sp.toFixed(1)} m/s`, R.id, true);
-          R.cool = 0.9; st.release = S.t;
+      if (st.mode === 'charge') { // spiked down, the winch stretches the bungee
+        st.t += DT; if (!on || !E.alive) { this.cut(S, R); return; }
+        if (weldForce(st.spike) > SLING.hold) { this.cut(S, R, 'SPIKE TORN OUT!', false); return; } // shoved off its spike
+        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls closing in pull it out
+        st.E = Math.min(SLING.Emax, st.E + SLING.winchP * P * c.jk * DT); R.winch.heat += 0.6 * DT;
+        const ep = E.body.getPosition(), f = c.fwd, ex = ep.x - pos.x, ey = ep.y - pos.y, along = ex * f.x + ey * f.y, off = Math.abs(ex * f.y - ey * f.x);
+        const full = st.E >= SLING.Emax, leaving = st.E > SLING.Emax * 0.45 && off > E.hw + 0.1, close = along > 0 && along < R.hl + E.hl + 0.35 && off < E.hw + 0.3 && st.E > SLING.Emax * 0.3;
+        if (!(full || leaving || close) && st.t < 3) return;
+        // let go: the bungee's stretch e0 holds the energy (E = k e0^2 / 2); the rest length is the cable minus that stretch
+        const L0 = Math.hypot(st.A[0] - pos.x, st.A[1] - pos.y), e0 = Math.sqrt(2 * st.E / SLING.k); st.rest = Math.max(0.3, L0 - e0);
+        S.world.destroyJoint(st.spike); st.spike = null; S.world.destroyBody(st.gnd); st.gnd = null;
+        st.mode = 'fling'; st.t = 0; st.flings++; R.freewheel = true; st.E0 = st.E; st.hotT = S.t + 2.2; st.bit = false;
+        callout(S, 'SLINGSHOT!', pos.x, pos.y, st.E > SLING.Emax * 0.7); say(S, `${R.name}'s bungee flings it down the cable`, R.id, st.E > SLING.Emax * 0.7);
+        return;
+      }
+      if (st.mode === 'fling') { // the bungee pulls it towards the grapnel until it goes slack
+        st.t += DT; const dx = st.A[0] - pos.x, dy = st.A[1] - pos.y, L1 = Math.hypot(dx, dy) || 1, e = L1 - st.rest;
+        if (e <= 0 || st.t > 1.6 || !R.alive) { this.cut(S, R); R.cool = 0.6; st.E = 0; return; }
+        const F = SLING.k * e; b.applyForce(V(dx / L1 * F, dy / L1 * F), b.getWorldCenter(), true); st.E = 0.5 * SLING.k * e * e;
+        if (F > SLING.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); return; }
+        for (const q of E.parts) { // spinning weapons cut the cable
+          if (!q.attached || !spinningPart(q)) continue; const qp = q.body.getPosition(), ax = st.A[0], ay = st.A[1], ddx = pos.x - ax, ddy = pos.y - ay, L2 = ddx * ddx + ddy * ddy || 1, tt = clamp(((qp.x - ax) * ddx + (qp.y - ay) * ddy) / L2, 0, 1);
+          if (Math.hypot(ax + ddx * tt - qp.x, ay + ddy * tt - qp.y) < 0.2) { this.cut(S, R, 'CABLE CUT!', true); say(S, `${E.name} cuts ${R.name}'s cable`, E.id, true); return; }
         }
         return;
       }
-      // free: fire the anchor when there is a good wall point
-      R.freewheel = false;
+      if (R.freewheel && sp < 2) R.freewheel = false;
+      // free: fire when the enemy is on the line ahead and a wall is in reach behind it
       if (!on || R.cool > 0 || !E.alive || E.airborne > 0) return;
-      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 2.4) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
-      st.A = pl0.A; st.sense = pl0.sense; st.mode = 'shot'; st.shot = { t: 0, T: pl0.rR / PEND.gunV, at: [pos.x, pos.y] };
-      S.fx.push({ type: 'launch', x: pos.x, y: pos.y });
+      const a = this.aim(S, R, E); if (!a || !a.ok) return;
+      st.A = a.A; st.mode = 'shot'; st.shot = { t: 0, T: a.d / SLING.gunV, at: [pos.x, pos.y] }; S.fx.push({ type: 'launch', x: pos.x, y: pos.y }); callout(S, 'HARPOON!', pos.x, pos.y, false);
     },
     think(S, R, c) {
       const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
-      if (st.mode !== 'free') return null;
-      // set up: run fast along a line parallel to the wall nearest the enemy, about 1.8 m further out than it, past it
+      if (st.mode !== 'free') return { tx: st.A ? st.A[0] : c.ep.x, ty: st.A ? st.A[1] : c.ep.y, speed: 0 };
+      // set up: stand so the enemy is between us and the wall nearest to it, 2-3 m back, and face it
       const lx = HALF - S.sq.x, ly = HALF - S.sq.y, wx = c.ep.x > 0 ? lx : -lx, wy = c.ep.y > 0 ? ly : -ly, dxw = Math.abs(wx - c.ep.x), dyw = Math.abs(wy - c.ep.y);
       const nx = dxw < dyw ? Math.sign(wx) : 0, ny = dxw < dyw ? 0 : Math.sign(wy), dw = Math.min(dxw, dyw);
-      if (dw > 2.6) return null; // the enemy is out in the middle: no wall in reach, just ram it
-      const off = Math.min(dw + 1.8, PEND.rope - 0.4) - dw, bx = c.ep.x - nx * off, by = c.ep.y - ny * off, tx0 = ny, ty0 = nx; // runway through (bx, by), along (tx0, ty0)
-      const along = (p.x - bx) * tx0 + (p.y - by) * ty0, side = Math.abs(along) < 0.5 ? (st.runSide || R.orbit) : -Math.sign(along); st.runSide = side; // run to the far end
-      const [ax, ay] = inArena(S, bx + tx0 * side * 2.6, by + ty0 * side * 2.6, 0.6);
-      return { tx: ax, ty: ay, speed: 1 };
+      if (dw > SLING.rope - 2.4) return null; // the enemy is out in the middle: nothing to fling against, just ram it
+      const back = clamp(SLING.rope - dw - 0.4, 1.6, 2.8), [bx, by] = inArena(S, c.ep.x - nx * back, c.ep.y - ny * back, 0.55), dd = Math.hypot(bx - p.x, by - p.y);
+      if (dd > 0.5) return { tx: bx, ty: by, speed: dd > 1.2 ? 1 : 0.5 };
+      return { tx: c.ep.x, ty: c.ep.y, speed: 0.05 }; // in place: turn to face it (the gun fires straight ahead)
     },
-    drive(S, R, c) { // on the cable: full throttle along the circle (the cable holds it in), steering to stay on the tangent
-      const st = R.l4; if (st.mode !== 'swing') return null; R.ctl.S = 0;
-      const b = R.body, p = b.getPosition(), rx = p.x - st.A[0], ry = p.y - st.A[1], rl = Math.hypot(rx, ry) || 1, ta = Math.atan2(st.sense * rx / rl, -st.sense * ry / rl), err = wrap(ta - b.getAngle());
-      const turn = clamp(err * 1.6, -1, 1), f = Math.abs(err) > 1.0 ? 0.2 : 1; let L = f + turn, Rr = f - turn; // well off the tangent: mostly turn first
-      const mx = Math.max(1, Math.abs(L), Math.abs(Rr)); return [L / mx, Rr / mx];
+    drive(S, R, c) {
+      const st = R.l4;
+      if (st.mode === 'charge' || st.mode === 'shot') { R.ctl.S = 0; return [0, 0]; }
+      if (st.mode !== 'fling') return null;
+      R.ctl.S = 0; const b = R.body, p = b.getPosition(), ta = Math.atan2(st.A[1] - p.y, st.A[0] - p.x), err = wrap(ta - b.getAngle()), turn = clamp(err * 1.5, -0.4, 0.4);
+      return [clamp(1 + turn, -1, 1), clamp(1 - turn, -1, 1)];
     },
   };
 
   // a judge-friendly name for each cause
   Object.assign(CAUSES, { junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
-  Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', prow: 'IMPALED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
+  Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
   Object.assign(SHARP, { prow: 1, record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
   function step(S) {
@@ -4531,7 +4546,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   const ROBOTS4 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
   // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
   // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
-  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1], Jukebox: [0, 1], Gaucho: [0, 1], Scavenger: [0, 1], Bricklayer: [0, 1], Pendulum: [0, 1] };
+  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1], Jukebox: [0, 1], Gaucho: [0, 1], Scavenger: [0, 1], Bricklayer: [0, 1], Slingshot: [0, 1] };
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
   const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 2.4, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
@@ -5273,21 +5288,33 @@ window.LU_MATRIX = {"made":"2026-11-09","arenas":{"cage":{"mode":"same","pairs":
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.body.getAngle()); ctx.fillStyle = q.hp > 0 ? '#4A4A46' : '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h);
         ctx.fillStyle = HAZ; ctx.fillRect(-h, -h, 2 * h, h * 0.28); ctx.fillStyle = INK; for (let x = -h; x < h; x += 0.07) { ctx.beginPath(); ctx.moveTo(x, -h); ctx.lineTo(x + 0.035, -h); ctx.lineTo(x + 0.015, -h + h * 0.28); ctx.lineTo(x - 0.02, -h + h * 0.28); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-h * 0.8, -h * 0.55, h * 1.6, 0.03); for (const [x, y] of [[-0.7, -0.3], [0.7, -0.3], [-0.7, 0.7], [0.7, 0.7]]) bolt(x * h, y * h); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(0, h * 0.2, 0.025, 0, 6.29); ctx.fill(); ctx.restore(); }
-  function drawAnchor(R) { // PENDULUM: the anchor, big enough to see, biting into the wall (or in flight), and the scars where it has been
-    const st = R.l4, t = performance.now() / 1000, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
+  function drawAnchor(R) { // SLINGSHOT: the cable and bungee, the grapnel (in flight, biting into the wall, flying home), wall scars, the floor spike
+    const st = R.l4, t = performance.now() / 1000, b = R.body, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
     for (const s of st.scars || []) { ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(out(s[0], s[1])); ctx.fillStyle = 'rgba(20,14,8,0.55)'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.05, 0.1, 0, 0, 6.29); ctx.fill(); ctx.strokeStyle = 'rgba(20,14,8,0.6)'; ctx.lineWidth = PX * 1.5; for (const a of [-0.9, -0.3, 0.4, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(a) * 0.16, Math.sin(a) * 0.16); ctx.stroke(); } ctx.restore(); }
-    const wp = R.body.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
-    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
-    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // reeled back in after it lets go: the anchor flies home on a slack cable
+    const wp = b.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
+    if (st.spike) { // the floor spike: two claws dug in either side, a dust ring
+      ctx.save(); ctx.translate(b.getPosition().x, b.getPosition().y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-R.hl * 0.6, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.2, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.45, sd * (R.hw + 0.2)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(120,100,80,0.45)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 3, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.hypot(R.hl, R.hw) + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : (st.mode === 'charge' || st.mode === 'fling') && st.A ? st.A : null;
+    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // after it lets go the grapnel flies home on a slack cable
       ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
     if (!end) return;
+    if (!flying || st.mode === 'shot') { // the cable: steel to the grapnel, and the bungee section near the robot, thinner and redder the more it is stretched
+      const ten = st.mode === 'charge' || st.mode === 'fling' ? Math.min(1, st.E / 3400) : 0, L1 = Math.hypot(end[0] - wp.x, end[1] - wp.y) || 1, ux = (end[0] - wp.x) / L1, uy = (end[1] - wp.y) / L1, bl = Math.min(L1, 0.9 + 0.9 * ten);
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x + ux * bl, wp.y + uy * bl); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.015; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.09 - 0.045 * ten; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(wp.x + ux * bl, wp.y + uy * bl); ctx.stroke();
+      ctx.strokeStyle = ten > 0.8 && Math.sin(t * 30) > 0 ? '#FF5A3C' : `rgb(${200 + 55 * ten},${110 - 60 * ten},40)`; ctx.lineWidth = 0.06 - 0.035 * ten; ctx.stroke(); ctx.lineCap = 'butt';
+      if (st.mode === 'charge') { ctx.strokeStyle = 'rgba(255,90,60,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.lineDashOffset = -t * 0.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; } // the line it will fly down
+    }
     const a = flying ? Math.atan2(end[1] - wp.y, end[0] - wp.x) : out(end[0], end[1]);
-    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a);
+    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a); ctx.scale(1.3, 1.3);
     if (!flying) { ctx.fillStyle = 'rgba(232,197,71,0.35)'; ctx.beginPath(); ctx.arc(0, 0, 0.2 + 0.03 * Math.sin(t * 12), 0, 6.29); ctx.fill(); } // impact flash ring
-    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
-    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point into the wall
+    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4 / 1.3;
+    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point first
     ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.18, -0.03, 0.2, 0.015);
-    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); // the cable eye
+    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke();
     ctx.fillStyle = Math.sin(t * 14) > 0 ? '#FF3B2B' : '#5A1A14'; ctx.beginPath(); ctx.arc(-0.09, 0, 0.022, 0, 6.29); ctx.fill();
     ctx.restore();
   }
@@ -5357,42 +5384,56 @@ window.LU_MATRIX = {"made":"2026-11-09","arenas":{"cage":{"mode":"same","pairs":
         if (B.joint) { ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.014; ctx.setLineDash([0.03, 0.02]); ctx.stroke(); ctx.setLineDash([]); }
         for (const q of [p0, p1]) { ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.arc(q.x, q.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(q.x - 0.015, q.y - 0.015, 0.018, 0, 6.29); ctx.fill(); } }
     }
-    if (w === 'scav' && R.intake) { // SCAVENGER: vacuum swirl at the mouth, air cannon barrel on top, hopper grate with the junk it holds
-      const st = R.l4, a0 = b.getAngle(), M = b.getWorldPoint(planck.Vec2(R.hl + 0.24, 0));
-      if (R.fx.suck) { for (let k = 0; k < 3; k++) { const r = 1.5 - ((t * 2.2 + k / 3) % 1) * 1.3; ctx.strokeStyle = `rgba(155,212,255,${0.5 * (1 - r / 1.5)})`; ctx.lineWidth = PX * 2.5; ctx.beginPath(); ctx.arc(M.x, M.y, r, a0 - 0.75, a0 + 0.75); ctx.stroke(); } }
+    if (w === 'scav' && R.intake) { // SCAVENGER: a big intake bell at the nose, a glass hopper dome with the junk tumbling in it, a fat air cannon down the middle
+      const st = R.l4, a0 = b.getAngle(), M = b.getWorldPoint(planck.Vec2(R.hl + 0.24, 0)), ok = R.intake.hp > 0;
+      if (R.fx.suck) { for (let k = 0; k < 4; k++) { const r = 1.6 - ((t * 2.4 + k / 4) % 1) * 1.4; ctx.strokeStyle = `rgba(155,212,255,${0.65 * (1 - r / 1.6)})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(M.x, M.y, r, a0 - 0.75, a0 + 0.75); ctx.stroke(); }
+        for (let k = 0; k < 6; k++) { const ph = (t * 1.8 + k / 6) % 1, aa = a0 + Math.sin(k * 2.3) * 0.6, rr2 = 1.3 * (1 - ph); ctx.fillStyle = `rgba(200,190,170,${0.6 * ph})`; ctx.beginPath(); ctx.arc(M.x + Math.cos(aa) * rr2, M.y + Math.sin(aa) * rr2, 0.02, 0, 6.29); ctx.fill(); } } // dust streaming in
       ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
-      // hopper: a grate over the back with the junk inside
-      ctx.fillStyle = '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(-R.hl * 0.85, -R.hw * 0.55, R.hl * 0.75, R.hw * 1.1, 0.03); ctx.fill(); ctx.stroke();
-      (R.hopper || []).forEach((d, n) => { ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : '#8A8C84'; const x = -R.hl * 0.75 + (n % 3) * 0.11, y = -R.hw * 0.35 + Math.floor(n / 3) * 0.16; ctx.save(); ctx.translate(x + 0.04, y + 0.05); ctx.rotate(n * 1.3); ctx.fillRect(-0.04, -0.03, 0.08, 0.06); ctx.restore(); });
-      ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 1.4; for (let x = -R.hl * 0.82; x < -R.hl * 0.12; x += 0.05) { ctx.beginPath(); ctx.moveTo(x, -R.hw * 0.52); ctx.lineTo(x, R.hw * 0.52); ctx.stroke(); }
-      // air cannon: a fat barrel along the left of the lid out to the nose, a pressure tank behind it
-      const ok = R.cannon.hp > 0, cy = R.cannon.lp[1], kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.3;
-      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.05 - kick, cy - 0.055, R.hl + 0.2, 0.11, 0.03); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(0, cy - 0.045, R.hl * 0.8, 0.02);
-      ctx.fillStyle = ok ? '#47A8FF' : '#3a3530'; ctx.beginPath(); ctx.arc(-0.12, cy, 0.075, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(-0.12, cy);
-      if (S.t - (st.last || -9) < 0.12) { ctx.fillStyle = 'rgba(230,240,255,0.8)'; ctx.beginPath(); ctx.arc(R.hl + 0.2, cy, 0.12, 0, 6.29); ctx.fill(); }
+      // the intake bell over the scoop: a wide dark mouth narrowing into a throat
+      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
+      ctx.beginPath(); ctx.moveTo(R.hl + 0.2, -R.hw * 0.85); ctx.lineTo(R.hl + 0.2, R.hw * 0.85); ctx.lineTo(R.hl * 0.25, R.hw * 0.3); ctx.lineTo(R.hl * 0.25, -R.hw * 0.3); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.moveTo(R.hl + 0.17, -R.hw * 0.72); ctx.lineTo(R.hl + 0.17, R.hw * 0.72); ctx.lineTo(R.hl * 0.35, R.hw * 0.18); ctx.lineTo(R.hl * 0.35, -R.hw * 0.18); ctx.closePath(); ctx.fill();
+      if (ok) { ctx.save(); ctx.translate(R.hl * 0.5, 0); ctx.rotate(t * (R.fx.suck ? 30 : 4)); ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 2.2; for (let k = 0; k < 4; k++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(0.06, 0.02, 0.09, 0.09); ctx.stroke(); } ctx.restore(); } // the fan in the throat
+      // the hopper: a glass dome over the back with the junk in it
+      const hx = -R.hl * 0.45, hr = Math.min(R.hw * 0.62, R.hl * 0.42);
+      ctx.fillStyle = 'rgba(30,26,22,0.85)'; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill();
+      (R.hopper || []).forEach((d, n) => { const an = n * 2.1 + t * (R.fx.suck ? 3 : 0.5), rr3 = hr * (0.25 + 0.45 * ((n * 0.37) % 1)); ctx.save(); ctx.translate(hx + Math.cos(an) * rr3, Math.sin(an) * rr3); ctx.rotate(an * 1.7); ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : d.kind === 'armour' ? '#8A8C84' : '#77796F'; ctx.strokeStyle = INK; ctx.lineWidth = PX; ctx.fillRect(-0.045, -0.03, 0.09, 0.06); ctx.strokeRect(-0.045, -0.03, 0.09, 0.06); ctx.restore(); });
+      ctx.fillStyle = 'rgba(190,230,255,0.22)'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(hx - hr * 0.35, -hr * 0.4, hr * 0.35, hr * 0.15, -0.5, 0, 6.29); ctx.fill();
+      // the air cannon: a fat barrel from the hopper over the throat to the nose, kicks back when it fires
+      const cok = R.cannon.hp > 0, kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.4;
+      ctx.fillStyle = cok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(hx + hr * 0.5 - kick, -0.07, R.hl + 0.32 - hx - hr * 0.5, 0.14, 0.03); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(hx + hr * 0.6 - kick, -0.055, R.hl, 0.022); ctx.fillStyle = HAZ; ctx.fillRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14); ctx.strokeRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14);
+      ctx.fillStyle = cok ? '#47A8FF' : '#3a3530'; for (const y of [-1, 1]) { ctx.beginPath(); ctx.ellipse(-R.hl * 0.05, y * R.hw * 0.62, 0.12, 0.06, 0, 0, 6.29); ctx.fill(); ctx.stroke(); } // air tanks
+      if (S.t - (st.last || -9) < 0.12) { ctx.fillStyle = 'rgba(230,240,255,0.85)'; ctx.beginPath(); ctx.arc(R.hl + 0.36, 0, 0.16, 0, 6.29); ctx.fill(); }
       ctx.restore();
     }
-    if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a slewing crane, the block on the hook drawn high (bigger, long shadow)
-      const st = R.l4, pv = b.getPosition();
-      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.014; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
-      // the crane: turntable in the middle, a lattice boom out to the hook
-      const ok = R.crane.hp > 0, hk = st.armAt ? b.getWorldPoint(planck.Vec2(st.armAt[0], st.armAt[1])) : b.getWorldPoint(planck.Vec2(-0.25 * R.hl, 0.35 * R.hw)), base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1]));
-      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.075; ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(hk.x, hk.y); ctx.stroke(); ctx.strokeStyle = ok ? HAZ : '#55524C'; ctx.lineWidth = 0.05; ctx.stroke();
-      const bl = Math.hypot(hk.x - base.x, hk.y - base.y) || 1, ux = (hk.x - base.x) / bl, uy = (hk.y - base.y) / bl; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.3; for (let s2 = 0.08; s2 < bl - 0.05; s2 += 0.09) { ctx.beginPath(); ctx.moveTo(base.x + ux * s2 - uy * 0.025, base.y + uy * s2 + ux * 0.025); ctx.lineTo(base.x + ux * (s2 + 0.045) + uy * 0.025, base.y + uy * (s2 + 0.045) - ux * 0.025); ctx.stroke(); } ctx.lineCap = 'butt';
-      if (st.carry && st.carry.attached) drawBrick(st.carry, true);
-      ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(base.x, base.y, 0.11, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#3A3A36'; ctx.fillRect(base.x - 0.05, base.y - 0.05, 0.1, 0.1); bolt(base.x, base.y);
-      ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(hk.x, hk.y, 0.035, 0, 6.29); ctx.fill(); ctx.stroke();
-      if (st.mode === 'out' && st.to) { const g = b.getWorldPoint(planck.Vec2(st.to[0], st.to[1])); ctx.strokeStyle = 'rgba(255,176,32,0.75)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 4, PX * 3]); ctx.strokeRect(g.x - 0.17, g.y - 0.17, 0.34, 0.34); ctx.setLineDash([]); } // where it will land
+    if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a big slewing crane (cab, counterweight, lattice boom, hook)
+      const st = R.l4;
+      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.016; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
+      const ok = R.crane.hp > 0, base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1])), rest = [-0.1 * R.hl, 0.55 * R.hw], at = st.armAt || rest, hk = b.getWorldPoint(planck.Vec2(at[0], at[1]));
+      const ang = Math.atan2(hk.y - base.y, hk.x - base.x), bl = Math.max(0.3, Math.hypot(hk.x - base.x, hk.y - base.y));
+      ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(ang);
+      ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.fillRect(-0.36, -0.13, 0.17, 0.26); ctx.strokeRect(-0.36, -0.13, 0.17, 0.26); ctx.fillStyle = HAZ; ctx.fillRect(-0.36, -0.13, 0.04, 0.26); // counterweight
+      ctx.fillStyle = ok ? HAZ : '#55524C'; ctx.beginPath(); ctx.moveTo(-0.05, -0.075); ctx.lineTo(bl, -0.03); ctx.lineTo(bl, 0.03); ctx.lineTo(-0.05, 0.075); ctx.closePath(); ctx.fill(); ctx.stroke(); // the boom
+      ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (let s2 = 0.05, k = 0; s2 < bl - 0.04; s2 += 0.08, k++) { const w0 = 0.075 - 0.045 * s2 / bl, w1 = 0.075 - 0.045 * (s2 + 0.08) / bl; ctx.beginPath(); ctx.moveTo(s2, (k % 2 ? 1 : -1) * w0); ctx.lineTo(s2 + 0.08, (k % 2 ? -1 : 1) * w1); ctx.stroke(); }
+      ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2.2; rr(-0.2, -0.12, 0.2, 0.24, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#9BD4FF'; ctx.fillRect(-0.06, -0.08, 0.05, 0.16); ctx.strokeRect(-0.06, -0.08, 0.05, 0.16); // the cab and its window
+      ctx.restore();
+      if (st.carry && st.carry.attached) { const cp = st.carry.body.getPosition(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(hk.x, hk.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); }
+      ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(hk.x, hk.y, 0.04, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(base.x, base.y);
+      if (st.mode === 'out' && st.to) { const g = b.getWorldPoint(planck.Vec2(st.to[0], st.to[1])); ctx.strokeStyle = 'rgba(255,176,32,0.85)'; ctx.lineWidth = PX * 2.5; ctx.setLineDash([PX * 4, PX * 3]); ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(b.getAngle()); ctx.strokeRect(-0.2, -0.2, 0.4, 0.4); ctx.beginPath(); ctx.moveTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.moveTo(0, -0.08); ctx.lineTo(0, 0.08); ctx.stroke(); ctx.restore(); ctx.setLineDash([]); } // where it will land
     }
-    if (w === 'anchor' && R.winch) { // PENDULUM: winch drum on top, the cable to the anchor in the wall, spikes on the prow
-      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), wp = b.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1]));
-      if (R.tool && R.tool.attached) { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (const y of [-0.24, -0.12, 0, 0.12, 0.24]) { const x = R.hl + 0.3 - Math.abs(y) * 0.25; ctx.beginPath(); ctx.moveTo(x - 0.04, y - 0.03); ctx.lineTo(x + 0.07, y); ctx.lineTo(x - 0.04, y + 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.restore(); }
-      const end = st.mode === 'shot' && st.shot ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
-      if (end) { const taut = st.mode === 'swing'; ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = taut ? '#E4E1DA' : '#9A9C94'; ctx.lineWidth = 0.016; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
-        if (taut) { ctx.strokeStyle = 'rgba(255,59,43,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 3, PX * 4]); ctx.beginPath(); ctx.arc(end[0], end[1], Math.hypot(p0.x - end[0], p0.y - end[1]), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } }
-      ctx.save(); ctx.translate(wp.x, wp.y); ctx.rotate(a0); ctx.fillStyle = R.winch.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.09, -0.13, 0.18, 0.26, 0.03); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 1.6; const rot = st.mode === 'swing' ? t * 9 : 0; for (let k = 0; k < 5; k++) { const y = -0.1 + ((k * 0.05 + rot * 0.01) % 0.25); ctx.beginPath(); ctx.moveTo(-0.07, y); ctx.lineTo(0.07, y + 0.02); ctx.stroke(); } ctx.restore();
+    if (w === 'anchor' && R.winch) { // SLINGSHOT: a big harpoon gun down the middle (grapnel loaded when ready), the bungee drum, spikes along the prow
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), ok = R.winch.hp > 0;
+      ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      if (R.tool && R.tool.attached) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; const edges = [[[R.hl, -R.hw * 0.95], [R.hl + 0.24, -R.hw * 0.25]], [[R.hl + 0.24, -R.hw * 0.25], [R.hl + 0.3, 0]], [[R.hl + 0.3, 0], [R.hl + 0.24, R.hw * 0.25]], [[R.hl + 0.24, R.hw * 0.25], [R.hl, R.hw * 0.95]]];
+        for (const [[x0, y0], [x1, y1]] of edges) { const L0 = Math.hypot(x1 - x0, y1 - y0), nx = (y1 - y0) / L0, ny = -(x1 - x0) / L0, n = Math.max(1, Math.round(L0 / 0.09)); for (let k = 0; k < n; k++) { const f = (k + 0.5) / n, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f, tx = (x1 - x0) / L0, ty = (y1 - y0) / L0; ctx.beginPath(); ctx.moveTo(x - tx * 0.03, y - ty * 0.03); ctx.lineTo(x + nx * 0.09, y + ny * 0.09); ctx.lineTo(x + tx * 0.03, y + ty * 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } } }
+      const gx = -0.1 * R.hl, loaded = ok && st.mode === 'free' && R.cool <= 0;
+      ctx.fillStyle = ok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(gx, -0.065, R.hl * 1.05, 0.13, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(gx + 0.04, -0.05, R.hl * 0.9, 0.02);
+      if (loaded) { ctx.save(); ctx.translate(gx + R.hl * 1.05 + 0.08, 0); ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.12); ctx.lineTo(-0.06, -0.1); ctx.lineTo(-0.02, -0.03); ctx.lineTo(-0.1, -0.03); ctx.lineTo(-0.1, 0.03); ctx.lineTo(-0.02, 0.03); ctx.lineTo(-0.06, 0.1); ctx.lineTo(-0.02, 0.12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); } // the grapnel loaded in the muzzle
+      // the bungee drum: red rubber coils, they spin while it winches
+      const wx = R.winch.lp[0]; ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -R.hw * 0.62, 0.22, R.hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
+      const spin = st.mode === 'charge' ? t * 12 : 0; ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; for (let k = 0; k < 6; k++) { const y = -R.hw * 0.55 + ((k * 0.19 * R.hw + spin * 0.02) % (R.hw * 1.1)); ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.03); ctx.stroke(); }
+      ctx.restore();
     }
     // a robot with a bola round its wheels: cord coils on the tied side
     if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }

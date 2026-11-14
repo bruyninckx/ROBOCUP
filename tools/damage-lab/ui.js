@@ -681,21 +681,33 @@
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.body.getAngle()); ctx.fillStyle = q.hp > 0 ? '#4A4A46' : '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h);
         ctx.fillStyle = HAZ; ctx.fillRect(-h, -h, 2 * h, h * 0.28); ctx.fillStyle = INK; for (let x = -h; x < h; x += 0.07) { ctx.beginPath(); ctx.moveTo(x, -h); ctx.lineTo(x + 0.035, -h); ctx.lineTo(x + 0.015, -h + h * 0.28); ctx.lineTo(x - 0.02, -h + h * 0.28); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-h * 0.8, -h * 0.55, h * 1.6, 0.03); for (const [x, y] of [[-0.7, -0.3], [0.7, -0.3], [-0.7, 0.7], [0.7, 0.7]]) bolt(x * h, y * h); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(0, h * 0.2, 0.025, 0, 6.29); ctx.fill(); ctx.restore(); }
-  function drawAnchor(R) { // PENDULUM: the anchor, big enough to see, biting into the wall (or in flight), and the scars where it has been
-    const st = R.l4, t = performance.now() / 1000, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
+  function drawAnchor(R) { // SLINGSHOT: the cable and bungee, the grapnel (in flight, biting into the wall, flying home), wall scars, the floor spike
+    const st = R.l4, t = performance.now() / 1000, b = R.body, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
     for (const s of st.scars || []) { ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(out(s[0], s[1])); ctx.fillStyle = 'rgba(20,14,8,0.55)'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.05, 0.1, 0, 0, 6.29); ctx.fill(); ctx.strokeStyle = 'rgba(20,14,8,0.6)'; ctx.lineWidth = PX * 1.5; for (const a of [-0.9, -0.3, 0.4, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(a) * 0.16, Math.sin(a) * 0.16); ctx.stroke(); } ctx.restore(); }
-    const wp = R.body.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
-    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
-    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // reeled back in after it lets go: the anchor flies home on a slack cable
+    const wp = b.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
+    if (st.spike) { // the floor spike: two claws dug in either side, a dust ring
+      ctx.save(); ctx.translate(b.getPosition().x, b.getPosition().y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-R.hl * 0.6, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.2, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.45, sd * (R.hw + 0.2)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(120,100,80,0.45)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 3, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.hypot(R.hl, R.hw) + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : (st.mode === 'charge' || st.mode === 'fling') && st.A ? st.A : null;
+    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // after it lets go the grapnel flies home on a slack cable
       ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
     if (!end) return;
+    if (!flying || st.mode === 'shot') { // the cable: steel to the grapnel, and the bungee section near the robot, thinner and redder the more it is stretched
+      const ten = st.mode === 'charge' || st.mode === 'fling' ? Math.min(1, st.E / 3400) : 0, L1 = Math.hypot(end[0] - wp.x, end[1] - wp.y) || 1, ux = (end[0] - wp.x) / L1, uy = (end[1] - wp.y) / L1, bl = Math.min(L1, 0.9 + 0.9 * ten);
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x + ux * bl, wp.y + uy * bl); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.015; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.09 - 0.045 * ten; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(wp.x + ux * bl, wp.y + uy * bl); ctx.stroke();
+      ctx.strokeStyle = ten > 0.8 && Math.sin(t * 30) > 0 ? '#FF5A3C' : `rgb(${200 + 55 * ten},${110 - 60 * ten},40)`; ctx.lineWidth = 0.06 - 0.035 * ten; ctx.stroke(); ctx.lineCap = 'butt';
+      if (st.mode === 'charge') { ctx.strokeStyle = 'rgba(255,90,60,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.lineDashOffset = -t * 0.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; } // the line it will fly down
+    }
     const a = flying ? Math.atan2(end[1] - wp.y, end[0] - wp.x) : out(end[0], end[1]);
-    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a);
+    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a); ctx.scale(1.3, 1.3);
     if (!flying) { ctx.fillStyle = 'rgba(232,197,71,0.35)'; ctx.beginPath(); ctx.arc(0, 0, 0.2 + 0.03 * Math.sin(t * 12), 0, 6.29); ctx.fill(); } // impact flash ring
-    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
-    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point into the wall
+    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4 / 1.3;
+    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point first
     ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.18, -0.03, 0.2, 0.015);
-    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); // the cable eye
+    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke();
     ctx.fillStyle = Math.sin(t * 14) > 0 ? '#FF3B2B' : '#5A1A14'; ctx.beginPath(); ctx.arc(-0.09, 0, 0.022, 0, 6.29); ctx.fill();
     ctx.restore();
   }
@@ -765,42 +777,56 @@
         if (B.joint) { ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.014; ctx.setLineDash([0.03, 0.02]); ctx.stroke(); ctx.setLineDash([]); }
         for (const q of [p0, p1]) { ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.arc(q.x, q.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(q.x - 0.015, q.y - 0.015, 0.018, 0, 6.29); ctx.fill(); } }
     }
-    if (w === 'scav' && R.intake) { // SCAVENGER: vacuum swirl at the mouth, air cannon barrel on top, hopper grate with the junk it holds
-      const st = R.l4, a0 = b.getAngle(), M = b.getWorldPoint(planck.Vec2(R.hl + 0.24, 0));
-      if (R.fx.suck) { for (let k = 0; k < 3; k++) { const r = 1.5 - ((t * 2.2 + k / 3) % 1) * 1.3; ctx.strokeStyle = `rgba(155,212,255,${0.5 * (1 - r / 1.5)})`; ctx.lineWidth = PX * 2.5; ctx.beginPath(); ctx.arc(M.x, M.y, r, a0 - 0.75, a0 + 0.75); ctx.stroke(); } }
+    if (w === 'scav' && R.intake) { // SCAVENGER: a big intake bell at the nose, a glass hopper dome with the junk tumbling in it, a fat air cannon down the middle
+      const st = R.l4, a0 = b.getAngle(), M = b.getWorldPoint(planck.Vec2(R.hl + 0.24, 0)), ok = R.intake.hp > 0;
+      if (R.fx.suck) { for (let k = 0; k < 4; k++) { const r = 1.6 - ((t * 2.4 + k / 4) % 1) * 1.4; ctx.strokeStyle = `rgba(155,212,255,${0.65 * (1 - r / 1.6)})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(M.x, M.y, r, a0 - 0.75, a0 + 0.75); ctx.stroke(); }
+        for (let k = 0; k < 6; k++) { const ph = (t * 1.8 + k / 6) % 1, aa = a0 + Math.sin(k * 2.3) * 0.6, rr2 = 1.3 * (1 - ph); ctx.fillStyle = `rgba(200,190,170,${0.6 * ph})`; ctx.beginPath(); ctx.arc(M.x + Math.cos(aa) * rr2, M.y + Math.sin(aa) * rr2, 0.02, 0, 6.29); ctx.fill(); } } // dust streaming in
       ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
-      // hopper: a grate over the back with the junk inside
-      ctx.fillStyle = '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(-R.hl * 0.85, -R.hw * 0.55, R.hl * 0.75, R.hw * 1.1, 0.03); ctx.fill(); ctx.stroke();
-      (R.hopper || []).forEach((d, n) => { ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : '#8A8C84'; const x = -R.hl * 0.75 + (n % 3) * 0.11, y = -R.hw * 0.35 + Math.floor(n / 3) * 0.16; ctx.save(); ctx.translate(x + 0.04, y + 0.05); ctx.rotate(n * 1.3); ctx.fillRect(-0.04, -0.03, 0.08, 0.06); ctx.restore(); });
-      ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 1.4; for (let x = -R.hl * 0.82; x < -R.hl * 0.12; x += 0.05) { ctx.beginPath(); ctx.moveTo(x, -R.hw * 0.52); ctx.lineTo(x, R.hw * 0.52); ctx.stroke(); }
-      // air cannon: a fat barrel along the left of the lid out to the nose, a pressure tank behind it
-      const ok = R.cannon.hp > 0, cy = R.cannon.lp[1], kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.3;
-      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.05 - kick, cy - 0.055, R.hl + 0.2, 0.11, 0.03); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(0, cy - 0.045, R.hl * 0.8, 0.02);
-      ctx.fillStyle = ok ? '#47A8FF' : '#3a3530'; ctx.beginPath(); ctx.arc(-0.12, cy, 0.075, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(-0.12, cy);
-      if (S.t - (st.last || -9) < 0.12) { ctx.fillStyle = 'rgba(230,240,255,0.8)'; ctx.beginPath(); ctx.arc(R.hl + 0.2, cy, 0.12, 0, 6.29); ctx.fill(); }
+      // the intake bell over the scoop: a wide dark mouth narrowing into a throat
+      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
+      ctx.beginPath(); ctx.moveTo(R.hl + 0.2, -R.hw * 0.85); ctx.lineTo(R.hl + 0.2, R.hw * 0.85); ctx.lineTo(R.hl * 0.25, R.hw * 0.3); ctx.lineTo(R.hl * 0.25, -R.hw * 0.3); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.moveTo(R.hl + 0.17, -R.hw * 0.72); ctx.lineTo(R.hl + 0.17, R.hw * 0.72); ctx.lineTo(R.hl * 0.35, R.hw * 0.18); ctx.lineTo(R.hl * 0.35, -R.hw * 0.18); ctx.closePath(); ctx.fill();
+      if (ok) { ctx.save(); ctx.translate(R.hl * 0.5, 0); ctx.rotate(t * (R.fx.suck ? 30 : 4)); ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 2.2; for (let k = 0; k < 4; k++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(0.06, 0.02, 0.09, 0.09); ctx.stroke(); } ctx.restore(); } // the fan in the throat
+      // the hopper: a glass dome over the back with the junk in it
+      const hx = -R.hl * 0.45, hr = Math.min(R.hw * 0.62, R.hl * 0.42);
+      ctx.fillStyle = 'rgba(30,26,22,0.85)'; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill();
+      (R.hopper || []).forEach((d, n) => { const an = n * 2.1 + t * (R.fx.suck ? 3 : 0.5), rr3 = hr * (0.25 + 0.45 * ((n * 0.37) % 1)); ctx.save(); ctx.translate(hx + Math.cos(an) * rr3, Math.sin(an) * rr3); ctx.rotate(an * 1.7); ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : d.kind === 'armour' ? '#8A8C84' : '#77796F'; ctx.strokeStyle = INK; ctx.lineWidth = PX; ctx.fillRect(-0.045, -0.03, 0.09, 0.06); ctx.strokeRect(-0.045, -0.03, 0.09, 0.06); ctx.restore(); });
+      ctx.fillStyle = 'rgba(190,230,255,0.22)'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(hx - hr * 0.35, -hr * 0.4, hr * 0.35, hr * 0.15, -0.5, 0, 6.29); ctx.fill();
+      // the air cannon: a fat barrel from the hopper over the throat to the nose, kicks back when it fires
+      const cok = R.cannon.hp > 0, kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.4;
+      ctx.fillStyle = cok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(hx + hr * 0.5 - kick, -0.07, R.hl + 0.32 - hx - hr * 0.5, 0.14, 0.03); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(hx + hr * 0.6 - kick, -0.055, R.hl, 0.022); ctx.fillStyle = HAZ; ctx.fillRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14); ctx.strokeRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14);
+      ctx.fillStyle = cok ? '#47A8FF' : '#3a3530'; for (const y of [-1, 1]) { ctx.beginPath(); ctx.ellipse(-R.hl * 0.05, y * R.hw * 0.62, 0.12, 0.06, 0, 0, 6.29); ctx.fill(); ctx.stroke(); } // air tanks
+      if (S.t - (st.last || -9) < 0.12) { ctx.fillStyle = 'rgba(230,240,255,0.85)'; ctx.beginPath(); ctx.arc(R.hl + 0.36, 0, 0.16, 0, 6.29); ctx.fill(); }
       ctx.restore();
     }
-    if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a slewing crane, the block on the hook drawn high (bigger, long shadow)
-      const st = R.l4, pv = b.getPosition();
-      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.014; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
-      // the crane: turntable in the middle, a lattice boom out to the hook
-      const ok = R.crane.hp > 0, hk = st.armAt ? b.getWorldPoint(planck.Vec2(st.armAt[0], st.armAt[1])) : b.getWorldPoint(planck.Vec2(-0.25 * R.hl, 0.35 * R.hw)), base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1]));
-      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.075; ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(hk.x, hk.y); ctx.stroke(); ctx.strokeStyle = ok ? HAZ : '#55524C'; ctx.lineWidth = 0.05; ctx.stroke();
-      const bl = Math.hypot(hk.x - base.x, hk.y - base.y) || 1, ux = (hk.x - base.x) / bl, uy = (hk.y - base.y) / bl; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.3; for (let s2 = 0.08; s2 < bl - 0.05; s2 += 0.09) { ctx.beginPath(); ctx.moveTo(base.x + ux * s2 - uy * 0.025, base.y + uy * s2 + ux * 0.025); ctx.lineTo(base.x + ux * (s2 + 0.045) + uy * 0.025, base.y + uy * (s2 + 0.045) - ux * 0.025); ctx.stroke(); } ctx.lineCap = 'butt';
-      if (st.carry && st.carry.attached) drawBrick(st.carry, true);
-      ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(base.x, base.y, 0.11, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#3A3A36'; ctx.fillRect(base.x - 0.05, base.y - 0.05, 0.1, 0.1); bolt(base.x, base.y);
-      ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(hk.x, hk.y, 0.035, 0, 6.29); ctx.fill(); ctx.stroke();
-      if (st.mode === 'out' && st.to) { const g = b.getWorldPoint(planck.Vec2(st.to[0], st.to[1])); ctx.strokeStyle = 'rgba(255,176,32,0.75)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 4, PX * 3]); ctx.strokeRect(g.x - 0.17, g.y - 0.17, 0.34, 0.34); ctx.setLineDash([]); } // where it will land
+    if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a big slewing crane (cab, counterweight, lattice boom, hook)
+      const st = R.l4;
+      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.016; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
+      const ok = R.crane.hp > 0, base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1])), rest = [-0.1 * R.hl, 0.55 * R.hw], at = st.armAt || rest, hk = b.getWorldPoint(planck.Vec2(at[0], at[1]));
+      const ang = Math.atan2(hk.y - base.y, hk.x - base.x), bl = Math.max(0.3, Math.hypot(hk.x - base.x, hk.y - base.y));
+      ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(ang);
+      ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.fillRect(-0.36, -0.13, 0.17, 0.26); ctx.strokeRect(-0.36, -0.13, 0.17, 0.26); ctx.fillStyle = HAZ; ctx.fillRect(-0.36, -0.13, 0.04, 0.26); // counterweight
+      ctx.fillStyle = ok ? HAZ : '#55524C'; ctx.beginPath(); ctx.moveTo(-0.05, -0.075); ctx.lineTo(bl, -0.03); ctx.lineTo(bl, 0.03); ctx.lineTo(-0.05, 0.075); ctx.closePath(); ctx.fill(); ctx.stroke(); // the boom
+      ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (let s2 = 0.05, k = 0; s2 < bl - 0.04; s2 += 0.08, k++) { const w0 = 0.075 - 0.045 * s2 / bl, w1 = 0.075 - 0.045 * (s2 + 0.08) / bl; ctx.beginPath(); ctx.moveTo(s2, (k % 2 ? 1 : -1) * w0); ctx.lineTo(s2 + 0.08, (k % 2 ? -1 : 1) * w1); ctx.stroke(); }
+      ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2.2; rr(-0.2, -0.12, 0.2, 0.24, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#9BD4FF'; ctx.fillRect(-0.06, -0.08, 0.05, 0.16); ctx.strokeRect(-0.06, -0.08, 0.05, 0.16); // the cab and its window
+      ctx.restore();
+      if (st.carry && st.carry.attached) { const cp = st.carry.body.getPosition(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(hk.x, hk.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); }
+      ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(hk.x, hk.y, 0.04, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(base.x, base.y);
+      if (st.mode === 'out' && st.to) { const g = b.getWorldPoint(planck.Vec2(st.to[0], st.to[1])); ctx.strokeStyle = 'rgba(255,176,32,0.85)'; ctx.lineWidth = PX * 2.5; ctx.setLineDash([PX * 4, PX * 3]); ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(b.getAngle()); ctx.strokeRect(-0.2, -0.2, 0.4, 0.4); ctx.beginPath(); ctx.moveTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.moveTo(0, -0.08); ctx.lineTo(0, 0.08); ctx.stroke(); ctx.restore(); ctx.setLineDash([]); } // where it will land
     }
-    if (w === 'anchor' && R.winch) { // PENDULUM: winch drum on top, the cable to the anchor in the wall, spikes on the prow
-      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), wp = b.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1]));
-      if (R.tool && R.tool.attached) { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (const y of [-0.24, -0.12, 0, 0.12, 0.24]) { const x = R.hl + 0.3 - Math.abs(y) * 0.25; ctx.beginPath(); ctx.moveTo(x - 0.04, y - 0.03); ctx.lineTo(x + 0.07, y); ctx.lineTo(x - 0.04, y + 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.restore(); }
-      const end = st.mode === 'shot' && st.shot ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
-      if (end) { const taut = st.mode === 'swing'; ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = taut ? '#E4E1DA' : '#9A9C94'; ctx.lineWidth = 0.016; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
-        if (taut) { ctx.strokeStyle = 'rgba(255,59,43,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 3, PX * 4]); ctx.beginPath(); ctx.arc(end[0], end[1], Math.hypot(p0.x - end[0], p0.y - end[1]), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } }
-      ctx.save(); ctx.translate(wp.x, wp.y); ctx.rotate(a0); ctx.fillStyle = R.winch.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.09, -0.13, 0.18, 0.26, 0.03); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 1.6; const rot = st.mode === 'swing' ? t * 9 : 0; for (let k = 0; k < 5; k++) { const y = -0.1 + ((k * 0.05 + rot * 0.01) % 0.25); ctx.beginPath(); ctx.moveTo(-0.07, y); ctx.lineTo(0.07, y + 0.02); ctx.stroke(); } ctx.restore();
+    if (w === 'anchor' && R.winch) { // SLINGSHOT: a big harpoon gun down the middle (grapnel loaded when ready), the bungee drum, spikes along the prow
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), ok = R.winch.hp > 0;
+      ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      if (R.tool && R.tool.attached) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; const edges = [[[R.hl, -R.hw * 0.95], [R.hl + 0.24, -R.hw * 0.25]], [[R.hl + 0.24, -R.hw * 0.25], [R.hl + 0.3, 0]], [[R.hl + 0.3, 0], [R.hl + 0.24, R.hw * 0.25]], [[R.hl + 0.24, R.hw * 0.25], [R.hl, R.hw * 0.95]]];
+        for (const [[x0, y0], [x1, y1]] of edges) { const L0 = Math.hypot(x1 - x0, y1 - y0), nx = (y1 - y0) / L0, ny = -(x1 - x0) / L0, n = Math.max(1, Math.round(L0 / 0.09)); for (let k = 0; k < n; k++) { const f = (k + 0.5) / n, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f, tx = (x1 - x0) / L0, ty = (y1 - y0) / L0; ctx.beginPath(); ctx.moveTo(x - tx * 0.03, y - ty * 0.03); ctx.lineTo(x + nx * 0.09, y + ny * 0.09); ctx.lineTo(x + tx * 0.03, y + ty * 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } } }
+      const gx = -0.1 * R.hl, loaded = ok && st.mode === 'free' && R.cool <= 0;
+      ctx.fillStyle = ok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(gx, -0.065, R.hl * 1.05, 0.13, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(gx + 0.04, -0.05, R.hl * 0.9, 0.02);
+      if (loaded) { ctx.save(); ctx.translate(gx + R.hl * 1.05 + 0.08, 0); ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.12); ctx.lineTo(-0.06, -0.1); ctx.lineTo(-0.02, -0.03); ctx.lineTo(-0.1, -0.03); ctx.lineTo(-0.1, 0.03); ctx.lineTo(-0.02, 0.03); ctx.lineTo(-0.06, 0.1); ctx.lineTo(-0.02, 0.12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); } // the grapnel loaded in the muzzle
+      // the bungee drum: red rubber coils, they spin while it winches
+      const wx = R.winch.lp[0]; ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -R.hw * 0.62, 0.22, R.hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
+      const spin = st.mode === 'charge' ? t * 12 : 0; ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; for (let k = 0; k < 6; k++) { const y = -R.hw * 0.55 + ((k * 0.19 * R.hw + spin * 0.02) % (R.hw * 1.1)); ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.03); ctx.stroke(); }
+      ctx.restore();
     }
     // a robot with a bola round its wheels: cord coils on the tied side
     if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }
