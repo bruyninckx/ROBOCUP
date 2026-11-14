@@ -240,7 +240,7 @@
       const G = GAME(); if (!G.G || !p.connected) return;
       const L = G.logFrom(p.logN || 0);
       if (L.ops.length) { send(p, { t: 'log', base: L.base, ops: L.ops, end: L.end }); p.logN = L.end; }
-      const g = G.snapFor(p.seat), meta = G.snapMeta(p.seat), key = g + JSON.stringify(meta.paused) + (meta.names || []).join('|');
+      const g = G.snapFor(p.seat), meta = G.snapMeta(p.seat), key = g + JSON.stringify(meta.paused) + (meta.names || []).join('|') + JSON.stringify(meta.waiting || 0);
       if (key !== p.lastSnap) { p.lastSnap = key; send(p, { t: 'snap', g, meta }); }
     }
     function updatePause() {
@@ -259,6 +259,8 @@
       H.players.forEach(p => { if (p.connected && now - (p.seen || 0) > 6000) { p.connected = false; if (H.started) updatePause(); pushLobby(); } });
       T.send(null, { t: 'hb' });
     }, 1000);
+    // who the game waits for, for every screen's banner: the open questions and deal panels, else what the game says
+    setInterval(() => { if (H.started && GAME().setWaiting) GAME().setWaiting(Object.values(H.pending).map(x => ({ seat: x.seat, title: x.kind === 'ask' ? x.payload.title : x.payload && x.payload.title }))); }, 500);
     setInterval(() => { if (H.started) H.players.forEach(flush); }, 100);
     setInterval(() => { if (!H.started) return; const ft = GAME().fightTick(); if (ft) H.players.forEach(p => send(p, { t: 'tick', ...ft })); }, 250);
     const busySince = {};

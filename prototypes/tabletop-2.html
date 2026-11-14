@@ -248,6 +248,9 @@ html, body {
 .aw-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .aw-btns button, .iv-btns button, .sc-spar { font: 700 12.5px var(--sans); padding: 7px 13px; border-radius: 4px; border: 2px solid var(--ink); cursor: pointer; background: transparent; color: var(--ink); }
 .aw-btns button.primary, .iv-btns button.primary { font: 400 15px var(--stencil); letter-spacing: 1px; background: var(--ink); color: var(--hazard); }
+#waitBanner { position: fixed; left: 50%; top: 62px; transform: translateX(-50%); z-index: 900; pointer-events: none; background: #2B2118; color: #F4EDE2; font: 700 15px var(--mono); padding: 7px 16px; border-radius: 6px; border: 2px solid #E8C23A; box-shadow: 0 4px 14px rgba(0,0,0,.3); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+#waitBanner span { font-weight: 400; opacity: .8; }
+#waitBanner[hidden] { display: none; }
 #ivModal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
 #ivModal[hidden] { display: none; }
 #helpTip { position: fixed; z-index: 10050; pointer-events: none; max-width: 300px; background: var(--paper); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.22); padding: 7px 10px; font: 12px/1.42 var(--sans); color: #2B2118; }
@@ -779,6 +782,7 @@ html, body {
    * act(name, …args) = a player's action: run here for the person at this screen (solo / host), or sent to the host.
    * gather(seat, step, then) = "everyone is done": a simultaneous step goes on when every person has finished it. */
   let NETROLE = null;
+  let netWaiting = null;   // online: [{ seat, what }] who the game waits for (the host works it out, every screen shows it)
   let netNames = [null, null, null, null], gameSeq = 0, netPaused = null, netTick = { fid: 0, tick: 0, at: 0 };
   const BOT = /[?&]bot=1/.test(location.search);   // test bots: answer every question and play their seat on their own
   let fightSeq = 0;
@@ -1452,6 +1456,7 @@ html, body {
     SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over;
   }
   function updateHud() {
+    try { renderWaiting(); } catch (e) {}   // the "waiting for" banner follows the layout
     try { fameSound(); } catch (e) {}
     try { renderAwards(); } catch (e) { console.warn('awards', e); }
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;
@@ -2006,7 +2011,7 @@ html, body {
   function startRound() {
     G.phase = 'upkeep';
     G.tieOrder = seatPerm(G.round);   // this round's seat order for ties and reactions (seat fairness)
-    G.hostCount = 1; G.hostFameGiven = 0; relFade();
+    G.hostCount = 1; G.hostFameGiven = 0; relFade(); G.teams.forEach(t => { t.houseTold = 0; });
     G.crateChoices = null; G.gather = null;
     for (let s = 0; s < 4; s++) { const P = PS(s); P.hostCount = 1; P.choose = false; P.skipTurn = false; }
     setCameraGoal('compound');
@@ -4327,7 +4332,10 @@ html, body {
       const t = G.teams[ti];
       for (;;) {
         const active = { grand_melee: G.arenaEvent && G.arenaEvent.kind === 'ffa', mirror: G.arenaEvent && G.arenaEvent.kind === 'mirror', unleash_the_house_robot: G.houseRobot };
-        const opts = ['grand_melee', 'mirror', 'unleash_the_house_robot'].filter(id => usable(t, id) && !active[id]);   // nothing that is already in force
+        // 14 Nov (Friday playtest): the House Robot needs a free place. A fight with 4 robots (2 per side, Mirror, a 2v2, a 4-team melee) has none: the card was played, announced and then dropped
+        const ev0 = G.arenaEvent && G.arenaEvent.kind, full = ev0 === 'mirror' || ev0 === 'final' || ev0 === 'tag' || (ev0 === 'ffa' && G.teams.filter(x => readyRobots(x).length).length >= 4) || (!ev0 && G.hostCount === 2 && G.teams[H].credits >= WAGER_COST);
+        const opts = ['grand_melee', 'mirror', 'unleash_the_house_robot'].filter(id => usable(t, id) && !active[id] && !(id === 'unleash_the_house_robot' && full));   // nothing that is already in force
+        if (full && !G.houseRobot && usable(t, 'unleash_the_house_robot') && isHuman(ti) && !t.houseTold) { t.houseTold = G.round; say(ti, '🏠 ' + cardRef('unleash_the_house_robot') + ' can\'t be played this round: the fight already has 4 robots, there is no place for the House Robot.', '#b45309'); }
         if (!opts.length) break;
         let id = null;
         if (isHuman(ti)) {
@@ -5374,7 +5382,7 @@ html, body {
   const checkedFids = new Set();
   function applySnap(m) {
     const old = G, g = JSON.parse(m.g);
-    SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null;
+    SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null; netWaiting = m.waiting || null; renderWaiting();
     if (m.bal) { balMerge(BAL, m.bal); applyBal(false); }
     if (m.win) WIN_FAME = m.win; if (m.hostFame != null) HOST_FAME = m.hostFame;
     Object.assign(LOTS, m.lotsDyn || {});
@@ -5542,6 +5550,37 @@ html, body {
     if (step && !(G.gather && G.gather.key === step[0] + ':' + G.round && G.gather.done[s])) return step[0];
     return null;
   }
+  /* Who the game is waiting for (14 Nov, Friday playtest: "an action that stops the game should be shown in the centre";
+   * joined players could not tell that the game was waiting on one person's question). The host works the list out once a
+   * second (src2/net.js: its open questions and deal panels, else seatBusyWith) and every screen shows it over the pit:
+   * the others when you are done yourself, or "everyone is waiting for you" when you are the only one left. */
+  const WAIT_WORDS = { sponsor: 'picking a sponsor', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
+    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', open: 'open market',
+    lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
+  function setWaiting(pend) {   // host; pend: [{ seat, title }] the questions and deal panels open on joined screens
+    if (!G || G.over) { if (netWaiting) { netWaiting = null; renderWaiting(); } return; }
+    const list = [];
+    for (const s of humanSeats()) {
+      const q = (pend || []).find(x => x.seat === s);
+      const mine = s === HS && ['ivModal', 'dealModal'].map(id => document.getElementById(id)).find(el => el && !el.hidden);
+      const w = q ? ptPlain(q.title || 'a question') : mine ? ptPlain((mine.querySelector('h3') || {}).innerHTML || 'a question') : WAIT_WORDS[seatBusyWith(s)] || seatBusyWith(s);
+      if (w) list.push({ seat: s, what: String(w).replace(/^[^A-Za-z0-9]+/, '').slice(0, 40) });
+    }
+    if (JSON.stringify(list) !== JSON.stringify(netWaiting)) { netWaiting = list; renderWaiting(); }
+  }
+  function renderWaiting() {
+    let el = document.getElementById('waitBanner');
+    const list = isNetGame() && G && !G.over && G.phase !== 'fight' ? netWaiting || [] : [];
+    const me_ = list.find(x => x.seat === HS), others = list.filter(x => x.seat !== HS);
+    const html = !me_ && others.length ? '⏳ Waiting for ' + others.map(x => '<b style="color:' + shade(TEAMS[x.seat].col, 0.45) + '">' + esc(G.teams[x.seat].name) + '</b> <span>' + esc(x.what) + '</span>').join(' · ')
+      : me_ && !others.length && humanSeats().length > 1 ? '👉 Everyone is waiting for <b>you</b> <span>' + esc(me_.what) + '</span>' : '';
+    if (!html) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'waitBanner'; document.body.appendChild(el); }
+    if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
+    { const pit = hitRegions.find(r => r.kind === 'arena'), at = pit ? worldToScreen(pit.x + pit.w / 2, pit.y) : null;   // at the top of the pit, clear of the team tickets
+      el.style.left = (at ? Math.round(at.x) : Math.round(window.innerWidth / 2)) + 'px'; el.style.top = (at ? Math.round(at.y + 46 * cam.zoom) + 8 : 62) + 'px'; }
+    el.hidden = false;
+  }
   function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
     if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
     if (G.phase === 'market' && !G.marketAuction) {
@@ -5639,10 +5678,11 @@ html, body {
     },
     rematch() { if (NETROLE !== 'host') return; if (G.startFame == null) G.startFame = BAL.startFame; newGame(); updateHud(); },
     snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
-    snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused }),
+    snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused, waiting: netWaiting }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman, netDiag,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
+    setWaiting,
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
     // client
