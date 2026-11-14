@@ -34,55 +34,85 @@ Every robot gets:
 
 **Cool score (1-6)** = looks (1-3, from the snapshot gallery: silhouette, size of the weapon, lamps) + spectacle tags (one point each, up to 3).
 
-To place robots in levels, cool score + untweaked strength (in level steps of 85 rating points, levels anchored on the starters' average) are added, and the levels are filled from the top. So the flashiest robots go high, but a very weak flashy robot does not jump four levels.
+Levels are filled by cool score only (Kev, 14 Nov: "we will tweak the numbers if necessary"): strength is tuned afterwards, so a robot's level says how cool it is, not how strong it is today. Ties are broken by how fierce and big the weapon looks (Kev: higher levels look fierce).
 
-## 3. Proposed lineup
+## 3. Proposed lineup (coolness only)
 
-"Needs" = the gap between its untweaked strength and its level, in levels: **fits**; **small upgrade** (up to 1.5 levels, a physical dial: motor, armour, spin); **Mk II** (1.5-3 levels: a bigger weapon); **rework** (more than 3 levels, or it only worked with a damage multiplier of x1.8 or more); **tone down**.
+| Level | Robot | Family, range | Spectacle tags | Cool | Quirk |
+|---|---|---|---|---|---|
+| 4 | Rotisserie | Grabber, melee | Grabs, Fire, Multi-part | 6 | Sticky Fire |
+| 4 | Jukebox | Shooter, ranged | Throws, Charges up, Recycles | 6 | Trick Shot |
+| 4 | Pogo | Jumper, reach | Flies, Charges up | 5 | Showstopper |
+| 4 | Trebuchet | Thrower, melee | Throws, Charges up | 5 | Headline Act |
+| 4 | Orbiter | Spinner, reach | Multi-part, Charges up | 5 | Crowd Pleaser |
+| 4 | Tarantula | Legs, melee | Multi-part, Grabs | 5 | Lone Wolf |
+| 4 | Railgun | Shooter, ranged | Charges up, Recycles | 5 | Hotshot |
+| 4 | Lodestone | Magnet, reach | Grabs, Throws, Charges up | 5 | Iron Sponsor |
+| 3 | Bricklayer | Dropper, reach | Arena-shaper, Recycles | 5 | Builder |
+| 3 | Scavenger | Shooter, ranged | Recycles, Throws | 5 | Salvager |
+| 3 | Hydra | Arm, reach | Multi-part, Smart | 4 | Scope |
+| 3 | Slingshot | Rammer, ranged | Charges up, Flies | 4 | Patient |
+| 3 | Angler | Arm, reach | Grabs, Multi-part | 4 | Hunter |
+| 3 | Grandmaster | Carousel, melee | Multi-part, Smart | 4 | Cunning |
+| 2 | Talon | Piercer, melee | Grabs, Throws | 4 | Collector |
+| 2 | Pincher | Crusher, reach | Grabs, Multi-part | 4 | Last Stand |
+| 2 | Whaler | Harpoon, ranged | Grabs, Throws | 4 | Grudge |
+| 2 | Sawblast | Saw, ranged | Multi-part, Explodes | 4 | Ambusher |
+| 2 | Gaucho | Shooter, ranged | Throws, Traps | 4 | Treacherous |
+| 1 | Yoyo | Saw, reach | Throws, Recycles | 4 | Showboat |
+| 1 | Vertigo | Spinner, melee | Throws | 3 | Duelist |
+| 1 | Corkscrew | Drill, melee | Grabs | 3 | Rebuilt |
+| 1 | Gyro | Spinner, melee | - | 3 | Underrated |
+| 1 | Blacksmith | Hammer, melee | Grabs | 3 | Pit Boss |
+| 0 | Popcorn | Flipper, melee | Throws | 3 | - |
+| 0 | Rumbler | Spinner, melee | Throws | 2 | - |
+| 0 | Blowtorch | Flame, reach | Fire | 2 | - |
+| 0 | Buzzkill | Spinner, melee | - | 2 | - |
+| 0 | Snapjaw | Crusher, melee | Grabs | 2 | - |
+| 0 | Wrecker | Flail, reach | - | 2 | - |
+| 0 | Haymaker | Puncher, melee | - | 1 | - |
+| 0 | Thumper | Hammer, melee | - | 1 | - |
+| 0 | Jouster | Piercer, reach | - | 1 | - |
 
-| Level | Robot | Family, range | Spectacle tags | Cool | Untweaked | Needs |
-|---|---|---|---|---|---|---|
-| 4 | Rotisserie | Grabber, melee | Grabs, Fire, Multi-part | 6 | +458 | fits |
-| 4 | Trebuchet | Thrower, melee | Throws, Charges up | 5 | +72 | rework +3.1 |
-| 4 | Lodestone | Magnet, reach | Grabs, Throws, Charges up | 5 | +228 | small +1.2 |
-| 4 | Pogo | Jumper, reach | Flies, Charges up | 5 | +485 | tone down -0.8 |
-| 4 | Railgun | Shooter, ranged | Charges up, Recycles | 5 | +164 | Mk II +2.0 |
-| 4 | Angler | Arm, reach | Grabs, Multi-part | 4 | +192 | Mk II +1.7 |
-| 4 | Vertigo | Spinner, melee | Throws | 3 | +235 | small +1.1 |
-| 4 | Corkscrew | Drill, melee | Grabs | 3 | +296 | fits |
-| 3 | Jukebox | Shooter, ranged | Throws, Charges up, Recycles | 6 | -28 | rework +3.2 |
-| 3 | Tarantula | Legs, melee | Multi-part, Grabs | 5 | +43 | Mk II +2.4 |
-| 3 | Sawblast | Saw, ranged | Multi-part, Explodes | 4 | +47 | Mk II +2.4 |
-| 3 | Grandmaster | Carousel, melee | Multi-part, Smart | 4 | -5 | Mk II +3.0 |
-| 3 | Talon | Piercer, melee | Grabs, Throws | 4 | +47 | Mk II +2.4 |
-| 3 | Gyro | Spinner, melee | - | 3 | +132 | small +1.4 |
-| 2 | Orbiter | Spinner, reach | Multi-part, Charges up | 5 | -214 | rework +4.4 |
-| 2 | Scavenger | Shooter, ranged | Recycles, Throws | 5 | -185 | rework +4.1 |
-| 2 | Bricklayer | Dropper, reach | Arena-shaper, Recycles | 5 | -378 | rework +6.4 |
-| 2 | Hydra | Arm, reach | Multi-part, Smart | 4 | -47 | rework +2.5 (had x1.8) |
-| 2 | Yo-yo | Saw, reach | Throws, Recycles | 4 | -28 | Mk II +2.2 |
-| 1 | Pincher | Crusher, reach | Grabs, Multi-part | 4 | -168 | rework +2.9 (had x1.8) |
-| 1 | Whaler | Harpoon, ranged | Grabs, Throws | 4 | -66 | rework +1.7 (had x1.8) |
-| 1 | Blacksmith | Hammer, melee | Grabs | 3 | +28 | fits |
-| 1 | Brawler | Puncher, melee | - | 1 | +192 | tone down -1.3 |
-| 1 | Ramrod | Rammer, melee | - | 1 | +153 | tone down -0.9 |
-| 0 | Popcorn | Flipper, melee | Throws | 3 | -14 | fits |
-| 0 | Rumbler | Spinner, melee | Throws | 2 | -14 | fits |
-| 0 | Blowtorch | Flame, reach | Fire | 2 | -19 | fits |
-| 0 | Buzzkill | Spinner, melee | - | 2 | -38 | fits |
-| 0 | Snapjaw | Crusher, melee | Grabs | 2 | -24 | fits |
-| 0 | Wrecker | Flail, reach | - | 2 | -101 | small +1.1 |
-| 0 | Haymaker | Puncher, melee | - | 1 | +86 | tone down -1.1 |
-| 0 | Thumper | Hammer, melee | - | 1 | +52 | tone down -0.7 |
-| 0 | Jouster | Piercer, reach | - | 1 | +5 | fits |
+**Bench (11):** Mincer, Forklift, Juggernaut, Whirlwind, Scythe, Mauler, Hornet, Rocketeer, Thwacker, Brawler, Ramrod. Slingshot is back in at level 3.
 
-**Bench (11):** Gaucho, Slingshot, Juggernaut, Whirlwind, Mincer, Forklift, Scythe, Mauler, Hornet, Rocketeer, Thwacker. Slingshot and Gaucho are cool (4) but too weak untweaked to place; Kev likes the Slingshot, so it is the first candidate for a Mk II (it needs about +2.5 levels to make level 1).
+## 3b. Quirks: one per market robot
+
+1.0 gave every robot card one quirk (Showstopper, Hotshot, Scope, Trick Shot, Grudge, Underrated, Sticky Fire, Treacherous, Fireproof, Bastion, Cunning, Headline Act). The code is still in the 2.0 tabletop, switched off (`quirkOf = () => null`). Bringing them back gives every market robot a personality on top of its weapon, and it is part of what makes it cool. Starters stay without a quirk (as in 1.0). Each quirk is matched to the robot whose character fits:
+
+| Quirk | | What it does | Robot | Why it fits |
+|---|---|---|---|---|
+| **Sticky Fire** | 1.0 | Robots it sets alight burn 2 s longer. | Rotisserie | flamethrower |
+| **Trick Shot** | 1.0 | Its thrown weapons bank off one extra wall. | Jukebox | its records already bank off walls |
+| **Showstopper** | 1.0 | When it wins, it takes the host's +1 fame for that fight. | Pogo | it lands on robots from the sky |
+| **Headline Act** | 1.0 | When it fights, the host gains +1 extra fame. | Trebuchet | it throws robots: the crowd comes for that |
+| **Crowd Pleaser** | new | +1 fame when it lands the fight's biggest hit (the crowd's "moment"). | Orbiter | spinning discs on booms: the big-moment robot |
+| **Lone Wolf** | new | Never fights in a team; when it beats two robots on its own: +2 fame (Giant Slayer). | Tarantula | a spider hunts alone |
+| **Hotshot** | 1.0 | +1 credit each time it wins. | Railgun | a gun that pays |
+| **Iron Sponsor** | new | +1 credit in every Upkeep while you own it (sponsors love a magnet). | Lodestone | a magnet attracts money |
+| **Builder** | new | Its iron blocks stay in the arena for the next fight too. | Bricklayer | its blocks shape the arena |
+| **Salvager** | new | When it tears a part off a rival, its team opens a Scrap Crate. | Scavenger | it eats junk |
+| **Scope** | 1.0 | Before bets close, see one face-down card on a robot in its fight. | Hydra | the smart reaching arm |
+| **Patient** | new | Can sit out a round without paying its upkeep. | Slingshot | it waits, winds up, then strikes |
+| **Hunter** | new | Picks its opponent: when invited to a fight, its team chooses the rival robot. | Angler | a fishing hook picks its catch |
+| **Cunning** | 1.0 | If it did not fight last round, draw 1 extra Intrigue card. | Grandmaster | the chess-like carousel |
+| **Collector** | new | Gains a trophy for every robot it scraps; at 3 trophies, +1 fame. | Talon | a beak that takes trophies |
+| **Last Stand** | new | Under 25% health it never gets scrapped by the host (it is spared). | Pincher | pincers that do not let go |
+| **Grudge** | 1.0 | After losing to a team: stronger in its next fight against that team. | Whaler | a harpoon never forgets |
+| **Ambusher** | new | Its weapon is hidden on the card until its first fight (opponents see a ?). | Sawblast | saw plus rockets, a surprise |
+| **Treacherous** | 1.0 | In a 2v2, before the odds are set, it may switch sides. | Gaucho | an outlaw with bolas |
+| **Showboat** | new | +1 fame when it wins a fight the host bet against. | Yoyo | yo-yo tricks |
+| **Duelist** | new | In a duel (1 vs 1) the bookie can never list it as an outsider. | Vertigo | a vertical disc made for one on one |
+| **Rebuilt** | new | Repairs to it cost half. | Corkscrew | a drill rig that is easy to patch |
+| **Underrated** | 1.0 | The bookie lists it one band lower, so bets on it pay more. | Gyro | a round shell that looks harmless |
+| **Pit Boss** | new | Hosting with it in your garage costs 1 credit less. | Blacksmith | the blacksmith runs the forge |
+
+Not used now: Fireproof and Bastion (1.0), and Lone Wolf as a squadron card (the sandbox's 1-robot titan side) stays a separate idea. The new quirks are suggestions: they still need to be built in the tabletop and checked in the game sim (fame and credit quirks change the economy).
 
 ## 4. What this says
 
-- **13 robots fit or need only a small dial, 7 need a Mk II (bigger weapon), 8 need their mechanism reworked, 5 need toning down.** The reworks are mostly the coolest ones (Jukebox, Orbiter, Scavenger, Bricklayer, Trebuchet): exactly the "flashiest on top" problem, and the place to spend the effort.
-- **Tone down:** Pogo a little, and the plain but strong ones (Brawler, Ramrod, Haymaker, Thumper).
-- **Looks:** in the gallery nearly every robot is the same blue box; only the weapon differs. The cheapest cool-up for the whole roster would be its own body shape per robot (round, wedge, long and low, tall, legged), with the team colour kept. Sorting by looks at the moment mostly sorts by weapon.
-- **These are suggestions to change by hand**: the cool score is a judgement (looks) plus a count (tags). Moving a robot one level up or down only changes its "needs" column.
+- **Strength is tuned afterwards.** The untweaked ratings (`docs/robocus-untweaked-roundrobin.md`) say how far each robot is from its level; the coolest ones are mostly the furthest (Jukebox, Orbiter, Bricklayer, Scavenger, Slingshot need big boosts at their new levels; Corkscrew and Vertigo are strong for level 1). The honest dials come first (weapon size, motor, armour), a small power grade to finish.
+- **Looks:** in the gallery nearly every robot is the same blue box; only the weapon differs. The cheapest cool-up for the whole roster would be its own body shape per robot (round, wedge, long and low, tall, legged), with the team colour kept.
+- **These are suggestions to change by hand**: the cool score is a judgement (looks) plus a count (tags), and the quirk pairings are a first match.
 
 The tags and cool scores are not in the game files yet (this is a proposal). Strength numbers: the untweaked round robin, `docs/robocus-untweaked-roundrobin.md`.
