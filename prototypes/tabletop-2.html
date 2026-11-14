@@ -2839,14 +2839,16 @@ html, body {
   async function loseFame(X, d) {
     const lost = -addFame(X, -d);
     if (lost <= 0) return 0;
-    for (const oi of seatOrder()) {
-      const o = G.teams[oi];
-      if (o === X || !o.hand.includes('pile_on') || o.fame <= X.fame) continue;
-      const yes = isHuman(oi)
-        ? await askSeat(oi, '⏱️ Pile-On?', nm(X) + ' just lost fame. Play <b>Pile-On</b> so they lose 1 more?', [{ label: 'Pile on', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
-        : (X === leaderOf() && rnd() < 0.7);
-      if (yes) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' plays ' + cardRef('pile_on') + ': ' + nm(X) + ' loses 1 more fame.', o.col); break; }
-    }
+    // Pile-On (14 Nov): in the reaction window everyone gets at the same time, like the answers to a scheme (it was asked one
+    // person at a time, seat 0 first, and only to people who held the card)
+    const can = q => q !== X && q.hand.includes('pile_on') && q.fame > X.fame, multi = humanSeats().length > 1;
+    let o = null;
+    { const got = await reactionWindow(humanSeats().filter(s => s !== X.i && (multi || can(G.teams[s]))), '⏱️ Pile-On?',
+        nm(X) + ' just lost fame.<br><b>Pile-On</b>: they lose 1 more. Only a team with more fame than ' + nm(X) + ' can play it.',
+        s => can(G.teams[s]) ? [{ label: '🗞️ Pile on', value: () => true }] : []);
+      for (const a of got) if (can(G.teams[a.seat])) { o = G.teams[a.seat]; break; } }
+    if (!o) for (const oi of seatOrder()) { const q = G.teams[oi]; if (!isHuman(oi) && can(q) && X === leaderOf() && rnd() < 0.7) { o = q; break; } }
+    if (o) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' plays ' + cardRef('pile_on') + ': ' + nm(X) + ' loses 1 more fame.', o.col); }
     return lost;
   }
 
@@ -4206,18 +4208,37 @@ html, body {
     }
     return best;
   }
+  /* Botched Install (14 Nov): ONE reaction window for every person after the Market, with all the parts that were won (it was
+   * one question per part, one person at a time, seat 0 first, only to people who held the card). A holder gets two buttons
+   * per rival part (botch it, or demand a payoff); everyone else "no card". The first click wins; then a new window for the
+   * parts that are left. When no person plays one, the AI teams that hold the card get their go, part by part. */
   async function botchedWindow(A) {
     const parts = A.wins.filter(x => needsRobot(x.lot) && canTake(G.teams[x.team], x.lot));
-    for (const x of parts) {
+    const can = (q, x) => q.i !== x.team && q.hand.includes('botched_install') && q.fame >= (CARDS.botched_install.need || 0);
+    const multi = humanSeats().length > 1, left = parts.slice();
+    while (left.length) {
+      const seats = humanSeats().filter(s => multi || left.some(x => can(G.teams[s], x)));
+      const line = x => { const th = partThreat(x.team, x.lot); return nm(G.teams[x.team]) + ': ' + lotRef(x.lot) + ' (' + x.price + ' Cr)' + (th ? ' · 🎩 ' + esc(th.r.name) + ': ' + shiftTxt(th.a, th.b) : ''); };
+      const got = await reactionWindow(seats, '🔧 Botched Install?', 'Parts won in the Market:<br>' + left.map(line).join('<br>') + '<br>' + cardRef('botched_install') + ': the install fails and the part is scrapped (its owner gets half the price back, you take 1 Cr). Or threaten it and ask for a payoff.',
+        s => left.filter(x => can(G.teams[s], x)).flatMap(x => { const what = esc(G.teams[x.team].name) + '\'s ' + esc(LOTS[x.lot].name); return [{ label: '🔧 Botch ' + what, value: () => ({ x, yes: true }) }, { label: '💰 Payoff for ' + what, value: () => ({ x, yes: 'pay' }) }]; }));
+      const a = got.find(a => a.v && left.includes(a.v.x) && can(G.teams[a.seat], a.v.x));
+      if (!a) break;
+      left.splice(left.indexOf(a.v.x), 1);
+      await botchPart(A, a.v.x, [{ o: G.teams[a.seat], yes: a.v.yes }]);
+    }
+    for (const x of left) await botchPart(A, x, []);
+    A.wins = A.wins.filter(x => !x.botched);
+  }
+  // one part: the person who clicked (if any), then the AI teams that hold the card, in this round's seat order
+  async function botchPart(A, x, first) {
+    {
       const W = G.teams[x.team], th = partThreat(x.team, x.lot);
       const thTxt = th ? esc(th.r.name) + ': ' + shiftTxt(th.a, th.b) : '';
-      for (const oi of seatOrder()) {
-        const o = G.teams[oi];
+      const cands = first.concat(seatOrder().filter(oi => !isHuman(oi)).map(oi => ({ o: G.teams[oi], ai: true })));
+      for (const cnd of cands) {
+        const o = cnd.o, oi = o.i;
         if (o === W || !o.hand.includes('botched_install') || o.fame < (CARDS.botched_install.need || 0)) continue;
-        let yes = isHuman(oi)
-          ? await askSeat(oi, '🔧 Botched Install?', nm(W) + ' won ' + lotRef(x.lot) + ' for ' + x.price + ' Cr.' + (thTxt ? '<br>🎩 Best fit: <b>' + thTxt + '</b>' : '') + '<br>Play ' + cardRef('botched_install') + ': the install fails and the part is scrapped (they get ' + Math.floor(x.price / 2) + ' Cr back, you take 1 Cr). Or threaten it and ask for a payoff.',
-              [{ label: '🔧 Botch it', value: () => true }, { label: '💰 Demand a payoff', value: () => 'pay' }, { label: 'Let it go', secondary: true, value: () => false }])
-          : (th && th.jump >= 1) || (W === leaderOf() && x.price >= 3 && rnd() < 0.6) || (!th && x.price >= 4 && rnd() < 0.5);
+        let yes = cnd.ai ? ((th && th.jump >= 1) || (W === leaderOf() && x.price >= 3 && rnd() < 0.6) || (!th && x.price >= 4 && rnd() < 0.5)) : cnd.yes;
         if (!yes) continue;
         // a threat first: pay off the holder and the card stays in its hand
         const demand = Math.ceil(x.price / 2) + 1;
@@ -4262,7 +4283,6 @@ html, body {
         break;   // one Botched Install per part
       }
     }
-    A.wins = A.wins.filter(x => !x.botched);
   }
 
   /* ---------- Phase 4: Host step, then invites ----------
