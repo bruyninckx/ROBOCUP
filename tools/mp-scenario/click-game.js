@@ -4,9 +4,9 @@
 // questions and deal panels. The host tells what the game is waiting for from each seat (seatBusyWith); when a seat can't
 // get past a step by clicking, that step is reported as STUCK (with a screenshot) and the seat is skipped so the game goes on.
 //   node tools/mp-scenario/click-game.js [seed=5] [maxMinutes=12] [shots=playtests/click-shots]
-//   WATCH=1 …: fights run in real time on every screen (4× speed) and every seat plays its live fight cards by clicking
+//   --watch (or WATCH=1): fights run in real time on every screen (4× speed) and every seat plays its live fight cards by clicking
 //              the card and then a robot or a spot in the arena; without it fights are skipped at once.
-//   RAIN=1 …: at the start of every step each seat is dealt the cards that can be played in it (Host-step, Bets-step and
+//   --rain (or RAIN=1): at the start of every step each seat is dealt the cards that can be played in it (Host-step, Bets-step and
 //             market-time cards, answers, a few schemes), so the rare card moments happen every round on every seat.
 //   JSON=file …: also writes the findings as JSON (tools/mp-scenario/click-many.js adds several runs up).
 // Output: per step, how often clicks got each kind of seat (host / joined) past it, every stuck step, page errors,
@@ -16,9 +16,10 @@
 //   - that each joined screen shows the same table as the host (fame, credits, robots, crew, bots, hand sizes, its own hand).
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
-const seed = +(process.argv[2] || 5), maxMin = +(process.argv[3] || 12), shotDir = process.argv[4] || 'playtests/click-shots';
+const ARGS = process.argv.slice(2).filter(a => !a.startsWith('--')), FLAG = f => process.argv.includes('--' + f);   // --watch and --rain do the same as WATCH=1 and RAIN=1
+const seed = +(ARGS[0] || 5), maxMin = +(ARGS[1] || 12), shotDir = ARGS[2] || 'playtests/click-shots';
 const rnd = () => Math.random(), pick = a => a[Math.floor(rnd() * a.length)];
-const WATCH = process.env.WATCH === '1', RAIN = process.env.RAIN === '1';
+const WATCH = process.env.WATCH === '1' || FLAG('watch'), RAIN = process.env.RAIN === '1' || FLAG('rain');
 // what can be clicked on this screen right now
 const collect = () => {
   const D = window.ROBOCUS_DEBUG, out = { modal: null, items: [], cards: [], drops: [] };
@@ -47,10 +48,11 @@ const collect = () => {
 };
 (async () => {
   const b = await chromium.launch();
+  setTimeout(() => { console.log('HARD STOP: the run did not end by itself'); b.close().catch(() => {}).then(() => process.exit(3)); setTimeout(() => process.exit(3), 5000); }, (maxMin + 2) * 60000).unref();   // never leave browsers behind overnight
   const ctx = await b.newContext({ viewport: { width: 1600, height: 900 } });
   if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());
   const errs = [];
-  const base = 'file://' + process.cwd().replace(/\\/g, '/') + '/prototypes/tabletop-2.html?net=local&room=C' + seed + '&bot=1' + (WATCH ? '&watch=1' : '');
+  const base = require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?net=local&room=C' + seed + '&bot=1' + (WATCH ? '&watch=1' : '');
   const warns = [];
   const open = async (q, tag) => { const p = await ctx.newPage(); p.on('console', m => { if (/desync/i.test(m.text())) warns.push(tag + ': ' + m.text()); }); p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' @ ' + String(e.stack || '').split('\n').slice(1, 3).map(x => x.trim().replace(/\(file:.*?html[^:]*:/, '(:')).join(' < '))); await p.goto(base + q); return p; };
   const host = await open('&host=1&name=Host&autostart=3&seed=' + seed, 'host');

@@ -212,6 +212,7 @@
         if (d.t === 'name') p.name = String(d.name || p.name).slice(0, 20);
         pushLobby(); maybeAutostart(); return;
       }
+      if (d.t === 'pt') { if (GAME().ptScreen) GAME().ptScreen(p.seat, d.d); return; }   // a batch of this screen's playtest log
       if (d.t === 'diag') { if (GAME().netDiag) GAME().netDiag(p.seat, String(d.k || ''), d.d); return; }
       if (d.t === 'act') { if (GAME().SEATS && GAME().SEATS[p.seat] === 'remote') GAME().runAct(p.seat, d.name, d.args || []); return; }
       if (d.t === 'ans' || d.t === 'dealans') {
@@ -226,6 +227,7 @@
       ask(seat, payload) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'ask', payload }; send(pBySeat(seat), { t: 'ask', q, ...payload }); }); },
       deal(seat, opts) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'deal', payload: opts }; send(pBySeat(seat), { t: 'deal', q, opts }); }); },
       cancelSeat(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve(x.kind === 'ask' ? { k: -1 } : null); } },
+      mark(o) { H.players.forEach(p => send(p, { t: 'mark', o })); },   // a problem was reported: every screen notes what it shows right now
       // close a seat's small reaction window (the time is up, or somebody else reacted first): it gets its default answer
       cancelSmall(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat || x.kind !== 'ask' || !x.payload.small) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve({ k: -1 }); } },
       fx(o) { const c = Object.assign({}, o); delete c.t0; H.players.forEach(p => send(p, { t: 'fx', o: c })); },
@@ -340,14 +342,14 @@
   /* ================================ CLIENT ================================ */
   function startJoining(room, mode) {
     const T = mode === 'local' ? localTransport(room, false) : peerTransport(room, false);
-    const C = { room, mode, T, seat: null, started: false, name: qs.get('name') || lsGet('robocus.name') || '', ready: false, lastHost: Date.now(), asks: [], deals: [], curAsk: null, curDeal: null, lobby: null, joined: false };
+    const C = { room, mode, T, seat: null, started: false, name: qs.get('name') || lsGet('robocus.name') || '', ready: false, lastHost: Date.now(), asks: [], deals: [], curAsk: null, curDeal: null, lobby: null, joined: false, ptTick: 0, ptSent: 0, ptId: null };
     window.ROBOCUS_CLIENT = C;
     const send = d => T.send('host', d);
     const hello = () => send({ t: 'hello', cid: myCid, name: C.name, ver: version() });
     window.ROBOCUS_NET = {
       sendAct(name, args) { send({ t: 'act', name, args }); },
       sendDiag(k, d) { try { send({ t: 'diag', k, d }); } catch (e) {} },   // this screen's trouble, for the host's log
-      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, fx() {}, rematch() {}
+      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, mark() {}, fx() {}, rematch() {}
     };
     T.onmsg = (from, d) => {
       if (from !== 'host' || !d) return;
@@ -362,6 +364,7 @@
         case 'snap': if (!C.started) { C.started = true; closeLobby(); } GAME().applySnap(Object.assign({ g: d.g }, d.meta)); drawClientPause(d.meta.paused); return;
         case 'log': GAME().applyLog(d); return;
         case 'fx': GAME().showFx(d.o); return;
+        case 'mark': if (GAME().ptMark) GAME().ptMark(d.o); sendLog(); return;
         case 'tick': GAME().setTick(d); return;
         case 'ask': C.asks.push(d); pump(); return;
         case 'deal': C.deals.push(d); pump(); return;
@@ -385,6 +388,7 @@
     let lost = false;
     setInterval(() => {
       if (C.joined) send({ t: 'hb' });
+      if (C.joined && C.started && ++C.ptTick % 4 === 0) sendLog();   // this screen's playtest log goes to the host, a few seconds behind
       if (C.joined && Date.now() - C.lastHost > 10000 && !lost) {   // 10 s: a slow screen busy with a big resync is not lost
         lost = true;
         let el = $('#netPause'); if (!el) { el = document.createElement('div'); el.id = 'netPause'; document.body.appendChild(el); }
@@ -397,7 +401,15 @@
         else hello();
       }
     }, 1000);
-    window.addEventListener('beforeunload', () => { try { send({ t: 'bye' }); } catch (e) {} });
+    // this screen's playtest log, for the host's file (all four logs in one): only what the host does not have yet
+    function sendLog() {
+      try {
+        const id = GAME().ptId && GAME().ptId(); if (!id) return;
+        if (id !== C.ptId) { C.ptId = id; C.ptSent = 0; }   // a new game on this screen: a new log
+        for (let n = 0; n < 4; n++) { const d = GAME().ptSlice(C.ptSent); if (!d || !d.events.length) return; send({ t: 'pt', d }); C.ptSent = d.from + d.events.length; if (C.ptSent >= d.total) return; }
+      } catch (e) {}
+    }
+    window.addEventListener('beforeunload', () => { try { sendLog(); send({ t: 'bye' }); } catch (e) {} });
     function drawClientPause(paused) {
       let el = $('#netPause');
       if (lost) return;

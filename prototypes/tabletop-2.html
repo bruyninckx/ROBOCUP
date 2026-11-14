@@ -346,7 +346,7 @@ html, body {
 <!-- 5 · the Stash (placed in your rail, under your robots) -->
 <div class="stashcard" id="stashCard"></div>
 <!-- 7 · log clipboard (placed under the pit): scrollable, grouped by round/phase and action (hover anything for help) -->
-<div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">LOG</span><span style="display:flex;gap:5px"><button id="ptBtn" title="Playtest log: save, load">📝</button><button id="lpToggle" title="Hide / show the log">–</button></span></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
+<div class="logpanel" id="logPanel"><div class="lp-head"><span data-help="📜 Log|Everything that happened, newest at the bottom. Grey headers are rounds and phases. An Intrigue play is one box: the card on top, then each step (backing, Security Bot rolls, reactions, the effect) underneath, with ✓ landed or ✋ blocked. Hover a dotted card name for the card itself.">LOG</span><span style="display:flex;gap:5px"><button id="bugBtn" title="Report a problem: marks this moment in every screen's log">🐞 report</button><button id="ptBtn" title="Playtest log: save, load">📝</button><button id="lpToggle" title="Hide / show the log">–</button></span></div><div class="lp-body" id="ticker"></div><button class="lp-new" id="lpNew" hidden>↓ new</button></div>
 
 <!-- Hearthstone-Style Arched Hand -->
 <div class="hand-stage" id="handStage">
@@ -2280,14 +2280,14 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0 2026-11-14 online fixes';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0 2026-11-15 reaction window, four logs';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
   function ptNew() {
     if (PT.game && PT.game.events.length > 3) ptSaveNow();
     PT.game = { id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19), build: BUILD, started: Date.now(), ua: navigator.userAgent, view: [window.innerWidth, window.innerHeight], seat: viewerSeat, events: [] };
-    PT.lastKey = null; PT.errs = 0; PT.errSeen = {};
+    PT.lastKey = null; PT.errs = 0; PT.errSeen = {}; PT.screens = []; PT.lastFull = 0; PT.forceFull = false;
     ptBadge();
   }
   const NET_DIAG = { desync: 1, error: 1, resim: 1 };   // what a joined screen reports to the host
@@ -2303,6 +2303,7 @@ html, body {
   }
   // host: what a joined screen reported (src2/net.js 'diag'). Into the playtest log; a different fight or an error also shows in the host's own log
   function netDiag(seat, k, d) {
+    if (k === 'report') { if (G && G.teams[seat]) hostReport(seat, d && d.text); return; }
     if (!NET_DIAG[k] || !G || !G.teams[seat]) return;
     tlog('client_' + k, Object.assign({ seat }, d && typeof d === 'object' ? d : {}));
     const key = k + seat + (d && (d.fid || d.msg) || ''); netDiag.seen = netDiag.seen || {}; if (netDiag.seen[key]) return; netDiag.seen[key] = 1;
@@ -2336,8 +2337,61 @@ html, body {
     while (idx.length > 10) lsDel('robocus2.playtest.' + idx.shift());
     if (!lsSet('robocus2.playtest.' + PT.game.id, json)) { while (idx.length > 1 && !lsSet('robocus2.playtest.' + PT.game.id, json)) lsDel('robocus2.playtest.' + idx.shift()); }
     lsSet(LS_INDEX, JSON.stringify(idx));
-    if (PT.dir && PT.dirState === 'granted') ptWriteFile(PT.game.id + '.json', json);
+    if (PT.dir && PT.dirState === 'granted') {
+      if (!(PT.screens || []).length) ptWriteFile(PT.game.id + '.json', json);
+      else if (PT.forceFull || Date.now() - (PT.lastFull || 0) > 15000) { PT.lastFull = Date.now(); PT.forceFull = false; ptWriteFile(PT.game.id + '.json', JSON.stringify(ptMerged())); }   // with the joined screens' logs: a big file, so not every 2.5 s
+    }
   }
+  /* ALL FOUR LOGS IN ONE FILE (15 Nov, after the Friday playtest: the host's log could not show what a joined player saw).
+   * Every joined screen sends its own playtest log to the host while the game runs, a few seconds behind (ptSlice, src2/net.js
+   * 'pt'), so it is there even when that player drops or closes the tab. The host keeps them in PT.screens and writes them
+   * into the game's file as "screens": [{ seat, name, id, started, ua, view, events, sync }]. `started` is that machine's
+   * clock; `sync` says at which host time (t) each batch of events arrived, to line the logs up. The copy in the browser's
+   * own storage (last 10 games) stays the host's log only: four logs would not fit there. */
+  function ptSlice(from) {   // joined screen: its events from index `from`, about 150 KB at most
+    if (!PT.game) return null;
+    const ev = PT.game.events, out = []; let size = 0;
+    for (let i = from; i < ev.length && size < 150000; i++) { const x = ev[i]; out.push(x); size += JSON.stringify(x).length; }
+    return { id: PT.game.id, started: PT.game.started, ua: PT.game.ua, view: PT.game.view, build: PT.game.build, from, total: ev.length, events: out };
+  }
+  function ptScreen(seat, d) {   // host: a batch of a joined screen's log
+    if (!PT.game || !d || !Array.isArray(d.events) || !G || !G.teams[seat]) return;
+    PT.screens = PT.screens || [];
+    let L = PT.screens.find(x => x.seat === seat && x.id === d.id);
+    if (!L) { L = { seat, name: G.teams[seat].player || G.teams[seat].name, id: d.id, started: d.started, ua: d.ua, view: d.view, build: d.build, events: [], sync: [] }; PT.screens.push(L); }
+    if (d.from > L.events.length) L.events.push({ k: 'gap', missing: d.from - L.events.length });   // a batch got lost on the way
+    else L.events.length = d.from;   // a batch sent twice: keep the newest
+    L.sync.push({ at: L.events.length, hostT: Math.round((Date.now() - PT.game.started) / 100) / 10 });
+    for (const e of d.events) L.events.push(e);
+    ptSaveSoon();
+  }
+  const ptMerged = () => Object.assign({}, PT.game, (PT.screens || []).length ? { screens: PT.screens } : {});
+  /* REPORT A PROBLEM (15 Nov): the 🐞 button in the log header, on every screen. The player types what went wrong; the host
+   * puts it in its log with the whole table, tells everyone (a line in every log) and every screen writes down what it is
+   * showing at that moment ('report_mark': open question or panel, the banner, the prompt, its hand). So one report marks
+   * the same moment in all four logs. */
+  function screenState() {
+    const open = ['reactWin', 'ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + ptPlain(el.innerHTML).slice(0, 300) : null; }).filter(Boolean);
+    const txt = id => { const el = document.getElementById(id); return el && !el.hidden ? ptPlain(el.innerHTML).slice(0, 300) : ''; }, fv = document.getElementById('fightView');
+    return { seat: HS, role: NETROLE || 'solo', view: [window.innerWidth, window.innerHeight], round: G ? G.round : 0, phase: G ? G.phase + (G.phase === 'market' ? '/' + G.marketStage : '') : '', open, banner: txt('waitBanner'), prompt: txt('promptBar'),
+      fightOnScreen: !!(fv && !fv.hidden), hand: G && G.teams[HS] ? G.teams[HS].hand.slice() : [], waitsFor: G && HS >= 0 ? seatBusyWith(HS) : null, clickable: [...new Set(hitRegions.map(r => r.kind))], errors: PT.errs };
+  }
+  async function reportProblem() {
+    const txt = await ivModal('🐞 Report a problem', 'What went wrong, or what looks odd? One line is enough. This moment is marked in <b>every</b> player\'s log, so it can be found back later.<br><textarea id="ptRepTxt" rows="3" style="width:100%;margin-top:6px;font:13px system-ui,sans-serif"></textarea>',
+      [{ label: '🐞 Report', value: el => el.querySelector('#ptRepTxt').value.trim() || '(no text)' }, { label: 'Cancel', secondary: true, value: () => '' }]);
+    if (!txt) return;
+    if (isClient()) { if (window.ROBOCUS_NET && window.ROBOCUS_NET.sendDiag) window.ROBOCUS_NET.sendDiag('report', { text: String(txt).slice(0, 500) }); }
+    else hostReport(HS, txt);
+  }
+  function hostReport(seat, text) {   // host (or a solo game): the report, the table, and the mark on every screen
+    if (!G) return;
+    const n = G.reportN = (G.reportN || 0) + 1, name = G.teams[seat] ? G.teams[seat].player || G.teams[seat].name : '?', t = String(text || '').slice(0, 500);
+    tlog('report', { n, seat, name, text: t, teams: ptSnapshot(), waitsFor: [0, 1, 2, 3].map(s => seatBusyWith(s)), busy: !!G.ivBusy, screen: screenState() });
+    if (NETROLE === 'host' && window.ROBOCUS_NET && window.ROBOCUS_NET.mark) window.ROBOCUS_NET.mark({ n, seat, name, text: t });
+    notify('🐞 <b>' + esc(name) + '</b> reports a problem (#' + n + '): “' + esc(t) + '”. This moment is marked in every screen\'s log.', '#b45309');
+    PT.forceFull = true; ptSaveNow(); ptBadge();
+  }
+  function ptMark(o) { tlog('report_mark', { n: o && o.n, by: o && o.name, text: o && o.text, screen: screenState() }); ptSaveNow(); }   // a joined screen: what it shows at the moment of a report
   async function ptWriteFile(name, text) {
     try { const fh = await PT.dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(text); await w.close(); }
     catch (e) { PT.dirState = 'error'; ptBadge(); console.warn('playtest log: folder write failed', e); }
@@ -2373,7 +2427,7 @@ html, body {
   function ptDownload() {
     ptSaveNow();
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(PT.game, null, 1)], { type: 'application/json' }));
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(ptMerged(), null, 1)], { type: 'application/json' }));   // the host's file carries every screen's log
     a.download = 'robocus2-playtest-' + PT.game.id + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   // every game still in this browser (last 10) in one file, for when no log folder was picked
@@ -2425,7 +2479,7 @@ html, body {
   // every HTML button you press (prompt, modals, deal panel, Stash, hand-limit…)
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (b && b.id !== 'ptBtn') tlog('button', { text: (b.textContent || '').trim().slice(0, 60), id: b.id || undefined, box: b.closest('#ivModal') ? 'modal' : b.closest('#dealModal') ? 'deal' : b.closest('#promptBar') ? 'prompt' : b.closest('#stashCard') ? 'stash' : undefined });
+    if (b && b.id !== 'ptBtn' && b.id !== 'bugBtn') tlog('button', { text: (b.textContent || '').trim().slice(0, 60), id: b.id || undefined, box: b.closest('#ivModal') ? 'modal' : b.closest('#dealModal') ? 'deal' : b.closest('#promptBar') ? 'prompt' : b.closest('#stashCard') ? 'stash' : undefined });
   }, true);
 
   /* ============================================================================
@@ -5768,7 +5822,7 @@ html, body {
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman, netDiag,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
-    setWaiting,
+    setWaiting, ptSlice, ptScreen, ptMark, ptId: () => PT.game ? PT.game.id : null,
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
     // client
@@ -7514,6 +7568,7 @@ html, body {
     setInterval(() => lp.classList.toggle('dragging', !!dragCard), 150);
   })();
   $('#ptBtn').onclick = ptMenu;
+  if ($('#bugBtn')) $('#bugBtn').onclick = reportProblem;
   ptRestoreDir();
   VW.mount(document.getElementById('fightView'));
   applyBal();

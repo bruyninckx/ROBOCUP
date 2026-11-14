@@ -17,3 +17,6 @@ sims/
 
 # local planck copy for offline/sandbox runs (npm pack planck@1.4.3)
 vendor/
+
+# overnight click test runs (tools/click-night.cmd): texts and screenshots per game
+playtests/click-runs/

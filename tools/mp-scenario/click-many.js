@@ -1,14 +1,22 @@
 // Many click games in a row, added up (14 Nov). Half of them with watched fights (live cards clicked), half with skipped
 // fights; half of them with card rain (every seat is dealt the cards of each step, so rare card moments happen all the time).
-//   node tools/mp-scenario/click-many.js [games=8] [minutesEach=6] [firstSeed=100] [parallel=2] [outDir=playtests/click-runs]
+//   node tools/mp-scenario/click-many.js [games=8] [minutesEach=6] [firstSeed] [parallel] [outDir]
+//     firstSeed: today's date by default (other games every night) · parallel: a quarter of the CPU cores (2 to 8); a game is
+//     four browser tabs · outDir: playtests/click-runs/<date_time>. The summary is also written to summary.txt there and to
+//     playtests/click-runs/latest-summary.txt. Windows: double-click tools\click-night.cmd (30 games of 15 minutes).
 // Run it from the folder of the build to test (it plays prototypes/tabletop-2.html of the current folder).
 // Prints every different finding once, with how many games showed it and the seeds, so a seed can be replayed alone:
 //   WATCH=1 node tools/mp-scenario/click-game.js <seed> <minutes>
 //   node tools/mp-scenario/click-many.js --sum <outDir>     adds an earlier batch up again
 const { spawn } = require('child_process');
 const fs = require('fs'), path = require('path');
-const N = +(process.argv[2] || 8), minutes = +(process.argv[3] || 6), first = +(process.argv[4] || 100), par = +(process.argv[5] || 2), out = process.argv[6] || 'playtests/click-runs';
+const now = new Date(), p2 = n => String(n).padStart(2, '0'), stamp = now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate()) + '_' + p2(now.getHours()) + p2(now.getMinutes());
+const SUM = process.argv[2] === '--sum';
+const N = +(process.argv[2] || 8) || 8, minutes = +(process.argv[3] || 6), first = +(process.argv[4] || 0) || ((now.getFullYear() % 100) * 10000 + (now.getMonth() + 1) * 100 + now.getDate()) * 100;
+const par = +(process.argv[5] || 0) || Math.max(2, Math.min(8, Math.floor(require('os').cpus().length / 4))), out = SUM ? process.argv[3] : process.argv[6] || path.join('playtests', 'click-runs', stamp);
+const lines = [], say = s => { console.log(s); lines.push(s); };
 fs.mkdirSync(out, { recursive: true });
+if (!SUM) { const mins = Math.ceil(N / par) * (minutes + 1); console.log(N + ' click games of ' + minutes + ' minutes, ' + par + ' at a time, seeds ' + first + ' to ' + (first + N - 1) + '. About ' + (mins >= 90 ? (mins / 60).toFixed(1) + ' hours' : mins + ' minutes') + ' (done around ' + new Date(Date.now() + mins * 60000).toTimeString().slice(0, 5) + '). Results: ' + out); }
 const game = path.join(__dirname, 'click-game.js'), jobs = Array.from({ length: N }, (_, k) => ({ seed: first + k, watch: k % 2 === 0, rain: process.env.RAIN === '1' || (process.env.RAIN !== '0' && k % 4 >= 2) }));   // half the games with RAIN (see click-game.js), unless RAIN=0 or RAIN=1
 const run = j => new Promise(res => {
   const json = path.join(out, 'run-' + j.seed + '.json'), log = fs.openSync(path.join(out, 'run-' + j.seed + '.txt'), 'w');
@@ -19,7 +27,7 @@ const run = j => new Promise(res => {
 });
 (async () => {
   const results = []; let next = 0;
-  if (process.argv[2] === '--sum') { const dir = process.argv[3]; for (const f of fs.readdirSync(dir)) { const m = /^run-(\d+)\.json$/.exec(f); if (m) results.push({ j: { seed: +m[1] }, r: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) }); } }
+  if (SUM) { const dir = out; for (const f of fs.readdirSync(dir)) { const m = /^run-(\d+)\.json$/.exec(f); if (m) results.push({ j: { seed: +m[1] }, r: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) }); } }
   else await Promise.all(Array.from({ length: par }, async () => { while (next < jobs.length) results.push(await run(jobs[next++])); }));
   const found = {}, add = (kind, text, seed) => { const k = kind + ' · ' + text.replace(/\d+/g, '#'); (found[k] = found[k] || { kind, text, seeds: [] }).seeds.push(seed); };
   let rounds = 0, hung = [];
@@ -46,11 +54,14 @@ const run = j => new Promise(res => {
   { const a = outc['backing asked'], g = outc['backing got']; if (a && a.joined >= 4 && (!g || g.joined === 0) && g && g.host > 0) lop.push('joined seats asked for backing ' + a.joined + '× and never got it; the host got it ' + g.host + '× of ' + a.host); }
   for (const x of [...new Set(lop)]) add('host ≠ joined', x, 'all');
   const list = Object.values(found).sort((a, b) => b.seeds.length - a.seeds.length);
-  console.log('\n=== ' + results.length + ' click games, ' + rounds + ' rounds played ===');
-  if (hung.length) console.log('No result (crashed or hung): seeds ' + hung.join(', '));
-  if (Object.keys(outc).length) { console.log('what came of it (host seat · the 3 joined seats together):'); for (const k of Object.keys(outc).sort()) console.log('  ' + k.padEnd(40) + String(outc[k].host).padStart(5) + ' ·' + String(outc[k].joined).padStart(5)); }
-  if (!list.length) console.log('No findings.');
-  for (const f of list) console.log(String(f.seeds.length).padStart(3) + '× ' + f.kind + ' · ' + f.text + '   [seeds ' + [...new Set(f.seeds)].slice(0, 6).join(', ') + ']');
-  fs.writeFileSync(path.join(process.argv[2] === '--sum' ? process.argv[3] : out, 'summary.json'), JSON.stringify({ games: results.length, rounds, hung, findings: list }, null, 1));
+  say('\n=== ' + results.length + ' click games, ' + rounds + ' rounds played ===');
+  if (hung.length) say('No result (crashed or hung): seeds ' + hung.join(', '));
+  if (Object.keys(outc).length) { say('what came of it (host seat · the 3 joined seats together):'); for (const k of Object.keys(outc).sort()) say('  ' + k.padEnd(40) + String(outc[k].host).padStart(5) + ' ·' + String(outc[k].joined).padStart(5)); }
+  if (!list.length) say('No findings.');
+  for (const f of list) say(String(f.seeds.length).padStart(3) + '× ' + f.kind + ' · ' + f.text + '   [seeds ' + [...new Set(f.seeds)].slice(0, 6).join(', ') + ']');
+  { const seeds = [...new Set(list.flatMap(f => f.seeds).filter(x => typeof x === 'number'))].sort((a, b) => a - b).slice(0, 12);
+    if (seeds.length) { say('\nReplay a game that showed something (its text and screenshots are in ' + out + '):'); for (const sd of seeds) { const j = (results.find(x => x.j.seed === sd) || {}).j || {}; say('  node tools/mp-scenario/click-game.js ' + sd + ' ' + minutes + (j.watch ? ' --watch' : '') + (j.rain ? ' --rain' : '')); } } }
+  try { fs.writeFileSync(path.join(out, 'summary.txt'), lines.join('\n') + '\n'); fs.mkdirSync(path.join('playtests', 'click-runs'), { recursive: true }); fs.writeFileSync(path.join('playtests', 'click-runs', 'latest-summary.txt'), 'Batch ' + out + ', build of ' + new Date().toISOString().slice(0, 16) + '\n' + lines.join('\n') + '\n'); } catch (e) {}
+  fs.writeFileSync(path.join(out, 'summary.json'), JSON.stringify({ games: results.length, rounds, hung, findings: list }, null, 1));
   process.exit(list.length || hung.length ? 1 : 0);
 })();

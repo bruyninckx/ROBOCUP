@@ -10,7 +10,7 @@ exports.setup = async (seed, until, o = {}) => {
   const ctx = await b.newContext({ viewport: { width: 1500, height: 900 } });
   const errs = [];
   if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());   // offline: only with the local physics copy
-  const base = 'file://' + process.cwd().replace(/\\/g, '/') + '/prototypes/tabletop-2.html?net=local&room=S' + seed + '&bot=1' + (o.watch ? '&watch=1' : '');   // watch: fights run in real time on every screen
+  const base = require('url').pathToFileURL(require('path').resolve('prototypes/tabletop-2.html')).href + '?net=local&room=S' + seed + '&bot=1' + (o.watch ? '&watch=1' : '');   // watch: fights run in real time on every screen
   const open = async (q, tag) => { const p = await ctx.newPage(); p.on('pageerror', e => errs.push(tag + ': ' + e.message)); await p.goto(base + q); return p; };
   const host = await open('&host=1&name=Host&autostart=3&seed=' + seed, 'host');
   const cl = []; for (let k = 1; k <= 3; k++) cl.push(await open('&name=P' + k, 'P' + k));
