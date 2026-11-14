@@ -13,7 +13,7 @@ const { setup, modal, press, hostLog } = require('./lib.js');
   for (let k = 0; k < 24; k++) {
     await host.waitForTimeout(400);
     if (/dealModal/.test(await modal(A))) sawDeal = true;
-    await press(A, 'ivModal', /^Ask$/); await press(A, 'dealModal', /Lock in/);
+    await press(A, 'ivModal', /^Ask$/); if (await press(A, 'dealModal', /Lock in/)) sawDeal = true;
     for (let s = 0; s < 4; s++) if (s !== turn) await press(seatOf[s], 'ivModal', /Accept/);
   }
   const log = await hostLog(host, 8), backed = log.some(x => / backs /.test(x));

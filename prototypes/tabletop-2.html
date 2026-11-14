@@ -4171,19 +4171,22 @@ html, body {
         // a threat first: pay off the holder and the card stays in its hand
         const demand = Math.ceil(x.price / 2) + 1;
         if (yes === 'pay') {
-          const d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want from ' + nm(W) + ' to leave its ' + lotRef(x.lot) + ' alone?', from: W, give: false, want: true, lock: 'Lock in demand' });
+          const d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want from ' + nm(W) + ' to leave its ' + lotRef(x.lot) + ' alone?', from: W, give: false, want: true, lock: 'Lock in demand' }, oi);   // 14 Nov: on the screen of the player who demands it (it opened on the host's screen for everyone)
           const ask = d && d.want;
-          if (ask && !bundleEmpty(ask) && bundleWorth(W, ask) <= partWorth(W, x.lot) + 1) { transfer(W, o, ask, 'deal'); notify('💰 ' + nm(W) + ' pays you ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
-          if (ask && !bundleEmpty(ask)) notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
+          if (ask && !bundleEmpty(ask)) {   // a person decides for itself whether it pays; the AI pays what the part is worth to it
+            const pays = isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you give <b>' + bundleText(ask) + '</b>.', W.i) : bundleWorth(W, ask) <= partWorth(W, x.lot) + 1;
+            if (pays) { transfer(W, o, ask, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
+            notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
+          }
           yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
           if (!yes) continue;
         } else if (!isHuman(oi)) {
           if (isHuman(W.i)) {
             const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
-            if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep your ' + lotRef(x.lot) + '.', W.col); break; }
+            if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + '.', W.col); break; }
             if (pay === 'deal') {
-              const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' });
-              if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give, 'deal'); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves your ' + lotRef(x.lot) + ' alone.', o.col); break; }
+              const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' }, W.i);   // 14 Nov: on the threatened player's own screen
+              if (d && bundleWorth(o, d.give) >= demand - 1) { transfer(W, o, d.give, 'deal'); notify('💰 ' + nm(o) + ' takes ' + bundleText(d.give) + ' and leaves ' + nm(W) + '\'s ' + lotRef(x.lot) + ' alone.', o.col); break; }
               notify('✋ ' + nm(o) + ' isn\'t bought off.', o.col);
             }
           } else if (W.credits >= demand + 1 && partWorth(W, x.lot) >= demand && rnd() < 0.5) {
@@ -4273,7 +4276,17 @@ html, body {
         const want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
         if (want && rnd() < 0.55) { const B = aiBundle(T, G.teams[H], 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B)) G.inviteOffers.push({ team: T.i, want, B }); }
       }
-      if (G.inviteOffers.length) notify('👑 Offers to you as host: ' + G.inviteOffers.map(o => nm(G.teams[o.team]) + ' ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(' · '), G.teams[H].col);
+      // 14 Nov (Friday playtest, "people cannot bid on host"): only AI teams could make a human host an offer. Every other
+      // person with a ready robot may now offer the host something to be invited or to be left out, each on its own screen,
+      // all at the same time. As with the AI offers, it is paid only if the host does what was asked (ACT.invite).
+      await Promise.all(humanSeats().filter(h => h !== H && readyRobots(G.teams[h]).length).map(async h => {
+        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null);
+        if (!pick) return;
+        const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(G.teams[H]) + ' something for it. You pay only if the host does it.', from: G.teams[H], lock: 'Lock in offer' }, h);
+        if (d && !bundleEmpty(d.give) && G.phase === 'arena' && G.host === H) G.inviteOffers.push({ team: h, want: pick, B: d.give });
+      }));
+      if (G.phase !== 'arena' || G.host !== H || G.fight) return;   // the round moved on while people were answering
+      if (G.inviteOffers.length) notify('👑 Offers to the host: ' + G.inviteOffers.map(o => nm(G.teams[o.team]) + ' ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(' · '), G.teams[H].col);
       G.pickTeams = [];
       updateHud();
       return;
@@ -4878,9 +4891,10 @@ html, body {
         if (pick && pick.ti !== ti) {
           const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
           if (how === 'pay') {
-            const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' });
-            if (d && !bundleEmpty(d.want) && bundleWorth(W, d.want) <= 3) { transfer(W, o, d.want, 'deal'); notify('💰 ' + nm(W) + ' pays you ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
-            notify('✋ ' + nm(W) + ' won\'t pay. You swap.', W.col);
+            const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' }, ti);   // 14 Nov: on the screen of the player who demands it
+            const pays = d && !bundleEmpty(d.want) && (isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' will swap your robot in this fight (' + cardRef('swap_the_entry') + ') unless you give <b>' + bundleText(d.want) + '</b>.', W.i) : bundleWorth(W, d.want) <= 3);
+            if (pays) { transfer(W, o, d.want, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
+            notify('✋ ' + nm(W) + ' won\'t pay. ' + nm(o) + ' swaps.', W.col);
           }
         }
       } else if ((F.auction && (F.auction.won || []).some(w => w.team === ti && w.id === 'swap_the_entry')) || rnd() < 0.4) {

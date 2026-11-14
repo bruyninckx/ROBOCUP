@@ -1,0 +1,56 @@
+// Many click games in a row, added up (14 Nov). Half of them with watched fights (live cards clicked), half with skipped
+// fights; half of them with card rain (every seat is dealt the cards of each step, so rare card moments happen all the time).
+//   node tools/mp-scenario/click-many.js [games=8] [minutesEach=6] [firstSeed=100] [parallel=2] [outDir=playtests/click-runs]
+// Run it from the folder of the build to test (it plays prototypes/tabletop-2.html of the current folder).
+// Prints every different finding once, with how many games showed it and the seeds, so a seed can be replayed alone:
+//   WATCH=1 node tools/mp-scenario/click-game.js <seed> <minutes>
+//   node tools/mp-scenario/click-many.js --sum <outDir>     adds an earlier batch up again
+const { spawn } = require('child_process');
+const fs = require('fs'), path = require('path');
+const N = +(process.argv[2] || 8), minutes = +(process.argv[3] || 6), first = +(process.argv[4] || 100), par = +(process.argv[5] || 2), out = process.argv[6] || 'playtests/click-runs';
+fs.mkdirSync(out, { recursive: true });
+const game = path.join(__dirname, 'click-game.js'), jobs = Array.from({ length: N }, (_, k) => ({ seed: first + k, watch: k % 2 === 0, rain: process.env.RAIN === '1' || (process.env.RAIN !== '0' && k % 4 >= 2) }));   // half the games with RAIN (see click-game.js), unless RAIN=0 or RAIN=1
+const run = j => new Promise(res => {
+  const json = path.join(out, 'run-' + j.seed + '.json'), log = fs.openSync(path.join(out, 'run-' + j.seed + '.txt'), 'w');
+  try { fs.unlinkSync(json); } catch (e) {}
+  const p = spawn(process.execPath, [game, String(j.seed), String(minutes), path.join(out, 'shots-' + j.seed)], { env: Object.assign({}, process.env, { JSON: json, WATCH: j.watch ? '1' : '0', RAIN: j.rain ? '1' : '0' }), stdio: ['ignore', log, log] });
+  const kill = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, (minutes + 3) * 60000);
+  p.on('exit', () => { clearTimeout(kill); let r = null; try { r = JSON.parse(fs.readFileSync(json, 'utf8')); } catch (e) {} console.log('seed ' + j.seed + (j.watch ? ' (watched fights)' : '') + (j.rain ? ' (card rain)' : '') + ': ' + (r ? (r.over ? 'finished' : 'played') + ' ' + r.round + ' rounds, ' + (r.notes.length + r.stuck.length + r.errors.length + r.warns.length) + ' findings' : 'NO RESULT (the run crashed or hung: see run-' + j.seed + '.txt)')); res({ j, r }); });
+});
+(async () => {
+  const results = []; let next = 0;
+  if (process.argv[2] === '--sum') { const dir = process.argv[3]; for (const f of fs.readdirSync(dir)) { const m = /^run-(\d+)\.json$/.exec(f); if (m) results.push({ j: { seed: +m[1] }, r: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) }); } }
+  else await Promise.all(Array.from({ length: par }, async () => { while (next < jobs.length) results.push(await run(jobs[next++])); }));
+  const found = {}, add = (kind, text, seed) => { const k = kind + ' · ' + text.replace(/\d+/g, '#'); (found[k] = found[k] || { kind, text, seeds: [] }).seeds.push(seed); };
+  let rounds = 0, hung = [];
+  for (const { j, r } of results) {
+    if (!r) { hung.push(j.seed); continue; }
+    rounds += r.round;
+    for (const x of r.notes) add(x.kind, x.text, j.seed);
+    for (const x of r.stuck) add('stuck', x.kind + ' seat · ' + x.label.replace(/ (Thumper|[A-Z][a-z]+)$/, ' <robot>') + ' · could click: ' + (x.canClick.slice(0, 6).join(', ') || 'nothing'), j.seed);
+    for (const x of r.errors) add('page error', String(x).replace(/^(host|P\d): /, '').slice(0, 200), j.seed);
+    for (const x of r.warns) add('fight mismatch', String(x).replace(/^(host|P\d): /, '').replace(/[0-9a-f:]{6,}/g, '#').slice(0, 80), j.seed);
+    for (const x of r.clientTrouble || []) add('joined screen reported', String(x).replace(/seat \d/, 'seat #').slice(0, 160), j.seed);
+    r.fame.clients.forEach(c => { if (JSON.stringify(c.fame) !== JSON.stringify(r.fame.host)) add('end', 'a joined screen ends on other fame than the host', j.seed); if (c.desyncs) add('fight mismatch', 'a joined screen counted fights that ended differently', j.seed); });
+  }
+  // host against joined, all games together: a step or a result the host seat gets and the joined seats never do (or the
+  // other way round). One host seat and three joined seats play each game, so "never" for joined is a strong sign.
+  const steps = {}, outc = {};
+  const normLabel = l => l.replace(/\b(Host|P\d?)\b/g, 'X').replace(/^(deal panel: (?:Plead to spare|Push to scrap|Payoff from|Trade with|Ask X for backing|Buy off|Ask to be)).*/, '$1').replace(/\s+/g, ' ').trim();
+  for (const { r } of results) { if (!r) continue;
+    for (const k of Object.keys(r.stat)) { const [label, kind] = k.split(' | '), n = normLabel(label); steps[n] = steps[n] || { host: 0, joined: 0 }; steps[n][kind] += r.stat[k].ok + r.stat[k].stuck; }
+    for (const k of Object.keys(r.outcomes || {})) { outc[k] = outc[k] || { host: 0, joined: 0 }; outc[k].host += r.outcomes[k].host; outc[k].joined += r.outcomes[k].joined; } }
+  const lop = [];
+  for (const k of Object.keys(steps).sort()) { const v = steps[k]; if (v.host >= 2 && v.joined === 0) lop.push('only the HOST seat ever got: ' + k + ' (' + v.host + '×)'); if (v.joined >= 12 && v.host === 0) lop.push('only JOINED seats ever got: ' + k + ' (' + v.joined + '×)'); }
+  for (const k of Object.keys(outc).sort()) { const v = outc[k]; if (v.host >= 2 && v.joined === 0) lop.push('only the HOST seat ever managed: ' + k + ' (' + v.host + '×, joined 0×)'); }
+  { const a = outc['backing asked'], g = outc['backing got']; if (a && a.joined >= 4 && (!g || g.joined === 0) && g && g.host > 0) lop.push('joined seats asked for backing ' + a.joined + '× and never got it; the host got it ' + g.host + '× of ' + a.host); }
+  for (const x of [...new Set(lop)]) add('host ≠ joined', x, 'all');
+  const list = Object.values(found).sort((a, b) => b.seeds.length - a.seeds.length);
+  console.log('\n=== ' + results.length + ' click games, ' + rounds + ' rounds played ===');
+  if (hung.length) console.log('No result (crashed or hung): seeds ' + hung.join(', '));
+  if (Object.keys(outc).length) { console.log('what came of it (host seat · the 3 joined seats together):'); for (const k of Object.keys(outc).sort()) console.log('  ' + k.padEnd(40) + String(outc[k].host).padStart(5) + ' ·' + String(outc[k].joined).padStart(5)); }
+  if (!list.length) console.log('No findings.');
+  for (const f of list) console.log(String(f.seeds.length).padStart(3) + '× ' + f.kind + ' · ' + f.text + '   [seeds ' + [...new Set(f.seeds)].slice(0, 6).join(', ') + ']');
+  fs.writeFileSync(path.join(process.argv[2] === '--sum' ? process.argv[3] : out, 'summary.json'), JSON.stringify({ games: results.length, rounds, hung, findings: list }, null, 1));
+  process.exit(list.length || hung.length ? 1 : 0);
+})();
