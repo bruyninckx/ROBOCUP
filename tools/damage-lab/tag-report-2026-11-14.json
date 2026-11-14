@@ -1,0 +1,1015 @@
+{
+ "T": {
+  "Rotisserie": {
+   "n": "Rotisserie",
+   "elo": 306,
+   "tags": [
+    [
+     "🎲 Coin-flip brawler",
+     "65% of its fights are blowouts"
+    ],
+    [
+     "🌀 Lost in a melee",
+     "-12 points in free-for-alls (35 fights)"
+    ],
+    [
+     "☠️ Hates the Killbox",
+     "50% there vs 100% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 4,
+    "upW": 0,
+    "upE": 37,
+    "blow": 65,
+    "t": 49,
+    "hit": 28,
+    "ffa": -12,
+    "ffaN": 35,
+    "tv": 6,
+    "tvN": 47,
+    "ar": {
+     "saws": -0.38,
+     "killbox": -0.55,
+     "cage": 0,
+     "ice": -0.38
+    }
+   }
+  },
+  "Jukebox": {
+   "n": "Jukebox",
+   "elo": -16,
+   "tags": [
+    [
+     "🗡️ Giant killer",
+     "beats stronger robots 33% (expected 25%)"
+    ],
+    [
+     "🌀 Brawl master",
+     "+15 points in free-for-alls (48 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 36,
+    "upW": 33,
+    "upE": 25,
+    "blow": 17,
+    "t": 73,
+    "hit": 23,
+    "ffa": 15,
+    "ffaN": 48,
+    "tv": 4,
+    "tvN": 38,
+    "ar": {
+     "saws": -0.2,
+     "killbox": -0.41,
+     "cage": 0.21,
+     "ice": -0.2
+    }
+   }
+  },
+  "Pogo": {
+   "n": "Pogo",
+   "elo": 402,
+   "tags": [
+    [
+     "⏱️ Quick finisher",
+     "fights last 25 s"
+    ],
+    [
+     "🌀 Lost in a melee",
+     "-12 points in free-for-alls (41 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 0,
+    "upW": 0,
+    "upE": 0,
+    "blow": 37,
+    "t": 25,
+    "hit": 24,
+    "ffa": -12,
+    "ffaN": 41,
+    "tv": 9,
+    "tvN": 52,
+    "ar": {
+     "saws": 0,
+     "killbox": 0.24,
+     "cage": 0.24,
+     "ice": 0
+    }
+   }
+  },
+  "Trebuchet": {
+   "n": "Trebuchet",
+   "elo": 9,
+   "tags": [
+    [
+     "🔨 Hard hitter",
+     "the winner loses 30% health (average 23%)"
+    ],
+    [
+     "🌀 Lost in a melee",
+     "-16 points in free-for-alls (52 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 32,
+    "upW": 28,
+    "upE": 25,
+    "blow": 25,
+    "t": 68,
+    "hit": 30,
+    "ffa": -16,
+    "ffaN": 52,
+    "tv": -3,
+    "tvN": 41,
+    "ar": {
+     "saws": -0.17,
+     "killbox": 0.38,
+     "cage": 0.18,
+     "ice": 0.18
+    }
+   }
+  },
+  "Orbiter": {
+   "n": "Orbiter",
+   "elo": -189,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 74 s"
+    ],
+    [
+     "🌀 Brawl master",
+     "+17 points in free-for-alls (31 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 112,
+    "upW": 24,
+    "upE": 23,
+    "blow": 32,
+    "t": 74,
+    "hit": 23,
+    "ffa": 17,
+    "ffaN": 31,
+    "tv": -7,
+    "tvN": 38,
+    "ar": {
+     "saws": 0,
+     "killbox": 0,
+     "cage": -0.17,
+     "ice": 0
+    }
+   }
+  },
+  "Tarantula": {
+   "n": "Tarantula",
+   "elo": 27,
+   "tags": [
+    [
+     "☠️ Killbox natural",
+     "83% there vs 17% on the open floor (6 fights)"
+    ],
+    [
+     "🔒 Cage fighter",
+     "67% there vs 17% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 28,
+    "upW": 18,
+    "upE": 25,
+    "blow": 34,
+    "t": 62,
+    "hit": 22,
+    "ffa": 5,
+    "ffaN": 43,
+    "tv": -4,
+    "tvN": 49,
+    "ar": {
+     "saws": 0.18,
+     "killbox": 0.69,
+     "cage": 0.51,
+     "ice": 0.35
+    }
+   }
+  },
+  "Railgun": {
+   "n": "Railgun",
+   "elo": 83,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 72 s"
+    ],
+    [
+     "🌀 Brawl master",
+     "+20 points in free-for-alls (48 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 20,
+    "upW": 30,
+    "upE": 26,
+    "blow": 48,
+    "t": 72,
+    "hit": 24,
+    "ffa": 20,
+    "ffaN": 48,
+    "tv": 9,
+    "tvN": 38,
+    "ar": {
+     "saws": -0.2,
+     "killbox": 0,
+     "cage": 0.21,
+     "ice": 0.21
+    }
+   }
+  },
+  "Lodestone": {
+   "n": "Lodestone",
+   "elo": 224,
+   "tags": [
+    [
+     "🪚 Saw specialist",
+     "100% there vs 50% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 8,
+    "upW": 0,
+    "upE": 32,
+    "blow": 36,
+    "t": 49,
+    "hit": 24,
+    "ffa": 1,
+    "ffaN": 52,
+    "tv": 4,
+    "tvN": 48,
+    "ar": {
+     "saws": 0.55,
+     "killbox": 0,
+     "cage": -0.17,
+     "ice": 0
+    }
+   }
+  },
+  "Bricklayer": {
+   "n": "Bricklayer",
+   "elo": -286,
+   "tags": [
+    [
+     "🎲 Coin-flip brawler",
+     "57% of its fights are blowouts"
+    ],
+    [
+     "🔒 Cage fighter",
+     "100% there vs 33% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 120,
+    "upW": 15,
+    "upE": 17,
+    "blow": 57,
+    "t": 67,
+    "hit": 14,
+    "ffa": -7,
+    "ffaN": 51,
+    "tv": -3,
+    "tvN": 43,
+    "ar": {
+     "saws": 0.17,
+     "killbox": 0,
+     "cage": 0.72,
+     "ice": -0.18
+    }
+   }
+  },
+  "Scavenger": {
+   "n": "Scavenger",
+   "elo": -89,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 82 s"
+    ]
+   ],
+   "stat": {
+    "upN": 88,
+    "upW": 30,
+    "upE": 30,
+    "blow": 32,
+    "t": 82,
+    "hit": 23,
+    "ffa": -2,
+    "ffaN": 38,
+    "tv": 2,
+    "tvN": 38,
+    "ar": {
+     "saws": 0.18,
+     "killbox": 0,
+     "cage": 0.18,
+     "ice": 0.35
+    }
+   }
+  },
+  "Hydra": {
+   "n": "Hydra",
+   "elo": -28,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 71 s"
+    ]
+   ],
+   "stat": {
+    "upN": 40,
+    "upW": 28,
+    "upE": 26,
+    "blow": 23,
+    "t": 71,
+    "hit": 26,
+    "ffa": -10,
+    "ffaN": 40,
+    "tv": -9,
+    "tvN": 45,
+    "ar": {
+     "saws": -0.34,
+     "killbox": -0.34,
+     "cage": 0,
+     "ice": -0.17
+    }
+   }
+  },
+  "Slingshot": {
+   "n": "Slingshot",
+   "elo": -196,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 78 s"
+    ]
+   ],
+   "stat": {
+    "upN": 112,
+    "upW": 24,
+    "upE": 23,
+    "blow": 38,
+    "t": 78,
+    "hit": 20,
+    "ffa": -3,
+    "ffaN": 47,
+    "tv": -4,
+    "tvN": 56,
+    "ar": {
+     "saws": 0.24,
+     "killbox": 0,
+     "cage": 0,
+     "ice": 0
+    }
+   }
+  },
+  "Angler": {
+   "n": "Angler",
+   "elo": 193,
+   "tags": [],
+   "stat": {
+    "upN": 8,
+    "upW": 25,
+    "upE": 29,
+    "blow": 45,
+    "t": 61,
+    "hit": 24,
+    "ffa": 3,
+    "ffaN": 37,
+    "tv": -6,
+    "tvN": 51,
+    "ar": {
+     "saws": 0,
+     "killbox": 0.17,
+     "cage": 0.17,
+     "ice": 0.17
+    }
+   }
+  },
+  "Grandmaster": {
+   "n": "Grandmaster",
+   "elo": -28,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 83 s"
+    ],
+    [
+     "🪚 Hates saws",
+     "17% there vs 67% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 40,
+    "upW": 13,
+    "upE": 26,
+    "blow": 30,
+    "t": 83,
+    "hit": 25,
+    "ffa": -4,
+    "ffaN": 36,
+    "tv": 4,
+    "tvN": 53,
+    "ar": {
+     "saws": -0.51,
+     "killbox": 0.18,
+     "cage": -0.17,
+     "ice": 0.18
+    }
+   }
+  },
+  "Talon": {
+   "n": "Talon",
+   "elo": 45,
+   "tags": [
+    [
+     "🌀 Lost in a melee",
+     "-16 points in free-for-alls (45 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 28,
+    "upW": 21,
+    "upE": 27,
+    "blow": 35,
+    "t": 62,
+    "hit": 21,
+    "ffa": -16,
+    "ffaN": 45,
+    "tv": -5,
+    "tvN": 50,
+    "ar": {
+     "saws": -0.21,
+     "killbox": -0.21,
+     "cage": -0.41,
+     "ice": 0
+    }
+   }
+  },
+  "Pincher": {
+   "n": "Pincher",
+   "elo": -243,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 76 s"
+    ]
+   ],
+   "stat": {
+    "upN": 112,
+    "upW": 16,
+    "upE": 18,
+    "blow": 35,
+    "t": 76,
+    "hit": 20,
+    "ffa": -4,
+    "ffaN": 47,
+    "tv": 5,
+    "tvN": 38,
+    "ar": {
+     "saws": 0.34,
+     "killbox": 0,
+     "cage": -0.18,
+     "ice": -0.18
+    }
+   }
+  },
+  "Whaler": {
+   "n": "Whaler",
+   "elo": -52,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 86 s"
+    ],
+    [
+     "🤝 Lone wolf",
+     "its 2v2 team wins 13 points less than the duel strengths say (53 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 52,
+    "upW": 25,
+    "upE": 27,
+    "blow": 35,
+    "t": 86,
+    "hit": 22,
+    "ffa": -2,
+    "ffaN": 46,
+    "tv": -13,
+    "tvN": 53,
+    "ar": {
+     "saws": 0.41,
+     "killbox": 0.21,
+     "cage": 0,
+     "ice": 0.21
+    }
+   }
+  },
+  "Sawblast": {
+   "n": "Sawblast",
+   "elo": -22,
+   "tags": [
+    [
+     "🔨 Hard hitter",
+     "the winner loses 35% health (average 23%)"
+    ],
+    [
+     "🤝 Team player",
+     "its 2v2 team wins 11 points more (34 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 36,
+    "upW": 19,
+    "upE": 24,
+    "blow": 3,
+    "t": 56,
+    "hit": 35,
+    "ffa": -5,
+    "ffaN": 42,
+    "tv": 11,
+    "tvN": 34,
+    "ar": {
+     "saws": 0.18,
+     "killbox": 0.18,
+     "cage": 0.18,
+     "ice": 0
+    }
+   }
+  },
+  "Gaucho": {
+   "n": "Gaucho",
+   "elo": -243,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 85 s"
+    ],
+    [
+     "🌀 Lost in a melee",
+     "-14 points in free-for-alls (57 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 112,
+    "upW": 17,
+    "upE": 18,
+    "blow": 24,
+    "t": 85,
+    "hit": 24,
+    "ffa": -14,
+    "ffaN": 57,
+    "tv": 7,
+    "tvN": 40,
+    "ar": {
+     "saws": -0.35,
+     "killbox": -0.17,
+     "cage": -0.35,
+     "ice": -0.35
+    }
+   }
+  },
+  "Yoyo": {
+   "n": "Yoyo",
+   "elo": -10,
+   "tags": [
+    [
+     "🪚 Hates saws",
+     "33% there vs 83% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 32,
+    "upW": 19,
+    "upE": 23,
+    "blow": 23,
+    "t": 69,
+    "hit": 29,
+    "ffa": 6,
+    "ffaN": 49,
+    "tv": 2,
+    "tvN": 45,
+    "ar": {
+     "saws": -0.51,
+     "killbox": -0.35,
+     "cage": -0.35,
+     "ice": -0.35
+    }
+   }
+  },
+  "Vertigo": {
+   "n": "Vertigo",
+   "elo": 122,
+   "tags": [
+    [
+     "🔨 Hard hitter",
+     "the winner loses 31% health (average 23%)"
+    ]
+   ],
+   "stat": {
+    "upN": 20,
+    "upW": 35,
+    "upE": 30,
+    "blow": 29,
+    "t": 61,
+    "hit": 31,
+    "ffa": 3,
+    "ffaN": 40,
+    "tv": -6,
+    "tvN": 40,
+    "ar": {
+     "saws": 0,
+     "killbox": -0.18,
+     "cage": 0,
+     "ice": -0.18
+    }
+   }
+  },
+  "Corkscrew": {
+   "n": "Corkscrew",
+   "elo": 250,
+   "tags": [
+    [
+     "🎲 Coin-flip brawler",
+     "50% of its fights are blowouts"
+    ],
+    [
+     "🔨 Hard hitter",
+     "the winner loses 31% health (average 23%)"
+    ]
+   ],
+   "stat": {
+    "upN": 4,
+    "upW": 0,
+    "upE": 29,
+    "blow": 50,
+    "t": 49,
+    "hit": 31,
+    "ffa": 9,
+    "ffaN": 49,
+    "tv": 3,
+    "tvN": 49,
+    "ar": {
+     "saws": -0.21,
+     "killbox": 0,
+     "cage": 0,
+     "ice": -0.41
+    }
+   }
+  },
+  "Gyro": {
+   "n": "Gyro",
+   "elo": 33,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 75 s"
+    ],
+    [
+     "🌀 Brawl master",
+     "+21 points in free-for-alls (41 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 28,
+    "upW": 29,
+    "upE": 26,
+    "blow": 40,
+    "t": 75,
+    "hit": 22,
+    "ffa": 21,
+    "ffaN": 41,
+    "tv": 2,
+    "tvN": 39,
+    "ar": {
+     "saws": 0,
+     "killbox": 0,
+     "cage": 0,
+     "ice": -0.2
+    }
+   }
+  },
+  "Blacksmith": {
+   "n": "Blacksmith",
+   "elo": 15,
+   "tags": [
+    [
+     "🪚 Saw specialist",
+     "100% there vs 50% on the open floor (6 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 32,
+    "upW": 9,
+    "upE": 26,
+    "blow": 48,
+    "t": 62,
+    "hit": 19,
+    "ffa": -1,
+    "ffaN": 52,
+    "tv": 9,
+    "tvN": 40,
+    "ar": {
+     "saws": 0.55,
+     "killbox": 0.17,
+     "cage": -0.17,
+     "ice": -0.17
+    }
+   }
+  },
+  "Popcorn": {
+   "n": "Popcorn",
+   "elo": -70,
+   "tags": [],
+   "stat": {
+    "upN": 68,
+    "upW": 26,
+    "upE": 29,
+    "blow": 34,
+    "t": 61,
+    "hit": 21,
+    "ffa": -10,
+    "ffaN": 35,
+    "tv": -7,
+    "tvN": 46,
+    "ar": {
+     "saws": -0.17,
+     "killbox": -0.17,
+     "cage": -0.17,
+     "ice": -0.35
+    }
+   }
+  },
+  "Rumbler": {
+   "n": "Rumbler",
+   "elo": -10,
+   "tags": [],
+   "stat": {
+    "upN": 32,
+    "upW": 6,
+    "upE": 23,
+    "blow": 31,
+    "t": 66,
+    "hit": 20,
+    "ffa": -6,
+    "ffaN": 52,
+    "tv": -9,
+    "tvN": 41,
+    "ar": {
+     "saws": 0,
+     "killbox": 0,
+     "cage": 0,
+     "ice": 0
+    }
+   }
+  },
+  "Blowtorch": {
+   "n": "Blowtorch",
+   "elo": -16,
+   "tags": [
+    [
+     "🌀 Lost in a melee",
+     "-13 points in free-for-alls (28 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 36,
+    "upW": 25,
+    "upE": 25,
+    "blow": 30,
+    "t": 63,
+    "hit": 19,
+    "ffa": -13,
+    "ffaN": 28,
+    "tv": -10,
+    "tvN": 42,
+    "ar": {
+     "saws": 0,
+     "killbox": 0,
+     "cage": 0.38,
+     "ice": 0.2
+    }
+   }
+  },
+  "Buzzkill": {
+   "n": "Buzzkill",
+   "elo": -89,
+   "tags": [
+    [
+     "🌀 Brawl master",
+     "+31 points in free-for-alls (37 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 88,
+    "upW": 34,
+    "upE": 30,
+    "blow": 35,
+    "t": 66,
+    "hit": 24,
+    "ffa": 31,
+    "ffaN": 37,
+    "tv": 8,
+    "tvN": 43,
+    "ar": {
+     "saws": -0.18,
+     "killbox": 0.34,
+     "cage": 0,
+     "ice": -0.18
+    }
+   }
+  },
+  "Snapjaw": {
+   "n": "Snapjaw",
+   "elo": -121,
+   "tags": [],
+   "stat": {
+    "upN": 92,
+    "upW": 27,
+    "upE": 27,
+    "blow": 46,
+    "t": 56,
+    "hit": 19,
+    "ffa": 4,
+    "ffaN": 47,
+    "tv": 6,
+    "tvN": 37,
+    "ar": {
+     "saws": 0.34,
+     "killbox": 0.34,
+     "cage": 0,
+     "ice": 0.34
+    }
+   }
+  },
+  "Wrecker": {
+   "n": "Wrecker",
+   "elo": -102,
+   "tags": [
+    [
+     "🧱 Grinder",
+     "fights last 76 s"
+    ],
+    [
+     "🌀 Brawl master",
+     "+14 points in free-for-alls (38 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 88,
+    "upW": 24,
+    "upE": 29,
+    "blow": 15,
+    "t": 76,
+    "hit": 26,
+    "ffa": 14,
+    "ffaN": 38,
+    "tv": -2,
+    "tvN": 38,
+    "ar": {
+     "saws": -0.18,
+     "killbox": -0.38,
+     "cage": -0.18,
+     "ice": 0
+    }
+   }
+  },
+  "Haymaker": {
+   "n": "Haymaker",
+   "elo": 108,
+   "tags": [
+    [
+     "🌀 Brawl master",
+     "+12 points in free-for-alls (39 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 20,
+    "upW": 20,
+    "upE": 29,
+    "blow": 24,
+    "t": 60,
+    "hit": 24,
+    "ffa": 12,
+    "ffaN": 39,
+    "tv": -6,
+    "tvN": 37,
+    "ar": {
+     "saws": 0.17,
+     "killbox": 0.17,
+     "cage": 0,
+     "ice": 0
+    }
+   }
+  },
+  "Thumper": {
+   "n": "Thumper",
+   "elo": 2,
+   "tags": [
+    [
+     "🗡️ Giant killer",
+     "beats stronger robots 38% (expected 25%)"
+    ]
+   ],
+   "stat": {
+    "upN": 32,
+    "upW": 38,
+    "upE": 25,
+    "blow": 29,
+    "t": 64,
+    "hit": 23,
+    "ffa": 4,
+    "ffaN": 52,
+    "tv": 7,
+    "tvN": 45,
+    "ar": {
+     "saws": 0,
+     "killbox": -0.34,
+     "cage": 0,
+     "ice": 0
+    }
+   }
+  },
+  "Jouster": {
+   "n": "Jouster",
+   "elo": -10,
+   "tags": [
+    [
+     "🗡️ Giant killer",
+     "beats stronger robots 44% (expected 23%)"
+    ],
+    [
+     "🌀 Lost in a melee",
+     "-19 points in free-for-alls (45 fights)"
+    ]
+   ],
+   "stat": {
+    "upN": 32,
+    "upW": 44,
+    "upE": 23,
+    "blow": 30,
+    "t": 56,
+    "hit": 23,
+    "ffa": -19,
+    "ffaN": 45,
+    "tv": 1,
+    "tvN": 46,
+    "ar": {
+     "saws": 0.18,
+     "killbox": 0.18,
+     "cage": 0.18,
+     "ice": 0
+    }
+   }
+  },
+  "_ffa": {
+   "a": 0.14,
+   "b": 0.43
+  }
+ },
+ "order": [
+  "Pogo",
+  "Rotisserie",
+  "Corkscrew",
+  "Lodestone",
+  "Angler",
+  "Vertigo",
+  "Haymaker",
+  "Railgun",
+  "Talon",
+  "Gyro",
+  "Tarantula",
+  "Blacksmith",
+  "Trebuchet",
+  "Thumper",
+  "Yoyo",
+  "Rumbler",
+  "Jouster",
+  "Jukebox",
+  "Blowtorch",
+  "Sawblast",
+  "Hydra",
+  "Grandmaster",
+  "Whaler",
+  "Popcorn",
+  "Scavenger",
+  "Buzzkill",
+  "Wrecker",
+  "Snapjaw",
+  "Orbiter",
+  "Slingshot",
+  "Pincher",
+  "Gaucho",
+  "Bricklayer"
+ ]
+}

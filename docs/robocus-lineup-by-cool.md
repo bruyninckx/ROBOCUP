@@ -116,3 +116,57 @@ Not used now: Fireproof and Bastion (1.0), and Lone Wolf as a squadron card (the
 - **These are suggestions to change by hand**: the cool score is a judgement (looks) plus a count (tags), and the quirk pairings are a first match.
 
 The tags and cool scores are not in the game files yet (this is a proposal). Strength numbers: the untweaked round robin, `docs/robocus-untweaked-roundrobin.md`.
+
+## 5. Bookie tags in the new setup (14 Nov, measured)
+
+Kev: "we have tags in 2.0 like lone wolf and brawler and heavy hitter. We need to run simulations to see what tags we have now in the new setup."
+
+These are the 2.0 tabletop's bookie tags (`bookieTags` in `prototypes/tabletop-2.html`), re-measured for the 33 robots of the lineup above, untweaked (grade 1, damage x1), with `tools/damage-lab/tag-sim.js` and `tag-report.js` (data: `tag-report-2026-11-14.json`):
+- 2,112 duels (every pair 4 times), 360 four-way free-for-alls, 360 2v2s, 950 arena fights (each robot against the same 6 random opponents on the open floor and on each special arena).
+- Same rules as the game: **Giant killer** (beats stronger robots at least 1.25x what its strength predicts), **Coin-flip brawler** (50%+ of its fights are blowouts, winner keeps 85%+ health), **Quick finisher** / **Grinder** (fights average 40 s or less / 70 s or more): one of these per robot, in that order. **Hard hitter** (when it loses, the winner loses 6+ points more health than average, 23%). **Brawl master** / **Lost in a melee** (free-for-all wins 10+ points above / below its duel strength). **Lone wolf** / **Team player** (2v2). **Arena** tags (saws, Killbox, Cage, ice: a logit change of 0.45 or more after halving for noise).
+- "Stronger" here means a higher untweaked rating, not a higher level: levels are now set by coolness, so the level-based tags (Giant killer, Counter pick, Bad matchup) have to be measured again once the numbers are tuned.
+
+| New level | Robot | Tags now (untweaked) | Why | Tags before (9-10 Nov, tweaked) |
+|---|---|---|---|---|
+| 4 | Rotisserie | 🎲 Coin-flip brawler, 🌀 Lost in a melee, ☠️ Hates the Killbox | 65% of its fights are blowouts; -12 points in free-for-alls (35 fights); 50% there vs 100% on the open floor (6 fights) | - |
+| 4 | Jukebox | 🗡️ Giant killer, 🌀 Brawl master | beats stronger robots 33% (expected 25%); +15 points in free-for-alls (48 fights) | - |
+| 4 | Pogo | ⏱️ Quick finisher, 🌀 Lost in a melee | fights last 25 s; -12 points in free-for-alls (41 fights) | - |
+| 4 | Trebuchet | 🔨 Hard hitter, 🌀 Lost in a melee | the winner loses 30% health (average 23%); -16 points in free-for-alls (52 fights) | 🌀 Lost in a melee, 🤝 Lone wolf |
+| 4 | Orbiter | 🧱 Grinder, 🌀 Brawl master | fights last 74 s; +17 points in free-for-alls (31 fights) | 🌀 Brawl master |
+| 4 | Tarantula | ☠️ Killbox natural, 🔒 Cage fighter | 83% there vs 17% on the open floor (6 fights); 67% there vs 17% on the open floor (6 fights) | - |
+| 4 | Railgun | 🧱 Grinder, 🌀 Brawl master | fights last 72 s; +20 points in free-for-alls (48 fights) | - |
+| 4 | Lodestone | 🪚 Saw specialist | 100% there vs 50% on the open floor (6 fights) | - |
+| 3 | Bricklayer | 🎲 Coin-flip brawler, 🔒 Cage fighter | 57% of its fights are blowouts; 100% there vs 33% on the open floor (6 fights) | - |
+| 3 | Scavenger | 🧱 Grinder | fights last 82 s | - |
+| 3 | Hydra | 🧱 Grinder | fights last 71 s | - |
+| 3 | Slingshot | 🧱 Grinder | fights last 78 s | - |
+| 3 | Angler | - | - | 🔨 Hard hitter |
+| 3 | Grandmaster | 🧱 Grinder, 🪚 Hates saws | fights last 83 s; 17% there vs 67% on the open floor (6 fights) | - |
+| 2 | Talon | 🌀 Lost in a melee | -16 points in free-for-alls (45 fights) | - |
+| 2 | Pincher | 🧱 Grinder | fights last 76 s | 🧱 Grinder |
+| 2 | Whaler | 🧱 Grinder, 🤝 Lone wolf | fights last 86 s; its 2v2 team wins 13 points less than the duel strengths say (53 fights) | - |
+| 2 | Sawblast | 🔨 Hard hitter, 🤝 Team player | the winner loses 35% health (average 23%); its 2v2 team wins 11 points more (34 fights) | 🔨 Hard hitter |
+| 2 | Gaucho | 🧱 Grinder, 🌀 Lost in a melee | fights last 85 s; -14 points in free-for-alls (57 fights) | - |
+| 1 | Yoyo | 🪚 Hates saws | 33% there vs 83% on the open floor (6 fights) | - |
+| 1 | Vertigo | 🔨 Hard hitter | the winner loses 31% health (average 23%) | 🗡️ Giant killer, 🌀 Brawl master |
+| 1 | Corkscrew | 🎲 Coin-flip brawler, 🔨 Hard hitter | 50% of its fights are blowouts; the winner loses 31% health (average 23%) | 🌀 Lost in a melee |
+| 1 | Gyro | 🧱 Grinder, 🌀 Brawl master | fights last 75 s; +21 points in free-for-alls (41 fights) | 🧱 Grinder, 🌀 Brawl master |
+| 1 | Blacksmith | 🪚 Saw specialist | 100% there vs 50% on the open floor (6 fights) | - |
+| 0 | Popcorn | - | - | - |
+| 0 | Rumbler | - | - | - |
+| 0 | Blowtorch | 🌀 Lost in a melee | -13 points in free-for-alls (28 fights) | 🗡️ Giant killer |
+| 0 | Buzzkill | 🌀 Brawl master | +31 points in free-for-alls (37 fights) | 🔨 Hard hitter |
+| 0 | Snapjaw | - | - | 🎲 Coin-flip brawler, 🤝 Lone wolf |
+| 0 | Wrecker | 🧱 Grinder, 🌀 Brawl master | fights last 76 s; +14 points in free-for-alls (38 fights) | 🧱 Grinder, 🔨 Hard hitter |
+| 0 | Haymaker | 🌀 Brawl master | +12 points in free-for-alls (39 fights) | - |
+| 0 | Thumper | 🗡️ Giant killer | beats stronger robots 38% (expected 25%) | - |
+| 0 | Jouster | 🗡️ Giant killer, 🌀 Lost in a melee | beats stronger robots 44% (expected 23%); -19 points in free-for-alls (45 fights) | 🌀 Lost in a melee |
+
+Benched robots (Thwacker, Ramrod, Mauler, Rocketeer, Whirlwind, Forklift, Mincer, Scythe, Hornet, Juggernaut, Brawler) were not measured.
+
+What it says:
+- **Kept from before:** Gyro, Wrecker and Pincher still grind; Gyro, Orbiter and Wrecker are still brawl masters; Sawblast is still a hard hitter; Trebuchet and Jouster are still lost in a melee.
+- **New:** Pogo is the quick finisher (25 s fights) and gets lost in a melee; Railgun, Jukebox, Buzzkill and Haymaker turn out to be brawl masters; Whaler is a lone wolf in 2v2; Tarantula likes the Killbox and the Cage, Bricklayer the Cage; Lodestone and Blacksmith like the floor saws; Yo-yo and Grandmaster hate them.
+- **Many grinders (11)**: without the damage multipliers, fights last longer. After tuning, some of these will drop off. The tags should be measured again then (same scripts, `TWEAKED=1`).
+- **Noise:** a robot sits in about 40 free-for-alls and 6 fights per arena, so the melee and arena tags near the threshold can flip with more fights; the full run on Kev's PC should use `NFFA=1200 NTV=1200 NAR=20`.
+- Not re-measured (they need part runs): Epic combo, Great fit / Poor fit, Giant-slayer build, Chip-tuned, Needs its armour / Shrugs it off.
