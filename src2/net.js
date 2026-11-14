@@ -212,6 +212,7 @@
         if (d.t === 'name') p.name = String(d.name || p.name).slice(0, 20);
         pushLobby(); maybeAutostart(); return;
       }
+      if (d.t === 'diag') { if (GAME().netDiag) GAME().netDiag(p.seat, String(d.k || ''), d.d); return; }
       if (d.t === 'act') { if (GAME().SEATS && GAME().SEATS[p.seat] === 'remote') GAME().runAct(p.seat, d.name, d.args || []); return; }
       if (d.t === 'ans' || d.t === 'dealans') {
         const q = H.pending[d.q]; if (!q || q.seat !== p.seat) return;
@@ -341,6 +342,7 @@
     const hello = () => send({ t: 'hello', cid: myCid, name: C.name, ver: version() });
     window.ROBOCUS_NET = {
       sendAct(name, args) { send({ t: 'act', name, args }); },
+      sendDiag(k, d) { try { send({ t: 'diag', k, d }); } catch (e) {} },   // this screen's trouble, for the host's log
       ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, fx() {}, rematch() {}
     };
     T.onmsg = (from, d) => {

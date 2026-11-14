@@ -2219,7 +2219,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0 2026-11-08 live cards';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0 2026-11-14 online fixes';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2229,12 +2229,24 @@ html, body {
     PT.lastKey = null; PT.errs = 0; PT.errSeen = {};
     ptBadge();
   }
+  const NET_DIAG = { desync: 1, error: 1, resim: 1 };   // what a joined screen reports to the host
   function tlog(k, data) {
     if (!PT.game) return;
     try {
       PT.game.events.push(Object.assign({ t: Math.round((Date.now() - PT.game.started) / 100) / 10, k, r: G ? G.round : 0, ph: G ? G.phase : '' }, data || {}));
       ptSaveSoon();
+      // online (14 Nov): a joined screen tells the host about its own trouble (a fight that ended differently, a page error,
+      // a resim), so the host's log has every screen's problems and not only its own
+      if (NET_DIAG[k] && isClient() && window.ROBOCUS_NET && window.ROBOCUS_NET.sendDiag) { const d = Object.assign({}, data || {}); delete d.teams; window.ROBOCUS_NET.sendDiag(k, d); }
     } catch (e) { /* never let logging break the game */ }
+  }
+  // host: what a joined screen reported (src2/net.js 'diag'). Into the playtest log; a different fight or an error also shows in the host's own log
+  function netDiag(seat, k, d) {
+    if (!NET_DIAG[k] || !G || !G.teams[seat]) return;
+    tlog('client_' + k, Object.assign({ seat }, d && typeof d === 'object' ? d : {}));
+    const key = k + seat + (d && (d.fid || d.msg) || ''); netDiag.seen = netDiag.seen || {}; if (netDiag.seen[key]) return; netDiag.seen[key] = 1;
+    if (k === 'desync') say(HS, '⚠️ <b>' + esc(G.teams[seat].player || G.teams[seat].name) + '</b>\'s screen showed a different fight than yours (round ' + G.round + '). The result on your screen counts. It is in the playtest log.', '#b45309');
+    if (k === 'error') say(HS, '⚠️ <b>' + esc(G.teams[seat].player || G.teams[seat].name) + '</b>\'s screen hit an error: ' + esc(String(d && d.msg || '').slice(0, 120)) + ' (in the playtest log).', '#b45309');
   }
   const ptBuild = r => r ? { level: r.level, parts: partsOf(r), damage: zoneTxt(r) } : null;
   function ptSnapshot() {
@@ -2649,11 +2661,15 @@ html, body {
     await boardFx({ kind: 'react', ti: o.i, card: id, label: b.name === 'Not My Robot' ? '🙅 NOT MY ROBOT' : '✋ BLOCKS IT' });
     { const st = cst(id, o.i); cstBy(id, o.i, 'played'); st.played++; st.landed++; }
     removeFromHand(o, id); discardCard(id);
-    if (b.name === 'Paid Off') { const p = lowestOther([o.i, F.i]); addCr(p, payCr(o, 3, 'card'), 'card'); }
+    if (b.name === 'Paid Off') {   // 14 Nov: a person picks who gets the 3 Cr (the card says "pay another team"); the AI pays the team with the least fame
+      let p = lowestOther([o.i, F.i]); const cands = G.teams.filter(x => x !== o && x !== F);
+      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '💰 Paid Off', 'Which team gets your 3 credits?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame, ' + x.credits + ' Cr)', value: () => x })), 0, p); if (ch && cands.includes(ch)) p = ch; }
+      addCr(p, payCr(o, 3, 'card'), 'card'); }
     if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
     if (b.name === "Sponsor's Lawyers") { const k = G.discard.indexOf('security_bot'); if (k >= 0) { G.discard.splice(k, 1); o.hand.push('security_bot'); } }
     if (b.name === 'Not My Robot') {
-      const nt = G.teams.filter(x => x !== o && x !== F).sort((a, z) => z.fame - a.fame)[0];
+      const cands = G.teams.filter(x => x !== o && x !== F).sort((a, z) => z.fame - a.fame); let nt = cands[0];   // 14 Nov: a person picks the new target (the card says "pick a new target"); the AI points at the team with the most fame
+      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '🙅 Not My Robot', 'Who does ' + nm(F) + '\'s scheme hit instead of you?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame)', value: () => x })), 0, nt); if (ch && cands.includes(ch)) nt = ch; }
       notify('🙅 ' + nm(o) + ': "Not my robot!" The scheme now targets ' + nm(nt) + '; if it lands, ' + nm(F) + ' loses 1 fame.', o.col);
       F.ivNmr = true;
       return { blocked: false, T: nt };
@@ -2661,37 +2677,62 @@ html, body {
     notify('🛡️ ' + nm(o) + ' blocks it with ' + cardRef(id) + '!', o.col);
     return { blocked: true, T };
   }
+  /* Security Bots (target only). 14 Nov (Friday playtest): a person now DECIDES each roll: a bot from its garage, a bot from
+   * its hand (the card: "discard and roll"), or none, so it can keep its bots and answer with a reaction card instead. The AI
+   * still rolls every bot it has. Returns { blocked, T } when a bot settled it (a block, or a block an Override cancelled), else null. */
+  async function botDefence(F, c, T, shown) {
+    if (!(T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name))) return null;   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
+    const need = hasCrew(T, 'secchief') ? 3 : 4;
+    for (;;) {
+      const inst = secReady(T), inHand = T.hand.filter(x => x === 'security_bot').length;
+      if (inst + inHand < 1) return null;
+      let fromHand = inst < 1;
+      if (isHuman(T.i)) {
+        const opts = [];
+        if (inst) opts.push({ label: '🤖 Roll a Security Bot (' + inst + ' in your garage)', value: () => 'garage' });
+        if (inHand) opts.push({ label: '🤖 Discard a Security Bot from your hand and roll', value: () => 'hand' });
+        opts.push({ label: 'No bot', secondary: true, value: () => null });
+        const pick = await askSeat(T.i, '🤖 Security Bot?', nm(F) + ' plays ' + shown + ' on you' + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>A Security Bot blocks it on a roll of ' + need + '–6 and is used up either way. Your reaction cards come after this.', opts, 5000, null);
+        if (!pick) return null;
+        fromHand = pick === 'hand';
+      }
+      if (fromHand) { if (!removeFromHand(T, 'security_bot')) return null; } else T.secBots--;
+      discardCard('security_bot');
+      const roll = 1 + Math.floor(rnd() * 6), ok = roll >= need;
+      await boardFx({ kind: 'roll', ti: T.i, roll, ok });
+      { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[ok ? 'landed' : 'blocked']++; }
+      const help = helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.');
+      if (ok) { notify('<span' + help + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col);
+        if (await overrideStep(F, c, T, 'the Security Bot')) return { blocked: false, T };
+        return { blocked: true, T }; }
+      notify('<span' + help + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
+    }
+  }
   async function defend(F, c, T) {
     const shown = c.t === 'F' ? 'a face-down card' : '<b>' + esc(c.name) + '</b>';
-    if (T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name)) {   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
-      while (secReady(T) + T.hand.filter(x => x === 'security_bot').length > 0) {
-        if (secReady(T) > 0) T.secBots--; else removeFromHand(T, 'security_bot');
-        discardCard('security_bot');
-        const roll = 1 + Math.floor(rnd() * 6);
-        await boardFx({ kind: 'roll', ti: T.i, roll, ok: roll >= (hasCrew(T, 'secchief') ? 3 : 4) });
-        { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[roll >= (hasCrew(T, 'secchief') ? 3 : 4) ? 'landed' : 'blocked']++; }
-        if (roll >= (hasCrew(T, 'secchief') ? 3 : 4)) { notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col);
-          if (await overrideStep(F, c, T, 'the Security Bot')) return { blocked: false, T };
-          return { blocked: true, T }; }
-        notify('<span' + helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.') + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
+    { const r0 = await botDefence(F, c, T, shown); if (r0) return r0; }
+    for (let again = true, guard = 0; again && guard < 6; guard++) {   // again: Not My Robot moved the scheme to a new target, which gets its own bots and reaction windows
+      again = false;
+      for (const oi of seatOrder()) {
+        const o = G.teams[oi];
+        if (o === F) continue;
+        const opts = blockOptions(o, F, c, T);
+        if (!opts.length) continue;
+        let use = null;
+        if (isHuman(oi)) {
+          use = await askSeat(oi, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
+            opts.map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id })).concat([{ label: 'Let it through', secondary: true, value: () => null }]), 5000, null);
+        } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
+        if (!use) continue;
+        const r = await applyBlock(o, use, F, c, T);
+        if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
+        if (r.blocked) return r;
+        if (r.T !== T) {   // Not My Robot: the new target defends itself (14 Nov: it could not use its Security Bots)
+          T = r.T;
+          const r1 = await botDefence(F, c, T, shown); if (r1) return r1;
+          again = true; break;
+        }
       }
-    }
-    const order = seatOrder();
-    for (const oi of order) {
-      const o = G.teams[oi];
-      if (o === F) continue;
-      const opts = blockOptions(o, F, c, T);
-      if (!opts.length) continue;
-      let use = null;
-      if (isHuman(oi)) {
-        use = await askSeat(oi, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
-          opts.map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id })).concat([{ label: 'Let it through', secondary: true, value: () => null }]), 5000, null);
-      } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
-      if (!use) continue;
-      const r = await applyBlock(o, use, F, c, T);
-      if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
-      if (r.blocked) return r;
-      T = r.T;
     }
     return { blocked: false, T };
   }
@@ -2776,7 +2817,8 @@ html, body {
     if (c.target === 'rival' && (!T || T === F)) return 'Drop it on a rival garage.';
     const need = { 'Public Demo': 3, 'Bribe Scandal': 3, 'Paparazzi': 3, 'Launch Party': 6, 'Joint Venture': 2 }[n];
     if (need && F.credits < need) return n + ' needs ' + need + ' Cr.';
-    if (['Headhunter Fee', 'Inside Leak', 'Museum Donation'].includes(n) && readyCrew(F) < 1) return n + ' needs a ready crew member.';
+    if (['Headhunter Fee', 'Inside Leak'].includes(n) && readyCrew(F) < 1) return n + ' needs a ready crew member.';
+    if (n === 'Museum Donation' && readyCrew(F) < 1 && !(isHuman(F.i) && F.robots.length)) return n + ' needs a ready crew member' + (isHuman(F.i) ? ' or a robot' : '') + '.';
     if (n === 'Security Override' && (secReady(T) < 1 || F.credits < secReady(T))) return 'Needs a target with Security Bots and 1 Cr per bot.';
     if (n === 'Asset Strip' && (secReady(T) < 1 || F.credits < 3)) return 'Needs a target with Security Bots and 3 Cr.';
     if (n === 'Hostile Buyout' && (F.credits < 4 || F.robots.length >= 3 || T.robots.length < 2)) return 'Needs 4 Cr, a free bay, and a target with 2+ robots.';
@@ -2854,7 +2896,23 @@ html, body {
  T.exMechs = (T.exMechs || 0) + 2 * p; addFame(T, p); say('📣 Team-Building: ' + nm(T) + ' exhausts ' + 2 * p + ' crew, +' + p + ' fame.'); break; }
       case 'Underdog Story': { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame) { addFame(s[0], 2); say('📣 Underdog Story: ' + nm(s[0]) + ' +2 fame.'); } else say('📣 Underdog Story fizzles: the bottom is tied.'); break; }
       case 'Press Tour': { const m = readyCrew(T), s = secReady(T); if (m + s >= 3) { const a = Math.min(3, m); T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + (3 - a); addFame(T, 1); say('📣 Press Tour: ' + nm(T) + ' +1 fame.'); } else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready crew or bots.'); break; }
-      case 'Museum Donation': { const c = loseCrew(F); addFame(F, 1); say('📣 ' + nm(F) + ' donates its ' + (c ? crewRef(c.kind) : 'crew') + ' to the museum: +1 fame.'); break; }
+      case 'Museum Donation': {   // 14 Nov: a person picks what it donates, a robot or a ready crew member (the card: "discard a robot or crew member"); the AI gives a crew member
+        let gift = null;
+        if (isHuman(F.i)) {
+          const R = repState(F), crew = readyCrew(F) > 0 ? F.crew.filter(x => R.used[x.uid] == null) : [];
+          const opts = crew.map(x => ({ label: CREW[x.kind].icon + ' ' + esc(CREW[x.kind].name), value: () => ({ crew: x }) })).concat(F.robots.map(r => ({ label: '🤖 ' + esc(r.name) + (r.wins ? ' (' + r.wins + ' Fan token' + (r.wins > 1 ? 's' : '') + ')' : ''), value: () => ({ robot: r }) })));
+          if (opts.length > 1) gift = await askSeat(F.i, '🏛️ Museum Donation', 'Donate a robot or a ready crew member to the museum for +1 fame. Which one?', opts, 0, null);
+          if (!gift && !crew.length && F.robots.length) gift = { robot: F.robots[0] };
+        }
+        if (gift && gift.robot && F.robots.includes(gift.robot)) {
+          const r = gift.robot; robotLeaves(F, r, null, 'museum'); returnStarter(r.name); addFame(F, 1);
+          say('📣 ' + nm(F) + ' donates <b>' + esc(r.name) + '</b> to the museum: +1 fame.'); if (!F.robots.length) noRobotsLeft(F);
+        } else {
+          let c = null;
+          if (gift && gift.crew && F.crew.includes(gift.crew)) { c = gift.crew; F.crew.splice(F.crew.indexOf(c), 1); if (c.kind === 'chief') fixEng(F); crewLeft(F, c); } else c = loseCrew(F);
+          addFame(F, 1); say('📣 ' + nm(F) + ' donates its ' + (c ? crewRef(c.kind) : 'crew') + ' to the museum: +1 fame.');
+        }
+        break; }
       case 'Celebrity Endorsement': case 'Prime-Time Interview': case 'Viral Moment': addFame(T, 1); say('📣 ' + esc(n) + ': ' + nm(T) + ' +1 fame.'); break;
       case 'Co-Branding Deal': { const o = lowestOther([T.i]); addFame(T, 1); addFame(o, 1); say('📣 Co-Branding: ' + nm(T) + ' and ' + nm(o) + ' +1 fame.'); break; }
       case 'Hype Reel': { const r = bestReady(T); if (r) { r.wins++; if (r.wins === favWins(T)) addFame(T, BAL.fame.fanFav); say('📣 Hype Reel: ' + esc(r.name) + ' gets a Fan token.'); } break; }
@@ -3865,7 +3923,7 @@ html, body {
     for (const x of live) {
       if (!needsRobot(x.lot)) continue;
       const T = G.teams[x.team];
-      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▼ Click a Robot Bay below'; continue; }
+      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▶ Click one of your Robot Bays (right)'; continue; }
       const pickR = isHuman(x.team) ? null : aiPickRobot(T, x.lot);
       if (pickR) { A.results[x.idx].target = applyLot(x.team, x.lot, pickR); continue; }
       stashParts(T, [x.lot]); A.results[x.idx].target = stashOf(T).includes(x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold';
@@ -4366,10 +4424,15 @@ html, body {
     if (s < 0) return;
     t.fame = Math.max(0, t.fame - 1);
     const free = x => !F.teams.includes(x.i) && x.i !== S;
-    const repl = G.teams.filter(x => free(x) && !isHuman(x.i) && readyRobots(x).length)[0] || G.teams.filter(x => free(x) && readyRobots(x).length)[0] || G.teams.filter(free)[0];
-    F.teams[s] = repl.i;
-    F.robots[s] = (readyRobots(repl).length ? readyRobots(repl) : repl.robots).slice().sort((a, b) => power(b) - power(a))[0];
+    const repl = G.teams.filter(x => free(x) && !isHuman(x.i) && readyRobots(x).length)[0] || G.teams.filter(x => free(x) && readyRobots(x).length)[0];
     PS(S).choose = false;
+    if (!repl) {   // 14 Nov: nobody with a ready robot can step in (it used to pick a team without one: a fight with a missing robot, and the game hung)
+      notify(nm(t) + ' declines the invite (−1 Fame) and no team with a ready robot can step in: no fight this round.', '#b45309');
+      for (const h of humanSeats()) PS(h).choose = false;
+      G.chooseMyBot = false; G.fight = null; G.phase = 'after'; G.awaitingJudgment = false; G.nextEvent = null; updateHud(); return;
+    }
+    F.teams[s] = repl.i;
+    F.robots[s] = readyRobots(repl).slice().sort((a, b) => power(b) - power(a))[0];
     notify(nm(t) + ' declines the invite (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
     if (!humanSeats().some(h => PS(h).choose)) afterChoose();
   }
@@ -5379,7 +5442,7 @@ html, body {
     return netTick.tick + Math.min(1000, performance.now() - netTick.at) * 0.12 * (netTick.rate != null ? netTick.rate : 1) - 6;
   }
   function resimFight(F) {
-    resims++;
+    resims++; tlog('resim', { fid: F.fid, step: clientFight.S.step });
     const target = clientFight.S.step, S = fightFromBB(F.bb);
     for (const c of F.cmdLog || []) DL.command(S, clone(c));
     while (S.step < target && !S.over) { DL.step(S); S.fx.length = 0; }
@@ -5577,7 +5640,7 @@ html, body {
     rematch() { if (NETROLE !== 'host') return; if (G.startFame == null) G.startFame = BAL.startFame; newGame(); updateHud(); },
     snapFor, logFrom: n => ({ base: logBase, ops: LOGOPS.slice(Math.max(0, n - logBase)), end: logBase + LOGOPS.length }),
     snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused }),
-    runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman,
+    runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman, netDiag,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
     setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
