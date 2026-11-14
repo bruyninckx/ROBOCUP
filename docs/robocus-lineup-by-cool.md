@@ -2,7 +2,7 @@
 
 Kev (14 Nov): "we need to re-organize robots based on how cool they look and we need to decide based on game dynamics if we need more levels in the auction or if that is not needed, if we have too many levels we just pick the most fun robots." And: "figure out what tags we can give all these robots, that will also be part of how cool they are."
 
-Picture: `robocus-lineup-by-cool.png` (every robot in its proposed level, with its tags and what it needs).
+Picture: `robocus-lineup-by-cool.png` (every robot in its proposed level, with its tags and quirk).
 
 ## 1. More levels? No: keep starters + 4 levels, and pick the most fun robots
 
