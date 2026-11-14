@@ -1,5 +1,7 @@
-// Many click games in a row, added up (14 Nov). Half of them with watched fights (live cards clicked), half with skipped
-// fights; half of them with card rain (every seat is dealt the cards of each step, so rare card moments happen all the time).
+// Many click games in a row, added up (14 Nov). A mix (see click-game.js): half with watched fights (live cards clicked),
+// half with card rain, a third long (nobody can win: the late game), two in five with trouble on the line (page reloads,
+// slow connections); every screen its own size. At the end: the findings, and COVERAGE: what never happened in any game
+// (cards never played by a joined seat, actions never clicked, no level 4 robot…), so we know what the batch did not test.
 //   node tools/mp-scenario/click-many.js [games=8] [minutesEach=6] [firstSeed] [parallel] [outDir]
 //     firstSeed: today's date by default (other games every night) · parallel: a quarter of the CPU cores (2 to 8); a game is
 //     four browser tabs · outDir: playtests/click-runs/<date_time>. The summary is also written to summary.txt there and to
@@ -25,13 +27,13 @@ if (!SUM) { const most = Math.ceil(N / par) * (minutes + 1), est = avgMin ? Math
   console.log(N + ' click games of at most ' + minutes + ' minutes, ' + par + ' at a time, seeds ' + first + ' to ' + (first + N - 1) + '.');
   console.log(est ? 'About ' + hm(est) + ' (done around ' + at(est) + '): last time a game took ' + avgMin.toFixed(1) + ' minutes on this PC. At most ' + hm(most) + '.' : 'At most ' + hm(most) + ' (done by ' + at(most) + '), probably much sooner: a game stops as soon as someone wins.');
   console.log('Results: ' + out + '. A line appears for every game that ends, and a status line every minute.'); }
-const game = path.join(__dirname, 'click-game.js'), jobs = Array.from({ length: N }, (_, k) => ({ seed: first + k, watch: k % 2 === 0, rain: process.env.RAIN === '1' || (process.env.RAIN !== '0' && k % 4 >= 2) }));   // half the games with RAIN (see click-game.js), unless RAIN=0 or RAIN=1
+const game = path.join(__dirname, 'click-game.js'), jobs = Array.from({ length: N }, (_, k) => ({ seed: first + k, watch: k % 2 === 0, rain: process.env.RAIN === '1' || (process.env.RAIN !== '0' && k % 4 >= 2), long: k % 3 === 1, chaos: k % 5 >= 3 }));   // a mix: half watched, half with card rain, a third long (nobody can win), two in five with trouble on the line
 const run = j => new Promise(res => {
   const json = path.join(out, 'run-' + j.seed + '.json'), log = fs.openSync(path.join(out, 'run-' + j.seed + '.txt'), 'w');
   try { fs.unlinkSync(json); } catch (e) {}
-  const p = spawn(process.execPath, [game, String(j.seed), String(minutes), path.join(out, 'shots-' + j.seed)], { env: Object.assign({}, process.env, { JSON: json, WATCH: j.watch ? '1' : '0', RAIN: j.rain ? '1' : '0' }), stdio: ['ignore', log, log] });
+  const p = spawn(process.execPath, [game, String(j.seed), String(minutes), path.join(out, 'shots-' + j.seed)], { env: Object.assign({}, process.env, { JSON: json, WATCH: j.watch ? '1' : '0', RAIN: j.rain ? '1' : '0', LONG: j.long ? '1' : '0', CHAOS: j.chaos ? '1' : '0' }), stdio: ['ignore', log, log] });
   const kill = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, (minutes + 3) * 60000);
-  p.on('exit', () => { clearTimeout(kill); let r = null; try { r = JSON.parse(fs.readFileSync(json, 'utf8')); } catch (e) {} console.log('seed ' + j.seed + (j.watch ? ' (watched fights)' : '') + (j.rain ? ' (card rain)' : '') + ': ' + (r ? (r.over ? 'finished' : 'played') + ' ' + r.round + ' rounds, ' + (r.notes.length + r.stuck.length + r.errors.length + r.warns.length) + ' findings' : 'NO RESULT (the run crashed or hung: see run-' + j.seed + '.txt)')); res({ j, r }); });
+  p.on('exit', () => { clearTimeout(kill); let r = null; try { r = JSON.parse(fs.readFileSync(json, 'utf8')); } catch (e) {} console.log('seed ' + j.seed + (j.watch ? ' (watched fights)' : '') + (j.rain ? ' (card rain)' : '') + (j.long ? ' (long)' : '') + (j.chaos ? ' (chaos)' : '') + ': ' + (r ? (r.over ? 'finished' : 'played') + ' ' + r.round + ' rounds, ' + (r.notes.length + r.stuck.length + r.errors.length + r.warns.length) + ' findings' : 'NO RESULT (the run crashed or hung: see run-' + j.seed + '.txt)')); res({ j, r }); });
 });
 (async () => {
   const results = []; let next = 0; const t00 = Date.now(), running = new Set();
@@ -46,7 +48,7 @@ const run = j => new Promise(res => {
     if (!r) { hung.push(j.seed); continue; }
     rounds += r.round;
     for (const x of r.notes) add(x.kind, x.text, j.seed);
-    for (const x of r.stuck) add('stuck', x.kind + ' seat · ' + x.label.replace(/ (Thumper|[A-Z][a-z]+)$/, ' <robot>') + ' · could click: ' + (x.canClick.slice(0, 6).join(', ') || 'nothing'), j.seed);
+    for (const x of r.stuck) add('stuck', x.kind + ' seat' + (x.size ? ' (' + x.size + ' screen)' : '') + ' · ' + x.label.replace(/ (Thumper|[A-Z][a-z]+)$/, ' <robot>') + ' · could click: ' + (x.canClick.slice(0, 6).join(', ') || 'nothing'), j.seed);
     for (const x of r.errors) add('page error', String(x).replace(/^(host|P\d): /, '').slice(0, 200), j.seed);
     for (const x of r.warns) add('fight mismatch', String(x).replace(/^(host|P\d): /, '').replace(/[0-9a-f:]{6,}/g, '#').slice(0, 80), j.seed);
     for (const x of r.clientTrouble || []) add('joined screen reported', String(x).replace(/seat \d/, 'seat #').slice(0, 160), j.seed);
@@ -71,8 +73,23 @@ const run = j => new Promise(res => {
   if (Object.keys(outc).length) { say('what came of it (host seat · the 3 joined seats together):'); for (const k of Object.keys(outc).sort()) say('  ' + k.padEnd(40) + String(outc[k].host).padStart(5) + ' ·' + String(outc[k].joined).padStart(5)); }
   if (!list.length) say('No findings.');
   for (const f of list) say(String(f.seeds.length).padStart(3) + '× ' + f.kind + ' · ' + f.text + '   [seeds ' + [...new Set(f.seeds)].slice(0, 6).join(', ') + ']');
+  // ---- coverage: what did all these games together never do?
+  { const cards = {}, acts = {}, live = {}; let names = {}, n = 0, l4 = 0, leg = 0, r3 = 0, reloads = 0;
+    for (const { r } of results) { if (!r || !r.cover) continue; n++; names = Object.assign(names, r.cover.names); if (r.cover.maxLevel >= 4) l4++; if (r.cover.legend) leg++; if (r.cover.robots3) r3++; reloads += r.reloads || 0;
+      for (const [src, dst] of [[r.cover.cards, cards], [r.cover.acts, acts], [r.cover.live, live]]) for (const k of Object.keys(src)) { dst[k] = dst[k] || { host: 0, joined: 0 }; dst[k].host += src[k].host; dst[k].joined += src[k].joined; } }
+    if (n) {
+      let allActs = []; try { allActs = [...new Set((fs.readFileSync(path.join('prototypes', 'tabletop-2.html'), 'utf8').match(/\bACT\.(\w+) = /g) || []).map(x => x.slice(4, -3)))]; } catch (e) {}
+      const nm = k => names[k] || k, ids = Object.keys(names), played = k => (cards[k] ? cards[k].host + cards[k].joined : 0) + (live[k] ? live[k].host + live[k].joined : 0), by = (k, who) => (cards[k] ? cards[k][who] : 0) + (live[k] ? live[k][who] : 0);
+      const never = ids.filter(k => !played(k)), noJoined = ids.filter(k => played(k) && !by(k, 'joined')), noHost = ids.filter(k => played(k) && !by(k, 'host'));
+      say('\nCOVERAGE over ' + n + ' games:');
+      say('  cards played at least once: ' + (ids.length - never.length) + ' of ' + ids.length + (never.length ? ' · NEVER played: ' + never.map(nm).join(', ') : ''));
+      if (noJoined.length) say('  played, but never by a joined seat: ' + noJoined.map(nm).join(', '));
+      if (noHost.length) say('  played, but never by the host seat (one seat in four, so less telling): ' + noHost.map(nm).join(', '));
+      if (allActs.length) { const nA = allActs.filter(a => !acts[a]), nJ = allActs.filter(a => acts[a] && !acts[a].joined); say('  actions clicked at least once: ' + (allActs.length - nA.length) + ' of ' + allActs.length + (nA.length ? ' · NEVER: ' + nA.join(', ') : '') + (nJ.length ? ' · never by a joined seat: ' + nJ.join(', ') : '')); }
+      say('  late game: ' + l4 + ' games reached a level 4 robot, ' + leg + ' a legendary part, ' + r3 + ' a full garage (3 robots)' + (reloads ? ' · ' + reloads + ' page reloads survived or reported' : ''));
+    } }
   { const seeds = [...new Set(list.flatMap(f => f.seeds).filter(x => typeof x === 'number'))].sort((a, b) => a - b).slice(0, 12);
-    if (seeds.length) { say('\nReplay a game that showed something (its text and screenshots are in ' + out + '):'); for (const sd of seeds) { const j = (results.find(x => x.j.seed === sd) || {}).j || {}; say('  node tools/mp-scenario/click-game.js ' + sd + ' ' + minutes + (j.watch ? ' --watch' : '') + (j.rain ? ' --rain' : '')); } } }
+    if (seeds.length) { say('\nReplay a game that showed something (its text and screenshots are in ' + out + '):'); for (const sd of seeds) { const j = (results.find(x => x.j.seed === sd) || {}).j || {}; say('  node tools/mp-scenario/click-game.js ' + sd + ' ' + minutes + (j.watch ? ' --watch' : '') + (j.rain ? ' --rain' : '') + (j.long ? ' --long' : '') + (j.chaos ? ' --chaos' : ''));  } } }
   try { fs.writeFileSync(path.join(out, 'summary.txt'), lines.join('\n') + '\n'); fs.mkdirSync(path.join('playtests', 'click-runs'), { recursive: true }); fs.writeFileSync(path.join('playtests', 'click-runs', 'latest-summary.txt'), 'Batch ' + out + ', build of ' + new Date().toISOString().slice(0, 16) + '\n' + lines.join('\n') + '\n'); } catch (e) {}
   fs.writeFileSync(path.join(out, 'summary.json'), JSON.stringify({ games: results.length, rounds, hung, findings: list }, null, 1));
   process.exit(list.length || hung.length ? 1 : 0);

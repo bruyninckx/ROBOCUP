@@ -96,6 +96,10 @@ html, body {
   font: 600 13px/1.38 var(--sans); overflow-y: auto; scrollbar-width: thin;
   transition: opacity .15s ease;
 }
+.prompt-bar.tight { font-size: 12px; line-height: 1.3; gap: 5px; padding: 22px 10px 7px; }
+.prompt-bar.tight > .act, .prompt-bar.tight > select, .prompt-bar.tight > label, .prompt-bar.tight > button { order: -1; }
+.prompt-bar.tight .act { padding-top: 3px; padding-bottom: 3px; }
+.prompt-bar.tight .ivorder { display: none; }
 .prompt-bar::before { content: 'YOUR MOVE'; position: absolute; left: 13px; top: 8px; font: 600 10.5px var(--mono); letter-spacing: 1.5px; }
 .prompt-bar.idle::before { content: 'AT THE TABLE'; }
 .prompt-bar.idle { background: #EFE3B0; }
@@ -1479,7 +1483,7 @@ html, body {
     renderWhoDots();
     renderWinWatch();
     renderPromptBar();
-    { const pb = $('#promptBar'); pb.classList.toggle('idle', !pb.querySelector('button, select')); }
+    { const pb = $('#promptBar'); pb.classList.toggle('idle', !pb.querySelector('button, select')); fitPrompt(); }
     renderHand();
   }
   /* ---------- Close to winning (Kev, 7 Nov: "it is not very clear when this happens") ----------
@@ -6313,6 +6317,20 @@ html, body {
     help(P.x + 10, P.y + 6, maxR, 30, PHASE_TITLE[G.phase] || 'The pit', PHASE_HELP[G.phase] || '');
   }
 
+  /* The sticky note on a small screen (15 Nov, found by the click test on a 1280 × 720 screen): the note is as high as its
+   * zone, and when the text did not fit, the buttons (End turn, Lock bids, Start the auction…) ended up below its edge,
+   * reachable only by scrolling inside the note. A player on a laptop could not end its turn. When the content does not fit,
+   * the note goes "tight": the buttons come first, the text gets a little smaller, the turn-order line (it is in the pit
+   * too) goes. Measured once per content and size, so it does not flicker. */
+  function fitPrompt() {
+    const pb = $('#promptBar'); if (!pb) return;
+    if (narrowScreen()) { pb.classList.remove('tight'); fitPrompt.key = ''; return; }
+    const key = pb.style.maxHeight + '|' + pb.style.width + '|' + pb.innerHTML;
+    if (key === fitPrompt.key) return;
+    fitPrompt.key = key;
+    pb.classList.remove('tight');
+    if (pb.scrollHeight > pb.clientHeight + 2) pb.classList.add('tight');
+  }
   /* ---------- HTML zones placed over the canvas: 4 · sticky note, 7 · log, 5 · Stash ---------- */
   const OVL = { key: '' };
   function placeOverlays(L) {
@@ -6343,7 +6361,7 @@ html, body {
     if (OVL.key === k) return;
     OVL.key = k;
     const nh = Math.round(Math.max(100, Math.min(sh - 4, nb.y) - a.y));   // the note fills its zone: top and bottom in line with the log
-    Object.assign(pb.style, { left: Math.round(a.x) + 'px', top: Math.round(a.y) + 'px', width: Math.round(nb.x - a.x) + 'px', maxHeight: nh + 'px', minHeight: nh + 'px' });
+    Object.assign(pb.style, { left: Math.round(a.x) + 'px', top: Math.round(a.y) + 'px', width: Math.round(nb.x - a.x) + 'px', maxHeight: nh + 'px', minHeight: nh + 'px' }); fitPrompt();
     Object.assign(lg.style, { left: Math.round(la.x) + 'px', top: Math.round(la.y) + 'px', width: Math.round(lb.x - la.x) + 'px', height: Math.round(Math.max(60, Math.min(sh - 6, lb.y) - la.y)) + 'px' });
     // the Stash: under your robots, clear of the hand's tab
     Object.assign(st.style, { left: Math.round(sa.x) + 'px', top: Math.round(sa.y) + 'px', width: Math.round(sb.x - sa.x) + 'px', maxHeight: Math.round(Math.max(40, Math.min(sh - 76, sb.y) - sa.y)) + 'px' });
