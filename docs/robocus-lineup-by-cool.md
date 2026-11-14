@@ -170,3 +170,31 @@ What it says:
 - **Many grinders (11)**: without the damage multipliers, fights last longer. After tuning, some of these will drop off. The tags should be measured again then (same scripts, `TWEAKED=1`).
 - **Noise:** a robot sits in about 40 free-for-alls and 6 fights per arena, so the melee and arena tags near the threshold can flip with more fights; the full run on Kev's PC should use `NFFA=1200 NTV=1200 NAR=20`.
 - Not re-measured (they need part runs): Epic combo, Great fit / Poor fit, Giant-slayer build, Chip-tuned, Needs its armour / Shrugs it off.
+
+## 6. Kev's verdicts (14 Nov, Robot Casting Board) and the lineup that follows
+
+Verdicts from the casting board page (all 44 robots rated):
+
+| Verdict | Robots |
+|---|---|
+| Keep for sure (13) | Bricklayer, Buzzkill, Gyro, Hornet, Jukebox, Lodestone, Mauler, Orbiter, Pogo, Rotisserie, Slingshot, Trebuchet, Wrecker |
+| Keep (13) | Blacksmith, Forklift, Gaucho, Grandmaster, Hydra, Mincer, Railgun, Scavenger, Scythe, Snapjaw, Tarantula, Thwacker, Yo-yo |
+| Maybe keep (4) | Angler, Corkscrew, Pincher, Whaler |
+| Maybe drop (6) | Blowtorch, Popcorn, Sawblast, Talon, Thumper, Vertigo |
+| Drop for sure (8) | Brawler, Haymaker, Jouster ("keeping Hornet"), Juggernaut, Ramrod ("we have Corkscrew"), Rocketeer, Rumbler, Whirlwind ("this is Buzzkill with an upgrade") |
+
+30 robots are keepers (keep for sure, keep, maybe keep); the game needs 33 (9 starters, 5 / 5 / 6 / 8 at levels 1-4), so 3 places go to maybe-drops. Proposal: **Popcorn** (the only flipper) and **Thumper** (the only axe hammer) as starters, **Vertigo** (the only vertical disc) at level 1. Dropped: Blowtorch (fire is covered by Rotisserie), Sawblast, Talon and the 8 drop-for-sure robots.
+
+Proposed lineup (levels by coolness, Kev's verdict breaks ties):
+
+| Level | Robots |
+|---|---|
+| 4 (8) | Rotisserie, Jukebox, Pogo, Trebuchet, Orbiter, Lodestone, Bricklayer, Railgun |
+| 3 (6) | Tarantula, Scavenger, Slingshot, Hydra, Grandmaster, Gaucho |
+| 2 (5) | Yo-yo, Whaler, Pincher, Angler, Gyro |
+| 1 (5) | Mauler, Corkscrew, Blacksmith, Thwacker, Vertigo |
+| Starters (9) | Buzzkill, Wrecker, Snapjaw, Hornet (replaces Jouster), Scythe, Mincer, Forklift, Popcorn, Thumper |
+
+Starters are the simple classics, one per weapon type where possible (spinner, flail, crusher, spear, sweeper axe, grinder, lifter, flipper, axe hammer). Hornet, Mincer, Forklift and Scythe move down from level 1-3 to starters. Bookie tags still spread across every level: brawl masters (Buzzkill, Wrecker, Mauler, Gyro, Vertigo, Railgun, Jukebox), giant killers (Buzzkill, Railgun, Trebuchet), lone wolves (Hornet, Mincer, Forklift, Popcorn, Thwacker, Trebuchet).
+
+Next: tune the numbers so each level wins about 60% against the one below (honest dials first: weapon size, motor, armour; a small power grade to finish), then measure the tags again with the tuned numbers.
