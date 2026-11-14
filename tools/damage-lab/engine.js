@@ -3980,7 +3980,7 @@
   // winches the cable in: like a skater pulling her arms in, it goes faster as the circle gets smaller (angular momentum).
   // Then it lets go and flies into the enemy, spiked prow first. It needs a wall within reach, the winch has only so much
   // power (a heavy robot reels in slower), the anchor rips out under too much pull, and spinning weapons cut the cable.
-  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 3.0, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
+  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 1.2, swingFirst: 0.5, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
   L4W.anchor = {
     build(S, R, k) {
       const { hl, hw } = k;
@@ -3991,7 +3991,7 @@
       for (let n = 0; n < 5; n++) lamp(R, (0.35 - n * 0.14) * hl, -0.6 * hw, n < 3 ? '#4CC26A' : n < 4 ? '#E8C547' : '#FF3B2B', 'state', { src: 'speed', at: n / 5, r: 0.018 }); // speedometer
     },
     ok: R => R.winch.hp > 0 || alivePart(R.tool),
-    cut(S, R, why, big) { const st = R.l4; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
+    cut(S, R, why, big) { const st = R.l4; if (st.A && (st.mode === 'swing' || st.mode === 'shot')) st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t }; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
     plan(S, R, E) { // like a real tether swing: running fast, fire the anchor sideways into the wall; the cable turns the run into a circle.
       // Pick the wall point square to the way we are going, with the enemy ahead on that circle and closer to the anchor than we are.
       const pos = R.body.getPosition(), v = R.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y), ep = E.body.getPosition(), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02; let best = null;
@@ -4017,13 +4017,14 @@
         st.Abody = S.world.createBody({ type: 'static', position: V(st.A[0], st.A[1]) });
         const L0 = Math.hypot(pos.x - st.A[0], pos.y - st.A[1]);
         st.rope = S.world.createJoint(pl.RopeJoint({ maxLength: L0, collideConnected: false, localAnchorA: V(0, 0), localAnchorB: V(0, 0) }, st.Abody, b));
-        st.mode = 'swing'; st.phase = 'reel'; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
+        (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift(); st.mode = 'swing'; st.phase = 'spin'; st.a0 = null; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
         S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its anchor into the wall`, R.id);
         return;
       }
       if (st.mode === 'swing') {
         st.t += DT;
         if (!on || !E.alive) { this.cut(S, R); return; }
+        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls are closing in: the anchor's wall has moved
         const ten = weldForce(st.rope); st.ten = ten;
         if (ten > PEND.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); say(S, `${R.name}'s anchor rips out of the wall`, R.id); return; }
         // spinning weapons cut the cable
@@ -4033,12 +4034,13 @@
         }
         // the winch: reel in to the enemy's distance from the anchor; it can only pull so hard (power = pull x speed)
         const rE = Math.hypot(c.E.body.getPosition().x - st.A[0], c.E.body.getPosition().y - st.A[1]), L = st.rope.getMaxLength();
-        if (st.phase === 'spin' && (sp > 0.85 * R.C.vmax || st.t > 1.4)) st.phase = 'reel'; // first get up to speed round the circle, then reel in
+        const aNow = Math.atan2(pos.y - st.A[1], pos.x - st.A[0]); if (st.a0 == null) st.a0 = aNow; st.turned = Math.abs(wrap(aNow - st.a0));
+        if (st.phase === 'spin' && st.turned > PEND.swingFirst) st.phase = 'reel'; // swing round a bit first (the cable turns the run), then reel in: reeling a robot that is not going round just drags it
         if (st.phase === 'reel' && L > rE + 0.05 && L > 0.7) { const vr = Math.min(PEND.reelV, PEND.winchP * P * c.jk / Math.max(200, ten)); st.rope.setMaxLength(Math.max(rE, L - vr * DT)); R.winch.heat += 0.5 * DT; }
         // let go when the enemy is dead ahead along the way we are flying, or when we touch it, or when it takes too long
         const ep = E.body.getPosition(), rx = ep.x - pos.x, ry = ep.y - pos.y, rd = Math.hypot(rx, ry), along = sp > 0.5 ? (rx * v.x + ry * v.y) / sp : 0, miss = sp > 0.5 ? Math.abs(rx * v.y - ry * v.x) / sp : 9;
         const touching = firstTouch(b, R, null);
-        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.phase === 'reel') || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
+        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.rope.getMaxLength() <= rE + 0.15) || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
           const fast = sp > 5; this.cut(S, R, fast ? 'SLINGSHOT!' : null, fast); st.rel = (st.rel || 0) + 1; st.relV = (st.relV || 0) + sp;
           if (fast) say(S, `${R.name} lets go of its cable and flies at ${E.name} at ${sp.toFixed(1)} m/s`, R.id, true);
           R.cool = 0.9; st.release = S.t;
@@ -4048,7 +4050,7 @@
       // free: fire the anchor when there is a good wall point
       R.freewheel = false;
       if (!on || R.cool > 0 || !E.alive || E.airborne > 0) return;
-      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 1.5) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
+      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 2.4) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
       st.A = pl0.A; st.sense = pl0.sense; st.mode = 'shot'; st.shot = { t: 0, T: pl0.rR / PEND.gunV, at: [pos.x, pos.y] };
       S.fx.push({ type: 'launch', x: pos.x, y: pos.y });
     },

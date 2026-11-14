@@ -681,6 +681,24 @@
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.body.getAngle()); ctx.fillStyle = q.hp > 0 ? '#4A4A46' : '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h);
         ctx.fillStyle = HAZ; ctx.fillRect(-h, -h, 2 * h, h * 0.28); ctx.fillStyle = INK; for (let x = -h; x < h; x += 0.07) { ctx.beginPath(); ctx.moveTo(x, -h); ctx.lineTo(x + 0.035, -h); ctx.lineTo(x + 0.015, -h + h * 0.28); ctx.lineTo(x - 0.02, -h + h * 0.28); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-h * 0.8, -h * 0.55, h * 1.6, 0.03); for (const [x, y] of [[-0.7, -0.3], [0.7, -0.3], [-0.7, 0.7], [0.7, 0.7]]) bolt(x * h, y * h); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(0, h * 0.2, 0.025, 0, 6.29); ctx.fill(); ctx.restore(); }
+  function drawAnchor(R) { // PENDULUM: the anchor, big enough to see, biting into the wall (or in flight), and the scars where it has been
+    const st = R.l4, t = performance.now() / 1000, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
+    for (const s of st.scars || []) { ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(out(s[0], s[1])); ctx.fillStyle = 'rgba(20,14,8,0.55)'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.05, 0.1, 0, 0, 6.29); ctx.fill(); ctx.strokeStyle = 'rgba(20,14,8,0.6)'; ctx.lineWidth = PX * 1.5; for (const a of [-0.9, -0.3, 0.4, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(a) * 0.16, Math.sin(a) * 0.16); ctx.stroke(); } ctx.restore(); }
+    const wp = R.body.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
+    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // reeled back in after it lets go: the anchor flies home on a slack cable
+      ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
+    if (!end) return;
+    const a = flying ? Math.atan2(end[1] - wp.y, end[0] - wp.x) : out(end[0], end[1]);
+    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a);
+    if (!flying) { ctx.fillStyle = 'rgba(232,197,71,0.35)'; ctx.beginPath(); ctx.arc(0, 0, 0.2 + 0.03 * Math.sin(t * 12), 0, 6.29); ctx.fill(); } // impact flash ring
+    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
+    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point into the wall
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.18, -0.03, 0.2, 0.015);
+    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); // the cable eye
+    ctx.fillStyle = Math.sin(t * 14) > 0 ? '#FF3B2B' : '#5A1A14'; ctx.beginPath(); ctx.arc(-0.09, 0, 0.022, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
   function drawL4(R, i) {
     const w = R.spec.weapon, b = R.body, t = performance.now() / 1000;
     if (w === 'mallet' && R.l4 && !R.inPit) drawMallet(R);
@@ -780,7 +798,6 @@
       if (R.tool && R.tool.attached) { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (const y of [-0.24, -0.12, 0, 0.12, 0.24]) { const x = R.hl + 0.3 - Math.abs(y) * 0.25; ctx.beginPath(); ctx.moveTo(x - 0.04, y - 0.03); ctx.lineTo(x + 0.07, y); ctx.lineTo(x - 0.04, y + 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.restore(); }
       const end = st.mode === 'shot' && st.shot ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
       if (end) { const taut = st.mode === 'swing'; ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = taut ? '#E4E1DA' : '#9A9C94'; ctx.lineWidth = 0.016; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
-        ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(Math.atan2(end[1] - wp.y, end[0] - wp.x)); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.08, 0); ctx.lineTo(-0.04, -0.07); ctx.lineTo(-0.01, 0); ctx.lineTo(-0.04, 0.07); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
         if (taut) { ctx.strokeStyle = 'rgba(255,59,43,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 3, PX * 4]); ctx.beginPath(); ctx.arc(end[0], end[1], Math.hypot(p0.x - end[0], p0.y - end[1]), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } }
       ctx.save(); ctx.translate(wp.x, wp.y); ctx.rotate(a0); ctx.fillStyle = R.winch.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.09, -0.13, 0.18, 0.26, 0.03); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 1.6; const rot = st.mode === 'swing' ? t * 9 : 0; for (let k = 0; k < 5; k++) { const y = -0.1 + ((k * 0.05 + rot * 0.01) % 0.25); ctx.beginPath(); ctx.moveTo(-0.07, y); ctx.lineTo(0.07, y + 0.02); ctx.stroke(); } ctx.restore();
@@ -1175,6 +1192,7 @@
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0) || ((a.tiltV || 0) > 0.05) - ((b.tiltV || 0) > 0.05));
     for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
+    for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
     for (const R of order) if (R.bricks && R.l4.carry && R.l4.carry.attached && !R.inPit) drawBrick(R.l4.carry, true); // a block up on the crane hook is above everything
     drawEwalls(); drawDrones();
     for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }

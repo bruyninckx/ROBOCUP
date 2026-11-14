@@ -4320,7 +4320,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // winches the cable in: like a skater pulling her arms in, it goes faster as the circle gets smaller (angular momentum).
   // Then it lets go and flies into the enemy, spiked prow first. It needs a wall within reach, the winch has only so much
   // power (a heavy robot reels in slower), the anchor rips out under too much pull, and spinning weapons cut the cable.
-  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 3.0, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
+  const PEND = { runV: 1.6, gunV: 20, rope: 5.2, reelV: 1.2, swingFirst: 0.5, winchP: 3200, rip: 9500, tmax: 5.0, cool: 1.6 };
   L4W.anchor = {
     build(S, R, k) {
       const { hl, hw } = k;
@@ -4331,7 +4331,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       for (let n = 0; n < 5; n++) lamp(R, (0.35 - n * 0.14) * hl, -0.6 * hw, n < 3 ? '#4CC26A' : n < 4 ? '#E8C547' : '#FF3B2B', 'state', { src: 'speed', at: n / 5, r: 0.018 }); // speedometer
     },
     ok: R => R.winch.hp > 0 || alivePart(R.tool),
-    cut(S, R, why, big) { const st = R.l4; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
+    cut(S, R, why, big) { const st = R.l4; if (st.A && (st.mode === 'swing' || st.mode === 'shot')) st.ret = { from: (st.mode === 'shot' && st.shot ? st.shot.at : st.A).slice(), t0: S.t }; if (st.rope) { S.world.destroyJoint(st.rope); st.rope = null; } if (st.Abody) { S.world.destroyBody(st.Abody); st.Abody = null; } st.mode = 'free'; R.freewheel = false; R.cool = Math.max(R.cool, PEND.cool); if (why) { const p = R.body.getPosition(); callout(S, why, p.x, p.y, !!big); } },
     plan(S, R, E) { // like a real tether swing: running fast, fire the anchor sideways into the wall; the cable turns the run into a circle.
       // Pick the wall point square to the way we are going, with the enemy ahead on that circle and closer to the anchor than we are.
       const pos = R.body.getPosition(), v = R.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y), ep = E.body.getPosition(), lx = HALF - S.sq.x - 0.02, ly = HALF - S.sq.y - 0.02; let best = null;
@@ -4357,13 +4357,14 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         st.Abody = S.world.createBody({ type: 'static', position: V(st.A[0], st.A[1]) });
         const L0 = Math.hypot(pos.x - st.A[0], pos.y - st.A[1]);
         st.rope = S.world.createJoint(pl.RopeJoint({ maxLength: L0, collideConnected: false, localAnchorA: V(0, 0), localAnchorB: V(0, 0) }, st.Abody, b));
-        st.mode = 'swing'; st.phase = 'reel'; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
+        (st.scars = st.scars || []).push(st.A.slice()); if (st.scars.length > 6) st.scars.shift(); st.mode = 'swing'; st.phase = 'spin'; st.a0 = null; st.t = 0; st.L = L0; R.freewheel = true; st.swings++;
         S.fx.push({ type: 'spark', x: st.A[0], y: st.A[1], power: 30 }); callout(S, 'ANCHORED!', st.A[0], st.A[1], false); say(S, `${R.name} fires its anchor into the wall`, R.id);
         return;
       }
       if (st.mode === 'swing') {
         st.t += DT;
         if (!on || !E.alive) { this.cut(S, R); return; }
+        if (Math.abs(st.A[0]) > HALF - S.sq.x + 0.05 || Math.abs(st.A[1]) > HALF - S.sq.y + 0.05) { this.cut(S, R, 'RIPPED OUT!', false); return; } // the walls are closing in: the anchor's wall has moved
         const ten = weldForce(st.rope); st.ten = ten;
         if (ten > PEND.rip * P) { this.cut(S, R, 'RIPPED OUT!', false); say(S, `${R.name}'s anchor rips out of the wall`, R.id); return; }
         // spinning weapons cut the cable
@@ -4373,12 +4374,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         }
         // the winch: reel in to the enemy's distance from the anchor; it can only pull so hard (power = pull x speed)
         const rE = Math.hypot(c.E.body.getPosition().x - st.A[0], c.E.body.getPosition().y - st.A[1]), L = st.rope.getMaxLength();
-        if (st.phase === 'spin' && (sp > 0.85 * R.C.vmax || st.t > 1.4)) st.phase = 'reel'; // first get up to speed round the circle, then reel in
+        const aNow = Math.atan2(pos.y - st.A[1], pos.x - st.A[0]); if (st.a0 == null) st.a0 = aNow; st.turned = Math.abs(wrap(aNow - st.a0));
+        if (st.phase === 'spin' && st.turned > PEND.swingFirst) st.phase = 'reel'; // swing round a bit first (the cable turns the run), then reel in: reeling a robot that is not going round just drags it
         if (st.phase === 'reel' && L > rE + 0.05 && L > 0.7) { const vr = Math.min(PEND.reelV, PEND.winchP * P * c.jk / Math.max(200, ten)); st.rope.setMaxLength(Math.max(rE, L - vr * DT)); R.winch.heat += 0.5 * DT; }
         // let go when the enemy is dead ahead along the way we are flying, or when we touch it, or when it takes too long
         const ep = E.body.getPosition(), rx = ep.x - pos.x, ry = ep.y - pos.y, rd = Math.hypot(rx, ry), along = sp > 0.5 ? (rx * v.x + ry * v.y) / sp : 0, miss = sp > 0.5 ? Math.abs(rx * v.y - ry * v.x) / sp : 9;
         const touching = firstTouch(b, R, null);
-        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.phase === 'reel') || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
+        if ((along > 0 && along < 2.4 && miss < E.hw + 0.25 && sp > 3.5 && st.rope.getMaxLength() <= rE + 0.15) || (touching && touching.part.robot === E) || st.t > PEND.tmax) {
           const fast = sp > 5; this.cut(S, R, fast ? 'SLINGSHOT!' : null, fast); st.rel = (st.rel || 0) + 1; st.relV = (st.relV || 0) + sp;
           if (fast) say(S, `${R.name} lets go of its cable and flies at ${E.name} at ${sp.toFixed(1)} m/s`, R.id, true);
           R.cool = 0.9; st.release = S.t;
@@ -4388,7 +4390,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       // free: fire the anchor when there is a good wall point
       R.freewheel = false;
       if (!on || R.cool > 0 || !E.alive || E.airborne > 0) return;
-      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 1.5) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
+      if (Math.hypot(E.body.getPosition().x - pos.x, E.body.getPosition().y - pos.y) < 2.4) return; const pl0 = this.plan(S, R, E); if (!pl0 || pl0.sc < 1.3) return;
       st.A = pl0.A; st.sense = pl0.sense; st.mode = 'shot'; st.shot = { t: 0, T: pl0.rR / PEND.gunV, at: [pos.x, pos.y] };
       S.fx.push({ type: 'launch', x: pos.x, y: pos.y });
     },
@@ -5174,6 +5176,24 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.body.getAngle()); ctx.fillStyle = q.hp > 0 ? '#4A4A46' : '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h);
         ctx.fillStyle = HAZ; ctx.fillRect(-h, -h, 2 * h, h * 0.28); ctx.fillStyle = INK; for (let x = -h; x < h; x += 0.07) { ctx.beginPath(); ctx.moveTo(x, -h); ctx.lineTo(x + 0.035, -h); ctx.lineTo(x + 0.015, -h + h * 0.28); ctx.lineTo(x - 0.02, -h + h * 0.28); ctx.closePath(); ctx.fill(); }
         ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-h * 0.8, -h * 0.55, h * 1.6, 0.03); for (const [x, y] of [[-0.7, -0.3], [0.7, -0.3], [-0.7, 0.7], [0.7, 0.7]]) bolt(x * h, y * h); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(0, h * 0.2, 0.025, 0, 6.29); ctx.fill(); ctx.restore(); }
+  function drawAnchor(R) { // PENDULUM: the anchor, big enough to see, biting into the wall (or in flight), and the scars where it has been
+    const st = R.l4, t = performance.now() / 1000, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
+    for (const s of st.scars || []) { ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(out(s[0], s[1])); ctx.fillStyle = 'rgba(20,14,8,0.55)'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.05, 0.1, 0, 0, 6.29); ctx.fill(); ctx.strokeStyle = 'rgba(20,14,8,0.6)'; ctx.lineWidth = PX * 1.5; for (const a of [-0.9, -0.3, 0.4, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(a) * 0.16, Math.sin(a) * 0.16); ctx.stroke(); } ctx.restore(); }
+    const wp = R.body.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
+    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // reeled back in after it lets go: the anchor flies home on a slack cable
+      ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
+    if (!end) return;
+    const a = flying ? Math.atan2(end[1] - wp.y, end[0] - wp.x) : out(end[0], end[1]);
+    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a);
+    if (!flying) { ctx.fillStyle = 'rgba(232,197,71,0.35)'; ctx.beginPath(); ctx.arc(0, 0, 0.2 + 0.03 * Math.sin(t * 12), 0, 6.29); ctx.fill(); } // impact flash ring
+    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
+    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point into the wall
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.18, -0.03, 0.2, 0.015);
+    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); // the cable eye
+    ctx.fillStyle = Math.sin(t * 14) > 0 ? '#FF3B2B' : '#5A1A14'; ctx.beginPath(); ctx.arc(-0.09, 0, 0.022, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
   function drawL4(R, i) {
     const w = R.spec.weapon, b = R.body, t = performance.now() / 1000;
     if (w === 'mallet' && R.l4 && !R.inPit) drawMallet(R);
@@ -5273,7 +5293,6 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if (R.tool && R.tool.attached) { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (const y of [-0.24, -0.12, 0, 0.12, 0.24]) { const x = R.hl + 0.3 - Math.abs(y) * 0.25; ctx.beginPath(); ctx.moveTo(x - 0.04, y - 0.03); ctx.lineTo(x + 0.07, y); ctx.lineTo(x - 0.04, y + 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } ctx.restore(); }
       const end = st.mode === 'shot' && st.shot ? st.shot.at : st.mode === 'swing' && st.A ? st.A : null;
       if (end) { const taut = st.mode === 'swing'; ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = taut ? '#E4E1DA' : '#9A9C94'; ctx.lineWidth = 0.016; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
-        ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(Math.atan2(end[1] - wp.y, end[0] - wp.x)); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.08, 0); ctx.lineTo(-0.04, -0.07); ctx.lineTo(-0.01, 0); ctx.lineTo(-0.04, 0.07); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
         if (taut) { ctx.strokeStyle = 'rgba(255,59,43,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 3, PX * 4]); ctx.beginPath(); ctx.arc(end[0], end[1], Math.hypot(p0.x - end[0], p0.y - end[1]), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } }
       ctx.save(); ctx.translate(wp.x, wp.y); ctx.rotate(a0); ctx.fillStyle = R.winch.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(-0.09, -0.13, 0.18, 0.26, 0.03); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 1.6; const rot = st.mode === 'swing' ? t * 9 : 0; for (let k = 0; k < 5; k++) { const y = -0.1 + ((k * 0.05 + rot * 0.01) % 0.25); ctx.beginPath(); ctx.moveTo(-0.07, y); ctx.lineTo(0.07, y + 0.02); ctx.stroke(); } ctx.restore();
@@ -5668,6 +5687,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0) || ((a.tiltV || 0) > 0.05) - ((b.tiltV || 0) > 0.05));
     for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
+    for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
     for (const R of order) if (R.bricks && R.l4.carry && R.l4.carry.attached && !R.inPit) drawBrick(R.l4.carry, true); // a block up on the crane hook is above everything
     drawEwalls(); drawDrones();
     for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }
