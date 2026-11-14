@@ -7,6 +7,10 @@ Scripts: `tools/damage-lab/rr-free.js` (the fights, split over CPU cores) and `t
 
 **Rating:** one number per robot from all its results (Bradley-Terry, Elo scale): +100 means it beats an average robot about 64% of the time; one level in the current game is about +85. With 4 fights per pair a rating is good to about +-40; a single matchup is not reliable yet.
 
+## Update (14 Nov, later): three more candidates
+
+Pogo (+485, 92%), Railgun (+164, 69%) and Yo-yo (-28, 47%) were added and fought everyone (another 504 fights). Pogo shares the top with Rotisserie; the other ratings moved by at most about 40. The table below is the first run (41 robots).
+
 ## The ranking
 
 | # | Robot | Rating | Win % | Level now | Tweaks it had | Beats 75%+ | Loses to 75%+ |

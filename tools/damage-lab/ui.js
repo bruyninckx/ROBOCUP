@@ -828,6 +828,42 @@
       const spin = st.mode === 'charge' ? t * 12 : 0; ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; for (let k = 0; k < 6; k++) { const y = -R.hw * 0.55 + ((k * 0.19 * R.hw + spin * 0.02) % (R.hw * 1.1)); ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.03); ctx.stroke(); }
       ctx.restore();
     }
+    if (w === 'pogo' && R.leg) { // POGO: a big coil spring on the back, squeezed flatter as it charges; the landing marker while it crouches or flies
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), ok = R.leg.hp > 0, k = R.fx.spring || 0;
+      if ((st.mode === 'crouch' || st.mode === 'air') && R.enemy && R.enemy.alive) {
+        const tg = st.mode === 'air' ? st.to : [R.enemy.body.getPosition().x + R.enemy.body.getLinearVelocity().x * 0.8, R.enemy.body.getPosition().y + R.enemy.body.getLinearVelocity().y * 0.8];
+        ctx.strokeStyle = st.mode === 'air' ? 'rgba(255,59,43,0.9)' : `rgba(255,176,32,${0.4 + 0.5 * k})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(tg[0], tg[1], R.hl * 0.9, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(tg[0] - 0.15, tg[1]); ctx.lineTo(tg[0] + 0.15, tg[1]); ctx.moveTo(tg[0], tg[1] - 0.15); ctx.lineTo(tg[0], tg[1] + 0.15); ctx.stroke();
+      }
+      { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); if (st.mode === 'air') { const air = Math.sin(Math.PI * Math.min(1, st.t / 0.8)); ctx.scale(1 + 0.28 * air, 1 + 0.28 * air); }
+        const rOut = Math.min(R.hw, R.hl) * 0.78, turns = 5; ctx.fillStyle = '#2B2620'; ctx.beginPath(); ctx.arc(0, 0, rOut + 0.02, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = ok ? (k > 0.9 && Math.sin(t * 30) > 0 ? '#FF5A3C' : '#C9A227') : '#55524C'; ctx.lineWidth = PX * (3 + 2 * k); ctx.beginPath();
+        for (let s2 = 0; s2 <= 1.0001; s2 += 0.01) { const r = rOut * (0.25 + 0.75 * s2) * (1 - 0.25 * k), an = s2 * turns * 6.2832; s2 ? ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r) : ctx.moveTo(Math.cos(an) * r, Math.sin(an) * r); } ctx.stroke(); // the coil seen from above, squeezed tighter as it charges
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, rOut * 0.22, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(0, 0); ctx.restore(); }
+    }
+    if (w === 'rail' && R.coil) { // RAILGUN: two long rails down the middle and out past the nose, a capacitor bank that glows as it charges, arcs when full
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), k = R.fx.caps || 0, ok = R.coil.hp > 0, kick = Math.max(0, 0.2 - (S.t - (st.last || -9))) * 0.5;
+      ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      for (const y of [-1, 0, 1]) { ctx.fillStyle = R.caps.hp > 0 ? '#2B2620' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(-R.hl * 0.85, y * 0.13 - 0.05, R.hl * 0.45, 0.1, 0.04); ctx.fill(); ctx.stroke(); ctx.fillStyle = `rgba(71,168,255,${0.25 + 0.75 * k})`; ctx.fillRect(-R.hl * 0.82, y * 0.13 - 0.03, R.hl * 0.39 * k, 0.06); } // capacitors
+      const x0 = -R.hl * 0.35 - kick, x1 = R.hl + 0.32 - kick;
+      ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(x0, -0.1, x1 - x0, 0.2, 0.02); ctx.fill(); ctx.stroke();
+      for (const y of [-0.065, 0.065]) { ctx.fillStyle = ok ? '#B87333' : '#55524C'; ctx.fillRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); ctx.strokeRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); } // the copper rails
+      for (let x = x0 + 0.08; x < x1 - 0.05; x += 0.12) { ctx.fillStyle = '#5B5E57'; ctx.fillRect(x, -0.1, 0.035, 0.2); } // clamps
+      if (k > 0.95 && ok) { ctx.strokeStyle = 'rgba(190,230,255,0.9)'; ctx.lineWidth = PX * 1.6; for (let a = 0; a < 3; a++) { const x = x0 + 0.1 + ((t * 7 + a * 0.37) % 1) * (x1 - x0 - 0.15); ctx.beginPath(); ctx.moveTo(x, -0.045); ctx.lineTo(x + (Math.random() - 0.5) * 0.04, 0); ctx.lineTo(x, 0.045); ctx.stroke(); } } // arcs between the rails
+      if (R.mag && R.mag.length && ok) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.fillRect(x0 + 0.05, -0.03, 0.25, 0.06); ctx.strokeRect(x0 + 0.05, -0.03, 0.25, 0.06); } // the next slug in the breech
+      if (S.t - (st.last || -9) < 0.1) { ctx.fillStyle = 'rgba(200,235,255,0.9)'; ctx.beginPath(); ctx.arc(x1 + 0.08, 0, 0.18, 0, 6.29); ctx.fill(); }
+      ctx.restore();
+      for (const sh of st.fly || []) { const qp = sh.d.body.getPosition(), v = sh.d.body.getLinearVelocity(); ctx.strokeStyle = 'rgba(160,215,255,0.8)'; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(qp.x - v.x * 0.03, qp.y - v.y * 0.03); ctx.lineTo(qp.x, qp.y); ctx.stroke(); ctx.lineCap = 'butt'; } // tracer
+    }
+    if (w === 'yoyo' && R.yo) { // YO-YO: the winch on top, the cable to the disc, the saw disc itself
+      const st = R.l4, q = R.yo;
+      if (!q.gone && q.hp > 0) { const nz = b.getWorldPoint(planck.Vec2(R.hl, 0)), qp = q.body.getPosition();
+        if (st.mode === 'out' || st.mode === 'reel') { ctx.strokeStyle = INK; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(nz.x, nz.y); ctx.lineTo(qp.x, qp.y); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.012; ctx.setLineDash([0.04, 0.03]); ctx.stroke(); ctx.setLineDash([]); }
+        if (st.mode !== 'loose') drawBuzz(q, { buzzW: q.spin || 0, buzzMax: 130, buzzR: 0.19 }); }
+      const sp = b.getWorldPoint(planck.Vec2(R.spool.lp[0], R.spool.lp[1])); ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(b.getAngle());
+      ctx.fillStyle = R.spool.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, 0.15, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.stroke(); ctx.save(); ctx.rotate(st.mode === 'reel' ? t * 20 : 0); ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0); ctx.stroke(); ctx.restore(); ctx.restore();
+    }
     // a robot with a bola round its wheels: cord coils on the tied side
     if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }
     if (w === 'beak' && R.beakRam) { // the upper beak: raised (drawn short and big), dropping, or closed on its victim
@@ -945,6 +981,7 @@
     if (d.key === 'buzz') { drawBuzz(d, null); return; }
     if (d.key === 'record') { drawRecord(d); return; }
     if (d.key === 'brick') { drawBrick(d, false); return; }
+    if (d.key === 'yoyo') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 130, buzzR: 0.19 }); return; }
     if (d.key === 'orbdisc' || d.key === 'gmsaw') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 95, buzzR: 0.13 }); return; }
     if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }

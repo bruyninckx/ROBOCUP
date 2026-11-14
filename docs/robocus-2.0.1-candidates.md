@@ -101,6 +101,18 @@ Kev: "please review these new robots yourself by snapshotting fights, clearly th
 | Scavenger (with starter scrap) | 51% | 17% | 10% | 41% / 12% / 4% |
 | Slingshot | 20% | 13% | 10% | 24% / 3% / 6% |
 
+## Pogo, Railgun and Yo-yo (14 Nov): more stored-energy mechanisms
+
+Kev: "I liked the slingshot, we need more of these different mechanisms on new robots." Like the Slingshot, each one stores energy you can see, then lets it go; the hit is that energy at the Jukebox's joules rate. No knobs.
+
+| Candidate | Mechanism | Counterplay | Untweaked rating (round robin) |
+|---|---|---|---|
+| **Pogo** | A winch squeezes a big coil spring (2.2 kW, up to 2.6 kJ, drawn as a coil that tightens and flashes red when full). The whole robot jumps (0.8 s in the air, up to 2.8 m) and lands on the enemy's lid: the hit is the fall plus a share of the run, about 70 per stomp. Nothing can touch it in the air. The landing shockwave shoves robots and junk nearby. | The landing marker shows where it will come down: keep moving. Coming down on a spinning weapon gets it shredded and thrown off (Gyro 0/4, Whirlwind 1/4). It has to sit still to squeeze the spring. | **+485, 92%: top of the table** (with Rotisserie) |
+| **Railgun** | A capacitor bank charges (2.4 kW, 2.2 kJ) and dumps into copper rails: a 4 kg slug at about 25 m/s, with a big recoil. Three slugs; fired ones lie on the floor until it drives over them to reload. Blue capacitor glow, arcs between the rails when full, a tracer. | Dodge the line; close in while it fetches slugs; a Scavenger can eat its slugs. | **+164, 69%** (band 3) |
+| **Yo-yo** | A heavy saw disc (9 kg) spun up on the nose, thrown out on a 2.6 m cable, bites whatever it touches (each bite takes energy out of the spin), reeled back in and spun up again. | Spinning weapons cut the cable: then the disc is loose on the floor and it has to go and fetch it. | **-28, 47%** (band 1) |
+
+Untweaked round robin with all 44 robots (4 fights per pair, 3,784 fights): Pogo and Rotisserie at the top, then Corkscrew, Vertigo, Lodestone. Chart: `robocus-untweaked-distribution.png`.
+
 ## Looks (Kev: higher levels look fierce, the weapon shows its strength at once)
 - Rotisserie (level 4): long hooked pincers with serrated teeth (bigger in the physics too: 0.53 m, re-measured afterwards, still level 4), a big nozzle, twin red fuel tanks, a fat flame.
 - Blacksmith: a big hammer block held high over the robot (drawn bigger while raised) that comes down onto the victim's lid; a glowing anvil.
