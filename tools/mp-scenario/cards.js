@@ -8,7 +8,7 @@
 // others accept). Every question is answered by clicking: the player takes the first choice, the others accept or let it through.
 const { setup } = require('./lib.js');
 const seed = +(process.argv[2] || 7), only = process.argv[3] ? process.argv[3].split(',') : null;
-const modalOf = () => { for (const id of ['ivModal', 'dealModal']) { const m = document.getElementById(id); if (m && !m.hidden) { const h = m.querySelector('h3'); return { id, title: (h ? h.textContent : '').replace(/\s+/g, ' ').trim(), btns: [...m.querySelectorAll('button')].filter(b => !b.disabled).map(b => { const r = b.getBoundingClientRect(); return { label: b.textContent.replace(/\s+/g, ' ').trim(), k: b.dataset.k || '', primary: b.classList.contains('primary'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) }; } } return null; };
+const modalOf = () => { for (const id of ['reactWin', 'ivModal', 'dealModal']) { const m = document.getElementById(id); if (m && !m.hidden) { const h = m.querySelector('h3') || m.querySelector('.rw-head span'); return { id, title: (h ? h.textContent : '').replace(/\s+/g, ' ').trim(), btns: [...m.querySelectorAll('button')].filter(b => !b.disabled).map(b => { const r = b.getBoundingClientRect(); return { label: b.textContent.replace(/\s+/g, ' ').trim(), k: b.dataset.k || '', primary: b.classList.contains('primary'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) }; } } return null; };
 (async () => {
   const { b, host, errs, seatOf } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); });
   for (let s = 0; s < 4; s++) await seatOf[s].evaluate(() => { const pin = document.getElementById('handPin'); if (pin && /keep open/.test(pin.textContent)) pin.click(); });
@@ -29,13 +29,15 @@ const modalOf = () => { for (const id of ['ivModal', 'dealModal']) { const m = d
     const mark = await prep(actor, c.id, TARGET, o), p = seatOf[actor], e0 = errs.length;
     const mark2 = await p.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.length);   // the player's own log: a warning only shows on its own screen
     await host.waitForTimeout(450);
-    const geo = await p.evaluate(([TARGET, self, robotPick, target]) => {
+    let geo = null;
+    for (let k = 0; k < 12 && (!geo || geo.err); k++) { if (k) await host.waitForTimeout(250);   // the card reaches a joined screen with the next snapshot
+    geo = await p.evaluate(([TARGET, self, robotPick, target]) => {
       const D = window.ROBOCUS_DEBUG, card = document.querySelector('#handStage .hs-card'); if (!card) return { err: 'the card is not in the hand on this screen' };
       const r = card.getBoundingClientRect(), mid = k => { const s = D.worldToScreen(k.x + k.w / 2, k.y + k.h / 2); return { x: s.x, y: s.y }; };
       const to = target === 'rival' || target === 'any' ? TARGET : self, H = D.hitRegions;
       const reg = (robotPick && H.find(k => k.kind === 'bay' && k.team === to && k.robot)) || H.find(k => k.kind === 'garage' && k.team === to);
       return reg ? { from: { x: r.left + r.width / 2, y: r.top + Math.min(40, r.height / 2) }, to: mid(reg), on: reg.kind } : { err: 'no place on this screen to drop the card on (team ' + to + ')' };
-    }, [TARGET, actor, ROBOT_PICK.includes(c.name), c.target]);
+    }, [TARGET, actor, ROBOT_PICK.includes(c.name), c.target]); }
     const asked = [];
     if (!geo.err) {
       await p.mouse.move(geo.from.x, geo.from.y); await p.mouse.down(); await p.mouse.move((geo.from.x + geo.to.x) / 2, (geo.from.y + geo.to.y) / 2, { steps: 4 }); await p.mouse.move(geo.to.x, geo.to.y, { steps: 4 }); await p.mouse.up();
@@ -45,7 +47,7 @@ const modalOf = () => { for (const id of ['ivModal', 'dealModal']) { const m = d
         for (let s = 0; s < 4; s++) {
           const m = await seatOf[s].evaluate(modalOf); if (!m) continue; any = true;
           const who = s === actor ? 'PLAYER' : s === TARGET ? 'TARGET' : 'OTHER', tag = who + ': ' + norm(m.title, actor, TARGET); if (!asked.includes(tag)) asked.push(tag);
-          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
+          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /^Pass$|^OK$|No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
           if (bt) { await seatOf[s].mouse.move(bt.x, bt.y); await seatOf[s].mouse.down(); await seatOf[s].mouse.up(); }
         }
         const busy = await host.evaluate(() => !!window.ROBOCUS_DEBUG.G.ivBusy);
@@ -56,10 +58,11 @@ const modalOf = () => { for (const id of ['ivModal', 'dealModal']) { const m = d
       return { plays: pl.map(e => ({ text: e.text, result: e.result, steps: e.steps || [] })), warn, inHand: D.G.teams[actor].hand.includes(id), sec: D.G.teams[actor].secBots || 0, stuck: !!D.G.ivBusy, over: !!D.G.over }; }, [mark, actor, c.id]);
     out.warn = await p.evaluate(m => window.ROBOCUS_DEBUG.PT.game.events.slice(m).filter(e => e.k === 'msg' && /⚠️/.test(e.text)).map(e => e.text), mark2);
     if (out.stuck) {   // a question nobody could answer by clicking: close everything so the next card starts clean
-      for (let s = 0; s < 4; s++) await seatOf[s].evaluate(() => { for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } });
+      for (let s = 0; s < 4; s++) await seatOf[s].evaluate(() => { for (const id of ['dealModal', 'ivModal', 'reactWin']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } });
       await host.evaluate(() => { for (let s = 1; s < 4; s++) window.ROBOCUS_NET.cancelSeat(s); }); await host.waitForTimeout(800);
     }
     const what = geo.err ? 'NOT PLAYED: ' + geo.err : out.stuck ? 'STUCK: the play never finished' : out.plays.length ? out.plays.map(x => x.result).join('+') : out.sec ? 'installed' : out.warn.length ? 'refused: ' + norm(out.warn[0], actor, TARGET).replace(/^⚠️ /, '') : out.inHand ? 'NOTHING HAPPENED (card still in hand, no message)' : 'played (no log entry)';
+    asked.sort();   // windows open on several screens at once: the order they were seen in means nothing
     return { what, asked, text: out.plays.map(x => norm(x.text, actor, TARGET)).join(' / '), steps: out.plays.flatMap(x => x.steps).map(x => norm(x, actor, TARGET)), errs: errs.slice(e0) };
   }
   const rows = [], diffs = [];
@@ -85,7 +88,8 @@ const modalOf = () => { for (const id of ['ivModal', 'dealModal']) { const m = d
     console.log('\nAnswers to a scheme (Smash and Grab from a joined player), the target being the host or a joined player:');
     for (const a of answers) {
       const h = await playOnce(3, sng, Object.assign({ target: 0 }, a.o)), j = await playOnce(3, sng, Object.assign({ target: 1 }, a.o));
-      const used = x => x.asked.some(t => /^TARGET/.test(t)), same = (a.roll || h.what === j.what) && h.asked.join('|') === j.asked.join('|');
+      const used = x => x.asked.some(t => /^TARGET/.test(t)), mine = x => x.asked.filter(t => /^TARGET/.test(t)).join('|');   // the others' windows close the moment the target clicks: whether the test saw them is luck
+      const same = (a.roll || h.what === j.what) && mine(h) === mine(j);
       rows2.push({ a, h, j, same });
       console.log((same ? '  same  ' : '  DIFF  ') + a.name.padEnd(30) + ' host is target: ' + h.what + (same ? '' : '   |   joined is target: ' + j.what) + '   [asks: ' + (h.asked.join('; ') || 'none') + ']' + (used(h) && used(j) ? '' : '   <- THE TARGET GOT NO WINDOW'));
       if (!same) { diffs2.push(a.name); console.log('          joined is target asks: ' + (j.asked.join('; ') || 'none') + '\n          host steps  : ' + h.steps.join(' / ') + '\n          joined steps: ' + j.steps.join(' / ')); }

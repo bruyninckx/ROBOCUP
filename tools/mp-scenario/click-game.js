@@ -24,10 +24,10 @@ const collect = () => {
   const D = window.ROBOCUS_DEBUG, out = { modal: null, items: [], cards: [], drops: [] };
   const at = el => { const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return null; const x = r.left + r.width / 2, y = r.top + r.height / 2; if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return null; const top = document.elementFromPoint(x, y); return top && (top === el || el.contains(top) || top.contains(el)) ? { x, y } : null; };
   const lab = el => (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
-  for (const id of ['ivModal', 'dealModal']) {   // a question opens on top of a deal panel
+  for (const id of ['reactWin', 'ivModal', 'dealModal']) {   // the small reaction window first, then a question (it opens on top of a deal panel)
     const m = document.getElementById(id);
     if (m && !m.hidden) {
-      out.modal = id; out.title = lab(m.querySelector('h3') || m);
+      out.modal = id; out.title = lab(m.querySelector('h3') || m.querySelector('.rw-head span') || m);
       m.querySelectorAll('button, input[type=checkbox], .dl-chip').forEach(b => { const p = b.disabled ? null : at(b); if (p) out.items.push(Object.assign({ type: b.tagName === 'BUTTON' ? 'btn' : 'in', label: lab(b) || b.type, primary: b.classList.contains('primary'), k: b.dataset.k || '' }, p)); });
       return out;
     }
@@ -115,7 +115,7 @@ const collect = () => {
     if (Date.now() - t0 > maxMin * 60000) { console.log('TIME UP in round', st.round, st.phase); break; }
     for (let s = 0; s < 4; s++) {
       const p = seatOf[s], C = await p.evaluate(collect);
-      const label = C.modal ? (C.modal === 'dealModal' ? 'deal panel' : 'question') + ': ' + C.title.replace(/[^A-Za-z ?]/g, '').trim().split(' ').slice(0, 4).join(' ') : st.busy[s];
+      const label = C.modal ? (C.modal === 'dealModal' ? 'deal panel' : C.modal === 'reactWin' ? 'reaction window' : 'question') + ': ' + C.title.replace(/[^A-Za-z ?]/g, '').trim().split(' ').slice(0, 4).join(' ') : st.busy[s];
       const key = label ? label + '@' + st.round + st.phase + st.stage : null;
       if (key !== lastKey[s]) { if (lastKey[s] && !lastKey[s].startsWith('!')) bump(lastKey[s].split('@')[0], s, 'ok'); lastKey[s] = key; since[s] = Date.now(); tries[s] = 0; }
       if (!label) continue;
@@ -128,7 +128,7 @@ const collect = () => {
         bump(label, s, 'stuck'); console.log('STUCK', kind(s), 'seat', s, '·', label, '· round', st.round, st.phase, st.stage);
         lastKey[s] = '!' + key;
         // let the game go on: close its questions, play the step with the test bot's own actions, then skip the seat
-        await p.evaluate(() => { for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } window.__noBot = false; });
+        await p.evaluate(() => { for (const id of ['dealModal', 'ivModal', 'reactWin']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } window.__noBot = false; });
         await p.waitForTimeout(1200); await p.evaluate(() => { window.__noBot = true; });
         await host.evaluate(s => window.ROBOCUS_GAME.skipSeat(s), s);
         continue;

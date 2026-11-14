@@ -248,6 +248,17 @@ html, body {
 .aw-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .aw-btns button, .iv-btns button, .sc-spar { font: 700 12.5px var(--sans); padding: 7px 13px; border-radius: 4px; border: 2px solid var(--ink); cursor: pointer; background: transparent; color: var(--ink); }
 .aw-btns button.primary, .iv-btns button.primary { font: 400 15px var(--stencil); letter-spacing: 1px; background: var(--ink); color: var(--hazard); }
+#reactWin { position: fixed; left: 50%; top: 120px; transform: translateX(-50%); z-index: 9997; width: min(420px, 92vw); background: #FFFDF8; border: 3px solid #2B2118; border-radius: 8px; box-shadow: 0 8px 26px rgba(0,0,0,.35); font: 14px system-ui, sans-serif; color: #2B2118; overflow: hidden; }
+#reactWin[hidden] { display: none; }
+#reactWin .rw-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #2B2118; color: #F4EDE2; font: 700 13px var(--mono); padding: 5px 10px; }
+#reactWin .rw-body { padding: 8px 10px 4px; line-height: 1.35; }
+#reactWin .rw-none { color: #6E6457; font-style: italic; }
+#reactWin .rw-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px 9px; }
+#reactWin .rw-btns button { font: 700 13px system-ui, sans-serif; padding: 6px 12px; border-radius: 5px; border: 2px solid #2B2118; background: #2B2118; color: #fff; cursor: pointer; }
+#reactWin .rw-btns button.secondary { background: #fff; color: #2B2118; }
+#reactWin .rw-bar { height: 5px; background: #E9E1D2; }
+#reactWin .rw-bar i { display: block; height: 100%; width: 100%; background: #D9731A; transform-origin: left; }
+@keyframes rwRun { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 #waitBanner { position: fixed; left: 50%; top: 62px; transform: translateX(-50%); z-index: 900; pointer-events: none; background: #2B2118; color: #F4EDE2; font: 700 15px var(--mono); padding: 7px 16px; border-radius: 6px; border: 2px solid #E8C23A; box-shadow: 0 4px 14px rgba(0,0,0,.3); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 #waitBanner span { font-weight: 400; opacity: .8; }
 #waitBanner[hidden] { display: none; }
@@ -2208,13 +2219,58 @@ html, body {
   const applyInputs = (el, vals) => [...el.querySelectorAll('input,textarea,select')].forEach((x, k) => { if (!vals || vals[k] === undefined) return; if (x.type === 'checkbox' || x.type === 'radio') x.checked = !!vals[k]; else x.value = vals[k]; });
   // ask the person who plays `seat`, on their own screen. Same buttons as ivModal; for a remote seat the host sends
   // title/html/labels, gets back {k: button index, inputs}, and runs that button's value() on a hidden copy of the modal.
-  function askSeat(seat, title, html, buttons, timeout, def) {
-    const N = window.ROBOCUS_NET;
-    if (isRemote(seat) && N) return N.ask(seat, { title, html, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
+  function askSeat(seat, title, html, buttons, timeout, def, opt) {   // opt.small: the small reaction window with a countdown (timeout ms) instead of the big question
+    const N = window.ROBOCUS_NET, small = !!(opt && opt.small);
+    if (isRemote(seat) && N) return N.ask(seat, { title, html, small, ms: small ? timeout : 0, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
       const el = document.createElement('div'); el.innerHTML = html; applyInputs(el, a && a.inputs);
       const b = a && buttons[a.k]; return b ? b.value(el) : def;
     });
-    return ivModal(title, html, buttons, timeout, def);
+    return small ? smallAsk(title, html, buttons, timeout, def) : ivModal(title, html, buttons, timeout, def);
+  }
+  /* The small reaction window (Kev, 14 Nov): a little box over the pit with a countdown, not a screen-filling question, so the
+   * board and your cards stay readable. One at a time on a screen. It closes on a click, or from outside (el._finish: the time
+   * is up, or somebody else reacted first). The countdown is only shown here; the host keeps the time. */
+  let smallChain = Promise.resolve();
+  function smallAsk(title, html, buttons, ms, def) {
+    const p = smallChain.then(() => new Promise(res => {
+      let el = document.getElementById('reactWin');
+      if (!el) { el = document.createElement('div'); el.id = 'reactWin'; document.body.appendChild(el); }
+      el.innerHTML = '<div class="rw-head"><span>' + title + '</span><span class="rw-sec"></span></div><div class="rw-bar"><i></i></div><div class="rw-body">' + html + '</div><div class="rw-btns">' +
+        buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') + '</div>';
+      { const pit = hitRegions.find(r => r.kind === 'arena'), at = pit ? worldToScreen(pit.x + pit.w / 2, pit.y) : null; el.style.top = (at ? Math.round(at.y + 46 * cam.zoom) + 8 : 120) + 'px'; el.style.left = (at ? Math.round(at.x) : Math.round(window.innerWidth / 2)) + 'px'; }
+      el.hidden = false; renderWaiting();
+      let done = false, tick = null; const t0 = performance.now();
+      if (ms > 0) { el.querySelector('.rw-bar i').style.animation = 'rwRun ' + ms + 'ms linear forwards'; const sec = el.querySelector('.rw-sec'), show = () => { sec.textContent = Math.max(0, Math.ceil((ms - (performance.now() - t0)) / 1000)) + ' s'; }; show(); tick = setInterval(show, 250); }
+      const finish = v => { if (done) return; done = true; clearInterval(tick); el.hidden = true; el.innerHTML = ''; el._finish = null; renderWaiting(); res(v); };
+      el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
+      el._finish = () => finish(def);
+      if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) bs[Math.floor(Math.random() * bs.length)].click(); }, 60 + Math.random() * 120);
+    }));
+    smallChain = p.catch(() => null);
+    return p;
+  }
+  /* One reaction window on every person's screen AT THE SAME TIME (Kev, 14 Nov). Until now people were asked one after the
+   * other, seat 0 first, and only those who held a card: slow, the first seat always had the first go, and a window popping up
+   * told the table who held an answer. Now, in a game with several people, every seat in `seats` gets the window: its cards
+   * (optsOf(seat) -> [{ label, value }]) and Pass, or "you have no card to play here" and OK. It ends when someone plays a card
+   * (the first click the host receives wins; nobody else's card is spent), when everyone has answered, or when the time is up.
+   * Returns [{ seat, v }] in the order the answers came in (empty: nobody reacted). */
+  const REACT_MS = () => BAL.reactMs != null ? BAL.reactMs : 10000;
+  async function reactionWindow(seats, title, html, optsOf) {
+    if (!seats.length) return [];
+    const ms = REACT_MS(), got = []; let first = null; const gotOne = new Promise(res => { first = res; });
+    G.reacting = { title: ptPlain(title) }; updateHud();
+    const pend = seats.map(s => { const o = optsOf(s) || [];
+      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
+        .then(v => { if (v != null) { got.push({ seat: s, v }); first(); } }, () => {}); });
+    let tm = null;
+    await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
+    // over: close the windows that are still open (a late click on one of them no longer counts)
+    const N = window.ROBOCUS_NET;
+    for (const s of seats) { if (isRemote(s) && N && N.cancelSmall) N.cancelSmall(s); else if (s === HS) { const el = document.getElementById('reactWin'); if (el && !el.hidden && el._finish) el._finish(); } }
+    await Promise.race([Promise.all(pend), new Promise(res => setTimeout(res, 300))]);
+    G.reacting = null; updateHud();
+    return got.slice(0, 1).concat(got.slice(1));
   }
 
   /* ============================================================================
@@ -2682,62 +2738,58 @@ html, body {
     notify('🛡️ ' + nm(o) + ' blocks it with ' + cardRef(id) + '!', o.col);
     return { blocked: true, T };
   }
-  /* Security Bots (target only). 14 Nov (Friday playtest): a person now DECIDES each roll: a bot from its garage, a bot from
-   * its hand (the card: "discard and roll"), or none, so it can keep its bots and answer with a reaction card instead. The AI
-   * still rolls every bot it has. Returns { blocked, T } when a bot settled it (a block, or a block an Override cancelled), else null. */
-  async function botDefence(F, c, T, shown) {
-    if (!(T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name))) return null;   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
-    const need = hasCrew(T, 'secchief') ? 3 : 4;
-    for (;;) {
-      const inst = secReady(T), inHand = T.hand.filter(x => x === 'security_bot').length;
-      if (inst + inHand < 1) return null;
-      let fromHand = inst < 1;
-      if (isHuman(T.i)) {
-        const opts = [];
-        if (inst) opts.push({ label: '🤖 Roll a Security Bot (' + inst + ' in your garage)', value: () => 'garage' });
-        if (inHand) opts.push({ label: '🤖 Discard a Security Bot from your hand and roll', value: () => 'hand' });
-        opts.push({ label: 'No bot', secondary: true, value: () => null });
-        const pick = await askSeat(T.i, '🤖 Security Bot?', nm(F) + ' plays ' + shown + ' on you' + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>A Security Bot blocks it on a roll of ' + need + '–6 and is used up either way. Your reaction cards come after this.', opts, 5000, null);
-        if (!pick) return null;
-        fromHand = pick === 'hand';
-      }
-      if (fromHand) { if (!removeFromHand(T, 'security_bot')) return null; } else T.secBots--;
-      discardCard('security_bot');
-      const roll = 1 + Math.floor(rnd() * 6), ok = roll >= need;
-      await boardFx({ kind: 'roll', ti: T.i, roll, ok });
-      { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[ok ? 'landed' : 'blocked']++; }
-      const help = helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.');
-      if (ok) { notify('<span' + help + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b> and blocks it!</span>', T.col);
-        if (await overrideStep(F, c, T, 'the Security Bot')) return { blocked: false, T };
-        return { blocked: true, T }; }
-      notify('<span' + help + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>: not enough.</span>', T.col);
+  /* Security Bots (target only). 14 Nov: a person DECIDES each roll, and the choice sits in the reaction window that
+   * everyone gets (its cards, "Roll a Security Bot" from the garage, "Discard a Security Bot from your hand and roll", or
+   * Pass), so the table can't tell a bot in the hand from a reaction card or from nothing. The AI still rolls every bot. */
+  const canBots = (F, c, T) => !!(T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name));   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
+  async function rollBot(F, c, T, fromHand) {   // one bot is used up; true = it blocks
+    if (fromHand) { if (!removeFromHand(T, 'security_bot')) return false; } else { if (secReady(T) < 1) return false; T.secBots--; }
+    discardCard('security_bot');
+    const need = hasCrew(T, 'secchief') ? 3 : 4, roll = 1 + Math.floor(rnd() * 6), ok = roll >= need;
+    await boardFx({ kind: 'roll', ti: T.i, roll, ok });
+    { const st = cst('security_bot', T.i); cstBy('security_bot', T.i, 'played'); st.played++; st[ok ? 'landed' : 'blocked']++; }
+    const help = helpAttr('🤖 Security Bot roll', 'The target spends a Security Bot and rolls a die: 4–6 blocks the scheme, 1–3 fails and it may try the next bot.');
+    notify('<span' + help + '>🤖 ' + nm(T) + '\'s Security Bot rolls <b>' + roll + '</b>' + (ok ? ' and blocks it!' : ': not enough.') + '</span>', T.col);
+    return ok;
+  }
+  async function aiBots(F, c, T) {   // an AI target: every bot it has, garage first. Returns { blocked, T } when a bot settled it, else null
+    if (!canBots(F, c, T) || isHuman(T.i)) return null;
+    while (secReady(T) + T.hand.filter(x => x === 'security_bot').length > 0) {
+      if (await rollBot(F, c, T, secReady(T) < 1)) return (await overrideStep(F, c, T, 'the Security Bot')) ? { blocked: false, T } : { blocked: true, T };
     }
+    return null;
   }
   async function defend(F, c, T) {
     const shown = c.t === 'F' ? 'a face-down card' : '<b>' + esc(c.name) + '</b>';
-    { const r0 = await botDefence(F, c, T, shown); if (r0) return r0; }
-    for (let again = true, guard = 0; again && guard < 6; guard++) {   // again: Not My Robot moved the scheme to a new target, which gets its own bots and reaction windows
-      again = false;
-      for (const oi of seatOrder()) {
-        const o = G.teams[oi];
-        if (o === F) continue;
-        const opts = blockOptions(o, F, c, T);
-        if (!opts.length) continue;
-        let use = null;
-        if (isHuman(oi)) {
-          use = await askSeat(oi, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + '<br>Block it?',
-            opts.map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id })).concat([{ label: 'Let it through', secondary: true, value: () => null }]), 5000, null);
-        } else if (aiWantsBlock(o, F, c, T)) use = opts[0];
-        if (!use) continue;
-        const r = await applyBlock(o, use, F, c, T);
-        if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
-        if (r.blocked) return r;
-        if (r.T !== T) {   // Not My Robot: the new target defends itself (14 Nov: it could not use its Security Bots)
-          T = r.T;
-          const r1 = await botDefence(F, c, T, shown); if (r1) return r1;
-          again = true; break;
-        }
+    { const r0 = await aiBots(F, c, T); if (r0) return r0; }
+    const multi = humanSeats().length > 1;   // several people: everyone gets the window, cards or not (who holds an answer stays hidden)
+    for (let guard = 0; guard < 16; guard++) {   // again after a failed bot roll, and after Not My Robot (the new target defends itself)
+      const optsOf = s => { const q = G.teams[s], o = [];
+        if (T && s === T.i && canBots(F, c, T)) { const inst = secReady(q), need = hasCrew(q, 'secchief') ? 3 : 4;
+          if (inst) o.push({ label: '🤖 Roll a Security Bot (' + inst + ' in your garage, blocks on ' + need + '–6)', value: () => 'bot:garage' });
+          if (q.hand.includes('security_bot')) o.push({ label: '🤖 Discard a Security Bot from your hand and roll', value: () => 'bot:hand' }); }
+        return o.concat(blockOptions(q, F, c, T).map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id }))); };
+      const seats = humanSeats().filter(s => s !== F.i && (multi || optsOf(s).length));
+      const got = await reactionWindow(seats, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>'), optsOf);
+      let o = null, use = null;
+      for (const a of got) { const q = G.teams[a.seat];   // the first answer that still holds
+        if (a.v === 'bot:garage' || a.v === 'bot:hand') { if (T && q === T && canBots(F, c, T) && (a.v === 'bot:hand' ? q.hand.includes('security_bot') : secReady(q) > 0)) { o = q; use = a.v; break; } }
+        else if (blockOptions(q, F, c, T).includes(a.v)) { o = q; use = a.v; break; } }
+      if (use === 'bot:garage' || use === 'bot:hand') {
+        if (await rollBot(F, c, T, use === 'bot:hand')) return (await overrideStep(F, c, T, 'the Security Bot')) ? { blocked: false, T } : { blocked: true, T };
+        continue;   // not enough: a new window (another bot, a card, or let it through)
       }
+      if (!use) for (const oi of seatOrder()) {   // nobody at the table reacted: the AI teams, in this round's seat order
+        const q = G.teams[oi]; if (isHuman(oi) || q === F) continue;
+        const opts = blockOptions(q, F, c, T); if (opts.length && aiWantsBlock(q, F, c, T)) { o = q; use = opts[0]; break; }
+      }
+      if (!use) break;
+      const r = await applyBlock(o, use, F, c, T);
+      if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
+      if (r.blocked) return r;
+      if (r.T === T) break;
+      T = r.T;   // Not My Robot: the new target defends itself (an AI rolls its bots now, a person gets them in the next window)
+      const r1 = await aiBots(F, c, T); if (r1) return r1;
     }
     return { blocked: false, T };
   }
@@ -2750,40 +2802,39 @@ html, body {
     return soleLeader || T.fame >= WIN_FAME - 2;   // help a scheme against a sole leader or a team about to win
   }
   async function overrideStep(F, c, T, what) {
-    const shown = c.t === 'F' ? 'a face-down card' : cardRef(c.id);
-    for (const oi of seatOrder()) {
-      const o = G.teams[oi];
-      if ((T && o.i === T.i) || !o.hand.includes('override') || o.fame < (CARDS.override.need || 0)) continue;
-      const yes = isHuman(oi)
-        ? await askSeat(oi, '⛓️ Override?', what + ' just blocked ' + nm(F) + '\'s ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + '.<br>Play <b>Override</b>: cancel the block and the scheme goes through. Only Firewall can stop it.',
-          [{ label: '⛓️ Override', value: () => true }, { label: 'No', secondary: true, value: () => false }], 5000, false)
-        : aiWantsOverride(o, F, c, T);
-      if (!yes) continue;
-      removeFromHand(o, 'override'); discardCard('override');
-      await boardFx({ kind: 'react', ti: o.i, card: 'override', label: '⛓️ OVERRIDE' });
-      const st = cst('override', o.i); cstBy('override', o.i, 'played'); st.played++;
-      notify('⛓️ ' + nm(o) + ' plays ' + cardRef('override') + ': the block is cancelled!', o.col);
-      tlog('override', { by: o.i, scheme: c.id, player: F.i, target: T ? T.i : null, what: ptPlain(what) });
-      for (const qi of seatOrder()) {   // only Firewall can stop an Override
-        const q = G.teams[qi];
-        if (q === o || !q.hand.includes('firewall') || q.fame < (CARDS.firewall.need || 0)) continue;
-        const stop = isHuman(qi)
-          ? await askSeat(qi, '🛡️ Firewall?', nm(o) + ' played <b>Override</b> to push ' + nm(F) + '\'s ' + shown + ' through' + (T && T !== F ? ' on ' + nm(T) : '') + '.<br>Play <b>Firewall</b> to stop the Override (the block stands)?',
-            [{ label: '🛡️ Firewall', value: () => true }, { label: 'Let it through', secondary: true, value: () => false }], 5000, false)
-          : q !== F && aiWantsBlock(q, F, c, T);
-        if (!stop) continue;
-        removeFromHand(q, 'firewall'); discardCard('firewall');
-        await boardFx({ kind: 'react', ti: q.i, card: 'firewall', label: '✋ STOPS THE OVERRIDE' });
-        { const s2 = cst('firewall', q.i); cstBy('firewall', q.i, 'played'); s2.played++; s2.landed++; }
-        st.blocked++;
-        notify('🛡️ ' + nm(q) + ' stops the Override with ' + cardRef('firewall') + ': the block stands.', q.col);
-        return false;
-      }
-      st.landed++; cstBy('override', o.i, 'landed');
-      notify('⛓️ The scheme goes through.', o.col);
-      return true;
+    const shown = c.t === 'F' ? 'a face-down card' : cardRef(c.id), multi = humanSeats().length > 1;
+    const can = q => !(T && q.i === T.i) && q.hand.includes('override') && q.fame >= (CARDS.override.need || 0);
+    let o = null;
+    { const got = await reactionWindow(humanSeats().filter(s => !(T && s === T.i) && (multi || can(G.teams[s]))), '⛓️ Override?',
+        what + ' just blocked ' + nm(F) + '\'s ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + '.<br><b>Override</b> cancels the block and the scheme goes through. Only Firewall can stop it.',
+        s => can(G.teams[s]) ? [{ label: '⛓️ Override', value: () => true }] : []);
+      for (const a of got) if (can(G.teams[a.seat])) { o = G.teams[a.seat]; break; } }
+    if (!o) for (const oi of seatOrder()) { const q = G.teams[oi]; if (!isHuman(oi) && can(q) && aiWantsOverride(q, F, c, T)) { o = q; break; } }
+    if (!o) return false;
+    removeFromHand(o, 'override'); discardCard('override');
+    await boardFx({ kind: 'react', ti: o.i, card: 'override', label: '⛓️ OVERRIDE' });
+    const st = cst('override', o.i); cstBy('override', o.i, 'played'); st.played++;
+    notify('⛓️ ' + nm(o) + ' plays ' + cardRef('override') + ': the block is cancelled!', o.col);
+    tlog('override', { by: o.i, scheme: c.id, player: F.i, target: T ? T.i : null, what: ptPlain(what) });
+    // only Firewall can stop an Override
+    const canFw = q => q !== o && q.hand.includes('firewall') && q.fame >= (CARDS.firewall.need || 0);
+    let q = null;
+    { const got = await reactionWindow(humanSeats().filter(s => s !== o.i && (multi || canFw(G.teams[s]))), '🛡️ Firewall?',
+        nm(o) + ' played <b>Override</b> to push ' + nm(F) + '\'s ' + shown + ' through' + (T && T !== F ? ' on ' + nm(T) : '') + '.<br><b>Firewall</b> stops the Override: the block stands.',
+        s => canFw(G.teams[s]) ? [{ label: '🛡️ Firewall', value: () => true }] : []);
+      for (const a of got) if (canFw(G.teams[a.seat])) { q = G.teams[a.seat]; break; } }
+    if (!q) for (const qi of seatOrder()) { const x = G.teams[qi]; if (!isHuman(qi) && canFw(x) && x !== F && aiWantsBlock(x, F, c, T)) { q = x; break; } }
+    if (q) {
+      removeFromHand(q, 'firewall'); discardCard('firewall');
+      await boardFx({ kind: 'react', ti: q.i, card: 'firewall', label: '✋ STOPS THE OVERRIDE' });
+      { const s2 = cst('firewall', q.i); cstBy('firewall', q.i, 'played'); s2.played++; s2.landed++; }
+      st.blocked++;
+      notify('🛡️ ' + nm(q) + ' stops the Override with ' + cardRef('firewall') + ': the block stands.', q.col);
+      return false;
     }
-    return false;
+    st.landed++; cstBy('override', o.i, 'landed');
+    notify('⛓️ The scheme goes through.', o.col);
+    return true;
   }
   async function loseFame(X, d) {
     const lost = -addFame(X, -d);
@@ -5574,7 +5625,8 @@ html, body {
   function setWaiting(pend) {   // host; pend: [{ seat, title }] the questions and deal panels open on joined screens
     if (!G || G.over) { if (netWaiting) { netWaiting = null; renderWaiting(); } return; }
     const list = [];
-    for (const s of humanSeats()) {
+    if (G.reacting) list.push({ seat: -1, what: G.reacting.title });   // a reaction window: no names (who is still thinking would give its cards away)
+    else for (const s of humanSeats()) {
       const q = (pend || []).find(x => x.seat === s);
       const mine = s === HS && ['ivModal', 'dealModal'].map(id => document.getElementById(id)).find(el => el && !el.hidden);
       const w = q ? ptPlain(q.title || 'a question') : mine ? ptPlain((mine.querySelector('h3') || {}).innerHTML || 'a question') : WAIT_WORDS[seatBusyWith(s)] || seatBusyWith(s);
@@ -5585,8 +5637,8 @@ html, body {
   function renderWaiting() {
     let el = document.getElementById('waitBanner');
     const list = isNetGame() && G && !G.over && G.phase !== 'fight' ? netWaiting || [] : [];
-    const me_ = list.find(x => x.seat === HS), others = list.filter(x => x.seat !== HS);
-    const html = !me_ && others.length ? '⏳ Waiting for ' + others.map(x => '<b style="color:' + shade(TEAMS[x.seat].col, 0.45) + '">' + esc(G.teams[x.seat].name) + '</b> <span>' + esc(x.what) + '</span>').join(' · ')
+    const me_ = list.find(x => x.seat === HS), others = list.filter(x => x.seat !== HS), rw = document.getElementById('reactWin'), react = list.find(x => x.seat === -1);
+    const html = react ? (rw && !rw.hidden ? '' : '⏱️ <b>Reaction window</b> <span>everyone can answer</span>') : !me_ && others.length ? '⏳ Waiting for ' + others.map(x => '<b style="color:' + shade(TEAMS[x.seat].col, 0.45) + '">' + esc(G.teams[x.seat].name) + '</b> <span>' + esc(x.what) + '</span>').join(' · ')
       : me_ && !others.length && humanSeats().length > 1 ? '👉 Everyone is waiting for <b>you</b> <span>' + esc(me_.what) + '</span>' : '';
     if (!html) { if (el) el.hidden = true; return; }
     if (!el) { el = document.createElement('div'); el.id = 'waitBanner'; document.body.appendChild(el); }
@@ -5715,10 +5767,10 @@ html, body {
       if (VW.V && t.sp > 0) VW.V.speed = t.sp;   // only the host sets the speed
     },
     showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
-      return ivModal(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })));
+      return (q.small ? smallAsk : ivModal)(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })), q.small ? q.ms : undefined);
     },
     showDeal(o) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null })); },
-    closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } },
+    closeModals() { for (const id of ['ivModal', 'dealModal', 'reactWin']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } },
     notify, get desyncs() { return desyncs; }, get resims() { return resims; }
   };
 

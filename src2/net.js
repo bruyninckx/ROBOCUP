@@ -226,6 +226,8 @@
       ask(seat, payload) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'ask', payload }; send(pBySeat(seat), { t: 'ask', q, ...payload }); }); },
       deal(seat, opts) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'deal', payload: opts }; send(pBySeat(seat), { t: 'deal', q, opts }); }); },
       cancelSeat(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve(x.kind === 'ask' ? { k: -1 } : null); } },
+      // close a seat's small reaction window (the time is up, or somebody else reacted first): it gets its default answer
+      cancelSmall(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat || x.kind !== 'ask' || !x.payload.small) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve({ k: -1 }); } },
       fx(o) { const c = Object.assign({}, o); delete c.t0; H.players.forEach(p => send(p, { t: 'fx', o: c })); },
       sendAct() {},
       rematch() { GAME().rematch(); H.players.forEach(resync); }
@@ -345,7 +347,7 @@
     window.ROBOCUS_NET = {
       sendAct(name, args) { send({ t: 'act', name, args }); },
       sendDiag(k, d) { try { send({ t: 'diag', k, d }); } catch (e) {} },   // this screen's trouble, for the host's log
-      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, fx() {}, rematch() {}
+      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, fx() {}, rematch() {}
     };
     T.onmsg = (from, d) => {
       if (from !== 'host' || !d) return;
