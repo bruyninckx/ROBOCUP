@@ -1231,7 +1231,7 @@
     const box = root.querySelector('.fv-cards'), tray = root.querySelector('.fv-tray'), hint = root.querySelector('.fv-hint');
     box.hidden = !cards.length; root.classList.toggle('aiming', !!aim); root.classList.toggle('has-cards', !!cards.length);
     if (!cards.length) { tray.innerHTML = ''; hint.innerHTML = ''; return; }
-    tray.innerHTML = cards.map((c, i) => `<button type="button" class="fv-card" data-i="${i}" aria-pressed="${aim && aim.key === c.key}" title="${esc(c.text || '')}"${c.target === 'bot' && !(c.valid || []).length ? ' disabled' : ''}><b>${c.icon || '🃏'}</b><span>${esc(c.name)}</span></button>`).join('');
+    tray.innerHTML = cards.map((c, i) => `<button type="button" class="fv-card" data-i="${i}" aria-pressed="${aim && aim.key === c.key}" title="${esc(c.text || '')}"${(c.target === 'bot' || c.own) && !(c.valid || []).length ? ' disabled' : ''}><b>${c.icon || '🃏'}</b><span>${esc(c.name)}</span></button>`).join('');
     const sup = aim && aim.key && (cards.find(x => x.key === aim.key) || {}).crate;
     hint.innerHTML = `<span>${esc(hintText())}</span>` + (sup ? CRATES.map(([k, l]) => `<button type="button" data-crate="${k}" aria-pressed="${crate === k}">${esc(l)}</button>`).join('') : '');
     tray.querySelectorAll('.fv-card').forEach(b => b.onclick = () => pickCard(cards[+b.dataset.i]));
@@ -1241,7 +1241,7 @@
     if (!c || (S && S.over)) return;
     if (aim && aim.key === c.key) { cancelAim(); return; }
     const valid = (c.valid || []).filter(i => S.robots[i] && S.robots[i].alive);
-    if (c.target === 'bot' && !valid.length) return;
+    if ((c.target === 'bot' || c.own) && !valid.length) return;   // a card for your own robot, and you have none in this fight (15 Nov: it looked playable, was refused, and on a joined screen left the tray)
     aim = { key: c.key, stage: c.target === 'bot' || (c.own && valid.length > 1) ? 'bot' : 'spot', robot: c.own && c.target === 'arena' && valid.length === 1 ? valid[0] : null };
     if (c.crate) crate = 'repair';
     drawCards();

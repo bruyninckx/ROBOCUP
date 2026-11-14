@@ -16,7 +16,15 @@ const N = +(process.argv[2] || 8) || 8, minutes = +(process.argv[3] || 6), first
 const par = +(process.argv[5] || 0) || Math.max(2, Math.min(8, Math.floor(require('os').cpus().length / 4))), out = SUM ? process.argv[3] : process.argv[6] || path.join('playtests', 'click-runs', stamp);
 const lines = [], say = s => { console.log(s); lines.push(s); };
 fs.mkdirSync(out, { recursive: true });
-if (!SUM) { const mins = Math.ceil(N / par) * (minutes + 1); console.log(N + ' click games of ' + minutes + ' minutes, ' + par + ' at a time, seeds ' + first + ' to ' + (first + N - 1) + '. About ' + (mins >= 90 ? (mins / 60).toFixed(1) + ' hours' : mins + ' minutes') + ' (done around ' + new Date(Date.now() + mins * 60000).toTimeString().slice(0, 5) + '). Results: ' + out); }
+// how long it takes: a game stops as soon as someone wins, mostly well before its minutes are up. The estimate uses what a
+// game took on this PC last time (playtests/click-runs/last-timing.json); the first time it can only give the longest it can take.
+const TIMING = path.join('playtests', 'click-runs', 'last-timing.json');
+let avgMin = null; try { avgMin = JSON.parse(fs.readFileSync(TIMING, 'utf8')).avgMinutes; } catch (e) {}
+const hm = m => m >= 90 ? (m / 60).toFixed(1) + ' hours' : Math.max(1, Math.round(m)) + ' minutes', at = m => new Date(Date.now() + m * 60000).toTimeString().slice(0, 5);
+if (!SUM) { const most = Math.ceil(N / par) * (minutes + 1), est = avgMin ? Math.min(most, Math.ceil(N / par) * (Math.min(minutes, avgMin) + 0.5) * 1.15) : null;
+  console.log(N + ' click games of at most ' + minutes + ' minutes, ' + par + ' at a time, seeds ' + first + ' to ' + (first + N - 1) + '.');
+  console.log(est ? 'About ' + hm(est) + ' (done around ' + at(est) + '): last time a game took ' + avgMin.toFixed(1) + ' minutes on this PC. At most ' + hm(most) + '.' : 'At most ' + hm(most) + ' (done by ' + at(most) + '), probably much sooner: a game stops as soon as someone wins.');
+  console.log('Results: ' + out + '. A line appears for every game that ends, and a status line every minute.'); }
 const game = path.join(__dirname, 'click-game.js'), jobs = Array.from({ length: N }, (_, k) => ({ seed: first + k, watch: k % 2 === 0, rain: process.env.RAIN === '1' || (process.env.RAIN !== '0' && k % 4 >= 2) }));   // half the games with RAIN (see click-game.js), unless RAIN=0 or RAIN=1
 const run = j => new Promise(res => {
   const json = path.join(out, 'run-' + j.seed + '.json'), log = fs.openSync(path.join(out, 'run-' + j.seed + '.txt'), 'w');
@@ -26,9 +34,12 @@ const run = j => new Promise(res => {
   p.on('exit', () => { clearTimeout(kill); let r = null; try { r = JSON.parse(fs.readFileSync(json, 'utf8')); } catch (e) {} console.log('seed ' + j.seed + (j.watch ? ' (watched fights)' : '') + (j.rain ? ' (card rain)' : '') + ': ' + (r ? (r.over ? 'finished' : 'played') + ' ' + r.round + ' rounds, ' + (r.notes.length + r.stuck.length + r.errors.length + r.warns.length) + ' findings' : 'NO RESULT (the run crashed or hung: see run-' + j.seed + '.txt)')); res({ j, r }); });
 });
 (async () => {
-  const results = []; let next = 0;
+  const results = []; let next = 0; const t00 = Date.now(), running = new Set();
+  const beat = SUM ? null : setInterval(() => { const done = results.length, fnd = results.reduce((a, x) => a + (x.r ? x.r.notes.length + x.r.stuck.length + x.r.errors.length + x.r.warns.length : 1), 0), el = (Date.now() - t00) / 60000, left = done ? el / done * (N - done) : null;
+    console.log('  ' + new Date().toTimeString().slice(0, 5) + ' · ' + done + ' of ' + N + ' games done · playing seeds ' + [...running].join(', ') + ' · findings so far: ' + fnd + (left != null ? ' · about ' + hm(left) + ' to go' : '')); }, 60000);
   if (SUM) { const dir = out; for (const f of fs.readdirSync(dir)) { const m = /^run-(\d+)\.json$/.exec(f); if (m) results.push({ j: { seed: +m[1] }, r: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) }); } }
-  else await Promise.all(Array.from({ length: par }, async () => { while (next < jobs.length) results.push(await run(jobs[next++])); }));
+  else await Promise.all(Array.from({ length: par }, async () => { while (next < jobs.length) { const j = jobs[next++]; running.add(j.seed); const x = await run(j); running.delete(j.seed); results.push(x); } }));
+  if (beat) clearInterval(beat);
   const found = {}, add = (kind, text, seed) => { const k = kind + ' · ' + text.replace(/\d+/g, '#'); (found[k] = found[k] || { kind, text, seeds: [] }).seeds.push(seed); };
   let rounds = 0, hung = [];
   for (const { j, r } of results) {
@@ -54,7 +65,8 @@ const run = j => new Promise(res => {
   { const a = outc['backing asked'], g = outc['backing got']; if (a && a.joined >= 4 && (!g || g.joined === 0) && g && g.host > 0) lop.push('joined seats asked for backing ' + a.joined + '× and never got it; the host got it ' + g.host + '× of ' + a.host); }
   for (const x of [...new Set(lop)]) add('host ≠ joined', x, 'all');
   const list = Object.values(found).sort((a, b) => b.seeds.length - a.seeds.length);
-  say('\n=== ' + results.length + ' click games, ' + rounds + ' rounds played ===');
+  say('\n=== ' + results.length + ' click games, ' + rounds + ' rounds played' + (SUM ? '' : ' in ' + hm((Date.now() - t00) / 60000)) + ' ===');
+  if (!SUM) { const ok = results.filter(x => x.r); if (ok.length) try { fs.mkdirSync(path.dirname(TIMING), { recursive: true }); fs.writeFileSync(TIMING, JSON.stringify({ avgMinutes: ok.reduce((a, x) => a + x.r.minutes, 0) / ok.length, games: ok.length, parallel: par, when: new Date().toISOString() })); } catch (e) {} }
   if (hung.length) say('No result (crashed or hung): seeds ' + hung.join(', '));
   if (Object.keys(outc).length) { say('what came of it (host seat · the 3 joined seats together):'); for (const k of Object.keys(outc).sort()) say('  ' + k.padEnd(40) + String(outc[k].host).padStart(5) + ' ·' + String(outc[k].joined).padStart(5)); }
   if (!list.length) say('No findings.');

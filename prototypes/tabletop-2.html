@@ -5141,7 +5141,7 @@ html, body {
     if (key === F.trayKey) return;   // only redraw the tray when something changed (a redraw mid-tap would lose the tap)
     F.trayKey = key;
     VW.setCards(list, (id, o) => {
-      if (isClient()) { act('combatCard', id, o.robot, o.x, o.y, o.crate); return; }   // the host plays it; the tray updates with its snapshot
+      if (isClient()) { act('combatCard', id, o.robot, o.x, o.y, o.crate); setTimeout(() => { if (G && G.fight) G.fight.trayKey = null; }, 1200); return; }   // the host plays it; the tray updates with its snapshot. Refused by the host (nothing changes, so no snapshot): the card comes back in the tray (15 Nov: it stayed gone)
       if (!playLive(F, HS, id, o)) { F.trayKey = null; liveTray(F); }
     });
   }

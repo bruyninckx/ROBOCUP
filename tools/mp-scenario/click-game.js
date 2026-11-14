@@ -63,7 +63,7 @@ const collect = () => {
   const seatOf = {}; for (const p of pages) seatOf[await p.evaluate(() => window.ROBOCUS_GAME.HS)] = p;
   const kind = s => s === 0 ? 'host' : 'joined';
   const stat = {}, stuck = [], tries = {}, t0 = Date.now(); let lastKey = {}, since = {}, shots = 0, firstErr = null, rainKey = '', logN = 0, lastSync = 0, fightAt = 0, fightKey = '';
-  const pressed = {}, pressedAt = {}, lastDiff = {}, notes = [], seenNote = {}, liveTried = { host: 0, joined: 0 }, livePlayed = { host: 0, joined: 0 };
+  const pressed = {}, pressedAt = {}, pressedN = {}, lastDiff = {}, notes = [], seenNote = {}, liveTried = { host: 0, joined: 0 }, livePlayed = { host: 0, joined: 0 };
   const note = (kind, text, st) => { const k = kind + '|' + text.replace(/\d+/g, '#'); if (seenNote[k]) return; seenNote[k] = 1; notes.push({ kind, text, round: st.round, phase: st.phase }); console.log(kind.toUpperCase() + ' · round ' + st.round + ' ' + st.phase + ' · ' + text); };
   const bump = (label, s, what) => { const k = label + ' | ' + kind(s); stat[k] = stat[k] || { ok: 0, stuck: 0 }; stat[k][what]++; };
   const click = async (p, it) => { if (!it) return; await p.mouse.move(it.x, it.y); await p.mouse.down(); await p.mouse.up(); };
@@ -151,8 +151,9 @@ const collect = () => {
       // the button that ends the step (Lock, Done, Continue, Start…). Once a seat pressed it, it leaves the table alone like a
       // person would: four seats that keep changing bets undo each other's lock for ever. It only presses it again now and then.
       const go = bar.filter(i => /→|Lock|Done|Continue|Start the auction|Next round/.test(i.label));
-      if (pressed[s] === key) { if (go.length && Date.now() - pressedAt[s] > 2500) { pressedAt[s] = Date.now(); await click(p, pick(go)); } continue; }
-      if (go.length && rnd() < 0.15 + 0.1 * tries[s]) { pressed[s] = key; pressedAt[s] = Date.now(); await click(p, pick(go)); continue; }
+      // (three presses that change nothing: the button is not ready yet, e.g. "Invite Fighters" with one team picked. Back to the table.)
+      if (pressed[s] === key) { if (!go.length || pressedN[s] >= 3) { pressed[s] = null; } else { if (Date.now() - pressedAt[s] > 2500) { pressedAt[s] = Date.now(); pressedN[s]++; await click(p, pick(go)); } continue; } }
+      if (go.length && rnd() < 0.15 + 0.1 * (tries[s] % 12)) { pressed[s] = key; pressedAt[s] = Date.now(); pressedN[s] = 0; await click(p, pick(go)); continue; }
       if (bar.length && rnd() < 0.25) pool.push(pick(bar));
       else { if (hits.length) pool.push(pick(hits), pick(hits)); if (bays.length) pool.push(pick(bays)); if (other.length) pool.push(pick(other)); if (!pool.length && bar.length) pool.push(pick(bar)); }
       if (pool.length) await click(p, pick(pool));
