@@ -11,7 +11,8 @@
 //
 //   --url=…     another address than https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-2.html
 //   --firefox   the joined players run in Firefox (needs: npx playwright install firefox): fights in another browser engine
-//   --no-drop   leave out the dropped connection (default: in every second game the joining PC goes offline for 12 s)
+//   --no-drop   leave out the dropped connection (default: in every second game every player on the joining PC loses its
+//               link to the host and the PC is offline for 12 s)
 //
 // What it finds out, per game (playtests/remote-runs/<date_time>-<role>/, and latest-remote-<role>.txt):
 //   - does the joining PC get through to the host at all, how long it takes, over a direct link or the relay, the delay;
@@ -131,9 +132,17 @@ async function joinSide(ctx, k, dir, say, drop) {
   if (!inGame.length) { say('game ' + k + ': could not get into a game in room ' + r + '. Skipped.'); res.note = pages.map(P => P.name + ': ' + (P.joinErrs.join(' | ') || 'no answer')).join(' · '); for (const P of pages) await P.p.close(); return res; }
   say('game ' + k + ' of ' + GAMES + ' is on with ' + inGame.length + ' of ' + pages.length + ' players');
   const until = Date.now() + (MIN + 1) * 60000; let gone = 0;
-  const dropper = drop ? (async () => { await sleep(90000); if (Date.now() > until - 60000) return; say('DROP: this PC goes offline for 12 s'); res.dropAt = clock(); await ctx.setOffline(true); await sleep(12000); await ctx.setOffline(false); const tb = Date.now(); say('back online');
-    for (let i = 0; i < 90; i++) { await sleep(1000); const ok = []; for (const P of inGame) { const s = await P.p.evaluate(pageState).catch(() => null); ok.push(!!(s && !s.lost)); } if (ok.every(Boolean)) { res.dropBackS = Math.round((Date.now() - tb) / 1000); say('every player has the host back ' + res.dropBackS + ' s after coming online'); return; } }
-    res.dropBackS = -1; say('NOT ALL PLAYERS CAME BACK within 90 s after the drop'); })() : Promise.resolve();
+  // The dropped connection. 15 Nov, first real run: taking the browser "offline" does not cut a game link that is already up
+  // (it is not web traffic), so nothing dropped and "back after 1 s" meant nothing. Now every player's link to the host is
+  // closed for real, and the browser is offline for 12 s so it can't reconnect at once. "Back" = host messages arrive again.
+  const silence = P => P.p.evaluate(() => { const C = window.ROBOCUS_CLIENT; return C ? Date.now() - C.lastHost : 1e9; }).catch(() => 1e9);
+  const dropper = drop ? (async () => { await sleep(90000); if (Date.now() > until - 60000) return; say('DROP: every player on this PC loses its link to the host, offline for 12 s'); res.dropAt = clock();
+    await ctx.setOffline(true);
+    let cut = 0; for (const P of inGame) cut += await P.p.evaluate(() => { let n = 0; try { const peer = window.ROBOCUS_CLIENT.T.peer; for (const id of Object.keys(peer.connections || {})) for (const c of peer.connections[id].slice()) { try { if (c.peerConnection) c.peerConnection.close(); c.close(); n++; } catch (e) {} } } catch (e) {} return n; }).catch(() => 0);
+    res.dropCut = cut; if (!cut) say('(no link could be closed: this drop is not a real one)');
+    await sleep(12000); await ctx.setOffline(false); const tb = Date.now(); say('back online (' + cut + ' links were closed)');
+    for (let i = 0; i < 120; i++) { await sleep(1000); const q = []; for (const P of inGame) q.push(await silence(P)); if (q.every(x => x < 2500)) { res.dropBackS = Math.round((Date.now() - tb) / 1000); say('every player hears the host again ' + res.dropBackS + ' s after coming online'); return; } }
+    res.dropBackS = -1; say('NOT ALL PLAYERS CAME BACK within 2 minutes after the drop'); })() : Promise.resolve();
   const results = await Promise.all(inGame.map(P => playSeat(P.p, P.name, dir, say, false, until, () => gone > 0, P === inGame[0]).then(R => { if (!R.over && R.lostHost && Date.now() < until - 5000) { /* the host closed the game */ } return R; })));
   await dropper.catch(() => {});
   for (let i = 0; i < inGame.length; i++) { const P = inGame[i], R = results[i];
@@ -170,7 +179,7 @@ async function joinSide(ctx, k, dir, say, drop) {
       if (je.length) sum.push('join trouble: ' + je.slice(0, 4).join(' | '));
       if (lk.length) sum.push('links: ' + lk.filter(l => l.link === 'direct').length + ' direct, ' + lk.filter(l => l.link === 'relay').length + ' through the relay · delay ' + Math.min(...lk.map(l => l.delayMs)) + ' to ' + Math.max(...lk.map(l => l.delayMs)) + ' ms');
       sum.push('fights the same as the host: ' + P.reduce((a, x) => a + (x.same || 0), 0) + ' of ' + P.reduce((a, x) => a + (x.fights || 0), 0) + ' · DIFFERENT: ' + P.reduce((a, x) => a + (x.desyncs || 0), 0) + ' · late live cards: ' + P.reduce((a, x) => a + (x.resims || 0), 0));
-      const dr = played.filter(g => g.dropAt); if (dr.length) sum.push('dropped connection (' + dr.length + ' games): back after ' + dr.map(g => g.dropBackS < 0 ? 'NOT BACK' : g.dropBackS + ' s').join(', '));
+      const dr = played.filter(g => g.dropAt); if (dr.length) sum.push('dropped connection (' + dr.length + ' games, ' + dr.reduce((x, g) => x + (g.dropCut || 0), 0) + ' links closed): the host is heard again after ' + dr.map(g => g.dropBackS < 0 ? 'NOT BACK' : g.dropBackS == null ? '?' : g.dropBackS + ' s').join(', '));
       sum.push('lost the host: ' + P.reduce((a, x) => a + x.lostHost, 0) + '× (' + P.reduce((a, x) => a + x.lostS, 0) + ' s in all) · stuck steps: ' + P.reduce((a, x) => a + x.stuck.length, 0) + ' · errors: ' + P.reduce((a, x) => a + (x.errors || []).length + x.pageErrors.length, 0));
       const st = [...new Set(P.flatMap(x => x.stuck.map(s => s.label + ' (round ' + s.round + ' ' + s.phase + ')')))]; if (st.length) sum.push('stuck at: ' + st.slice(0, 6).join(' · ')); }
     lines[side + 'Sum'] = sum;
