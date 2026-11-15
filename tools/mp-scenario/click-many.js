@@ -36,12 +36,14 @@ const run = j => new Promise(res => {
   p.on('exit', () => { clearTimeout(kill); let r = null; try { r = JSON.parse(fs.readFileSync(json, 'utf8')); } catch (e) {} console.log('seed ' + j.seed + (j.watch ? ' (watched fights)' : '') + (j.rain ? ' (card rain)' : '') + (j.long ? ' (long)' : '') + (j.chaos ? ' (chaos)' : '') + ': ' + (r ? (r.over ? 'finished' : 'played') + ' ' + r.round + ' rounds, ' + (r.notes.length + r.stuck.length + r.errors.length + r.warns.length) + ' findings' : 'NO RESULT (the run crashed or hung: see run-' + j.seed + '.txt)')); res({ j, r }); });
 });
 (async () => {
+  const stopAwake = SUM ? () => {} : require('./awake.js')();   // Windows: no sleep while the batch runs
   const results = []; let next = 0; const t00 = Date.now(), running = new Set();
   const beat = SUM ? null : setInterval(() => { const done = results.length, fnd = results.reduce((a, x) => a + (x.r ? x.r.notes.length + x.r.stuck.length + x.r.errors.length + x.r.warns.length : 1), 0), el = (Date.now() - t00) / 60000, left = done ? el / done * (N - done) : null;
     console.log('  ' + new Date().toTimeString().slice(0, 5) + ' · ' + done + ' of ' + N + ' games done · playing seeds ' + [...running].join(', ') + ' · findings so far: ' + fnd + (left != null ? ' · about ' + hm(left) + ' to go' : '')); }, 60000);
   if (SUM) { const dir = out; for (const f of fs.readdirSync(dir)) { const m = /^run-(\d+)\.json$/.exec(f); if (m) results.push({ j: { seed: +m[1] }, r: JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) }); } }
   else await Promise.all(Array.from({ length: par }, async () => { while (next < jobs.length) { const j = jobs[next++]; running.add(j.seed); const x = await run(j); running.delete(j.seed); results.push(x); } }));
   if (beat) clearInterval(beat);
+  stopAwake();
   const found = {}, add = (kind, text, seed) => { const k = kind + ' · ' + text.replace(/\d+/g, '#'); (found[k] = found[k] || { kind, text, seeds: [] }).seeds.push(seed); };
   let rounds = 0, hung = [];
   for (const { j, r } of results) {
@@ -62,7 +64,7 @@ const run = j => new Promise(res => {
     for (const k of Object.keys(r.stat)) { const [label, kind] = k.split(' | '), n = normLabel(label); steps[n] = steps[n] || { host: 0, joined: 0 }; steps[n][kind] += r.stat[k].ok + r.stat[k].stuck; }
     for (const k of Object.keys(r.outcomes || {})) { outc[k] = outc[k] || { host: 0, joined: 0 }; outc[k].host += r.outcomes[k].host; outc[k].joined += r.outcomes[k].joined; } }
   const lop = [];
-  for (const k of Object.keys(steps).sort()) { const v = steps[k]; if (v.host >= 2 && v.joined === 0) lop.push('only the HOST seat ever got: ' + k + ' (' + v.host + '×)'); if (v.joined >= 12 && v.host === 0) lop.push('only JOINED seats ever got: ' + k + ' (' + v.joined + '×)'); }
+  for (const k of Object.keys(steps).sort()) { const v = steps[k]; if (k === 'draft' || k === 'sponsor') continue; /* the opening picks: the test bots do most of them before the clicking starts */  if (v.host >= 2 && v.joined === 0) lop.push('only the HOST seat ever got: ' + k + ' (' + v.host + '×)'); if (v.joined >= 12 && v.host === 0) lop.push('only JOINED seats ever got: ' + k + ' (' + v.joined + '×)'); }
   for (const k of Object.keys(outc).sort()) { const v = outc[k]; if (v.host >= 2 && v.joined === 0) lop.push('only the HOST seat ever managed: ' + k + ' (' + v.host + '×, joined 0×)'); }
   { const a = outc['backing asked'], g = outc['backing got']; if (a && a.joined >= 4 && (!g || g.joined === 0) && g && g.host > 0) lop.push('joined seats asked for backing ' + a.joined + '× and never got it; the host got it ' + g.host + '× of ' + a.host); }
   for (const x of [...new Set(lop)]) add('host ≠ joined', x, 'all');
@@ -74,18 +76,19 @@ const run = j => new Promise(res => {
   if (!list.length) say('No findings.');
   for (const f of list) say(String(f.seeds.length).padStart(3) + '× ' + f.kind + ' · ' + f.text + '   [seeds ' + [...new Set(f.seeds)].slice(0, 6).join(', ') + ']');
   // ---- coverage: what did all these games together never do?
-  { const cards = {}, acts = {}, live = {}; let names = {}, n = 0, l4 = 0, leg = 0, r3 = 0, reloads = 0;
+  { const cards = {}, acts = {}, live = {}, logc = {}; let names = {}, n = 0, l4 = 0, leg = 0, r3 = 0, reloads = 0;
     for (const { r } of results) { if (!r || !r.cover) continue; n++; names = Object.assign(names, r.cover.names); if (r.cover.maxLevel >= 4) l4++; if (r.cover.legend) leg++; if (r.cover.robots3) r3++; reloads += r.reloads || 0;
-      for (const [src, dst] of [[r.cover.cards, cards], [r.cover.acts, acts], [r.cover.live, live]]) for (const k of Object.keys(src)) { dst[k] = dst[k] || { host: 0, joined: 0 }; dst[k].host += src[k].host; dst[k].joined += src[k].joined; } }
+      for (const [src, dst] of [[r.cover.cards, cards], [r.cover.acts, acts], [r.cover.live, live], [r.cover.log || {}, logc]]) for (const k of Object.keys(src)) { dst[k] = dst[k] || { host: 0, joined: 0 }; dst[k].host += src[k].host; dst[k].joined += src[k].joined; } }
     if (n) {
       let allActs = []; try { allActs = [...new Set((fs.readFileSync(path.join('prototypes', 'tabletop-2.html'), 'utf8').match(/\bACT\.(\w+) = /g) || []).map(x => x.slice(4, -3)))]; } catch (e) {}
-      const nm = k => names[k] || k, ids = Object.keys(names), played = k => (cards[k] ? cards[k].host + cards[k].joined : 0) + (live[k] ? live[k].host + live[k].joined : 0), by = (k, who) => (cards[k] ? cards[k][who] : 0) + (live[k] ? live[k][who] : 0);
+      const nm = k => names[k] || k, ids = Object.keys(names), by = (k, who) => (cards[k] ? cards[k][who] : 0) + (live[k] ? live[k][who] : 0) + (logc[k] ? logc[k][who] : 0), played = k => by(k, 'host') + by(k, 'joined');
+      const RETIRED = { crate: 'retired', skipFight: 'host only, by design' };
       const never = ids.filter(k => !played(k)), noJoined = ids.filter(k => played(k) && !by(k, 'joined')), noHost = ids.filter(k => played(k) && !by(k, 'host'));
       say('\nCOVERAGE over ' + n + ' games:');
       say('  cards played at least once: ' + (ids.length - never.length) + ' of ' + ids.length + (never.length ? ' · NEVER played: ' + never.map(nm).join(', ') : ''));
       if (noJoined.length) say('  played, but never by a joined seat: ' + noJoined.map(nm).join(', '));
       if (noHost.length) say('  played, but never by the host seat (one seat in four, so less telling): ' + noHost.map(nm).join(', '));
-      if (allActs.length) { const nA = allActs.filter(a => !acts[a]), nJ = allActs.filter(a => acts[a] && !acts[a].joined); say('  actions clicked at least once: ' + (allActs.length - nA.length) + ' of ' + allActs.length + (nA.length ? ' · NEVER: ' + nA.join(', ') : '') + (nJ.length ? ' · never by a joined seat: ' + nJ.join(', ') : '')); }
+      if (allActs.length) { const nA = allActs.filter(a => !acts[a] && !RETIRED[a]), nJ = allActs.filter(a => acts[a] && !acts[a].joined); say('  actions clicked at least once: ' + (allActs.length - nA.length) + ' of ' + allActs.length + (nA.length ? ' · NEVER: ' + nA.join(', ') : '') + (nJ.length ? ' · never by a joined seat: ' + nJ.join(', ') : '')); }
       say('  late game: ' + l4 + ' games reached a level 4 robot, ' + leg + ' a legendary part, ' + r3 + ' a full garage (3 robots)' + (reloads ? ' · ' + reloads + ' page reloads survived or reported' : ''));
     } }
   { const seeds = [...new Set(list.flatMap(f => f.seeds).filter(x => typeof x === 'number'))].sort((a, b) => a - b).slice(0, 12);

@@ -18,6 +18,7 @@ const list = [
   ['fight-engines', [path.join(__dirname, '..', 'fight-engines.js'), '300'], {}, '300 fights in every browser engine installed'],
 ];
 (async () => {
+  const stopAwake = require('./awake.js')();   // Windows: no sleep while the checks run
   const lines = []; let bad = 0;
   for (const [name, args, env, what] of list) {
     const t0 = Date.now(), file = path.join(out, name + '.txt'), fd = fs.openSync(file, 'w');
@@ -31,5 +32,6 @@ const list = [
   const sum = bad ? bad + ' of ' + list.length + ' checks FAILED (the full text of each is in ' + out + ')' : 'All ' + list.length + ' checks passed.';
   console.log(sum); lines.push(sum);
   fs.writeFileSync(path.join('playtests', 'click-runs', 'latest-checks.txt'), new Date().toISOString().slice(0, 16) + '\n' + lines.join('\n') + '\n');
+  stopAwake();
   process.exit(bad ? 1 : 0);
 })();

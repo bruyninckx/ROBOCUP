@@ -164,6 +164,8 @@ html, body {
 .hand-stage { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 560px; height: 230px; z-index: 25; pointer-events: none; transition: left .25s ease; }
 .hand-tray { position: absolute; bottom: 0; left: 0; width: 100%; height: 230px; pointer-events: none; transform: translateY(160px); transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform; }
 .hand-stage.open .hand-tray, .hand-tray.pinned, .hand-stage.dragging-active .hand-tray { transform: translateY(0); }
+/* a hand kept open steps down while you have to click one of your own bays (it covered the third bay on a small screen); hover its tab to look at it */
+.hand-stage.tucked:not(.open):not(.dragging-active) .hand-tray.pinned { transform: translateY(160px); }
 .cards-fan { position: absolute; inset: 0; pointer-events: none; }
 .hand-bar { position: absolute; bottom: 210px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; z-index: 5; }
 .hand-ctl, .hand-tab { font: 600 10.5px var(--mono); letter-spacing: .5px; background: var(--panel); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px; padding: 2px 9px; pointer-events: auto; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
@@ -1472,6 +1474,10 @@ html, body {
   }
   function updateHud() {
     try { renderWaiting(); } catch (e) {}   // the "waiting for" banner follows the layout
+    // 15 Nov (overnight click test, a 1366 x 768 screen): a hand kept open lay over the third robot bay, so a player whose only
+    // ready robot sat there could not send it. While you must click one of your own bays (send a robot, fit a part, repair),
+    // a pinned hand steps down; it comes back by itself afterwards.
+    { const hs = document.getElementById('handStage'); if (hs && G) { const P0 = PS(); hs.classList.toggle('tucked', !!((G.phase === 'arena' && P0.choose) || (G.phase === 'market' && (P0.install || []).length) || G.phase === 'upkeep')); } }
     try { fameSound(); } catch (e) {}
     try { renderAwards(); } catch (e) { console.warn('awards', e); }
     $('#roundBadge').textContent = G.phase === 'setup' ? 'SETUP' : 'R' + G.round;

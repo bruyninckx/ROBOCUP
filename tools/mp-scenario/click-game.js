@@ -89,8 +89,12 @@ const collect = () => {
         const give = (t, names) => { for (const n of names) { const k = id(n); if (k && !t.hand.includes(k) && t.hand.length < 9) t.hand.push(k); } };
         const schemes = Object.keys(C).filter(k => C[k].phase === 'intrigue' && !C[k].auction), answers = ['Paid Off', 'Fall Guy', 'Firewall', 'PR Spin', 'Not My Robot', "Sponsor's Lawyers", 'Under the Radar', 'Overreach', 'Override', 'Security Bot'];
         const some = (list, n) => list.slice().sort(() => Math.random() - 0.5).slice(0, n);
+        // cards that only work on a team that is down (no credits, no ready crew or robots) or need Firewall in the discard pile: deal them,
+        // and now and then put a team down, or they are never played
+        const needy = ['Fire Sale', 'Skeleton Crew', 'Leaked Footage', 'Bankrupt!', 'Kick When Down', 'Backup Restore', 'Rigged Ratings', 'Hostile Buyout', 'Security Override', 'Asset Strip', 'Board Seat', 'Pile-On'];
+        if (phase === 'intrigue') { const v = G.teams[Math.floor(Math.random() * 4)]; if (Math.random() < 0.3) v.credits = 0; if (Math.random() < 0.25) v.exMechs = v.crew.length; if (Math.random() < 0.2) v.robots.forEach(r => { r.exhausted = true; }); if (Math.random() < 0.3 && !G.discard.includes('firewall')) G.discard.push('firewall'); }
         for (const t of G.teams) {
-          if (phase === 'intrigue') { for (const k of some(schemes, 2)) if (!t.hand.includes(k) && t.hand.length < 9) t.hand.push(k); give(t, some(answers, 2)); }
+          if (phase === 'intrigue') { for (const k of some(schemes, 2)) if (!t.hand.includes(k) && t.hand.length < 9) t.hand.push(k); give(t, some(answers, 2)); give(t, some(needy, 1)); }
           if (phase === 'market' && stage === 'lots') give(t, ['Botched Install', 'Pile-On', 'Board Seat', 'Override']);
           if (phase === 'market' && stage === 'host') give(t, ['Grand Melee', 'Mirror', 'Unleash the House Robot']);
           if (phase === 'arena') give(t, ['Grand Melee', 'Mirror', 'Unleash the House Robot', 'Blaze of Glory']);
@@ -168,6 +172,8 @@ const collect = () => {
         continue;
       }
       const bar = C.items.filter(i => i.bar), hits = C.items.filter(i => i.type === 'hit' && !/garage|bay$/.test(i.kind)), bays = C.items.filter(i => /garage|bay/.test(i.kind || '')), other = C.items.filter(i => i.type === 'btn' && !i.bar);
+      // a dropdown in the note (the host's arena): now and then pick another option, with the real control
+      if (rnd() < 0.12) { try { const sel = p.locator('#promptBar select'), n = await sel.count(); if (n) { const one = sel.nth(Math.floor(rnd() * n)), opts = await one.locator('option:not([disabled])').count(); if (opts > 1) { await one.selectOption({ index: Math.floor(rnd() * opts) }, { timeout: 1500 }); continue; } } } catch (e) {} }
       const pool = [];
       // the button that ends the step (Lock, Done, Continue, Start…). Once a seat pressed it, it leaves the table alone like a
       // person would: four seats that keep changing bets undo each other's lock for ever. It only presses it again now and then.
@@ -211,8 +217,12 @@ const collect = () => {
   const cover = await host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, ev = D.PT.game.events, cards = {}, acts = {}, liveIds = {};
     for (const id of Object.keys(G.cstat || {})) { const by = G.cstat[id].playedBy || [0, 0, 0, 0]; cards[id] = { host: by[0], joined: by[1] + by[2] + by[3] }; }
     for (const e of ev) { if (e.k === 'act') { const a = acts[e.name] = acts[e.name] || { host: 0, joined: 0 }; a[e.seat === 0 ? 'host' : 'joined']++; } if (e.k === 'live_card') { const a = liveIds[e.id] = liveIds[e.id] || { host: 0, joined: 0 }; a[e.team === 0 ? 'host' : 'joined']++; } }
+    // the game's own card statistics miss some cards when a person plays them (Pile-On, Board Seat, Hedge Bet…): also count a card when a log line names it (not a cash-in or a Market line), for the first team that line names
+    const log = {}, tn = G.teams.map(t => t.name).sort((a, b) => b.length - a.length);
+    for (const e of ev) { if (e.k !== 'msg' && e.k !== 'play') continue; const txt = e.text || ''; if (/[Cc]ashed in|Market|hand limit|discards/.test(txt)) continue;
+      for (const k of Object.keys(D.CARDS)) if (txt.includes(D.CARDS[k].name)) { const who = tn.find(n => txt.includes(n)), a = log[k] = log[k] || { host: 0, joined: 0 }; if (who) a[who === G.teams[0].name ? 'host' : 'joined']++; } }
     const maxLevel = Math.max(0, ...G.teams.flatMap(t => t.robots.map(r => r.level || 0))), legend = G.teams.some(t => t.robots.some(r => r.leg));
-    return { cards, acts, live: liveIds, names: Object.fromEntries(Object.keys(D.CARDS).map(k => [k, D.CARDS[k].name])), maxLevel, legend, robots3: G.teams.some(t => t.robots.length >= 3) }; });
+    return { cards, acts, live: liveIds, log, names: Object.fromEntries(Object.keys(D.CARDS).map(k => [k, D.CARDS[k].name])), maxLevel, legend, robots3: G.teams.some(t => t.robots.length >= 3) }; });
   const live = await host.evaluate(() => { const h = { host: 0, joined: 0, refused: {} }; for (const e of window.ROBOCUS_DEBUG.PT.game.events) { if (e.k === 'live_card') h[e.team === 0 ? 'host' : 'joined']++; if (e.k === 'live_reject') { const k = String(e.why).replace(/\d+/g, '#'); h.refused[k] = (h.refused[k] || 0) + 1; } } return h; });
   // what came of it, host seat against joined seats (from the host's log): a bug that makes something silently fail for joined
   // players (Friday: every deal panel) shows here as "joined 0" next to a host that manages it
