@@ -1,0 +1,2291 @@
+{
+ "tags": {
+  "Rotisserie": [
+   [
+    "\ud83c\udfb2 Coin-flip brawler",
+    "55% of its fights are blowouts"
+   ],
+   [
+    "\ud83c\udf00 Lost in a melee",
+    "-17 points in free-for-alls (185 fights)"
+   ]
+  ],
+  "Jukebox": [
+   [
+    "\ud83c\udf00 Brawl master",
+    "+18 points in free-for-alls (186 fights)"
+   ]
+  ],
+  "Pogo": [
+   [
+    "\u23f1\ufe0f Quick finisher",
+    "fights last 31 s"
+   ],
+   [
+    "\ud83c\udf00 Lost in a melee",
+    "-24 points in free-for-alls (183 fights)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 38% (34% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Trebuchet": [
+   [
+    "\ud83c\udf00 Lost in a melee",
+    "-20 points in free-for-alls (208 fights)"
+   ]
+  ],
+  "Orbiter": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 76 s"
+   ],
+   [
+    "\ud83c\udf00 Brawl master",
+    "+20 points in free-for-alls (162 fights)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 48% (48% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Lodestone": [
+   [
+    "\ud83c\udfb2 Coin-flip brawler",
+    "50% of its fights are blowouts"
+   ]
+  ],
+  "Bricklayer": [],
+  "Railgun": [
+   [
+    "\ud83c\udfb2 Coin-flip brawler",
+    "71% of its fights are blowouts"
+   ]
+  ],
+  "Tarantula": [],
+  "Scavenger": [
+   [
+    "\ud83c\udfb2 Coin-flip brawler",
+    "59% of its fights are blowouts"
+   ]
+  ],
+  "Slingshot": [
+   [
+    "\ud83d\udde1\ufe0f Giant killer",
+    "beats higher-level robots 45% (a robot of its level: 36%)"
+   ],
+   [
+    "\ud83c\udf00 Brawl master",
+    "+20 points in free-for-alls (199 fights)"
+   ]
+  ],
+  "Hydra": [
+   [
+    "\ud83d\udde1\ufe0f Giant killer",
+    "beats higher-level robots 51% (a robot of its level: 36%)"
+   ]
+  ],
+  "Grandmaster": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 74 s"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 41% (36% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Gaucho": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 91 s"
+   ],
+   [
+    "\ud83d\udd28 Hard hitter",
+    "when it loses, the winner loses 32% health (its level: 26%)"
+   ]
+  ],
+  "Yoyo": [
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 39% instead of 66% (shown when its Body is broken)"
+   ]
+  ],
+  "Whaler": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 84 s"
+   ],
+   [
+    "\ud83e\ude9a Saw specialist",
+    "84% there against 25% on the open floor (32 fights)"
+   ],
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 42% instead of 72% (shown when its Body is broken)"
+   ]
+  ],
+  "Pincher": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 87 s"
+   ]
+  ],
+  "Angler": [],
+  "Gyro": [
+   [
+    "\ud83d\udde1\ufe0f Giant killer",
+    "beats higher-level robots 40% (a robot of its level: 25%)"
+   ],
+   [
+    "\ud83c\udf00 Brawl master",
+    "+15 points in free-for-alls (196 fights)"
+   ]
+  ],
+  "Mauler": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 71 s"
+   ],
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 20% instead of 47% (shown when its Body is broken)"
+   ]
+  ],
+  "Corkscrew": [
+   [
+    "\ud83c\udf00 Lost in a melee",
+    "-11 points in free-for-alls (179 fights)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 44% (42% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Blacksmith": [
+   [
+    "\ud83d\udde1\ufe0f Giant killer",
+    "beats higher-level robots 29% (a robot of its level: 21%)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 44% (38% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Thwacker": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 88 s"
+   ],
+   [
+    "\ud83c\udf00 Brawl master",
+    "+14 points in free-for-alls (184 fights)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 64% (59% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Vertigo": [],
+  "Buzzkill": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 72 s"
+   ],
+   [
+    "\ud83d\udd28 Hard hitter",
+    "when it loses, the winner loses 24% health (its level: 19%)"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 30% (28% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Wrecker": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 75 s"
+   ],
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 28% instead of 53% (shown when its Body is broken)"
+   ]
+  ],
+  "Snapjaw": [
+   [
+    "\ud83c\udfb2 Coin-flip brawler",
+    "55% of its fights are blowouts"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 58% (42% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Hornet": [
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 14% instead of 31% (shown when its Body is broken)"
+   ]
+  ],
+  "Scythe": [
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 36% instead of 64% (shown when its Body is broken)"
+   ]
+  ],
+  "Mincer": [
+   [
+    "\ud83e\uddf1 Grinder",
+    "fights last 73 s"
+   ],
+   [
+    "\ud83e\ude79 Shrugs it off",
+    "with its armour gone it still wins 64% (59% with it) (shown when its Body is broken)"
+   ]
+  ],
+  "Forklift": [],
+  "Popcorn": [],
+  "Thumper": [
+   [
+    "\ud83e\ude79 Needs its armour",
+    "with its armour gone it wins 16% instead of 34% (shown when its Body is broken)"
+   ]
+  ]
+ },
+ "stat": {
+  "Rotisserie": {
+   "elo": 200,
+   "dev": -41,
+   "blow": 55,
+   "t": 54,
+   "hit": 23,
+   "hitLv": 26,
+   "ffa": [
+    -17,
+    185
+   ],
+   "tv": [
+    -1,
+    185
+   ],
+   "ar": {
+    "saws": -0.22,
+    "killbox": -0.03,
+    "cage": -0.03,
+    "ice": 0.06
+   },
+   "body": [
+    42,
+    41,
+    0.06
+   ]
+  },
+  "Jukebox": {
+   "elo": 240,
+   "dev": 0,
+   "blow": 4,
+   "t": 68,
+   "hit": 29,
+   "hitLv": 26,
+   "ffa": [
+    18,
+    186
+   ],
+   "tv": [
+    3,
+    186
+   ],
+   "ar": {
+    "saws": 0.06,
+    "killbox": 0.06,
+    "cage": 0.06,
+    "ice": 0.06
+   },
+   "body": [
+    42,
+    22,
+    0.96
+   ]
+  },
+  "Pogo": {
+   "elo": 249,
+   "dev": 8,
+   "blow": 37,
+   "t": 31,
+   "hit": 23,
+   "hitLv": 26,
+   "ffa": [
+    -24,
+    183
+   ],
+   "tv": [
+    2,
+    183
+   ],
+   "ar": {
+    "saws": -0.1,
+    "killbox": 0.03,
+    "cage": -0.03,
+    "ice": -0.1
+   },
+   "body": [
+    34,
+    38,
+    -0.14
+   ]
+  },
+  "Trebuchet": {
+   "elo": 213,
+   "dev": -27,
+   "blow": 48,
+   "t": 57,
+   "hit": 28,
+   "hitLv": 26,
+   "ffa": [
+    -20,
+    208
+   ],
+   "tv": [
+    -9,
+    208
+   ],
+   "ar": {
+    "saws": 0.19,
+    "killbox": 0.35,
+    "cage": 0.06,
+    "ice": 0.16
+   },
+   "body": [
+    45,
+    38,
+    0.32
+   ]
+  },
+  "Orbiter": {
+   "elo": 257,
+   "dev": 17,
+   "blow": 46,
+   "t": 76,
+   "hit": 30,
+   "hitLv": 26,
+   "ffa": [
+    20,
+    162
+   ],
+   "tv": [
+    3,
+    162
+   ],
+   "ar": {
+    "saws": 0.0,
+    "killbox": 0.06,
+    "cage": -0.13,
+    "ice": -0.13
+   },
+   "body": [
+    48,
+    48,
+    0.0
+   ]
+  },
+  "Lodestone": {
+   "elo": 195,
+   "dev": -46,
+   "blow": 50,
+   "t": 49,
+   "hit": 30,
+   "hitLv": 26,
+   "ffa": [
+    0,
+    192
+   ],
+   "tv": [
+    9,
+    192
+   ],
+   "ar": {
+    "saws": 0.06,
+    "killbox": 0.16,
+    "cage": 0.03,
+    "ice": 0.19
+   },
+   "body": [
+    30,
+    23,
+    0.32
+   ]
+  },
+  "Bricklayer": {
+   "elo": 243,
+   "dev": 2,
+   "blow": 12,
+   "t": 56,
+   "hit": 25,
+   "hitLv": 26,
+   "ffa": [
+    -2,
+    184
+   ],
+   "tv": [
+    6,
+    184
+   ],
+   "ar": {
+    "saws": -0.16,
+    "killbox": -0.06,
+    "cage": -0.03,
+    "ice": -0.13
+   },
+   "body": [
+    69,
+    45,
+    0.98
+   ]
+  },
+  "Railgun": {
+   "elo": 238,
+   "dev": -3,
+   "blow": 71,
+   "t": 61,
+   "hit": 23,
+   "hitLv": 26,
+   "ffa": [
+    9,
+    172
+   ],
+   "tv": [
+    3,
+    172
+   ],
+   "ar": {
+    "saws": -0.06,
+    "killbox": -0.1,
+    "cage": -0.2,
+    "ice": 0.06
+   },
+   "body": [
+    39,
+    38,
+    0.07
+   ]
+  },
+  "Tarantula": {
+   "elo": 113,
+   "dev": -13,
+   "blow": 30,
+   "t": 67,
+   "hit": 25,
+   "hitLv": 26,
+   "up": [
+    43,
+    36,
+    96
+   ],
+   "ffa": [
+    -1,
+    163
+   ],
+   "tv": [
+    3,
+    163
+   ],
+   "ar": {
+    "saws": 0.13,
+    "killbox": 0.09,
+    "cage": -0.03,
+    "ice": 0.16
+   },
+   "body": [
+    42,
+    39,
+    0.13
+   ]
+  },
+  "Scavenger": {
+   "elo": 136,
+   "dev": 11,
+   "blow": 59,
+   "t": 81,
+   "hit": 24,
+   "hitLv": 26,
+   "up": [
+    29,
+    36,
+    96
+   ],
+   "ffa": [
+    -4,
+    170
+   ],
+   "tv": [
+    3,
+    170
+   ],
+   "ar": {
+    "saws": -0.03,
+    "killbox": 0.0,
+    "cage": 0.16,
+    "ice": 0.03
+   },
+   "body": [
+    33,
+    27,
+    0.3
+   ]
+  },
+  "Slingshot": {
+   "elo": 115,
+   "dev": -10,
+   "blow": 58,
+   "t": 75,
+   "hit": 24,
+   "hitLv": 26,
+   "up": [
+    45,
+    36,
+    96
+   ],
+   "ffa": [
+    20,
+    199
+   ],
+   "tv": [
+    4,
+    199
+   ],
+   "ar": {
+    "saws": 0.16,
+    "killbox": -0.03,
+    "cage": -0.03,
+    "ice": 0.0
+   },
+   "body": [
+    53,
+    48,
+    0.19
+   ]
+  },
+  "Hydra": {
+   "elo": 120,
+   "dev": -6,
+   "blow": 30,
+   "t": 70,
+   "hit": 25,
+   "hitLv": 26,
+   "up": [
+    51,
+    36,
+    96
+   ],
+   "ffa": [
+    -5,
+    160
+   ],
+   "tv": [
+    2,
+    160
+   ],
+   "ar": {
+    "saws": -0.13,
+    "killbox": -0.09,
+    "cage": 0.0,
+    "ice": -0.13
+   },
+   "body": [
+    53,
+    39,
+    0.57
+   ]
+  },
+  "Grandmaster": {
+   "elo": 109,
+   "dev": -17,
+   "blow": 48,
+   "t": 74,
+   "hit": 27,
+   "hitLv": 26,
+   "up": [
+    25,
+    36,
+    96
+   ],
+   "ffa": [
+    0,
+    180
+   ],
+   "tv": [
+    3,
+    180
+   ],
+   "ar": {
+    "saws": -0.19,
+    "killbox": -0.03,
+    "cage": -0.06,
+    "ice": 0.03
+   },
+   "body": [
+    36,
+    41,
+    -0.2
+   ]
+  },
+  "Gaucho": {
+   "elo": 90,
+   "dev": -35,
+   "blow": 25,
+   "t": 91,
+   "hit": 32,
+   "hitLv": 26,
+   "up": [
+    23,
+    36,
+    96
+   ],
+   "ffa": [
+    9,
+    213
+   ],
+   "tv": [
+    -5,
+    213
+   ],
+   "ar": {
+    "saws": 0.13,
+    "killbox": -0.1,
+    "cage": 0.09,
+    "ice": 0.06
+   },
+   "body": [
+    64,
+    56,
+    0.33
+   ]
+  },
+  "Yoyo": {
+   "elo": 11,
+   "dev": 0,
+   "blow": 32,
+   "t": 66,
+   "hit": 28,
+   "hitLv": 23,
+   "up": [
+    28,
+    25,
+    168
+   ],
+   "ffa": [
+    3,
+    181
+   ],
+   "tv": [
+    2,
+    181
+   ],
+   "ar": {
+    "saws": -0.19,
+    "killbox": -0.06,
+    "cage": -0.06,
+    "ice": -0.03
+   },
+   "body": [
+    66,
+    39,
+    1.09
+   ]
+  },
+  "Whaler": {
+   "elo": -18,
+   "dev": -29,
+   "blow": 40,
+   "t": 84,
+   "hit": 23,
+   "hitLv": 23,
+   "up": [
+    19,
+    25,
+    168
+   ],
+   "ffa": [
+    -3,
+    206
+   ],
+   "tv": [
+    -2,
+    206
+   ],
+   "ar": {
+    "saws": 0.61,
+    "killbox": 0.32,
+    "cage": 0.07,
+    "ice": 0.16
+   },
+   "body": [
+    72,
+    42,
+    1.25
+   ]
+  },
+  "Pincher": {
+   "elo": -26,
+   "dev": -37,
+   "blow": 34,
+   "t": 87,
+   "hit": 23,
+   "hitLv": 23,
+   "up": [
+    18,
+    25,
+    168
+   ],
+   "ffa": [
+    -7,
+    176
+   ],
+   "tv": [
+    -6,
+    176
+   ],
+   "ar": {
+    "saws": -0.32,
+    "killbox": -0.06,
+    "cage": 0.0,
+    "ice": -0.09
+   },
+   "body": [
+    44,
+    42,
+    0.06
+   ]
+  },
+  "Angler": {
+   "elo": 19,
+   "dev": 9,
+   "blow": 44,
+   "t": 65,
+   "hit": 24,
+   "hitLv": 23,
+   "up": [
+    18,
+    25,
+    168
+   ],
+   "ffa": [
+    0,
+    179
+   ],
+   "tv": [
+    6,
+    179
+   ],
+   "ar": {
+    "saws": -0.03,
+    "killbox": -0.06,
+    "cage": -0.09,
+    "ice": 0.03
+   },
+   "body": [
+    67,
+    47,
+    0.84
+   ]
+  },
+  "Gyro": {
+   "elo": 2,
+   "dev": -9,
+   "blow": 42,
+   "t": 79,
+   "hit": 18,
+   "hitLv": 23,
+   "up": [
+    40,
+    25,
+    168
+   ],
+   "ffa": [
+    15,
+    196
+   ],
+   "tv": [
+    3,
+    196
+   ],
+   "ar": {
+    "saws": 0.06,
+    "killbox": 0.0,
+    "cage": 0.06,
+    "ice": -0.09
+   },
+   "body": [
+    2,
+    9,
+    -1.62
+   ]
+  },
+  "Mauler": {
+   "elo": -163,
+   "dev": -59,
+   "blow": 30,
+   "t": 71,
+   "hit": 24,
+   "hitLv": 20,
+   "up": [
+    16,
+    21,
+    228
+   ],
+   "ffa": [
+    6,
+    174
+   ],
+   "tv": [
+    -6,
+    174
+   ],
+   "ar": {
+    "saws": 0.22,
+    "killbox": 0.13,
+    "cage": 0.09,
+    "ice": 0.09
+   },
+   "body": [
+    47,
+    20,
+    1.24
+   ]
+  },
+  "Corkscrew": {
+   "elo": -66,
+   "dev": 38,
+   "blow": 46,
+   "t": 55,
+   "hit": 19,
+   "hitLv": 20,
+   "up": [
+    25,
+    21,
+    228
+   ],
+   "ffa": [
+    -11,
+    179
+   ],
+   "tv": [
+    -1,
+    179
+   ],
+   "ar": {
+    "saws": -0.06,
+    "killbox": 0.22,
+    "cage": -0.06,
+    "ice": -0.22
+   },
+   "body": [
+    42,
+    44,
+    -0.06
+   ]
+  },
+  "Blacksmith": {
+   "elo": -91,
+   "dev": 13,
+   "blow": 47,
+   "t": 62,
+   "hit": 16,
+   "hitLv": 20,
+   "up": [
+    29,
+    21,
+    228
+   ],
+   "ffa": [
+    -4,
+    182
+   ],
+   "tv": [
+    -1,
+    182
+   ],
+   "ar": {
+    "saws": 0.06,
+    "killbox": 0.09,
+    "cage": 0.03,
+    "ice": 0.06
+   },
+   "body": [
+    38,
+    44,
+    -0.26
+   ]
+  },
+  "Thwacker": {
+   "elo": -127,
+   "dev": -23,
+   "blow": 40,
+   "t": 88,
+   "hit": 21,
+   "hitLv": 20,
+   "up": [
+    15,
+    21,
+    228
+   ],
+   "ffa": [
+    14,
+    184
+   ],
+   "tv": [
+    -4,
+    184
+   ],
+   "ar": {
+    "saws": 0.16,
+    "killbox": 0.03,
+    "cage": 0.06,
+    "ice": -0.16
+   },
+   "body": [
+    59,
+    64,
+    -0.2
+   ]
+  },
+  "Vertigo": {
+   "elo": -89,
+   "dev": 16,
+   "blow": 37,
+   "t": 64,
+   "hit": 22,
+   "hitLv": 20,
+   "up": [
+    21,
+    21,
+    228
+   ],
+   "ffa": [
+    2,
+    168
+   ],
+   "tv": [
+    -1,
+    168
+   ],
+   "ar": {
+    "saws": -0.03,
+    "killbox": 0.03,
+    "cage": 0.19,
+    "ice": 0.09
+   },
+   "body": [
+    61,
+    45,
+    0.63
+   ]
+  },
+  "Buzzkill": {
+   "elo": -227,
+   "dev": -8,
+   "blow": 33,
+   "t": 72,
+   "hit": 24,
+   "hitLv": 19,
+   "up": [
+    19,
+    17,
+    288
+   ],
+   "ffa": [
+    7,
+    184
+   ],
+   "tv": [
+    8,
+    184
+   ],
+   "ar": {
+    "saws": 0.06,
+    "killbox": 0.0,
+    "cage": 0.03,
+    "ice": 0.06
+   },
+   "body": [
+    28,
+    30,
+    -0.08
+   ]
+  },
+  "Wrecker": {
+   "elo": -208,
+   "dev": 11,
+   "blow": 25,
+   "t": 75,
+   "hit": 23,
+   "hitLv": 19,
+   "up": [
+    14,
+    17,
+    288
+   ],
+   "ffa": [
+    7,
+    185
+   ],
+   "tv": [
+    -8,
+    185
+   ],
+   "ar": {
+    "saws": 0.28,
+    "killbox": 0.06,
+    "cage": -0.09,
+    "ice": 0.13
+   },
+   "body": [
+    53,
+    28,
+    1.06
+   ]
+  },
+  "Snapjaw": {
+   "elo": -222,
+   "dev": -2,
+   "blow": 55,
+   "t": 54,
+   "hit": 16,
+   "hitLv": 19,
+   "up": [
+    18,
+    17,
+    288
+   ],
+   "ffa": [
+    -2,
+    201
+   ],
+   "tv": [
+    -4,
+    201
+   ],
+   "ar": {
+    "saws": -0.06,
+    "killbox": 0.06,
+    "cage": 0.16,
+    "ice": 0.0
+   },
+   "body": [
+    42,
+    58,
+    -0.63
+   ]
+  },
+  "Hornet": {
+   "elo": -208,
+   "dev": 11,
+   "blow": 45,
+   "t": 60,
+   "hit": 17,
+   "hitLv": 19,
+   "up": [
+    20,
+    17,
+    288
+   ],
+   "ffa": [
+    -4,
+    178
+   ],
+   "tv": [
+    -9,
+    178
+   ],
+   "ar": {
+    "saws": 0.28,
+    "killbox": 0.0,
+    "cage": -0.1,
+    "ice": 0.0
+   },
+   "body": [
+    31,
+    14,
+    1.02
+   ]
+  },
+  "Scythe": {
+   "elo": -206,
+   "dev": 13,
+   "blow": 38,
+   "t": 66,
+   "hit": 18,
+   "hitLv": 19,
+   "up": [
+    19,
+    17,
+    288
+   ],
+   "ffa": [
+    -2,
+    188
+   ],
+   "tv": [
+    1,
+    188
+   ],
+   "ar": {
+    "saws": 0.13,
+    "killbox": -0.13,
+    "cage": -0.03,
+    "ice": 0.06
+   },
+   "body": [
+    64,
+    36,
+    1.16
+   ]
+  },
+  "Mincer": {
+   "elo": -263,
+   "dev": -44,
+   "blow": 45,
+   "t": 73,
+   "hit": 18,
+   "hitLv": 19,
+   "up": [
+    12,
+    17,
+    288
+   ],
+   "ffa": [
+    -2,
+    162
+   ],
+   "tv": [
+    1,
+    162
+   ],
+   "ar": {
+    "saws": -0.16,
+    "killbox": -0.09,
+    "cage": 0.06,
+    "ice": -0.06
+   },
+   "body": [
+    59,
+    64,
+    -0.2
+   ]
+  },
+  "Forklift": {
+   "elo": -211,
+   "dev": 8,
+   "blow": 39,
+   "t": 65,
+   "hit": 18,
+   "hitLv": 19,
+   "up": [
+    17,
+    17,
+    288
+   ],
+   "ffa": [
+    -9,
+    179
+   ],
+   "tv": [
+    -5,
+    179
+   ],
+   "ar": {
+    "saws": -0.03,
+    "killbox": 0.0,
+    "cage": -0.06,
+    "ice": -0.19
+   },
+   "body": [
+    52,
+    42,
+    0.38
+   ]
+  },
+  "Popcorn": {
+   "elo": -222,
+   "dev": -2,
+   "blow": 50,
+   "t": 56,
+   "hit": 17,
+   "hitLv": 19,
+   "up": [
+    15,
+    17,
+    288
+   ],
+   "ffa": [
+    -9,
+    167
+   ],
+   "tv": [
+    3,
+    167
+   ],
+   "ar": {
+    "saws": -0.13,
+    "killbox": -0.03,
+    "cage": -0.25,
+    "ice": -0.19
+   },
+   "body": [
+    50,
+    45,
+    0.19
+   ]
+  },
+  "Thumper": {
+   "elo": -206,
+   "dev": 13,
+   "blow": 42,
+   "t": 57,
+   "hit": 17,
+   "hitLv": 19,
+   "up": [
+    22,
+    17,
+    288
+   ],
+   "ffa": [
+    -5,
+    174
+   ],
+   "tv": [
+    0,
+    174
+   ],
+   "ar": {
+    "saws": -0.1,
+    "killbox": 0.13,
+    "cage": 0.16,
+    "ice": 0.13
+   },
+   "body": [
+    34,
+    16,
+    1.04
+   ]
+  }
+ },
+ "levels": {
+  "L1 vs L0": 66,
+  "L2 vs L1": 60,
+  "L3 vs L2": 66,
+  "L4 vs L3": 64
+ },
+ "exp": {
+  "-4": 7,
+  "-3": 15,
+  "-2": 17,
+  "-1": 36,
+  "0": 50,
+  "1": 64,
+  "2": 83,
+  "3": 85,
+  "4": 93
+ },
+ "counters": [
+  [
+   "Gyro",
+   "Pogo",
+   92,
+   17,
+   12
+  ],
+  [
+   "Mincer",
+   "Hydra",
+   83,
+   15,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Hydra",
+   83,
+   17,
+   12
+  ],
+  [
+   "Forklift",
+   "Gyro",
+   83,
+   17,
+   12
+  ],
+  [
+   "Hydra",
+   "Rotisserie",
+   100,
+   36,
+   12
+  ],
+  [
+   "Gyro",
+   "Slingshot",
+   100,
+   36,
+   12
+  ],
+  [
+   "Gyro",
+   "Hydra",
+   100,
+   36,
+   12
+  ],
+  [
+   "Mauler",
+   "Whaler",
+   100,
+   36,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Tarantula",
+   75,
+   17,
+   12
+  ],
+  [
+   "Gyro",
+   "Tarantula",
+   92,
+   36,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Whaler",
+   92,
+   36,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Gyro",
+   92,
+   36,
+   12
+  ],
+  [
+   "Mincer",
+   "Mauler",
+   92,
+   36,
+   12
+  ],
+  [
+   "Thwacker",
+   "Pogo",
+   67,
+   15,
+   12
+  ],
+  [
+   "Buzzkill",
+   "Hydra",
+   67,
+   15,
+   12
+  ],
+  [
+   "Pogo",
+   "Rotisserie",
+   100,
+   50,
+   12
+  ],
+  [
+   "Rotisserie",
+   "Lodestone",
+   100,
+   50,
+   12
+  ],
+  [
+   "Pogo",
+   "Trebuchet",
+   100,
+   50,
+   12
+  ],
+  [
+   "Orbiter",
+   "Trebuchet",
+   100,
+   50,
+   12
+  ],
+  [
+   "Slingshot",
+   "Scavenger",
+   100,
+   50,
+   12
+  ],
+  [
+   "Whaler",
+   "Pincher",
+   100,
+   50,
+   12
+  ],
+  [
+   "Whaler",
+   "Gyro",
+   100,
+   50,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Blacksmith",
+   100,
+   50,
+   12
+  ],
+  [
+   "Popcorn",
+   "Scythe",
+   100,
+   50,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Angler",
+   83,
+   36,
+   12
+  ],
+  [
+   "Hornet",
+   "Blacksmith",
+   83,
+   36,
+   12
+  ],
+  [
+   "Thumper",
+   "Rotisserie",
+   50,
+   7,
+   12
+  ],
+  [
+   "Buzzkill",
+   "Pogo",
+   50,
+   7,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Lodestone",
+   58,
+   15,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Bricklayer",
+   58,
+   15,
+   12
+  ],
+  [
+   "Trebuchet",
+   "Rotisserie",
+   92,
+   50,
+   12
+  ],
+  [
+   "Railgun",
+   "Lodestone",
+   92,
+   50,
+   12
+  ],
+  [
+   "Hydra",
+   "Scavenger",
+   92,
+   50,
+   12
+  ],
+  [
+   "Pincher",
+   "Gyro",
+   92,
+   50,
+   12
+  ],
+  [
+   "Angler",
+   "Gyro",
+   92,
+   50,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Mauler",
+   92,
+   50,
+   12
+  ],
+  [
+   "Wrecker",
+   "Buzzkill",
+   92,
+   50,
+   12
+  ],
+  [
+   "Thumper",
+   "Mincer",
+   92,
+   50,
+   12
+  ],
+  [
+   "Vertigo",
+   "Slingshot",
+   58,
+   17,
+   12
+  ],
+  [
+   "Tarantula",
+   "Lodestone",
+   75,
+   36,
+   12
+  ],
+  [
+   "Scavenger",
+   "Lodestone",
+   75,
+   36,
+   12
+  ],
+  [
+   "Slingshot",
+   "Railgun",
+   75,
+   36,
+   12
+  ],
+  [
+   "Hydra",
+   "Railgun",
+   75,
+   36,
+   12
+  ],
+  [
+   "Whaler",
+   "Slingshot",
+   75,
+   36,
+   12
+  ],
+  [
+   "Scythe",
+   "Corkscrew",
+   75,
+   36,
+   12
+  ],
+  [
+   "Forklift",
+   "Thwacker",
+   75,
+   36,
+   12
+  ],
+  [
+   "Popcorn",
+   "Vertigo",
+   75,
+   36,
+   12
+  ],
+  [
+   "Rotisserie",
+   "Gaucho",
+   100,
+   64,
+   12
+  ],
+  [
+   "Jukebox",
+   "Scavenger",
+   100,
+   64,
+   12
+  ],
+  [
+   "Pogo",
+   "Grandmaster",
+   100,
+   64,
+   12
+  ],
+  [
+   "Orbiter",
+   "Grandmaster",
+   100,
+   64,
+   12
+  ],
+  [
+   "Tarantula",
+   "Whaler",
+   100,
+   64,
+   12
+  ],
+  [
+   "Scavenger",
+   "Angler",
+   100,
+   64,
+   12
+  ],
+  [
+   "Hydra",
+   "Whaler",
+   100,
+   64,
+   12
+  ],
+  [
+   "Grandmaster",
+   "Pincher",
+   100,
+   64,
+   12
+  ],
+  [
+   "Gaucho",
+   "Yoyo",
+   100,
+   64,
+   12
+  ],
+  [
+   "Whaler",
+   "Thwacker",
+   100,
+   64,
+   12
+  ],
+  [
+   "Gyro",
+   "Mauler",
+   100,
+   64,
+   12
+  ],
+  [
+   "Mauler",
+   "Popcorn",
+   100,
+   64,
+   12
+  ],
+  [
+   "Mauler",
+   "Thumper",
+   100,
+   64,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Snapjaw",
+   100,
+   64,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Forklift",
+   100,
+   64,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Popcorn",
+   100,
+   64,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Mincer",
+   100,
+   64,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Forklift",
+   100,
+   64,
+   12
+  ],
+  [
+   "Vertigo",
+   "Scythe",
+   100,
+   64,
+   12
+  ],
+  [
+   "Vertigo",
+   "Mincer",
+   100,
+   64,
+   12
+  ],
+  [
+   "Snapjaw",
+   "Tarantula",
+   50,
+   15,
+   12
+  ],
+  [
+   "Hornet",
+   "Tarantula",
+   50,
+   15,
+   12
+  ],
+  [
+   "Thumper",
+   "Tarantula",
+   50,
+   15,
+   12
+  ],
+  [
+   "Jukebox",
+   "Trebuchet",
+   83,
+   50,
+   12
+  ],
+  [
+   "Orbiter",
+   "Pogo",
+   83,
+   50,
+   12
+  ],
+  [
+   "Pogo",
+   "Lodestone",
+   83,
+   50,
+   12
+  ],
+  [
+   "Railgun",
+   "Orbiter",
+   83,
+   50,
+   12
+  ],
+  [
+   "Tarantula",
+   "Gaucho",
+   83,
+   50,
+   12
+  ],
+  [
+   "Hydra",
+   "Slingshot",
+   83,
+   50,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Slingshot",
+   50,
+   17,
+   12
+  ],
+  [
+   "Vertigo",
+   "Hydra",
+   50,
+   17,
+   12
+  ],
+  [
+   "Yoyo",
+   "Gyro",
+   83,
+   50,
+   12
+  ],
+  [
+   "Hornet",
+   "Whaler",
+   50,
+   17,
+   12
+  ],
+  [
+   "Scythe",
+   "Pincher",
+   50,
+   17,
+   12
+  ],
+  [
+   "Popcorn",
+   "Gyro",
+   50,
+   17,
+   12
+  ],
+  [
+   "Vertigo",
+   "Mauler",
+   83,
+   50,
+   12
+  ],
+  [
+   "Vertigo",
+   "Corkscrew",
+   83,
+   50,
+   12
+  ],
+  [
+   "Blacksmith",
+   "Thwacker",
+   83,
+   50,
+   12
+  ],
+  [
+   "Vertigo",
+   "Blacksmith",
+   83,
+   50,
+   12
+  ],
+  [
+   "Buzzkill",
+   "Snapjaw",
+   83,
+   50,
+   12
+  ],
+  [
+   "Mincer",
+   "Buzzkill",
+   83,
+   50,
+   12
+  ],
+  [
+   "Buzzkill",
+   "Thumper",
+   83,
+   50,
+   12
+  ],
+  [
+   "Wrecker",
+   "Popcorn",
+   83,
+   50,
+   12
+  ],
+  [
+   "Wrecker",
+   "Thumper",
+   83,
+   50,
+   12
+  ],
+  [
+   "Snapjaw",
+   "Thumper",
+   83,
+   50,
+   12
+  ],
+  [
+   "Slingshot",
+   "Lodestone",
+   67,
+   36,
+   12
+  ],
+  [
+   "Slingshot",
+   "Bricklayer",
+   67,
+   36,
+   12
+  ],
+  [
+   "Tarantula",
+   "Railgun",
+   67,
+   36,
+   12
+  ],
+  [
+   "Corkscrew",
+   "Whaler",
+   67,
+   36,
+   12
+  ],
+  [
+   "Snapjaw",
+   "Mauler",
+   67,
+   36,
+   12
+  ],
+  [
+   "Snapjaw",
+   "Blacksmith",
+   67,
+   36,
+   12
+  ],
+  [
+   "Thumper",
+   "Blacksmith",
+   67,
+   36,
+   12
+  ],
+  [
+   "Thumper",
+   "Vertigo",
+   67,
+   36,
+   12
+  ],
+  [
+   "Rotisserie",
+   "Slingshot",
+   92,
+   64,
+   12
+  ],
+  [
+   "Pogo",
+   "Tarantula",
+   92,
+   64,
+   12
+  ],
+  [
+   "Pogo",
+   "Hydra",
+   92,
+   64,
+   12
+  ],
+  [
+   "Trebuchet",
+   "Grandmaster",
+   92,
+   64,
+   12
+  ],
+  [
+   "Orbiter",
+   "Slingshot",
+   92,
+   64,
+   12
+  ],
+  [
+   "Orbiter",
+   "Hydra",
+   92,
+   64,
+   12
+  ],
+  [
+   "Lodestone",
+   "Gaucho",
+   92,
+   64,
+   12
+  ],
+  [
+   "Railgun",
+   "Scavenger",
+   92,
+   64,
+   12
+  ],
+  [
+   "Tarantula",
+   "Yoyo",
+   92,
+   64,
+   12
+  ],
+  [
+   "Scavenger",
+   "Gyro",
+   92,
+   64,
+   12
+  ],
+  [
+   "Slingshot",
+   "Angler",
+   92,
+   64,
+   12
+  ],
+  [
+   "Yoyo",
+   "Corkscrew",
+   92,
+   64,
+   12
+  ],
+  [
+   "Pincher",
+   "Corkscrew",
+   92,
+   64,
+   12
+  ],
+  [
+   "Angler",
+   "Blacksmith",
+   92,
+   64,
+   12
+  ],
+  [
+   "Angler",
+   "Thwacker",
+   92,
+   64,
+   12
+  ],
+  [
+   "Mauler",
+   "Wrecker",
+   92,
+   64,
+   12
+  ],
+  [
+   "Mauler",
+   "Forklift",
+   92,
+   64,
+   12
+  ],
+  [
+   "Thwacker",
+   "Wrecker",
+   92,
+   64,
+   12
+  ],
+  [
+   "Thwacker",
+   "Scythe",
+   92,
+   64,
+   12
+  ],
+  [
+   "Thwacker",
+   "Popcorn",
+   92,
+   64,
+   12
+  ],
+  [
+   "Mauler",
+   "Orbiter",
+   42,
+   15,
+   12
+  ],
+  [
+   "Forklift",
+   "Slingshot",
+   42,
+   15,
+   12
+  ],
+  [
+   "Scythe",
+   "Grandmaster",
+   42,
+   15,
+   12
+  ],
+  [
+   "Wrecker",
+   "Orbiter",
+   33,
+   7,
+   12
+  ],
+  [
+   "Thumper",
+   "Bricklayer",
+   33,
+   7,
+   12
+  ],
+  [
+   "Bricklayer",
+   "Rotisserie",
+   75,
+   50,
+   12
+  ],
+  [
+   "Railgun",
+   "Pogo",
+   75,
+   50,
+   12
+  ],
+  [
+   "Bricklayer",
+   "Trebuchet",
+   75,
+   50,
+   12
+  ],
+  [
+   "Lodestone",
+   "Orbiter",
+   75,
+   50,
+   12
+  ],
+  [
+   "Bricklayer",
+   "Railgun",
+   75,
+   50,
+   12
+  ],
+  [
+   "Hydra",
+   "Tarantula",
+   75,
+   50,
+   12
+  ],
+  [
+   "Slingshot",
+   "Grandmaster",
+   75,
+   50,
+   12
+  ],
+  [
+   "Gaucho",
+   "Grandmaster",
+   75,
+   50,
+   12
+  ],
+  [
+   "Whaler",
+   "Yoyo",
+   75,
+   50,
+   12
+  ],
+  [
+   "Scythe",
+   "Buzzkill",
+   75,
+   50,
+   12
+  ],
+  [
+   "Popcorn",
+   "Buzzkill",
+   75,
+   50,
+   12
+  ],
+  [
+   "Wrecker",
+   "Hornet",
+   75,
+   50,
+   12
+  ],
+  [
+   "Scythe",
+   "Wrecker",
+   75,
+   50,
+   12
+  ],
+  [
+   "Mincer",
+   "Wrecker",
+   75,
+   50,
+   12
+  ],
+  [
+   "Forklift",
+   "Snapjaw",
+   75,
+   50,
+   12
+  ],
+  [
+   "Mincer",
+   "Hornet",
+   75,
+   50,
+   12
+  ],
+  [
+   "Scythe",
+   "Mincer",
+   75,
+   50,
+   12
+  ]
+ ],
+ "ffaFit": [
+  0.07,
+  0.72
+ ]
+}

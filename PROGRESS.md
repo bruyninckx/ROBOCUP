@@ -238,3 +238,8 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - game-sim: --aip0 / --aipR (one AI style against another), host and chip state per fight; deep-report section 6 (damage).
 - Host snowball without a rule change (Kev: no host ban): deny bids + value-based spare pleas + card targets on a repeat host: bully 63% -> 28%. Cash-everything alone: 37%.
 - mp-test and chaos run OK on this build (local transport).
+
+## 15 Nov 2026: tuned lineup (66% a level) and full bookie-tag recheck
+- 33-robot lineup tuned with one power dial per robot (damage = health scale): levels 66 / 60 / 66 / 64% vs the level below (`tools/damage-lab/lineup-tuned.json`).
+- Every bookie tag re-measured on the tuned lineup (about 50,000 fights): `docs/robocus-tuned-lineup-tags.md`, data in `tools/damage-lab/tag-tuned/`.
+- 109 confirmed counter picks, 8 epic combos, 3 giant-slayer builds. Arena tags and 2v2 tags have nearly vanished.
