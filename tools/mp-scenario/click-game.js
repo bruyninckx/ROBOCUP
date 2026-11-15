@@ -24,35 +24,11 @@ const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const ARGS = process.argv.slice(2).filter(a => !a.startsWith('--')), FLAG = f => process.argv.includes('--' + f);   // --watch and --rain do the same as WATCH=1 and RAIN=1
 const seed = +(ARGS[0] || 5), maxMin = +(ARGS[1] || 12), shotDir = ARGS[2] || 'playtests/click-shots';
-const rnd = () => Math.random(), pick = a => a[Math.floor(rnd() * a.length)];
+const rnd = () => Math.random();
 const WATCH = process.env.WATCH === '1' || FLAG('watch'), RAIN = process.env.RAIN === '1' || FLAG('rain'), LONG = process.env.LONG === '1' || FLAG('long'), CHAOS = process.env.CHAOS === '1' || FLAG('chaos');
 const SIZES = [[1600, 900], [1920, 1080], [1366, 768], [1280, 720], [2560, 1440]];
 // what can be clicked on this screen right now
-const collect = () => {
-  const D = window.ROBOCUS_DEBUG, out = { modal: null, items: [], cards: [], drops: [] };
-  const at = el => { const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return null; const x = r.left + r.width / 2, y = r.top + r.height / 2; if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return null; const top = document.elementFromPoint(x, y); return top && (top === el || el.contains(top) || top.contains(el)) ? { x, y } : null; };
-  const lab = el => (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
-  for (const id of ['reactWin', 'ivModal', 'dealModal']) {   // the small reaction window first, then a question (it opens on top of a deal panel)
-    const m = document.getElementById(id);
-    if (m && !m.hidden) {
-      out.modal = id; out.title = lab(m.querySelector('h3') || m.querySelector('.rw-head span') || m);
-      m.querySelectorAll('button, input[type=checkbox], .dl-chip').forEach(b => { const p = b.disabled ? null : at(b); if (p) out.items.push(Object.assign({ type: b.tagName === 'BUTTON' ? 'btn' : 'in', label: lab(b) || b.type, primary: b.classList.contains('primary'), k: b.dataset.k || '' }, p)); });
-      return out;
-    }
-  }
-  const skip = '#netLobby, #netWait, #netPause, #fightView, #logPanel, #topBar, .hand-bar, #awards, .aw-btns';
-  document.querySelectorAll('button').forEach(b => { if (b.disabled || b.hidden || b.closest(skip)) return; const p = at(b); if (p) out.items.push(Object.assign({ type: 'btn', label: lab(b), id: b.id || '', bar: !!b.closest('#promptBar') }, p)); });
-  const cv = document.getElementById('worldCv');
-  for (const r of D.hitRegions) {
-    const s = D.worldToScreen(r.x + r.w / 2, r.y + r.h / 2);
-    if (s.x < 2 || s.y < 2 || s.x > innerWidth - 2 || s.y > innerHeight - 2 || document.elementFromPoint(s.x, s.y) !== cv) continue;
-    const it = { type: 'hit', kind: r.kind, label: r.kind + (r.idx != null ? ' ' + r.idx : '') + (r.team != null ? ' team ' + r.team : '') + (r.zone ? ' ' + r.zone : ''), x: s.x, y: s.y, team: r.team };
-    if (r.kind === 'garage' || r.kind === 'bay' || r.kind === 'arena') out.drops.push(it);
-    if (r.kind !== 'arena' && r.kind !== 'odds') out.items.push(it);
-  }
-  document.querySelectorAll('#handStage .hs-card').forEach(c => { const r = c.getBoundingClientRect(); if (r.width > 4) out.cards.push({ x: r.left + r.width / 2, y: r.top + Math.min(40, r.height / 2), label: lab(c.querySelector('.hs-title') || c) }); });
-  return out;
-};
+const { collect, choose, liveCards, click, drag } = require('./clicker.js');
 (async () => {
   const b = await chromium.launch();
   setTimeout(() => { console.log('HARD STOP: the run did not end by itself'); b.close().catch(() => {}).then(() => process.exit(3)); setTimeout(() => process.exit(3), 5000); }, (maxMin + 2) * 60000).unref();   // never leave browsers behind overnight
@@ -75,11 +51,9 @@ const collect = () => {
   const seatOf = {}; for (const p of pages) seatOf[await p.evaluate(() => window.ROBOCUS_GAME.HS)] = p;
   const kind = s => s === 0 ? 'host' : 'joined';
   const stat = {}, stuck = [], tries = {}, t0 = Date.now(); let lastKey = {}, since = {}, shots = 0, firstErr = null, rainKey = '', nextChaos = Date.now() + 40000, reloads = 0, logN = 0, lastSync = 0, fightAt = 0, fightKey = '';
-  const pressed = {}, pressedAt = {}, pressedN = {}, lastDiff = {}, notes = [], seenNote = {}, liveTried = { host: 0, joined: 0 }, livePlayed = { host: 0, joined: 0 };
+  const mem = {}, lastDiff = {}, notes = [], seenNote = {}, liveTried = { host: 0, joined: 0 }, livePlayed = { host: 0, joined: 0 };
   const note = (kind, text, st) => { const k = kind + '|' + text.replace(/\d+/g, '#'); if (seenNote[k]) return; seenNote[k] = 1; notes.push({ kind, text, round: st.round, phase: st.phase }); console.log(kind.toUpperCase() + ' · round ' + st.round + ' ' + st.phase + ' · ' + text); };
   const bump = (label, s, what) => { const k = label + ' | ' + kind(s); stat[k] = stat[k] || { ok: 0, stuck: 0 }; stat[k][what]++; };
-  const click = async (p, it) => { if (!it) return; await p.mouse.move(it.x, it.y); await p.mouse.down(); await p.mouse.up(); };
-  const drag = async (p, a, z) => { if (!a || !z) return; await p.mouse.move(a.x, a.y); await p.mouse.down(); await p.mouse.move((a.x + z.x) / 2, (a.y + z.y) / 2, { steps: 3 }); await p.mouse.move(z.x, z.y, { steps: 3 }); await p.mouse.up(); };
   for (;;) {
     const st = await host.evaluate(() => { const GM = window.ROBOCUS_GAME, G = GM.G; if (G.over) return null; return { round: G.round, phase: G.phase, stage: G.marketStage || '', busy: [0, 1, 2, 3].map(s => GM.seatBusyWith(s)) }; });
     if (!st) break;
@@ -161,29 +135,8 @@ const collect = () => {
         continue;
       }
       // choose something to click
-      const press = re => C.items.find(i => i.type === 'btn' && re.test(i.label));
-      if (C.modal === 'dealModal') { const plus = C.items.filter(i => i.label === '+'); if (plus.length && rnd() < 0.4) await click(p, pick(plus)); else await click(p, C.items.find(i => i.k === (rnd() < 0.7 ? 'lock' : 'no')) || pick(C.items)); continue; }
-      if (C.modal) { const bs = C.items.filter(i => i.type === 'btn'), ins = C.items.filter(i => i.type === 'in'); if (ins.length && rnd() < 0.3) await click(p, pick(ins)); else if (bs.length) await click(p, rnd() < 0.7 ? (bs.find(i => i.primary) || pick(bs)) : pick(bs)); continue; }
-      if (label === 'intrigue turn') {
-        const end = press(/End turn/);
-        if (C.cards.length && C.drops.length && tries[s] <= 4 && rnd() < 0.7) { await drag(p, pick(C.cards), pick(C.drops)); continue; }
-        if (tries[s] <= 2 && rnd() < 0.3) { const cash = press(/Cash-in/); if (cash && C.cards.length) { await click(p, cash); await p.waitForTimeout(150); const C2 = await p.evaluate(collect); if (C2.cards.length) await click(p, pick(C2.cards)); const done = (await p.evaluate(collect)).items.find(i => /Done cashing/.test(i.label)); if (done) await click(p, done); continue; } }
-        if (end) await click(p, end);
-        continue;
-      }
-      const bar = C.items.filter(i => i.bar), hits = C.items.filter(i => i.type === 'hit' && !/garage|bay$/.test(i.kind)), bays = C.items.filter(i => /garage|bay/.test(i.kind || '')), other = C.items.filter(i => i.type === 'btn' && !i.bar);
-      // a dropdown in the note (the host's arena): now and then pick another option, with the real control
-      if (rnd() < 0.12) { try { const sel = p.locator('#promptBar select'), n = await sel.count(); if (n) { const one = sel.nth(Math.floor(rnd() * n)), opts = await one.locator('option:not([disabled])').count(); if (opts > 1) { await one.selectOption({ index: Math.floor(rnd() * opts) }, { timeout: 1500 }); continue; } } } catch (e) {} }
-      const pool = [];
-      // the button that ends the step (Lock, Done, Continue, Start…). Once a seat pressed it, it leaves the table alone like a
-      // person would: four seats that keep changing bets undo each other's lock for ever. It only presses it again now and then.
-      const go = bar.filter(i => /→|Lock|Done|Continue|Start the auction|Next round/.test(i.label));
-      // (three presses that change nothing: the button is not ready yet, e.g. "Invite Fighters" with one team picked. Back to the table.)
-      if (pressed[s] === key) { if (!go.length || pressedN[s] >= 3) { pressed[s] = null; } else { if (Date.now() - pressedAt[s] > 2500) { pressedAt[s] = Date.now(); pressedN[s]++; await click(p, pick(go)); } continue; } }
-      if (go.length && rnd() < 0.15 + 0.1 * (tries[s] % 12)) { pressed[s] = key; pressedAt[s] = Date.now(); pressedN[s] = 0; await click(p, pick(go)); continue; }
-      if (bar.length && rnd() < 0.25) pool.push(pick(bar));
-      else { if (hits.length) pool.push(pick(hits), pick(hits)); if (bays.length) pool.push(pick(bays)); if (other.length) pool.push(pick(other)); if (!pool.length && bar.length) pool.push(pick(bar)); }
-      if (pool.length) await click(p, pick(pool));
+      mem[s] = mem[s] || {}; mem[s].tries = tries[s];
+      await choose(p, C, label, key, mem[s]);
     }
     // the fight screen. Watched: every seat plays its live cards by clicking (the card, then a robot or a spot), the host runs it
     // at 4× and skips after 25 s; else the host skips at once. Then the host closes it.
@@ -192,13 +145,8 @@ const collect = () => {
       if (WATCH && Date.now() - fightAt < 25000) {
         await host.evaluate(() => { const b = document.querySelector('#fightView:not([hidden]) [data-sp="4"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
         for (let s = 0; s < 4; s++) {
-          const p = seatOf[s], g = await p.evaluate(() => { const v = document.getElementById('fightView'); if (!v || v.hidden) return null; const VW = window.RobocusView, S = VW.state; if (!S || S.over || S.countdown > 0) return null;
-            const cs = [...v.querySelectorAll('.fv-card:not([disabled])')]; if (!cs.length) return null; const c = cs[Math.floor(Math.random() * cs.length)], r = c.getBoundingClientRect();
-            return { n: cs.length, card: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, bots: S.robots.filter(R => R.alive).map(R => { const q = R.body.getPosition(), xy = VW.clientOf(q.x, q.y); return { x: xy[0], y: xy[1] }; }), spot: (() => { const xy = VW.clientOf((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4); return { x: xy[0], y: xy[1] }; })() }; });
-          if (!g) continue;
-          liveTried[s === 0 ? 'host' : 'joined']++;
-          await click(p, g.card);
-          for (const pt of g.bots.sort(() => rnd() - 0.5).concat([g.spot, g.spot])) { await click(p, pt); await p.waitForTimeout(60); const left = await p.evaluate(() => document.querySelectorAll('#fightView .fv-card').length); if (left < g.n) { livePlayed[s === 0 ? 'host' : 'joined']++; break; } }
+          let r = { tried: 0, played: 0 }; try { r = await liveCards(seatOf[s]); } catch (e) {}
+          liveTried[s === 0 ? 'host' : 'joined'] += r.tried; livePlayed[s === 0 ? 'host' : 'joined'] += r.played;
         }
       } else await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const sk = v.querySelector('.fv-skip:not([hidden])'); if (sk) sk.click(); } });
       await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); } });

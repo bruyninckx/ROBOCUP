@@ -20,3 +20,4 @@ vendor/
 
 # overnight click test runs (tools/click-night.cmd): texts and screenshots per game
 playtests/click-runs/
+playtests/remote-runs/
