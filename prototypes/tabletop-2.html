@@ -442,6 +442,8 @@ html, body {
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
+    counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
+    counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
     // ocMode: 'heat' (hot-wound motors: +35% force, 1.9x heat) | 'noheat' (+35% force without the extra heat build-up)
@@ -935,6 +937,11 @@ html, body {
   const isL4 = x => levelOf(typeof x === 'string' ? x : x && x.name) >= 4;
   const wepLabel = n => { const P = DL.PRESETS[n]; return P && DL.WEAPONS[P.weapon] ? DL.WEAPONS[P.weapon].label : 'weapon'; };
   const ROBOT_DESC = {
+    Rotisserie: 'Pincers grab the enemy and turn it on a spit over a flamethrower.', Jukebox: 'Spins up records and flings them; they bank off the walls.',
+    Pogo: 'Winds a giant coil spring, leaps and stomps down on the lid.', Bricklayer: 'A crane drops 25 kg iron blocks on the enemy; the blocks stay as walls.',
+    Railgun: 'Capacitors charge, copper rails fire a steel slug; it fetches its slugs back.', Scavenger: 'Sucks up loose junk and fires it back with an air cannon.',
+    Slingshot: 'Harpoons the wall, winches back on a bungee and flings itself prow first.', Gaucho: 'Throws bolas that tie up wheels, then rams.',
+    Yoyo: 'Throws a spinning saw disc on a cable and reels it back in.', Blacksmith: 'Tongs clamp the enemy to an anvil nose; the forge hammer comes down.',
     Haymaker: 'Boxing glove on four wheels, rubber bumpers.', Rumbler: 'Drum spinner on a heavy chassis, steel bumpers.', Thumper: 'Axe hammer that slams from above, spiked bumpers.',
     Jouster: 'Long spear that pokes from range.', Popcorn: 'Light flipper that throws robots around.', Blowtorch: 'Flamethrower that cooks the insides.',
     Buzzkill: 'Bar spinner with spiked bumpers.', Snapjaw: 'Crusher jaws that grab and squeeze.', Wrecker: 'Swinging flail, the toughest starter.',
@@ -1156,37 +1163,38 @@ html, body {
     if (!m) return R2.winP(str2(ra) + (arena ? arenaFit(ra, arena) : 0), str2(rb) + (arena ? arenaFit(rb, arena) : 0));
     const fit = arena && m.arena !== arena ? arenaFit(ra, arena) - arenaFit(rb, arena) : 0;   // open-floor data in another arena: the arena fit on top
     const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (str2(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
-    return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, m.p))) + delta + fit)));
+    // Kev, 15 Nov: BAL.counterTrust < 1 pulls the table towards what the level gap usually gives (whole games: counters hold at about 0.65 of the table)
+    const e = MX_EXP[baseLv(ra) - baseLv(rb)], k = BAL.counterTrust == null ? 1 : BAL.counterTrust, mp = k < 1 && e != null ? e + k * (m.p - e) : m.p;
+    return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, mp))) + delta + fit)));
   }
-  // a counter: the matchup is 25+ points off what the level gap usually gives
+  // a counter: the matchup is BAL.counterTag (40 points) or more off what the level gap usually gives
   function counterOf(ra, rb) {
     const m = mxP(ra.name, rb.name, 'open'), e = MX_EXP[baseLv(ra) - baseLv(rb)]; if (!m || e == null) return null;
-    const d = m.p - e; return Math.abs(d) >= 0.25 ? { good: d > 0, p: m.p, e } : null;
+    const d = m.p - e; return Math.abs(d) >= BAL.counterTag ? { good: d > 0, p: m.p, e } : null;   // Kev, 15 Nov: tag only the big counters (40+ points); the odds use the whole table
   }
   /* Kev, 10 Nov: which part suits which robot. Every deck part on every robot vs 4 robots a level up (32 fights a pair, same seeds
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
-  const PART_FIT = {"Angler":{"jam":[1,34],"core":[1,47]},"Brawler":{"medic":[1,38],"booster":[1,41],"powerkit":[1,44],"hospital":[1,47],"shield":[-1,-19],"mines":[-1,-16],"popper":[-1,-25],"jam":[-1,-12]},"Forklift":{"mines":[1,31],"tow":[1,38],"pester":[-1,-12]},"Juggernaut":{"shield":[1,28]},"Lodestone":{"shield":[1,31],"hull":[1,31],"pester":[-1,-22]},"Mincer":{"popper":[1,50],"pester":[1,41]},"Orbiter":{"matador":[1,53]},"Pincher":{"medic":[1,41]},"Popcorn":{"overdrive":[1,41],"pester":[-1,-16]},"Ramrod":{"booster":[1,38],"emp":[1,47],"powerkit":[1,53],"pester":[-1,-22]},"Rocketeer":{"jam":[1,31],"overdrive":[1,31],"pester":[1,25]},"Sawblast":{"overdrive":[1,53],"shield":[-1,-9]},"Scythe":{"booster":[1,63]},"Thumper":{"matador":[1,28],"booster":[-1,-16],"tow":[-1,-9],"overdrive":[-1,0]},"Thwacker":{"tow":[1,34]},"Vertigo":{"weapon":[1,34],"core":[1,44],"pester":[-1,-37]},"Whaler":{"jam":[1,25],"overdrive":[1,47],"matador":[-1,-12]},"Whirlwind":{"bait":[1,28],"pester":[1,28],"shield":[-1,0]},"Blowtorch":{"tow":[-1,-25]},"Corkscrew":{"overdrive":[-1,-22],"bait":[-1,-19],"pester":[-1,-37]},"Grandmaster":{"pester":[-1,-3]},"Hydra":{"shield":[-1,-16]},"Jouster":{"bait":[-1,-19]},"Rumbler":{"tow":[-1,-9]},"Wrecker":{"powerkit":[-1,-16]}};
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const PART_FIT = {"Popcorn":{"emp":[1,30]},"Thwacker":{"mines":[1,40],"tow":[1,55],"pester":[1,48],"hospital":[-1,-8],"shield":[-1,-5],"bait":[1,25]},"Mauler":{"popper":[1,32]},"Scythe":{"powerkit":[1,28]},"Buzzkill":{"tow":[1,38],"gunner":[1,48]},"Thumper":{"popper":[1,42]},"Rotisserie":{"overdrive":[-1,-12]},"Corkscrew":{"hospital":[1,45]},"Jukebox":{"powerkit":[1,25]},"Forklift":{"pester":[-1,-15]}};
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {
-    'Ramrod|powerkit': ['Freight Train', 38, 93], 'Whaler|overdrive': ['Killer Whale', 17, 67, ['ice']],
-    'Orbiter|matador': ['Matador Moon', 39, 78, ['ice']], 'Brawler|powerkit': ['Heavyweight', 50, 86, ['ice']], 'Popcorn|overdrive': ['Popcorn Blast', 36, 69],
-    'Scythe|booster': ['Grim Rush', 33, 63, ['ice']],
-    'Ramrod|emp': ['Stun Ram', 38, 79, ['cage', 'ice', 'killbox', 'saws']],
-    // Kev, 10 Nov (more epic combos): 28 more candidates re-tested on fresh seeds, then in every arena; these five gain 30+ points, well above their part's average
-    'Ramrod|booster': ['Rocket Ram', 38, 90, ['ice']], 'Orbiter|popper': ['Pinball', 39, 75, ['saws']], 'Thwacker|tow': ['Whiplash', 44, 81],
-    'Brawler|medic': ['Cornerman', 50, 83, ['cage']], 'Angler|jam': ['Blackout Lure', 39, 75, ['saws']],   // Kev, 10 Nov: keep it for open floor, where it holds
-  };   // 10 Nov double check: every arena, own level and two levels up. Stun Ram (Ramrod + EMP) dropped to a great fit (only +7 to +28 off open floor);
-       // the 4th field: arenas where the combo does not hold (on the Ice Rink these gain 0-9 points; Grim Rush loses 20)
+  const EPIC = {   // Kev, 15 Nov: tuned lineup, re-tested on fresh seeds vs every robot a level up (40 fights); Thwacker + Mine layer / Pester chip are great fits
+    'Thwacker|tow': ['Whiplash', 28, 82],
+    'Buzzkill|gunner': ['Air Support', 22, 70],
+    'Buzzkill|tow': ['Tug of War', 22, 60],
+    'Thumper|popper': ['Launch Pad', 32, 75],
+    'Corkscrew|hospital': ['Drill & Drip', 22, 68],
+    'Mauler|popper': ['Flip & Maul', 28, 60],
+  };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
    * every level 3 and 4 robot; the best re-tested on fresh seeds (scratch tri.js, stack.js). [parts, wins vs bare L3/L4: stock, fully kitted,
    * and vs L3/L4 that carry Weapon overhaul + Reinforced hull + Prototype core]. Parts stack about evenly (+20 points each); these four
    * stay level with a one-level gap even when the big robots are kitted too. */
+  // Kev, 15 Nov: re-measured on the tuned lineup: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights bare, 84 vs kitted ones)
   const TRIPLE = {
-    Scythe: [['booster', 'powerkit', 'core'], 27, 92, 31], Gyro: [['tow', 'jammer', 'hospital'], 35, 96, 31],
-    Brawler: [['powerkit', 'gunner', 'hospital'], 19, 92, 31], Mauler: [['gunner', 'weapon', 'core'], 35, 88, 23],
+    Yoyo: [['core', 'weapon', 'overdrive'], 30, 93, 57], Pincher: [['quantum', 'gunner', 'tow'], 12, 86, 31], Angler: [['shield', 'core', 'quantum'], 5, 84, 31],
   };
   const tripleOf = r => { const t = r && TRIPLE[r.name]; return t && t[0].every(k => partsOf(r).includes(k)) ? t : null; };
   // the Market: this part would complete (or be the 2nd of) a giant-slayer build on a robot that has the rest
@@ -1197,8 +1205,8 @@ html, body {
    * wins less than its duel numbers say (FFA win = 10 + 0.59 x the duel-based share), and these robots are far off even that,
    * the same way on both halves of the fights (split-half r = 0.81): [points above / below]. 2v2 follows duel strength (r = 0.22 for
    * anything extra); only two robots are clearly worse partners. */
-  const FFA_FIT = { Mauler: 17, Orbiter: 14, Ramrod: 14, Thwacker: 14, Rocketeer: 13, Gyro: 11, Vertigo: 11, Whirlwind: 11, Trebuchet: -19, Corkscrew: -18, Forklift: -17, Jouster: -11 };
-  const TEAM_FIT = { Snapjaw: -10, Trebuchet: -11 };
+  const FFA_FIT = {Rotisserie: -17, Jukebox: 18, Pogo: -24, Trebuchet: -20, Orbiter: 20, Slingshot: 20, Gyro: 15, Corkscrew: -11, Thwacker: 14};   // 15 Nov: tuned lineup, 1,500 free-for-alls
+  const TEAM_FIT = {};   // 15 Nov: tuned lineup, 1,500 2v2s: nobody is 10+ points off any more
   const epicOf = (name, k, arena) => { const e = EPIC[name + '|' + k]; if (!e) return null; const a = arena === undefined ? ARENA_NOW() : arena; return e[3] && a && e[3].includes(a) ? null : e; };
   const epicWhere = e => !e || !e[3] ? '' : e[3].length >= 4 ? ' (open floor only)' : ' (not on ' + e[3].map(a => ARENA_INFO[a] ? ARENA_INFO[a].name : a).join(', ') + ')';
   const epicsOn = r => partsOf(r).map(k => epicOf(r.name, k) ? { k, e: epicOf(r.name, k) } : null).filter(Boolean);
@@ -4320,16 +4328,18 @@ html, body {
   };
   // measured 9 Nov: every lineup robot against each robot of its own level, both sides, 2 seeds (16–32 fights a robot per arena),
   // logit change vs open floor × 0.5 (shrunk for the noise)
-  const ARENA_FIT = {"Haymaker":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.06},"Rumbler":{"saws":0.73,"killbox":0.6,"cage":0.09,"ice":0.39},"Thumper":{"saws":-0.51,"killbox":-0.3,"cage":-0.24,"ice":0.0},"Jouster":{"saws":-0.37,"killbox":0.06,"cage":-0.24,"ice":-0.18},"Popcorn":{"saws":0.67,"killbox":0.12,"cage":0.39,"ice":0.24},"Snapjaw":{"saws":0.24,"killbox":0.06,"cage":0.58,"ice":0.18},"Wrecker":{"saws":-0.06,"killbox":0.15,"cage":-0.06,"ice":-0.06},"Blowtorch":{"saws":-0.3,"killbox":-0.24,"cage":-0.24,"ice":-0.36},"Buzzkill":{"saws":-0.33,"killbox":-0.33,"cage":-0.27,"ice":-0.07},"Hornet":{"saws":-0.41,"killbox":-0.3,"cage":0.1,"ice":-0.1},"Whirlwind":{"saws":-0.31,"killbox":0.24,"cage":-0.21,"ice":-0.31},"Mincer":{"saws":-0.2,"killbox":0.0,"cage":0.1,"ice":0.1},"Scythe":{"saws":0.21,"killbox":0.21,"cage":0.1,"ice":0.0},"Mauler":{"saws":-0.24,"killbox":-0.56,"cage":0.11,"ice":-0.24},"Rocketeer":{"saws":1.0,"killbox":0.31,"cage":-0.24,"ice":0.51},"Juggernaut":{"saws":-0.64,"killbox":-0.13,"cage":-0.64,"ice":-0.52},"Pincher":{"saws":-0.97,"killbox":-0.85,"cage":-0.46,"ice":-0.32},"Thwacker":{"saws":0.37,"killbox":0.24,"cage":0.12,"ice":0.0},"Gyro":{"saws":0.43,"killbox":0.67,"cage":0.55,"ice":0.0},"Brawler":{"saws":0.79,"killbox":0.0,"cage":0.37,"ice":0.79},"Forklift":{"saws":-0.85,"killbox":-0.6,"cage":-0.18,"ice":-0.18},"Whaler":{"saws":1.13,"killbox":0.73,"cage":0.18,"ice":0.18},"Vertigo":{"saws":0.0,"killbox":-0.73,"cage":0.0,"ice":0.4},"Sawblast":{"saws":0.67,"killbox":0.55,"cage":0.0,"ice":-0.4},"Ramrod":{"saws":-0.95,"killbox":0.0,"cage":0.0,"ice":-0.15},"Hydra":{"saws":-0.26,"killbox":-0.1,"cage":-0.1,"ice":0.0},"Trebuchet":{"saws":0.15,"killbox":0.15,"cage":-0.09,"ice":-0.16},"Lodestone":{"saws":0.06,"killbox":-0.37,"cage":0.15,"ice":-0.09},"Orbiter":{"saws":0.07,"killbox":-0.38,"cage":-0.38,"ice":-0.15},"Tarantula":{"saws":0.14,"killbox":0.55,"cage":0.29,"ice":0.29},"Corkscrew":{"saws":-0.14,"killbox":0.55,"cage":0.29,"ice":0.38},"Grandmaster":{"saws":-0.53,"killbox":-0.29,"cage":-0.07,"ice":-0.53},"Angler":{"saws":0.3,"killbox":-0.22,"cage":-0.16,"ice":0.06}};
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const ARENA_FIT = {"Rotisserie":{"saws":-0.22,"killbox":-0.03,"cage":-0.03,"ice":0.06},"Jukebox":{"saws":0.06,"killbox":0.06,"cage":0.06,"ice":0.06},"Pogo":{"saws":-0.1,"killbox":0.03,"cage":-0.03,"ice":-0.1},"Trebuchet":{"saws":0.19,"killbox":0.35,"cage":0.06,"ice":0.16},"Orbiter":{"saws":0.0,"killbox":0.06,"cage":-0.13,"ice":-0.13},"Lodestone":{"saws":0.06,"killbox":0.16,"cage":0.03,"ice":0.19},"Bricklayer":{"saws":-0.16,"killbox":-0.06,"cage":-0.03,"ice":-0.13},"Railgun":{"saws":-0.06,"killbox":-0.1,"cage":-0.2,"ice":0.06},"Tarantula":{"saws":0.13,"killbox":0.09,"cage":-0.03,"ice":0.16},"Scavenger":{"saws":-0.03,"killbox":0.0,"cage":0.16,"ice":0.03},"Slingshot":{"saws":0.16,"killbox":-0.03,"cage":-0.03,"ice":0.0},"Hydra":{"saws":-0.13,"killbox":-0.09,"cage":0.0,"ice":-0.13},"Grandmaster":{"saws":-0.19,"killbox":-0.03,"cage":-0.06,"ice":0.03},"Gaucho":{"saws":0.13,"killbox":-0.1,"cage":0.09,"ice":0.06},"Yoyo":{"saws":-0.19,"killbox":-0.06,"cage":-0.06,"ice":-0.03},"Whaler":{"saws":0.61,"killbox":0.32,"cage":0.07,"ice":0.16},"Pincher":{"saws":-0.32,"killbox":-0.06,"cage":0.0,"ice":-0.09},"Angler":{"saws":-0.03,"killbox":-0.06,"cage":-0.09,"ice":0.03},"Gyro":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.09},"Mauler":{"saws":0.22,"killbox":0.13,"cage":0.09,"ice":0.09},"Corkscrew":{"saws":-0.06,"killbox":0.22,"cage":-0.06,"ice":-0.22},"Blacksmith":{"saws":0.06,"killbox":0.09,"cage":0.03,"ice":0.06},"Thwacker":{"saws":0.16,"killbox":0.03,"cage":0.06,"ice":-0.16},"Vertigo":{"saws":-0.03,"killbox":0.03,"cage":0.19,"ice":0.09},"Buzzkill":{"saws":0.06,"killbox":0.0,"cage":0.03,"ice":0.06},"Wrecker":{"saws":0.28,"killbox":0.06,"cage":-0.09,"ice":0.13},"Snapjaw":{"saws":-0.06,"killbox":0.06,"cage":0.16,"ice":0.0},"Hornet":{"saws":0.28,"killbox":0.0,"cage":-0.1,"ice":0.0},"Scythe":{"saws":0.13,"killbox":-0.13,"cage":-0.03,"ice":0.06},"Mincer":{"saws":-0.16,"killbox":-0.09,"cage":0.06,"ice":-0.06},"Forklift":{"saws":-0.03,"killbox":0.0,"cage":-0.06,"ice":-0.19},"Popcorn":{"saws":-0.13,"killbox":-0.03,"cage":-0.25,"ice":-0.19},"Thumper":{"saws":-0.1,"killbox":0.13,"cage":0.16,"ice":0.13}};
   const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
   /* ---------- bookie notes (Kev, 9 Nov): a short tag on a robot card when something stands out from the odds ----------
    * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
    * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
    * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
-  const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",40,31],"Wrecker":["grind",71],"Blowtorch":["giant",29,20],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",40,27],"Ramrod":["giant",40,27]};   // giant killers re-measured after the 9 Nov level moves
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const STYLE = {"Rotisserie":["coin",55],"Pogo":["quick",31],"Orbiter":["grind",76],"Lodestone":["coin",50],"Railgun":["coin",71],"Scavenger":["coin",59],"Slingshot":["giant",45,36],"Hydra":["giant",51,36],"Grandmaster":["grind",74],"Gaucho":["grind",91],"Whaler":["grind",84],"Pincher":["grind",87],"Gyro":["giant",40,25],"Mauler":["grind",71],"Blacksmith":["giant",29,21],"Thwacker":["grind",88],"Buzzkill":["grind",72],"Wrecker":["grind",75],"Snapjaw":["coin",55],"Mincer":["grind",73]};
   // 🔨 hard hitters (Kev, 9 Nov: "a bot that always does a lot of damage, even if it loses"). Lineup Arena matrix, equal-level
   // duels on the open floor: the health its winner loses when this robot loses, vs the level's average. Tagged at 6+ points.
-  const HITTER = { Wrecker: [32, 24], Buzzkill: [31, 24], Whirlwind: [37, 28], Sawblast: [42, 30], Angler: [31, 25] };
+  const HITTER = {Gaucho: [32, 26], Buzzkill: [24, 19]};   // 15 Nov: tuned lineup, tagged at 5+ points
   const ARENA_TAG = { saws: ['🪚', 'Saw specialist', 'Hates saws'], killbox: ['☠️', 'Killbox natural', 'Hates the Killbox'], cage: ['🔒', 'Cage fighter', 'Hates the Cage'], ice: ['🧊', 'Ice skater', 'Slips on ice'] };
   function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
     const out = []; if (!r) return out;

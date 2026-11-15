@@ -7,17 +7,28 @@
   // Kev, 9 Nov balance check: level 4 x1.07 (Grandmaster, Trebuchet, Lodestone x1.12), Whaler / Sawblast x1.08, Ramrod / Forklift x0.95, Mauler x1.06;
   // second pass: Trebuchet x1.06, Hydra x0.96, Mauler x1.05, Rumbler x1.04; levels moved: Whirlwind 1 -> 2, Juggernaut 2 -> 1, Grandmaster 4 -> 3 (it fought like a level 3);
   // third pass: Grandmaster x0.94 (strong as a level 3), Lodestone x1.06, Hornet x1.05, Rumbler x1.05
+  // Kev, 15 Nov: THE TUNED LINEUP (docs/robocus-tuned-lineup-tags.md). 33 robots picked on looks (casting board), one power dial each:
+  // damage x p and every part's HP x p, no per-preset damage knob (TUNED below). Each level beats the level below about 64-66%.
   const ROBOTS = {
+    Buzzkill: [0, 0.99], Forklift: [0, 1.041], Hornet: [0, 0.974], Mincer: [0, 1.128], Popcorn: [0, 0.97], Scythe: [0, 0.953], Snapjaw: [0, 0.946], Thumper: [0, 0.882], Wrecker: [0, 1.146],
+    Blacksmith: [1, 0.941], Corkscrew: [1, 0.753], Mauler: [1, 1.115], Thwacker: [1, 2.898], Vertigo: [1, 0.906],
+    Angler: [2, 1.036], Gyro: [2, 1.084], Pincher: [2, 1.749], Whaler: [2, 1.449], Yoyo: [2, 1.34],
+    Gaucho: [3, 1.945], Grandmaster: [3, 1.63], Hydra: [3, 1.501], Scavenger: [3, 1.723], Slingshot: [3, 2.385], Tarantula: [3, 1.371],
+  };
+  // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
+  const ROBOTS4 = { Bricklayer: [4, 2.803], Jukebox: [4, 1.795], Lodestone: [4, 1.314], Orbiter: [4, 2.305], Pogo: [4, 1.018], Railgun: [4, 1.377], Rotisserie: [4, 0.99], Trebuchet: [4, 1.657] };
+  // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
+  // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
+  const CANDIDATES = { Talon: [2, 1] };   // 15 Nov: the rest joined the tuned lineup
+  // the 2.0 lineup before 15 Nov (grade on top of each preset's own damage knob), kept for reference and old reports
+  const ROBOTS_2_0 = {
     Haymaker: [0, 0.761], Rumbler: [0, 0.962], Thumper: [0, 0.935], Jouster: [0, 0.925], Popcorn: [0, 0.947], Blowtorch: [0, 1.037], Buzzkill: [0, 0.971], Snapjaw: [0, 0.963], Wrecker: [0, 1.1],
     Hornet: [1, 1.033], Whirlwind: [2, 1.021], Mincer: [1, 1.137], Scythe: [1, 1.081], Mauler: [1, 1.217], Rocketeer: [1, 1.014],
     Juggernaut: [1, 1.138], Gyro: [2, 1.034], Pincher: [2, 1.185], Brawler: [2, 1.056], Thwacker: [2, 1.022],
     Whaler: [3, 1.227], Forklift: [3, 1.084], Vertigo: [3, 1.163], Sawblast: [3, 1.269], Ramrod: [3, 1.152],
   };
-  // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
-  const ROBOTS4 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
-  // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
-  // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
-  const CANDIDATES = { Talon: [2, 1], Blacksmith: [3, 1], Rotisserie: [4, 1], Jukebox: [0, 1], Gaucho: [0, 1], Scavenger: [0, 1], Bricklayer: [0, 1], Slingshot: [0, 1], Pogo: [0, 1], Railgun: [0, 1], Yoyo: [0, 1] };
+  const ROBOTS4_2_0 = { Hydra: [4, 1.212], Corkscrew: [4, 1.038], Trebuchet: [4, 1.377], Angler: [4, 1.177], Lodestone: [4, 1.199], Orbiter: [4, 1.263], Tarantula: [4, 1.252], Grandmaster: [3, 1.105] };
+  const TUNED = true;   // tuned lineup: dmgK = p (the preset's own dmgK is ignored)
   const LEVELS = ['Level 0 (starters)', 'Level 1', 'Level 2', 'Level 3'];
   // part strengths (ARC.pk): how strong each part is in 2.0
   const PK = { medic: 0.6, gunner: 1.8, laser: 1.6, bodyguard: 1.8, popper: 2.4, emp: 1.6, repair: 4, shield: 1.5, mines: 1.4, blocker: 1.5, waller: 1.5 };
@@ -61,12 +72,12 @@
   const grade = name => { const r = ROBOTS[name] || ROBOTS4[name]; return r ? r[1] * Math.pow(1 + levelBoost, r[0]) : 1; };
   function build(name, parts = []) {
     const P = L.PRESETS[name], p = grade(name);
-    let spec = { preset: name, dmgK: (P.dmgK || 1) * p, hpK: p };
+    let spec = { preset: name, dmgK: (TUNED && (ROBOTS[name] || ROBOTS4[name]) ? 1 : (P.dmgK || 1)) * p, hpK: p };
     if (parts.some(k => PARTS[k] && PARTS[k].kind === 'chip')) spec.lv = (ROBOTS[name] || ROBOTS4[name] || [0])[0];   // a tuning chip needs to know the frame it is on
     for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec)); }
     return spec;
   }
   function usePK() { Object.assign(L.ARC.pk, PK); }
-  const API = { ROBOTS, ROBOTS4, CANDIDATES, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
+  const API = { ROBOTS, ROBOTS4, ROBOTS_2_0, ROBOTS4_2_0, TUNED, CANDIDATES, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Lineup = API;
 })(typeof window !== 'undefined' ? window : globalThis);

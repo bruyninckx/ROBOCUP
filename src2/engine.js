@@ -4144,7 +4144,11 @@
       setSensor(R, false); R.airborne = 0; R.airMax = 0; R.flipChance = 0; st.mode = 'idle'; R.cool = POGO.cool;
       let tp = null, at = pos; for (const [ox, oy] of [[0, 0], [0.25, 0], [-0.25, 0], [0, 0.22], [0, -0.22]]) { const q = b.getWorldPoint(V(ox, oy)), t2 = topPartAt(S, q.x, q.y, R); if (t2 && t2.robot.alive) { tp = t2; at = q; break; } }
       S.fx.push({ type: 'thud', x: pos.x, y: pos.y, power: 1.2 }); S.fx.push({ type: 'boom', x: pos.x, y: pos.y, power: 6 });
-      if (tp) {
+      if (tp && spinningPart(tp)) { // came down on a spinning weapon: the spinner bites the pogo instead and throws it off
+        const T = tp.robot, lost = 0.5 * m * (vz * vz + 0.36 * vh * vh), tc = T.body.getPosition(); let ux = pos.x - tc.x, uy = pos.y - tc.y; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+        hit(S, R.chassis, lost * JUKE.eK * 0.6, { src: T, cause: tp.key === 'blade' ? 'spinner' : tp.key, top: false, x: at.x, y: at.y, pen: 1.2 }); const need = Math.hypot(T.hl, T.hw) + Math.hypot(R.hl, R.hw) * 0.75, [x2, y2] = inArena(S, tc.x + ux * need, tc.y + uy * need, R.hl + 0.05);
+        b.setTransform(V(x2, y2), b.getAngle()); b.setLinearVelocity(V(ux * 4, uy * 4)); b.setAngularVelocity((S.rng() - 0.5) * 14); callout(S, 'SHREDDED!', at.x, at.y, true); say(S, `${R.name} comes down on ${T.name}'s spinning weapon and gets thrown off`, T.id, true);
+      } else if (tp) {
         const T = tp.robot, lost = 0.5 * m * (vz * vz + 0.36 * vh * vh), lp = tp.body.getLocalPoint(at);
         hit(S, tp, lost * JUKE.eK, { src: R, cause: 'pogo', top: true, lp: [lp.x, lp.y], blp: tp.body === T.body ? [lp.x, lp.y] : null, x: at.x, y: at.y, pen: 1.4 });
         st.hits++; T.lifted = Math.max(T.lifted, 0.3); S.fx.push({ type: 'punch', x: at.x, y: at.y, power: 30 });

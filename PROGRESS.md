@@ -243,3 +243,8 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - 33-robot lineup tuned with one power dial per robot (damage = health scale): levels 66 / 60 / 66 / 64% vs the level below (`tools/damage-lab/lineup-tuned.json`).
 - Every bookie tag re-measured on the tuned lineup (about 50,000 fights): `docs/robocus-tuned-lineup-tags.md`, data in `tools/damage-lab/tag-tuned/`.
 - 109 confirmed counter picks, 8 epic combos, 3 giant-slayer builds. Arena tags and 2v2 tags have nearly vanished.
+
+## 15 Nov 2026 (later): tuned lineup in the game + counter check
+- Tabletop 2.0 now plays the tuned 33-robot lineup: lineup.js (TUNED), strength model, new matchup table (18,480 fights), all bookie tables re-measured.
+- Counter tags only for 40+ point matchups (BAL.counterTag). New switch BAL.counterTrust (default 1; whole games suggest 0.65).
+- 3 x 120 whole games (old lineup / tuned / tuned + trust 0.65): counters are not too much (upsets unchanged at 32%, the badge is wrong less often); the bookie over-trusts counters. Doc: docs/robocus-tuned-lineup-in-game.md, report tools/counter-report.js.
