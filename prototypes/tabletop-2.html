@@ -279,15 +279,21 @@ html, body {
 .waitrail .wr-row .wr-n small { display: block; font: 400 10.5px var(--sans); color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
 .waitrail .wr-row b { flex: none; font: 600 10px var(--mono); letter-spacing: .5px; padding: 3px 7px; border-radius: 10px; background: #E9E4DA; color: var(--muted); }
 .waitrail .wr-row.move { background: #FBF3D0; border-color: var(--hazard); }
-.waitrail .wr-row.move b { background: var(--hazard); color: var(--ink); }
+.waitrail .wr-row.move b { background: var(--hazard); color: var(--ink); animation: wrFlash 1s ease-in-out infinite; }
+.waitrail .wr-go { flex: none; max-width: 62%; font: 400 12.5px var(--stencil); letter-spacing: .5px; padding: 5px 10px; border-radius: 4px; border: 2px solid var(--ink); background: var(--ink); color: var(--hazard); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: wrFlash 1s ease-in-out infinite; }
+.waitrail .wr-go:hover { background: #000; animation: none; }
+@keyframes wrFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,197,71,0); } 50% { box-shadow: 0 0 0 5px rgba(232,197,71,.9); } }
 .waitrail .wr-row.busy { background: var(--panel); border-color: var(--line); }
 .waitrail .wr-row.busy b { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); animation: whoPulse 1.2s ease-in-out infinite; }
 .waitrail .wr-row.done b { background: #2F7D4A; color: #fff; }
 .tb-who { display: none !important; }
+/* 2.0.1: the hand is always open, under the pit; no tab, no pin */
+@media (min-width: 700px) { .hand-tray { transform: none !important; } .hand-bar { display: none !important; } }
 .prompt-bar.idle.locked { background: #DCEBDD; }
 .prompt-bar.idle.locked::before { content: 'LOCKED IN'; }
 .prompt-bar.idle.wait { background: #EDE8DE; }
 .prompt-bar.idle.wait::before { content: 'NOTHING FOR YOU TO DO'; }
+.prompt-bar.idle.wait .act { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
 @media (max-width: 699px) { .waitrail { display: none; } }
 
 #ivModal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
@@ -1513,6 +1519,7 @@ html, body {
     renderWinWatch();
     renderPromptBar();
     if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
+    if (G.autoLeft != null && !G.over) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
     fitPrompt();
     renderHand();
@@ -1766,9 +1773,9 @@ html, body {
       const need = needOf(t, c);
       const mid = (n - 1) / 2;
       const off = i - mid;
-      const angle = off * 5.2;
+      const angle = off * (narrowScreen() ? 5.2 : 2.2);   // 2.0.1: the open hand lies almost flat
       const hx = off * handSpread;   // spread to the hand drawer's width (placeHand)
-      const hy = Math.abs(off) * Math.abs(off) * 4.0;
+      const hy = Math.abs(off) * Math.abs(off) * (narrowScreen() ? 4.0 : 1.2);
 
       // Outer stationary slot: fixed at translateX(hx) so its hover hit-box never shifts when the card lifts
       const slot = document.createElement('div');
@@ -2315,7 +2322,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15 phase slides, waiting list on the right';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, buttons in the waiting list';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4066,11 +4073,20 @@ html, body {
   function applyMarketWins(A) {
     const live = A.wins.filter(x => !x.botched);   // a botched part went back to the lot deck
     for (const x of live) if (!needsRobot(x.lot)) A.results[x.idx].target = applyLot(x.team, x.lot, null);
-    for (const h of humanSeats()) PS(h).install = (PS(h).install || []).concat(live.filter(x => x.team === h && needsRobot(x.lot) && canTake(G.teams[h], x.lot)));
+    for (const h of humanSeats()) PS(h).install = PS(h).install || [];
     for (const x of live) {
       if (!needsRobot(x.lot)) continue;
       const T = G.teams[x.team];
-      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▶ Click one of your Robot Bays (left)'; continue; }
+      if (isHuman(x.team)) {
+        // 2.0.1 (Kev, 15 Nov: less clicking): only one robot it fits: it goes on at once. Two or three: you pick the bay.
+        const fit = T.robots.filter(r => canFit(r, LOTS[x.lot]));
+        if (fit.length === 1 && BAL.autoFit !== false) {
+          A.results[x.idx].target = applyLot(x.team, x.lot, fit[0]) || 'Fitted on ' + fit[0].name;
+          notify('🔩 ' + nm(T) + ' fits <b>' + esc(LOTS[x.lot].name) + '</b> on ' + esc(fit[0].name) + ' (its only robot with room).', T.col);
+          continue;
+        }
+        if (fit.length) { PS(x.team).install.push(x); A.results[x.idx].target = '▶ Click one of your Robot Bays (left)'; continue; }
+      }
       const pickR = isHuman(x.team) ? null : aiPickRobot(T, x.lot);
       if (pickR) { A.results[x.idx].target = applyLot(x.team, x.lot, pickR); continue; }
       stashParts(T, [x.lot]); A.results[x.idx].target = stashOf(T).includes(x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold';
@@ -4925,12 +4941,13 @@ html, body {
   // Bets-step arena cards for the human (buttons in the prompt)
   ACT.bookiesFriend = S => { if (G.phase === 'bets' && !G.betsLocked) humanBookiesFriend(S); };
   ACT.hedgeBet = S => { if (G.phase === 'bets' && !G.betsLocked) humanHedgeBet(S); };
-  ACT.bet = (S, side) => {
+  ACT.bet = (S, side, amt) => {   // amt (2.0.1): the amount in one click (the same amount again takes the bet back); without it the old +1
     if (G.phase !== 'bets' || G.betsLocked || iDone(S)) return;
     const P = PS(S), t = G.teams[S];
     if (!P.bet || side < 0 || side >= P.bet.length) return;
+    const was = P.bet[side];
     P.bet = P.bet.map((v, k) => k === side ? v : 0);
-    const cap = betLimit(t), next = (P.bet[side] + 1) % (cap + 1);
+    const cap = betLimit(t), next = amt != null ? (+amt === was ? 0 : Math.max(0, Math.min(cap, Math.floor(+amt) || 0))) : (P.bet[side] + 1) % (cap + 1);
     P.bet[side] = next <= t.credits ? next : 0;
     const F = G.fight;
     if (F && F.pubBets) {   // robot bets are public: everyone sees them change
@@ -5731,7 +5748,37 @@ html, body {
   const WAIT_WORDS = { sponsor: 'picking a sponsor', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
     'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', open: 'open market',
     lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
+  /* 2.0.1, fewer clicks (Kev, 15 Nov, after the Friday playtest: "too much clicking"). The host's page moves three kinds of
+   * step on by itself:
+   *  - Upkeep: a player with nothing to repair and no Stash part that fits (also: no robots at all, round 1) is ready at once;
+   *  - Market results (after the lots and after the host bid) and "next round": after AUTO_MS (6 s) for everyone still reading.
+   * The count only runs while nobody has something else to do (fitting a part, a trade-in, an open question, a reaction window),
+   * and starts again after that. The button stays: all pressing it is still the fastest way on. */
+  const AUTO_MS = () => BAL.autoMs != null ? BAL.autoMs : 6000;
+  const AUTO_STEPS = { mres: 1, mres2: 1, next: 1 };
+  const AUTO = { key: null, t0: 0 }; let autoPend = 0;
+  const upkeepIdle = s => { try { const t = G.teams[s]; return !t.robots.some(r => r.wear && R2.ZONES.some(z => zonesOf(r)[z.key].damaged)) && !stashOf(t).some(id => t.robots.some(r => canFit(r, LOTS[id]))); } catch (e) { return false; } };
+  function autoStep() {
+    if (!G || G.over || isClient() || window.__noAuto) return;
+    const step = gatherStep(), hs = humanSeats();
+    const quiet = !!step && !G.reacting && !autoPend && !['ivModal', 'dealModal', 'reactWin'].some(id => { const el = document.getElementById(id); return el && !el.hidden; }) && hs.every(s => { const b = seatBusyWith(s); return !b || b === step[0]; });
+    const key = quiet ? step[0] + ':' + G.round : null;
+    if (key !== AUTO.key) { AUTO.key = key; AUTO.t0 = Date.now(); }
+    const isDone = s => !!(G.gather && G.gather.key === key && G.gather.done[s]);
+    let left = null;
+    if (key) {
+      const dt = Date.now() - AUTO.t0;
+      if (step[0] === 'upkeep') { if (dt >= 600) for (const s of hs) if (G.phase === 'upkeep' && !isDone(s) && upkeepIdle(s)) runAct(s, 'upkeepDone'); }
+      else if (AUTO_STEPS[step[0]]) {
+        left = Math.ceil((AUTO_MS() - dt) / 1000);
+        if (left <= 0) { left = null; AUTO.key = null; for (const s of hs) if (!isDone(s)) runAct(s, step[1]); }
+      }
+    }
+    if ((G.autoLeft == null ? null : G.autoLeft) !== left) { G.autoLeft = left; updateHud(); }
+  }
+  setInterval(() => { try { autoStep(); } catch (e) { console.warn('auto', e); } }, 250);
   function setWaiting(pend) {   // host; pend: [{ seat, title }] the questions and deal panels open on joined screens
+    autoPend = (pend || []).length;
     if (!G || G.over) { if (netWaiting) { netWaiting = null; renderWaiting(); } return; }
     const list = [];
     if (G.reacting) list.push({ seat: -1, what: G.reacting.title });   // a reaction window: no names (who is still thinking would give its cards away)
@@ -5739,6 +5786,7 @@ html, body {
       const q = (pend || []).find(x => x.seat === s);
       const mine = s === HS && ['ivModal', 'dealModal'].map(id => document.getElementById(id)).find(el => el && !el.hidden);
       const w = q ? ptPlain(q.title || 'a question') : mine ? ptPlain((mine.querySelector('h3') || {}).innerHTML || 'a question') : WAIT_WORDS[seatBusyWith(s)] || seatBusyWith(s);
+      if (!q && !mine && AUTO_STEPS[seatBusyWith(s)] && !window.__noAuto) continue;   // a step that goes on by itself: nobody is waited for
       if (w) list.push({ seat: s, what: String(w).replace(/^[^A-Za-z0-9]+/, '').slice(0, 40) });
     }
     if (JSON.stringify(list) !== JSON.stringify(netWaiting)) { netWaiting = list; renderWaiting(); }
@@ -5755,10 +5803,15 @@ html, body {
       else if (b) { k = t.i === HS ? 'move' : 'busy'; lab = t.i === HS ? 'YOUR MOVE' : 'DECIDING'; what = b.what; }
       else if (!hum) { k = turn ? 'busy' : 'idle'; lab = turn ? 'PLAYING' : 'AI'; what = turn ? 'Intrigue turn' : ''; }
       else if (G.gather && G.gather.done && G.gather.done[t.i]) { k = 'done'; lab = 'READY'; }
-      return '<div class="wr-row ' + k + '" style="--c:' + t.col + '"><i></i><span class="wr-n">' + esc(hum ? seatName(t.i) : t.name) + (t.i === HS ? ' (you)' : '') + (what ? '<small>' + esc(what) + '</small>' : '') + '</span>' + (lab ? '<b>' + lab + '</b>' : '') + '</div>';
+      // Kev, 15 Nov: "people can click over there as well and button flashed for decisions they need to make": on your own row
+      // the main button of the note, flashing; without a button to press (a bay to click, a question open) the pill flashes
+      let go = '';
+      if (k === 'move') { const pa = document.querySelector('#promptBar .act:not(.secondary):not(:disabled)'), tx = pa ? pa.textContent.replace(/\s+/g, ' ').trim() : ''; if (tx) { go = '<button type="button" class="wr-go">' + esc(tx.length > 24 ? tx.slice(0, 23) + '…' : tx) + '</button>'; what = 'YOUR MOVE' + (what ? ' · ' + what : ''); } }
+      return '<div class="wr-row ' + k + '" style="--c:' + t.col + '"><i></i><span class="wr-n">' + esc(hum ? seatName(t.i) : t.name) + (t.i === HS ? ' (you)' : '') + (what ? '<small>' + esc(what) + '</small>' : '') + '</span>' + (go || (lab ? '<b>' + lab + '</b>' : '')) + '</div>';
     }).join('');
     const html = '<div class="wr-k">' + (G.over ? 'THE END' : 'BEFORE WE MOVE ON') + '</div><div class="wr-t">' + (G.over ? 'GAME OVER' : react ? 'REACTION WINDOW' : fight ? 'THE FIGHT' : n ? 'WAITING FOR ' + n : 'NOBODY HAS TO CLICK') + '</div>' + rows;
     if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
+    if (!el.onclick) el.onclick = e => { if (e.target.closest('.wr-go')) { const pa = document.querySelector('#promptBar .act:not(.secondary):not(:disabled)'); if (pa) pa.click(); } };
     promptState();
   }
   /* The yellow note says which of three things is true (2.0.1; Friday playtest: "it wasn't very clear when people had to click"):
@@ -5768,7 +5821,7 @@ html, body {
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
     const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
     const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]);
-    const st = meIn || react ? 'move' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
+    const st = meIn || react ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
     pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
   }
   function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
@@ -6029,19 +6082,24 @@ html, body {
   }
   function benchLayout() {
     const W = benchWidth();
-    if (LAYOUT && LAYOUT.W === W && LAYOUT.phone === narrowScreen()) return LAYOUT;
+    // 2.0.1 (Kev, 15 Nov: "show hands completely all the time and keep in center"): the hand lies open under the pit, so the
+    // pit ends above it. The cards are 206 px high on the screen whatever the zoom: the room for them is worked out in pixels.
+    const HAND_H = narrowScreen() ? BENCH.noteH : Math.round(222 / Math.max(0.5, (window.innerHeight - TBH() - 10) / (BENCH.bottom - BENCH.top)));
+    if (LAYOUT && LAYOUT.W === W && LAYOUT.phone === narrowScreen() && LAYOUT.handH === HAND_H) return LAYOUT;
     BENCH.W = W; BENCH.x0 = -W / 2; BENCH.railX = BENCH.x0;   // 2.0.1 (Kev, 15 Nov): your robots on the left, the pit in the middle, who we wait for and the log on the right
     const B = BENCH, tw = (B.W - 2 * B.tickGap) / 3;
     // Kev, 9 Nov (2nd look): the log back on the left as a side panel, the full height of the bench; the pit right of it,
     // the sticky note (zone 4) under the pit
     // Kev, 11 Nov: on a wide screen the extra width goes mostly to the log (70% of it, up to 560), not to the pit
     const logW = narrowScreen() ? B.logW : Math.min(560, B.logW + Math.round((W - 1400) * 0.7)), WAIT_H = 232;
-    const wait = { x: W / 2 - logW, y: B.benchTop, w: logW, h: WAIT_H };   // "before we move on": one row per player
-    const log = { x: wait.x, y: B.benchTop + WAIT_H + 10, w: logW, h: B.bottom - B.benchTop - WAIT_H - 10 };
-    BENCH.pitR = wait.x - 14;
-    const pitX = B.railX + B.railW + 14, pitH = B.bottom - B.benchTop - B.noteH - 12;
+    // the right column, top to bottom: the note (your move), who we wait for, the log
+    const NOTE_H = 176, rx = W / 2 - logW;
+    const wait = { x: rx, y: B.benchTop + NOTE_H + 10, w: logW, h: WAIT_H };   // "before we move on": one row per player
+    const log = { x: rx, y: wait.y + WAIT_H + 10, w: logW, h: B.bottom - (wait.y + WAIT_H + 10) };
+    BENCH.pitR = rx - 14;
+    const pitX = B.railX + B.railW + 14, pitH = B.bottom - B.benchTop - HAND_H - 6;
     const pit = { x: pitX, y: B.benchTop, w: B.pitR - pitX, h: pitH };
-    const note = { x: pit.x, y: pit.y + pit.h + 12, w: pit.w, h: B.noteH };
+    const note = { x: rx, y: B.benchTop, w: logW, h: NOTE_H };
     const floor = { x: pit.x + 12, y: pit.y + B.titleH, w: pit.w - 24, h: pit.h - B.titleH - 12 };
     // the stage keeps its scale for a 620 × 360 stage and fills the floor (its functions centre on ax / ay and use aw / ah)
     // (a phone shows only the stage, so there it keeps the old 620 × 360 shape and the camera zooms in on it)
@@ -6055,7 +6113,7 @@ html, body {
     const box2slot = (b, pos) => ({ pos, gx: b.x + b.w / 2, gy: b.y + b.h / 2, gw: b.w, gh: b.h });
     const slots = [box2slot(rail, 0)].concat(tickets.map((b, k) => box2slot(b, k + 1)));
     // stage space for the phase stage functions: top-left corner at (0, 0), stageW × stageH
-    LAYOUT = { W, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, wait, tickets, slots, ax: stageW / 2, ay: stageH / 2, aw: stageW, ah: stageH };
+    LAYOUT = { W, handH: HAND_H, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, wait, tickets, slots, ax: stageW / 2, ay: stageH / 2, aw: stageW, ah: stageH };
     return LAYOUT;
   }
   function getDynamicLayout() { return benchLayout(); }
@@ -6437,9 +6495,9 @@ html, body {
     OVL.key = k;
     const nh = Math.round(Math.max(100, Math.min(sh - 4, nb.y) - a.y));   // the note fills its zone: top and bottom in line with the log
     Object.assign(pb.style, { left: Math.round(a.x) + 'px', top: Math.round(a.y) + 'px', width: Math.round(nb.x - a.x) + 'px', maxHeight: nh + 'px', minHeight: nh + 'px' }); fitPrompt();
-    Object.assign(lg.style, { left: Math.round(la.x) + 'px', top: Math.round(la.y) + 'px', width: Math.round(lb.x - la.x) + 'px', height: Math.round(Math.max(60, Math.min(sh - 72, lb.y) - la.y)) + 'px' });
+    Object.assign(lg.style, { left: Math.round(la.x) + 'px', top: Math.round(la.y) + 'px', width: Math.round(lb.x - la.x) + 'px', height: Math.round(Math.max(60, Math.min(sh - 6, lb.y) - la.y)) + 'px' });
     // the Stash: under your robots, clear of the hand's tab
-    Object.assign(st.style, { left: Math.round(sa.x) + 'px', top: Math.round(sa.y) + 'px', width: Math.round(sb.x - sa.x) + 'px', maxHeight: Math.round(Math.max(40, Math.min(sh - 76, sb.y) - sa.y)) + 'px' });
+    Object.assign(st.style, { left: Math.round(sa.x) + 'px', top: Math.round(sa.y) + 'px', width: Math.round(sb.x - sa.x) + 'px', maxHeight: Math.round(Math.max(40, Math.min(sh - 6, sb.y) - sa.y)) + 'px' });
   }
 
   /* ---------- 6 · the hand drawer: under your rail, its cards spread to the rail's width ---------- */
@@ -6448,9 +6506,9 @@ html, body {
     const st = $('#handStage'); if (!st) return;
     let cx, w;
     if (narrowScreen()) { cx = window.innerWidth / 2; w = window.innerWidth - 16; }
-    else { const a = worldToScreen(L.log.x, 0), b = worldToScreen(L.log.x + L.log.w, 0); w = Math.max(360, b.x - a.x + 40); cx = (a.x + b.x) / 2; }   // 2.0.1: the hand hangs under the log (right), clear of your robots
+    else { const a = worldToScreen(L.pit.x, 0), b = worldToScreen(L.pit.x + L.pit.w, 0); w = Math.max(360, b.x - a.x); cx = (a.x + b.x) / 2; }   // 2.0.1: the hand lies open under the pit, in the middle
     cx = Math.round(Math.max(w / 2 + 4, Math.min(window.innerWidth - w / 2 - 4, cx)));
-    const n = me().hand.length, spread = n > 1 ? Math.max(30, Math.min(96, (w - 210) / (n - 1))) : 96;   // room for the outer cards' tilt
+    const n = me().hand.length, spread = n > 1 ? Math.max(30, Math.min(narrowScreen() ? 96 : 146, (w - 150) / (n - 1))) : 96;   // 2.0.1: side by side when there is room, overlapping only with a big hand   // room for the outer cards' tilt
     if (Math.abs(spread - handSpread) > 0.5) { handSpread = spread; renderHand(true); }
     const key = cx + ':' + Math.round(w);
     if (key !== handLeftPx) { st.style.left = cx + 'px'; st.style.width = Math.round(w) + 'px'; handLeftPx = key; }
@@ -7254,8 +7312,22 @@ html, body {
         ctx.fillStyle = DASH; fitText(ctx, '(you can\'t bet against your own robot)', x + w / 2, y + 138, w - 20, '600', 11);
         help(x + 10, y + 120, w - 20, 30, 'Your own fight', 'You can only bet on your own side, unless you play <b>Hedge Bet</b>.');
       } else {
-        inkButton(ctx, x + 20, y + 116, w - 40, 30, stake > 0 ? 'WAGER ' + stake + ' CR → WIN ' + Math.round(stake * payFor(me(), F, s)) + ' CR' : 'CLICK TO BET (0–' + maxB + ' CR)', false, stake > 0 ? T.col : INK);
+        // 2.0.1 (Kev, 15 Nov: less clicking): one chip per amount; one click picks the robot and the amount together
         hitRegions.push({ kind: 'bet_card', side: s, x, y, w, h });
+        if (maxB >= 1 && maxB <= 6 && !iDone(HS)) {
+          const cg = 6, cw = (w - 40 - cg * (maxB - 1)) / maxB, cr = me().credits;
+          for (let a = 1; a <= maxB; a++) {
+            const cx = x + 20 + (a - 1) * (cw + cg), on = stake === a, can = a <= cr;
+            ctx.globalAlpha = can ? 1 : 0.35;
+            ctx.fillStyle = on ? T.col : PAPER2; rrect(ctx, cx, y + 116, cw, 30, 3); ctx.fill();
+            ctx.strokeStyle = on ? T.col : INK; ctx.lineWidth = 2; rrect(ctx, cx, y + 116, cw, 30, 3); ctx.stroke();
+            ctx.fillStyle = on ? '#fff' : INK; ctx.textAlign = 'center';
+            fitText(ctx, on ? a + ' CR → ' + Math.round(a * payFor(me(), F, s)) : a + ' CR', cx + cw / 2, y + 116 + 19.5, cw - 6, '400', 13, F_STEN);
+            ctx.globalAlpha = 1;
+            help(cx, y + 116, cw, 30, 'Bet ' + a + ' Cr', can ? 'One click: ' + a + ' Cr on this side, wins ' + Math.round(a * payFor(me(), F, s)) + ' Cr. Click the same amount again to take the bet back.' : 'You have ' + cr + ' Cr.');
+            if (can) hitRegions.push({ kind: 'bet_amt', side: s, amt: a, x: cx, y: y + 116, w: cw, h: 30 });
+          }
+        } else inkButton(ctx, x + 20, y + 116, w - 40, 30, stake > 0 ? 'WAGER ' + stake + ' CR → WIN ' + Math.round(stake * payFor(me(), F, s)) + ' CR' : 'CLICK TO BET (0–' + maxB + ' CR)', false, stake > 0 ? T.col : INK);
       }
     }
     if (AU) drawCardAuction(ctx, L, ay0, F, AU, L.ay + h / 2 + 4);
@@ -7568,6 +7640,7 @@ html, body {
       if (r.kind === 'market_plus' || r.kind === 'market_tile') { act('bid', r.idx, r.kind === 'market_tile' ? 'tile' : 'plus'); return; }
 
       if (r.kind === 'garage' && G.phase === 'arena' && G.host === HS && !G.chooseMyBot && !G.hostStep && !G.fight && G.pickTeams) { act('pickTeam', r.team); return; }
+      if (r.kind === 'bet_amt') { act('bet', r.side, r.amt); return; }
       if (r.kind === 'bet_card') { act('bet', r.side); return; }
       if (r.kind === 'card_bid') { act('cardBid', r.k, r.d); return; }
 
