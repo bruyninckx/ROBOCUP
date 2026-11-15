@@ -227,3 +227,19 @@ What it says:
 2. **The odds for robots with parts are about right.** The bookie is within 5 points everywhere.
 3. **Ignoring damage costs the bookie accuracy.** Brier 0.180 against 0.164 with damage in, and the favourite wins 73% instead of 76%. That is Kev's call (15 Nov). Players who track damage now have an edge over the odds.
 4. **counterTrust 0.65 would still help.** The underdog of a counter still wins about 33% at odds of 20%.
+
+
+## Overview page and the in-game idea (15 Nov)
+
+`docs/robocus-power-map.html` (open by double-click):
+- the power map with counters;
+- every part's value;
+- a build calculator;
+- the combos;
+- a mock-up of how upgrades could show in the game.
+
+The idea: show upgrades in the same unit as levels.
+- **Robot cards:** stars for the robot's level plus quarter pips for its upgrades, one line per part ("Weapon overhaul +¾ level"), and a bookie line ("fights like a ★1.7, beats a ★★ robot 46%").
+- **Market part cards:** "+¾ level" with a per-level line.
+
+Not built into the tabletop yet.
