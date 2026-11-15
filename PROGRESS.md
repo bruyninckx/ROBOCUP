@@ -252,3 +252,8 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 ## 15 Nov 2026 (later): bookie ignores damage; are parts worth a level?
 - BAL.oddsDamage (false): the odds read every robot as new.
 - Part investigation on the tuned lineup: the average part is worth 0.7 of a level (target 1), legendaries 1.0-1.55 (target 2); parts lose value on bigger robots (fixed-number drones/modules). Doc: docs/robocus-part-levels.md. Fix proposed, not done.
+
+## 15 Nov 2026 (evening): parts levelled
+- Drones and modules from part cards grow with the carrier's level (PART_K x1 / 1.15 / 1.45 / 2.0 / 2.1, engine pkR, spec.fromParts); stock robots unchanged.
+- Every part tuned to about 0.75 of a level (legendaries 1.5, chips 0.75 on L0-1): 4 rounds of parttest.js. Bookie PART 0.42 / LEG 0.9; epics, fits and giant-slayer builds re-tested.
+- Whole games: levels mean more (higher level 67/78/83/93% by gap); ignoring damage makes the odds less accurate (Brier 0.180 vs 0.164). docs/robocus-part-levels.md.

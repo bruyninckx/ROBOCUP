@@ -1179,16 +1179,15 @@ html, body {
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const PART_FIT = {"Popcorn":{"emp":[1,30]},"Thwacker":{"mines":[1,40],"tow":[1,55],"pester":[1,48],"hospital":[-1,-8],"shield":[-1,-5],"bait":[1,25]},"Mauler":{"popper":[1,32]},"Scythe":{"powerkit":[1,28]},"Buzzkill":{"tow":[1,38],"gunner":[1,48]},"Thumper":{"popper":[1,42]},"Rotisserie":{"overdrive":[-1,-12]},"Corkscrew":{"hospital":[1,45]},"Jukebox":{"powerkit":[1,25]},"Forklift":{"pester":[-1,-15]}};
+  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Scythe":{"repair":[-1,-13]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {   // Kev, 15 Nov: tuned lineup, re-tested on fresh seeds vs every robot a level up (40 fights); Thwacker + Mine layer / Pester chip are great fits
-    'Thwacker|tow': ['Whiplash', 28, 82],
-    'Buzzkill|gunner': ['Air Support', 22, 70],
-    'Buzzkill|tow': ['Tug of War', 22, 60],
-    'Thumper|popper': ['Launch Pad', 32, 75],
-    'Corkscrew|hospital': ['Drill & Drip', 22, 68],
-    'Mauler|popper': ['Flip & Maul', 28, 60],
+  const EPIC = {   // Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
+    'Thwacker|tow': ['Whiplash', 25, 65],
+    'Angler|quantum': ['Phantom Hook', 14, 67],
+    'Vertigo|powerkit': ['Overclock', 43, 77],
+    'Popcorn|jam': ['Haywire', 17, 48],
+    'Gaucho|overdrive': ['Iron Bolas', 32, 62],
   };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
@@ -1196,8 +1195,8 @@ html, body {
    * and vs L3/L4 that carry Weapon overhaul + Reinforced hull + Prototype core]. Parts stack about evenly (+20 points each); these four
    * stay level with a one-level gap even when the big robots are kitted too. */
   // Kev, 15 Nov: re-measured on the tuned lineup: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights bare, 84 vs kitted ones)
-  const TRIPLE = {
-    Yoyo: [['core', 'weapon', 'overdrive'], 30, 93, 57], Pincher: [['quantum', 'gunner', 'tow'], 12, 86, 31], Angler: [['shield', 'core', 'quantum'], 5, 84, 31],
+  const TRIPLE = {   // Kev, 15 Nov: after the parts were levelled: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights; last number: vs kitted ones)
+    Gyro: [['quantum', 'spotter', 'waller'], 38, 89, 66], Whaler: [['quantum', 'tow', 'waller'], 23, 82, 50],
   };
   const tripleOf = r => { const t = r && TRIPLE[r.name]; return t && t[0].every(k => partsOf(r).includes(k)) ? t : null; };
   // the Market: this part would complete (or be the 2nd of) a giant-slayer build on a robot that has the rest

@@ -102,3 +102,128 @@ Win % = with the part, vs a level up, all robots (no part: 38%). Then levels gai
 **The bookie ignores damage** (Kev: "don't take damages into account for bookie odds anymore"). Every robot's odds now read it as new: duels, free-for-alls, 2v2 and the starter values. A damaged robot still shows its range like a robot as it comes.
 - The switch is `BAL.oddsDamage` (false; true brings the old behaviour back).
 - Damage still matters in the fight itself and to the AI's choices.
+
+
+---
+
+# Update (15 Nov, later): the parts are levelled
+
+Kev: "do 1 and 2, perhaps 0.7 is not the worst actually, could be better for balance than 1, but of course we need to level the upgrades a bit".
+
+**Target:**
+
+| Upgrade | Worth about |
+|---|---|
+| Normal part | 0.75 of a level |
+| Legendary | 1.5 levels |
+| Chip on a level 0-1 robot | 0.75 of a level |
+
+So the average stays where it was; what changed is that the upgrades now sit close to each other.
+
+## Step 1: parts grow with the robot that carries it
+
+- What grows: drones and modules from part cards, in their damage, healing and HP.
+- What stays the same: durations (stuns, scrambles, walls), pushes, and a robot's own built-in module (Mauler's repair, Hornet's jets).
+- The multiplier follows how much health robots of that level carry:
+
+  | Robot level | Starters | 1 | 2 | 3 | 4 |
+  |---|---|---|---|---|---|
+  | Part multiplier | x1 | x1.15 | x1.45 | x2.0 | x2.1 |
+
+- Not the robot's own power dial: Thwacker's 2.9 is there because its tail is weak, and it would have made its drones huge.
+- Where:
+  - Engine `pkR()`: only for drones and modules listed in `spec.fromParts`.
+  - lineup.js: `PART_K`; the stat multipliers are now in `STAT`.
+  - New settings for parts that had none: spotter, jammer, booster, quantum shield, Matador counter-strike.
+- Check: robots without parts fight exactly as before (same fights, same seeds).
+
+## Step 2: each part tuned
+
+- How: 3 full rounds of `tools/damage-lab/parttest.js`, every part on every robot against every robot a level up, 11,424 fights a round. Then a targeted round for the last five parts.
+- Results:
+  - Normal parts: +0.5 to +0.9 levels (was +0.2 to +1.3).
+  - Legendaries: +1.5 to +1.6.
+  - Chips on level 0-1 robots: +0.8 to +1.0.
+
+| Part | Strength (before → now) | Levels before | After step 1 | **Now** | Now on L0-1 / L2-3 |
+|---|---|---|---|---|---|
+| Medic drone | 0.6 → 0.68 | +0.37 | +0.58 | **+0.64** | +0.84 / +0.85 |
+| Gun drone | 1.8 → 0.9 | +1.06 | +1.89 | **+0.71** | +1.04 / +0.85 |
+| Laser drone | 1.6 → 0.96 | +0.77 | +1.19 | **+0.78** | +0.69 / +1.38 |
+| Booster drone | push +50% → +42% | +0.70 | +0.88 | **+0.71** | +1.44 / +0.76 |
+| Waller drone | walls x1.5 → x1.57 | +0.71 | +0.64 | **+0.73** | +0.84 / +1.25 |
+| Bodyguard drone | HP x1.8 → x1.3 | +0.41 | +0.92 | **+0.85** | +0.94 / +0.98 |
+| Spotter drone | +25% → +22% | +0.40 | +0.78 | **+0.80** | +0.79 / +0.94 |
+| Jammer drone | weapon x0.5 → x0.45 | +0.49 | +0.68 | **+0.76** | +0.59 / +1.03 |
+| Blocker drone | HP x1.5 → x2.9 | +0.41 | +0.52 | **+0.63** | +0.69 / +0.89 |
+| Energy shield | 1.5 → 1.2 | +0.83 | +0.95 | **+0.82** | +0.79 / +1.16 |
+| EMP burst | 1.6 → 1.03 | +0.95 | +1.16 | **+0.76** | +0.89 / +0.80 |
+| Mine layer | 1.4 → 0.95 | +0.75 | +1.11 | **+0.75** | +0.59 / +1.25 |
+| Pop-up flipper | 2.4 → 1.04 | +0.69 | +1.52 | **+0.63** | +0.74 / +1.03 |
+| Tow cable | 1 → 0.59 | +1.23 | +1.21 | **+0.61** | +0.27 / +0.67 |
+| Sensor scrambler | 1 → 0.75 | +0.94 | +1.14 | **+0.70** | +1.04 / +0.94 |
+| Overdrive | x1.55 → x1.52 | +0.90 | +1.00 | **+0.80** | +0.79 / +0.80 |
+| Repair kit | 4 → 12 | +0.21 | +0.37 | **+0.53** | +0.64 / +0.71 |
+| Weapon overhaul | x1.35 → x1.29 | +1.32 | +0.92 | **+0.75** | +0.94 / +0.62 |
+| Reinforced hull | x1.45 → x1.36 | +0.81 | +0.85 | **+0.80** | +1.04 / +0.76 |
+| Power kit | HP x1.2 → x1.13 | +0.54 | +1.04 | **+0.87** | +0.64 / +1.25 |
+| Armour kit | HP x1.25 → x1.23 | +0.73 | +0.83 | **+0.73** | +1.44 / +0.43 |
+| Prototype core | x1.3 → x1.28 | +1.55 | +1.63 | **+1.52** | +1.79 / +1.61 |
+| Field hospital | HP x1.1 → x1.13, medic x1.3 | +1.00 | +1.16 | **+1.56** | +1.95 / +1.52 |
+| Quantum shield | phase 1.5 s → 1.3 s | +1.43 | +1.70 | **+1.60** | +1.09 / +2.36 |
+| Matador chip | counter-strike x3 → x1.5 | +0.63 | +0.70 | **+0.25** | +1.24 / +0.15 |
+| Wall Bait chip | - | +0.58 | +0.39 | **+0.37** | +0.84 / +0.20 |
+| Pester chip | - | +0.50 | +0.52 | **+0.54** | +0.79 / +0.76 |
+
+Two parts don't tune cleanly:
+- **Overdrive** jumps between +0.6 and +1.1 for tiny changes, because every hit also strains its own weapon motor. It is set in between, at x1.52.
+- **Repair kit** stays at about +0.5 however fast it heals, because it only works while the robot is not being hit. A different trigger would be needed for more.
+
+Each value in "now" is good to about ±0.15. Level 4 robots gain less from parts, mostly because they already win most fights at their own level. Their per-group number is good only to about ±0.35.
+
+## The bookie and the tags
+
+- **Strength model** (`src2/repair.js`):
+  - a part is 0.42 (was 0.62);
+  - a legendary is 0.9 (was 1.24);
+  - a chip is 0.5 / 0.5 / 0.2 / 0.2 / -0.05 by level.
+- **Epic combos re-tested twice on fresh seeds** (60-96 fights each). Wins vs robots a level up, without → with:
+
+  | Name | Combo | Without → with |
+  |---|---|---|
+  | Whiplash | Thwacker + Tow cable (still holds) | 25 → 65% |
+  | Phantom Hook | Angler + Quantum shield | 14 → 67% |
+  | Overclock | Vertigo + Power kit | 43 → 77% |
+  | Haywire | Popcorn + Sensor scrambler | 17 → 48% |
+  | Iron Bolas | Gaucho + Overdrive | 32 → 62% |
+
+  Gone: Air Support, Tug of War, Launch Pad and Flip & Maul, because the Gun drone and Pop-up flipper were toned down. Drill & Drip (Corkscrew + Field hospital) is now a great fit.
+- **Great fits:** Corkscrew + Field hospital, Wrecker + Pester chip, Thwacker + Mine layer.
+- **Poor fits:** Forklift + Laser drone, Scythe + Repair kit, Rotisserie + Pester chip, Yo-yo + Blocker drone.
+- **Giant-slayer builds:**
+
+  | Robot | Parts | Wins vs level 3-4, as it comes → kitted | vs kitted level 3-4 |
+  |---|---|---|---|
+  | Gyro | Quantum shield + Spotter + Waller | 38 → 89% | 66% |
+  | Whaler | Quantum shield + Tow cable + Waller | 23 → 82% | 50% |
+
+  Both need the one Quantum shield. Yo-yo, Pincher and Angler no longer make it.
+
+## Whole games (120 games each, AI v2, same seeds)
+
+| | Tuned lineup (before today) | Parts levelled, bookie ignores damage | Parts levelled, damage in the odds |
+|---|---|---|---|
+| Higher level wins, 1 / 2 / 3 / 4 levels apart | 67 / 70 / 68 / 74% | **67 / 78 / 83 / 93%** | 63 / 77 / 79 / 86% |
+| Lower level wins a mixed-level duel | 32% | 27% | 30% |
+| Bookie favourite wins / Brier | 78% / 0.158 | 73% / **0.180** | 76% / 0.164 |
+| One part more: odds / won | 59% / 62% | 63% / 63% | 54% / 59% |
+| Two parts more: odds / won | 71% / 77% | 67% / 72% | 66% / 71% |
+| Counter duels, underdog odds / won | 19% / 31% | 20% / 33% | 22% / 32% |
+| Close finish (within 1 fame) | 46% | 43% | |
+| Rounds | 11.6 | 11.7 | |
+
+What it says:
+1. **Levels mean more in a real game now.** Before, parts on small robots flattened the bigger gaps; now a level 1 robot rarely beats a level 4 robot.
+2. **The odds for robots with parts are about right.** The bookie is within 5 points everywhere.
+3. **Ignoring damage costs the bookie accuracy.** Brier 0.180 against 0.164 with damage in, and the favourite wins 73% instead of 76%. That is Kev's call (15 Nov). Players who track damage now have an edge over the odds.
+4. **counterTrust 0.65 would still help.** The underdog of a counter still wins about 33% at odds of 20%.

@@ -60,8 +60,9 @@
   const BOOST_K = 2.85;
   // tuning chips (9 Nov): worth about 1.2 levels on a level 0-1 frame (level 1 + chip vs level 3: 37-43% instead of 22%), less on
   // heavier frames because they overload (engine CHIP_GLITCH); measured with tools/damage-lab/chipfit.js
-  const CHIP = [0.55, 0.55, 0.25, 0, -0.2];   // Kev, 9 Nov: lowered (was 0.8 / 0.8 / 0.4): round 6 sims, chip robots won 4-8 points below the bookie's odds
-  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 3.0, body: 0.15 };   // body: see BODY_COST below
+  // Kev, 15 Nov (parts levelled, docs/robocus-part-levels.md): a chip is worth about 0.9 of a level on a level 0-1 robot, 0.35 on 2-3, nothing on 4
+  const CHIP = [0.5, 0.5, 0.2, 0.2, -0.05];   // was 0.55 / 0.55 / 0.25 / 0 / -0.2   // Kev, 9 Nov: lowered (was 0.8 / 0.8 / 0.4): round 6 sims, chip robots won 4-8 points below the bookie's odds
+  const LEVEL = 0.62, PART = 0.42, LEG = 0.9,   /* Kev, 15 Nov: measured on the levelled parts: a part about 0.72 of a level, a legendary 1.56 (was 0.62 / 1.24) */ L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 3.0, body: 0.15 };   // body: see BODY_COST below
   const gradeOf = name => { const r = LU && (LU.ROBOTS[name] || (LU.ROBOTS4 || {})[name]); return r ? r[1] : null; };
   function strength(spec, name, level, parts) {
     const g = gradeOf(name);
