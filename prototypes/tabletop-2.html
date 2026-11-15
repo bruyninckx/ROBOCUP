@@ -287,6 +287,18 @@ html, body {
 .waitrail .wr-row.busy b { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); animation: whoPulse 1.2s ease-in-out infinite; }
 .waitrail .wr-row.done b { background: #2F7D4A; color: #fff; }
 .tb-who { display: none !important; }
+/* the changelog (Kev, 15 Nov), behind the button next to the sound button */
+#clogBox { position: fixed; inset: 0; z-index: 2000; background: rgba(43,33,24,.45); display: flex; align-items: flex-start; justify-content: flex-end; padding: 58px 14px 14px; }
+#clogBox[hidden] { display: none; }
+#clogBox .cl-card { width: min(560px, 94vw); max-height: calc(100vh - 80px); display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+#clogBox .cl-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 2px solid var(--ink); font: 400 18px var(--stencil); }
+#clogBox .cl-head button { font: 700 13px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--panel); cursor: pointer; padding: 2px 8px; }
+#clogBox .cl-body { overflow: auto; padding: 8px 14px 12px; font: 400 13px/1.45 var(--sans); }
+#clogBox details { border-bottom: 1px solid var(--line); padding: 6px 0; }
+#clogBox summary { cursor: pointer; font: 700 13.5px var(--sans); }
+#clogBox summary small { font: 600 10.5px var(--mono); color: var(--muted); margin-left: 6px; }
+#clogBox ul { margin: 6px 0 2px; padding-left: 18px; }
+#clogBox li { margin: 2px 0; }
 /* 2.0.1: the hand is always open, under the pit; no tab, no pin */
 @media (min-width: 700px) { .hand-tray { transform: none !important; } .hand-bar { display: none !important; } }
 .prompt-bar.idle.locked { background: #DCEBDD; }
@@ -372,10 +384,12 @@ html, body {
     <option value="2">Seat: Moss Gears</option>
     <option value="3">Seat: Plum Ohms</option>
   </select>
+  <button type="button" class="seat-select" id="clogBtn" title="What changed in the game, newest first">📋 changes</button>
   <button type="button" class="seat-select" id="sndBtn" title="Sound on or off">🔊</button>
 </div>
 
 <!-- 4 · sticky note: your move (placed over the pit's top-right corner) -->
+<div id="clogBox" hidden><div class="cl-card"><div class="cl-head"><span>WHAT CHANGED</span><button type="button" id="clogX" title="Close">✕</button></div><div class="cl-body" id="clogBody"></div></div></div>
 <div class="prompt-bar" id="promptBar"></div>
 <!-- 2.0.1 · who we are waiting for before the game moves on (placed top right, over the log) -->
 <div class="waitrail" id="waitRail"></div>
@@ -2322,7 +2336,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, buttons in the waiting list';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4750,6 +4764,60 @@ html, body {
   // the House Robot needs a free place: 4 robots at most in a 2.0 fight
   const fightBots = F => F.teams.length * (F.format === 'mirror' ? 2 : 1);
 
+  /* ---------- The bookie watches test fights (Kev, 15 Nov: "people were very sensitive about not having the right odds";
+   * "the host actually simulates games so that the odds are correct") ----------
+   * When the fighters are known, the host's page runs this very fight (the robots with their parts and damage, the arena, the
+   * House Robot) up to BAL.bookie.n times (200) with other dice, and the odds are how often each side won. Open information
+   * only: face-down cards and the live cards of the fight are not in it (spec2, not fightSpec).
+   * The fights run in background workers (the engine has no page in it), as many as the PC has cores for (8 at most), so the
+   * game does not freeze; for BAL.bookie.ms (4 s) at most. Fewer than BAL.bookie.min (40) fights done (a slow PC, a page opened
+   * from a file, where workers can't load the engine): the odds stay the formula's, as before. The formula's odds also count
+   * as BAL.bookie.prior (8) fights, so a short run does not jump about. */
+  const BOOKIE = { pool: null, bad: false, gen: 0, onres: null, onready: null };
+  const bookieCfg = () => Object.assign({ n: 200, ms: 4000, min: 40, prior: 8 }, BAL.bookie || {});
+  function bookiePool() {
+    if (BOOKIE.pool || BOOKIE.bad) return BOOKIE.pool;
+    try {
+      const all = [...document.scripts].map(x => x.src).filter(Boolean), one = n => all.find(u => u.indexOf(n) >= 0);
+      const U = { d: one('dmath.js'), e: one('src2/engine.js'), p: all.filter(u => /planck/.test(u)) };
+      if (!U.d || !U.e || !U.p.length || !window.Worker || location.protocol === 'file:') { BOOKIE.bad = true; return null; }
+      const code = 'const U=' + JSON.stringify(U) + ';let ok=false;try{importScripts(U.d);for(const u of U.p){try{importScripts(u);}catch(e){}if(self.planck)break;}importScripts(U.e);ok=!!(self.DamageLab&&self.planck);}catch(e){}postMessage({ready:ok});' +
+        'onmessage=m=>{const d=m.data;let r;try{const bb=d.bb;bb.seed=d.seed;const S=self.DamageLab.create(bb);let g=0;while(!S.over&&g++<48000){self.DamageLab.step(S);S.fx.length=0;}const x=S.result;r=x?{winner:x.winner,winTeam:x.winTeam,multi:!!S.multi,mode:S.mode}:{none:1};}catch(e){r={err:String(e&&e.message)};}postMessage({gen:d.gen,r});};';
+      const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      const n = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 2));
+      BOOKIE.pool = Array.from({ length: n }, () => {
+        const o = { w: new Worker(url), ready: false, dead: false, busy: false };
+        o.w.onmessage = m => { const d = m.data || {}; if ('ready' in d) { o.ready = !!d.ready; o.dead = !d.ready; if (BOOKIE.onready) BOOKIE.onready(); } else { o.busy = false; if (BOOKIE.onres) BOOKIE.onres(d); } };
+        o.w.onerror = () => { o.dead = true; if (BOOKIE.onready) BOOKIE.onready(); };
+        return o; });
+    } catch (e) { BOOKIE.bad = true; BOOKIE.pool = null; }
+    return BOOKIE.pool;
+  }
+  setTimeout(() => { try { if (!isClient() && !(BOT && !WATCH)) bookiePool(); } catch (e) {} }, 5000);   // warm before the first fight
+  const sideOfRes = (F, botEnt, r) => { if (!r || r.none) return -1; if (r.multi && r.mode === '2v2') return r.winTeam === 9 ? 'house' : r.winTeam; const e = botEnt[r.winner]; return e == null || e < 0 ? 'house' : F.sides[e]; };
+  const simOne = (bb, seed) => { const S = DL.create(Object.assign(clone(bb), { seed })); let g = 0; while (!S.over && g++ < 48000) { DL.step(S); S.fx.length = 0; } const x = S.result; return x ? { winner: x.winner, winTeam: x.winTeam, multi: !!S.multi, mode: S.mode } : { none: 1 }; };
+  async function simOdds(F, opt) {
+    const C = Object.assign(bookieCfg(), opt || {});
+    if (!C.n || (G.fast && !opt) || window.__noBookie) return null;
+    const budget = BOT && !WATCH && !window.__bookieFull && !opt ? Math.min(C.ms, 400) : C.ms;   // bot test games: no long wait
+    let m; try { m = buildFight(F, 1, false); } catch (e) { return null; }
+    const bb = clone(m.bb); bb.countdown = 0;
+    let sd = ((G.round * 7919 + (F.teams || []).reduce((a, t) => a * 31 + t + 1, 17)) ^ 0x5bd1e995) >>> 0; const nextSeed = () => { sd = (Math.imul(sd, 1664525) + 1013904223) >>> 0; return sd; };
+    const t0 = performance.now(), wins = {}, gen = ++BOOKIE.gen; let n = 0, sent = 0, how = 'page';
+    const count = r => { if (!r || r.err) return; const k = sideOfRes(F, m.botEnt, r); n++; wins[k] = (wins[k] || 0) + 1; };
+    const pool = bookiePool();
+    if (pool && pool.some(o => !o.dead)) {
+      await new Promise(res => { let fin = false; const done = () => { if (!fin) { fin = true; res(); } };
+        const feed = () => { if (fin) return; const live = pool.filter(o => !o.dead); if (!live.length || n >= C.n) return done(); for (const o of live) if (o.ready && !o.busy && sent < C.n) { o.busy = true; sent++; o.w.postMessage({ gen, bb, seed: nextSeed() }); } };
+        BOOKIE.onready = feed; BOOKIE.onres = d => { if (d.gen === gen) count(d.r); feed(); };
+        setTimeout(done, budget); feed(); });
+      BOOKIE.onres = null; BOOKIE.onready = null;
+      if (n) how = pool.filter(o => o.ready).length + ' workers';
+    }
+    if (!n) while (n < C.n && performance.now() - t0 < budget) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
+    return { n, wins, ms: Math.round(performance.now() - t0), how };
+  }
+
   async function afterChoose() {
     G.chooseMyBot = false;
     for (let s = 0; s < 4; s++) PS(s).choose = false;
@@ -4772,6 +4840,15 @@ html, body {
       if (F.format === '2v2') F.p = F.p.map((p, sd) => Math.max(0.03, Math.min(0.95, p + F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r && TEAM_FIT[r.name] ? TEAM_FIT[r.name] / 100 : 0) - (F.sides[e] !== sd && r && TEAM_FIT[r.name] ? TEAM_FIT[r.name] / 100 : 0), 0))));
       if (F.nSides === 2 && F.robots.length === 2 && copies === 1 && !F.house && F.robots[0] && F.robots[1]) { const p0 = Math.max(0.03, Math.min(0.95, pairP(F.robots[F.sides[0] === 0 ? 0 : 1], F.robots[F.sides[0] === 0 ? 1 : 0], F.arena))); F.p = [p0, 1 - p0]; }   // a duel: the Lineup Arena matchup
     }
+    { const p0 = F.p.slice(), C = bookieCfg(); let sim = null;
+      try { sim = await simOdds(F); } catch (e) { console.warn('bookie', e); }
+      if (G.fight !== F) return;   // the game was restarted while the bookie watched
+      if (sim && sim.n >= C.min) {
+        F.p = p0.map((p, sd) => Math.max(0.03, Math.min(0.95, ((sim.wins[sd] || 0) + C.prior * p) / (sim.n + C.prior)))); F.simN = sim.n;
+        notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
+      }
+      else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds are its estimate, as before.', '#b45309');
+      tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
     if (F.robots.some(r => quirkOf(r) === 'Underrated')) notify('✦ Underrated: the bookie lists Artillery\'s side one band lower than its numbers.', '#111');
@@ -5952,7 +6029,7 @@ html, body {
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -7303,7 +7380,7 @@ html, body {
       const stockDuel = F.nSides === 2 && F.robots.length === 2 && F.robots.every(x2 => x2 && isStock(x2)) && !doubt;
       fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + (stockDuel ? ' ' + rangeTxt(F.p[s]) : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
-      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret). A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
+      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#8A4A10' : MUTED;
         fitText(ctx, dm.length ? '🔧 ' + dm.map(x2 => (robots.length > 1 ? x2.name + ': ' : '') + zoneTxt(x2)).join(' · ') : 'No damage · the bookie ignores face-down cards', x + w / 2, y + 100, w - 30, '600', 9.5);
@@ -7685,6 +7762,38 @@ html, body {
   }
 
   /* ---------- Top Pill & Hand Controls ---------- */
+  /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
+   * with every build that changes what players see. */
+  const CHANGES = [
+    ['2.0.1', '15 Nov 2026', [
+      'The screen: your robots on the left, the pit in the middle, and on the right your move, who we are waiting for, and the log.',
+      'Waiting list: one row per player (your move, deciding, ready, nothing to do). On your own row the button you have to press flashes.',
+      'The note is yellow only when the game waits for you, green when you are locked in, grey when the step is someone else\'s.',
+      'Phases slide in from the right.',
+      'Your hand lies open under the pit, all the time.',
+      'Fewer clicks: Upkeep is skipped when you have nothing to repair; Market results and the next round go on by themselves after 6 seconds; a bet is one click on an amount; a won part goes straight on your robot when only one robot can take it.',
+      'The bookie: the odds now come from test fights of exactly this matchup (up to 200, run on the host\'s PC while the fighters walk in). Face-down cards and live cards are not counted.',
+      'This list.' ]],
+    ['2.0, reaction window', '15 Nov 2026', [
+      'One reaction window for everyone at the same time, with a countdown: blocks, Security Bots, Override and Firewall, Pile-On, Botched Install. It also appears when you have nothing to play, so nobody can tell who holds a reaction card.',
+      'Report a problem: the 🐞 button in the log marks the moment on every screen; the host\'s log file holds all four screens.',
+      'Small screens: the buttons of the note stay reachable.' ]],
+    ['2.0, after the Friday playtest', '14 Nov 2026', [
+      'Joined players can repair, make deals, ask for backing and answer payoffs like the host can.',
+      'Fights show the same damage panels on every screen.',
+      'Reconnecting no longer loops.',
+      'Declining an invitation with nobody to step in no longer stops the game.',
+      'Other players can make the host an offer to be invited.',
+      'Security Bots can be rolled from the hand; Paid Off and Not My Robot let you choose; Museum Donation lets you pick a robot or a crew member.',
+      'The House Robot is not offered when the fight is full.' ]],
+  ];
+  { const box = document.getElementById('clogBox'), btn = document.getElementById('clogBtn'), body = document.getElementById('clogBody');
+    if (box && btn && body) {
+      body.innerHTML = CHANGES.map((c, i) => '<details' + (i === 0 ? ' open' : '') + '><summary>' + esc(c[0]) + '<small>' + esc(c[1]) + '</small></summary><ul>' + c[2].map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></details>').join('');
+      btn.onclick = () => { box.hidden = !box.hidden; };
+      document.getElementById('clogX').onclick = () => { box.hidden = true; };
+      box.onclick = e => { if (e.target === box) box.hidden = true; };
+    } }
   { const sb = document.getElementById('sndBtn'), SND = window.RSound; if (sb) { if (!SND) sb.hidden = true; else { const show = () => { sb.textContent = SND.muted() ? '🔇' : '🔊'; }; show(); SND.onChange(show); sb.onclick = () => SND.toggle(); } } }
   $('#seatSel').onchange = e => {
     viewerSeat = +e.target.value; if (HS >= 0) HS = viewerSeat;
