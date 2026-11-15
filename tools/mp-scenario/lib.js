@@ -6,7 +6,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 exports.setup = async (seed, until, o = {}) => {
-  const b = await chromium.launch();
+  const b = await require('./launch.js')(require('playwright'));
   const ctx = await b.newContext({ viewport: { width: 1500, height: 900 } });
   const errs = [];
   if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());   // offline: only with the local physics copy

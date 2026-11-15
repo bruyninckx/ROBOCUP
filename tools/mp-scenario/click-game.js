@@ -30,7 +30,7 @@ const SIZES = [[1600, 900], [1920, 1080], [1366, 768], [1280, 720], [2560, 1440]
 // what can be clicked on this screen right now
 const { collect, choose, liveCards, click, drag } = require('./clicker.js');
 (async () => {
-  const b = await chromium.launch();
+  const b = await require('./launch.js')(require('playwright'));
   setTimeout(() => { console.log('HARD STOP: the run did not end by itself'); b.close().catch(() => {}).then(() => process.exit(3)); setTimeout(() => process.exit(3), 5000); }, (maxMin + 2) * 60000).unref();   // never leave browsers behind overnight
   const ctx = await b.newContext({ viewport: { width: 1600, height: 900 } });
   // --chaos: a slow line for a page with &lag=N in its address: everything it sends and receives over the local room is N ms late (in order)

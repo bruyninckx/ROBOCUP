@@ -147,7 +147,7 @@ async function joinSide(ctx, k, dir, say, drop) {
 (async () => {
   const stopAwake = require('./awake.js')();
   const engine = FLAG('firefox') && role !== 'host' ? 'firefox' : 'chromium';
-  const b = await pw[engine].launch().catch(e => { console.log('Could not start ' + engine + ': ' + String(e.message).split('\n')[0] + (engine === 'firefox' ? '\nRun once: npx playwright install firefox' : '\nRun once: npx playwright install chromium')); process.exit(2); });
+  const b = engine === 'firefox' ? await pw.firefox.launch().catch(e => { console.log('Could not start Firefox: ' + String(e.message).split('\n')[0] + '\nRun once: npx playwright install firefox'); process.exit(2); }) : await require('./launch.js')(pw);
   const mk = async sz => { const c = await b.newContext({ viewport: sz }); if (LOCAL && fs.existsSync('vendor/planck-1.4.3.min.js')) await c.route(/^https?:/, r => r.abort()); return c; };
   const sides = LOCAL ? ['host', 'join'] : [role], lines = {}, all = {};
   console.log((LOCAL ? 'One PC, a local room (a test of the tool itself)' : role === 'host' ? 'HOST' : 'JOIN with ' + PLAYERS + ' player' + (PLAYERS > 1 ? 's' : '') + ' in ' + engine) + ' · code ' + CODE + ' · ' + GAMES + ' games of at most ' + MIN + ' minutes · ' + URL0.replace(/\?.*/, ''));
