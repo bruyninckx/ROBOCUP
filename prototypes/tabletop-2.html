@@ -510,6 +510,9 @@ html, body {
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
+    oddsDamage: false,            // Kev, 15 Nov: the bookie ignores damage (true = odds drop for damaged robots, as before)
+    counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
+    counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
     // ocMode: 'heat' (hot-wound motors: +35% force, 1.9x heat) | 'noheat' (+35% force without the extra heat build-up)
@@ -1021,6 +1024,11 @@ html, body {
   const isL4 = x => levelOf(typeof x === 'string' ? x : x && x.name) >= 4;
   const wepLabel = n => { const P = DL.PRESETS[n]; return P && DL.WEAPONS[P.weapon] ? DL.WEAPONS[P.weapon].label : 'weapon'; };
   const ROBOT_DESC = {
+    Rotisserie: 'Pincers grab the enemy and turn it on a spit over a flamethrower.', Jukebox: 'Spins up records and flings them; they bank off the walls.',
+    Pogo: 'Winds a giant coil spring, leaps and stomps down on the lid.', Bricklayer: 'A crane drops 25 kg iron blocks on the enemy; the blocks stay as walls.',
+    Railgun: 'Capacitors charge, copper rails fire a steel slug; it fetches its slugs back.', Scavenger: 'Sucks up loose junk and fires it back with an air cannon.',
+    Slingshot: 'Harpoons the wall, winches back on a bungee and flings itself prow first.', Gaucho: 'Throws bolas that tie up wheels, then rams.',
+    Yoyo: 'Throws a spinning saw disc on a cable and reels it back in.', Blacksmith: 'Tongs clamp the enemy to an anvil nose; the forge hammer comes down.',
     Haymaker: 'Boxing glove on four wheels, rubber bumpers.', Rumbler: 'Drum spinner on a heavy chassis, steel bumpers.', Thumper: 'Axe hammer that slams from above, spiked bumpers.',
     Jouster: 'Long spear that pokes from range.', Popcorn: 'Light flipper that throws robots around.', Blowtorch: 'Flamethrower that cooks the insides.',
     Buzzkill: 'Bar spinner with spiked bumpers.', Snapjaw: 'Crusher jaws that grab and squeeze.', Wrecker: 'Swinging flail, the toughest starter.',
@@ -1045,6 +1053,38 @@ html, body {
   const starsOf = lv => lv ? '★'.repeat(lv) : 'starter';
   function mkRobot(name) { return { id: ++botSeq, name, level: levelOf(name), parts: [], leg: null, wear: null, wins: 0 }; }
   const partsOf = r => (r.parts || []).concat(r.leg ? [r.leg] : []);
+  /* Upgrades in the same unit as levels (Kev, 15 Nov: "implement the great idea"): stars for the robot's level, quarter pips for
+   * what its upgrades add. PART_LV[part] = levels gained [all robots, on level 0-1, on level 2-3, on level 4], measured in the
+   * parts test on the tuned lineup (docs/robocus-part-levels.md: every part on every robot against robots a level up; rounds 3
+   * and 4, tools/damage-lab/part-levels). Good to about a quarter level, which is why it is shown in quarters. */
+  const PART_LV = { quantum: [1.6, 1.09, 2.36, 1.34], hospital: [1.56, 1.95, 1.52, 1.27], core: [1.52, 1.79, 1.61, 1.19], shield: [0.82, 0.79, 1.16, 0.51], powerkit: [0.87, 0.64, 1.25, 0.71],
+    bodyguard: [0.85, 0.94, 0.98, 0.64], hull: [0.8, 1.04, 0.76, 0.64], spotter: [0.8, 0.79, 0.94, 0.71], laser: [0.78, 0.69, 1.38, 0.13], emp: [0.76, 0.89, 0.8, 0.64], jammer: [0.76, 0.59, 1.03, 0.71],
+    mines: [0.75, 0.59, 1.25, 0.31], weapon: [0.75, 0.94, 0.62, 0.77], armourkit: [0.73, 1.44, 0.43, 0.31], waller: [0.73, 0.84, 1.25, -0.06], booster: [0.71, 1.44, 0.76, -0.19], gunner: [0.71, 1.04, 0.85, 0.19],
+    jam: [0.7, 1.04, 0.94, 0], medic: [0.64, 0.84, 0.85, 0.19], blocker: [0.63, 0.69, 0.89, 0.25], popper: [0.63, 0.74, 1.03, 0], overdrive: [0.8, 0.79, 0.8, 0.38], pester: [0.54, 0.79, 0.76, 0],
+    repair: [0.53, 0.7, 0.67, 0.19], tow: [0.61, 0.75, 0.76, 0.31], matador: [0.25, 1.0, 0.05, -0.37], bait: [0.37, 0.84, 0.2, 0.06] };
+  const qtr = v => Math.round(v * 4) / 4;
+  const qTxt = v => { const q = qtr(v), a = Math.abs(q), w = Math.floor(a), f = ['', '¼', '½', '¾'][Math.round((a - w) * 4)]; return (q < 0 ? '−' : '+') + (w || !f ? w : '') + f; };
+  const partLv = (k, level) => { const a = PART_LV[k]; return a ? a[level == null ? 0 : level <= 1 ? 1 : level <= 3 ? 2 : 3] : 0.75; };
+  const partLvRow = k => PART_LV[k] ? '★0-1 ' + qTxt(PART_LV[k][1]) + ' · ★2-3 ' + qTxt(PART_LV[k][2]) + ' · ★4 ' + qTxt(PART_LV[k][3]) : '';
+  const upLv = r => partsOf(r).reduce((a, k) => a + qtr(partLv(k, r.level || 0)), 0);   // what the upgrades add, in levels
+  const likeTxt = r => { const u = upLv(r); return partsOf(r).length ? 'fights like ★' + ((r.level || 0) + u).toFixed(1).replace(/\.0$/, '') : ''; };
+  function likeHelp(r) {
+    const ps = partsOf(r); if (!ps.length) return '';
+    const eff = (r.level || 0) + upLv(r), base = Math.floor(eff + 1e-9), p = Math.round(100 / (1 + Math.exp(-(eff - base) * R2.LEVEL)));
+    return '<br><b>Upgrades, in levels:</b> ' + ps.map(k => esc(LU.PARTS[k].name) + ' ' + qTxt(partLv(k, r.level || 0))).join(' · ') + '.<br>Together it ' + likeTxt(r) + ': about ' + p + '% against a ' + (base ? '★' + base : 'starter') + ' robot as it comes. Measured in test fights; good to about a quarter level.';
+  }
+  // quarter pips, right-aligned at xr: one coin per upgrade, filled by quarters (a legendary is one full coin and a part of a second)
+  function drawPips(ctx, xr, y, r) {
+    const coins = []; partsOf(r).forEach(k => { let v = Math.max(0, qtr(partLv(k, r.level || 0))); if (v <= 0) coins.push(0); while (v > 0) { coins.push(Math.min(1, v)); v -= 1; } });
+    const R = 4.5, gap = 3; let x = xr - R;
+    for (let i = coins.length - 1; i >= 0; i--) {
+      ctx.fillStyle = '#FFFDF8'; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
+      if (coins[i] > 0) { ctx.fillStyle = '#D9731A'; ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * coins[i]); ctx.closePath(); ctx.fill(); }
+      ctx.strokeStyle = '#8A4A10'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      x -= 2 * R + gap;
+    }
+    return coins.length ? coins.length * (2 * R + gap) : 0;
+  }
   const partShort = k => LU.PARTS[k] ? LU.PARTS[k].name.replace(/ drone$/, '').replace(/^Reinforced /, '').replace(/^Prototype /, '') : k;
   const partsTxt = r => partsOf(r).length ? partsOf(r).map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'no parts';
   const wepName = r => wepLabel(r.name);
@@ -1094,6 +1134,8 @@ html, body {
     if (STR.size > 600) STR.clear(); STR.set(k, s); return s;
   }
   const baseStr = r => R2.strength(null, r.name, r.level, partsOf(r));   // as new
+  // Kev, 15 Nov: "don't take damages into account for bookie odds anymore": the odds read every robot as new (BAL.oddsDamage brings damage back)
+  const oddsStr = r => BAL.oddsDamage ? str2(r) : baseStr(r);
   const power = r => str2(r);
   const FINE_ZONES = () => { const Z = {}; for (const z of R2.ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, damaged: false, labels: [], lost: [] }; return Z; };
   function zonesOf(r) {
@@ -1209,7 +1251,7 @@ html, body {
   function starterVsTableAvg(name, ex) {
     const rs = G ? G.teams.filter(t => t.i !== ex).flatMap(t => t.robots) : [];
     if (!rs.length) return starterOverallAvg(name);
-    const s = starterStr(name); return rs.reduce((a, r) => a + R2.winP(s, str2(r)), 0) / rs.length;
+    const s = starterStr(name); return rs.reduce((a, r) => a + R2.winP(s, oddsStr(r)), 0) / rs.length;
   }
   /* ============================================================================
    * THE BOOKIE IN 2.0: odds from Repair2.strength (no simulated scouting, no sparring). P(a beats b) = winP(sa, sb);
@@ -1235,44 +1277,44 @@ html, body {
     for (const k in P) { const [a, b] = k.split('|'), p = P[k][0] / P[k][1], d = lv(a) - lv(b); (by[d] = by[d] || []).push(p); (by[-d] = by[-d] || []).push(1 - p); }
     const o = {}; for (const d in by) o[d] = by[d].reduce((x, y) => x + y, 0) / by[d].length; return o; })();
   const baseLv = r => (LU.ROBOTS[r.name] || LU.ROBOTS4[r.name] || [r.level || 0])[0];
-  const isStock = r => !!r && !partsOf(r).length && !(r.wear && R2.ZONES.some(z => { const q = zonesOf(r)[z.key]; return q.damaged || q.broken; }));
+  const isStock = r => !!r && !partsOf(r).length && !(BAL.oddsDamage && r.wear && R2.ZONES.some(z => { const q = zonesOf(r)[z.key]; return q.damaged || q.broken; }));
   const logit = p => Math.log(p / (1 - p)), sigm = x => 1 / (1 + Math.exp(-x));
   function pairP(ra, rb, arena) {
     const m = mxP(ra.name, rb.name, arena);
-    if (!m) return R2.winP(str2(ra) + (arena ? arenaFit(ra, arena) : 0), str2(rb) + (arena ? arenaFit(rb, arena) : 0));
+    if (!m) return R2.winP(oddsStr(ra) + (arena ? arenaFit(ra, arena) : 0), oddsStr(rb) + (arena ? arenaFit(rb, arena) : 0));
     const fit = arena && m.arena !== arena ? arenaFit(ra, arena) - arenaFit(rb, arena) : 0;   // open-floor data in another arena: the arena fit on top
-    const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (str2(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
-    return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, m.p))) + delta + fit)));
+    const delta = (oddsStr(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (oddsStr(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
+    // Kev, 15 Nov: BAL.counterTrust < 1 pulls the table towards what the level gap usually gives (whole games: counters hold at about 0.65 of the table)
+    const e = MX_EXP[baseLv(ra) - baseLv(rb)], k = BAL.counterTrust == null ? 1 : BAL.counterTrust, mp = k < 1 && e != null ? e + k * (m.p - e) : m.p;
+    return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, mp))) + delta + fit)));
   }
-  // a counter: the matchup is 25+ points off what the level gap usually gives
+  // a counter: the matchup is BAL.counterTag (40 points) or more off what the level gap usually gives
   function counterOf(ra, rb) {
     const m = mxP(ra.name, rb.name, 'open'), e = MX_EXP[baseLv(ra) - baseLv(rb)]; if (!m || e == null) return null;
-    const d = m.p - e; return Math.abs(d) >= 0.25 ? { good: d > 0, p: m.p, e } : null;
+    const d = m.p - e; return Math.abs(d) >= BAL.counterTag ? { good: d > 0, p: m.p, e } : null;   // Kev, 15 Nov: tag only the big counters (40+ points); the odds use the whole table
   }
   /* Kev, 10 Nov: which part suits which robot. Every deck part on every robot vs 4 robots a level up (32 fights a pair, same seeds
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
-  const PART_FIT = {"Angler":{"jam":[1,34],"core":[1,47]},"Brawler":{"medic":[1,38],"booster":[1,41],"powerkit":[1,44],"hospital":[1,47],"shield":[-1,-19],"mines":[-1,-16],"popper":[-1,-25],"jam":[-1,-12]},"Forklift":{"mines":[1,31],"tow":[1,38],"pester":[-1,-12]},"Juggernaut":{"shield":[1,28]},"Lodestone":{"shield":[1,31],"hull":[1,31],"pester":[-1,-22]},"Mincer":{"popper":[1,50],"pester":[1,41]},"Orbiter":{"matador":[1,53]},"Pincher":{"medic":[1,41]},"Popcorn":{"overdrive":[1,41],"pester":[-1,-16]},"Ramrod":{"booster":[1,38],"emp":[1,47],"powerkit":[1,53],"pester":[-1,-22]},"Rocketeer":{"jam":[1,31],"overdrive":[1,31],"pester":[1,25]},"Sawblast":{"overdrive":[1,53],"shield":[-1,-9]},"Scythe":{"booster":[1,63]},"Thumper":{"matador":[1,28],"booster":[-1,-16],"tow":[-1,-9],"overdrive":[-1,0]},"Thwacker":{"tow":[1,34]},"Vertigo":{"weapon":[1,34],"core":[1,44],"pester":[-1,-37]},"Whaler":{"jam":[1,25],"overdrive":[1,47],"matador":[-1,-12]},"Whirlwind":{"bait":[1,28],"pester":[1,28],"shield":[-1,0]},"Blowtorch":{"tow":[-1,-25]},"Corkscrew":{"overdrive":[-1,-22],"bait":[-1,-19],"pester":[-1,-37]},"Grandmaster":{"pester":[-1,-3]},"Hydra":{"shield":[-1,-16]},"Jouster":{"bait":[-1,-19]},"Rumbler":{"tow":[-1,-9]},"Wrecker":{"powerkit":[-1,-16]}};
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Scythe":{"repair":[-1,-13]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {
-    'Ramrod|powerkit': ['Freight Train', 38, 93], 'Whaler|overdrive': ['Killer Whale', 17, 67, ['ice']],
-    'Orbiter|matador': ['Matador Moon', 39, 78, ['ice']], 'Brawler|powerkit': ['Heavyweight', 50, 86, ['ice']], 'Popcorn|overdrive': ['Popcorn Blast', 36, 69],
-    'Scythe|booster': ['Grim Rush', 33, 63, ['ice']],
-    'Ramrod|emp': ['Stun Ram', 38, 79, ['cage', 'ice', 'killbox', 'saws']],
-    // Kev, 10 Nov (more epic combos): 28 more candidates re-tested on fresh seeds, then in every arena; these five gain 30+ points, well above their part's average
-    'Ramrod|booster': ['Rocket Ram', 38, 90, ['ice']], 'Orbiter|popper': ['Pinball', 39, 75, ['saws']], 'Thwacker|tow': ['Whiplash', 44, 81],
-    'Brawler|medic': ['Cornerman', 50, 83, ['cage']], 'Angler|jam': ['Blackout Lure', 39, 75, ['saws']],   // Kev, 10 Nov: keep it for open floor, where it holds
-  };   // 10 Nov double check: every arena, own level and two levels up. Stun Ram (Ramrod + EMP) dropped to a great fit (only +7 to +28 off open floor);
-       // the 4th field: arenas where the combo does not hold (on the Ice Rink these gain 0-9 points; Grim Rush loses 20)
+  const EPIC = {   // Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
+    'Thwacker|tow': ['Whiplash', 25, 65],
+    'Angler|quantum': ['Phantom Hook', 14, 67],
+    'Vertigo|powerkit': ['Overclock', 43, 77],
+    'Popcorn|jam': ['Haywire', 17, 48],
+    'Gaucho|overdrive': ['Iron Bolas', 32, 62],
+  };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
    * every level 3 and 4 robot; the best re-tested on fresh seeds (scratch tri.js, stack.js). [parts, wins vs bare L3/L4: stock, fully kitted,
    * and vs L3/L4 that carry Weapon overhaul + Reinforced hull + Prototype core]. Parts stack about evenly (+20 points each); these four
    * stay level with a one-level gap even when the big robots are kitted too. */
-  const TRIPLE = {
-    Scythe: [['booster', 'powerkit', 'core'], 27, 92, 31], Gyro: [['tow', 'jammer', 'hospital'], 35, 96, 31],
-    Brawler: [['powerkit', 'gunner', 'hospital'], 19, 92, 31], Mauler: [['gunner', 'weapon', 'core'], 35, 88, 23],
+  // Kev, 15 Nov: re-measured on the tuned lineup: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights bare, 84 vs kitted ones)
+  const TRIPLE = {   // Kev, 15 Nov: after the parts were levelled: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights; last number: vs kitted ones)
+    Gyro: [['quantum', 'spotter', 'waller'], 38, 89, 66], Whaler: [['quantum', 'tow', 'waller'], 23, 82, 50],
   };
   const tripleOf = r => { const t = r && TRIPLE[r.name]; return t && t[0].every(k => partsOf(r).includes(k)) ? t : null; };
   // the Market: this part would complete (or be the 2nd of) a giant-slayer build on a robot that has the rest
@@ -1283,8 +1325,8 @@ html, body {
    * wins less than its duel numbers say (FFA win = 10 + 0.59 x the duel-based share), and these robots are far off even that,
    * the same way on both halves of the fights (split-half r = 0.81): [points above / below]. 2v2 follows duel strength (r = 0.22 for
    * anything extra); only two robots are clearly worse partners. */
-  const FFA_FIT = { Mauler: 17, Orbiter: 14, Ramrod: 14, Thwacker: 14, Rocketeer: 13, Gyro: 11, Vertigo: 11, Whirlwind: 11, Trebuchet: -19, Corkscrew: -18, Forklift: -17, Jouster: -11 };
-  const TEAM_FIT = { Snapjaw: -10, Trebuchet: -11 };
+  const FFA_FIT = {Rotisserie: -17, Jukebox: 18, Pogo: -24, Trebuchet: -20, Orbiter: 20, Slingshot: 20, Gyro: 15, Corkscrew: -11, Thwacker: 14};   // 15 Nov: tuned lineup, 1,500 free-for-alls
+  const TEAM_FIT = {};   // 15 Nov: tuned lineup, 1,500 2v2s: nobody is 10+ points off any more
   const epicOf = (name, k, arena) => { const e = EPIC[name + '|' + k]; if (!e) return null; const a = arena === undefined ? ARENA_NOW() : arena; return e[3] && a && e[3].includes(a) ? null : e; };
   const epicWhere = e => !e || !e[3] ? '' : e[3].length >= 4 ? ' (open floor only)' : ' (not on ' + e[3].map(a => ARENA_INFO[a] ? ARENA_INFO[a].name : a).join(', ') + ')';
   const epicsOn = r => partsOf(r).map(k => epicOf(r.name, k) ? { k, e: epicOf(r.name, k) } : null).filter(Boolean);
@@ -2336,7 +2378,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, tuned robots, upgrades in levels, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4661,16 +4703,18 @@ html, body {
   };
   // measured 9 Nov: every lineup robot against each robot of its own level, both sides, 2 seeds (16–32 fights a robot per arena),
   // logit change vs open floor × 0.5 (shrunk for the noise)
-  const ARENA_FIT = {"Haymaker":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.06},"Rumbler":{"saws":0.73,"killbox":0.6,"cage":0.09,"ice":0.39},"Thumper":{"saws":-0.51,"killbox":-0.3,"cage":-0.24,"ice":0.0},"Jouster":{"saws":-0.37,"killbox":0.06,"cage":-0.24,"ice":-0.18},"Popcorn":{"saws":0.67,"killbox":0.12,"cage":0.39,"ice":0.24},"Snapjaw":{"saws":0.24,"killbox":0.06,"cage":0.58,"ice":0.18},"Wrecker":{"saws":-0.06,"killbox":0.15,"cage":-0.06,"ice":-0.06},"Blowtorch":{"saws":-0.3,"killbox":-0.24,"cage":-0.24,"ice":-0.36},"Buzzkill":{"saws":-0.33,"killbox":-0.33,"cage":-0.27,"ice":-0.07},"Hornet":{"saws":-0.41,"killbox":-0.3,"cage":0.1,"ice":-0.1},"Whirlwind":{"saws":-0.31,"killbox":0.24,"cage":-0.21,"ice":-0.31},"Mincer":{"saws":-0.2,"killbox":0.0,"cage":0.1,"ice":0.1},"Scythe":{"saws":0.21,"killbox":0.21,"cage":0.1,"ice":0.0},"Mauler":{"saws":-0.24,"killbox":-0.56,"cage":0.11,"ice":-0.24},"Rocketeer":{"saws":1.0,"killbox":0.31,"cage":-0.24,"ice":0.51},"Juggernaut":{"saws":-0.64,"killbox":-0.13,"cage":-0.64,"ice":-0.52},"Pincher":{"saws":-0.97,"killbox":-0.85,"cage":-0.46,"ice":-0.32},"Thwacker":{"saws":0.37,"killbox":0.24,"cage":0.12,"ice":0.0},"Gyro":{"saws":0.43,"killbox":0.67,"cage":0.55,"ice":0.0},"Brawler":{"saws":0.79,"killbox":0.0,"cage":0.37,"ice":0.79},"Forklift":{"saws":-0.85,"killbox":-0.6,"cage":-0.18,"ice":-0.18},"Whaler":{"saws":1.13,"killbox":0.73,"cage":0.18,"ice":0.18},"Vertigo":{"saws":0.0,"killbox":-0.73,"cage":0.0,"ice":0.4},"Sawblast":{"saws":0.67,"killbox":0.55,"cage":0.0,"ice":-0.4},"Ramrod":{"saws":-0.95,"killbox":0.0,"cage":0.0,"ice":-0.15},"Hydra":{"saws":-0.26,"killbox":-0.1,"cage":-0.1,"ice":0.0},"Trebuchet":{"saws":0.15,"killbox":0.15,"cage":-0.09,"ice":-0.16},"Lodestone":{"saws":0.06,"killbox":-0.37,"cage":0.15,"ice":-0.09},"Orbiter":{"saws":0.07,"killbox":-0.38,"cage":-0.38,"ice":-0.15},"Tarantula":{"saws":0.14,"killbox":0.55,"cage":0.29,"ice":0.29},"Corkscrew":{"saws":-0.14,"killbox":0.55,"cage":0.29,"ice":0.38},"Grandmaster":{"saws":-0.53,"killbox":-0.29,"cage":-0.07,"ice":-0.53},"Angler":{"saws":0.3,"killbox":-0.22,"cage":-0.16,"ice":0.06}};
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const ARENA_FIT = {"Rotisserie":{"saws":-0.22,"killbox":-0.03,"cage":-0.03,"ice":0.06},"Jukebox":{"saws":0.06,"killbox":0.06,"cage":0.06,"ice":0.06},"Pogo":{"saws":-0.1,"killbox":0.03,"cage":-0.03,"ice":-0.1},"Trebuchet":{"saws":0.19,"killbox":0.35,"cage":0.06,"ice":0.16},"Orbiter":{"saws":0.0,"killbox":0.06,"cage":-0.13,"ice":-0.13},"Lodestone":{"saws":0.06,"killbox":0.16,"cage":0.03,"ice":0.19},"Bricklayer":{"saws":-0.16,"killbox":-0.06,"cage":-0.03,"ice":-0.13},"Railgun":{"saws":-0.06,"killbox":-0.1,"cage":-0.2,"ice":0.06},"Tarantula":{"saws":0.13,"killbox":0.09,"cage":-0.03,"ice":0.16},"Scavenger":{"saws":-0.03,"killbox":0.0,"cage":0.16,"ice":0.03},"Slingshot":{"saws":0.16,"killbox":-0.03,"cage":-0.03,"ice":0.0},"Hydra":{"saws":-0.13,"killbox":-0.09,"cage":0.0,"ice":-0.13},"Grandmaster":{"saws":-0.19,"killbox":-0.03,"cage":-0.06,"ice":0.03},"Gaucho":{"saws":0.13,"killbox":-0.1,"cage":0.09,"ice":0.06},"Yoyo":{"saws":-0.19,"killbox":-0.06,"cage":-0.06,"ice":-0.03},"Whaler":{"saws":0.61,"killbox":0.32,"cage":0.07,"ice":0.16},"Pincher":{"saws":-0.32,"killbox":-0.06,"cage":0.0,"ice":-0.09},"Angler":{"saws":-0.03,"killbox":-0.06,"cage":-0.09,"ice":0.03},"Gyro":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.09},"Mauler":{"saws":0.22,"killbox":0.13,"cage":0.09,"ice":0.09},"Corkscrew":{"saws":-0.06,"killbox":0.22,"cage":-0.06,"ice":-0.22},"Blacksmith":{"saws":0.06,"killbox":0.09,"cage":0.03,"ice":0.06},"Thwacker":{"saws":0.16,"killbox":0.03,"cage":0.06,"ice":-0.16},"Vertigo":{"saws":-0.03,"killbox":0.03,"cage":0.19,"ice":0.09},"Buzzkill":{"saws":0.06,"killbox":0.0,"cage":0.03,"ice":0.06},"Wrecker":{"saws":0.28,"killbox":0.06,"cage":-0.09,"ice":0.13},"Snapjaw":{"saws":-0.06,"killbox":0.06,"cage":0.16,"ice":0.0},"Hornet":{"saws":0.28,"killbox":0.0,"cage":-0.1,"ice":0.0},"Scythe":{"saws":0.13,"killbox":-0.13,"cage":-0.03,"ice":0.06},"Mincer":{"saws":-0.16,"killbox":-0.09,"cage":0.06,"ice":-0.06},"Forklift":{"saws":-0.03,"killbox":0.0,"cage":-0.06,"ice":-0.19},"Popcorn":{"saws":-0.13,"killbox":-0.03,"cage":-0.25,"ice":-0.19},"Thumper":{"saws":-0.1,"killbox":0.13,"cage":0.16,"ice":0.13}};
   const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
   /* ---------- bookie notes (Kev, 9 Nov): a short tag on a robot card when something stands out from the odds ----------
    * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
    * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
    * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
-  const STYLE = {"Snapjaw":["coin",61],"Pincher":["grind",70],"Thwacker":["giant",40,31],"Wrecker":["grind",71],"Blowtorch":["giant",29,20],"Rocketeer":["quick",35],"Gyro":["grind",72],"Vertigo":["giant",40,27],"Ramrod":["giant",40,27]};   // giant killers re-measured after the 9 Nov level moves
+  // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
+  const STYLE = {"Rotisserie":["coin",55],"Pogo":["quick",31],"Orbiter":["grind",76],"Lodestone":["coin",50],"Railgun":["coin",71],"Scavenger":["coin",59],"Slingshot":["giant",45,36],"Hydra":["giant",51,36],"Grandmaster":["grind",74],"Gaucho":["grind",91],"Whaler":["grind",84],"Pincher":["grind",87],"Gyro":["giant",40,25],"Mauler":["grind",71],"Blacksmith":["giant",29,21],"Thwacker":["grind",88],"Buzzkill":["grind",72],"Wrecker":["grind",75],"Snapjaw":["coin",55],"Mincer":["grind",73]};
   // 🔨 hard hitters (Kev, 9 Nov: "a bot that always does a lot of damage, even if it loses"). Lineup Arena matrix, equal-level
   // duels on the open floor: the health its winner loses when this robot loses, vs the level's average. Tagged at 6+ points.
-  const HITTER = { Wrecker: [32, 24], Buzzkill: [31, 24], Whirlwind: [37, 28], Sawblast: [42, 30], Angler: [31, 25] };
+  const HITTER = {Gaucho: [32, 26], Buzzkill: [24, 19]};   // 15 Nov: tuned lineup, tagged at 5+ points
   const ARENA_TAG = { saws: ['🪚', 'Saw specialist', 'Hates saws'], killbox: ['☠️', 'Killbox natural', 'Hates the Killbox'], cage: ['🔒', 'Cage fighter', 'Hates the Cage'], ice: ['🧊', 'Ice skater', 'Slips on ice'] };
   function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
     const out = []; if (!r) return out;
@@ -4830,7 +4874,7 @@ html, body {
     if (F.house && fightBots(F) >= 4) { F.house = false; notify('🏠 No room for the House Robot: a 2.0 fight has at most 4 robots.', '#b45309'); }
     { const copies = F.format === 'mirror' ? 2 : 1;
       if (F.arena === 'cage' && (fightBots(F) + (F.house ? 1 : 0) > 2)) { const H = G.teams[G.host]; if (H) addCr(H, arenaCost('cage'), 'arena'); F.arena = 'open'; notify('🔒 Too many robots for The Cage: this fight is on open floor (the host gets its credits back).', '#b45309'); }
-      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(str2(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
+      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(oddsStr(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
       if (F.house) ss = ss.map(x => x * HOUSE_ODDS);   // the House Robot is neutral and almost never wins (it doesn't count for the KO), but it shakes the odds up
       const mx = Math.max(...ss), ex = ss.map(s => Math.exp(s - mx)), tot = ex.reduce((a, b) => a + b, 0);
       F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot)));
@@ -6964,18 +7008,18 @@ html, body {
     const tx = px + ps + 10, tw = bx + bw - 10 - tx;
     const fav = r.wins >= favWins(t);
     const lvl = r.level ? '★'.repeat(r.level) + ' LEVEL ' + r.level : 'STARTER';
-    ctx.font = '600 10.5px ' + F_MONO; const lvW = Math.min(tw * 0.42, ctx.measureText(lvl).width + 2);
+    ctx.font = '600 10.5px ' + F_MONO; const lvW0 = Math.min(tw * 0.42, ctx.measureText(lvl).width + 2), pipW = drawPips(ctx, bx + bw - 10 - lvW0 - 5, by + 24, r), lvW = lvW0 + (pipW ? pipW + 5 : 0);
     ctx.textAlign = 'left'; ctx.fillStyle = INK;
     fitText(ctx, r.name + (fav ? ' ★FAV' : '') + (r.exhausted ? ' 😴' : '') + (r.faceDown && r.faceDown.length ? ' 🂠×' + r.faceDown.length : ''), tx, by + 30, tw - lvW - 6, '400', 18, F_STEN);
     { const hn = helpName(t, r); help(tx, by + 14, tw - lvW - 6, 20, hn[0], hn[1]); }
-    ctx.fillStyle = '#B07A10'; ctx.textAlign = 'right'; fitText(ctx, lvl, bx + bw - 10, by + 28, lvW, '600', 10.5, F_MONO);
-    help(bx + bw - 10 - lvW, by + 18, lvW, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+' + BAL.fame.fanFav + ' fame while it stays on your team).');
+    ctx.fillStyle = '#B07A10'; ctx.textAlign = 'right'; fitText(ctx, lvl, bx + bw - 10, by + 28, lvW0, '600', 10.5, F_MONO);
+    help(bx + bw - 10 - lvW, by + 18, lvW, 14, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + likeHelp(r) + '<br>Fan tokens: one per win, +2 Cr appearance money each; ' + favWins(t) + ' make a Fan Favourite (+' + BAL.fame.fanFav + ' fame while it stays on your team).');
     ctx.textAlign = 'left';
     { const tgW = drawBookieTags(ctx, r, bx + bw - 10, by + 36, 14, 9, tw * 0.62); ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name) + ' · 🎖 ' + r.wins, tx, by + 47, tw - tgW - 4, '600', 11); }
     const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
-    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name : ''), tx, by + 62, tw, '600', 10.5);
-    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name : 'empty slot'), tx, by + 76, tw, '600', 10.5);
-    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + '</b>: ' + esc(LU.PARTS[k].d)).join('<br>') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
+    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => (LU.PARTS[k] ? LU.PARTS[k].name : k) + ' ' + qTxt(partLv(k, r.level || 0))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
+    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name + ' ' + qTxt(partLv(r.leg, r.level || 0)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
+    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + ' (' + qTxt(partLv(k, r.level || 0)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
@@ -7271,8 +7315,8 @@ html, body {
         ctx.font = '24px ' + F_SANS; ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.fillText(it.icon, ax, ay + 8);
         ctx.fillStyle = INK; fitText(ctx, it.name, x + w / 2, yb + 68, w - 12, '400', 16, F_STEN);
         ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 84, w - 12, '500', 11);
-        if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; fitText(ctx, P.kind === 'legendary' ? '🌟 LEGENDARY SLOT' : isChip(it.part) ? 'CHIP · IN A PART SLOT' : P.kind.toUpperCase() + ' · 1 OF 2 PART SLOTS', x + w / 2, yb + 100, w - 12, '700', 8.5, F_MONO);
-          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card)', esc(P.d) + '<br>' + partKindHelp(it.part)); }
+        if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; ctx.fillStyle = '#B4560F'; fitText(ctx, qTxt(partLv(it.part)) + ' LEVEL · ' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()), x + w / 2, yb + 101, w - 12, '700', 10.5, F_MONO);
+          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part)) + ' level', '<b>Worth in levels:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
         else if (it.crew && CREW[it.crew]) help(x + 4, yb + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
         else if (k === HOST_K) help(x + 4, yb + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
         { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, yb + 89, w - 8, 13, hl[0], hl[1]); }
@@ -7368,7 +7412,7 @@ html, body {
       if (ents.length === 1) {
         ctx.fillStyle = T.col; fitText(ctx, T.name + ': ' + robots[0].name, x + w / 2, y + 26, w - 16, '400', 17, F_STEN);
         const r = robots[0];
-        ctx.fillStyle = MUTED; fitText(ctx, (r.level ? '★'.repeat(r.level) : 'starter') + '  ·  ' + buildText(r), x + w / 2, y + 42, w - 16, '600', 10.5);
+        ctx.fillStyle = MUTED; fitText(ctx, (r.level ? '★'.repeat(r.level) : 'starter') + '  ·  ' + buildText(r) + (likeTxt(r) ? '  ·  ' + likeTxt(r) : ''), x + w / 2, y + 42, w - 16, '600', 10.5);
         { const hl = helpLook(r); help(x + 10, y + 31, w - 20, 14, hl[0], hl[1]); }
       } else {
         ents.forEach((x2, j) => { const r2 = F.robots[x2.e]; ctx.fillStyle = G.teams[x2.ti].col; fitText(ctx, G.teams[x2.ti].name + ': ' + r2.name + ' (' + (r2.level ? '★'.repeat(r2.level) : 'starter') + ')', x + w / 2, y + 22 + j * 15, w - 16, '700', 11.5); });
@@ -7773,6 +7817,9 @@ html, body {
       'Your hand lies open under the pit, all the time.',
       'Fewer clicks: Upkeep is skipped when you have nothing to repair; Market results and the next round go on by themselves after 6 seconds; a bet is one click on an amount; a won part goes straight on your robot when only one robot can take it.',
       'The bookie: the odds now come from test fights of exactly this matchup (up to 200, run on the host\'s PC while the fighters walk in). Face-down cards and live cards are not counted.',
+      'Robots: a new, tuned lineup of 33 robots over the starters and four levels; every level is about equally strong inside, and a level up wins about two fights in three.',
+      'Parts: drones and modules grow with the level of the robot that carries them; every part is tuned to about three quarters of a level, a legendary to a level and a half.',
+      'Upgrades are shown in levels: orange coins next to a robot\'s level (a quarter each), "+¾ level" on part cards, and "fights like ★1.7" on a robot with parts.',
       'This list.' ]],
     ['2.0, reaction window', '15 Nov 2026', [
       'One reaction window for everyone at the same time, with a countdown: blocks, Security Bots, Override and Firewall, Pile-On, Botched Install. It also appears when you have nothing to play, so nobody can tell who holds a reaction card.',

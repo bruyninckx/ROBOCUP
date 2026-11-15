@@ -1,0 +1,130 @@
+# ROBOCUS 2.0.1: candidate robots (13 Nov 2026)
+
+Kev (13 Nov): "my dream really is to have robots that don't need little knob tweaking to balance but that the physics dominate the balancing completely. We will keep adding mechanisms until we have 200 robots, and then go through a thorough selection procedure to filter on fun and counter-type gameplay with an edge for every player." And: "higher level robots should look fierce, with big weapons that show their strength immediately."
+
+So from now on a new robot is a **candidate**:
+- It runs at **power grade 1 with no damage knob** (`dmgK` 1). Nothing is scaled to hit a target.
+- Its **level is measured, not tuned**: the level whose robots it beats about 55-65%, written down as it came out.
+- It lives in `Lineup.CANDIDATES` (`tools/damage-lab/lineup.js`), not in `ROBOTS` / `ROBOTS4`, so the tabletop game, its waves and the tier tools don't see it. The Lineup Arena and the Contact Lab show candidates in their own group ("Candidates (grade 1, measured level, not in the game)").
+- Its mechanism has **design values** (how long the beak holds, how hot the flame is, how often the hammer beats). They were set once by looking at the fights, not swept per matchup. They are listed in `RW` in `engine.js` so the selection can see them.
+
+All three are on branch `robocus-2.0.1` (from it: `claude/robots-2.0.1`), built for the 2.0.1 contact and wear physics (`docs/contact-lab.md`).
+
+## The first three (after Robot Wars designs)
+
+| Candidate | Inspired by | Mechanism | Measured level |
+|---|---|---|---|
+| **Talon** | Razer | A hooked beak drops from above (0.16 s), reaches over a front weapon to the body behind it, pierces with a crack star, then holds on (2 s), squeezing through the hole and lifting the victim off its wheels (TROPHY!) while it drags it to a wall. A low lower-beak gets under (nose height 0). Off-centre blows on hard metal bend the beak sideways, so it strikes off to the side. Self-rights with the beak. | **2** |
+| **Blacksmith** | Mr Psycho | Tongs clamp the enemy to an anvil nose (2.4 s); while it is held the forge hammer comes down on its lid every 0.8 s (CLANG!) and the robot drags it to a wall (with Pin & crush on, that squeezes it too). Too heavy to clamp: it just hammers. The anvil face glows as the beats add up. Self-rights with the hammer. | **3** |
+| **Rotisserie** | Sgt Bash | Big serrated pincers grab (3 s), the flamethrower roasts what they hold at double heat (motors cut out, parts cook, batteries catch fire), and the pincers turn the victim on the spit so its weapon swings away and the flames reach its flank. Bent pincers can't close any more. Twin fuel tanks on its back, heat gauge lamps (how hot the victim's insides are). | **4** |
+
+### Measured (fresh seeds 60001+, 10 fights per opponent, open floor)
+
+| | vs L1 | vs L2 | vs L3 | with all eight 2.0.1 switches on: vs L2 / vs L3 |
+|---|---|---|---|---|
+| Talon | 63% | 46% | 20% | 50% / 36% |
+| Blacksmith | 72% | 62% | 40% | 64% / 42% |
+| Rotisserie | 90% | 76-82% | 58-62% | 82% / 58% |
+
+(A level beats the level below about 60%.) The contact and wear physics help Talon most (+16 vs level 3: its pierce starts cracks that later hits open up), which is the kind of thing the 2.0.1 physics should do.
+
+Per robot: median fights 42-57 s, 22-29 big moments a minute, 3-5 enemy parts torn off per fight.
+
+### Counters (what beats them)
+- **Ramrod beats all three** (0-20%): it rams and bounces off, so nothing that needs a grab or a held strike gets hold of it. The eight level 4 robots have the same problem; it is the clearest "counter-type" in the roster.
+- **Brawler** (rubber bumper, glove punches it away): Talon 0-10%, Blacksmith 20%.
+- **Sawblast** (rockets on the approach): Talon 0-20%, Blacksmith 0-40%.
+- **Vertigo** flips Blacksmith (0-30%).
+- Rotisserie's next weakest matchup after Ramrod: Sawblast (50-70%).
+
+## Jukebox and Gaucho (13 Nov, later)
+
+- **Jukebox** (the disc jockey from 8 Nov, Kev: very novel) moved onto 2.0.1 as a candidate. Without its old knobs (grade 1.18, damage x1.9) it measured **level 0**: 58-61% vs level 0, 25-27% vs level 1. Changes on the way, all physical: bigger records (10 kg, 0.21 m, 130 rad/s), a stronger turntable motor, and the bite's damage now comes from the energy the rim loses in the cut (0.08 damage per joule) instead of a fixed number. Records warp and cut grooves under the 2.0.1 wear rules. Its limit is the rate of fire: about 6 throws a fight, 0.84 hits per throw, about 47 damage per hit. Heavier records also mean Lodestone (pulls loose junk up to 6 kg) no longer catches them.
+- **Gaucho** (new, projectiles): throws bolas, two steel balls on a cord, spun about their middle. Whatever they hit they wrap: round a wheel or a flank they tie that side's wheels (drive force x0.1, tracks x0.45) for 3 s, round the front they jam the weapon. Spinning weapons cut the cord. A nose saw finishes. The next bola only flies once the last one is off (the first version tied robots up for good: no fun). Measured **level 0 or below** (33% vs level 0, 47% on another seed set; with the 2.0.1 switches on 20%). The bola is a strong control effect with almost no damage of its own, so it fits the "add a weapon to a robot" track better than a robot of its own.
+
+Under the 2.0.1 switches (all eight on): Jukebox 61% vs level 0, 25% vs level 1, 7% vs level 2.
+
+## Scavenger, Bricklayer and Pendulum (13 Nov, later): arena-physics designs (Pendulum since replaced by Slingshot, see the review below)
+
+Kev asked for really new designs in the spirit of the Jukebox. What makes the Jukebox new is that its weapon has a life cycle in the arena: it is loaded, thrown, lands, and gets picked up again. These three each have one. There is no damage knob in any of them: a hit does the energy it carries times the same joules-to-damage rate as the Jukebox's records (`JUKE.eK`, 0.08 per joule).
+
+| Candidate | Mechanism | The life cycle | Measured level |
+|---|---|---|---|
+| **Scavenger** | No ammo of its own. A vacuum mouth pulls in the loose junk in a cone in front (wheels, plates, records, blades, its own bits too, up to 9 kg), and an air cannon fires it back. Every shot gets the same energy (520 J): a light bolt flies fast, a heavy plate slow. The recoil shoves the Scavenger back by the shot's momentum. Works either way up. | Junk is sucked up, fired, lands, and gets sucked up again. It can fire an enemy's own wheel back at it ("RETURN TO SENDER!") and it eats loose Jukebox records. | **below 0** (11% vs level 0) |
+| **Bricklayer** | A slewing crane on top and three 25 kg iron blocks on its back. It swings a block out over where the enemy will be and lets go: the fall (mass x g x 1.3 m) is the hit. The crane turns all the way round, so it never has to face the enemy's weapon. | Hit or miss, the block stays on the floor as a heavy obstacle (cover, a wall to pin against). The crane lifts blocks back on. It gets lighter, so faster, as it lays them. Landing upside down spills the stack. | **below 0** (12% vs level 0) |
+| **Pendulum** | Fires an anchor into the arena wall while it runs, and the cable swings the run round into a circle. It winches in as it goes, and like a skater pulling her arms in it speeds up (angular momentum). Then it lets go and flies at the enemy, spiked prow first. The winch has limited power, the anchor rips out under too much pull, and spinning weapons cut the cable. It rolls on omni wheels: on normal wheels the tyres' side grip fights the cable and it never speeds up (measured). | Anchor, swing a little way round first, then reel in, let go, and the anchor flies home on a slack cable before the next shot. It leaves scars in the wall. If the walls close in, the anchor rips out. Needs a wall within reach: in the middle of the arena it just rams. | **about 0** (41% vs level 0) |
+
+### Measured (fresh seeds 60001+, 10 fights per opponent, open floor, grade 1)
+
+| | vs L0 | vs L1 | vs L2 | with all eight 2.0.1 switches on: vs L0 / vs L1 |
+|---|---|---|---|---|
+| Scavenger | 11% | 8% | 4% | 9% / 12% |
+| Bricklayer | 12% | 17% | 10% | 17% / 23% |
+| Pendulum | 43% | 8% | 20% (first version) | 44% / 15% (first version) |
+
+In a four-robot free-for-all against level 0 and 1 robots (fair share 25%): Scavenger 4%, Bricklayer 8%, Pendulum 4%, Jukebox 29%.
+
+### Why they come out low (the physics, as measured)
+- **Scavenger**: its shots work (almost every shot hits, about 33 damage each), but there is no junk until the fight has torn parts off, so in a 1v1 it fights the first 30-40 s with just a scoop, and gets about 7 shots a fight. The physical lever is the shot energy (a bigger air tank).
+- **Bricklayer**: about half its drops land, for about 25 damage each, and most of it goes into the lid and top armour, which is where a falling block lands. The crane only reaches 1.3 m (a longer one with a 25 kg block would tip a 100 kg robot over), so it fights at touching distance. The physical levers are a taller crane (more drop height) or heavier blocks with a counterweight.
+- **Pendulum** (14 Nov, Kev: "don't really see any anchor"): the swings lasted 0.1-0.8 s, because the winch reeled in at 3 m/s straight away, which just dragged the robot at the enemy instead of swinging it. Now it swings 0.5 rad round before reeling, and reels at 1.2 m/s; swings last about 0.4-1.4 s. The anchor is drawn bigger (a three-pronged grapnel with a red lamp), above the walls, it flies back to the robot after it lets go, and it leaves scars where it bit. Re-measured: 43% vs level 0, 8% vs level 1.
+- **Pendulum** (physics): a heavy robot only reaches about 2.3 m/s on the open floor; on the cable it gets to 3-4 m/s, not the 6-8 the idea needs, because the arena is only 8 m and the enemy is rarely close to a wall. It beats slow robots that stay near walls (Haymaker 100%, Jouster 80%) and loses to anything that stays in the middle or flips it.
+
+None of them got any tuning towards a target. They stay in the catalogue at their measured level for the selection; the obvious physical levers are listed above if Kev wants to try a Mk II.
+
+Not built yet from the same list: Fire hose (a water jet that pushes without damage and puts fires out), Hamster (a rolling cage), Constrictor, Mothership, Pogo.
+
+## Review by snapshots (14 Nov): what was wrong, what changed
+
+Kev: "please review these new robots yourself by snapshotting fights, clearly the visual aspect is lacking, not sure about the actual damage of these mechanics, Pendulum for sure still broken." I filmed fights frame by frame in the Lineup Arena and audited the damage by cause (damage per minute, 6 level 0 opponents x 3 seeds).
+
+**Damage audit (per minute of fight, before -> after)**
+
+| | dealt by its weapon | win vs level 0 |
+|---|---|---|
+| Scavenger | junk 26 -> **192** | 11% -> **51%** |
+| Bricklayer | iron blocks 146 (unchanged) | 12% |
+| Pendulum -> Slingshot | prow 117 -> 98 | 41% -> **20%** |
+| (for scale) Jukebox | records 200 | 58% |
+| (for scale) Haymaker, level 0 | glove 121 | |
+
+**Scavenger.** The cannon was fine (almost every shot hits, about 33 per hit) but it starved: no junk until something broke. It now comes in with three 2.5 kg scrap lumps in its hopper. Fired, they land like any junk and get sucked back up, so it keeps firing all fight. Level 0 now. Looks: a big intake bell with a fan in the throat and dust streaming in, a glass hopper dome on the back with the junk tumbling in it, a fat air cannon down the middle with a hazard-striped muzzle that kicks back when it fires, two air tanks.
+
+**Bricklayer.** The damage was already there (146 a minute, more than Haymaker's glove); it loses because it fights at touching distance and soaks hits. Looks: a proper crane now: a yellow lattice boom, an operator cab with a window, a counterweight, a cable down to the block, the block drawn above every robot while it is up on the hook, and a landing marker.
+
+**Pendulum -> Slingshot.** The Pendulum was broken at the root: a swinging cable can't speed up a robot on wheels (side grip fights it) in an 8 m arena, so the anchor was out for under a second and it mostly just rammed with its spiked prow (that is where its 41% came from). It is now a **Slingshot**: a harpoon gun fires a grapnel past the enemy into the wall, a spike drops into the floor, the winch stretches a heavy bungee (2.6 kW for about 1.3 s, 3.4 kJ), then the spike comes up and the bungee flings it down the cable. Measured: 7 m/s flat out, 5-6 m/s at impact. The hit takes the energy the collision takes out of the two robots, at the Jukebox's joules rate (about 60 a hit at 5.5 m/s). It reads very clearly in the arena: HARPOON!, the cable and the stretched orange bungee (thinner and redder as it tightens), the dashed line it will fly down, the floor claws, SLINGSHOT!, IMPALED!. It is weaker than the old Pendulum (20% vs level 0, 10% vs level 1) because it sits spiked down for 1.3 s while the enemy walks off the line or hits it; spinners cut the cable (Whirlwind 10%). Its counterplay is exactly what was designed: move off the line, stay in the middle, cut the cable.
+
+**One thing for the selection to know.** The engine now has two ways to turn physics into damage: ordinary contact damage ((impulse - 7) x 0.2 x sharpness x toughness, used by rams, walls, and most weapons) and the energy rule the new robots use (joules x 0.08). A 5.5 m/s ram costs the target about 25 by the first and about 60 by the second. If the 200-robot catalogue is meant to be balanced by physics alone, these two should be brought onto one scale at some point.
+
+| | vs L0 | vs L1 | vs L2 | all 2.0.1 switches on: L0 / L1 / L2 |
+|---|---|---|---|---|
+| Scavenger (with starter scrap) | 51% | 17% | 10% | 41% / 12% / 4% |
+| Slingshot | 20% | 13% | 10% | 24% / 3% / 6% |
+
+## Pogo, Railgun and Yo-yo (14 Nov): more stored-energy mechanisms
+
+Kev: "I liked the slingshot, we need more of these different mechanisms on new robots." Like the Slingshot, each one stores energy you can see, then lets it go; the hit is that energy at the Jukebox's joules rate. No knobs.
+
+| Candidate | Mechanism | Counterplay | Untweaked rating (round robin) |
+|---|---|---|---|
+| **Pogo** | A winch squeezes a big coil spring (2.2 kW, up to 2.6 kJ, drawn as a coil that tightens and flashes red when full). The whole robot jumps (0.8 s in the air, up to 2.8 m) and lands on the enemy's lid: the hit is the fall plus a share of the run, about 70 per stomp. Nothing can touch it in the air. The landing shockwave shoves robots and junk nearby. | The landing marker shows where it will come down: keep moving. Coming down on a spinning weapon gets it shredded and thrown off (Gyro 0/4, Whirlwind 1/4). It has to sit still to squeeze the spring. | **+485, 92%: top of the table** (with Rotisserie) |
+| **Railgun** | A capacitor bank charges (2.4 kW, 2.2 kJ) and dumps into copper rails: a 4 kg slug at about 25 m/s, with a big recoil. Three slugs; fired ones lie on the floor until it drives over them to reload. Blue capacitor glow, arcs between the rails when full, a tracer. | Dodge the line; close in while it fetches slugs; a Scavenger can eat its slugs. | **+164, 69%** (band 3) |
+| **Yo-yo** | A heavy saw disc (9 kg) spun up on the nose, thrown out on a 2.6 m cable, bites whatever it touches (each bite takes energy out of the spin), reeled back in and spun up again. | Spinning weapons cut the cable: then the disc is loose on the floor and it has to go and fetch it. | **-28, 47%** (band 1) |
+
+Untweaked round robin with all 44 robots (4 fights per pair, 3,784 fights): Pogo and Rotisserie at the top, then Corkscrew, Vertigo, Lodestone. Chart: `robocus-untweaked-distribution.png`.
+
+## Looks (Kev: higher levels look fierce, the weapon shows its strength at once)
+- Rotisserie (level 4): long hooked pincers with serrated teeth (bigger in the physics too: 0.53 m, re-measured afterwards, still level 4), a big nozzle, twin red fuel tanks, a fat flame.
+- Blacksmith: a big hammer block held high over the robot (drawn bigger while raised) that comes down onto the victim's lid; a glowing anvil.
+- Talon: a hooked beak over the nose, red eye lamps when it holds on, a red ring where it pierced.
+- Drawing code is in both `tools/damage-lab/ui.js` and `src2/view.js` (keep them in step). Repair zones: the beak ram, flame nozzle and hammer arm are Weapon.
+
+## Toward 200 candidates and a selection procedure (suggestion)
+- **One catalogue**: every candidate in `CANDIDATES` with its measured level, at grade 1.
+- **An automatic screen** per candidate, run on Kev's PC: measured level (vs each level), fun (big moments a minute, parts torn off, fight length, how often the signature move happens), counterplay (it has at least one matchup it wins 75%+ and one it loses 75%+, and its counters are spread over different robots), and the 2.0.1 switches on vs off.
+- **Then the selection**: keep the ones that are fun to watch and that give every level a rock-paper-scissors spread, so every player can find an edge.
+- `node l4.js` already does the level and fun part (`VS=1,2,3`, `CX=all` for the 2.0.1 switches); the counterplay part needs a candidate-vs-candidate matrix.
+
+## Not done
+- The eight level 4 robots and the lineup still use grades and knobs from before the new rule.
+- The AI doesn't use the 2.0.1 rules on purpose (aim for open plates, walls).

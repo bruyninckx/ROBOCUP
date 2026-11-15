@@ -4,7 +4,8 @@
   const L = window.DamageLab;
   const LU = window.Lineup || null; // ROBOCUS 2.0 Lineup Arena: robots with levels and power grades, 2.0 part cards
   if (LU) LU.usePK();
-  if (LU && LU.ROBOTS4) { Object.assign(LU.ROBOTS, LU.ROBOTS4); if (LU.LEVELS.length < 5) LU.LEVELS.push('Level 4 (end game)'); } // Lineup Arena only: the end-game wave (the tabletop does not load this file)
+  if (LU && LU.ROBOTS4) { Object.assign(LU.ROBOTS, LU.ROBOTS4); if (LU.LEVELS.length < 5) LU.LEVELS.push('Level 4 (end game)'); }
+  const CAND = (LU && LU.CANDIDATES) || {}; if (LU) Object.assign(LU.ROBOTS, CAND); // candidates (grade 1, measured level, not in the game yet): their own group in the picker // Lineup Arena only: the end-game wave (the tabletop does not load this file)
   // robot colours: 1v1 and FFA use one colour per robot; in 2v2 robots 0 & 2 are team Steel (blues), 1 & 3 team Rust (oranges)
   const PAL = { steel: { name: 'Steel', col: '#3F78A8', dark: '#2C5679', light: '#79A4CB' }, rust: { name: 'Rust', col: '#C8642B', dark: '#8E431B', light: '#E59866' },
     moss: { name: 'Moss', col: '#4C8A3F', dark: '#35612C', light: '#8BC07A' }, violet: { name: 'Violet', col: '#8B6BB1', dark: '#5E4580', light: '#B79AD8' },
@@ -65,7 +66,7 @@
   function buildLineupCard(i) {
     const el = $('bot' + i), s = st.spec[i], sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
     el.style.borderTopColor = TC(i).col;
-    const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([, v]) => v[0] === t).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('');
+    const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([k2, v]) => v[0] === t && !CAND[k2]).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('') + (Object.keys(CAND).length ? `<optgroup label="Candidates (grade 1, measured level, not in the game)">${Object.entries(CAND).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, measured level ${v[0]})</option>`).join('')}</optgroup>` : '');
     // tuning chips (9 Nov): the % is a level 1 robot with the chip against level 3 (stock 23%), from tools/damage-lab/chipfit.js
     const CHIP_UP2 = { matador: 38, bait: 28, pester: 43 }, otherChip = slot => s.parts.some((k, j) => j !== slot && k && P[k] && P[k].kind === 'chip');
     const partOpts = (cur, leg, slot) => '<option value="">none</option>' + ['drone', 'module', 'stat', 'chip', 'legendary'].filter(k => leg ? k === 'legendary' : k !== 'legendary').map(kind => `<optgroup label="${kind === 'stat' ? 'Stat cards' : kind === 'legendary' ? 'Legendary' : kind === 'chip' ? 'Tuning chips (one per robot)' : kind[0].toUpperCase() + kind.slice(1) + 's'}">${Object.entries(P).filter(([, v]) => v.kind === kind).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}${kind === 'chip' && otherChip(slot) ? ' disabled' : ''}>${v.name} (${kind === 'chip' ? CHIP_UP2[k] + '% two levels up' : v.vs + '%'})</option>`).join('')}</optgroup>`).join('');
@@ -208,6 +209,10 @@
       else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
+      else if (e.type === 'under') { if (st.drama && slowT <= 0) { slowT = 0.7; cam.tx = e.x * 0.7; cam.ty = e.y * 0.7; cam.tz = 1.9; } } // drama cam: lean in so the lift can be seen
+      else if (e.type === 'tip') { const R = S.robots[e.robot]; R.tiltU = [e.ux, e.uy]; R.rollFx = { t: 0 }; R.tiltV = 0; if (st.drama) { slowT = 1.0; const q = R.body.getPosition(); cam.tx = q.x * 0.7; cam.ty = q.y * 0.7; cam.tz = 2.0; } }
+      else if (e.type === 'creak') { const R = S.robots[e.robot]; R.crushFx = 0.35; sparks(e.x, e.y, 5 * e.power); shake = Math.min(0.1, shake + 0.02); for (let i = 0; i < 4; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i * 1.6) * 0.7, vy: Math.sin(i * 1.6) * 0.7, life: 0.5, max: 0.5, s: 0.08 }); }
+      else if (e.type === 'gut') { sparks(e.x, e.y, 14); for (let i = 0; i < 3; i++) smoke(e.x, e.y, true, 0.06); shards(e.x, e.y, 3); }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
       else if (e.type === 'ko') { shake = Math.min(0.2, shake + 0.08); if (st.drama) { slowT = 1.2; const R = S.robots[e.robot], p = R.body.getPosition(); cam.tx = p.x * 0.6; cam.ty = p.y * 0.6; cam.tz = 1.5; } }
     }
@@ -218,6 +223,9 @@
     for (const R of S.robots) {
       const b = R.body;
       const wp = lp => b.getWorldPoint(planck.Vec2(lp[0], lp[1]));
+      // contact experiments: open wounds where a plate is gone keep sparking and smoking; tyres that broke loose smoke
+      if (R.wounds && !R.inPit) for (const w of R.wounds) if (Math.random() < dt * 2.5) { const q = wp(w); if (Math.random() < 0.5) sparks(q.x, q.y, 3); else smoke(q.x, q.y, true, 0.04); }
+      if (R.slideT > 0 && !(R.airborne > 0) && !R.inPit) for (const s of R.slots) if (Math.random() < dt * 25) { const q = wp(s.lp); smoke(q.x, q.y, false, 0.05); }
       if (!R.alive && !R.inPit && Math.random() < dt * 14) { const p = b.getPosition(); smoke(p.x + (Math.random() - 0.5) * 0.3, p.y + (Math.random() - 0.5) * 0.3, true, 0.1); }
       for (const q of R.internals) {
         if (R.inPit) break;
@@ -254,10 +262,47 @@
       ctx.strokeStyle = `rgba(255,250,240,${0.22 + 0.2 * k})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.ellipse(d.x + d.r * 0.08, d.y + d.r * 0.08, d.r * 0.7, d.r * 0.45, d.x * 7 + d.y * 3, 3.6, 5.8); ctx.stroke();
       if (d.a > 12) { ctx.strokeStyle = 'rgba(25,18,10,0.55)'; ctx.lineWidth = PX; ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = (d.x * 31 + d.y * 17 + i * 2.1) % 6.28; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + Math.cos(a) * d.r * 1.3, d.y + Math.sin(a) * d.r * 1.3); } ctx.stroke(); }
     }
+    if (part.bends || part.cracks || part.grooves || part.kinks) drawWear(part);
     if (part.heat > 25) { ctx.fillStyle = `rgba(255,${120 - part.heat * 0.5},20,${Math.min(0.55, (part.heat - 25) / 150)})`; ctx.fillRect(-2, -2, 4, 4); }
     ctx.restore();
     path(part.outline); ctx.lineWidth = PX * 2.2; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
   }
+  // ---------- wear (contact experiments): cracks, bends, saw grooves ----------
+  function crackPath(c, w, col, ox, oy) {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'miter'; ctx.lineCap = 'round';
+    for (const t of c.tips) { if (t.pts.length < 2) continue; ctx.beginPath(); ctx.moveTo(t.pts[0][0] + ox, t.pts[0][1] + oy); for (let k = 1; k < t.pts.length; k++) ctx.lineTo(t.pts[k][0] + ox, t.pts[k][1] + oy); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+  }
+  function drawCracks(cracks, big) {
+    for (const c of cracks) {
+      const w = PX * Math.min(big ? 3.8 : 3.2, 1.4 + c.len * (big ? 8 : 20));
+      if (big) crackPath(c, w * 3.2, 'rgba(14,9,5,0.16)', 0, 0); // a dirty halo along the crack so it reads at a distance
+      crackPath(c, w + PX * 1.6, 'rgba(255,245,228,0.35)', PX * 0.9, PX * 0.9); // lit lower lip
+      crackPath(c, w, 'rgba(14,9,5,0.92)', 0, 0);
+      if (c.len > 0.04) { ctx.fillStyle = 'rgba(14,9,5,0.85)'; ctx.beginPath(); for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28, r = (k % 2 ? 0.012 : 0.022) * Math.min(1.6, 0.6 + c.len * 6); k ? ctx.lineTo(c.o[0] + Math.cos(a) * r, c.o[1] + Math.sin(a) * r) : ctx.moveTo(c.o[0] + r, c.o[1]); } ctx.closePath(); ctx.fill(); } // the impact point
+    }
+  }
+  function drawWear(part) {
+    if (part.bends && part.bAx) { const A = part.bAx; // folds where the plate is bent
+      for (const b of part.bends) { if (b.depth < 0.006) continue; const k = Math.min(1, b.depth / 0.04);
+        for (const [o, al] of [[0, 0.75], [-WEAR_R * 0.55, 0.35], [WEAR_R * 0.55, 0.35]]) { const sx = b.s + o, sh = A.inn * b.depth * (o ? 0.45 : 1);
+          const P = (t, d) => A.ax === 0 ? [sx + d, t + sh] : [t + sh, sx + d];
+          let q0 = P(A.tlo - 0.02, 0), q1 = P(A.thi + 0.02, 0); ctx.strokeStyle = `rgba(14,9,5,${al * k})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+          q0 = P(A.tlo - 0.02, 0.012); q1 = P(A.thi + 0.02, 0.012); ctx.strokeStyle = `rgba(255,248,235,${al * k * 0.6})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke(); } } }
+    if (part.kinks && part.kAx) { const A = part.kAx; // a bent weapon: a fold across the beam where it gave, scuffed paint either side
+      for (const kk of part.kinks) { const a = Math.abs(kk.th); if (a < 0.03) continue; const k = Math.min(1, a / 0.25);
+        const P = (q, o) => A.ax === 0 ? [kk.s + o, q] : [q, kk.s + o];
+        let q0 = P(A.tlo - 0.03, 0), q1 = P(A.thi + 0.03, 0); ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * k})`; ctx.lineWidth = PX * (1.8 + 2 * k); ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        q0 = P(A.tlo - 0.03, kk.side * 0.012); q1 = P(A.thi + 0.03, kk.side * 0.012); ctx.strokeStyle = `rgba(255,248,235,${0.35 + 0.35 * k})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        ctx.fillStyle = `rgba(60,50,40,${0.25 * k})`; const w = 0.03 + 0.05 * k; const r0 = P(A.tlo - 0.03, -w), r1 = P(A.thi + 0.03, w); ctx.fillRect(Math.min(r0[0], r1[0]), Math.min(r0[1], r1[1]), Math.abs(r1[0] - r0[0]), Math.abs(r1[1] - r0[1])); } }
+    if (part.cracks) drawCracks(part.cracks, false);
+    if (part.grooves) for (const g of part.grooves) { if (g.depth < 0.004) continue; // bright cut metal round the notch, glowing while the saw is in it
+      const hot = S && part.attached ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
+      if (hot > 0) { const gr = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, r * 2.4); gr.addColorStop(0, `rgba(255,190,80,${0.85 * hot})`); gr.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gr; ctx.fillRect(g.x - r * 2.4, g.y - r * 2.4, r * 4.8, r * 4.8); }
+      ctx.strokeStyle = 'rgba(236,236,226,0.9)'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, 6.29); ctx.stroke();
+      ctx.strokeStyle = 'rgba(150,150,140,0.7)'; ctx.lineWidth = PX * 1; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(g.x, g.y, r * (1.25 + k * 0.08), 0, 6.29); ctx.stroke(); } }
+  }
+  const WEAR_R = (L.WEAR && L.WEAR.bendR) || 0.17;
   function wheelTread(part, spin) {
     const [x0, y0, x1, y1] = bbox(part.verts), len = x1 - x0, step = 0.035, off = ((spin * 0.07) % step + step) % step;
     ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 2;
@@ -329,10 +374,68 @@
       starPath(d, d, r); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill(); // lit lower edge of the dent
       starPath(0, 0, r); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(); ctx.restore(); }
   }
+  // ---------- tilt (contact experiments: a robot propped up on someone's nose, or rolling over) ----------
+  // Top-down, a robot with one edge off the floor looks shorter across that axis (it hinges on the edge still down),
+  // its top catches the light differently, and the raised edge throws its shadow further out.
+  // The robot is never skewed or squashed: it stays a rigid drawing. Lift is shown the way 2D games show height:
+  // the robot rises a little up the screen away from its shadow, the shadow spills out under the raised edge,
+  // and the hull's side wall (with its wheels) comes into view along the raised edge.
+  const TILT = { max: 0.7, wob: 0.04, roll: 0.6, hop: 0.34, wall: 0.36, nudge: 1.3, hold: 0.35 };
+  function tiltAxis(R) { const u = R.tiltU || [1, 0]; let e = Math.abs(u[0]) * R.hl + Math.abs(u[1]) * R.hw;
+    for (const q of R.parts) if (q.attached && q.body === R.body && q.kind !== 'weapon') for (const v of q.verts) e = Math.max(e, v[0] * u[0] + v[1] * u[1]);
+    return [u[0], u[1], e]; }
+  function tiltLift(R) { // how high the middle of the robot is off the floor (m)
+    if (R.rollFx) return Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * TILT.hop;
+    return Math.sin(R.tiltV || 0) * tiltAxis(R)[2] * 0.5;
+  }
+  function tiltBody(R, a, sc) {
+    const z = tiltLift(R); if (z < 0.001) return;
+    const k = z * TILT.nudge / sc; ctx.translate(-k * Math.sin(a), -k * Math.cos(a)); // straight up the screen, whatever way the robot faces
+    if (R.rollFx) { const f = Math.min(1, R.rollFx.t / TILT.roll); ctx.rotate(Math.sin(Math.PI * 2 * f) * 0.16 * (R.tiltU ? Math.sign(R.tiltU[0] + R.tiltU[1] || 1) : 1)); } // a twist in the air as it goes over
+  }
+  function tiltShadow(R, a) { // the raised edge throws its shadow further out (the shadow may stretch; the robot does not)
+    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 1.2 : Math.sin(R.tiltV || 0); if (t < 0.01) return;
+    const [ux, uy, e] = tiltAxis(R), H = 0.3 * t * 2 * e / 0.25;
+    const lx = Math.cos(-a) * 0.7071 - Math.sin(-a) * 0.7071, ly = Math.sin(-a) * 0.7071 + Math.cos(-a) * 0.7071, g = H / (2 * e);
+    if (R.rollFx) { ctx.translate(lx * H * 0.5, ly * H * 0.5); return; }
+    ctx.transform(1 + g * lx * ux, g * ly * ux, g * lx * uy, 1 + g * ly * uy, g * e * lx, g * e * ly);
+  }
+  function tiltSide(R) { // the side wall of the raised edge, tipped up into view, with the wheels on that side
+    if (R.rollFx) return; const t = Math.sin(R.tiltV || 0); if (t < 0.03) return;
+    const [ux, uy, e] = tiltAxis(R), px = -uy, py = ux, L = Math.abs(ux) * R.hw + Math.abs(uy) * R.hl, w = t * TILT.wall;
+    const P = (d, q) => [ux * d + px * q, uy * d + py * q];
+    const q0 = P(e - 0.01, -L), q1 = P(e - 0.01, L), q2 = P(e + w, L * 0.97), q3 = P(e + w, -L * 0.97);
+    const gr = ctx.createLinearGradient(ux * e, uy * e, ux * (e + w), uy * (e + w)); gr.addColorStop(0, '#1C1813'); gr.addColorStop(1, '#4A433B');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]); ctx.lineTo(q3[0], q3[1]); ctx.closePath(); ctx.fill();
+    for (const s of R.slots) { if (!s.wheel || !s.wheel.attached || s.lp[0] * ux + s.lp[1] * uy < e * 0.25) continue; // tyres on the raised side, spinning in the air
+      const [x0, y0, x1, y1] = bbox(s.wheel.verts), half = (Math.abs(px) * (x1 - x0) + Math.abs(py) * (y1 - y0)) / 2, c = (x0 + x1) / 2 * px + (y0 + y1) / 2 * py;
+      const a0 = P(e + w * 0.12, c - half), a1 = P(e + w * 0.12, c + half), a2 = P(e + w * 0.92, c + half), a3 = P(e + w * 0.92, c - half);
+      ctx.fillStyle = RUBBER; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.lineTo(a3[0], a3[1]); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 1.6; const st = 0.03, off = (((s.spin || 0) * 0.07) % st + st) % st;
+      for (let q = c - half + off; q < c + half; q += st) { const b0 = P(e + w * 0.12, q), b1 = P(e + w * 0.92, q); ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke(); } }
+    ctx.strokeStyle = 'rgba(255,240,210,0.8)'; ctx.lineWidth = PX * 2.6; ctx.beginPath(); ctx.moveTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.stroke(); // lit bottom rim
+    ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q3[0], q3[1]); ctx.lineTo(q2[0], q2[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+  }
+  function tiltShade(R) { // a light change on the top: the slope down to the floor in shade, the raised edge catching the light
+    const t = R.rollFx ? Math.sin(Math.PI * Math.min(1, R.rollFx.t / TILT.roll)) * 0.6 : Math.sin(R.tiltV || 0); if (t < 0.02) return;
+    const [ux, uy, e] = tiltAxis(R), gr = ctx.createLinearGradient(-ux * e, -uy * e, ux * e, uy * e);
+    gr.addColorStop(0, `rgba(0,0,0,${0.22 * t})`); gr.addColorStop(0.6, 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(255,240,210,${0.16 * t})`);
+    ctx.save(); for (const q of R.parts) if (q.attached && q.body === R.body && q.kind !== 'wheel') { path(q.outline); ctx.fillStyle = gr; ctx.fill(); } ctx.restore();
+  }
+  function tiltTick(R, rdt) {
+    if (R.prop) { const L = Math.hypot(R.prop.lx, R.prop.ly) || 1; R.tiltU = [R.prop.lx / L, R.prop.ly / L]; }
+    if (R.prop) R.tiltHoldT = TILT.hold; else if (R.tiltHoldT > 0) R.tiltHoldT -= rdt;
+    const held = R.prop || R.tiltHoldT > 0, target = held ? TILT.max * (R.prop ? Math.min(1, 0.6 + R.prop.total * 0.9) : 1) + TILT.wob * Math.sin(performance.now() / 70) : 0;
+    if (R.prop && R.tiltU && Math.random() < rdt * 30) { const b = R.body, [ux, uy, e] = tiltAxis(R), q = b.getWorldPoint(planck.Vec2(ux * e, uy * e)); if (Math.random() < 0.5) sparks(q.x, q.y, 4); else spawn({ t: 'dust', x: q.x, y: q.y, vx: (Math.random() - 0.5) * 0.8, vy: (Math.random() - 0.5) * 0.8, life: 0.45, max: 0.45, s: 0.06 }); }
+    R.tiltV = (R.tiltV || 0) + (target - (R.tiltV || 0)) * Math.min(1, rdt * (held ? 16 : 8)); // snaps up, settles back down a bit slower
+    if (!held && R.tiltV > 0.12 && R.wasProp) { const p = R.body.getPosition(); for (let i = 0; i < 5; i++) spawn({ t: 'dust', x: p.x + R.tiltU[0] * R.hl, y: p.y + R.tiltU[1] * R.hl, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, life: 0.5, max: 0.5, s: 0.07 }); shake = Math.min(0.1, shake + 0.03); } // drops back down with a thump
+    R.wasProp = !!held;
+    if (R.rollFx) { R.rollFx.t += rdt; if (R.rollFx.t >= TILT.roll) R.rollFx = null; }
+  }
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
-    const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R);
+    const carried = S.robots.some(Q => Q.carry && Q.carry.robot === R) || S.t < (R.trophyT || 0); // forks, or held up on a beak
     let sc = 1 + air * 0.28 + (carried ? 0.1 : 0), alpha = 1;
     if (R.inPit) { const k = Math.min(1, (S.t - R.inPit) / 0.8); sc = 1 - k * 0.65; alpha = 1 - k * 0.7; }
     const so = 0.05 + air * 0.35 + (carried ? 0.12 : 0);
@@ -341,10 +444,10 @@
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
-    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
+    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); tiltShadow(R, a); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc); tiltBody(R, a, sc); tiltSide(R);
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
@@ -352,6 +455,7 @@
     const order = ['wheel', 'armour', 'weapon', 'chassis'];
     for (const kind of order) for (const q of mine) if (q.kind === kind) drawPart(q, fillFor(q, R, i), R, decorate(q, R, i));
     for (const q of mine) if (q.kind === 'armour' && q.bumper === 'spiked') spikesOn(q);
+    tiltShade(R);
     if (R.spec.weapon === 'glove' && R.tool && R.tool.attached) drawGlove(R);
     if (R.thruster) { const ok = R.thruster.hp > 0; ctx.fillStyle = ok ? '#5C5650' : '#1C1813'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.09, 0.09]) { ctx.beginPath(); ctx.moveTo(-R.hl + 0.02, y - 0.05); ctx.lineTo(-R.hl - 0.08, y - 0.065); ctx.lineTo(-R.hl - 0.08, y + 0.065); ctx.lineTo(-R.hl + 0.02, y + 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); if (ok) { ctx.fillStyle = R.dashT > 0 ? '#FFD27A' : '#2B2118'; ctx.fillRect(-R.hl - 0.082, y - 0.04, 0.012, 0.08); } } }
     if (!R.flipped) {
@@ -371,6 +475,7 @@
         if (!dead) { ctx.fillStyle = Math.sin(performance.now() / 90) > 0 ? '#9BE38A' : '#2F8A4A'; ctx.fillRect(cx - 0.02, cy - 0.02, 0.04, 0.04); }
         for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
       }
+      if (R.chassis.cracks && R.chassis.cracks.length) drawCracks(R.chassis.cracks, true); // cracks in the shell show through the top plate
       drawTop(R, i); drawLamps(R);
       if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
@@ -383,6 +488,8 @@
     // power-up and rage effects
     if (!R.inPit) {
       const t = performance.now() / 1000;
+      if (R.prop) { const ax = Math.atan2(R.prop.ly, R.prop.lx) + a, rr = Math.hypot(R.hl, R.hw) + 0.06; ctx.strokeStyle = '#FFD27A'; ctx.lineWidth = PX * 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(p.x, p.y, rr, ax - 0.7, ax + 0.7); ctx.stroke(); ctx.lineCap = 'butt'; } // the edge that is off the floor
+      if (R.crushFx > 0) { ctx.strokeStyle = `rgba(226,60,40,${Math.min(1, R.crushFx * 3)})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.12 + R.crushFx * 0.3, 0, 6.29); ctx.stroke(); } // squeezed: a ring closing in
       if (R.shield > 0) { ctx.strokeStyle = `rgba(71,168,255,${0.5 + (R.shieldFlash > 0 ? 0.5 : 0.2 * Math.sin(t * 8))})`; ctx.fillStyle = 'rgba(71,168,255,0.12)'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.32, 0, 6.29); ctx.fill(); ctx.stroke(); }
       if (R.rage > 0) { ctx.strokeStyle = `rgba(255,60,30,${0.45 + 0.3 * Math.sin(t * 14)})`; ctx.lineWidth = PX * 5; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.22 + 0.03 * Math.sin(t * 20), 0, 6.29); ctx.stroke(); if (Math.random() < 0.5) fire(p.x + (Math.random() - 0.5) * 0.6, p.y + (Math.random() - 0.5) * 0.6); }
       if (R.over > 0) { ctx.strokeStyle = `rgba(178,102,255,${0.6 + 0.3 * Math.sin(t * 18)})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.12, t * 3, t * 3 + 6.29); ctx.stroke(); ctx.setLineDash([]); }
@@ -412,10 +519,16 @@
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? Math.abs(R.buzzW || 0) / (R.buzzMax || 110) : 0;
     ctx.save(); ctx.translate(p.x, p.y);
     const bk = R && R.buzzR ? R.buzzR / 0.14 : 1; ctx.scale(bk, bk);
-    if (w > 0.3) { ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(0, 0, 0.17, 0, 6.29); ctx.fill(); }
+    const wp = part.warp ? part.warp / 0.45 : 0, fa = part.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp;
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; }; // the folded half, foreshortened
+    if (w > 0.3) { const o = wp * 0.025; ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(Math.cos(a + fa) * o, Math.sin(a + fa) * o, 0.17, 0, 6.29); ctx.fill();
+      if (wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, 0.15 * (1 - 0.42 * wp * 0.5), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.rotate(a); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
-    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125; k ? ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : ctx.moveTo(Math.cos(t) * r, Math.sin(t) * r); }
+    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (wp > 0.05) { ctx.fillStyle = `rgba(20,14,8,${0.18 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * 0.14, Math.sin(t) * 0.14); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half in shade
+      ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * 0.15, fx * 0.15); ctx.lineTo(fy * 0.15, -fx * 0.15); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,248,235,${0.3 + 0.3 * wp})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.moveTo(-fy * 0.15 - fx * 0.01, fx * 0.15 - fy * 0.01); ctx.lineTo(fy * 0.15 - fx * 0.01, -fx * 0.15 - fy * 0.01); ctx.stroke(); } // the fold
     ctx.fillStyle = '#6F7169'; ctx.beginPath(); ctx.arc(0, 0, 0.04, 0, 6.29); ctx.fill(); ctx.stroke();
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.5 * w})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.09, k * 2.1, k * 2.1 + 1.2); ctx.stroke(); } }
     ctx.restore();
@@ -469,10 +582,11 @@
     }
     if (w === 'hammer' && R.arm.hp > 0) {
       let s = 0; if (R.swing > 0) s = 1 - R.swing / 0.2; else if (R.recover > 0) s = R.recover / 0.6;
-      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s);
-      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(hx, 0); ctx.stroke();
+      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s), ab = R.armBend || 0, kx = -0.25 + (hx + 0.25) * 0.45, ex = kx + (hx - kx) * Math.cos(ab), ey = (hx - kx) * Math.sin(ab); // bent handle: kinked partway along
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(kx, 0); ctx.lineTo(ex, ey); ctx.stroke();
       ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
-      ctx.save(); ctx.translate(hx, 0); ctx.scale(k, k);
+      if (Math.abs(ab) > 0.03) { ctx.strokeStyle = 'rgba(14,9,5,0.8)'; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(kx, -0.035 * k); ctx.lineTo(kx, 0.035 * k); ctx.stroke(); }
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(ab); ctx.scale(k, k);
       ctx.fillStyle = '#B9BBB4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.05, -0.16], [0.06, -0.12], [0.06, 0.12], [-0.05, 0.16], [-0.02, 0]]); ctx.fill(); ctx.stroke();
       ctx.restore(); bolt(-0.25, 0);
     }
@@ -567,6 +681,56 @@
     if (k > 0.05) { ctx.globalAlpha = Math.sin(t * (8 + 22 * k)) > 0 ? 0.95 : 0.25; ctx.fillStyle = '#FF3B2B'; ctx.beginPath(); ctx.arc(0, 0, 0.045, 0, 6.29); ctx.fill(); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(0, 0, 0.11, 0, 6.29); ctx.fill(); ctx.globalAlpha = 1; } // a strobe on the head too
     ctx.restore();
   }
+  // a steel record: dark disc, grooves, coloured label; spinning ones blur, flying ones glow
+  function drawRecord(q, spin, lifted) {
+    const b = q.body, p = b.getPosition(), a = b.getAngle(), r = 0.21, w = spin != null && spin > 0 ? spin : Math.min(1, Math.abs(b.getAngularVelocity()) / 130), fly = q.state === 'fly';
+    ctx.save(); ctx.translate(p.x, p.y);
+    if (lifted) { ctx.fillStyle = 'rgba(20,14,8,0.2)'; ctx.beginPath(); ctx.arc(0.1, 0.1, r, 0, 6.29); ctx.fill(); ctx.scale(1.12, 1.12); }
+    if (fly && w > 0.15) { ctx.strokeStyle = `rgba(255,90,200,${0.25 + 0.4 * w})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, r + 0.04, 0, 6.29); ctx.stroke(); const v = b.getLinearVelocity(); ctx.strokeStyle = `rgba(255,240,250,${0.25 * w})`; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-v.x * 0.04, -v.y * 0.04); ctx.lineTo(0, 0); ctx.stroke(); ctx.lineCap = 'butt'; }
+    ctx.rotate(a);
+    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,200,190,0.22)'; ctx.lineWidth = PX; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (0.5 + k * 0.12), 0, 6.29); ctx.stroke(); }
+    ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.8; for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(t) * r * 0.93, Math.sin(t) * r * 0.93); ctx.lineTo(Math.cos(t + 0.12) * r, Math.sin(t + 0.12) * r); ctx.stroke(); } // the saw teeth on the rim
+    if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.45 * w})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * 0.78, k * 2.1, k * 2.1 + 0.9); ctx.stroke(); } }
+    ctx.fillStyle = q.col || '#E8C547'; ctx.beginPath(); ctx.arc(0, 0, r * 0.34, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-r * 0.2, -r * 0.05, r * 0.4, r * 0.03); ctx.fillStyle = '#E4E1DA'; ctx.beginPath(); ctx.arc(0, 0, 0.012, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
+  function drawBrick(q, up) { // a Bricklayer's iron block (on its back, on the hook, or on the floor)
+    const p = q.body.getPosition(), h = 0.17 * (up ? 1.18 : 1); if (up) { ctx.fillStyle = 'rgba(20,14,8,0.3)'; ctx.save(); ctx.translate(p.x + 0.16, p.y + 0.16); ctx.rotate(q.body.getAngle()); ctx.fillRect(-0.17, -0.17, 0.34, 0.34); ctx.restore(); }
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.body.getAngle()); ctx.fillStyle = q.hp > 0 ? '#4A4A46' : '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h);
+        ctx.fillStyle = HAZ; ctx.fillRect(-h, -h, 2 * h, h * 0.28); ctx.fillStyle = INK; for (let x = -h; x < h; x += 0.07) { ctx.beginPath(); ctx.moveTo(x, -h); ctx.lineTo(x + 0.035, -h); ctx.lineTo(x + 0.015, -h + h * 0.28); ctx.lineTo(x - 0.02, -h + h * 0.28); ctx.closePath(); ctx.fill(); }
+        ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-h * 0.8, -h * 0.55, h * 1.6, 0.03); for (const [x, y] of [[-0.7, -0.3], [0.7, -0.3], [-0.7, 0.7], [0.7, 0.7]]) bolt(x * h, y * h); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(0, h * 0.2, 0.025, 0, 6.29); ctx.fill(); ctx.restore(); }
+  function drawAnchor(R) { // SLINGSHOT: the cable and bungee, the grapnel (in flight, biting into the wall, flying home), wall scars, the floor spike
+    const st = R.l4, t = performance.now() / 1000, b = R.body, out = (x, y) => Math.abs(x) > Math.abs(y) ? Math.atan2(0, Math.sign(x)) : Math.atan2(Math.sign(y), 0);
+    for (const s of st.scars || []) { ctx.save(); ctx.translate(s[0], s[1]); ctx.rotate(out(s[0], s[1])); ctx.fillStyle = 'rgba(20,14,8,0.55)'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.05, 0.1, 0, 0, 6.29); ctx.fill(); ctx.strokeStyle = 'rgba(20,14,8,0.6)'; ctx.lineWidth = PX * 1.5; for (const a of [-0.9, -0.3, 0.4, 1.0]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(a) * 0.16, Math.sin(a) * 0.16); ctx.stroke(); } ctx.restore(); }
+    const wp = b.getWorldPoint(planck.Vec2(R.winch.lp[0], R.winch.lp[1])), rk = st.mode === 'free' && st.ret ? (S.t - st.ret.t0) / 0.5 : 1;
+    if (st.spike) { // the floor spike: two claws dug in either side, a dust ring
+      ctx.save(); ctx.translate(b.getPosition().x, b.getPosition().y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-R.hl * 0.6, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.2, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.45, sd * (R.hw + 0.2)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(120,100,80,0.45)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 3, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.hypot(R.hl, R.hw) + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : (st.mode === 'charge' || st.mode === 'fling') && st.A ? st.A : null;
+    if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // after it lets go the grapnel flies home on a slack cable
+      ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
+    if (!end) return;
+    if (!flying || st.mode === 'shot') { // the cable: steel to the grapnel, and the bungee section near the robot, thinner and redder the more it is stretched
+      const ten = st.mode === 'charge' || st.mode === 'fling' ? Math.min(1, st.E / 3400) : 0, L1 = Math.hypot(end[0] - wp.x, end[1] - wp.y) || 1, ux = (end[0] - wp.x) / L1, uy = (end[1] - wp.y) / L1, bl = Math.min(L1, 0.9 + 0.9 * ten);
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x + ux * bl, wp.y + uy * bl); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.015; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.09 - 0.045 * ten; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(wp.x + ux * bl, wp.y + uy * bl); ctx.stroke();
+      ctx.strokeStyle = ten > 0.8 && Math.sin(t * 30) > 0 ? '#FF5A3C' : `rgb(${200 + 55 * ten},${110 - 60 * ten},40)`; ctx.lineWidth = 0.06 - 0.035 * ten; ctx.stroke(); ctx.lineCap = 'butt';
+      if (st.mode === 'charge') { ctx.strokeStyle = 'rgba(255,90,60,0.35)'; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(end[0], end[1]); ctx.lineDashOffset = -t * 0.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0; } // the line it will fly down
+    }
+    const a = flying ? Math.atan2(end[1] - wp.y, end[0] - wp.x) : out(end[0], end[1]);
+    ctx.save(); ctx.translate(end[0], end[1]); ctx.rotate(a); ctx.scale(1.3, 1.3);
+    if (!flying) { ctx.fillStyle = 'rgba(232,197,71,0.35)'; ctx.beginPath(); ctx.arc(0, 0, 0.2 + 0.03 * Math.sin(t * 12), 0, 6.29); ctx.fill(); } // impact flash ring
+    ctx.fillStyle = '#4A4A46'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4 / 1.3;
+    ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.15); ctx.lineTo(-0.08, -0.13); ctx.lineTo(-0.02, -0.04); ctx.lineTo(-0.2, -0.04); ctx.lineTo(-0.2, 0.04); ctx.lineTo(-0.02, 0.04); ctx.lineTo(-0.08, 0.13); ctx.lineTo(-0.02, 0.15); ctx.closePath(); ctx.fill(); ctx.stroke(); // a three-pronged grapnel, point first
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.18, -0.03, 0.2, 0.015);
+    ctx.fillStyle = '#D9DBD4'; ctx.beginPath(); ctx.arc(-0.2, 0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = Math.sin(t * 14) > 0 ? '#FF3B2B' : '#5A1A14'; ctx.beginPath(); ctx.arc(-0.09, 0, 0.022, 0, 6.29); ctx.fill();
+    ctx.restore();
+  }
   function drawL4(R, i) {
     const w = R.spec.weapon, b = R.body, t = performance.now() / 1000;
     if (w === 'mallet' && R.l4 && !R.inPit) drawMallet(R);
@@ -606,6 +770,156 @@
       for (const q of R.discs) if (q.attached) { const p = q.body.getPosition(); if (R.l4.mode !== 'docked') { ctx.strokeStyle = INK; ctx.lineWidth = 0.045; ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = 0.022; ctx.stroke(); } drawBuzz(q, { buzzW: q.spin, buzzMax: 95, buzzR: 0.13 / 0.15 * 0.14 }); }
       const a = R.rotor.getAngle(); ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(a); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -0.09, 0.04, 0.18); ctx.restore();
     }
+    if (w === 'jukebox' && R.records) {
+      const st = R.l4, tp = b.getWorldPoint(planck.Vec2(st.tableAt[0], st.tableAt[1]));
+      // turntable platter on the nose
+      ctx.fillStyle = '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(tp.x, tp.y, 0.235, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 1.2; ctx.beginPath(); ctx.arc(tp.x, tp.y, 0.22, 0, 6.29); ctx.stroke();
+      // the stack on its back (bottom first), then the record on the loader or the platter
+      for (const q of R.records.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.012; ctx.save(); ctx.translate(-k, -k); drawRecord(q, 0); ctx.restore(); }
+      for (const q of R.records) if ((q.state === 'table' || q.state === 'load') && q.attached) drawRecord(q, q.state === 'table' ? st.rpm : 0, q.state === 'load');
+      // the tone-arm loader: pivot on the side, arm to wherever it is carrying the record
+      if (R.loader.hp > 0) {
+        const pv = b.getWorldPoint(planck.Vec2(R.loader.lp[0], R.loader.lp[1])), at = st.armAt ? b.getWorldPoint(planck.Vec2(st.armAt[0], st.armAt[1])) : b.getWorldPoint(planck.Vec2(st.stackAt[0] + 0.12, st.stackAt[1] + 0.12));
+        ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.lineTo(at.x, at.y); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.026; ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(pv.x, pv.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C9A227'; ctx.fillRect(at.x - 0.03, at.y - 0.03, 0.06, 0.06);
+      }
+    }
+    if (w === 'bola' && R.launcher) {
+      const lp = b.getWorldPoint(planck.Vec2(R.launcher.lp[0], R.launcher.lp[1])), a = R.bolaA || b.getAngle(), ok = R.launcher.hp > 0;
+      if (R.gSaw && R.gSaw.attached) { const bp = R.gSaw.body.getPosition(), cp = b.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.gSaw, { buzzW: R.gSaw.spin, buzzMax: 110, buzzR: 0.15 }); }
+      // the launcher: a turret with a bola loaded (two balls and a cord) while it is ready
+      ctx.save(); ctx.translate(lp.x, lp.y); ctx.rotate(a); ctx.fillStyle = ok ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.06, 0.3, 0.12, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
+      if (ok && R.cool <= 0 && !(R.bolas && R.bolas.length)) { const sp = t * 6; ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.2 + Math.cos(sp) * 0.09, Math.sin(sp) * 0.09); ctx.lineTo(0.2 - Math.cos(sp) * 0.09, -Math.sin(sp) * 0.09); ctx.stroke(); for (const sg of [1, -1]) { ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0.2 + sg * Math.cos(sp) * 0.09, sg * Math.sin(sp) * 0.09, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); } }
+      ctx.restore();
+      // bolas in flight or wrapped: the cord and the two balls
+      for (const B of R.bolas || []) { const p0 = B.balls[0].getPosition(), p1 = B.balls[1].getPosition();
+        if (B.joint) { ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.014; ctx.setLineDash([0.03, 0.02]); ctx.stroke(); ctx.setLineDash([]); }
+        for (const q of [p0, p1]) { ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; ctx.beginPath(); ctx.arc(q.x, q.y, 0.055, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(q.x - 0.015, q.y - 0.015, 0.018, 0, 6.29); ctx.fill(); } }
+    }
+    if (w === 'scav' && R.intake) { // SCAVENGER: a big intake bell at the nose, a glass hopper dome with the junk tumbling in it, a fat air cannon down the middle
+      const st = R.l4, a0 = b.getAngle(), M = b.getWorldPoint(planck.Vec2(R.hl + 0.24, 0)), ok = R.intake.hp > 0;
+      if (R.fx.suck) { for (let k = 0; k < 4; k++) { const r = 1.6 - ((t * 2.4 + k / 4) % 1) * 1.4; ctx.strokeStyle = `rgba(155,212,255,${0.65 * (1 - r / 1.6)})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(M.x, M.y, r, a0 - 0.75, a0 + 0.75); ctx.stroke(); }
+        for (let k = 0; k < 6; k++) { const ph = (t * 1.8 + k / 6) % 1, aa = a0 + Math.sin(k * 2.3) * 0.6, rr2 = 1.3 * (1 - ph); ctx.fillStyle = `rgba(200,190,170,${0.6 * ph})`; ctx.beginPath(); ctx.arc(M.x + Math.cos(aa) * rr2, M.y + Math.sin(aa) * rr2, 0.02, 0, 6.29); ctx.fill(); } } // dust streaming in
+      ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      // the intake bell over the scoop: a wide dark mouth narrowing into a throat
+      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4;
+      ctx.beginPath(); ctx.moveTo(R.hl + 0.2, -R.hw * 0.85); ctx.lineTo(R.hl + 0.2, R.hw * 0.85); ctx.lineTo(R.hl * 0.25, R.hw * 0.3); ctx.lineTo(R.hl * 0.25, -R.hw * 0.3); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.moveTo(R.hl + 0.17, -R.hw * 0.72); ctx.lineTo(R.hl + 0.17, R.hw * 0.72); ctx.lineTo(R.hl * 0.35, R.hw * 0.18); ctx.lineTo(R.hl * 0.35, -R.hw * 0.18); ctx.closePath(); ctx.fill();
+      if (ok) { ctx.save(); ctx.translate(R.hl * 0.5, 0); ctx.rotate(t * (R.fx.suck ? 30 : 4)); ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 2.2; for (let k = 0; k < 4; k++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(0.06, 0.02, 0.09, 0.09); ctx.stroke(); } ctx.restore(); } // the fan in the throat
+      // the hopper: a glass dome over the back with the junk in it
+      const hx = -R.hl * 0.45, hr = Math.min(R.hw * 0.62, R.hl * 0.42);
+      ctx.fillStyle = 'rgba(30,26,22,0.85)'; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill();
+      (R.hopper || []).forEach((d, n) => { const an = n * 2.1 + t * (R.fx.suck ? 3 : 0.5), rr3 = hr * (0.25 + 0.45 * ((n * 0.37) % 1)); ctx.save(); ctx.translate(hx + Math.cos(an) * rr3, Math.sin(an) * rr3); ctx.rotate(an * 1.7); ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : d.kind === 'armour' ? '#8A8C84' : '#77796F'; ctx.strokeStyle = INK; ctx.lineWidth = PX; ctx.fillRect(-0.045, -0.03, 0.09, 0.06); ctx.strokeRect(-0.045, -0.03, 0.09, 0.06); ctx.restore(); });
+      ctx.fillStyle = 'rgba(190,230,255,0.22)'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(hx - hr * 0.35, -hr * 0.4, hr * 0.35, hr * 0.15, -0.5, 0, 6.29); ctx.fill();
+      // the air cannon: a fat barrel from the hopper over the throat to the nose, kicks back when it fires
+      const cok = R.cannon.hp > 0, kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.4;
+      ctx.fillStyle = cok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(hx + hr * 0.5 - kick, -0.07, R.hl + 0.32 - hx - hr * 0.5, 0.14, 0.03); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(hx + hr * 0.6 - kick, -0.055, R.hl, 0.022); ctx.fillStyle = HAZ; ctx.fillRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14); ctx.strokeRect(R.hl + 0.22 - kick, -0.07, 0.05, 0.14);
+      ctx.fillStyle = cok ? '#47A8FF' : '#3a3530'; for (const y of [-1, 1]) { ctx.beginPath(); ctx.ellipse(-R.hl * 0.05, y * R.hw * 0.62, 0.12, 0.06, 0, 0, 6.29); ctx.fill(); ctx.stroke(); } // air tanks
+      if (S.t - (st.last || -9) < 0.12) { ctx.fillStyle = 'rgba(230,240,255,0.85)'; ctx.beginPath(); ctx.arc(R.hl + 0.36, 0, 0.16, 0, 6.29); ctx.fill(); }
+      ctx.restore();
+    }
+    if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a big slewing crane (cab, counterweight, lattice boom, hook)
+      const st = R.l4;
+      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.016; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
+      const ok = R.crane.hp > 0, base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1])), rest = [-0.1 * R.hl, 0.55 * R.hw], at = st.armAt || rest, hk = b.getWorldPoint(planck.Vec2(at[0], at[1]));
+      const ang = Math.atan2(hk.y - base.y, hk.x - base.x), bl = Math.max(0.3, Math.hypot(hk.x - base.x, hk.y - base.y));
+      ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(ang);
+      ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.fillRect(-0.36, -0.13, 0.17, 0.26); ctx.strokeRect(-0.36, -0.13, 0.17, 0.26); ctx.fillStyle = HAZ; ctx.fillRect(-0.36, -0.13, 0.04, 0.26); // counterweight
+      ctx.fillStyle = ok ? HAZ : '#55524C'; ctx.beginPath(); ctx.moveTo(-0.05, -0.075); ctx.lineTo(bl, -0.03); ctx.lineTo(bl, 0.03); ctx.lineTo(-0.05, 0.075); ctx.closePath(); ctx.fill(); ctx.stroke(); // the boom
+      ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; for (let s2 = 0.05, k = 0; s2 < bl - 0.04; s2 += 0.08, k++) { const w0 = 0.075 - 0.045 * s2 / bl, w1 = 0.075 - 0.045 * (s2 + 0.08) / bl; ctx.beginPath(); ctx.moveTo(s2, (k % 2 ? 1 : -1) * w0); ctx.lineTo(s2 + 0.08, (k % 2 ? -1 : 1) * w1); ctx.stroke(); }
+      ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2.2; rr(-0.2, -0.12, 0.2, 0.24, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#9BD4FF'; ctx.fillRect(-0.06, -0.08, 0.05, 0.16); ctx.strokeRect(-0.06, -0.08, 0.05, 0.16); // the cab and its window
+      ctx.restore();
+      if (st.carry && st.carry.attached) { const cp = st.carry.body.getPosition(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(hk.x, hk.y); ctx.lineTo(cp.x, cp.y); ctx.stroke(); }
+      ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(hk.x, hk.y, 0.04, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(base.x, base.y);
+      if (st.mode === 'out' && st.to) { const g = b.getWorldPoint(planck.Vec2(st.to[0], st.to[1])); ctx.strokeStyle = 'rgba(255,176,32,0.85)'; ctx.lineWidth = PX * 2.5; ctx.setLineDash([PX * 4, PX * 3]); ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(b.getAngle()); ctx.strokeRect(-0.2, -0.2, 0.4, 0.4); ctx.beginPath(); ctx.moveTo(-0.08, 0); ctx.lineTo(0.08, 0); ctx.moveTo(0, -0.08); ctx.lineTo(0, 0.08); ctx.stroke(); ctx.restore(); ctx.setLineDash([]); } // where it will land
+    }
+    if (w === 'anchor' && R.winch) { // SLINGSHOT: a big harpoon gun down the middle (grapnel loaded when ready), the bungee drum, spikes along the prow
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), ok = R.winch.hp > 0;
+      ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      if (R.tool && R.tool.attached) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; const edges = [[[R.hl, -R.hw * 0.95], [R.hl + 0.24, -R.hw * 0.25]], [[R.hl + 0.24, -R.hw * 0.25], [R.hl + 0.3, 0]], [[R.hl + 0.3, 0], [R.hl + 0.24, R.hw * 0.25]], [[R.hl + 0.24, R.hw * 0.25], [R.hl, R.hw * 0.95]]];
+        for (const [[x0, y0], [x1, y1]] of edges) { const L0 = Math.hypot(x1 - x0, y1 - y0), nx = (y1 - y0) / L0, ny = -(x1 - x0) / L0, n = Math.max(1, Math.round(L0 / 0.09)); for (let k = 0; k < n; k++) { const f = (k + 0.5) / n, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f, tx = (x1 - x0) / L0, ty = (y1 - y0) / L0; ctx.beginPath(); ctx.moveTo(x - tx * 0.03, y - ty * 0.03); ctx.lineTo(x + nx * 0.09, y + ny * 0.09); ctx.lineTo(x + tx * 0.03, y + ty * 0.03); ctx.closePath(); ctx.fill(); ctx.stroke(); } } }
+      const gx = -0.1 * R.hl, loaded = ok && st.mode === 'free' && R.cool <= 0;
+      ctx.fillStyle = ok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(gx, -0.065, R.hl * 1.05, 0.13, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(gx + 0.04, -0.05, R.hl * 0.9, 0.02);
+      if (loaded) { ctx.save(); ctx.translate(gx + R.hl * 1.05 + 0.08, 0); ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.12); ctx.lineTo(-0.06, -0.1); ctx.lineTo(-0.02, -0.03); ctx.lineTo(-0.1, -0.03); ctx.lineTo(-0.1, 0.03); ctx.lineTo(-0.02, 0.03); ctx.lineTo(-0.06, 0.1); ctx.lineTo(-0.02, 0.12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); } // the grapnel loaded in the muzzle
+      // the bungee drum: red rubber coils, they spin while it winches
+      const wx = R.winch.lp[0]; ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -R.hw * 0.62, 0.22, R.hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
+      const spin = st.mode === 'charge' ? t * 12 : 0; ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; for (let k = 0; k < 6; k++) { const y = -R.hw * 0.55 + ((k * 0.19 * R.hw + spin * 0.02) % (R.hw * 1.1)); ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.03); ctx.stroke(); }
+      ctx.restore();
+    }
+    if (w === 'pogo' && R.leg) { // POGO: a big coil spring on the back, squeezed flatter as it charges; the landing marker while it crouches or flies
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), ok = R.leg.hp > 0, k = R.fx.spring || 0;
+      if ((st.mode === 'crouch' || st.mode === 'air') && R.enemy && R.enemy.alive) {
+        const tg = st.mode === 'air' ? st.to : [R.enemy.body.getPosition().x + R.enemy.body.getLinearVelocity().x * 0.8, R.enemy.body.getPosition().y + R.enemy.body.getLinearVelocity().y * 0.8];
+        ctx.strokeStyle = st.mode === 'air' ? 'rgba(255,59,43,0.9)' : `rgba(255,176,32,${0.4 + 0.5 * k})`; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(tg[0], tg[1], R.hl * 0.9, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(tg[0] - 0.15, tg[1]); ctx.lineTo(tg[0] + 0.15, tg[1]); ctx.moveTo(tg[0], tg[1] - 0.15); ctx.lineTo(tg[0], tg[1] + 0.15); ctx.stroke();
+      }
+      { ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0); if (st.mode === 'air') { const air = Math.sin(Math.PI * Math.min(1, st.t / 0.8)); ctx.scale(1 + 0.28 * air, 1 + 0.28 * air); }
+        const rOut = Math.min(R.hw, R.hl) * 0.78, turns = 5; ctx.fillStyle = '#2B2620'; ctx.beginPath(); ctx.arc(0, 0, rOut + 0.02, 0, 6.29); ctx.fill();
+        ctx.strokeStyle = ok ? (k > 0.9 && Math.sin(t * 30) > 0 ? '#FF5A3C' : '#C9A227') : '#55524C'; ctx.lineWidth = PX * (3 + 2 * k); ctx.beginPath();
+        for (let s2 = 0; s2 <= 1.0001; s2 += 0.01) { const r = rOut * (0.25 + 0.75 * s2) * (1 - 0.25 * k), an = s2 * turns * 6.2832; s2 ? ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r) : ctx.moveTo(Math.cos(an) * r, Math.sin(an) * r); } ctx.stroke(); // the coil seen from above, squeezed tighter as it charges
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, rOut * 0.22, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(0, 0); ctx.restore(); }
+    }
+    if (w === 'rail' && R.coil) { // RAILGUN: two long rails down the middle and out past the nose, a capacitor bank that glows as it charges, arcs when full
+      const st = R.l4, p0 = b.getPosition(), a0 = b.getAngle(), k = R.fx.caps || 0, ok = R.coil.hp > 0, kick = Math.max(0, 0.2 - (S.t - (st.last || -9))) * 0.5;
+      ctx.save(); ctx.translate(p0.x, p0.y); ctx.rotate(a0);
+      for (const y of [-1, 0, 1]) { ctx.fillStyle = R.caps.hp > 0 ? '#2B2620' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(-R.hl * 0.85, y * 0.13 - 0.05, R.hl * 0.45, 0.1, 0.04); ctx.fill(); ctx.stroke(); ctx.fillStyle = `rgba(71,168,255,${0.25 + 0.75 * k})`; ctx.fillRect(-R.hl * 0.82, y * 0.13 - 0.03, R.hl * 0.39 * k, 0.06); } // capacitors
+      const x0 = -R.hl * 0.35 - kick, x1 = R.hl + 0.32 - kick;
+      ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(x0, -0.1, x1 - x0, 0.2, 0.02); ctx.fill(); ctx.stroke();
+      for (const y of [-0.065, 0.065]) { ctx.fillStyle = ok ? '#B87333' : '#55524C'; ctx.fillRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); ctx.strokeRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); } // the copper rails
+      for (let x = x0 + 0.08; x < x1 - 0.05; x += 0.12) { ctx.fillStyle = '#5B5E57'; ctx.fillRect(x, -0.1, 0.035, 0.2); } // clamps
+      if (k > 0.95 && ok) { ctx.strokeStyle = 'rgba(190,230,255,0.9)'; ctx.lineWidth = PX * 1.6; for (let a = 0; a < 3; a++) { const x = x0 + 0.1 + ((t * 7 + a * 0.37) % 1) * (x1 - x0 - 0.15); ctx.beginPath(); ctx.moveTo(x, -0.045); ctx.lineTo(x + (Math.random() - 0.5) * 0.04, 0); ctx.lineTo(x, 0.045); ctx.stroke(); } } // arcs between the rails
+      if (R.mag && R.mag.length && ok) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.fillRect(x0 + 0.05, -0.03, 0.25, 0.06); ctx.strokeRect(x0 + 0.05, -0.03, 0.25, 0.06); } // the next slug in the breech
+      if (S.t - (st.last || -9) < 0.1) { ctx.fillStyle = 'rgba(200,235,255,0.9)'; ctx.beginPath(); ctx.arc(x1 + 0.08, 0, 0.18, 0, 6.29); ctx.fill(); }
+      ctx.restore();
+      for (const sh of st.fly || []) { const qp = sh.d.body.getPosition(), v = sh.d.body.getLinearVelocity(); ctx.strokeStyle = 'rgba(160,215,255,0.8)'; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(qp.x - v.x * 0.03, qp.y - v.y * 0.03); ctx.lineTo(qp.x, qp.y); ctx.stroke(); ctx.lineCap = 'butt'; } // tracer
+    }
+    if (w === 'yoyo' && R.yo) { // YO-YO: the winch on top, the cable to the disc, the saw disc itself
+      const st = R.l4, q = R.yo;
+      if (!q.gone && q.hp > 0) { const nz = b.getWorldPoint(planck.Vec2(R.hl, 0)), qp = q.body.getPosition();
+        if (st.mode === 'out' || st.mode === 'reel') { ctx.strokeStyle = INK; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(nz.x, nz.y); ctx.lineTo(qp.x, qp.y); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.012; ctx.setLineDash([0.04, 0.03]); ctx.stroke(); ctx.setLineDash([]); }
+        if (st.mode !== 'loose') drawBuzz(q, { buzzW: q.spin || 0, buzzMax: 130, buzzR: 0.19 }); }
+      const sp = b.getWorldPoint(planck.Vec2(R.spool.lp[0], R.spool.lp[1])); ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(b.getAngle());
+      ctx.fillStyle = R.spool.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, 0.15, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.stroke(); ctx.save(); ctx.rotate(st.mode === 'reel' ? t * 20 : 0); ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0); ctx.stroke(); ctx.restore(); ctx.restore();
+    }
+    // a robot with a bola round its wheels: cord coils on the tied side
+    if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }
+    if (w === 'beak' && R.beakRam) { // the upper beak: raised (drawn short and big), dropping, or closed on its victim
+      const st = R.l4, k = R.grab ? 1 : st.mode === 'strike' ? 1 - st.t / 0.16 : 0, bend = R.beakBend || 0, sc = 1 + 0.45 * (1 - k), tipX = R.hl + 0.02 + 0.34 * k;
+      ctx.save(); const p0 = b.getPosition(); ctx.translate(p0.x, p0.y); ctx.rotate(b.getAngle()); ctx.translate(0.15 * R.hl, 0); ctx.rotate(bend * 0.6); ctx.scale(sc, sc);
+      const L0 = tipX - 0.15 * R.hl;
+      if (R.beakRam.hp > 0) {
+        ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / sc;
+        path([[-0.1, -0.11], [L0 * 0.55, -0.12], [L0 * 0.92, -0.06], [L0 + 0.04, 0.02], [L0 - 0.02, 0.05], [L0 * 0.8, 0.0], [L0 * 0.55, 0.1], [-0.1, 0.11]]); ctx.fill(); ctx.stroke(); // hooked beak, the hook curls down at the tip
+        ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-0.08, -0.1, L0 * 0.6, 0.03);
+        ctx.fillStyle = R.grab ? '#FF3B2B' : '#2B2620'; ctx.beginPath(); ctx.arc(L0 + 0.02, 0.025, 0.018, 0, 6.29); ctx.fill();
+        bolt(-0.04, 0);
+      } else { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.moveTo(-0.08, -0.06); ctx.lineTo(0.06, 0.07); ctx.stroke(); }
+      ctx.restore();
+      if (R.grab) { const T = R.grab.robot, ap = T.body.getWorldPoint(planck.Vec2(st.alp[0], st.alp[1])); ctx.strokeStyle = 'rgba(255,59,43,0.75)'; ctx.lineWidth = PX * 2.5; ctx.setLineDash([PX * 4, PX * 3]); ctx.beginPath(); ctx.arc(ap.x, ap.y, 0.09 + 0.02 * Math.sin(t * 25), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    if (w === 'roaster' && R.pincers) {
+      for (const q of R.pincers) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; for (const x of [0.16, 0.28, 0.4]) { ctx.beginPath(); ctx.moveTo(x - 0.025, 0); ctx.lineTo(x, -q.side * 0.07); ctx.lineTo(x + 0.025, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); } bolt(0.03, 0); bolt(0.22, 0); }); // serrated teeth on the inside of each claw
+      { const tk = b.getWorldPoint(planck.Vec2(-0.55 * R.hl, 0)); ctx.save(); ctx.translate(tk.x, tk.y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#B8423A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.11, 0.11]) { rr(-0.14, y - 0.075, 0.28, 0.15, 0.07); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.1, y - 0.06, 0.2, 0.025); ctx.fillStyle = '#B8423A'; } ctx.fillStyle = HAZ; ctx.fillRect(-0.03, -0.2, 0.06, 0.4); ctx.restore(); } // twin fuel tanks on its back
+      const nz = b.getWorldPoint(planck.Vec2(R.nozzle.lp[0], R.nozzle.lp[1])), a = b.getAngle(), on = R.nozzle.hp > 0;
+      ctx.save(); ctx.translate(nz.x, nz.y); ctx.rotate(a); ctx.fillStyle = on ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.05, 0.3, 0.1, 0.01); ctx.fill(); ctx.stroke(); rr(0.26, -0.075, 0.08, 0.15, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C0392B'; ctx.beginPath(); ctx.arc(-0.05, 0.11, 0.045, 0, 6.29); ctx.fill(); ctx.stroke();
+      if (on && R.alive) { ctx.fillStyle = '#5AB0FF'; ctx.beginPath(); ctx.arc(0.3, 0, 0.012, 0, 6.29); ctx.fill(); } ctx.restore();
+      if (R.flameOn > 0) { const mz = b.getWorldPoint(planck.Vec2(R.hl - 0.05, 0)), hot = R.grab ? 1.4 : 1; for (let k2 = 0; k2 < 10; k2++) { const aa = a + (Math.random() - 0.5) * 0.6, v = (3 + Math.random() * 2.5) * hot; spawn({ t: 'fire', x: mz.x, y: mz.y, vx: Math.cos(aa) * v, vy: Math.sin(aa) * v, life: 0.22 + Math.random() * 0.15, max: 0.37, s: 0.04 + Math.random() * 0.04 }); } }
+    }
+    if (w === 'smith' && R.hammerArm) { // the forge hammer: swings from the back over the anvil nose
+      const s0 = R.swing > 0 ? 1 - R.swing / 0.18 : R.recover > 0 ? R.recover / (R.grab ? 0.25 : 0.5) : 0, k = 1.55 - 0.55 * s0, T = R.grab ? R.grab.robot : null; // held high (drawn big) until it comes down
+      const piv = b.getWorldPoint(planck.Vec2(-0.15 * R.hl, 0)), aim = T ? T.body.getWorldPoint(planck.Vec2(-0.05 * T.hl, 0)) : b.getWorldPoint(planck.Vec2(R.hl + 0.3, 0)), rest = b.getWorldPoint(planck.Vec2(0.3 * R.hl, 0));
+      const hx = rest.x + (aim.x - rest.x) * s0, hy = rest.y + (aim.y - rest.y) * s0, ang = Math.atan2(hy - piv.y, hx - piv.x);
+      if (R.hammerArm.hp > 0) {
+        ctx.strokeStyle = INK; ctx.lineWidth = 0.075 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(piv.x, piv.y); ctx.lineTo(hx, hy); ctx.stroke(); ctx.strokeStyle = '#8C6A3A'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.scale(k, k); ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; rr(-0.1, -0.18, 0.2, 0.36, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(-0.08, -0.16, 0.04, 0.32); ctx.fillStyle = '#2B2620'; ctx.fillRect(-0.1, -0.18, 0.2, 0.05); ctx.fillRect(-0.1, 0.13, 0.2, 0.05); ctx.restore();
+        bolt(piv.x, piv.y);
+      }
+      const an = b.getWorldPoint(planck.Vec2(R.hl - 0.04, 0)), glow = R.fx && R.fx.forge || 0; // the anvil face glows as the beats add up
+      ctx.save(); ctx.translate(an.x, an.y); ctx.rotate(b.getAngle()); ctx.fillStyle = `rgba(255,${140 - 60 * glow},40,${0.15 + 0.55 * glow})`; ctx.fillRect(-0.04, -R.hw * 0.5, 0.06, R.hw); ctx.restore();
+    }
     if (w === 'carousel' && R.car) {
       const c0 = R.car.getPosition(), a = R.car.getAngle();
       for (const q of [R.gmWedge, R.gmAxe]) if (q && q.attached) onBody(q, () => drawPart(q, q === R.gmWedge ? '#D9B43A' : '#8C8F86', R, q === R.gmAxe ? () => { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-1, -1, 2, 0.02); } : null));
@@ -626,6 +940,7 @@
       ctx.fillStyle = '#9A9C94'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
       for (const sg of [1, -1]) { ctx.beginPath(); ctx.moveTo(sg * (rad - 0.04), -sg * 0.05); ctx.lineTo(sg * (rad + 0.07), -sg * 0.025); ctx.lineTo(sg * (rad + 0.07), sg * 0.025); ctx.lineTo(sg * (rad - 0.04), sg * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
+      if (part.warp) { const fa = part.foldA, wp = part.warp / 0.45; ctx.strokeStyle = `rgba(14,9,5,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(-Math.sin(fa) * rad, Math.cos(fa) * rad); ctx.lineTo(Math.sin(fa) * rad, -Math.cos(fa) * rad); ctx.stroke(); }
       ctx.fillStyle = R && R.alive ? col.col : '#4A4540'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.62, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.stroke();
       ctx.fillStyle = R && R.alive ? col.dark : '#3A3530'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.22, 0, 6.29); ctx.fill(); ctx.stroke();
       for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283; bolt(Math.cos(t) * rad * 0.8, Math.sin(t) * rad * 0.8); }
@@ -661,7 +976,16 @@
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
-    if (w > 0.2) { ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(0, 0, 0.53, 0, 6.29); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.5, a + k * Math.PI, a + k * Math.PI + 0.9); ctx.stroke(); } }
+    // each arm's reach and where its tip points (a bent arm is shorter and trails): a bent bar sweeps two circles, not one
+    const arm = sg => { let r = 0, an = sg > 0 ? 0 : Math.PI; for (const q of part.outline) if (q[0] * sg > 0) { const d = Math.hypot(q[0], q[1]); if (d > r) { r = d; an = Math.atan2(q[1], q[0]); } } return [r || 0.5, an]; };
+    const [rA, aA] = arm(1), [rB, aB] = arm(-1), bent = Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08;
+    if (w > 0.2) {
+      const R0 = Math.max(rA, rB) + 0.01, off = bent ? (rA - rB) * 0.5 : 0; // the out-of-balance bar throws its swept disc off centre
+      ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(Math.cos(a) * off, Math.sin(a) * off, R0, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2;
+      for (const [rr, aa] of [[rA, aA], [rB, aB]]) { ctx.beginPath(); ctx.arc(0, 0, rr - 0.02, a + aa, a + aa + 0.9); ctx.stroke(); }
+      if (bent) { const rs = Math.min(rA, rB) - 0.02; ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, rs, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the bent arm's shorter track
+    }
     ctx.rotate(a);
     if (w > 0.4) { ctx.globalAlpha = 0.35; for (const o of [-0.25, -0.12]) { ctx.save(); ctx.rotate(o); path(part.outline); ctx.fillStyle = '#B9BBB4'; ctx.fill(); ctx.restore(); } ctx.globalAlpha = 1; }
     drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
@@ -675,6 +999,9 @@
     if (sp > 2) { ctx.strokeStyle = `rgba(255,240,210,${Math.min(0.5, sp / 12)})`; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x - v.x * 0.07, p.y - v.y * 0.07); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.lineCap = 'butt'; }
     if (d.key === 'blade') { drawBlade(d, null); return; }
     if (d.key === 'buzz') { drawBuzz(d, null); return; }
+    if (d.key === 'record') { drawRecord(d); return; }
+    if (d.key === 'brick') { drawBrick(d, false); return; }
+    if (d.key === 'yoyo') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 130, buzzR: 0.19 }); return; }
     if (d.key === 'orbdisc' || d.key === 'gmsaw') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 95, buzzR: 0.13 }); return; }
     if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }
@@ -682,7 +1009,7 @@
     if (d.key === 'twinsaw') { drawBuzz(d, { buzzW: 0, buzzMax: 100, buzzR: 0.12 }); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
-    const fill = d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
+    const fill = d.fillAs ? d.fillAs : d.lid ? '#5C5650' : d.kind === 'wheel' ? RUBBER : d.kind === 'armour' ? '#8A8C84' : d.key === 'chassis' ? '#5B554D' : d.key === 'flipper' ? '#B89A35' : '#77796F';
     drawPart(d, fill, d.robot, d.kind === 'wheel' ? () => wheelTread(d, d.spin || 0) : null);
     ctx.restore();
   }
@@ -968,7 +1295,11 @@
   }
   function toScreen(x, y) { return [W / 2 + ((x - cam.x) * cam.z) * K, W / 2 + ((y - cam.y) * cam.z) * K]; }
 
+  // test hook (headless screenshots): window.DL_TEST.follow(zoom) keeps the camera on the robots
+  let testFollow = 0, testOn = null; window.DL_TEST = { state: () => S, follow: (z, id) => { testFollow = z; testOn = id == null ? null : id; } };
   function draw() {
+    if (testFollow && S && testOn != null) { const R = S.robots[testOn], q = (R.blade && R.blade.attached ? R.blade.body : R.body).getPosition(); cam.x = cam.tx = q.x; cam.y = cam.ty = q.y; cam.z = cam.tz = testFollow; }
+    else if (testFollow && S) { const al = S.robots.filter(R => !R.inPit); const mx = al.reduce((a, R) => a + R.body.getPosition().x, 0) / al.length, my = al.reduce((a, R) => a + R.body.getPosition().y, 0) / al.length; cam.x = cam.tx = mx; cam.y = cam.ty = my; cam.z = cam.tz = testFollow; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#3A3530'; ctx.fillRect(0, 0, W, W);
     const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
     ctx.setTransform(K * cam.z, 0, 0, K * cam.z, W / 2 - (cam.x + sx) * K * cam.z, W / 2 - (cam.y + sy) * K * cam.z);
@@ -977,9 +1308,11 @@
     drawCratesAndWarnings();
     for (const d of S.debris) drawDebris(d);
     // robot in the air is drawn last
-    const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
+    const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0) || ((a.tiltV || 0) > 0.05) - ((b.tiltV || 0) > 0.05));
     for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
+    for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
+    for (const R of order) if (R.bricks && R.l4.carry && R.l4.carry.attached && !R.inPit) drawBrick(R.l4.carry, true); // a block up on the crane hook is above everything
     drawEwalls(); drawDrones();
     for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }
     drawWalls();
@@ -1099,6 +1432,8 @@
   document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); togglePause(); } });
   document.querySelectorAll('[data-speed]').forEach(bn => bn.onclick = () => { st.speed = +bn.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === bn))); });
   $('drama').onchange = e => { st.drama = e.target.checked; };
+  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on
+  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
   $('arenaSel').innerHTML = Object.entries(L.ARENAS).map(([k, v]) => `<option value="${k}"${k === st.arena ? ' selected' : ''}>${v.label}</option>`).join('');
   $('arenaSel').onchange = e => { st.arena = e.target.value; start(); };
 
@@ -1119,7 +1454,7 @@
     }
     stepParticles(rdt * (ts || (hitStop > 0 ? 0 : 0)));
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
-    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
+    if (S) for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.crushFx > 0) R.crushFx -= rdt; tiltTick(R, rdt); if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
     for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) if (!Number.isFinite(cam[k])) cam[k] = k.endsWith('z') ? 1 : 0; // never lose the arena to a bad number
     if (!Number.isFinite(shake)) shake = 0;

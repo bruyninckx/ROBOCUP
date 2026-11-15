@@ -16,7 +16,7 @@
   function probe(spec) { return L.create({ a: spec, b: spec, seed: 1 }).robots[0]; }
   // level 4 parts (engine "ROBOCUS 2.0 LEVEL 4"): legs are wheels (Drive); arm segments, booms, discs, the carousel and its tools,
   // the coil, auger, hook and throwing arm are weapon parts or weapon internals (Weapon); the huge chassis is Body
-  const WEAPON_INT = new Set(['wmotor', 'turret', 'arm', 'ring', 'reel', 'coil', 'auger', 'rotor', 'carousel', 'tarm', 'winch', 'boom', 'fang', 'hook']);
+  const WEAPON_INT = new Set(['wmotor', 'turret', 'arm', 'ring', 'reel', 'coil', 'auger', 'rotor', 'carousel', 'tarm', 'winch', 'boom', 'fang', 'hook', 'beakram', 'nozzle', 'smitharm', 'loader', 'launcher', 'intake', 'aircan', 'crane', 'pogo', 'rails', 'caps', 'spool']);
   function zoneOfPart(q) {
     if (q.kind === 'wheel' || q.leg) return 'drive';
     if (q.kind === 'weapon') return 'weapon';
@@ -60,12 +60,14 @@
   const BOOST_K = 2.85;
   // tuning chips (9 Nov): worth about 1.2 levels on a level 0-1 frame (level 1 + chip vs level 3: 37-43% instead of 22%), less on
   // heavier frames because they overload (engine CHIP_GLITCH); measured with tools/damage-lab/chipfit.js
-  const CHIP = [0.55, 0.55, 0.25, 0, -0.2];   // Kev, 9 Nov: lowered (was 0.8 / 0.8 / 0.4): round 6 sims, chip robots won 4-8 points below the bookie's odds
-  const LEVEL = 0.62, PART = 0.62, LEG = 1.24, L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 3.0, body: 0.15 };   // body: see BODY_COST below
+  // Kev, 15 Nov (parts levelled, docs/robocus-part-levels.md): a chip is worth about 0.9 of a level on a level 0-1 robot, 0.35 on 2-3, nothing on 4
+  const CHIP = [0.5, 0.5, 0.2, 0.2, -0.05];   // was 0.55 / 0.55 / 0.25 / 0 / -0.2   // Kev, 9 Nov: lowered (was 0.8 / 0.8 / 0.4): round 6 sims, chip robots won 4-8 points below the bookie's odds
+  const LEVEL = 0.62, PART = 0.42, LEG = 0.9,   /* Kev, 15 Nov: measured on the levelled parts: a part about 0.72 of a level, a legendary 1.56 (was 0.62 / 1.24) */ L4_OFF = 0.35, ZONE_COST = { drive: 1.2, weapon: 3.0, body: 0.15 };   // body: see BODY_COST below
   const gradeOf = name => { const r = LU && (LU.ROBOTS[name] || (LU.ROBOTS4 || {})[name]); return r ? r[1] : null; };
   function strength(spec, name, level, parts) {
     const g = gradeOf(name);
-    let s = (level || 0) * LEVEL - (level >= 4 ? L4_OFF : 0) + (g ? Math.log(g) * 0.6 : 0);
+    const tuned = LU && LU.TUNED;   // 15 Nov: tuned lineup: every robot of a level is as strong as the level (its grade is what makes it so), and level 4 is a full step
+    let s = (level || 0) * LEVEL - (level >= 4 && !tuned ? L4_OFF : 0) + (g && !tuned ? Math.log(g) * 0.6 : 0);
     // level gap test (Lineup.levelBoost, Kev 9 Nov): measured about +0.22 logits per level step for a boost of 8% (2.85 x ln(1 + boost))
     if (LU && LU.levelBoost) s += (level || 0) * BOOST_K * Math.log(1 + LU.levelBoost);
     for (const k of parts || []) if (k) s += LU && LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? LEG : LU && LU.PARTS[k] && LU.PARTS[k].kind === 'chip' ? CHIP[Math.min(4, Math.max(0, level || 0))] : PART;
@@ -77,7 +79,7 @@
    * on average it costs 0.74, and it differs a lot by robot. A dead processor chip ("brain fried": it wanders on backup control)
    * is the worst of it. BODY_COST[robot] = [all armour and the top plate gone, processor chip dead]; in between by pieces lost.
    * Drive: one wheel or motor gone 1.5, two 2.6, three or more 3.4. Weapon gone 3.0 (lab values 1.2 / 2.2 / 3.0 and 2.6, raised below). */
-  const BODY_COST = { Angler: [0.4, 0.6], Blowtorch: [1.2, 1], Brawler: [1.1, 1.5], Buzzkill: [0.3, 1], Corkscrew: [1.4, 1.6], Forklift: [1.5, 1.4], Grandmaster: [1.3, 1.1], Gyro: [0.8, 0.6], Haymaker: [0.6, 1.1], Hornet: [0.8, 0.9], Hydra: [0.8, 0.6], Jouster: [0.8, 1], Juggernaut: [0.3, 0.7], Lodestone: [0.1, 0.5], Mauler: [0.8, 0.7], Mincer: [0.8, 1.1], Orbiter: [0.8, 1], Pincher: [0.7, 1], Popcorn: [0.5, 0.6], Ramrod: [0.7, 0.8], Rocketeer: [1.5, 1.2], Rumbler: [0.9, 0.9], Sawblast: [0.7, 0.4], Scythe: [0.9, 1], Snapjaw: [0.9, 0.9], Tarantula: [0.6, 1.3], Thumper: [1.5, 1.2], Thwacker: [1.3, 0.9], Trebuchet: [0.8, 1.5], Vertigo: [0.9, 1.1], Whaler: [0.9, 0.7], Whirlwind: [0, 1.1], Wrecker: [1.4, 1] };
+  const BODY_COST = { Angler: [0.8, 0.6], Blacksmith: [0, 1], Bricklayer: [1.0, 1], Buzzkill: [0, 1], Corkscrew: [0, 1.6], Forklift: [0.4, 1.4], Gaucho: [0.3, 1], Grandmaster: [0, 1.1], Gyro: [0, 0.6], Hornet: [1.0, 0.9], Hydra: [0.6, 0.6], Jukebox: [1.0, 1], Lodestone: [0.3, 0.5], Mauler: [1.2, 0.7], Mincer: [0, 1.1], Orbiter: [0, 1], Pincher: [0.1, 1], Pogo: [0, 1], Popcorn: [0.2, 0.6], Railgun: [0.1, 1], Rotisserie: [0.1, 1], Scavenger: [0.3, 1], Scythe: [1.2, 1], Slingshot: [0.2, 1], Snapjaw: [0, 0.9], Tarantula: [0.1, 1.3], Thumper: [1.0, 1.2], Thwacker: [0, 0.9], Trebuchet: [0.3, 1.5], Vertigo: [0.6, 1.1], Whaler: [1.2, 0.7], Wrecker: [1.1, 1], Yoyo: [1.1, 1] };   // 15 Nov: armour re-measured on the tuned lineup (tag-tuned/final.json bodyCost); chip as before, 1 for new robots
   const BODY_DEF = [0.8, 1.0], DRIVE_LOST = [0, 1.5, 2.6, 3.4], DRONE_COST = 0.4, MODULE_COST = 0.4;
   // in whole games (100 AI games, 11 Nov) damaged robots still won 6-9 points less than these lab costs said (they also meet
   // parts and cards): armour x 1.2, a dead chip + 0.6, drive and weapon a step up
