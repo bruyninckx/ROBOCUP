@@ -14,7 +14,7 @@ const fs = require('fs'), path = require('path');
     G.teams.forEach((t, i) => { t.credits = 12; t.fame = 8; t.secBots = i === T ? 1 : 0; t.exSec = 0; t.hand = hands[i] || []; t.sponsor = 'aegis'; });
     G.intrigueTurn = A; G.cashMode = false; D.updateHud(); return D.PT.game.events.filter(e => e.k === 'msg').length; }, [A, T, hands]);
   const win = p => p.evaluate(() => { const el = document.getElementById('reactWin'); if (!el || el.hidden) return null; return { text: el.querySelector('.rw-body').textContent.replace(/\s+/g, ' '), btns: [...el.querySelectorAll('button')].map(x => x.textContent.trim()), sec: el.querySelector('.rw-sec').textContent }; });
-  const banner = p => p.evaluate(() => { const el = document.getElementById('waitBanner'); return el && !el.hidden ? el.textContent : ''; });
+  const banner = p => p.evaluate(() => { const el = document.getElementById('waitRail'); return el && !el.hidden ? el.textContent : ''; });
   const play = () => seatOf[A].evaluate(T => window.ROBOCUS_DEBUG.act('play', 'smash_and_grab', T), T);
   const ms = await host.evaluate(() => window.ROBOCUS_DEBUG.G && 10000);
   // ---- 1 and 2: the target holds Paid Off and a garage bot, the others nothing; nobody answers
@@ -27,7 +27,7 @@ const fs = require('fs'), path = require('path');
   for (const s of [0, 1, 2]) if (!w[s]) bad.push('seat ' + s + ' got no reaction window');
   if (w[T] && !(w[T].btns.some(x => /Paid Off/.test(x)) && w[T].btns.some(x => /Roll a Security Bot/.test(x)) && w[T].btns.includes('Pass'))) bad.push('the target does not see its bot, its card and Pass');
   for (const s of [0, 2]) if (w[s] && !(/no card to play here/.test(w[s].text) && w[s].btns.join() === 'OK')) bad.push('seat ' + s + ' (no cards) does not see "no card" and OK');
-  if (/P\d|Host/.test(await banner(seatOf[A]))) bad.push('the banner names who is still answering');
+  if (/DECIDING|YOUR MOVE|READY/.test(await banner(seatOf[A])) || !/REACTION WINDOW/.test(await banner(seatOf[A]))) bad.push('the list shows who is still answering');
   let closed = 0; for (let k = 0; k < 60; k++) { await host.waitForTimeout(250); if (!(await win(seatOf[T])) && !(await win(seatOf[0])) && !(await win(seatOf[2]))) { closed = Date.now() - t0; break; } }
   await host.waitForTimeout(800);
   const log1 = await hostLog(host, 3);

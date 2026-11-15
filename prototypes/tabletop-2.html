@@ -268,6 +268,28 @@ html, body {
 #waitBanner { position: fixed; left: 50%; top: 62px; transform: translateX(-50%); z-index: 900; pointer-events: none; background: #2B2118; color: #F4EDE2; font: 700 15px var(--mono); padding: 7px 16px; border-radius: 6px; border: 2px solid #E8C23A; box-shadow: 0 4px 14px rgba(0,0,0,.3); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 #waitBanner span { font-weight: 400; opacity: .8; }
 #waitBanner[hidden] { display: none; }
+/* 2.0.1 (Kev, 15 Nov): "at the right a clean overview of people we are still waiting for". One row per player. */
+.waitrail { position: fixed; z-index: 11; left: 0; top: 0; box-sizing: border-box; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 7px 10px 8px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.waitrail:empty { display: none; }
+.waitrail .wr-k { font: 600 10px var(--mono); letter-spacing: 1.5px; color: var(--muted); }
+.waitrail .wr-t { font: 400 21px/1.05 var(--stencil); color: var(--ink); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.waitrail .wr-row { flex: 1 1 0; min-height: 22px; max-height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 0; border-radius: 5px; border: 2px solid transparent; }
+.waitrail .wr-row i { flex: none; width: 7px; align-self: stretch; border-radius: 3px; background: var(--c); }
+.waitrail .wr-row .wr-n { flex: 1; min-width: 0; font: 700 13px/1.15 var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.waitrail .wr-row .wr-n small { display: block; font: 400 10.5px var(--sans); color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.waitrail .wr-row b { flex: none; font: 600 10px var(--mono); letter-spacing: .5px; padding: 3px 7px; border-radius: 10px; background: #E9E4DA; color: var(--muted); }
+.waitrail .wr-row.move { background: #FBF3D0; border-color: var(--hazard); }
+.waitrail .wr-row.move b { background: var(--hazard); color: var(--ink); }
+.waitrail .wr-row.busy { background: var(--panel); border-color: var(--line); }
+.waitrail .wr-row.busy b { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); animation: whoPulse 1.2s ease-in-out infinite; }
+.waitrail .wr-row.done b { background: #2F7D4A; color: #fff; }
+.tb-who { display: none !important; }
+.prompt-bar.idle.locked { background: #DCEBDD; }
+.prompt-bar.idle.locked::before { content: 'LOCKED IN'; }
+.prompt-bar.idle.wait { background: #EDE8DE; }
+.prompt-bar.idle.wait::before { content: 'NOTHING FOR YOU TO DO'; }
+@media (max-width: 699px) { .waitrail { display: none; } }
+
 #ivModal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
 #ivModal[hidden] { display: none; }
 #helpTip { position: fixed; z-index: 10050; pointer-events: none; max-width: 300px; background: var(--paper); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.22); padding: 7px 10px; font: 12px/1.42 var(--sans); color: #2B2118; }
@@ -349,6 +371,8 @@ html, body {
 
 <!-- 4 · sticky note: your move (placed over the pit's top-right corner) -->
 <div class="prompt-bar" id="promptBar"></div>
+<!-- 2.0.1 · who we are waiting for before the game moves on (placed top right, over the log) -->
+<div class="waitrail" id="waitRail"></div>
 <!-- 5 · the Stash (placed in your rail, under your robots) -->
 <div class="stashcard" id="stashCard"></div>
 <!-- 7 · log clipboard (placed under the pit): scrollable, grouped by round/phase and action (hover anything for help) -->
@@ -1473,7 +1497,6 @@ html, body {
     SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over;
   }
   function updateHud() {
-    try { renderWaiting(); } catch (e) {}   // the "waiting for" banner follows the layout
     // 15 Nov (overnight click test, a 1366 x 768 screen): a hand kept open lay over the third robot bay, so a player whose only
     // ready robot sat there could not send it. While you must click one of your own bays (send a robot, fit a part, repair),
     // a pinned hand steps down; it comes back by itself afterwards.
@@ -1489,7 +1512,9 @@ html, body {
     renderWhoDots();
     renderWinWatch();
     renderPromptBar();
-    { const pb = $('#promptBar'); pb.classList.toggle('idle', !pb.querySelector('button, select')); fitPrompt(); }
+    if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
+    try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
+    fitPrompt();
     renderHand();
   }
   /* ---------- Close to winning (Kev, 7 Nov: "it is not very clear when this happens") ----------
@@ -1599,7 +1624,7 @@ html, body {
           pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
-          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your robots (right) to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
+          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your robots (left) to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
           $('#pAct1').onclick = () => act('installKeep');
         } else if (iWait(G.hostResolved ? 'mres2' : 'mres')) {
           pb.innerHTML = '<span>📦 <b>Market Results.</b> ' + waitTxt(G.hostResolved ? 'mres2' : 'mres') + '</span>';
@@ -2290,7 +2315,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0 2026-11-15 reaction window, four logs';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15 phase slides, waiting list on the right';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2383,7 +2408,7 @@ html, body {
   function screenState() {
     const open = ['reactWin', 'ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + ptPlain(el.innerHTML).slice(0, 300) : null; }).filter(Boolean);
     const txt = id => { const el = document.getElementById(id); return el && !el.hidden ? ptPlain(el.innerHTML).slice(0, 300) : ''; }, fv = document.getElementById('fightView');
-    return { seat: HS, role: NETROLE || 'solo', view: [window.innerWidth, window.innerHeight], round: G ? G.round : 0, phase: G ? G.phase + (G.phase === 'market' ? '/' + G.marketStage : '') : '', open, banner: txt('waitBanner'), prompt: txt('promptBar'),
+    return { seat: HS, role: NETROLE || 'solo', view: [window.innerWidth, window.innerHeight], round: G ? G.round : 0, phase: G ? G.phase + (G.phase === 'market' ? '/' + G.marketStage : '') : '', open, banner: txt('waitRail'), prompt: txt('promptBar'),
       fightOnScreen: !!(fv && !fv.hidden), hand: G && G.teams[HS] ? G.teams[HS].hand.slice() : [], waitsFor: G && HS >= 0 ? seatBusyWith(HS) : null, clickable: [...new Set(hitRegions.map(r => r.kind))], errors: PT.errs };
   }
   async function reportProblem() {
@@ -4045,7 +4070,7 @@ html, body {
     for (const x of live) {
       if (!needsRobot(x.lot)) continue;
       const T = G.teams[x.team];
-      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▶ Click one of your Robot Bays (right)'; continue; }
+      if (isHuman(x.team) && canTake(T, x.lot)) { A.results[x.idx].target = '▶ Click one of your Robot Bays (left)'; continue; }
       const pickR = isHuman(x.team) ? null : aiPickRobot(T, x.lot);
       if (pickR) { A.results[x.idx].target = applyLot(x.team, x.lot, pickR); continue; }
       stashParts(T, [x.lot]); A.results[x.idx].target = stashOf(T).includes(x.lot) ? '📦 To the Stash' : '🏦 Stash full: sold';
@@ -5719,17 +5744,32 @@ html, body {
     if (JSON.stringify(list) !== JSON.stringify(netWaiting)) { netWaiting = list; renderWaiting(); }
   }
   function renderWaiting() {
-    let el = document.getElementById('waitBanner');
-    const list = isNetGame() && G && !G.over && G.phase !== 'fight' ? netWaiting || [] : [];
-    const me_ = list.find(x => x.seat === HS), others = list.filter(x => x.seat !== HS), rw = document.getElementById('reactWin'), react = list.find(x => x.seat === -1);
-    const html = react ? (rw && !rw.hidden ? '' : '⏱️ <b>Reaction window</b> <span>everyone can answer</span>') : !me_ && others.length ? '⏳ Waiting for ' + others.map(x => '<b style="color:' + shade(TEAMS[x.seat].col, 0.45) + '">' + esc(G.teams[x.seat].name) + '</b> <span>' + esc(x.what) + '</span>').join(' · ')
-      : me_ && !others.length && humanSeats().length > 1 ? '👉 Everyone is waiting for <b>you</b> <span>' + esc(me_.what) + '</span>' : '';
-    if (!html) { if (el) el.hidden = true; return; }
-    if (!el) { el = document.createElement('div'); el.id = 'waitBanner'; document.body.appendChild(el); }
+    const el = document.getElementById('waitRail'); if (!el || !G || !G.teams) return;
+    const fight = G.phase === 'fight', list = !G.over && !fight ? netWaiting || [] : [];
+    const react = list.find(x => x.seat === -1), n = react ? 0 : list.length;
+    const rows = G.teams.map(t => {
+      const hum = isHuman(t.i), b = !react && list.find(x => x.seat === t.i), turn = G.phase === 'intrigue' && G.intrigueTurn === t.i && !G.over;
+      let k = 'idle', lab = fight ? 'WATCHING' : 'NOTHING TO DO', what = '';
+      if (G.over) lab = t.i === G.winner ? 'WINNER' : '';
+      else if (react) lab = 'CAN ANSWER';   // no names: who is still thinking would give its cards away
+      else if (b) { k = t.i === HS ? 'move' : 'busy'; lab = t.i === HS ? 'YOUR MOVE' : 'DECIDING'; what = b.what; }
+      else if (!hum) { k = turn ? 'busy' : 'idle'; lab = turn ? 'PLAYING' : 'AI'; what = turn ? 'Intrigue turn' : ''; }
+      else if (G.gather && G.gather.done && G.gather.done[t.i]) { k = 'done'; lab = 'READY'; }
+      return '<div class="wr-row ' + k + '" style="--c:' + t.col + '"><i></i><span class="wr-n">' + esc(hum ? seatName(t.i) : t.name) + (t.i === HS ? ' (you)' : '') + (what ? '<small>' + esc(what) + '</small>' : '') + '</span>' + (lab ? '<b>' + lab + '</b>' : '') + '</div>';
+    }).join('');
+    const html = '<div class="wr-k">' + (G.over ? 'THE END' : 'BEFORE WE MOVE ON') + '</div><div class="wr-t">' + (G.over ? 'GAME OVER' : react ? 'REACTION WINDOW' : fight ? 'THE FIGHT' : n ? 'WAITING FOR ' + n : 'NOBODY HAS TO CLICK') + '</div>' + rows;
     if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
-    { const pit = hitRegions.find(r => r.kind === 'arena'), at = pit ? worldToScreen(pit.x + pit.w / 2, pit.y) : null;   // at the top of the pit, clear of the team tickets
-      el.style.left = (at ? Math.round(at.x) : Math.round(window.innerWidth / 2)) + 'px'; el.style.top = (at ? Math.round(at.y + 46 * cam.zoom) + 8 : 62) + 'px'; }
-    el.hidden = false;
+    promptState();
+  }
+  /* The yellow note says which of three things is true (2.0.1; Friday playtest: "it wasn't very clear when people had to click"):
+   * YOUR MOVE (yellow) when the game waits for you, LOCKED IN (green) when you are ready and others are not,
+   * NOTHING FOR YOU TO DO (grey) when the step is someone else's. */
+  function promptState() {
+    const pb = document.getElementById('promptBar'); if (!pb || !G) return;
+    const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
+    const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]);
+    const st = meIn || react ? 'move' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
+    pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
   }
   function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
     if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
@@ -5990,13 +6030,16 @@ html, body {
   function benchLayout() {
     const W = benchWidth();
     if (LAYOUT && LAYOUT.W === W && LAYOUT.phone === narrowScreen()) return LAYOUT;
-    BENCH.W = W; BENCH.x0 = -W / 2; BENCH.railX = W / 2 - BENCH.railW; BENCH.pitR = BENCH.railX - 14;
+    BENCH.W = W; BENCH.x0 = -W / 2; BENCH.railX = BENCH.x0;   // 2.0.1 (Kev, 15 Nov): your robots on the left, the pit in the middle, who we wait for and the log on the right
     const B = BENCH, tw = (B.W - 2 * B.tickGap) / 3;
     // Kev, 9 Nov (2nd look): the log back on the left as a side panel, the full height of the bench; the pit right of it,
     // the sticky note (zone 4) under the pit
     // Kev, 11 Nov: on a wide screen the extra width goes mostly to the log (70% of it, up to 560), not to the pit
-    const log = { x: B.x0, y: B.benchTop, w: narrowScreen() ? B.logW : Math.min(560, B.logW + Math.round((W - 1400) * 0.7)), h: B.bottom - B.benchTop };
-    const pitX = log.x + log.w + 14, pitH = B.bottom - B.benchTop - B.noteH - 12;
+    const logW = narrowScreen() ? B.logW : Math.min(560, B.logW + Math.round((W - 1400) * 0.7)), WAIT_H = 232;
+    const wait = { x: W / 2 - logW, y: B.benchTop, w: logW, h: WAIT_H };   // "before we move on": one row per player
+    const log = { x: wait.x, y: B.benchTop + WAIT_H + 10, w: logW, h: B.bottom - B.benchTop - WAIT_H - 10 };
+    BENCH.pitR = wait.x - 14;
+    const pitX = B.railX + B.railW + 14, pitH = B.bottom - B.benchTop - B.noteH - 12;
     const pit = { x: pitX, y: B.benchTop, w: B.pitR - pitX, h: pitH };
     const note = { x: pit.x, y: pit.y + pit.h + 12, w: pit.w, h: B.noteH };
     const floor = { x: pit.x + 12, y: pit.y + B.titleH, w: pit.w - 24, h: pit.h - B.titleH - 12 };
@@ -6012,7 +6055,7 @@ html, body {
     const box2slot = (b, pos) => ({ pos, gx: b.x + b.w / 2, gy: b.y + b.h / 2, gw: b.w, gh: b.h });
     const slots = [box2slot(rail, 0)].concat(tickets.map((b, k) => box2slot(b, k + 1)));
     // stage space for the phase stage functions: top-left corner at (0, 0), stageW × stageH
-    LAYOUT = { W, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, tickets, slots, ax: stageW / 2, ay: stageH / 2, aw: stageW, ah: stageH };
+    LAYOUT = { W, phone: narrowScreen(), pit, floor, note, stage, rail, bays, stash, log, wait, tickets, slots, ax: stageW / 2, ay: stageH / 2, aw: stageW, ah: stageH };
     return LAYOUT;
   }
   function getDynamicLayout() { return benchLayout(); }
@@ -6224,11 +6267,24 @@ html, body {
     ctx.textAlign = 'left';
   }
 
+  /* 2.0.1 (Kev, 15 Nov): "the screen slides from left to right on every phase". When the phase changes, the pit as it was
+   * slides out to the left and the new phase comes in from the right. Only the picture moves: the click boxes are the new
+   * phase's from the first frame, so nothing has to wait for the slide. */
+  const SLIDE = { key: null, t0: 0, old: null, cur: null, ms: 520 };
+  const slideRect = dpr => { const P = benchLayout().pit, a = worldToScreen(P.x + 3, P.y + 3), b = worldToScreen(P.x + P.w - 3, P.y + P.h - 3); return { x: Math.round(a.x * dpr), y: Math.round(a.y * dpr), w: Math.max(1, Math.round((b.x - a.x) * dpr)), h: Math.max(1, Math.round((b.y - a.y) * dpr)) }; };
+  const slideGrab = (c, r) => { c = c || document.createElement('canvas'); if (c.width !== r.w || c.height !== r.h) { c.width = r.w; c.height = r.h; } c.getContext('2d').drawImage(cv, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h); return c; };
   function renderWorld(now) {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const sw = window.innerWidth, sh = window.innerHeight;
     const targetW = Math.round(sw * dpr), targetH = Math.round(sh * dpr);
-    if (cv.width !== targetW || cv.height !== targetH) { cv.width = targetW; cv.height = targetH; cv.style.width = sw + 'px'; cv.style.height = sh + 'px'; }
+    const resized = cv.width !== targetW || cv.height !== targetH;
+    if (resized) { cv.width = targetW; cv.height = targetH; cv.style.width = sw + 'px'; cv.style.height = sh + 'px'; }
+    { const sk = G ? (G.phase === 'setup' ? 'setup' : G.round + ':' + G.phase) : null;
+      if (sk !== SLIDE.key) {   // the canvas still holds the last frame of the phase that just ended
+        SLIDE.old = null;
+        if (SLIDE.key && sk && !resized && !narrowScreen() && !window.__noSlide) { try { SLIDE.old = slideGrab(null, slideRect(dpr)); SLIDE.t0 = performance.now(); } catch (e) { SLIDE.old = null; } }
+        SLIDE.key = sk;
+      } }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#E9E4DA'; ctx.fillRect(0, 0, targetW, targetH);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -6282,6 +6338,18 @@ html, body {
       if (sp.life <= 0) weldSparks.splice(i, 1);
     }
     ctx.restore();
+    if (SLIDE.old) {
+      const u = (performance.now() - SLIDE.t0) / SLIDE.ms;
+      if (u >= 1 || resized) SLIDE.old = null;
+      else { try {
+        const r = slideRect(dpr), e = 1 - Math.pow(1 - u, 3), dx = Math.round(e * r.w);
+        SLIDE.cur = slideGrab(SLIDE.cur, r);
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
+        ctx.drawImage(SLIDE.old, r.x - dx, r.y, r.w, r.h); ctx.drawImage(SLIDE.cur, r.x + r.w - dx, r.y);
+        ctx.fillStyle = '#2B2118'; ctx.fillRect(r.x + r.w - dx - 2, r.y, 4, r.h);
+        ctx.restore();
+      } catch (e) { SLIDE.old = null; } }
+    }
     placeOverlays(L);
     placeHand(L);
     if (dragCard) drawTargetingArrow(ctx, dragCard.startX, dragCard.startY, dragCard.curX, dragCard.curY, dragCard.card.phase === 'fight' ? '#B07A10' : '#2F6DB5');
@@ -6340,7 +6408,7 @@ html, body {
   /* ---------- HTML zones placed over the canvas: 4 · sticky note, 7 · log, 5 · Stash ---------- */
   const OVL = { key: '' };
   function placeOverlays(L) {
-    const pb = $('#promptBar'), lg = $('#logPanel'), st = $('#stashCard'); if (!pb || !lg || !st) return;
+    const pb = $('#promptBar'), lg = $('#logPanel'), st = $('#stashCard'), wr = $('#waitRail'); if (!pb || !lg || !st) return;
     const sw = window.innerWidth, sh = window.innerHeight, tbh = $('#topBar') ? $('#topBar').offsetHeight : 52;
     const fight = G && G.phase === 'fight' && !$('#fightView').hidden;
     let k;
@@ -6360,6 +6428,7 @@ html, body {
     }
     const z = cam.zoom, w2s = worldToScreen;
     const N = L.note, LG = L.log, ST = L.stash;
+    if (wr) { const wa = w2s(L.wait.x, L.wait.y), wb = w2s(L.wait.x + L.wait.w, L.wait.y + L.wait.h), wk = [wa.x, wa.y, wb.x, wb.y].map(Math.round).join(','); if (wr.dataset.k !== wk) { wr.dataset.k = wk; Object.assign(wr.style, { left: Math.round(wa.x) + 'px', top: Math.round(wa.y) + 'px', width: Math.round(wb.x - wa.x) + 'px', height: Math.round(wb.y - wa.y) + 'px' }); } }
     const a = w2s(N.x, N.y), nb = w2s(N.x + N.w, N.y + N.h);
     const la = w2s(LG.x, LG.y), lb = w2s(LG.x + LG.w, LG.y + LG.h);
     const sa = w2s(ST.x, ST.y), sb = w2s(ST.x + ST.w, ST.y + ST.h);
@@ -6368,7 +6437,7 @@ html, body {
     OVL.key = k;
     const nh = Math.round(Math.max(100, Math.min(sh - 4, nb.y) - a.y));   // the note fills its zone: top and bottom in line with the log
     Object.assign(pb.style, { left: Math.round(a.x) + 'px', top: Math.round(a.y) + 'px', width: Math.round(nb.x - a.x) + 'px', maxHeight: nh + 'px', minHeight: nh + 'px' }); fitPrompt();
-    Object.assign(lg.style, { left: Math.round(la.x) + 'px', top: Math.round(la.y) + 'px', width: Math.round(lb.x - la.x) + 'px', height: Math.round(Math.max(60, Math.min(sh - 6, lb.y) - la.y)) + 'px' });
+    Object.assign(lg.style, { left: Math.round(la.x) + 'px', top: Math.round(la.y) + 'px', width: Math.round(lb.x - la.x) + 'px', height: Math.round(Math.max(60, Math.min(sh - 72, lb.y) - la.y)) + 'px' });
     // the Stash: under your robots, clear of the hand's tab
     Object.assign(st.style, { left: Math.round(sa.x) + 'px', top: Math.round(sa.y) + 'px', width: Math.round(sb.x - sa.x) + 'px', maxHeight: Math.round(Math.max(40, Math.min(sh - 76, sb.y) - sa.y)) + 'px' });
   }
@@ -6379,7 +6448,7 @@ html, body {
     const st = $('#handStage'); if (!st) return;
     let cx, w;
     if (narrowScreen()) { cx = window.innerWidth / 2; w = window.innerWidth - 16; }
-    else { const a = worldToScreen(L.rail.x, 0), b = worldToScreen(L.rail.x + L.rail.w, 0); w = Math.max(360, b.x - a.x + 40); cx = (a.x + b.x) / 2; }
+    else { const a = worldToScreen(L.log.x, 0), b = worldToScreen(L.log.x + L.log.w, 0); w = Math.max(360, b.x - a.x + 40); cx = (a.x + b.x) / 2; }   // 2.0.1: the hand hangs under the log (right), clear of your robots
     cx = Math.round(Math.max(w / 2 + 4, Math.min(window.innerWidth - w / 2 - 4, cx)));
     const n = me().hand.length, spread = n > 1 ? Math.max(30, Math.min(96, (w - 210) / (n - 1))) : 96;   // room for the outer cards' tilt
     if (Math.abs(spread - handSpread) > 0.5) { handSpread = spread; renderHand(true); }
@@ -6559,13 +6628,13 @@ html, body {
       let px = cx - tw / 2; ctx.textAlign = 'left';
       parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 8); px += ctx.measureText(p.t).width; });
       ctx.textAlign = 'center'; ctx.fillStyle = '#2F7D4A';
-      fitText(ctx, PS().choose ? '▶ Click SEND TO THE PIT on one of your robots (right)' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
+      fitText(ctx, PS().choose ? '▶ Click SEND TO THE PIT on one of your robots (left)' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
     } else if (G.phase === 'arena' && G.host === HS) {
       pitHead('4 · HOST · YOU HOST', 'PICK 2 TEAMS');
       paperBox(ctx, px0, cy - 52, pw, 96);
       ctx.fillStyle = INK; fitText(ctx, 'CLICK 2 TEAMS TO INVITE THEM', cx, cy - 16, pw - 30, '400', 20, F_STEN);
       const picked = (G.pickTeams || []).map(i => G.teams[i].name).join('  vs  ');
-      ctx.fillStyle = '#2F6DB5'; fitText(ctx, picked ? 'Picked: ' + picked : 'A rival ticket (top) or your own rail (right): you may include yourself', cx, cy + 14, pw - 30, '600', 12);
+      ctx.fillStyle = '#2F6DB5'; fitText(ctx, picked ? 'Picked: ' + picked : 'A rival ticket (top) or your own rail (left): you may include yourself', cx, cy + 14, pw - 30, '600', 12);
     } else if (G.phase === 'intrigue') {
       pitHead('2 · INTRIGUE', G.teams[G.intrigueTurn] ? 'TURN: ' + G.teams[G.intrigueTurn].name.toUpperCase() : 'HOST FIRST, THEN CLOCKWISE', G.teams[G.intrigueTurn] ? G.teams[G.intrigueTurn].col : HAZ);
       drawIntrigueRing(ctx, L, now);
