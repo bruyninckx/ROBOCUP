@@ -42,14 +42,15 @@ const linkInfo = async () => { try { const X = window.ROBOCUS_CLIENT || window.R
 const pageState = () => { const GM = window.ROBOCUS_GAME, G = GM && GM.G; if (!G || !G.teams || !GM.role) return null; const np = document.getElementById('netPause');
   return { over: !!G.over, round: G.round, phase: G.phase, stage: G.marketStage || '', seat: GM.HS, busy: GM.seatBusyWith(GM.HS), lost: !!(np && /Lost the host/.test(np.textContent)), paused: !!np, fame: G.teams.map(t => t.fame) }; };
 // one screen, played by clicks until the game is over, the time is up, or stop() says so
-async function playSeat(p, tag, dir, say, isHost, until, stop) {
+async function playSeat(p, tag, dir, say, isHost, until, stop, beat) {   // beat: this seat prints a progress line every minute
   const m = {}, R = { tag, stuck: [], lostHost: 0, lostMs: 0, rounds: 0, live: { tried: 0, played: 0 } };
-  let lastKey = null, since = Date.now(), tries = 0, fightKey = '', fightAt = 0, wasLost = false, lostAt = 0, shots = 0;
+  let lastKey = null, since = Date.now(), tries = 0, fightKey = '', fightAt = 0, wasLost = false, lostAt = 0, shots = 0, beatAt = Date.now();
   await p.evaluate(() => { window.__noBot = true; const pin = document.getElementById('handPin'); if (pin && /keep open/.test(pin.textContent)) pin.click(); }).catch(() => {});
   while (Date.now() < until && !(stop && stop())) {
     let st = null, C = null; try { st = await p.evaluate(pageState); C = st && await p.evaluate(collect); } catch (e) { await sleep(500); continue; }
     if (!st) { await sleep(500); continue; }
     R.rounds = st.round; R.fame = st.fame; R.seat = st.seat;
+    if (beat && Date.now() - beatAt > 60000) { beatAt = Date.now(); say('  … round ' + st.round + ', ' + st.phase + (st.stage ? ' ' + st.stage : '') + ' · fame ' + st.fame.join(' / ') + ' (first to 12 wins) · at most ' + Math.max(1, Math.round((until - Date.now()) / 60000)) + ' min left in this game' + (R.stuck.length ? ' · ' + R.stuck.length + ' stuck so far' : '')); }
     if (st.over) { R.over = true; break; }
     if (st.lost && !wasLost) { wasLost = true; lostAt = Date.now(); R.lostHost++; say(tag + ' lost the host (round ' + st.round + ' ' + st.phase + ')'); }
     if (!st.lost && wasLost) { wasLost = false; R.lostMs += Date.now() - lostAt; say(tag + ' has the host back after ' + ((Date.now() - lostAt) / 1000).toFixed(0) + ' s'); }
@@ -94,10 +95,10 @@ async function hostSide(ctx, k, dir, say) {
   }
   const res = { room: r, game: k, started, waitedS: Math.round((Date.now() - t0) / 1000) };
   if (!started) { say('game ' + k + ': nobody joined, or the room could not be opened. Skipped.'); res.note = lastLobby; await p.close(); return res; }
-  say('game ' + k + ' started after ' + res.waitedS + ' s');
+  say('game ' + k + ' of ' + GAMES + ' started after ' + res.waitedS + ' s');
   await sleep(1500); res.links = await p.evaluate(linkInfo).catch(() => []);
   if (res.links.length) say('links to the players: ' + res.links.map(l => l.err || (l.link + ', ' + l.delayMs + ' ms')).join(' · '));
-  const R = await playSeat(p, 'host', dir, say, true, Date.now() + MIN * 60000, null);
+  const R = await playSeat(p, 'host', dir, say, true, Date.now() + MIN * 60000, null, true);
   await sleep(6000);   // the joined screens' last log batches
   const H = await p.evaluate(() => { const G = window.ROBOCUS_GAME.G, PT = window.ROBOCUS_DEBUG.PT, ev = PT.game.events, n = k => ev.filter(e => e.k === k).length;
     return { over: !!G.over, round: G.round, fame: G.teams.map(t => t.fame), fights: n('fight_end'), mismatches: ev.filter(e => e.k === 'client_desync').map(e => 'seat ' + e.seat + ' fight ' + e.fid), lateCards: n('client_resim'), clientErrors: ev.filter(e => e.k === 'client_error').map(e => 'seat ' + e.seat + ': ' + e.msg), cameBack: ev.filter(e => e.k === 'msg' && /is back\./.test(e.text)).length, errors: ev.filter(e => e.k === 'error').map(e => e.msg),
@@ -128,12 +129,12 @@ async function joinSide(ctx, k, dir, say, drop) {
   }
   const inGame = []; for (const P of pages) { const s = await state(P.p); if (s && s.started) inGame.push(P); }
   if (!inGame.length) { say('game ' + k + ': could not get into a game in room ' + r + '. Skipped.'); res.note = pages.map(P => P.name + ': ' + (P.joinErrs.join(' | ') || 'no answer')).join(' · '); for (const P of pages) await P.p.close(); return res; }
-  say('game ' + k + ' is on with ' + inGame.length + ' of ' + pages.length + ' players');
+  say('game ' + k + ' of ' + GAMES + ' is on with ' + inGame.length + ' of ' + pages.length + ' players');
   const until = Date.now() + (MIN + 1) * 60000; let gone = 0;
   const dropper = drop ? (async () => { await sleep(90000); if (Date.now() > until - 60000) return; say('DROP: this PC goes offline for 12 s'); res.dropAt = clock(); await ctx.setOffline(true); await sleep(12000); await ctx.setOffline(false); const tb = Date.now(); say('back online');
     for (let i = 0; i < 90; i++) { await sleep(1000); const ok = []; for (const P of inGame) { const s = await P.p.evaluate(pageState).catch(() => null); ok.push(!!(s && !s.lost)); } if (ok.every(Boolean)) { res.dropBackS = Math.round((Date.now() - tb) / 1000); say('every player has the host back ' + res.dropBackS + ' s after coming online'); return; } }
     res.dropBackS = -1; say('NOT ALL PLAYERS CAME BACK within 90 s after the drop'); })() : Promise.resolve();
-  const results = await Promise.all(inGame.map(P => playSeat(P.p, P.name, dir, say, false, until, () => gone > 0).then(R => { if (!R.over && R.lostHost && Date.now() < until - 5000) { /* the host closed the game */ } return R; })));
+  const results = await Promise.all(inGame.map(P => playSeat(P.p, P.name, dir, say, false, until, () => gone > 0, P === inGame[0]).then(R => { if (!R.over && R.lostHost && Date.now() < until - 5000) { /* the host closed the game */ } return R; })));
   await dropper.catch(() => {});
   for (let i = 0; i < inGame.length; i++) { const P = inGame[i], R = results[i];
     const c = await P.p.evaluate(() => { const GM = window.ROBOCUS_GAME, ev = window.ROBOCUS_DEBUG.PT.game ? window.ROBOCUS_DEBUG.PT.game.events : []; return { desyncs: GM.desyncs, resims: GM.resims, fights: ev.filter(e => e.k === 'fight_end').length, same: ev.filter(e => e.k === 'fight_end' && e.same).length, errors: ev.filter(e => e.k === 'error').map(e => e.msg) }; }).catch(() => ({}));
@@ -151,6 +152,7 @@ async function joinSide(ctx, k, dir, say, drop) {
   const mk = async sz => { const c = await b.newContext({ viewport: sz }); if (LOCAL && fs.existsSync('vendor/planck-1.4.3.min.js')) await c.route(/^https?:/, r => r.abort()); return c; };
   const sides = LOCAL ? ['host', 'join'] : [role], lines = {}, all = {};
   console.log((LOCAL ? 'One PC, a local room (a test of the tool itself)' : role === 'host' ? 'HOST' : 'JOIN with ' + PLAYERS + ' player' + (PLAYERS > 1 ? 's' : '') + ' in ' + engine) + ' · code ' + CODE + ' · ' + GAMES + ' games of at most ' + MIN + ' minutes · ' + URL0.replace(/\?.*/, ''));
+  console.log('At most ' + Math.round(GAMES * (MIN + 1.5)) + ' minutes in all (done by ' + new Date(Date.now() + GAMES * (MIN + 1.5) * 60000).toTimeString().slice(0, 5) + '), sooner when games are won early. A progress line every minute; a result line after every game.');
   const ctx = await mk({ width: 1600, height: 900 });   // 'both': one context, so the local room connects them
   await Promise.all(sides.map(async side => {
     const dir = outOf(side), L = lines[side] = [], say = sayTo(L, side === 'host' ? '[host]' : '[join]'), games = [];
