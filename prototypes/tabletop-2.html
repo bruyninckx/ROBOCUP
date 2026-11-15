@@ -442,6 +442,7 @@ html, body {
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
+    oddsDamage: false,            // Kev, 15 Nov: the bookie ignores damage (true = odds drop for damaged robots, as before)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
     counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
@@ -1015,6 +1016,8 @@ html, body {
     if (STR.size > 600) STR.clear(); STR.set(k, s); return s;
   }
   const baseStr = r => R2.strength(null, r.name, r.level, partsOf(r));   // as new
+  // Kev, 15 Nov: "don't take damages into account for bookie odds anymore": the odds read every robot as new (BAL.oddsDamage brings damage back)
+  const oddsStr = r => BAL.oddsDamage ? str2(r) : baseStr(r);
   const power = r => str2(r);
   const FINE_ZONES = () => { const Z = {}; for (const z of R2.ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, damaged: false, labels: [], lost: [] }; return Z; };
   function zonesOf(r) {
@@ -1130,7 +1133,7 @@ html, body {
   function starterVsTableAvg(name, ex) {
     const rs = G ? G.teams.filter(t => t.i !== ex).flatMap(t => t.robots) : [];
     if (!rs.length) return starterOverallAvg(name);
-    const s = starterStr(name); return rs.reduce((a, r) => a + R2.winP(s, str2(r)), 0) / rs.length;
+    const s = starterStr(name); return rs.reduce((a, r) => a + R2.winP(s, oddsStr(r)), 0) / rs.length;
   }
   /* ============================================================================
    * THE BOOKIE IN 2.0: odds from Repair2.strength (no simulated scouting, no sparring). P(a beats b) = winP(sa, sb);
@@ -1156,13 +1159,13 @@ html, body {
     for (const k in P) { const [a, b] = k.split('|'), p = P[k][0] / P[k][1], d = lv(a) - lv(b); (by[d] = by[d] || []).push(p); (by[-d] = by[-d] || []).push(1 - p); }
     const o = {}; for (const d in by) o[d] = by[d].reduce((x, y) => x + y, 0) / by[d].length; return o; })();
   const baseLv = r => (LU.ROBOTS[r.name] || LU.ROBOTS4[r.name] || [r.level || 0])[0];
-  const isStock = r => !!r && !partsOf(r).length && !(r.wear && R2.ZONES.some(z => { const q = zonesOf(r)[z.key]; return q.damaged || q.broken; }));
+  const isStock = r => !!r && !partsOf(r).length && !(BAL.oddsDamage && r.wear && R2.ZONES.some(z => { const q = zonesOf(r)[z.key]; return q.damaged || q.broken; }));
   const logit = p => Math.log(p / (1 - p)), sigm = x => 1 / (1 + Math.exp(-x));
   function pairP(ra, rb, arena) {
     const m = mxP(ra.name, rb.name, arena);
-    if (!m) return R2.winP(str2(ra) + (arena ? arenaFit(ra, arena) : 0), str2(rb) + (arena ? arenaFit(rb, arena) : 0));
+    if (!m) return R2.winP(oddsStr(ra) + (arena ? arenaFit(ra, arena) : 0), oddsStr(rb) + (arena ? arenaFit(rb, arena) : 0));
     const fit = arena && m.arena !== arena ? arenaFit(ra, arena) - arenaFit(rb, arena) : 0;   // open-floor data in another arena: the arena fit on top
-    const delta = (str2(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (str2(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
+    const delta = (oddsStr(ra) - R2.strength(null, ra.name, ra.level, []) + fitAdj(ra)) - (oddsStr(rb) - R2.strength(null, rb.name, rb.level, []) + fitAdj(rb));
     // Kev, 15 Nov: BAL.counterTrust < 1 pulls the table towards what the level gap usually gives (whole games: counters hold at about 0.65 of the table)
     const e = MX_EXP[baseLv(ra) - baseLv(rb)], k = BAL.counterTrust == null ? 1 : BAL.counterTrust, mp = k < 1 && e != null ? e + k * (m.p - e) : m.p;
     return Math.max(0.03, Math.min(0.97, sigm(logit(Math.max(0.04, Math.min(0.96, mp))) + delta + fit)));
@@ -4445,7 +4448,7 @@ html, body {
     if (F.house && fightBots(F) >= 4) { F.house = false; notify('🏠 No room for the House Robot: a 2.0 fight has at most 4 robots.', '#b45309'); }
     { const copies = F.format === 'mirror' ? 2 : 1;
       if (F.arena === 'cage' && (fightBots(F) + (F.house ? 1 : 0) > 2)) { const H = G.teams[G.host]; if (H) addCr(H, arenaCost('cage'), 'arena'); F.arena = 'open'; notify('🔒 Too many robots for The Cage: this fight is on open floor (the host gets its credits back).', '#b45309'); }
-      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(str2(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
+      let ss = Array.from({ length: F.nSides }, (_, sd) => Math.log(F.robots.reduce((a, r, e) => a + (F.sides[e] === sd && r ? copies * Math.exp(oddsStr(r) + arenaFit(r, F.arena)) : 0), 0) || 1e-9));
       if (F.house) ss = ss.map(x => x * HOUSE_ODDS);   // the House Robot is neutral and almost never wins (it doesn't count for the KO), but it shakes the odds up
       const mx = Math.max(...ss), ex = ss.map(s => Math.exp(s - mx)), tot = ex.reduce((a, b) => a + b, 0);
       F.p = ex.slice(0, F.nSides).map(x => Math.max(0.03, Math.min(0.95, x / tot)));

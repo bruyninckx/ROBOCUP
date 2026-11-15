@@ -248,3 +248,7 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Tabletop 2.0 now plays the tuned 33-robot lineup: lineup.js (TUNED), strength model, new matchup table (18,480 fights), all bookie tables re-measured.
 - Counter tags only for 40+ point matchups (BAL.counterTag). New switch BAL.counterTrust (default 1; whole games suggest 0.65).
 - 3 x 120 whole games (old lineup / tuned / tuned + trust 0.65): counters are not too much (upsets unchanged at 32%, the badge is wrong less often); the bookie over-trusts counters. Doc: docs/robocus-tuned-lineup-in-game.md, report tools/counter-report.js.
+
+## 15 Nov 2026 (later): bookie ignores damage; are parts worth a level?
+- BAL.oddsDamage (false): the odds read every robot as new.
+- Part investigation on the tuned lineup: the average part is worth 0.7 of a level (target 1), legendaries 1.0-1.55 (target 2); parts lose value on bigger robots (fixed-number drones/modules). Doc: docs/robocus-part-levels.md. Fix proposed, not done.
