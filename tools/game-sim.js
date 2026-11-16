@@ -30,11 +30,7 @@ const TAG = arg('tag', 's' + (START == null ? 'def' : START) + '_w' + WIN), OUTD
 fs.mkdirSync(OUTD, { recursive: true });
 
 // 2.0 loads planck from cdn.jsdelivr.net; serve a local copy instead (offline / proxied machines), same version
-const PLANCK = (() => {
-  const a = arg('planck', ''); if (a === 'cdn') return null;
-  for (const f of [a, 'node_modules/planck/dist/planck.min.js', path.join(__dirname, '..', 'vendor', 'planck-1.4.3.min.js')]) if (f && fs.existsSync(f)) return fs.readFileSync(f);
-  return null;
-})();
+const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', '')), PLANCK = PL.body;   // tools/planck-local.js (also PLANCK=<file> in the env)
 
 // Runs in the page before the game starts: watches what the 2.0 game does without changing it. Repairs (Repair2.repairZone
 // and the team's repair state: free action / crew / credits), fight entrants (strength + zone damage at fight_start),
@@ -140,13 +136,14 @@ function installHooks() {
 }
 
 (async () => {
+  if (/tabletop-2/.test(PAGE)) console.log('game-sim: ' + PAGE + ', planck ' + PL.source);
   const b = await chromium.launch(); const res = []; let next = SEED0, done = 0; const t0 = Date.now();
   async function one(seed) {
     const p = await b.newPage({ viewport: { width: 1280, height: 800 } }); const errs = [], g0 = Date.now();
     p.on('pageerror', e => errs.push(e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 3).join(' | ')));
     p.on('requestfailed', q => { if (/\.js(\?|$)/.test(q.url())) errs.push('load failed: ' + q.url() + ' ' + (q.failure() || {}).errorText); });
     try {
-      if (PLANCK) await p.route(/planck(\.min)?\.js/, r => r.fulfill({ contentType: 'application/javascript', body: PLANCK }));
+      await PLK.route(p, PL);
       await p.addInitScript(() => { window.__noRender = true; });
       await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + (Object.keys(BAL).length ? '&bal=' + encodeURIComponent(JSON.stringify(BAL)) : '')); await p.waitForTimeout(150);
       const v2 = await p.evaluate(() => !!window.Repair2);

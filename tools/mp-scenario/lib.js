@@ -9,10 +9,11 @@ exports.setup = async (seed, until, o = {}) => {
   const b = await require('./launch.js')(require('playwright'));
   const ctx = await b.newContext({ viewport: { width: 1500, height: 900 } });
   const errs = [];
-  if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());   // offline: only with the local physics copy
+  const PLK = require('../planck-local.js'), PL = PLK.find(); await PLK.route(ctx, PL);   // a local planck when there is one (PLANCK=, node_modules, vendor/)
   const base = require('url').pathToFileURL(require('path').resolve('prototypes/tabletop-2.html')).href + '?net=local&room=S' + seed + '&bot=1' + (o.watch ? '&watch=1' : '');   // watch: fights run in real time on every screen
   const open = async (q, tag) => { const p = await ctx.newPage(); p.on('pageerror', e => errs.push(tag + ': ' + e.message)); await p.goto(base + q); return p; };
   const host = await open('&host=1&name=Host&autostart=3&seed=' + seed, 'host');
+  await PLK.check(host, PL);
   const cl = []; for (let k = 1; k <= 3; k++) cl.push(await open('&name=P' + k, 'P' + k));
   const all = [host, ...cl], t0 = Date.now();
   const freeze = on => Promise.all(all.map(p => p.evaluate(v => { window.__noBot = v; }, on)));
