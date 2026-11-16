@@ -2778,7 +2778,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16h a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16i power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -8800,6 +8800,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, power map', '16 Nov 2026', [
+      'New: 🗺 power map in the top bar (or the key M). Every robot by level (one band each) and by strength for its level, left to right. This game\'s robots stand out in their team\'s colour (yours marked YOU, Market robots LOT); the rest are dimmed.',
+      'A robot with parts or damage stands where it fights now, with a tag like ★2.6 and a dotted line back to where it stood new. Enough upgrades move it up a band.',
+      'Hover a robot for its parts, damage and "fights like"; click it for green arrows to the robots it counters, red arrows from the robots that counter it, and its odds band against every rival robot. Esc or a click outside closes it.' ]],
     ['2.0.1, a click shows it worked', '16 Nov 2026', [
       'When you send a robot to the pit (in the note or on its card), the button turns into "✓ Mauler sent" at once and the other buttons grey out. The note then says the bookie is watching test fights, so you know the game is busy, not waiting for you.',
       'Signing a sponsor, keeping a starter and fitting a part show the same ✓.' ]],
