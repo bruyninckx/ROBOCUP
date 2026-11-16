@@ -8,7 +8,7 @@ Mockup: Design artifact "ROBOCUS slideshow UI" (https://claude.ai/artifact/5fBhS
 
 - Left: your robots and Stash. Middle: the pit, and under it the hand, always open, cards side by side (`HAND_H` in `benchLayout` is worked out in screen pixels: 222 px). Right, top to bottom: the note (`L.note`, 176), the waiting list (`L.wait`, 232), the log.
 - `#waitRail` (drawn by `renderWaiting()` from `netWaiting`): one row per team with YOUR MOVE / DECIDING / READY / NOTHING TO DO / AI / PLAYING, heading "WAITING FOR n" or "NOBODY HAS TO CLICK". In a reaction window every row says CAN ANSWER (no names). On your own row, when it is your move, the note's main button is repeated and flashes (`.wr-go`; a click presses the note's button); with no button to press the YOUR MOVE pill flashes.
-- The note has three states (`promptState()`): YOUR MOVE yellow, LOCKED IN green, NOTHING FOR YOU TO DO grey.
+- The note has three states (`promptState()`): YOUR MOVE yellow, LOCKED IN green, NOTHING FOR YOU TO DO grey. LOCKED IN for bids and bets can be undone by changing them while others still decide (T16, below).
 - Phase slide (`SLIDE` in `renderWorld`): the old pit slides out left, the new one in from the right, 520 ms; only pixels move. `window.__noSlide = true` turns it off.
 - The banner over the pit, the dots in the top bar, the hand's tab and pin are gone.
 
@@ -20,6 +20,19 @@ Kev: "When you can send a robot to the pit, also make that 'to the pit' option v
 - Same idea, same action paths as the pit/card: Sign <sponsor> (`pickSponsor`), Keep <starter> (`pickStarter`), fit a won part on a robot (`install`; hint: the odds change, greyed when there is no room), host invite toggles per team (`pickTeam`; hint: ready robots), tie rebid − / + (`rebidAdj`).
 - Built with `pickBtn()` (class `.act.pick`, data-send / data-fit / data-keep / data-sign / data-inv). The waiting list does not repeat them (`.wr-go` skips `.pick`). In a tight note the buttons come first (as before); with 4 or more they go two per row without hints (`.many`).
 - Not in the note (need a picker): repairs, lot bids, bets, Intrigue cards.
+
+## Change after locking (T16, 16 Nov)
+
+Kev: "also, when people lock bids, people can still change their bids after that if there are other people not locked yet but if everybody locked it it continues"
+
+- Before: a lock was one-way. After locking, the lot steppers (and the host-bid stepper) were still drawn and clickable, but the host ignored the click without a word (`ACT.bid` returned on `iDone(S)`); the bet chips and the fight-card −/+ were hidden ("(locked)"), a click on a robot's bet card was ignored the same way; the robot-count button and the rebid −/+ were gone from the note.
+- Now: lot bids (`lots`), the host bid and robot count (`hostbid`, `ACT.hostCount`), bets and fight-card bids (`bets`) and a tie rebid (`ACT.rebidAdj`) stay editable after locking while someone else has not locked. A real change (the amount moves) takes your own lock off on the host: `unlockSeat(S, step)` deletes `G.gather.done[S]` (rebid: the seat goes back into `tie.waiting`) and writes a line in your log. Your note goes back to YOUR MOVE with the lock button, every waiting list shows you DECIDING again (no amounts: sealed bids stay sealed). Lock again when you are done. A click that changes nothing (− at 0, + with no credits left) keeps the lock.
+- The locked notes say so: "You can still change … until everyone has locked. A change unlocks you; then lock again." The host-bid note keeps the 🤖 robot-count button, a locked rebid keeps its −/+ (the pit shows "LOCKED · A CHANGE UNLOCKS YOU").
+- Solo (one person): the lock is the last lock, so the step goes on at once, as before.
+- Online: everything runs on the host in the order the actions arrive, so a change and the last lock can't cross. A change that arrives after the step went on is refused with a line in that player's log ("⌛ Too late: … your change was not made.").
+- Bets kept their older rule on top: a changed public bet also un-locks everyone else who locked.
+- Bot (`?bot=1`): makes its bids/bets once per step (`botDid`) and after that only locks. A joined screen sees its own lock a moment late, so without this a bot would bid again on the stale screen and un-lock itself over and over.
+- Not changed (one-off actions, not amounts): Upkeep (repairs after "done"), "Start the auction" (trading stays open anyway), sending a robot, picks, Market results, next round, Bookie's Friend and Hedge Bet (card plays; their buttons are still only there before you lock).
 
 ## Fewer clicks (Kev said yes to all four, 15 Nov)
 
