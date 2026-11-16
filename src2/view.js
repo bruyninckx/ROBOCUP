@@ -69,11 +69,108 @@
   function stepParticles(dt) {
     for (const p of parts) {
       p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt;
-      const damp = p.t === 'spark' ? 3 : p.t === 'shard' ? 4 : 0.6; p.vx *= Math.exp(-damp * dt); p.vy *= Math.exp(-damp * dt);
-      if (p.t === 'smoke') p.s += dt * 0.12;
+      const damp = p.t === 'spark' || p.t === 'puff' ? 3 : p.t === 'shard' ? 4 : 0.6; p.vx *= Math.exp(-damp * dt); p.vy *= Math.exp(-damp * dt);
+      if (p.t === 'smoke') p.s += dt * 0.12; else if (p.t === 'puff') p.s += dt * 0.25;
       if (p.t === 'shard' && p.life <= 0) { dctx.fillStyle = 'rgba(70,64,56,0.8)'; dctx.fillRect(toD(p.x), toD(p.y), p.s * FPX, p.s * FPX * 0.7); }
     }
     parts = parts.filter(p => p.life > 0);
+  }
+
+  // ---------- tow cable and wall slams (Kev, 16 Nov: "the tow cable was barely visible, forklift just slammed in the wall
+  // without much visual effect"). View only: reads the sim, never writes it; randomness is Math.random like the rest here.
+  let tows = [], dents = [], jolts = new Map(), vt = 0;   // vt: view clock (stops while paused or in a hit stop)
+  function towStart(e) {
+    const R = S.robots[e.robot]; if (!R) return;
+    let E = null, bd = 1e9; for (const Q of S.robots) if (Q !== R) { const q = Q.body.getPosition(), d = Math.hypot(q.x - e.x, q.y - e.y); if (d < bd) { bd = d; E = Q; } }
+    if (!E) return;
+    const rp = R.body.getPosition(), dl = E.body.getLocalVector(planck.Vec2(rp.x - e.x, rp.y - e.y)), m = Math.hypot(dl.x, dl.y) || 1, ux = dl.x / m, uy = dl.y / m;
+    const k = Math.min(E.hl / Math.max(1e-3, Math.abs(ux)), E.hw / Math.max(1e-3, Math.abs(uy))) * 0.92;   // the hook bites the side of the victim that faces the carrier
+    const tow = R.mod === 'tow';
+    tows = tows.filter(w => w.R !== R); tows.push({ R, E, lp: [ux * k, uy * k], t0: vt, max: tow ? 1.1 : 0.45, rel: null, tow });
+    const a = towAnchor(R); spawn({ t: 'ring', x: a.x, y: a.y, vx: 0, vy: 0, life: 0.3, max: 0.3, s: 0.06, col: HAZ });   // launcher puff
+    for (let i = 0; i < 5; i++) smoke(a.x, a.y, false, 0.07);
+    for (let i = 0; i < 10; i++) { const an = Math.random() * 6.28; spawn({ t: 'spark', x: e.x, y: e.y, vx: Math.cos(an) * 3, vy: Math.sin(an) * 3, life: 0.25, max: 0.3, col: HAZ }); }   // the hook bites
+  }
+  function towAnchor(R) { const lp = R.module ? R.module.lp : [0, 0]; return R.body.getWorldPoint(planck.Vec2(lp[0], lp[1])); }
+  function wallHit(e) {
+    let R = null, bd = 1e9;
+    for (const Q of S.robots) { if (Q.lastWall == null || S.t - Q.lastWall > 0.02) continue; const q = Q.body.getPosition(), d = Math.hypot(q.x - e.x, q.y - e.y); if (d < Q.hl + 0.7 && d < bd) { bd = d; R = Q; } }
+    if (!R) return;   // not a robot hitting a wall
+    const slung = R.airborne > 0 && !!R.thrownBy, P = e.power * (slung ? 1.4 : 1), k = Math.max(0, Math.min(1, (P - 25) / 260));
+    const q = R.body.getPosition(); let nx = q.x - e.x, ny = q.y - e.y; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;   // away from the wall, into the arena
+    const J = jolts.get(R);
+    if (J && vt - J.t0 < 0.15) { if (k > J.k) { J.k = k; J.nx = nx; J.ny = ny; } return; }   // one slam = several contacts: one effect
+    jolts.set(R, { t0: vt, k, nx, ny });
+    for (const w of tows) if (w.E === R && w.rel == null) w.rel = vt;   // the cable lets go on the hit
+    if (k < 0.05) return;   // a light touch stays quiet (the sparks are enough)
+    spawn({ t: 'star', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.16 + 0.14 * k, max: 0.16 + 0.14 * k, s: 0.24 + 0.4 * k, r: Math.random() * 6 });   // a comic impact star
+    spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3, max: 0.3, s: 0.08, col: k > 0.4 ? '#FFF2C8' : undefined });
+    const base = Math.atan2(ny, nx), n = Math.round(6 + 18 * k);
+    for (let i = 0; i < n; i++) { const an = base + (Math.random() - 0.5) * 2.8, v = 0.6 + Math.random() * (1 + 2.5 * k); spawn({ t: 'puff', x: e.x, y: e.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v, life: 0.5 + Math.random() * 0.5, max: 1, s: 0.07 + 0.12 * k * Math.random() }); }
+    for (let i = 0, m = Math.round(3 + 10 * k); i < m; i++) { const an = base + (Math.random() - 0.5) * 2.4, v = 1.5 + Math.random() * (2 + 3 * k); spawn({ t: 'shard', x: e.x, y: e.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v, life: 0.8 + Math.random(), max: 1.8, s: 0.015 + Math.random() * 0.03, r: Math.random() * 6, col: Math.random() < 0.3 ? HAZ : Math.random() < 0.5 ? '#B8B1A4' : '#7d7a72' }); }
+    shake = Math.min(0.4, shake + 0.03 + 0.3 * k);
+    if (k > 0.35) { hitStop = Math.max(hitStop, 0.03 + 0.07 * k); flash = Math.max(flash, 0.1 * k); }
+    if (k > 0.12) {   // a dent in the wall: merges with one close by, keeps the newest 18
+      const d0 = dents.find(d => Math.hypot(d.x - e.x, d.y - e.y) < 0.18);
+      if (d0) d0.s = Math.min(0.32, Math.max(d0.s, 0.1 + 0.2 * k) + 0.03);
+      else { dents.push({ x: e.x, y: e.y, a: Math.atan2(-ny, -nx), s: 0.1 + 0.2 * k, seed: Math.random() * 6 }); if (dents.length > 18) dents.shift(); }
+    }
+  }
+  function joltOf(R) {   // squash and shake of a robot that just hit a wall: [dx, dy, squash, nx, ny]
+    const J = jolts.get(R); if (!J) return null; const age = vt - J.t0; if (age > 0.4) { jolts.delete(R); return null; }
+    const amp = (0.15 + 0.85 * J.k) * Math.exp(-age * 9);
+    return [-J.nx * 0.05 * amp * Math.cos(age * 55), -J.ny * 0.05 * amp * Math.cos(age * 55), 0.22 * amp * Math.max(0, Math.cos(age * 30)), J.nx, J.ny];
+  }
+  function drawDents() {   // on the hazard stripe just inside the wall: a dark crater, a bright bent lip, cracks along the wall
+    for (const d of dents) {
+      ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a);   // +x points into the wall, y runs along it
+      ctx.fillStyle = 'rgba(20,14,8,0.75)'; ctx.beginPath(); ctx.ellipse(-0.04, 0, d.s * 0.4, d.s, 0, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = 'rgba(235,228,212,0.85)'; ctx.lineWidth = PX * 2.5; ctx.beginPath(); ctx.ellipse(-0.04, 0, d.s * 0.4, d.s, 0, 1.9, 4.4); ctx.stroke();
+      ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      for (let i = 0; i < 6; i++) { const sd = i % 2 ? 1 : -1, l = d.s * (1.2 + 0.8 * Math.abs(Math.sin(d.seed * 3 + i))), x1 = -0.03 - 0.12 * Math.abs(Math.sin(d.seed + i * 1.7)); ctx.beginPath(); ctx.moveTo(-0.04, sd * d.s * 0.5); ctx.lineTo((x1 - 0.04) / 2, sd * l * 0.6); ctx.lineTo(x1, sd * l); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+  function cablePath(x0, y0, x1, y1, wob) {
+    ctx.beginPath(); ctx.moveTo(x0, y0);
+    if (!wob) { ctx.lineTo(x1, y1); return; }
+    const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, px = -dy / l, py = dx / l;
+    for (let i = 1; i <= 10; i++) { const f = i / 10, w = Math.sin(f * Math.PI) * Math.sin(f * 9 + vt * 40) * wob; ctx.lineTo(x0 + dx * f + px * w, y0 + dy * f + py * w); }
+  }
+  function drawTows() {
+    tows = tows.filter(w => { const age = vt - w.t0; if (w.rel == null && age > w.max) w.rel = vt; return !(w.rel != null && vt - w.rel > 0.25) && w.R.body && !w.R.inPit; });
+    for (const w of tows) {
+      const a = towAnchor(w.R), h = w.E.body.getWorldPoint(planck.Vec2(w.lp[0], w.lp[1]));
+      const back = w.rel == null ? 0 : Math.min(1, (vt - w.rel) / 0.25);   // after the release the hook flies home
+      const hx = h.x + (a.x - h.x) * back, hy = h.y + (a.y - h.y) * back, wob = w.rel == null ? 0 : 0.12 * (1 - back), ang = Math.atan2(hy - a.y, hx - a.x);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(20,14,8,0.25)'; ctx.lineWidth = 0.05; cablePath(a.x + 0.06, a.y + 0.08, hx + 0.06, hy + 0.08, wob); ctx.stroke();   // shadow on the floor
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.07; cablePath(a.x, a.y, hx, hy, wob); ctx.stroke();
+      ctx.strokeStyle = HAZ; ctx.lineWidth = 0.042; ctx.stroke();
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.042; ctx.lineCap = 'butt'; ctx.setLineDash([0.05, 0.07]); ctx.lineDashOffset = -vt * 1.5; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+      ctx.lineCap = 'butt';
+      // the clamp at the victim's end
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+      ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+      ctx.beginPath(); ctx.rect(-0.07, -0.045, 0.06, 0.09); ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 0.028; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(0.0, -0.045, 0.05, -1.6, 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(0.0, 0.045, 0.05, -0.9, 1.6); ctx.stroke();
+      ctx.lineWidth = 0.014; ctx.strokeStyle = '#E4E6DE'; ctx.beginPath(); ctx.arc(0.0, -0.045, 0.05, -1.6, 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(0.0, 0.045, 0.05, -0.9, 1.6); ctx.stroke();
+      ctx.restore();
+      if (w.rel == null && w.tow) {   // taut: a hazard ring on the hook and speed lines behind the victim
+        const t = performance.now() / 1000; ctx.strokeStyle = `rgba(232,197,71,${0.5 + 0.5 * Math.sin(t * 30)})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(hx, hy, 0.11, 0, 6.29); ctx.stroke();
+        const v = w.E.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
+        if (sp > 1.5) { const ux = v.x / sp, uy = v.y / sp, c = w.E.body.getPosition(), r = w.E.hl + 0.1; ctx.strokeStyle = 'rgba(43,33,24,0.55)'; ctx.lineWidth = PX * 2.5; for (const o of [-0.7, -0.25, 0.25, 0.7]) { const sx = c.x - ux * r - uy * o * w.E.hw * 1.6, sy = c.y - uy * r + ux * o * w.E.hw * 1.6, l = Math.min(0.9, sp * 0.08) * (1 - Math.abs(o) * 0.4); ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - ux * l, sy - uy * l); ctx.stroke(); } }
+      }
+    }
+  }
+  function drawWinch(R, a) {   // the Tow cable on the robot: a yellow winch drum with the hook parked on it (empty while the cable is out)
+    const [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0), out = tows.some(w => w.R === R && w.tow);
+    ctx.save(); ctx.translate(mx, my);
+    ctx.fillStyle = on ? HAZ : '#6a6358'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; rr(-0.1, -0.075, 0.2, 0.15, 0.03); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = INK; for (const x of [-0.1, 0.07]) ctx.fillRect(x, -0.075, 0.03, 0.15);   // drum flanges
+    ctx.strokeStyle = out ? 'rgba(43,33,24,0.35)' : INK; ctx.lineWidth = PX * 1.4; for (let x = -0.06; x < 0.07; x += 0.026) { ctx.beginPath(); ctx.moveTo(x, -0.06); ctx.lineTo(x + 0.012, 0.06); ctx.stroke(); }   // wound cable
+    if (!out) { ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(0, 0.0, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); }
+    ctx.restore();
   }
 
   // ---------- camera, drama ----------
@@ -105,7 +202,7 @@
         else if (ty === 'smokebomb') SND.play('puff');
         else if (ty === 'ko') SND.play('ko');
       }
-      if (e.type === 'spark') sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny);
+      if (e.type === 'spark') { sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny); if (!e.small && !e.metal && e.nx != null && e.power >= 25) wallHit(e); }
       else if (e.type === 'bigHit') {
         shake = Math.min(0.2, shake + e.power * 0.005); shards(e.x, e.y, Math.min(12, e.power / 4));
         if (e.power >= 20) { hitStop = Math.max(hitStop, 0.07); flash = Math.max(flash, 0.12); spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3, max: 0.3, s: 0.15 }); }
@@ -131,7 +228,7 @@
       else if (e.type === 'ewall') { spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.35, max: 0.35, s: 0.2, col: '#7FD1CC' }); }
       else if (e.type === 'chipzap') { const R = S.robots[e.robot], q = R.body.getPosition(); R.zap = 0.5; for (let k = 0; k < 12; k++) { const a = Math.random() * 6.28; spawn({ t: 'spark', x: q.x, y: q.y, vx: Math.cos(a) * 3, vy: Math.sin(a) * 3, life: 0.3, max: 0.3, col: '#9BE38A' }); } }
       else if (e.type === 'chipfry') { const q = S.robots[e.robot].body.getPosition(); for (let k = 0; k < 10; k++) smoke(q.x, q.y, true, 0.08); sparks(q.x, q.y, 30); }
-      else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; }
+      else if (e.type === 'grapple') { S.robots[e.robot].grappleFx = 0.35; towStart(e); }
       else if (e.type === 'jets') { for (let i = 0; i < 14; i++) fire(e.x + (Math.random() - 0.5) * 0.4, e.y + (Math.random() - 0.5) * 0.4); for (let i = 0; i < 8; i++) spawn({ t: 'dust', x: e.x, y: e.y, vx: Math.cos(i) * 1.2, vy: Math.sin(i) * 1.2, life: 0.6, max: 0.6, s: 0.12 }); }
       else if (e.type === 'smokebomb') { for (let i = 0; i < 30; i++) { const a = Math.random() * 6.28, r = Math.random() * 1.1; spawn({ t: 'smoke', x: e.x + Math.cos(a) * r, y: e.y + Math.sin(a) * r, vx: Math.cos(a) * 0.2, vy: Math.sin(a) * 0.2, life: 2 + Math.random() * 1.5, max: 3.5, s: 0.25 + Math.random() * 0.2, dark: false }); } }
       else if (e.type === 'shieldhit') { const R = S.robots[e.robot]; R.shieldFlash = 0.15; }
@@ -267,10 +364,11 @@
     if (fast && !R.inPit) { R.trailPts.forEach((q, k) => { ctx.save(); ctx.globalAlpha = 0.06 + k * 0.03; ctx.translate(q[0], q[1]); ctx.rotate(q[2]); ctx.fillStyle = TC(i).light; ctx.fillRect(-R.hl, -R.hw, R.hl * 2, R.hw * 2); ctx.restore(); }); }
     const mine = R.parts.filter(q => q.attached && q.body === b && q.key !== 'lifter'); // forks are drawn first, under everything
     // shadow
-    ctx.save(); ctx.translate(p.x + so, p.y + so); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
+    const jo = joltOf(R), squash = () => { if (jo && jo[2] > 0) { const s = jo[2], nx = jo[3], ny = jo[4]; ctx.transform(1 - s * nx * nx + s * 0.5 * ny * ny, -1.5 * s * nx * ny, -1.5 * s * nx * ny, 1 - s * ny * ny + s * 0.5 * nx * nx, 0, 0); } };   // flattened against the wall for a moment
+    ctx.save(); ctx.translate(p.x + so, p.y + so); squash(); ctx.rotate(a); ctx.scale(sc, sc); ctx.fillStyle = `rgba(20,14,8,${0.28 - air * 0.12})`;
     for (const q of mine) { path(q.verts); ctx.fill(); }
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(a); ctx.scale(sc, sc);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x + (jo ? jo[0] : 0), p.y + (jo ? jo[1] : 0)); squash(); ctx.rotate(a); ctx.scale(sc, sc);
     // struts holding the side plates
     ctx.fillStyle = '#4A4540';
     for (const q of mine) if (q.kind === 'armour' && /Left|Right/.test(q.label)) { const sd = q.label.startsWith('Left') ? -1 : 1, [, y0, , y1] = bbox(q.home), yin = sd < 0 ? y1 : y0; for (const xx of [-R.hl * 0.78, R.hl * 0.78]) { const ya = sd * R.hw, yb = yin; ctx.fillRect(xx - 0.025, Math.min(ya, yb), 0.05, Math.abs(yb - ya)); } }
@@ -298,8 +396,10 @@
         for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
       }
       drawTop(R, i); drawLamps(R);
-      if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
-    } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
+      if (R.module && R.mod !== 'tow') { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
+    }
+    if (R.flipped) { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
+    if (R.module && R.mod === 'tow') drawWinch(R, a);   // lid on or off, even upside down: players can see who has the Tow cable
     ctx.restore();
     if (R.blade && R.blade.attached && !R.inPit) drawBlade(R.blade, R);
     if (R.buzz && R.buzz.attached && !R.inPit) { const bp = R.buzz.body.getPosition(), cp = R.body.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.buzz, R); }
@@ -317,7 +417,7 @@
       if (R.stun > 0) { ctx.strokeStyle = '#9BE3FF'; ctx.lineWidth = PX * 2; ctx.beginPath(); for (let k2 = 0; k2 < 5; k2++) { const an = Math.random() * 6.28, r1 = R.hl * 0.4, r2 = R.hl + 0.15; ctx.moveTo(p.x + Math.cos(an) * r1, p.y + Math.sin(an) * r1); ctx.lineTo(p.x + Math.cos(an + 0.3) * (r1 + r2) / 2, p.y + Math.sin(an - 0.2) * (r1 + r2) / 2); ctx.lineTo(p.x + Math.cos(an) * r2, p.y + Math.sin(an) * r2); } ctx.stroke(); }
       if (R.boomArm > 0) { ctx.strokeStyle = Math.sin(t * (10 + (4 - R.boomArm) * 8)) > 0 ? '#FF3B2B' : '#FFE14D'; ctx.lineWidth = PX * 5; ctx.beginPath(); ctx.arc(p.x, p.y, R.hl + 0.18, 0, 6.29); ctx.stroke(); if (Math.random() < 0.4) sparks(p.x, p.y, 6); }
       if (R.healing && Math.random() < 0.15) spawn({ t: 'spark', x: p.x + (Math.random() - 0.5) * 0.5, y: p.y + (Math.random() - 0.5) * 0.5, vx: 0, vy: -0.6, life: 0.6, max: 0.6, col: '#4CC26A' });
-      if (R.grappleFx > 0) { const E = R.enemy.body.getPosition(); ctx.strokeStyle = '#2B2118'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 4, PX * 3]); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(E.x, E.y); ctx.stroke(); ctx.setLineDash([]); ctx.strokeStyle = '#C9A227'; ctx.lineWidth = PX * 1.5; ctx.stroke(); ctx.fillStyle = '#C9A227'; ctx.beginPath(); ctx.arc(E.x, E.y, 0.05, 0, 6.29); ctx.fill(); }
+      // (the grapple / tow cable is drawn by drawTows, over all robots)
       if ((R.nitro > 0 || R.dashFx > 0 || R.dashT > 0) && Math.random() < 0.9) { const back = b.getWorldPoint(planck.Vec2(-R.hl - 0.05, (Math.random() - 0.5) * 0.3)), f = b.getWorldVector(planck.Vec2(-1, 0)); spawn({ t: 'fire', x: back.x, y: back.y, vx: f.x * 3 + (Math.random() - 0.5), vy: f.y * 3 + (Math.random() - 0.5), life: 0.25, max: 0.25, s: 0.06, grow: true }); }
     }
   }
@@ -970,6 +1070,8 @@
       else if (p.t === 'fire') { const s = p.grow ? p.s * (2 - k) : p.s * k + 0.01; ctx.fillStyle = `rgba(255,${100 + 120 * k},30,${0.8 * k})`; ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, 6.29); ctx.fill(); }
       else if (p.t === 'shard') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r + p.life * 6); ctx.fillStyle = p.col; ctx.fillRect(-p.s, -p.s * 0.6, p.s * 2, p.s * 1.2); ctx.restore(); }
       else if (p.t === 'dust') { ctx.strokeStyle = `rgba(120,105,85,${0.5 * k})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, p.s + (1 - k) * 0.3, 0, 6.29); ctx.stroke(); }
+      else if (p.t === 'puff') { ctx.fillStyle = `rgba(122,110,94,${0.55 * k})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(214,206,192,${0.5 * k})`; ctx.beginPath(); ctx.arc(p.x - p.s * 0.25, p.y - p.s * 0.25, p.s * 0.55, 0, 6.29); ctx.fill(); }
+      else if (p.t === 'star') { const r0 = p.s * (0.7 + 0.3 * (1 - k)); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = Math.min(1, k * 2); ctx.beginPath(); for (let i = 0; i < 18; i++) { const rr2 = i % 2 ? r0 * 0.45 : r0 * (i % 4 ? 0.8 : 1); ctx.lineTo(Math.cos(i / 18 * 6.283) * rr2, Math.sin(i / 18 * 6.283) * rr2); } ctx.closePath(); ctx.fillStyle = HAZ; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.5; ctx.stroke(); ctx.scale(0.55, 0.55); ctx.fillStyle = '#FFF8E0'; ctx.fill(); ctx.restore(); }
       else if (p.t === 'flash') { ctx.fillStyle = `rgba(255,240,200,${k * 0.8})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1.2 - k * 0.5), 0, 6.29); ctx.fill(); }
     }
   }
@@ -1074,11 +1176,12 @@
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
     for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
     for (const R of order) drawRobot(R, R.id);
+    drawTows();
     for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
     for (const R of order) if (R.bricks && R.l4.carry && R.l4.carry.attached && !R.inPit) drawBrick(R.l4.carry, true); // a block up on the crane hook is above everything
     drawEwalls(); drawDrones();
     for (const sn of S.snags) { const t = performance.now() / 1000, k = sn.force ? Math.min(1, sn.force / 7000) : 0; ctx.strokeStyle = `rgba(255,${200 - k * 150},60,${0.6 + 0.4 * Math.sin(t * 20)})`; ctx.lineWidth = PX * (3 + k * 4); ctx.beginPath(); ctx.arc(sn.x, sn.y, 0.07 + k * 0.05, 0, 6.29); ctx.stroke(); }
-    drawWalls();
+    drawWalls(); drawDents();
     drawProjectiles();
     drawParticles();
     drawAim();
@@ -1340,11 +1443,11 @@
     if (!S || S.over) return;
     let n = 0; while (!S.over && n < 120 * 400) { L.step(S); if (opts.onStep) opts.onStep(S); S.fx.length = 0; n++; }
     aim = null; cards = []; drawCards();
-    parts = []; calls = []; slowT = 0; cam.tx = cam.ty = 0; cam.tz = 1;
+    parts = []; calls = []; tows = []; jolts = new Map(); slowT = 0; cam.tx = cam.ty = 0; cam.tz = 1;
   }
   let running = false, last = 0, acc = 0;
   function play(S2, o = {}) {
-    S = S2; opts = o; ended = false; feedN = 0; parts = []; calls = []; hitStop = 0; flash = 0; shake = 0; slowT = 0; decalReset();
+    S = S2; opts = o; ended = false; feedN = 0; parts = []; calls = []; tows = []; dents = []; jolts = new Map(); hitStop = 0; flash = 0; shake = 0; slowT = 0; decalReset();
     cam.x = cam.y = cam.tx = cam.ty = 0; cam.z = cam.tz = 1; V.paused = false; V.bars = false;
     root.querySelector('.fv-title').textContent = o.title || 'Fight';
     { const inf = root.querySelector('.fv-info'); inf.innerHTML = o.info || ''; inf.hidden = !o.info; }   // the game's bets / what's next card
@@ -1382,7 +1485,7 @@
       if (S.over && cards.length) { aim = null; cards = []; drawCards(); }
       if (S.over && !ended && S.t > S.result.t + 1.2) { ended = true; root.querySelector('.fv-done').hidden = false; root.querySelector('.fv-skip').hidden = true; }
     }
-    stepParticles(rdt * ts);
+    stepParticles(rdt * ts); if (ts > 0) vt += rdt * Math.min(1, ts);
     for (const c of calls) c.t += rdt; flash = Math.max(0, flash - rdt);
     for (const R of S.robots) { if (R.dashFx > 0) R.dashFx -= rdt; if (R.shieldFlash > 0) R.shieldFlash -= rdt; if (R.grappleFx > 0) R.grappleFx -= rdt; if (R.zap > 0) R.zap -= rdt; R.drumSpin = (R.drumSpin || 0) + (R.drumE || 0) * rdt * ts * 3; }
     const kk = 1 - Math.exp(-rdt * 6); cam.x += (cam.tx - cam.x) * kk; cam.y += (cam.ty - cam.y) * kk; cam.z += (cam.tz - cam.z) * kk;
