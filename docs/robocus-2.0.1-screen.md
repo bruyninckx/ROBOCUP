@@ -21,6 +21,16 @@ Kev: "When you can send a robot to the pit, also make that 'to the pit' option v
 - Built with `pickBtn()` (class `.act.pick`, data-send / data-fit / data-keep / data-sign / data-inv). The waiting list does not repeat them (`.wr-go` skips `.pick`). In a tight note the buttons come first (as before); with 4 or more they go two per row without hints (`.many`).
 - Not in the note (need a picker): repairs, lot bids, bets, Intrigue cards.
 
+## A click in the note shows it worked (T15, 16 Nov)
+
+Kev: "when I clicked it it somehow didn't register, or perhaps it did register but the button still showed, should be something like a checkmark after that button so we know it did its work"
+
+- What happened: after a send, the bookie's test fights started at once. On a page opened from a file (`play-latest.cmd`) they run on the page itself (no workers) for `BAL.bookie.ms` (4 s), and each test fight blocks the screen, so nothing was painted for seconds; and the note had no text for "fighters in, bookie busy", so it kept the old green buttons (a host who invited itself got the invite buttons back). Measured here (file://, a loaded test box): first paint 5.4 s after the click in a duel, 7.8 s after the second-robot click in a double duel.
+- Now: `pickNow(kind, value, label, run)` marks the choice (`pickWait`, local only), redraws the note (clicked button `✓ Mauler sent`, class `.done`; the rest greyed, `.sent`, disabled; note grey AT THE TABLE, not YOUR MOVE; your row in the waiting list no longer YOUR MOVE) and runs the action only after that frame is on screen (`afterPaint`: next frame, 0.1 s at most). The robot card's SEND button and the pit text show the same ✓. Measured: ✓ painted 4-35 ms after the click.
+- New note while the fighters are in (`G.fight`, not choosing): `✓ <robots> sent`, then "🎩 The bookie is watching test fights of this matchup…" while this page's bookie runs (`bookieOn`, set at the call in `afterChoose`, which also waits one paint before the test fights start), or "2 robots per side: send a second robot (the question in the middle), or Just one" / "Fighters are in. The bookie sets the odds next…".
+- Same ✓ for Sign <sponsor>, Keep <starter>, fit on <robot>. Invite toggles and rebid −/+ already change at once; on a joined screen they get a green ring (`.pressed`) until the host answers.
+- Online: display only, the action is the same `act()`. On the host's page (and solo) the mark is dropped just before the action runs, so a refused click (exhausted robot, too late) re-renders the real state at once. On a joined screen it stays until the host's answer re-renders the note, 4 s at most.
+
 ## Fewer clicks (Kev said yes to all four, 15 Nov)
 
 - Upkeep: a player with nothing to repair and no Stash part that fits (also no robots, round 1) is ready after 0.6 s (`upkeepIdle`, `autoStep`).
@@ -49,6 +59,7 @@ All 9 fixed checks pass on 3a606e0's file except that the last small addition (b
 ## Open
 
 - Questions from T9 (16 Nov): repairs, bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
+- Questions from T15 (16 Nov): the wording "✓ Mauler sent" and "The bookie is watching test fights…"? Should the second robot of a double duel be picked in the note too, instead of the question box?
 
 - Reaction window inside the note instead of a popup.
 - Fight as a slide (still its own full screen).
