@@ -24,9 +24,13 @@ _None._
 
 - **T6. Bookie speed on Kev's PC.** How many test fights the host's PC runs in 4 s; read the `bookie` events of the next real
   game's log (`docs/robocus-sim-bookie.md`). Done when: the number is in that doc, and `BAL.bookie` is set to suit.
-- **T4. Arenas barely change who wins.** With 32 fights a robot per arena only Whaler (Saws) stands out
-  (`docs/robocus-tuned-lineup-tags.md` 4.5). If Kev wants arena picks to matter: stronger or more selective hazards, then
-  re-measure `ARENA_FIT`. Ask Kev first (K-question) before building.
+- **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
+  lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
+  out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
+  robots and hurts others; then re-measure `ARENA_FIT` and the arena tags. Report how big the effect is, so Kev can decide
+  whether picking an arena should cost credits. Files: `tools/damage-lab/` (engine hazards, `arenafit.js`), then `build.py`.
+  Depends on: after T5 (same engine files). Done when: on every arena at least 4 robots move 8 points or more against
+  their open-floor record (numbers with fight counts), and the open floor is unchanged.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
   check the level steps again (`tools/damage-lab/tag-sim2.js` duel section). Done when: every step is 63-68%.
 - **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
