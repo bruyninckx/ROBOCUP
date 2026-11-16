@@ -6570,7 +6570,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- test bots (?bot=1): a seat that plays itself with simple rules, through the same actions ---------- */
-  let botBusy = false;
+  let botBusy = false, botRepRound = null;
   function botStep() {
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
     if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
@@ -6594,8 +6594,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
     if (busy === 'stash') return act('trimStash', 0);
     if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }
-    if (busy === 'upkeep' && !P.botRep && G.phase === 'upkeep') { P.botRep = true; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) > 0) act('repairZone', r.id, z.key); return; }
-    if (busy === 'upkeep') P.botRep = false;
+    // repairs once per round (kept on this screen: on a joined screen every snapshot replaced P.botRep, and a repair that needs more
+    // actions than are left was tried again and again, so a joined bot could stay in Upkeep for good), then Done
+    if (busy === 'upkeep' && botRepRound !== G.gid + ':' + G.round && G.phase === 'upkeep') { botRepRound = G.gid + ':' + G.round; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) >= repairCost(r, z.key)) act('repairZone', r.id, z.key); return; }
     if (busy === 'robot pick') { const r = readyRobots(t)[0]; return r ? act('sendBot', r.id) : act('decline'); }
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
     if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
