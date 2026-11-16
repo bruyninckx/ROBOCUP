@@ -12,6 +12,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K15. Bid lock** (T16): a change takes your lock off and you lock again (taken), or stay locked while changing? Should
+  others see a log line when someone unlocks? Bookie's Friend / Hedge Bet playable after locking bets?
+- **K16. Send feedback** (T15): wording "✓ Mauler sent" and the bookie line: fine? In a double duel, pick the second robot
+  in the note too, instead of the question box?
 - **K14. Part goes on at once** (T12): "best robot" = the one whose odds gain most: right? Undo puts the part back to
   "pick a robot or keep it in the Stash": fine? A Move starts the 5 s again: fine? No red flash when the part went on your
   only robot (nothing you must do): fine? The Stash panel's own Fit still asks "On which robot?" in a popup: move that to
@@ -43,6 +47,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
+  0 desyncs, not seen again in three later runs). If it shows again: find it.
 - **T17. `tools/market-install-test.js` is stale** (it expects the 8 Nov install prompt). Update or retire it.
 - **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
   default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
@@ -74,22 +80,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T16. Bids can still be changed after locking, until everybody has locked.** Kev (16 Nov): "when people lock bids,
-  people can still change their bids after that if there are other people not locked yet but if everybody locked it it
-  continues". Goal: a locked player can still change a bid while somebody else has not locked; the step goes on only when
-  every player is locked. Safest reading taken: changing a bid takes your lock off, and you lock again (so the step can't
-  resolve on a half-made change). The same for bets and the host bid where they use the same lock. Files:
-  `prototypes/tabletop-2.html` (`gather`, `ACT.lockBids`, `ACT.lockBets`, the bid clicks). Worker on branch
-  `claude/relock-bids`, started 16 Nov. Done when: scripted solo and online checks (lock, change, others see you
-  unlocked, lock again, resolves with the new bid), game-sim check and the online test on the 2.0 page pass.
-- **T15. The send button in the note must show it worked.** Kev (16 Nov): "when I clicked it it somehow didn't register,
-  or perhaps it did register but the button still showed, should be something like a checkmark after that button so we
-  know it did its work". Likely cause: right after the last robot is sent the bookie runs its test fights on the page
-  (the game opened as a file has no workers), so the screen stands still for about 4 s with the buttons unchanged. Goal:
-  the clicked button shows a checkmark at once, the others grey out, and the note says the bookie is working; the same
-  for the other choice buttons in the note. Files: `prototypes/tabletop-2.html` (the note's send buttons). Worker on
-  branch `claude/send-feedback`, started 16 Nov. Done when: a screenshot taken straight after the click shows the
-  checkmark, on a page opened as a file; game-sim check and the online test on the 2.0 page pass.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
@@ -98,6 +88,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T15. A click in the note shows it worked** (16 Nov): cause found: after a send the bookie's test fights ran on the page
+  before anything was painted (5.4 s frozen on the test box), and the note had no text for "bookie busy". Now: "✓ <robot>
+  sent" at once (25 ms), others greyed, a bookie line, the same ✓ on the card and for the other note choices. Branch
+  `claude/send-feedback`, commit `0531870`.
+- **T16. Bids can change after locking until everyone has locked** (16 Nov): lot bids, host bid and robot count, bets,
+  fight-card bids, tie rebids; a change takes your lock off; late changes are refused with a line. Test bot bids once per
+  step. Branch `claude/relock-bids`, commit `3e5a3e1`.
+  T15 + T16 merged together: BUILD `2026-11-16h`, files stamp `c572d16c`; game-sim 2/2, 0 page errors; online test on the
+  2.0 page 0 desyncs (12 fights checked).
 - **T12. A won part goes on at once, with Undo and Move; the note flashes red for a choice** (16 Nov): one robot: fitted,
   Undo for 5 s; several robots: fitted on the one whose odds gain most, the others as Move buttons; Undo and Move are
   synced actions, final on the host's clock. Also a test-bot fix (repairs once per round). Branch `claude/fit-at-once`,
