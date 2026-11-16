@@ -24,9 +24,6 @@ _None._
 
 - **T6. Bookie speed on Kev's PC.** How many test fights the host's PC runs in 4 s; read the `bookie` events of the next real
   game's log (`docs/robocus-sim-bookie.md`). Done when: the number is in that doc, and `BAL.bookie` is set to suit.
-- **T5. Repair kit needs a different trigger.** It stays at about +0.5 of a level however fast it heals, because it only
-  works while the robot is not hit (`docs/robocus-part-levels.md`). Done when: the part test (`tools/damage-lab/parttest.js`,
-  `PARTS=repair`) gives +0.65 to +0.85.
 - **T4. Arenas barely change who wins.** With 32 fights a robot per arena only Whaler (Saws) stands out
   (`docs/robocus-tuned-lineup-tags.md` 4.5). If Kev wants arena picks to matter: stronger or more selective hazards, then
   re-measure `ARENA_FIT`. Ask Kev first (K-question) before building.
@@ -40,6 +37,11 @@ _None._
 
 ## In progress
 
+- **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
+  however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
+  `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
+  the part test (`tools/damage-lab/parttest.js`, `PARTS=repair`) gives +0.65 to +0.85, and robots without the part card
+  (Mauler's own repair module too) fight exactly as before.
 - **T9. "Send to the pit" in the yellow note.** Kev (16 Nov): "When you can send a robot to the pit, also make that 'to the
   pit' option visible in the yellow window on the right. As much as possible". Goal: when you have to send a robot, the
   note on the right has a button per robot you can send; the same for other steps where the note only tells you to click
