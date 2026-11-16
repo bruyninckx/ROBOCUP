@@ -355,6 +355,57 @@ html, body {
 @keyframes ivt { from { width: 100% } to { width: 0% } }
 .iv-list { max-height: 240px; overflow: auto; margin-top: 6px; border-top: 2px dashed var(--line); }
 
+/* ---------- the rarity ladder (Kev, 16 Nov: "make a nice overlay for the part rarity"); --c = the tier's colour ---------- */
+#rarPanel { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
+#rarPanel[hidden] { display: none; }
+[data-rar] { cursor: pointer; }
+body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no hover tip on top of the open ladder */
+.rx-box { position: relative; width: min(500px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; background: var(--paper); border: 3px solid var(--ink); border-radius: 6px; box-shadow: 0 18px 50px rgba(0,0,0,.35); padding: 14px 16px 12px; font: 13px/1.45 var(--sans); color: var(--ink); }
+.rx-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 16px; cursor: pointer; color: var(--ink); z-index: 2; }
+.rx-tag { position: relative; overflow: hidden; border: 3px solid var(--c); border-radius: 7px; background: var(--paper); margin-right: 22px; }
+.rx-band { display: flex; justify-content: space-between; align-items: center; background: var(--c); color: #fff; font: 700 11px var(--mono); letter-spacing: 1px; padding: 3px 10px; }
+.rx-band i { font-style: normal; letter-spacing: 2px; margin-left: 6px; }
+.rx-body { display: flex; gap: 12px; align-items: center; padding: 9px 12px 10px; }
+.rx-icon { flex: none; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px dashed var(--dash); border-radius: 5px; }
+.rx-name { font: 400 21px/1.05 var(--stencil); }
+.rx-sub { font-size: 12px; color: #4A4136; margin-top: 3px; }
+.rx-sub b { color: var(--c); }
+.rx-t1 .rx-tag, .rx-t2 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c); }
+.rx-t3 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 18px 2px var(--c); animation: rxGlow 1.9s ease-in-out infinite; }
+.rx-t4 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 22px 4px var(--hazard); animation: rxGlow 1.6s ease-in-out infinite; background: #FBF4DF; }
+.rx-t4 .rx-band { background: repeating-linear-gradient(-45deg, var(--c) 0 10px, #9A6A08 10px 20px); }
+.rx-t3 .rx-tag::after, .rx-t4 .rx-tag::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.65) 50%, transparent 60%); background-size: 300% 100%; animation: rxShine 3.2s ease-in-out infinite; }
+.rx-t4 .rx-tag::after { animation-duration: 2.4s; }
+@keyframes rxShine { 0% { background-position: 120% 0; } 60%, 100% { background-position: -20% 0; } }
+@keyframes rxGlow { 50% { filter: brightness(1.08); box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 8px 1px var(--c); } }
+@media (prefers-reduced-motion: reduce) { .rx-tag, .rx-tag::after { animation: none !important; } }
+.rx-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 0; }
+.rx-tabs button { font: 600 11.5px var(--sans); padding: 2px 8px; border: 2px solid var(--line); border-radius: 4px; background: var(--paper); cursor: pointer; color: var(--ink); }
+.rx-tabs button i { font-style: normal; color: var(--c); letter-spacing: 1px; }
+.rx-tabs button.on { border-color: var(--ink); background: #FFF6D6; }
+.rx-h { font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 2px solid var(--ink); margin: 12px 0 4px; padding-bottom: 2px; }
+.rx-cmp { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rx-cmp th { text-align: left; font: 600 9.5px var(--mono); text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 2px 4px; }
+.rx-cmp td { padding: 3px 10px 3px 4px; border-bottom: 1px solid var(--line); }
+.rx-cmp td:not(:first-child) { white-space: nowrap; font-family: var(--mono); }
+.rx-cmp td b { color: var(--c); }
+.rx-cmp .rx-w { color: var(--muted); }
+.rx-lad { display: flex; flex-direction: column; gap: 3px; }
+.rx-row { position: relative; display: grid; grid-template-columns: 50px 92px 1fr 104px; gap: 8px; align-items: center; padding: 4px 8px; border: 2px solid transparent; border-radius: 4px; }
+.rx-row.on { border-color: var(--ink); background: #FFF6D6; }
+.rx-dm { color: var(--c); letter-spacing: 1px; font-size: 12px; }
+.rx-chip { justify-self: start; background: var(--c); color: #fff; font: 700 10.5px var(--mono); padding: 1px 7px; border-radius: 2px; white-space: nowrap; }
+.rx-r4 .rx-chip { box-shadow: 0 0 0 2px var(--hazard); }
+.rx-odds { display: flex; align-items: center; gap: 6px; font: 600 11px var(--mono); white-space: nowrap; }
+.rx-bar { flex: 1; min-width: 30px; height: 8px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
+.rx-bar i { display: block; height: 100%; background: var(--c); }
+.rx-adds { font: 600 11px var(--mono); color: #4A4136; white-space: nowrap; }
+.rx-this { position: absolute; top: -8px; right: 6px; background: var(--hazard); color: var(--ink); border: 1.5px solid var(--ink); font: 700 8.5px var(--mono); letter-spacing: 1px; padding: 0 5px; border-radius: 2px; }
+.rx-rules { margin: 10px 0 4px; padding-left: 18px; font-size: 12.5px; }
+.rx-rules li { margin: 1px 0; }
+.rx-note { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+@media (max-width: 499px) { .rx-row { grid-template-columns: 44px 84px 1fr; } .rx-adds { grid-column: 2 / 4; } }
+
 /* ---------- phones: the canvas follows the zone that matters; the HTML zones stack ---------- */
 @media (max-width: 699px) {
   :root { --tbh: 44px; }
@@ -739,6 +790,67 @@ html, body {
     for (; t < odds.length - 1; t++) { x -= odds[t]; if (x < 0) break; }
     return t > 0 && LOTS[id + '~' + t] ? id + '~' + t : id;
   }
+  /* ---------- the rarity ladder (Kev, 16 Nov: "make a nice overlay for the part rarity"). Display only: it reads RAR,
+   * BAL.rarity.odds, Lineup.RAR_Q / STAT, partLv and partValue and changes nothing in the game (nothing is synced). Hover a part
+   * card's header for a short tip; click it for the overlay. Opens from: a part card's header (Market, auction), the parts lines of
+   * your own robots, the Stash and part names in the log (data-rar). ---------- */
+  const rarOdds = () => { const o = (BAL.rarity && BAL.rarity.odds) || RAR.map(x => x.p), tot = o.reduce((a, b) => a + b, 0) || 1; return RAR.map((x, t) => 100 * (o[t] || 0) / tot); };
+  const rarChance = t => { const p = rarOdds()[t]; return p >= 0.995 ? Math.round(p) + ' in 100' : p > 0 ? '1 in ' + Math.round(100 / p) : 'never'; };
+  const rarQ = t => (window.Lineup.RAR_Q || [1, 1.3, 1.6, 1.9, 2.8])[t] || 1;
+  const rarDm = t => '◆'.repeat(t) + '◇'.repeat(4 - t);
+  const rarLot = (k, t) => t && LOTS['p_' + k + '~' + t] ? 'p_' + k + '~' + t : 'p_' + k;
+  const rarCan = k => !!(window.Lineup.PARTS[k] && window.Lineup.PARTS[k].kind !== 'chip');
+  const rarX = v => 'x' + (+v.toFixed(2));
+  const rarWhat = w => { const s = w.split(' (')[0]; return s.charAt(0).toLowerCase() + s.slice(1); };   // 'Weapon damage (..)' -> 'weapon damage'
+  function rarPow(k, t) {   // what the tier does to this part, in the part's own terms
+    const S = window.Lineup.STAT || {}, q = rarQ(t), P = window.Lineup.PARTS[k];
+    const st = { overdrive: ['Weapon damage', 'overdrive'], weapon: ['Weapon damage', 'weapon'], hull: ['HP of every part', 'hull'], powerkit: ['HP (motors, battery as before)', 'powerkit'],
+      armourkit: ['HP (plates +1 as before)', 'armourkit'], core: ['Weapon damage and HP', 'coreD'], hospital: ['HP, and its medic ' + rarX(q), 'hospital'] }[k];
+    if (st && S[st[1]]) return { what: st[0], v: rarX(1 + (S[st[1]] - 1) * q), base: rarX(S[st[1]]) };
+    return { what: P.kind === 'drone' ? 'Drone power (shots, healing, push, HP)' : P.kind === 'module' ? 'Module power (damage, healing, shield, stun, push)' : 'Its power', v: rarX(q), base: 'x1' };
+  }
+  function rarTip(k, t) {   // the short hover tip: [title, body]
+    if (BAL.rarity && BAL.rarity.on === false) return ['Rarity is off', 'Every part card is a standard copy in this game.'];
+    return [rarDm(t) + ' ' + RAR[t].n + ' copy', (t ? '<b style="color:' + RAR[t].col + '">' + qTxt(RAR[t].lv) + ' level</b> on top of the part, ' + rarPow(k, t).v + ' ' + rarWhat(rarPow(k, t).what) + '. About ' + rarChance(t) + ' part cards.'
+      : 'The part as it comes (' + rarChance(0) + ' part cards). Better copies: ' + RAR.slice(1).map(x => '<b style="color:' + x.col + '">' + x.n + '</b>').join(', ') + '.') + '<br><i>Click: the rarity ladder.</i>'];
+  }
+  function openRarity(k, t, o = {}) {
+    if (!rarCan(k)) return;
+    let el = document.getElementById('rarPanel');
+    if (!el) { el = document.createElement('div'); el.id = 'rarPanel'; document.body.appendChild(el); }
+    const P = window.Lineup.PARTS[k], R = RAR[t], L = LOTS[rarLot(k, t)] || {}, r = o.robot, off = BAL.rarity && BAL.rarity.on === false;
+    const tabs = r ? partsOf(r).filter(rarCan) : [];
+    const lvRows = r ? [['On ' + esc(r.name) + ' (' + (r.level ? '★' + r.level : 'starter') + ')', r.level || 0]] : [['On a ★0-1 robot', 1], ['On a ★2-3 robot', 2], ['On a ★4 robot', 4]];
+    const pw = rarPow(k, t), best = RAR.length - 1, pb = rarPow(k, best), v0 = partValue('p_' + k) + ' Cr · ' + bankHalf('p_' + k) + ' Cr', v1 = partValue(rarLot(k, t)) + ' Cr · ' + bankHalf(rarLot(k, t)) + ' Cr';
+    const row = (lab, a, b) => '<tr><td>' + lab + '</td>' + (t ? '<td class="rx-w">' + a + '</td>' : '') + '<td><b>' + b + '</b></td></tr>';
+    const odds = rarOdds(), pmax = Math.max(...odds) || 1;
+    el.hidden = false;
+    el.innerHTML = '<div class="rx-box rx-t' + t + '" style="--c:' + R.col + '"><button class="rx-x" title="Close">✕</button>' +
+      '<div class="rx-tag"><div class="rx-band"><span>' + R.n.toUpperCase() + ' <i>' + rarDm(t) + '</i></span><span>' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()) + '</span></div>' +
+        '<div class="rx-body"><div class="rx-icon">' + (L.icon || '🔩') + '</div><div><div class="rx-name">' + esc(P.name) + '</div>' +
+        '<div class="rx-sub">' + (t ? 'A <b>' + R.n + '</b> copy: ' + qTxt(R.lv) + ' level on top. About ' + rarChance(t) + ' part cards roll this.' : 'A <b>standard</b> copy: the part as it comes. ' + rarChance(0) + ' part cards.') + '</div></div></div></div>' +
+      (tabs.length > 1 ? '<div class="rx-tabs">' + tabs.map(q => { const tq = rarOn(r)(q); return '<button data-rxk="' + q + '" class="' + (q === k ? 'on' : '') + '" style="--c:' + RAR[tq].col + '">' + esc(window.Lineup.PARTS[q].name) + ' <i>' + rarDm(tq) + '</i></button>'; }).join('') + '</div>' : '') +
+      '<div class="rx-h">This copy</div><table class="rx-cmp">' + (t ? '<tr><th></th><th>standard copy</th><th>this ' + R.n + ' copy</th></tr>' : '') +
+        lvRows.map(([lab, lv]) => row(lab + ', in levels', qTxt(partLv(k, lv)), qTxt(partLv(k, lv) + R.lv))).join('') +
+        row(esc(pw.what), pw.base, pw.v) + row('Card value · the bank pays', v0, v1) + '</table>' +
+        (t < best ? '<div class="rx-note">The 1-in-100 dream: a <b style="color:' + RAR[best].col + '">' + RAR[best].n + '</b> ' + esc(P.name) + ', ' + qTxt(RAR[best].lv) + ' level on top, ' + pb.v + ' ' + esc(rarWhat(pb.what)) + '.</div>' : '<div class="rx-note">The best copy there is. Most games never see one.</div>') +
+      '<div class="rx-h">The rarity ladder</div><div class="rx-lad">' + RAR.map((x, i) => i).reverse().map(i => '<div class="rx-row rx-r' + i + (i === t ? ' on' : '') + '" style="--c:' + RAR[i].col + '">' +
+        '<span class="rx-dm">' + rarDm(i) + '</span><span class="rx-chip">' + RAR[i].n + '</span>' +
+        '<span class="rx-odds"><span class="rx-bar"><i style="width:' + Math.max(3, 100 * odds[i] / pmax).toFixed(1) + '%"></i></span>' + rarChance(i) + '</span>' +
+        '<span class="rx-adds">' + (i ? qTxt(RAR[i].lv) + ' level · ' + rarX(rarQ(i)) : 'as it comes') + '</span>' + (i === t ? '<b class="rx-this">THIS CARD</b>' : '') + '</div>').join('') + '</div>' +
+      (off ? '<div class="rx-note" style="color:var(--red)">Rarity is switched off in this game: every card is a standard copy.</div>' : '') +
+      '<ul class="rx-rules"><li>Every part card rolls its tier when it comes off the deck (Market, crate).</li>' +
+        '<li>The tier stays with the card: on the robot, in a trade, in the Stash. A card that goes back into the deck (unsold, botched) rolls again.</li>' +
+        '<li>Legendary parts roll too. Tuning chips don\'t.</li></ul>' +
+      '<div class="rx-note">Levels: from test fights, good to about a quarter level. Power: how much harder the part works.</div></div>';
+    const close = () => { el.hidden = true; };
+    el.querySelector('.rx-x').onclick = close;
+    el.onclick = e => { if (e.target === el) close(); };
+    el.querySelectorAll('[data-rxk]').forEach(b => { b.onclick = () => openRarity(b.dataset.rxk, rarOn(r)(b.dataset.rxk), o); });
+  }
+  // a part name in HTML (Stash, log) carries data-rar="<lot id>": a click opens the ladder
+  document.addEventListener('click', e => { const s = e.target.closest && e.target.closest('[data-rar]'); if (!s || e.target.closest('button')) return; const L = LOTS[s.dataset.rar]; if (L && L.part) openRarity(L.part, L.rar || 0); });
+  document.addEventListener('keydown', e => { const el = document.getElementById('rarPanel'); if (e.key === 'Escape' && el && !el.hidden) el.hidden = true; });
   const lotDeck = () => shuffle(Object.keys(window.Lineup.PARTS).filter(k => window.Lineup.PARTS[k].kind !== 'legendary').flatMap(k => Array(partCopies(k)).fill('p_' + k)).concat(Array(Math.max(0, BAL.lots.robot | 0)).fill('robot'), Array(Math.max(0, BAL.lots.crew | 0)).fill('crew')));
   /* CREW CARDS (Kev, 6 Nov; docs/upgrade-cards.md): every crew member is a named card. t.crew = [{ uid, kind }].
    * t.mechs / t.engPool are counts of Mechanic / Chief Engineer cards (getters + setters, so older code keeps working).
@@ -1014,7 +1126,7 @@ html, body {
     return [c.icon + ' ' + esc(c.name), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
-  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };
   const SCHEME_STEPS = '<br><br><b>How a play resolves</b><br>1. Fame gate: short on fame? Ask other teams to back you.<br>2. Harmful card: the target\'s Security Bots roll, 4–6 blocks.<br>3. Reaction window: any team may block it with a reaction card.<br>4. The effect happens (✓ landed) or not (✋ blocked).';
   // header of one Intrigue play in the log (a rival's face-down card stays secret)
   // asking for backing keeps the card secret (Kev, 6 Nov): the log names it only once it is really played
@@ -2402,7 +2514,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16a formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16-rarity rarity ladder, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2788,7 +2900,7 @@ html, body {
     el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
         const fits = t.robots.filter(r => canFit(r, LOTS[id]));
-        return '<div class="st-row"><span class="lcard"' + helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>' +
+        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>' +
           (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
     el.classList.toggle('empty', !S.length);
@@ -7044,7 +7156,8 @@ html, body {
     const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
     ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => (LU.PARTS[k] ? LU.PARTS[k].name : k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
-    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
+    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
+    { const rk = partsOf(r).filter(rarCan).sort((p, q) => rarOn(r)(q) - rarOn(r)(p)); if (rk.length) hitRegions.push({ kind: 'rarity', robot: r, part: rk[0], rar: rarOn(r)(rk[0]), x: tx, y: by + 52, w: tw, h: 28 }); }   // the rarity ladder
     { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
@@ -7152,9 +7265,9 @@ html, body {
     const L = LOTS[id]; if (!L) return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
     if (L.robot) return isL4(L.starter) ? { k: 'l4', col: '#6A3FA0', fg: '#fff', label: 'ROBOT', when: '★★★★ LEVEL 4' } : { k: 'robot', col: '#2F7D4A', fg: '#fff', label: 'ROBOT', when: levelOf(L.starter) ? 'LEVEL ' + levelOf(L.starter) : 'STARTER' };
     if (L.crew) return { k: 'crew', col: '#8A5A2B', fg: '#fff', label: 'CREW', when: (CREW[L.crew] ? CREW[L.crew].name : '').toUpperCase() };
-    if (L.legend) return L.rar ? { k: 'legend', col: '#B8860B', fg: INK, label: RAR[L.rar].n.toUpperCase(), when: 'LEGENDARY', rar: L.rar } : { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: '1 COPY', rar: 0 };
+    if (L.legend) return L.rar ? { k: 'legend', col: '#B8860B', fg: INK, label: RAR[L.rar].n.toUpperCase(), when: 'LEGENDARY', rar: L.rar, part: L.part } : { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: '1 COPY', rar: 0, part: L.part };
     if (L.part && isChip(L.part)) return { k: 'chip', col: '#0E7490', fg: '#fff', label: 'TUNING CHIP', when: 'LEVEL 0-1' };
-    if (L.part) return L.rar ? { k: 'part', col: RAR[L.rar].col, fg: '#fff', label: RAR[L.rar].n.toUpperCase(), when: String(L.kind || '').toUpperCase(), rar: L.rar } : { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase(), rar: 0 };
+    if (L.part) return L.rar ? { k: 'part', col: RAR[L.rar].col, fg: '#fff', label: RAR[L.rar].n.toUpperCase(), when: String(L.kind || '').toUpperCase(), rar: L.rar, part: L.part } : { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase(), rar: 0, part: L.part };
     return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
   }
   // the lot's frame and type band (stage space); the content goes below y + 18
@@ -7179,6 +7292,7 @@ html, body {
       for (let i = 0; i < 4; i++) { const cx = dx0 + i * st, cy = y + 9.2; ctx.beginPath(); ctx.moveTo(cx, cy - r - 0.6); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r + 0.6); ctx.lineTo(cx - r, cy); ctx.closePath();
         if (i < K.rar) { ctx.fillStyle = K.fg; ctx.fill(); } ctx.strokeStyle = K.fg; ctx.lineWidth = 1.1; ctx.stroke(); }
       ctx.fillStyle = K.fg; }
+    if (K.rar != null && K.part && rarCan(K.part)) { const tp = rarTip(K.part, K.rar); help(x, y, w - (opt.padR || 0), 18, tp[0], tp[1]); hitRegions.push({ kind: 'rarity', part: K.part, rar: K.rar, x, y, w: w - (opt.padR || 0), h: 18 }); }   // the rarity ladder (hover: tip, click: overlay)
     if (K.when) { ctx.font = '700 7.5px ' + F_MONO; const pr = opt.padR || 0, ww = Math.min(w - lw - 20 - dw - pr, ctx.measureText(K.when).width + 8); if (ww > 14) { ctx.fillStyle = K.fg; rrect(ctx, x + w - 6 - pr - ww, y + 4, ww, 11, 2); ctx.fill(); ctx.fillStyle = K.col; ctx.textAlign = 'center'; fitText(ctx, K.when, x + w - 6 - pr - ww / 2, y + 12.5, ww - 4, '700', 7.5, F_MONO); ctx.textAlign = 'left'; } }
   }
   function drawStepper(ctx, x, y, w, txt, col) {   // [−] value [+] at the foot of a lot
@@ -7742,6 +7856,9 @@ html, body {
 
     { const od = hitRegions.find(r => r.kind === 'odds' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);   // odds chip: matchups panel
       if (od && G.teams[od.team] && G.teams[od.team].robots.includes(od.robot)) { openMatchups(od.team, od.robot); return; } }
+    { const rx = hitRegions.slice().reverse().find(r => r.kind === 'rarity' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);   // part rarity: the ladder (not while a robot click means install / send)
+      const busy = rx && rx.robot && ((G.phase === 'market' && (PS().install || []).length) || (G.phase === 'arena' && (PS().choose || (G.host === HS && G.pickTeams && !G.fight))));
+      if (rx && !busy) { openRarity(rx.part, rx.rar, rx.robot ? { robot: rx.robot } : {}); return; } }
     for (let i = hitRegions.length - 1; i >= 0; i--) {
       const r = hitRegions[i];
       if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
@@ -7841,6 +7958,8 @@ html, body {
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, rarity ladder', '16 Nov 2026', [
+      'Part rarity explained: hover the diamonds on a part card for a short tip, click them for the rarity ladder (the five tiers, how rare each is, what this copy adds, and the rule). Also from the parts lines of your robots, the Stash and part names in the log.' ]],
     ['2.0.1, formula odds', '16 Nov 2026', [
       'The bookie counts damage everywhere again: the odds in the Market and auction overlays (and at a fight when the host\'s PC is too slow for test fights) drop for a damaged robot, the same as the test fights.' ]],
     ['2.0.1', '15 Nov 2026', [

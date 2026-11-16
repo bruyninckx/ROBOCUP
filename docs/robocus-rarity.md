@@ -48,3 +48,9 @@ Every time a part card comes off the deck (the Market, a crate) it rolls a tier:
 - The gain flattens above about x2: a part can only do so much. So the 1% copy is about a level better, not more, even at x2.8.
 - By kind the 1% copy is strongest on legendaries (a Masterwork legendary measured about +1.9 levels on 78 fights) and on modules.
 - Not measured: whole games with rarity on (how often a rare copy decides a game, what it does to prices), and very long stuns (a Masterwork EMP stuns for about 5 s every 10 s).
+
+## Shown to players (16 Nov 2026, T11)
+
+- A part card's header shows the tier name in its colour and four diamonds (◇◇◇◇ standard ... ◆◆◆◆ Masterwork); Works and Masterwork cards glow in the Market.
+- Hover the header: a short tip (tier, what it adds, how rare). Click it: the **rarity ladder** overlay: the card as a loot tag, what this copy adds (in levels, its power, card value and bank price, next to a standard copy), the five tiers with their chances (read from `BAL.rarity.odds`) and the rule (rolled off the deck, stays with the card, rolls again back in the deck, legendaries roll, chips don't).
+- Also opens from the parts lines of your own robots, the Stash and part names in the log. Display only: nothing in it is synced or changes the game.
