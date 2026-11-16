@@ -12,6 +12,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   slow (a dozen robots is about 50 pairs). Safest choice taken for T7: the formula grid. Later option: refine the grid with
   a few test fights in the background.
 
+- **K6. Badly damaged robots swing the formula odds a lot.** (From T8.) A Scythe against a Mincer that lost its weapon:
+  65% became 96%. That matches what the test fights see, and it is how it was before 15 Nov. Too extreme for the Market
+  overlays, or fine?
+
 ### Answered
 
 - **K5 (16 Nov): the formula counts damage again.** Kev: "let the formula count damage again". Task T8.
@@ -47,12 +51,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T8. The formula bookie counts damage again** (K5). `BAL.oddsDamage` true, help texts and docs corrected. Worker on
-  branch `claude/formula-counts-damage`, started 16 Nov. Done when: a damaged robot's formula odds are lower than as new
-  (numbers), the game-sim check passes, changelog line and new `BUILD`.
+_None._
 
 ## Done
 
+- **T8. The formula bookie counts damage again** (16 Nov, K5): `BAL.oddsDamage` true; changelog line, BUILD
+  `2026-11-16a`. Example: a Scythe with a broken Body against a new Mincer, 65% as new, 56% damaged. Check: 2/2 games,
+  0 page errors. Branch `claude/formula-counts-damage`, commit `8017271`. Files stamp unchanged: `e63a7588`.
 - **Orchestration setup** (16 Nov): `AGENTS.md` rules, `CLAUDE.md` roles and worker brief, this board,
   `docs/orchestration.md` (Kev's guide), `play-latest.cmd`, files stamp and stale-file warning (`tools/stamp.py`, run by
   `build.py`), `tools/retire-side-folders.cmd`, the project-only docs copied into `docs/`. Branch `claude/orchestration`.
