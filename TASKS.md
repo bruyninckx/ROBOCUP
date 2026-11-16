@@ -12,12 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   slow (a dozen robots is about 50 pairs). Safest choice taken for T7: the formula grid. Later option: refine the grid with
   a few test fights in the background.
 
-- **K6. Badly damaged robots swing the formula odds a lot.** (From T8.) A Scythe against a Mincer that lost its weapon:
-  65% became 96%. That matches what the test fights see, and it is how it was before 15 Nov. Too extreme for the Market
-  overlays, or fine?
-
 ### Answered
 
+- **K6 (16 Nov): big odds swings against a wrecked robot stay.** Kev: "no it is what it is". No change.
 - **K5 (16 Nov): the formula counts damage again.** Kev: "let the formula count damage again". Task T8.
 - **K1 (16 Nov): the test-fight bookie keeps damage.** Kev: "test fight bookie does not ignore damage, it should run the
   simulation as is". No change to the code.
