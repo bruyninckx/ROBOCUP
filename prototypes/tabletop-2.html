@@ -8548,7 +8548,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const band = Math.max(0, Math.min(4, B.lv + Math.round(sh)));
     return { band, x: B.dev + sh - (band - B.lv), lv: B.lv, dev: B.dev, up, dmg, sh, eff: B.lv + sh };
   }
-  const pmLike = v => v < -0.05 ? 'below ★0' : '★' + (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
+  const pmLike = v => v < -0.05 ? '< ★0' : '★' + (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
   // what is on the map: this game's robots (teams, the Market's robot lots, next round's lots that are shown), then one token per
   // lineup robot as it comes (faint when a copy of it is in this game: the copy has a line back to it)
   function pmItems() {
@@ -8578,8 +8578,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const pmR = it => pmInGame(it) ? PM.geo.RAD : Math.max(8, PM.geo.RAD * 0.72);
   function pmBox(it, ctx) {
     const g = PM.geo, r = pmR(it), mine = it.kind === 'team' && it.T.i === viewerSeat, ring = mine ? 7 : 2;
+    ctx.font = '700 10px IBM Plex Sans, system-ui, sans-serif';
+    const pill = mine || it.kind === 'lot' || it.kind === 'next', tag = pmInGame(it) && Math.abs(it.pl.sh) >= 0.124 ? ctx.measureText(pmLike(it.pl.eff)).width + 10 : 0;
     ctx.font = (pmInGame(it) ? '700 ' : '500 ') + pmFont(it) + 'px IBM Plex Sans, system-ui, sans-serif';
-    const pill = mine || it.kind === 'lot' || it.kind === 'next', tag = pmInGame(it) && Math.abs(it.pl.sh) >= 0.124 ? 26 : 0;
     return { l: Math.max(r + ring + 2, ctx.measureText(it.name).width / 2 + 3), r: Math.max(r + ring + 2 + tag, ctx.measureText(it.name).width / 2 + 3), t: r + ring + (pill ? 8 : 1), b: r + ring + pmFont(it) + 3 };
   }
   const pmFont = it => pmInGame(it) ? PM.geo.font : PM.geo.font - 1;
@@ -8593,9 +8594,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const hit = (x, y) => done.some(o => x - bx.l < o.x + o.bx.r && x + bx.r > o.x - o.bx.l && y - bx.t < o.y + o.bx.b && y + bx.b > o.y - o.bx.t);
         let best = null;
         for (const k of ks) { let y = cy + k * step; y = Math.max(y0 + bx.t, Math.min(y1 - bx.b, y));
-          for (const sg of [1, -1]) { let dx = 0, x = x0;
-            for (; dx < g.W; dx += 2) { x = Math.max(lo, Math.min(hi, x0 + sg * dx)); if (!hit(x, y)) break; }
-            const c = Math.abs(x - x0) + Math.abs(k) * 4; if (!best || c < best.c) best = { c, x, y }; } }
+          for (const sg of [1, -1]) { let x = x0, ok = false;
+            for (let dx = 0; dx < g.W; dx += 2) { x = Math.max(lo, Math.min(hi, x0 + sg * dx)); if (!hit(x, y)) { ok = true; break; } }
+            const c = Math.abs(x - x0) + Math.abs(k) * 4 + (ok ? 0 : 1e6); if (!best || c < best.c) best = { c, x, y }; } }
         done.push({ x: best.x, y: best.y, bx }); it.px = best.x; it.py = best.y;
       }
     }
@@ -8682,7 +8683,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     ctx.textAlign = 'left'; ctx.fillText('← weaker for its level', g.left + 18, g.H - 6); ctx.textAlign = 'right'; ctx.fillText('stronger for its level →', g.W - g.right, g.H - 6);
     const sel = PM.sel && PM.items.includes(PM.sel) ? PM.sel : null, rel = new Set(), arrows = [];
-    if (sel) { rel.add(sel); const C = pmCounters(sel);
+    if (sel) { rel.add(sel); if (sel.home) rel.add(sel.home); PM.items.forEach(i => { if (i.home === sel) rel.add(i); }); const C = pmCounters(sel);
       for (const c of C.beats) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([sel, t, '#2F7D4A']); }
       for (const c of C.lose) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([t, sel, '#B23A2B']); } }
     const alpha = it => sel ? (rel.has(it) ? 1 : 0.2) : pmInGame(it) ? 1 : it.kind === 'ghost' ? 0.45 : 0.38;
@@ -8748,13 +8749,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const pmSig = () => !G || !G.teams ? '' : G.phase + '|' + (G.market || []).join(',') + '|' + (G.marketResolved ? 1 : 0) + '|' + (G.nextMarket || []).join(',') + '|' + G.teams.map(T => T.robots.map(wearKey).join(';')).join('#');
   function pmBuild() {
-    const keep = PM.sel; PM.items = pmItems();
+    const keep = PM.sel, t0 = performance.now(); pmBase(); const t1 = performance.now(); PM.items = pmItems(); const t2 = performance.now();
     PM.sel = keep ? PM.items.find(i => i.r === keep.r) || PM.items.find(i => i.name === keep.name && i.kind === keep.kind) || null : null;
     const mx = PM.items.filter(i => Math.abs(i.x) <= 1).reduce((a, i) => Math.max(a, Math.abs(i.x)), 0);
     PM.xm = Math.max(0.75, Math.min(1, Math.ceil((mx + 0.04) * 4) / 4));
     const box = PM.el.querySelector('.pm-map'), W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
     if (PM.cv.width !== Math.round(W * dpr) || PM.cv.height !== Math.round(H * dpr)) { PM.cv.width = Math.round(W * dpr); PM.cv.height = Math.round(H * dpr); }
-    PM.geo = pmGeo(W, H); pmLayout(); pmDraw(); pmSide(); PM.sig = pmSig();
+    PM.geo = pmGeo(W, H); pmLayout(); const t3 = performance.now(); pmDraw(); pmSide(); PM.sig = pmSig(); PM.ms = { base: t1 - t0, items: t2 - t1, layout: t3 - t2, draw: performance.now() - t3 };
     if (PM.jobs.length && !PM.pumping) setTimeout(pmPump, 0);
   }
   function openPowerMap() {
