@@ -288,3 +288,8 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Kev: "K5, let the formula count damage again." `BAL.oddsDamage` true (prototypes/tabletop-2.html): the formula odds in the Market/auction overlays, the bands, the AI valuations and the fallback at a fight count each robot's damage again, so they agree with the test fights (`simOdds`, unchanged). BUILD 2026-11-16a, changelog line.
 - Check (seed 3, round 2): Scythe L0 with a broken Body vs a new Mincer L0: 65% read as new, 56% with damage; vs the field 49% -> 45%.
 - Docs: robocus-sim-bookie.md (Decided, 16 Nov), robocus-part-levels.md (section 5 and the whole-games note).
+
+## 16 Nov 2026: the rarity ladder (T11, Kev: "make a nice overlay for the part rarity")
+- Display only (`prototypes/tabletop-2.html`): hover a part card's header (the tier name and ◆◇ diamonds) for a short tip; click it for the rarity ladder overlay (`openRarity`, CSS `.rx-*`, panel `#rarPanel`). It shows the card as a loot tag in its tier's colour (Works and Masterwork glow and shine), what this copy adds (levels on a ★0-1 / ★2-3 / ★4 robot, or on the robot it is fitted on; its power in its own terms, e.g. weapon damage x1.29 -> x1.38; card value and bank price), the five tiers with their chances (from `BAL.rarity.odds`) and the rule in three lines.
+- Opens from: Market and auction part cards (header), the parts lines of your own robots (tabs per part), the Stash, part names in the log (`data-rar`). Not on the small rival tickets or the next-round strip. A click on a part card's header now opens the ladder instead of bidding +1 (the rest of the card still bids).
+- No rule, chance, strength, value or synced state changed; no src2 change (files stamp unchanged). Screenshots: /home/claude/t11-shots/ (worker box).
