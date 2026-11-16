@@ -26,7 +26,21 @@ Kev: "When you can send a robot to the pit, also make that 'to the pit' option v
 - Upkeep: a player with nothing to repair and no Stash part that fits (also no robots, round 1) is ready after 0.6 s (`upkeepIdle`, `autoStep`).
 - Market results (after the lots, after the host bid) and "next round": go on by themselves after `BAL.autoMs` (6 s). The count only runs while nobody has something else to do (fitting a part, trade-in, open question, reaction window). The note shows "Goes on by itself in N s" (`G.autoLeft`); the button stays. `window.__noAuto = true` turns it off.
 - Bets: one chip per amount on each robot (`bet_amt`, `ACT.bet(S, side, amt)`); the same amount again takes the bet back. Lock bets is still a click (the card bids are in the same step).
-- A won part with exactly one robot it fits goes on at once (`applyMarketWins`, `BAL.autoFit`). With two or three robots that can take it you still pick the bay.
+- A won part goes on at once (`applyMarketWins`, `BAL.autoFit`); since T12 also with two or three robots that can take it (see below).
+
+## A bought part goes on at once, with Undo; the note flashes red for a choice (T12, 16 Nov)
+
+Kev: "when you buy a part, put it on the robot immediately but do show an undo button for 5 sec in the yellow box so people can undo that ... try to put options to click also in the yellow box at all time." And: "the your move box should flash red when a choice needs to be made".
+
+- A part a person wins goes on at once (`autoFitPart` from `applyMarketWins`): one robot with room: that one; several: the one whose odds vs the field gain most (`bestFit`: the same `fieldOdds` with / without the part that the fit buttons show; ties: the stronger robot; while the bookie is still working: the AI's pick, `aiPickRobot`). No room anywhere: the Stash, as before.
+- The note shows "🔩 <part> fitted on <robot> (best fit), odds a → b", an **↶ Undo N s** button with a shrinking bar, and with several robots one **↪ <robot>** button per other robot that can take it (hint: its odds). Moving starts the 5 s again. Records: `PS(S).fitUndo` (robot, part, rarity tier and slot state before the fit).
+- **Undo** (`ACT.undoFit`): the part comes off (`fitOff`: parts, legendary slot, rarity tier exactly as before) and waits in `PS.install` as before T12: pick a robot (note, card or bay) or 📦 Keep in Stash; Continue still puts an unfitted part in the Stash. **Move** (`ACT.moveFit`): off the one robot, on the other.
+- When it is final (decided on the host only): 5 s on the host's clock (`fitUndoTick`, every screen shows the host's count `left`), any other action of that player (`runAct`), or the Market moving on (`continueMarket`). A late Undo / Move is refused with a log line for that player.
+- Online: Undo and Move are ordinary actions sent to the host (`act` → `sendAct`), nothing new in src2/net.js. Nobody waits for the window: the waiting list does not list it (the seat is "reading the results" as before), and the 6 s auto-advance keeps counting; if it fires first, the fit is final.
+- AI teams fit as before (`aiPickRobot`). The test bot (`?bot=1`) never needs to click: its part is already on.
+- Red flash (`flashNote`, `choiceKey` in `promptState`): when a new choice lands on you (a new step, question or part to fit, or a fitted part you can move), the YOUR MOVE note pulses red three times (~1.7 s, `@keyframes pbFlash`) and goes back to yellow; with reduced motion a red outline for 2 s instead. Not for LOCKED IN, NOTHING FOR YOU TO DO, steps that go on by themselves, a Move or the end of the window, or a part on your only robot with room (Undo only).
+- Fix: the pit header said "FIT … ON A ROBOT (RIGHT)"; your robots are on the left.
+- Not changed: the Stash's own Fit button still asks "On which robot?" in a popup when several robots can take a Stash part.
 
 ## Tested
 

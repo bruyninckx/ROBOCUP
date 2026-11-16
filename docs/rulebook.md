@@ -115,7 +115,7 @@ Three steps. Robots, crew and Security Bots change hands only here.
 3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any lot tie it is in, without a rebid (not the host bid). If a rebid ties again with nobody adding, the team with less fame wins.
 4. No bids: the lot goes back (an unsold robot to its deck, a legendary comes back later).
 5. **Botched Install:** before anything is fitted, a team holding Botched Install may wreck a rival's won part (normal defence applies; it can also demand a payoff instead). A botched part is scrapped; the winner gets half its bid back and the saboteur 1 credit.
-6. **Installs:** fit each won part on one of your robots that can take it, or keep it in your Stash. A swapped-out module or armour goes to the Stash. New crew joins your team.
+6. **Installs:** each won part goes on one of your robots that can take it (the one it helps most); for a few seconds you can undo that or move it to another robot that can take it, or keep it in your Stash instead. A part no robot can take goes to your Stash. A swapped-out module or armour goes to the Stash. New crew joins your team.
 
 **3. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once, unless it is the sole fame leader (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
 
