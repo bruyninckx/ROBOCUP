@@ -841,7 +841,7 @@
     const before = part.hp;
     part.hp -= d;
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
-    R.stats.taken += d;
+    R.stats.taken += d; if (h.cause === 'floorsaw' || h.cause === 'spikes' || h.cause === 'icewall') R.stats.hz = (R.stats.hz || 0) + d;   // arena hazard damage (stats only)
     if (src) {
       src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
       if (d > src.stats.biggest) { src.stats.biggest = d; src.stats.biggestBy = k; }
