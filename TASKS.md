@@ -41,6 +41,12 @@ _None._
 
 ## In progress
 
+- **T10. Tow cable and wall slams need to be seen.** Kev (16 Nov, with a screenshot of Snapjaw slinging Forklift): "the tow
+  cable upgrade on the snapjaw was barely visible, forklift just slammed in the wall without much visual effect". Goal: the
+  tow cable is a clear cable from hook to victim for the whole sling; a hard wall hit shows on the wall and the robot.
+  Drawing only, no change to how fights go. Files: `src2/view.js` (and `tools/damage-lab/ui.js` if the labs share it).
+  Worker on branch `claude/sling-visuals`, started 16 Nov. Done when: before/after screenshots of a sling into the wall,
+  the stock-fight fingerprint is unchanged, game-sim check and `mp-test` pass.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
