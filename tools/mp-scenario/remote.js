@@ -158,7 +158,8 @@ async function joinSide(ctx, k, dir, say, drop) {
   const stopAwake = require('./awake.js')();
   const engine = FLAG('firefox') && role !== 'host' ? 'firefox' : 'chromium';
   const b = engine === 'firefox' ? await pw.firefox.launch().catch(e => { console.log('Could not start Firefox: ' + String(e.message).split('\n')[0] + '\nRun once: npx playwright install firefox'); process.exit(2); }) : await require('./launch.js')(pw);
-  const mk = async sz => { const c = await b.newContext({ viewport: sz }); if (LOCAL && fs.existsSync('vendor/planck-1.4.3.min.js')) await c.route(/^https?:/, r => r.abort()); return c; };
+  const PLK = require('../planck-local.js'), PL = LOCAL ? PLK.find(OPT('planck')) : null;   // one PC: a local planck when there is one (--planck=, PLANCK=, node_modules, vendor/)
+  const mk = async sz => { const c = await b.newContext({ viewport: sz }); if (PL) await PLK.route(c, PL); return c; };
   const sides = LOCAL ? ['host', 'join'] : [role], lines = {}, all = {};
   console.log((LOCAL ? 'One PC, a local room (a test of the tool itself)' : role === 'host' ? 'HOST' : 'JOIN with ' + PLAYERS + ' player' + (PLAYERS > 1 ? 's' : '') + ' in ' + engine) + ' · code ' + CODE + ' · ' + GAMES + ' games of at most ' + MIN + ' minutes · ' + URL0.replace(/\?.*/, ''));
   console.log('At most ' + Math.round(GAMES * (MIN + 1.5)) + ' minutes in all (done by ' + new Date(Date.now() + GAMES * (MIN + 1.5) * 60000).toTimeString().slice(0, 5) + '), sooner when games are won early. A progress line every minute; a result line after every game.');

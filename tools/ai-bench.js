@@ -3,12 +3,12 @@
 //   a spec: v2, v1, v2:hostFame=6,partK=0.5, v2:off=bets+host, or JSON {"v":2,"p":{"hostFame":3}} (see AI_PARAMS in the tabletop prototype)
 // All 4 teams AI, no animations, no drawing. Seeds 1..games, so two runs with the same games compare like for like.
 // Options (anywhere): --page=prototypes/tabletop-2.html (default: the 1.0 prototype), --planck=<file> (2.0: local planck.min.js;
-// default vendor/planck-1.4.3.min.js when it exists, --planck=cdn for the network). 2.0 example (surplus spending on vs off):
+// default node_modules/planck, then vendor/planck-1.4.3.min.js, see tools/planck-local.js; --planck=cdn for the network). 2.0 example (surplus spending on vs off):
 //   node tools/ai-bench.js 60 2 v2 v2:spendK=0 sims/bench_spend.json --page=prototypes/tabletop-2.html
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const flag = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const PAGE = flag('page', 'prototypes/tabletop-prototype.html');
-const PLANCK = (() => { const a = flag('planck', ''); if (a === 'cdn') return null; for (const f of [a, 'node_modules/planck/dist/planck.min.js', path.join(__dirname, '..', 'vendor', 'planck-1.4.3.min.js')]) if (f && fs.existsSync(f)) return fs.readFileSync(f); return null; })();
+const PLK = require('./planck-local.js'), PL = PLK.find(flag('planck', '')), PLANCK = PL.body;   // tools/planck-local.js
 process.argv = process.argv.filter(x => !x.startsWith('--'));
 const N = +(process.argv[2] || 100), PAR = +(process.argv[3] || 2);
 // a spec is JSON, or short: v2, v1, v2:hostFame=6,partK=0.5, v2:off=bets (easier to type in PowerShell)
@@ -20,7 +20,7 @@ const A = spec(process.argv[4]) || { v: 2 }, Bspec = spec(process.argv[5]) || { 
   async function one(seed) {
     const seatA = seed % 4, p = await b.newPage({ viewport: { width: 1280, height: 800 } });
     try {
-      if (PLANCK) await p.route(/planck(\.min)?\.js/, r => r.fulfill({ contentType: 'application/javascript', body: PLANCK }));
+      await PLK.route(p, PL);
       await p.addInitScript(() => { window.__noRender = true; });
       await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed); await p.waitForTimeout(150);
       await p.evaluate(([A, B, s]) => window.ROBOCUS_DEBUG.ai({ versions: [0, 1, 2, 3].map(i => i === s ? A.v : B.v), params: [0, 1, 2, 3].map(i => i === s ? A.p : B.p) }), [A, Bspec, seatA]);

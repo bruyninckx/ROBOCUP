@@ -37,7 +37,7 @@ const { collect, choose, liveCards, click, drag } = require('./clicker.js');
   await ctx.addInitScript(() => { const m = /[?&]lag=(\d+)/.exec(location.search), lag = m ? +m[1] : 0; if (!lag || !window.BroadcastChannel) return;
     const P = BroadcastChannel.prototype, post = P.postMessage; P.postMessage = function (d) { setTimeout(() => { try { post.call(this, d); } catch (e) {} }, lag); };
     Object.defineProperty(P, 'onmessage', { configurable: true, set(fn) { this.addEventListener('message', e => setTimeout(() => fn.call(this, e), lag)); } }); });
-  if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());
+  const PLK = require('../planck-local.js'), PL = PLK.find(); await PLK.route(ctx, PL);   // a local planck when there is one (PLANCK=, node_modules, vendor/)
   const errs = [];
   const base = require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?net=local&room=C' + seed + '&bot=1' + (WATCH ? '&watch=1' : '');
   const warns = [];

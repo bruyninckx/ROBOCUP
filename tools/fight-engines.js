@@ -8,6 +8,7 @@
 const pw = require('playwright');
 const path = require('path'), fs = require('fs');
 const N = +(process.argv[2] || 40), seed = +(process.argv[3] || 1);
+const PLK = require('./planck-local.js'), PL = PLK.find();
 const url = require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=1';
 const runFights = ([N, seed]) => {
   const DL = window.DamageLab, LU = window.Lineup, names = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4 || {})).filter(n => DL.PRESETS[n]).sort();
@@ -34,7 +35,7 @@ const runFights = ([N, seed]) => {
   const res = {}, skipped = [];
   for (const name of ['chromium', 'firefox', 'webkit']) {
     let b; try { b = await pw[name].launch(); } catch (e) { skipped.push(name); continue; }
-    const ctx = await b.newContext(); if (fs.existsSync('vendor/planck-1.4.3.min.js')) await ctx.route(/^https?:/, r => r.abort());
+    const ctx = await b.newContext(); await PLK.route(ctx, PL);   // a local planck when there is one (PLANCK=, node_modules, vendor/)
     for (const run of name === 'chromium' ? ['chromium', 'chromium again'] : [name]) {
       const p = await ctx.newPage(); const t0 = Date.now();
       try { await p.goto(url); await p.waitForFunction(() => window.DamageLab && window.Lineup && window.planck, null, { timeout: 30000 }); res[run] = await p.evaluate(runFights, [N, seed]); console.log(run + ': ' + N + ' fights in ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s'); }

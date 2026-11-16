@@ -1,8 +1,9 @@
 {
   "name": "robocus-tools",
   "private": true,
-  "description": "Test tools for the ROBOCUS prototypes (tools/*.js). The game itself needs no install.",
+  "description": "Test tools for the ROBOCUS prototypes (tools/*.js). The game itself needs no install. planck: the 2.0 physics, so the tools run where the CDN can't be reached (tools/planck-local.js).",
   "devDependencies": {
-    "playwright": "1.63.0"
+    "playwright": "1.63.0",
+    "planck": "1.4.3"
   }
 }

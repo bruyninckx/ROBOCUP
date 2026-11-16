@@ -14,15 +14,15 @@ const list = [
   ['decline', [S('decline')], {}, 'declining with nobody to step in'],
   ['waiting', [S('waiting')], {}, 'the "waiting for" banner'],
   ['fight-panels', [S('fight-panels')], {}, 'damage panels after a fight replay'],
-  ['bot-game', [path.join(__dirname, '..', 'mp-test.js'), '3', '5', '10'], { PAGE: 'tabletop-2.html' }, 'a whole online game by the bots, fights compared'],
+  ['bot-game', [path.join(__dirname, '..', 'mp-test.js'), '3', '5', '30'], { PAGE: 'tabletop-2.html' }, 'a whole online game by the bots, fights compared'],
   ['fight-engines', [path.join(__dirname, '..', 'fight-engines.js'), '300'], {}, '300 fights in every browser engine installed'],
 ];
 (async () => {
   const stopAwake = require('./awake.js')();   // Windows: no sleep while the checks run
   const lines = []; let bad = 0;
-  for (const [name, args, env, what] of list) {
+  for (const [name, args, env, what] of list) {   // killed after 20 min; the bot game 35 (it takes up to 20 on a busy PC, mp-test gives up at 30)
     const t0 = Date.now(), file = path.join(out, name + '.txt'), fd = fs.openSync(file, 'w');
-    const code = await new Promise(res => { const p = spawn(process.execPath, args, { env: Object.assign({}, process.env, env), stdio: ['ignore', fd, fd] }); const k = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, 20 * 60000); p.on('exit', c => { clearTimeout(k); res(c); }); });
+    const code = await new Promise(res => { const p = spawn(process.execPath, args, { env: Object.assign({}, process.env, env), stdio: ['ignore', fd, fd] }); const k = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, (name === 'bot-game' ? 35 : 20) * 60000); p.on('exit', c => { clearTimeout(k); res(c); }); });
     fs.closeSync(fd);
     const txt = fs.readFileSync(file, 'utf8').trim().split(/\r?\n/), last = txt.filter(x => x.trim()).pop() || '';
     const ok = code === 0; if (!ok) bad++;
