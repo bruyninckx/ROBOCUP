@@ -113,6 +113,20 @@ html, body {
 .prompt-bar .act:disabled { opacity: .4; cursor: default; }
 .prompt-bar .act.secondary { font: 700 12px var(--sans); letter-spacing: 0; background: transparent; color: var(--ink); border: 2px solid var(--ink); padding: 4px 10px; }
 .prompt-bar .act.secondary:hover:not(:disabled) { background: rgba(255,255,255,.45); color: var(--ink); }
+/* T9 (16 Nov): one button per choice in the note itself (a robot to send to the pit, a bay to fit a part on, a starter, a sponsor,
+   a team to invite): the name, and a quiet hint of its state on the right */
+.prompt-bar .act.pick { flex: 1 1 100%; min-width: 0; display: flex; align-items: baseline; gap: 8px; text-align: left; padding: 4px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; }
+.prompt-bar .act.pick b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.prompt-bar .act.pick small { margin-left: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 600 10.5px var(--sans); letter-spacing: 0; opacity: .85; }
+.prompt-bar .act.pick.go { background: #2F7D4A; color: #fff; }
+.prompt-bar .act.pick.go:hover:not(:disabled) { background: #1F5C35; color: #fff; }
+.prompt-bar .act.pick.warn small { color: #FFC9BF; opacity: 1; }
+.prompt-bar .act.pick.on { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+.prompt-bar .act.pick.on:hover:not(:disabled) { background: #fff; color: var(--ink); }
+.prompt-bar .act.pick:disabled { opacity: .45; }
+.prompt-bar.tight .act.pick { padding-top: 2px; padding-bottom: 2px; font-size: 12.5px; }
+.prompt-bar.tight.many .act.pick { flex-basis: calc(50% - 3px); }
+.prompt-bar.tight.many .act.pick small { display: none; }
 .prompt-bar select { font: 600 12px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); padding: 2px 4px; }
 .prompt-bar .ivorder { flex: 1 1 100%; background: rgba(255,253,248,.6); color: var(--ink); border-radius: 3px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
 .prompt-bar .ivorder i { font-style: normal; font-weight: 700; }
@@ -1746,6 +1760,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return '<br>🔮 <b>Market Analyst, next round:</b> ' + (nx ? nx.map(nmOf).join(', ') + ' (the Analyst sees the mystery crate too)' : 'not dealt yet');
   };
   const legendNote = () => analystNote() + (G.nextMarket && G.nextRound === G.round + 1 ? '<br>🔭 <b>Next round:</b> ' + G.nextMarket.map((id, k) => conveyorShown(k) ? lotRef(id) : '📦 mystery crate').join(' · ') : '');
+  // T9 (Kev, 16 Nov: "make that 'to the pit' option visible in the yellow window"): a choice button in the note; data-<k> holds
+  // the value, cls 'go' (green) / 'on' (picked) / 'warn' (a hint to check), off = shown but not clickable
+  const pickBtn = (k, v, name, hint, o = {}) => '<button class="act pick' + (o.cls ? ' ' + o.cls : '') + '" data-' + k + '="' + esc(String(v)) + '"' + (o.off ? ' disabled' : '') + (o.tip ? ' title="' + esc(o.tip) + '"' : '') + '><b>' + esc(name) + '</b>' + (hint ? '<small>' + esc(hint) + '</small>' : '') + '</button>';
+  const dmgHint = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? (wrecked(r) ? 'broken ' : 'damaged ') + bad.map(z => z.icon).join('') : 'no damage'; };
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
@@ -1762,10 +1780,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const w = humanSeats().filter(h => !PS(h).sponsor);
         pb.innerHTML = '<span>🏁 <b>Sponsor signed.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '…</span>';
       } else if (G.setupStep === 'sponsor') {
-        pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; click the one you keep (AI teams are dealt 2 of the rest and keep 1).</span>' +
+        pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; keep one (AI teams are dealt 2 of the rest and keep 1).</span>' +
+          // T9: one button per contract, the same click as SIGN … in the pit
+          mySponsorDeal().map(k => SPONSORS[k] ? pickBtn('sign', k, '✍ Sign ' + SPONSORS[k].name, SPONSORS[k].tag, { tip: SPONSORS[k].name + ': ' + SPONSORS[k].text }) : '').join('') +
           (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [...new Set([7, 4, 2, 1, 0, BAL_DEFAULT.startFame, G.startFame])].sort((a, b) => b - a).map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === BAL_DEFAULT.startFame ? ' (default)' : '') + '</option>').join('') + '</select></label>') +
           '<button class="act secondary" id="pAct1">Random Sponsor</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
         if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
+        pb.querySelectorAll('[data-sign]').forEach(b => { b.onclick = () => act('pickSponsor', b.dataset.sign); });
         $('#pAct1').onclick = () => act('pickSponsor', null);
         if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
       } else if (PS().draftPick || !PS().draftOffer) {
@@ -1774,8 +1795,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
-        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Click 1 of your 2 level-0 starter robots in the pit. Everyone picks at the same time; all picks are revealed together.</span>` +
+        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Keep 1 of your 2 level-0 starters (here or in the pit). Everyone picks at the same time; all picks are revealed together.</span>` +
+          // T9: one button per starter, the same click as KEEP … in the pit
+          myDraftOffer().map((n, k) => STARTERS[n] ? pickBtn('keep', k, '✋ Keep ' + n, wepLabel(n), { tip: 'Keep ' + n + ': ' + descOf(n) }) : '').join('') +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
+        pb.querySelectorAll('[data-keep]').forEach(b => { b.onclick = () => act('pickStarter', +b.dataset.keep); });
         $('#pAct1').onclick = () => act('pickStarter', -1);
       }
       return;
@@ -1806,7 +1830,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const tiedNames = tie.teams.map(ti => G.teams[ti].name).join(', ');
         if (tieMine()) {
           pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}!</b> Tied: ${esc(tiedNames)}. Add on top (+${myAdd}/${maxMyAdd} Cr → Total ${tie.baseBid + myAdd} Cr). ⚠️ If nobody adds, the team with less fame wins.</span>` +
+            // T9: the − / + of the rebid panel in the pit, here too
+            `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>` +
             `<button class="act" id="pAct1">Lock Rebid (+${myAdd} Cr) →</button>`;
+          $('#pRbM').onclick = () => act('rebidAdj', -1);
+          $('#pRbP').onclick = () => act('rebidAdj', 1);
           $('#pAct1').onclick = () => act('rebidLock');
         } else pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}:</b> ${esc(tiedNames)} rebid in secret…</span>`;
       } else if (G.marketResolved) {
@@ -1823,7 +1851,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
-          pb.innerHTML = '<span>🔩 <b>Auction Results — Install Upgrade:</b> Click one of your robots (left) to fit <b>' + esc(lot.name) + '</b>, or keep it in your Stash.</span><button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
+          pb.innerHTML = '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lot.name) + '</b> (here or on its card), or keep it in your Stash.</span>' +
+            // T9: one button per robot, the same click as the FIT … button on its card (no room: shown, greyed)
+            t.robots.map(r => { const ok = canFit(r, lot), pv = lotPreview(r, lot); return pickBtn('fit', r.id, (ok ? '🔩 ' : '') + r.name, ok ? 'odds ' + pv.replace(/ vs the field.*$/, '') : 'no room', { off: !ok, tip: (ok ? 'Fit ' + lot.name + ' on ' + r.name + ': ' : 'No room: ') + pv }); }).join('') +
+            '<button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
+          pb.querySelectorAll('[data-fit]').forEach(b => { b.onclick = () => {
+            const bot = t.robots.find(r => String(r.id) === b.dataset.fit), inst = PS().install || []; if (!bot || !inst.length) return;
+            const L0 = LOTS[inst[0].lot];
+            if (!canFit(bot, L0)) { notify('⚠️ ' + lotRef(inst[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ': ' + esc(lotPreview(bot, L0)) + '.', '#b45309'); return; }
+            if (swapAsk) return;
+            act('install', bot.id);
+          }; });
           $('#pAct1').onclick = () => act('installKeep');
         } else if (iWait(G.hostResolved ? 'mres2' : 'mres')) {
           pb.innerHTML = '<span>📦 <b>Market Results.</b> ' + waitTxt(G.hostResolved ? 'mres2' : 'mres') + '</span>';
@@ -1868,14 +1906,24 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         pb.innerHTML = '<span>⚔️ <b>Fighters:</b> waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the invited teams') + ' to send a robot…</span>';
       } else if (G.chooseMyBot) {
         const ev = G.fight && G.fight.format !== 'duel' && G.fight.format !== 'mirror';
-        pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Click <b>Send to the pit</b> on one of your robots (check its damage first).' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + (G.fight && G.fight.arena && G.fight.arena !== 'open' ? ' Arena: ' + arenaRef(G.fight.arena) + ' (' + esc(ARENA_INFO[G.fight.arena].text) + ')' : '') + '</span>' +
+        pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Pick the robot you send to the pit (here or on its card, left).' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + (G.fight && G.fight.arena && G.fight.arena !== 'open' ? ' Arena: ' + arenaRef(G.fight.arena) + ' (' + esc(ARENA_INFO[G.fight.arena].text) + ')' : '') + '</span>' +
+          // T9: one green button per robot, the same click as the SEND … TO THE PIT button on its card (exhausted: shown, greyed)
+          t.robots.map(r => pickBtn('send', r.id, '▶ ' + r.name, r.exhausted ? '😴 exhausted' : dmgHint(r), { cls: 'go' + (!r.exhausted && R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' warn' : ''), off: r.exhausted, tip: r.exhausted ? r.name + ' is exhausted and can\'t fight this round.' : 'Send ' + r.name + ' to the pit. Damage: ' + zoneTxt(r) })).join('') +
           (ev ? '' : '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>');
+        pb.querySelectorAll('[data-send]').forEach(b => { b.onclick = () => {
+          const bot = t.robots.find(r => String(r.id) === b.dataset.send); if (!bot || !PS().choose) return;
+          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
+          act('sendBot', bot.id);
+        }; });
         if (!ev) $('#pAct1').onclick = () => act('decline');
       } else if (G.host === HS) {
         const n = (G.pickTeams || []).length;
-        pb.innerHTML = '<span>👑 <b>You are Host:</b> Click 2 teams (rival tickets or your rail) to invite them (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
+        pb.innerHTML = '<span>👑 <b>You are Host:</b> pick 2 teams to invite (here, or their tickets / your rail) (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
           (arenaList().length > 1 ? '<label class="sc-note" style="font-weight:700">Arena <select id="pArena">' + arenaList().map(k => '<option value="' + k + '"' + ((G.arenaPick || 'open') === k ? ' selected' : '') + (arenaCost(k) > t.credits ? ' disabled' : '') + '>' + ARENA_INFO[k].icon + ' ' + ARENA_INFO[k].name + (arenaCost(k) ? ' (' + arenaCost(k) + ' Cr)' : ' (free)') + '</option>').join('') + '</select></label>' : '') +
+          // T9: one toggle per team, the same click as its ticket (picked: light; ready robots as the hint)
+          G.teams.map(o => { const on = (G.pickTeams || []).includes(o.i), rr = readyRobots(o).length; return pickBtn('inv', o.i, (on ? '✓ ' : '') + (o.i === HS ? 'You' : isHuman(o.i) ? seatName(o.i) : o.name), rr + ' ready robot' + (rr === 1 ? '' : 's'), { cls: on ? 'on' : '', off: !on && n >= 2, tip: (on ? 'Picked. Click again to drop ' : 'Invite ') + o.name }); }).join('') +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
+        pb.querySelectorAll('[data-inv]').forEach(b => { b.onclick = () => act('pickTeam', +b.dataset.inv); });
         $('#pAct1').onclick = () => act('invite');
         if ($('#pArena')) { $('#pArena').onchange = e => act('pickArena', e.target.value); $('#pArena').title = ARENA_INFO[G.arenaPick || 'open'].text; }
       } else if (G.host >= 0 && !G.fight) {
@@ -2514,7 +2562,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16c rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16d choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -6064,12 +6112,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // Kev, 15 Nov: "people can click over there as well and button flashed for decisions they need to make": on your own row
       // the main button of the note, flashing; without a button to press (a bay to click, a question open) the pill flashes
       let go = '';
-      if (k === 'move') { const pa = document.querySelector('#promptBar .act:not(.secondary):not(:disabled)'), tx = pa ? pa.textContent.replace(/\s+/g, ' ').trim() : ''; if (tx) { go = '<button type="button" class="wr-go">' + esc(tx.length > 24 ? tx.slice(0, 23) + '…' : tx) + '</button>'; what = 'YOUR MOVE' + (what ? ' · ' + what : ''); } }
+      if (k === 'move') { const pa = document.querySelector('#promptBar .act:not(.secondary):not(.pick):not(:disabled)'), tx = pa ? pa.textContent.replace(/\s+/g, ' ').trim() : ''; if (tx) { go = '<button type="button" class="wr-go">' + esc(tx.length > 24 ? tx.slice(0, 23) + '…' : tx) + '</button>'; what = 'YOUR MOVE' + (what ? ' · ' + what : ''); } }
       return '<div class="wr-row ' + k + '" style="--c:' + t.col + '"><i></i><span class="wr-n">' + esc(hum ? seatName(t.i) : t.name) + (t.i === HS ? ' (you)' : '') + (what ? '<small>' + esc(what) + '</small>' : '') + '</span>' + (go || (lab ? '<b>' + lab + '</b>' : '')) + '</div>';
     }).join('');
     const html = '<div class="wr-k">' + (G.over ? 'THE END' : 'BEFORE WE MOVE ON') + '</div><div class="wr-t">' + (G.over ? 'GAME OVER' : react ? 'REACTION WINDOW' : fight ? 'THE FIGHT' : n ? 'WAITING FOR ' + n : 'NOBODY HAS TO CLICK') + '</div>' + rows;
     if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
-    if (!el.onclick) el.onclick = e => { if (e.target.closest('.wr-go')) { const pa = document.querySelector('#promptBar .act:not(.secondary):not(:disabled)'); if (pa) pa.click(); } };
+    if (!el.onclick) el.onclick = e => { if (e.target.closest('.wr-go')) { const pa = document.querySelector('#promptBar .act:not(.secondary):not(.pick):not(:disabled)'); if (pa) pa.click(); } };
     promptState();
   }
   /* The yellow note says which of three things is true (2.0.1; Friday playtest: "it wasn't very clear when people had to click"):
@@ -6719,6 +6767,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (key === fitPrompt.key) return;
     fitPrompt.key = key;
     pb.classList.remove('tight');
+    pb.classList.toggle('many', pb.querySelectorAll('.act.pick').length > 3);   // T9: 4+ choice buttons go two per row when tight
     if (pb.scrollHeight > pb.clientHeight + 2) pb.classList.add('tight');
   }
   /* ---------- HTML zones placed over the canvas: 4 · sticky note, 7 · log, 5 · Stash ---------- */
@@ -6944,7 +6993,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       let px = cx - tw / 2; ctx.textAlign = 'left';
       parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 8); px += ctx.measureText(p.t).width; });
       ctx.textAlign = 'center'; ctx.fillStyle = '#2F7D4A';
-      fitText(ctx, PS().choose ? '▶ Click SEND TO THE PIT on one of your robots (left)' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
+      fitText(ctx, PS().choose ? '▶ Pick a robot: SEND TO THE PIT on its card (left) or in the note' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
     } else if (G.phase === 'arena' && G.host === HS) {
       pitHead('4 · HOST · YOU HOST', 'PICK 2 TEAMS');
       paperBox(ctx, px0, cy - 52, pw, 96);
@@ -7958,6 +8007,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, choices in the note', '16 Nov 2026', [
+      'When you are invited to a fight, the yellow note has a button per robot: click one to send it to the pit (a damaged robot says so, an exhausted one is greyed out). The button on the robot card still works.',
+      'The note also has a button per choice when you sign a sponsor, keep a starter, fit a part you won, pick the 2 teams to invite as host, and −/+ for a tie rebid.' ]],
     ['2.0.1, tow cable and wall slams', '16 Nov 2026', [
       'Tow cable: a thick yellow-and-black cable runs from the winch to a clamp on the victim for the whole sling, then snaps back. The robot with the Tow cable shows a yellow winch on its back (even upside down).',
       'Wall slams: a robot that hits a wall hard gets an impact star, a burst of dust and concrete chips, a squash and a stronger screen shake, and leaves a dent in the wall. Light bumps stay quiet. Looks only: fights go exactly as before.' ]],
