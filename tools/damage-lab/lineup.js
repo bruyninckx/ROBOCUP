@@ -95,6 +95,7 @@
     for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec, qOf(k))); }
     // which drones and modules came from part cards, and how much they grow on this robot (engine pkR)
     const fp = parts.filter(k => k && PARTS[k] && (PARTS[k].kind === 'drone' || PARTS[k].kind === 'module')).concat(parts.includes('hospital') ? ['fieldmedic'] : []);
+    if (TUNED && (ROBOTS[name] || ROBOTS4[name])) spec.hzK = PART_K[Math.min(4, (ROBOTS[name] || ROBOTS4[name])[0])];   // arena hazards grow with the level (engine hzK; 17 Nov, T4)
     if (TUNED && fp.length) { spec.fromParts = fp; spec.partK = PART_K[Math.min(4, (ROBOTS[name] || ROBOTS4[name] || [0])[0])]; }
     if (rar) { const pqm = {}; for (const k of parts) if (k && PARTS[k] && PARTS[k].kind !== 'chip' && qOf(k) !== 1) pqm[PQ_KEY[k] || k] = qOf(k); if (Object.keys(pqm).length) spec.partQ = pqm; }
     return spec;

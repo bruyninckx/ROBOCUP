@@ -1107,9 +1107,9 @@
       ctx.restore(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 3; ctx.strokeRect(-P - 0.12, -P - 0.12, 2 * P + 0.24, 2 * P + 0.24);
     }
     if (A.spikes) {
-      const H = L.HALF; ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5;
-      const strip = (x0, y0, dx, dy, nx, ny) => { for (let k = 0; k < 14; k++) { const x = x0 + dx * k * 0.2, y = y0 + dy * k * 0.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx * 0.1 + nx * 0.13, y + dy * 0.1 + ny * 0.13); ctx.lineTo(x + dx * 0.2, y + dy * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke(); } };
-      strip(-1.4, -H + 0.01, 1, 0, 0, 1); strip(-1.4, H, 1, 0, 0, -1); strip(-H, -1.4, 0, 1, 1, 0); strip(H, -1.4, 0, 1, -1, 0);
+      const H = L.HALF, sl = A.spikeLen || 1.4, nk = Math.round(sl / 0.1); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.5;   // spikeLen: half the spiked length of each wall (Killbox, 17 Nov: nearly the whole wall)
+      const strip = (x0, y0, dx, dy, nx, ny) => { for (let k = 0; k < nk; k++) { const x = x0 + dx * k * 0.2, y = y0 + dy * k * 0.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx * 0.1 + nx * 0.13, y + dy * 0.1 + ny * 0.13); ctx.lineTo(x + dx * 0.2, y + dy * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke(); } };
+      strip(-sl, -H + 0.01, 1, 0, 0, 1); strip(-sl, H, 1, 0, 0, -1); strip(-H, -sl, 0, 1, 1, 0); strip(H, -sl, 0, 1, -1, 0);
     }
     if (A.belts) for (const bt of A.belts) { // conveyor belts: dark rubber with moving chevrons
       const H = L.HALF, t = S.t, y0 = bt.y0, h = bt.y1 - bt.y0, d = Math.sign(bt.vx);
