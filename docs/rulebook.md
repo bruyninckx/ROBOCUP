@@ -110,7 +110,7 @@ Three steps. Robots, crew and Security Bots change hands only here.
 
 **2. Auction: 4 lots.** Four lots are laid out. A New Robot lot is a real robot, face up (stats, weapon, quirk, the bookie's band). In rounds 1–5 at least one lot is a robot. From round 2, every other round announces a legendary for the next round, where it takes the last lot.
 
-1. Every team bids on all 4 lots at once, in secret, with at most the credits it has.
+1. Every team bids on all 4 lots at once, in secret, with at most the credits it has, and locks its bids. Until every team has locked, a team that already locked may still change its bids; that takes its lock off and it locks again (the same for the host bid, a tie rebid, and bets and fight-card bids in the Bets step). When everyone has locked, the bids are final.
 2. Lots are resolved in order: the highest bid pays the bank and takes the lot; everyone else keeps their credits.
 3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any lot tie it is in, without a rebid (not the host bid). If a rebid ties again with nobody adding, the team with less fame wins.
 4. No bids: the lot goes back (an unsold robot to its deck, a legendary comes back later).
@@ -131,7 +131,7 @@ One fight per round. Most fights are duels; Arena cards turn them into events.
 
 **4. Bets.** The bookie runs 20–40 simulated fights of the visible builds (face-down cards stay hidden) and shows each side in a band. Each team may bet 1–3 credits on one side (Lucky Seven: 5), but not against its own robot. **Bets are public** and update live as anyone clicks; when a team changes its bet, everyone who already locked is un-locked so they can react (no timer). The Hacker and a Sniper's Scope each show one face-down card on a rival robot.
 
-**Fight-card auction.** At the same time, 2 cards from the Auction deck are turned up. Every team may make a **sealed bid** on each (a 🔥 shows a card is wanted: 3+ credits bid on it in total, or 2+ teams bidding). Everyone locks bet and bids together. The bets are paid first, then each card goes to its highest bid, which pays its bid (minimum 1 credit); a team wins at most **1 card per fight**, and a tie goes to the team with less fame (equal fame: nobody). A won card is for **this fight only** (no fame gate); unused or unclaimed cards are discarded. The bookie's odds ignore the cards. **Swap the Entry** is used right after the auction and changes which robot a team sends (bets and odds stay).
+**Fight-card auction.** At the same time, 2 cards from the Auction deck are turned up. Every team may make a **sealed bid** on each (a 🔥 shows a card is wanted: 3+ credits bid on it in total, or 2+ teams bidding). Everyone locks bet and bids together; until the last team locks, a locked team may still change them (which unlocks it). The bets are paid first, then each card goes to its highest bid, which pays its bid (minimum 1 credit); a team wins at most **1 card per fight**, and a tie goes to the team with less fame (equal fame: nobody). A won card is for **this fight only** (no fame gate); unused or unclaimed cards are discarded. The bookie's odds ignore the cards. **Swap the Entry** is used right after the auction and changes which robot a team sends (bets and odds stay).
 
 | Band | Win chance | A winning bet returns |
 | --- | --- | --- |

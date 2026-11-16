@@ -1075,6 +1075,18 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!humanSeats().every(s => G.gather.done[s])) { updateHud(); return false; }
     const f = gatherThen; G.gather = null; gatherThen = null; f(); return true;
   }
+  /* T16 (Kev, 16 Nov: "when people lock bids, people can still change their bids after that if there are other people not
+   * locked yet but if everybody locked it it continues"). A player who locked bids, a host bid or bets can still change them
+   * while someone else has not locked: the change takes their own lock off (back to YOUR MOVE), and they lock again. The host
+   * runs every action in order, so a change can't cross the last lock: once the step has gone on, a change is refused. */
+  function unlockSeat(S, step) {
+    if (!G.gather || G.gather.key !== step + ':' + G.round || !G.gather.done[S]) return false;
+    delete G.gather.done[S];
+    say(S, '🔓 You changed ' + (step === 'bets' ? 'your bets' : step === 'hostbid' ? 'your host bid' : 'your bids') + ' after locking, so you are not locked any more. Lock again when you are done.', '#b45309');
+    return true;
+  }
+  const tooLate = (S, what) => say(S, '⌛ Too late: ' + what + ' already went through, your change was not made.', '#b45309');
+  const relockTxt = what => '<br><small>You can still change ' + what + ' until everyone has locked. A change unlocks you; then lock again.</small>';
   const gatherWaiting = step => G && G.gather && G.gather.step === step ? humanSeats().filter(s => !G.gather.done[s]) : null;
   const iWait = step => { const w = gatherWaiting(step); return !!w && !w.includes(HS); };   // this screen is done, others still busy
   const waitTxt = step => { const w = gatherWaiting(step) || []; return 'Waiting for ' + (w.map(s => '<b style="color:' + G.teams[s].col + '">' + esc(seatName(s)) + '</b>').join(', ') || 'the others') + '…'; };
@@ -1898,6 +1910,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           $('#pRbM').onclick = () => act('rebidAdj', -1);
           $('#pRbP').onclick = () => act('rebidAdj', 1);
           $('#pAct1').onclick = () => act('rebidLock');
+        } else if (tieLocked()) {
+          pb.innerHTML = `<span>⚔️ <b>Rebid locked</b> (+${myAdd} Cr → Total ${tie.baseBid + myAdd} Cr on ${esc(lotName)}). Waiting for the other tied team.${relockTxt('your rebid')}</span>` +
+            `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>`;
+          $('#pRbM').onclick = () => act('rebidAdj', -1);
+          $('#pRbP').onclick = () => act('rebidAdj', 1);
         } else pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr on ${esc(lotName)}:</b> ${esc(tiedNames)} rebid in secret…</span>`;
       } else if (G.marketResolved) {
         const myInst = PS().install || [], myTI = PS().tradeIn || [];
@@ -1944,7 +1961,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
         $('#pAct1').onclick = () => act('startLots');
       } else if (G.marketStage === 'host' && iWait('hostbid')) {
-        pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr). ' + waitTxt('hostbid') + '</span>';
+        const hc = PS().hostCount || 1;
+        pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
+          '<button class="act secondary" id="pCount">🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>';
+        $('#pCount').onclick = () => act('hostCount');
       } else if (G.marketStage === 'host') {
         const hc = PS().hostCount || 1;
         pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame (not if it is the sole fame leader) and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
@@ -1953,7 +1973,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         $('#pCount').onclick = () => act('hostCount');
         $('#pAct1').onclick = () => act('lockHost');
       } else if (iWait('lots')) {
-        pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0) + ' Cr). ' + waitTxt('lots') + '</span>';
+        pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0) + ' Cr). ' + waitTxt('lots') + relockTxt('your bids on the lots') + '</span>';
       } else {
         const spent = (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
         pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click the lots in the pit to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.' + legendNote() + '</span>' +
@@ -1999,7 +2019,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock bets & bids →</button>';
-      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr). ' + waitTxt('bets') + '</span>';
+      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + '</span>';
       if ($('#pAct1')) $('#pAct1').onclick = () => act('lockBets');
       if ($('#pBF')) $('#pBF').onclick = () => act('bookiesFriend');
       if ($('#pHB')) $('#pHB').onclick = () => act('hedgeBet');
@@ -2699,7 +2719,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16f part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16g bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3999,18 +4019,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   ACT.startLots = S => { if (G.phase === 'market' && G.marketStage === 'open' && !G.openBusy) gather(S, 'open', startLots); };
   ACT.bid = (S, k, kind) => {
-    if (G.phase !== 'market' || G.marketAuction || G.marketResolved || iDone(S)) return;
-    if (k === HOST_K ? G.marketStage !== 'host' : G.marketStage !== 'lots' || k < 0 || k >= NLOTS) return;
-    const P = PS(S), b = P.bids || (P.bids = zeroBids()), t = G.teams[S];
+    if (!(k >= 0 && k <= HOST_K)) return;
+    const open = G.phase === 'market' && !G.marketAuction && !G.marketResolved && (k === HOST_K ? G.marketStage === 'host' : G.marketStage === 'lots');
+    if (!open) { if (G.phase !== 'market' || G.marketStage !== 'open') tooLate(S, k === HOST_K ? 'the host bid' : 'the bids on the lots'); return; }
+    const P = PS(S), b = P.bids || (P.bids = zeroBids()), t = G.teams[S], was = b[k] || 0;
     const mn = k < NLOTS ? minBidOf(G.market[k]) : 0;   // level 4 lots: + jumps straight to the lowest winning bid, − below it goes to 0
-    if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); if (mn && b[k] < mn) b[k] = 0; return; }
-    const spent = k === HOST_K ? b[HOST_K] : b.slice(0, NLOTS).reduce((a, x) => a + x, 0);
-    const add = mn && !(b[k] > 0) ? mn : 1;
-    if (spent + add <= t.credits) b[k] = (b[k] || 0) + add;
-    else if (kind === 'tile') b[k] = 0;
+    if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); if (mn && b[k] < mn) b[k] = 0; }
+    else {
+      const spent = k === HOST_K ? b[HOST_K] : b.slice(0, NLOTS).reduce((a, x) => a + x, 0);
+      const add = mn && !(b[k] > 0) ? mn : 1;
+      if (spent + add <= t.credits) b[k] = (b[k] || 0) + add;
+      else if (kind === 'tile') b[k] = 0;
+    }
+    if ((b[k] || 0) !== was) unlockSeat(S, k === HOST_K ? 'hostbid' : 'lots');   // T16: a real change after locking takes the lock off
   };
   ACT.lockBids = S => { if (G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved) gather(S, 'lots', () => resolveMarket()); };
-  ACT.hostCount = S => { if (G.phase === 'market' && G.marketStage === 'host' && !iDone(S)) PS(S).hostCount = (PS(S).hostCount || 1) === 2 ? 1 : 2; };
+  ACT.hostCount = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) { PS(S).hostCount = (PS(S).hostCount || 1) === 2 ? 1 : 2; unlockSeat(S, 'hostbid'); } };
   ACT.lockHost = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) gather(S, 'hostbid', () => resolveHostBid()); };
   // parts still waiting for a bay when a person continues go to the Stash (over the limit: the stash-trim prompt), never lost
   function flushInstalls(S, force) {
@@ -4726,7 +4750,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
   // a tie with people in it: each tied person sets how much to add on top, then locks it in
   const tieMine = (S = HS) => { const T = G.marketAuction && G.marketAuction.tie; return !!T && T.waitingHuman && (T.waiting || []).includes(S); };
-  ACT.rebidAdj = (S, d) => { if (!tieMine(S)) return; const T = G.marketAuction.tie; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, (T.add[S] || 0) + d)); };
+  // T16: a tied person who locked the rebid can still change it while another tied person has not locked (that unlocks them)
+  const tieLocked = (S = HS) => { const T = G && G.marketAuction && G.marketAuction.tie; return !!T && T.waitingHuman && isHuman(S) && (T.teams || []).includes(S) && !(T.waiting || []).includes(S); };
+  ACT.rebidAdj = (S, d) => {
+    if (!tieMine(S) && !tieLocked(S)) { if (G.phase === 'market' && isHuman(S)) tooLate(S, 'the tie rebid'); return; }
+    const T = G.marketAuction.tie, was = T.add[S] || 0; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, was + d));
+    if (T.add[S] !== was && tieLocked(S)) { T.waiting.push(S); say(S, '🔓 You changed your rebid after locking, so you are not locked any more. Lock again when you are done.', '#b45309'); }
+  };
   ACT.rebidLock = S => {
     if (!tieMine(S)) return;
     const T = G.marketAuction.tie; T.waiting = T.waiting.filter(x => x !== S);
@@ -5549,12 +5579,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const betStake = S => ((PS(S).bet || []).reduce((a, b) => a + b, 0));
   ACT.cardBid = (S, k, d) => {
     const F = G.fight;
-    if (G.phase !== 'bets' || G.betsLocked || iDone(S) || !F || !F.auction || !(k >= 0 && k < F.auction.cards.length)) return;
+    if (G.phase !== 'bets' || G.betsLocked) { tooLate(S, 'the fight-card bids'); return; }
+    if (!F || !F.auction || !(k >= 0 && k < F.auction.cards.length)) return;
     const P = PS(S), t = G.teams[S]; P.cardBid = P.cardBid || [0, 0];
     const mn = auctionMin(), cur = P.cardBid[k] || 0;
     let nb = cur + (d < 0 ? -1 : 1);
     if (d < 0 && nb < mn) nb = 0; else if (d >= 0 && nb < mn) nb = mn;   // BAL.auction.minBid: 0 or at least the minimum
     P.cardBid[k] = nb > t.credits - betStake(S) ? cur : Math.max(0, nb);
+    if (P.cardBid[k] !== cur) unlockSeat(S, 'bets');   // T16
     auctionHot(F);
   };
   // after the bets are paid: resolve the sealed card bids (highest bid on any card first)
@@ -5622,10 +5654,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.bookiesFriend = S => { if (G.phase === 'bets' && !G.betsLocked) humanBookiesFriend(S); };
   ACT.hedgeBet = S => { if (G.phase === 'bets' && !G.betsLocked) humanHedgeBet(S); };
   ACT.bet = (S, side, amt) => {   // amt (2.0.1): the amount in one click (the same amount again takes the bet back); without it the old +1
-    if (G.phase !== 'bets' || G.betsLocked || iDone(S)) return;
+    if (G.phase !== 'bets' || G.betsLocked) { tooLate(S, 'the bets'); return; }
     const P = PS(S), t = G.teams[S];
     if (!P.bet || side < 0 || side >= P.bet.length) return;
-    const was = P.bet[side];
+    const was = P.bet[side], before = P.bet.join();
     P.bet = P.bet.map((v, k) => k === side ? v : 0);
     const cap = betLimit(t), next = amt != null ? (+amt === was ? 0 : Math.max(0, Math.min(cap, Math.floor(+amt) || 0))) : (P.bet[side] + 1) % (cap + 1);
     P.bet[side] = next <= t.credits ? next : 0;
@@ -5637,6 +5669,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // a changed public bet un-readies the people who already locked, so they can react to it
       if (G.gather && G.gather.step === 'bets') for (const o of humanSeats()) if (o !== S && G.gather.done[o]) { delete G.gather.done[o]; say(o, '🎲 ' + nm(t) + ' changed its bet: your lock is undone, check and lock again.', t.col); }
     }
+    if (P.bet.join() !== before) unlockSeat(S, 'bets');   // T16: your own change takes your own lock off too
   };
   ACT.lockBets = S => { if (G.phase === 'bets' && !G.betsLocked) gather(S, 'bets', lockBetsAndRollout); };
   function humanBookiesFriend(S = HS) {
@@ -6482,7 +6515,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else if (react) lab = 'CAN ANSWER';   // no names: who is still thinking would give its cards away
       else if (b) { k = t.i === HS ? 'move' : 'busy'; lab = t.i === HS ? 'YOUR MOVE' : 'DECIDING'; what = b.what; }
       else if (!hum) { k = turn ? 'busy' : 'idle'; lab = turn ? 'PLAYING' : 'AI'; what = turn ? 'Intrigue turn' : ''; }
-      else if (G.gather && G.gather.done && G.gather.done[t.i]) { k = 'done'; lab = 'READY'; }
+      else if ((G.gather && G.gather.done && G.gather.done[t.i]) || tieLocked(t.i)) { k = 'done'; lab = 'READY'; }
       // Kev, 15 Nov: "people can click over there as well and button flashed for decisions they need to make": on your own row
       // the main button of the note, flashing; without a button to press (a bay to click, a question open) the pill flashes
       let go = '';
@@ -6500,7 +6533,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function promptState() {
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
     const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
-    const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]);
+    const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]) || tieLocked();
     const undo = G.phase === 'market' && !G.over && myFitUndos().length;   // T12: a part just fitted, Undo / Move in the note
     const st = meIn || react || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
     pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
@@ -6570,7 +6603,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- test bots (?bot=1): a seat that plays itself with simple rules, through the same actions ---------- */
-  let botBusy = false, botRepRound = null;
+  let botBusy = false, botRepRound = null, botDid = null;
   function botStep() {
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
     if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
@@ -6590,7 +6623,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
       P.botPlayed = false; return act('endTurn');
     }
-    if (busy === 'rebid') { if (R() < 0.5) act('rebidAdj', 1); return act('rebidLock'); }
+    // T16: a change after locking takes the lock off, and a joined screen sees its own lock a moment late, so a bot makes its
+    // choice once per step (botDid) and after that only locks: it can never un-lock itself in a loop
+    const bk = busy + ':' + G.gid + ':' + G.round + ':' + G.phase + (busy === 'rebid' ? ':' + G.marketAuction.tie.k + ':' + G.marketAuction.tie.baseBid : '');
+    if (busy === 'rebid') { if (botDid !== bk) { botDid = bk; if (R() < 0.5) act('rebidAdj', 1); } return act('rebidLock'); }
     if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
     if (busy === 'stash') return act('trimStash', 0);
     if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }
@@ -6601,10 +6637,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
     if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
     if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); const o2 = o.length ? o : G.teams.map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o2.length) return act('pickTeam', o2[Math.floor(R() * o2.length)]); return act('invite'); }
-    if (busy === 'lots' && !P.botBid) { P.botBid = true; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
-    if (busy === 'hostbid' && !P.botHost) { P.botHost = true; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
-    if (busy === 'bets' && !P.botBet && G.fight) { P.botBet = true; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); if (G.fight.auction && R() < 0.6) { const k = R() < 0.5 ? 0 : 1, n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('cardBid', k, 1); } return; }
-    if (busy === 'lots' || busy === 'hostbid' || busy === 'bets') { P.botBid = P.botHost = P.botBet = false; }
+    if (busy === 'lots' && botDid !== bk) { botDid = bk; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
+    if (busy === 'hostbid' && botDid !== bk) { botDid = bk; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
+    if (busy === 'bets' && botDid !== bk && G.fight) { botDid = bk; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); if (G.fight.auction && R() < 0.6) { const k = R() < 0.5 ? 0 : 1, n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('cardBid', k, 1); } return; }
     const step = gatherStep(); if (step) act(step[1]);
   }
   if (BOT) setInterval(() => { try { botStep(); } catch (e) { console.warn('bot', e); } }, 120);
@@ -7797,7 +7832,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           ctx.fillStyle = INK; fitText(ctx, 'PAID ' + done.price + ' CR', x + w / 2, yb + 44, w - 10, '700', 12, F_MONO);
           fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 72, w - 10, '700', 11.5);
           ctx.fillStyle = MUTED; fitText(ctx, it.text, x + w / 2, yb + 90, w - 10, '500', 9.5);
-        } else if (k === tie.k && !tieMine()) {
+        } else if (k === tie.k && !tieMine() && !tieLocked()) {
           drawLotFrame(ctx, K, x, cy, w, h, { edge: '#D9731A', lw: 4 });
           ctx.fillStyle = '#D9731A'; ctx.textAlign = 'center'; fitText(ctx, '⚔️ TIE AT ' + tie.baseBid + ' CR', x + w / 2, yb + 22, w - 10, '400', 14, F_STEN);
           ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 46, w - 10, '700', 11.5);
@@ -7813,8 +7848,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           drawStepper(ctx, x + 10, btnY, w - 20, '+' + myAdd + ' Cr', '#2F6DB5');
           hitRegions.push({ kind: 'rebid_minus', x: x + 10, y: btnY, w: 28, h: 28 });
           hitRegions.push({ kind: 'rebid_plus', x: x + w - 38, y: btnY, w: 28, h: 28 });
-          inkButton(ctx, x + 10, yb + 118, w - 20, 26, 'LOCK REBID →', false);
-          hitRegions.push({ kind: 'rebid_submit', x: x + 10, y: yb + 118, w: w - 20, h: 26 });
+          if (tieMine()) { inkButton(ctx, x + 10, yb + 118, w - 20, 26, 'LOCK REBID →', false); hitRegions.push({ kind: 'rebid_submit', x: x + 10, y: yb + 118, w: w - 20, h: 26 }); }
+          else { ctx.fillStyle = '#2F7D4A'; ctx.textAlign = 'center'; fitText(ctx, 'LOCKED · A CHANGE UNLOCKS YOU', x + w / 2, yb + 135, w - 16, '700', 9.5, F_MONO); }
           ctx.fillStyle = MUTED; ctx.textAlign = 'center'; fitText(ctx, 'Max +' + maxMyAdd + ' Cr unspent', x + w / 2, yb + 162, w - 10, '600', 8.5);
         } else {
           drawLotFrame(ctx, K, x, cy, w, h, { dim: true });
@@ -8031,7 +8066,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else {
         // 2.0.1 (Kev, 15 Nov: less clicking): one chip per amount; one click picks the robot and the amount together
         hitRegions.push({ kind: 'bet_card', side: s, x, y, w, h });
-        if (maxB >= 1 && maxB <= 6 && !iDone(HS)) {
+        if (maxB >= 1 && maxB <= 6 && !G.betsLocked) {   // T16: also after locking (a change unlocks you)
           const cg = 6, cw = (w - 40 - cg * (maxB - 1)) / maxB, cr = me().credits;
           for (let a = 1; a <= maxB; a++) {
             const cx = x + 20 + (a - 1) * (cw + cg), on = stake === a, can = a <= cr;
@@ -8071,7 +8106,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.fillStyle = '#F4EDE2'; fitText(ctx, c.icon + ' ' + c.name, ix + 6, iy + 29, iw - 12, '400', 15, F_STEN);
       ctx.fillStyle = '#D9CFC2'; fitText(ctx, c.text, ix + 6, iy + 43, iw - 12, '500', 9.5);
       help(x, cy, cw, 48, c.icon + ' ' + esc(c.name), esc(c.text) + '<br><br><b>Sealed bid:</b> the highest bid wins and pays it (min ' + auctionMin() + ' Cr). One card per team per fight; a tie goes to the team with less fame. A won card is for this fight only.' + (AU.hot[k] ? '<br>🔥 <b>Hot:</b> 3+ Cr bid on it in total, or 2+ teams bidding.' : ''));
-      if (HS < 0 || iDone(HS)) { ctx.fillStyle = HAZ; ctx.textAlign = 'center'; fitText(ctx, HS < 0 ? '' : mine ? 'Your sealed bid: ' + mine + ' Cr (locked)' : 'No bid (locked)', x + cw / 2, iy + 64, iw - 16, '700', 11, F_MONO); return; }
+      if (HS < 0 || G.betsLocked) { ctx.fillStyle = HAZ; ctx.textAlign = 'center'; fitText(ctx, HS < 0 ? '' : mine ? 'Your sealed bid: ' + mine + ' Cr (locked)' : 'No bid (locked)', x + cw / 2, iy + 64, iw - 16, '700', 11, F_MONO); return; }
       const bw = 30, by = iy + 50, bh = 22;
       ctx.fillStyle = HAZ; rrect(ctx, ix + 6, by, bw, bh, 3); ctx.fill(); rrect(ctx, ix + iw - 6 - bw, by, bw, bh, 3); ctx.fill();
       ctx.fillStyle = '#1A1A12'; ctx.textAlign = 'center'; ctx.font = '700 15px ' + F_MONO;
@@ -8410,6 +8445,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, change after locking', '16 Nov 2026', [
+      'Locked your bids, but someone else has not locked yet? You can still change them: lot bids, the host bid and robot count, bets, fight-card bids and a tie rebid. A change takes your lock off (the note goes back to YOUR MOVE and the waiting list shows you deciding again); lock again when you are done. When everyone has locked, the step goes on.',
+      'A change that comes in after the step went on is not made, and your log says so.' ]],
     ['2.0.1, part goes on at once', '16 Nov 2026', [
       'A part you win goes straight on a robot. One robot with room: that one. Several: the one whose odds gain most, and the yellow note has a "Move to …" button for each other robot.',
       'For 5 seconds the note also has Undo (with a count): the part comes off again and you pick a robot or keep it in the Stash, as before. After 5 s, or when you click something else, it stays on.',
