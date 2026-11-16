@@ -65,3 +65,32 @@ Log `robocus2-playtest-2026-11-16T19-10-46.json`, build 2026-11-16a, 6 fights, g
 - Fights with four robots: 9-11, about 2.5 a second. They always fall back to the formula on this setup.
 - Workers never ran, because a page opened from a file can't start them. Through a web address (GitHub Pages, or a local server) the PC would use its cores minus 2.
 - `BAL.bookie` is unchanged; the options are question K9 in `TASKS.md`.
+
+## Odds overview on a Market lot (16 Nov, T7)
+
+Kev: "the overlay when checking odds on parts/robot should give an overview of effect of all the robots vs all the other robots, also from the opponents and how these changes affect you"; on a quick formula or test fights: "lets refine a bit".
+
+What it shows (`openOddsOverview` in `prototypes/tabletop-2.html`):
+- Click the 🎩 odds at the bottom of a part lot or a robot lot in the Market (sealed bids or the open-market preview). A click there used to add 1 Cr to the bid like the rest of the card; now it opens the overview (the − / + buttons and the rest of the card still bid). Esc or a click outside closes it.
+- One tab per team that could win the lot ("You win it", "Rust wins it", ...). Each tab says how many of your duels move up (▲) or down (▼) a band.
+- Under the tabs: which robot the part goes on (or, for a robot lot with a full garage, which robot is scrapped). The default is the robot the bookie thinks gains most, the same pick the AI makes (`aiPickRobot`, `aiTradeInPick`), marked "(likely)". Click another to see that case.
+- A line "For you:" lists the band moves of your robots, biggest first ("your Scythe vs Rust's Mincer: Even → Underdog").
+- The grid: rows = every robot (yours first, yellow edge), columns = every robot of the other teams, plus "vs the field". A cell is the row robot's chance in a duel on open floor, as a band. Cells that change are coloured: filled = it moves a band ("Even→Dog"), tinted = it moves inside its band (▲ ▼). Cells on your rows that change are outlined. A new robot shows "new Fav"; a scrapped one "—". No percentages, only bands (Kev, 9 Nov).
+
+Refinement with test fights:
+- The formula (matchup table + part values, with damage) fills the grid at once. Opening takes 2 to 30 ms in the cloud test box (4 teams, 12 robots; the first open of a page can take longer while the caches fill).
+- Then duels of the two robots as they would be (parts, tiers, damage; open information only, `spec2`) run in the bookie's worker pool. Per pair state: `BAL.overview.per` = 12 fights, 24 for the changed duels of your robots (`mine`); the result is mixed with the formula as `prior` = 8 fights, like `simOdds`. A cell takes the checked number only when all its fights are in (no flicker), and then gets a small dot in its corner.
+- Order: your changed duels first (after, then before), then the other changed duels, then your other duels, then the rest. Only the tab on screen is worked on.
+- Seeds come from the two robot names and the fight number, so the same pair state always gives the same numbers, whatever order the fights finish in, and a pair before and after the lot fights with the same dice (less noise in the change). Results are cached per pair state (3,000 at most), so reopening or switching back is free; a pair that shows up in another lot's grid is reused too.
+- It stops when the overlay closes, when the Market moves on or the lot is gone, and it waits whenever the fight bookie (`simOdds`) holds the pool.
+- A page opened from a file (what `play-latest.cmd` does) can't start the helpers: the fights then run on the page itself in slices of 5 ms (`sliceMs`; up to 10 ms when the browser is idle), so the game never freezes, but it is very slow (in the cloud test box about 100 engine steps a second, so a single duel takes about 25 s and the grid stays on the formula). From the web (`play-latest online`, GitHub Pages) the helpers run. The note under the grid says how the fights run and how many matchups are checked.
+- Switches: `BAL.overview = { per, mine, prior, sliceMs }`; `window.__noOddsFights = true` keeps the grid on the formula.
+
+Display only: these numbers never feed game state, the AI, the fight odds, bets, payouts or anything sent between players (each PC works out its own). Nothing in it uses the game's dice. No change under `src2/`, so the files stamp stays the same.
+
+Measured in the cloud test box (2 slow cores, so 1 helper; 4 teams of 3 robots, Quantum shield lot):
+- Opening: 12 ms on the first click, 2 to 33 ms over 16 reopenings (4 lots x 4 winners).
+- Test fights: about 0.5 to 0.7 a second. With the default budget the grid has 63 pair states (about 950 fights): 5 of 63 checked after 3 minutes (your changed duels first), so a full grid would take about half an hour there. With a test budget of 3 / 6 fights (`?bal={"overview":{"per":3,"mine":6}}`): the whole grid (297 fights) in 400 s, and the next tab (another winner) in 47 s, because most pairs were already in the cache.
+- Frames stay smooth while it works (helpers: median 16.7 ms, worst 100 ms in 3 s; from a file: median 16.8 ms, worst 50 ms).
+- Kev's PC (section above) runs 16-20 duels a second on the page, about 30 times this box. From the web (helpers, cores minus 2) a full grid should then take well under a minute, your changed duels (about 18 pair states, 430 fights) first. From a file the slices get about a tenth of the page's time at most, so expect 1-2 duels a second there: a few minutes for your changed duels, longer for the whole grid. Not measured on his PC yet.
+- Game state (G) is the same before and after opening the overview and running test fights (checked with a hash).

@@ -368,6 +368,40 @@ html, body {
 .iv-timer i { display: block; height: 100%; width: 100%; background: var(--red); }
 @keyframes ivt { from { width: 100% } to { width: 0% } }
 .iv-list { max-height: 240px; overflow: auto; margin-top: 6px; border-top: 2px dashed var(--line); }
+/* odds overview on a Market lot (Kev, 16 Nov, T7): every robot vs every rival robot, per possible winner */
+#oddsOverview { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
+#oddsOverview[hidden] { display: none; }
+.ov-box { width: min(1080px, calc(100vw - 32px)); }
+.ov-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.ov-tab { border: 2px solid var(--ink); border-left: 8px solid var(--c); border-radius: 4px; background: var(--paper); padding: 4px 10px; font: 700 12.5px var(--sans); cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.ov-tab.on { background: var(--ink); color: var(--hazard); }
+.ov-tab.on .sc-up { color: #9be38f; } .ov-tab.on .sc-dn { color: #ff9b8a; } .ov-tab.on i { color: #d8d0c0; }
+.ov-cnt { font: 600 10.5px var(--mono); display: flex; gap: 6px; } .ov-cnt i { font-style: normal; color: var(--muted); font-weight: 500; }
+.ov-opts { font-size: 12px; color: var(--muted); margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.ov-opt { border: 1.5px solid var(--ink); border-radius: 3px; background: var(--paper); padding: 1px 8px; font: 600 12px var(--sans); cursor: pointer; color: var(--ink); }
+.ov-opt.on { background: var(--hazard); } .ov-opt i { font-style: normal; color: var(--muted); font-weight: 500; }
+.ov-sum { font-size: 12.5px; margin: 4px 0 8px; padding: 5px 8px; background: #FFF6D6; border-left: 4px solid var(--hazard); }
+.ov-wrap { overflow-x: auto; }
+.ov-t { border-collapse: separate; border-spacing: 2px; font: 600 11px var(--mono); margin: 0 0 8px; }
+.ov-t th { font-weight: 600; }
+.ov-corner { font: 600 9.5px var(--mono); color: var(--muted); text-align: left; vertical-align: bottom; text-transform: uppercase; letter-spacing: .5px; }
+.ov-ch-h { font: 700 10.5px var(--sans); text-align: center; vertical-align: bottom; border-top: 5px solid var(--c, var(--ink)); padding: 2px 2px 3px; min-width: 58px; max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-ch-h i { display: block; font: 600 9px var(--mono); color: #B07A10; font-style: normal; }
+.ov-rh { text-align: left; font: 600 11.5px var(--sans); white-space: nowrap; border-left: 5px solid var(--c); padding: 3px 8px 3px 6px; background: var(--paper); }
+.ov-rh .ov-tm { font: 700 9.5px var(--mono); color: var(--c); text-transform: uppercase; }
+.ov-rh .ov-st { color: #B07A10; font-size: 10px; }
+.ov-rh.ov-me { background: #FFF1B8; box-shadow: inset -3px 0 0 var(--hazard); }
+.ov-tag { font: 700 9px var(--mono); background: var(--ink); color: var(--hazard); padding: 0 4px; border-radius: 2px; } .ov-tag.ov-tg { background: #7a7166; color: #fff; }
+.ov-c { position: relative; text-align: center; padding: 4px 3px; min-width: 58px; border-radius: 2px; white-space: nowrap; }
+.ov-c.ov-same { background: repeating-linear-gradient(45deg, transparent 0 4px, rgba(43,33,24,.06) 4px 6px); }
+.ov-c.ov-gone { color: #7a7166; }
+.ov-c.ov-mv { font-weight: 800; }
+.ov-c.ov-mine { outline: 2px solid var(--ink); outline-offset: -1px; }
+.ov-myrow .ov-c.ov-mine.ov-mv { box-shadow: 0 0 0 2px var(--hazard); }
+.ov-c.rf::after, .ov-dotk::before { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .75; }
+.ov-dotk { position: relative; display: inline-block; width: 8px; height: 8px; color: var(--ink); }
+.ov-f { font: 700 11px var(--mono); padding: 0 6px; white-space: nowrap; border-left: 2px solid var(--line); }
+.ov-st-note { margin-top: 4px; font-style: italic; }
 
 /* ---------- the rarity ladder (Kev, 16 Nov: "make a nice overlay for the part rarity"); --c = the tier's colour ---------- */
 #rarPanel { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
@@ -1586,7 +1620,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let cand = null;
     if (!dragCard && !mouse.down) {
       if (mouse.htmlHelp) { const [t, ...b] = mouse.htmlHelp.split('|'); cand = { title: t, body: b.join('|') }; }
-      else if (mouse.overCanvas) for (let i = helpRegions.length - 1; i >= 0; i--) {
+      else if (mouse.overCanvas && !OVR.open) for (let i = helpRegions.length - 1; i >= 0; i--) {
         const r = helpRegions[i];
         if (mouse.wx >= r.x && mouse.wx <= r.x + r.w && mouse.wy >= r.y && mouse.wy <= r.y + r.h) { cand = r; break; }
       }
@@ -2562,7 +2596,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16d choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16e odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4230,6 +4264,242 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const lotGainShort = () => '';
   const weaponSwapNote = () => '';
+
+  /* ---------- Odds overview on a Market lot (Kev, 16 Nov, T7: "the overlay when checking odds on parts/robot should give an
+   * overview of effect of all the robots vs all the other robots, also from the opponents and how these changes affect you";
+   * on test fights: "lets refine a bit") ----------
+   * Click the 🎩 odds on a part or robot lot: a grid of every robot (rows, yours first) against every rival robot (columns:
+   * the other teams), as bands before → after, for each team that could win the lot (a tab per winner; a part goes on the
+   * robot picked under the tabs, by default the one the bookie thinks gains most, like the AI picks). The formula fills it at
+   * once; then test fights refine it in the background: duels of the two robots as they would be (parts, damage, open
+   * information only), a few per cell, blended with the formula as a prior (like simOdds), cached per pair state.
+   * DISPLAY ONLY: nothing here feeds game state, the AI, bets, payouts or anything synced (each PC gets its own numbers),
+   * and nothing here uses the game's dice (rnd). Switches: BAL.overview = { per, mine, prior, sliceMs } (fights per cell,
+   * per changed cell of yours, formula weight, page time slice); window.__noOddsFights = true: the formula only. */
+  const OVR_CLICK = '<br><i>Click: the full odds, every robot against every rival robot, for whoever wins it.</i>';
+  const ovrCfg = () => Object.assign({ per: 12, mine: 24, prior: 8, sliceMs: 5 }, BAL.overview || {});
+  const OVR = { el: null, lot: null, win: null, opt: {}, open: false, cache: new Map(), jobs: [], timer: null, idle: null, cur: null, dirty: false, ran: 0, how: '', msOpen: 0, tStart: 0, tFull: 0 };
+  // a robot as it would be with this lot's part (and the tier of this copy), like applyLot does it
+  function lotRobot(r, lot) {
+    const L = LOTS[lot], c = withPart(r, L.part);
+    c.rar = Object.assign({}, r.rar); if (L.rar) c.rar[L.part] = L.rar; else delete c.rar[L.part];
+    return c;
+  }
+  const ovrLotOk = lot => { const L = LOTS[lot]; return !!L && (!!L.part || (!!L.robot && !!L.bot)); };
+  // who has which robots if team w wins the lot (opt: the robot it goes on, or the robot scrapped for a new one)
+  function ovrScen(lot, w, optId) {
+    const L = LOTS[lot], T = G.teams[w];
+    const rows = G.teams.map(t => t.robots.map(r => ({ T: t, b: r, a: r, tag: '' })));
+    const S = { w, rows, opts: [], pick: null, guess: null, note: '', verb: '' };
+    if (L.part) {
+      S.opts = T.robots.filter(r => canFit(r, L)); S.verb = 'on';
+      S.guess = S.opts.length ? aiPickRobot(T, lot) : null;
+      S.pick = S.opts.find(r => String(r.id) === String(optId)) || S.guess;
+      if (S.pick) { const e = rows[w].find(x => x.b === S.pick); e.a = lotRobot(S.pick, lot); e.tag = 'fit'; }
+      else S.note = (w === viewerSeat ? 'None of your robots has' : 'None of their robots has') + ' a free slot: it would go into the Stash, so nothing changes now.';
+    } else if (L.robot && L.bot) {
+      const full = T.robots.length >= 3;
+      if (full && !tradeInOn()) S.note = (w === viewerSeat ? 'Your' : 'Their') + ' bays are full: the winner gets 2 Cr, nothing changes.';
+      else {
+        if (full) { S.opts = T.robots.slice(); S.verb = 'scraps'; S.guess = aiTradeInPick(T); S.pick = S.opts.find(r => String(r.id) === String(optId)) || S.guess;
+          const e = rows[w].find(x => x.b === S.pick); e.a = null; e.tag = 'gone'; }
+        rows[w].push({ T, b: null, a: L.bot, tag: 'new' });
+      }
+    }
+    return S;
+  }
+  // test fights: one cache entry per pair state (both robots with parts, tiers and damage), the robot with the first name on side a.
+  // The dice come from the two names and the fight number only, so a pair before and after the lot fights with the same dice
+  // (less noise in the change than with fresh dice).
+  const ovrKey = r => wearKey(r) + '|' + (r.level || 0);
+  const ovrHash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+  const ovrSeed = (key, i) => { let x = (ovrHash(key) ^ Math.imul(i + 1, 0x9E3779B1)) >>> 0; x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0; return ((x ^ (x >>> 13)) >>> 0) || 1; };
+  function ovrPair(ra, rb) {   // { key, flip, c (cache entry or undefined) }
+    const ka = ovrKey(ra), kb = ovrKey(rb), flip = ra.name > rb.name || (ra.name === rb.name && ka > kb), key = flip ? kb + '#' + ka : ka + '#' + kb;
+    return { key, flip, c: OVR.cache.get(key) };
+  }
+  // the chance shown in a cell: the formula, or the formula blended with the test fights once the cell has had them all
+  function ovrP(ra, rb) {
+    const f = pairP(ra, rb, 'open'), C = ovrCfg(), q = ovrPair(ra, rb), c = q.c;
+    if (!c || !c.done) return { p: f, f, rf: false };
+    const w = q.flip ? c.w1 : c.w0;
+    return { p: Math.max(0.03, Math.min(0.97, (w + C.prior * f) / (c.n + C.prior))), f, rf: true, n: c.n };
+  }
+  // the grid: rows = every robot (yours first), columns = every robot of the other teams; a cell = the row robot's chance
+  function ovrGrid(S) {
+    const me0 = viewerSeat, order = [me0].concat(G.teams.map(t => t.i).filter(i => i !== me0));
+    const rows = order.flatMap(i => S.rows[i]), cols = order.filter(i => i !== me0).flatMap(i => S.rows[i]);
+    const cell = (X, Y) => {
+      if (X.T === Y.T) return null;
+      const changed = X.a !== X.b || Y.a !== Y.b;
+      const bf = X.b && Y.b ? ovrP(X.b, Y.b) : null, af = X.a && Y.a ? (changed ? ovrP(X.a, Y.a) : bf) : null;
+      return { X, Y, changed, bf, af };
+    };
+    const field = (X, k) => { if (!X[k]) return null; const v = rows.filter(Y => Y.T !== X.T && Y[k]).map(Y => ovrP(X[k], Y[k]).p); return X[k] && v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+    return { rows, cols, cell, field };
+  }
+  const OVR_ABBR = p => BAND_ABBR[bandOf(p).name];
+  const ovrMove = (a, b) => a == null || b == null ? 0 : BANDS.indexOf(bandOf(a)) - BANDS.indexOf(bandOf(b));   // a → b: + = the row robot moves up to a better band
+  // the changes that touch you: your robot's band against a rival robot moves (a new robot of yours counts too)
+  function ovrMine(S) {
+    const g = ovrGrid(S), out = [];
+    for (const X of g.rows) { if (X.T.i !== viewerSeat) continue;
+      for (const Y of g.cols) { const c = g.cell(X, Y); if (!c || !c.changed) continue;
+        const a = c.bf && c.bf.p, b = c.af && c.af.p;
+        if (a != null && b != null && bandOf(a) !== bandOf(b)) out.push({ X, Y, a, b, mv: ovrMove(a, b) });
+        else if (a == null && b != null && X.tag === 'new') out.push({ X, Y, a, b, mv: 0, nw: true }); } }
+    return out.sort((p, q) => Math.abs(q.mv) - Math.abs(p.mv));
+  }
+  const ovrName = (e, own) => (own ? 'your ' : esc(e.T.name.split(' ')[0]) + '\'s ') + esc((e.a || e.b).name);
+  function openOddsOverview(lot, win, opt) {
+    const t0 = performance.now();
+    if (!ovrLotOk(lot) || !G || G.phase !== 'market') return;
+    if (OVR.lot !== lot) { OVR.opt = {}; OVR.win = null; }
+    OVR.lot = lot; OVR.win = win != null ? win : OVR.win != null ? OVR.win : viewerSeat;
+    if (opt !== undefined) OVR.opt[OVR.win] = opt;
+    let el = document.getElementById('oddsOverview');
+    if (!el) { el = document.createElement('div'); el.id = 'oddsOverview'; document.body.appendChild(el);
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-ov]'); if (e.target === el) return closeOddsOverview();
+        if (!b) return; const [k, v] = b.dataset.ov.split(':');
+        if (k === 'x') closeOddsOverview(); else if (k === 'w') openOddsOverview(OVR.lot, +v); else if (k === 'o') openOddsOverview(OVR.lot, OVR.win, v);
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && OVR.open) closeOddsOverview(); }); }
+    OVR.el = el; el.hidden = false; OVR.open = true;
+    ovrRender();
+    OVR.msOpen = performance.now() - t0;
+    ovrQueue(); ovrPump(); OVR.dirty = true;   // the next tick redraws with the test-fight note
+    if (!OVR.timer) OVR.timer = setInterval(ovrTick, 400);
+  }
+  function closeOddsOverview() {
+    OVR.open = false; if (OVR.el) OVR.el.hidden = true;
+    if (OVR.timer) { clearInterval(OVR.timer); OVR.timer = null; }
+    if (OVR.cur) OVR.cur.c.fly.delete(OVR.cur.i);
+    OVR.jobs = []; OVR.cur = null;
+    if (BOOKIE.onres === ovrOnRes) { BOOKIE.onres = null; BOOKIE.onready = null; }
+  }
+  function ovrTick() {
+    if (!OVR.open) return;
+    if (!G || G.phase !== 'market' || !(G.market || []).includes(OVR.lot) || G.marketStage === 'host') return closeOddsOverview();
+    ovrPump();
+    if (OVR.dirty) { OVR.dirty = false; ovrRender(); }
+  }
+  function ovrRender() {
+    const el = OVR.el, L = LOTS[OVR.lot], me0 = viewerSeat; if (!el || !L) return;
+    const scen = G.teams.map(t => ovrScen(OVR.lot, t.i, OVR.opt[t.i]));
+    const S = scen[OVR.win] || scen[me0], g = ovrGrid(S), C = ovrCfg();
+    const tabs = [me0].concat(G.teams.map(t => t.i).filter(i => i !== me0)).map(i => {
+      const T = G.teams[i], m = ovrMine(scen[i]), up = m.filter(x => x.mv > 0).length, dn = m.filter(x => x.mv < 0).length;
+      return '<button class="ov-tab' + (i === OVR.win ? ' on' : '') + '" data-ov="w:' + i + '" style="--c:' + T.col + '">' + (i === me0 ? 'You win it' : esc(T.name.split(' ')[0]) + ' wins it') +
+        '<span class="ov-cnt">' + (up ? '<b class="sc-up">' + up + '▲</b>' : '') + (dn ? '<b class="sc-dn">' + dn + '▼</b>' : '') + (!up && !dn ? '<i>no band moves for you</i>' : '') + '</span></button>'; }).join('');
+    const who = S.w === me0 ? 'you' : esc(G.teams[S.w].name.split(' ')[0]);
+    const opts = S.opts.length > 0 ? '<div class="ov-opts">' + (S.verb === 'on' ? 'Fitted on: ' : 'To make room ' + who + ' scrap' + (S.w === me0 ? '' : 's') + ': ') + S.opts.map(r =>
+      '<button class="ov-opt' + (r === S.pick ? ' on' : '') + '" data-ov="o:' + r.id + '">' + esc(r.name) + (r === S.guess ? ' <i>(likely)</i>' : '') + '</button>').join('') + '</div>' : '';
+    const band = (p, dim) => '<span class="ov-b" style="color:' + (dim ? '#7a7166' : bandOf(p).col) + '">' + OVR_ABBR(p) + '</span>';
+    const td = c => {
+      if (!c) return '<td class="ov-c ov-same"></td>';
+      const rf = (c.af || c.bf) && (c.af || c.bf).rf, cls = 'ov-c' + (rf ? ' rf' : '');
+      if (!c.af) return '<td class="' + cls + ' ov-gone">—</td>';
+      if (!c.changed) return '<td class="' + cls + '" style="background:' + bandOf(c.af.p).col + '1c">' + band(c.af.p, true) + '</td>';
+      const mine = c.X.T.i === me0, a = c.bf && c.bf.p, b = c.af.p, col = bandOf(b).col;
+      const txt = a == null ? 'new ' + OVR_ABBR(b) : bandOf(a) !== bandOf(b) ? OVR_ABBR(a) + '→' + OVR_ABBR(b) : OVR_ABBR(b) + (b > a + 0.01 ? ' ▲' : b < a - 0.01 ? ' ▼' : ' =');
+      const moved = a == null || bandOf(a) !== bandOf(b);
+      return '<td class="' + cls + ' ov-ch' + (mine ? ' ov-mine' : '') + (moved ? ' ov-mv' : '') + '" style="' + (moved ? 'background:' + col + ';color:#fff' : 'background:' + col + '26;color:' + col) + '">' + txt + '</td>';
+    };
+    const rowHead = X => { const r = X.a || X.b, mine = X.T.i === me0;
+      return '<th class="ov-rh' + (mine ? ' ov-me' : '') + '" style="--c:' + X.T.col + '"><span class="ov-tm">' + esc(X.T.name.split(' ')[0]) + '</span> ' + esc(r.name) + ' <span class="ov-st">' + ('★'.repeat(r.level || 0) || '·') + '</span>' +
+        (X.tag === 'fit' ? ' <span class="ov-tag">+' + esc(L.name) + '</span>' : X.tag === 'new' ? ' <span class="ov-tag">NEW</span>' : X.tag === 'gone' ? ' <span class="ov-tag ov-tg">scrapped</span>' : '') + '</th>'; };
+    const colHead = Y => { const r = Y.a || Y.b; return '<th class="ov-ch-h" style="--c:' + Y.T.col + '" title="' + esc(Y.T.name + ': ' + r.name) + '">' + esc(r.name.replace('s1. ', '')) + (Y.tag === 'fit' ? '<i>+part</i>' : Y.tag === 'new' ? '<i>new</i>' : Y.tag === 'gone' ? '<i>scrapped</i>' : '<i>' + ('★'.repeat(r.level || 0) || '·') + '</i>') + '</th>'; };
+    const fieldTd = X => { const a = g.field(X, 'b'), b = g.field(X, 'a');
+      if (b == null) return '<td class="ov-f">' + (a == null ? '' : '—') + '</td>';
+      const txt = a == null ? 'new ' + OVR_ABBR(b) : shiftTxt(a, b);
+      return '<td class="ov-f" style="color:' + bandOf(b).col + '">' + txt + '</td>'; };
+    const grid = g.cols.length ? '<div class="ov-wrap"><table class="ov-t"><tr><th class="ov-corner">row robot\'s chance vs →</th>' + g.cols.map(colHead).join('') + '<th class="ov-ch-h">vs the field</th></tr>' +
+      g.rows.map(X => '<tr' + (X.T.i === me0 ? ' class="ov-myrow"' : '') + '>' + rowHead(X) + g.cols.map(Y => td(g.cell(X, Y))).join('') + fieldTd(X) + '</tr>').join('') + '</table></div>' : '<div class="sc-note">No rival robots yet.</div>';
+    const mine = ovrMine(S);
+    const sum = S.note ? '<div class="ov-sum">' + S.note + '</div>' : '<div class="ov-sum">' + (mine.length ? '<b>For you:</b> ' + mine.slice(0, 4).map(x => (x.nw ? 'your new ' + esc(x.X.a.name) + ' vs ' + ovrName(x.Y, false) + ': ' + bandOf(x.b).short
+      : ovrName(x.X, true) + ' vs ' + ovrName(x.Y, false) + ': <b style="color:' + bandOf(x.b).col + '">' + bandOf(x.a).short + ' → ' + bandOf(x.b).short + '</b>')).join(' · ') + (mine.length > 4 ? ' · and ' + (mine.length - 4) + ' more' : '')
+      : '<b>For you:</b> none of your robots moves a band in a duel.') + '</div>';
+    // the test-fight note
+    const all = OVR.jobs, done = all.filter(j => j.c.done).length;
+    const st = window.__noOddsFights ? 'Test fights are off (window.__noOddsFights): every cell is the bookie\'s quick estimate.'
+      : !all.length ? '' : (done >= all.length ? 'All ' + all.length + ' matchups in this view checked with test fights.' : 'Test fights in the background: ' + done + ' of ' + all.length + ' matchups checked' + (OVR.how ? ' (' + OVR.how + ')' : '') + '. Cells without a dot are the quick estimate until then.');
+    el.innerHTML = '<div class="sc-box ov-box"><button class="sc-x" data-ov="x" title="Close">✕</button>' +
+      '<h3>🎩 Who gains from ' + esc(L.icon || '') + ' ' + esc(L.name) + '?</h3>' +
+      '<div class="ov-tabs">' + tabs + '</div>' + opts + sum + grid +
+      '<div class="sc-note">Each cell: the row robot\'s chance in a duel against the column robot, as a band before → after the lot goes to that team. Coloured cells change; a filled cell moves a band, a tinted one moves inside its band (▲ ▼). Your robots are the top rows (yellow edge). <span class="ov-dotk"></span> a dot in a corner: checked with ' + C.per + ' test fights' + (C.mine > C.per ? ' (' + C.mine + ' for your changed matchups)' : '') + ' of these two robots as they would be (parts and damage, face-down cards stay secret), mixed with the quick estimate; no dot: the quick estimate (matchup table and part values). Only for your eyes: the fight odds and bets don\'t use these numbers.</div>' +
+      (st ? '<div class="sc-note ov-st-note">' + st + '</div>' : '') +
+      '<div class="iv-btns"><button class="secondary" data-ov="x">Close</button></div></div>';
+  }
+  // the work list for the view on screen: changed cells of yours first, then other changed cells, then your other cells, then the rest.
+  // Each pair state gets fights with seeds 0 .. want-1 (from the pair state), whatever order they finish in: the same numbers on every run.
+  function ovrQueue() {
+    if (OVR.cur) OVR.cur.c.fly.delete(OVR.cur.i);
+    OVR.cur = null;
+    if (window.__noOddsFights || !OVR.open) { OVR.jobs = []; return; }
+    const C = ovrCfg(), scen = ovrScen(OVR.lot, OVR.win, OVR.opt[OVR.win]), g = ovrGrid(scen), tier = [[], [], [], []], seen = new Set();
+    const add = (t, ra, rb, want) => { const q = ovrPair(ra, rb); if (seen.has(q.key)) return; seen.add(q.key);
+      let c = q.c; if (!c) { if (OVR.cache.size > 3000) OVR.cache.clear(); c = { key: q.key, sk: (q.flip ? rb : ra).name + '#' + (q.flip ? ra : rb).name, A: q.flip ? rb : ra, B: q.flip ? ra : rb, n: 0, w0: 0, w1: 0, got: new Set(), fly: new Set(), want: 0, done: false }; OVR.cache.set(q.key, c); }
+      c.want = Math.max(c.want, want); c.done = c.n >= c.want; tier[t].push({ c }); };
+    for (const X of g.rows) for (const Y of g.cols) { const c = g.cell(X, Y); if (!c) continue; const mine = X.T.i === viewerSeat;
+      if (c.changed) { if (X.a && Y.a) add(mine ? 0 : 1, X.a, Y.a, mine ? C.mine : C.per); if (X.b && Y.b) add(mine ? 0 : 1, X.b, Y.b, mine ? C.mine : C.per); }
+      else if (X.a && Y.a) add(mine ? 2 : 3, X.a, Y.a, C.per); }
+    OVR.jobs = tier.flat(); OVR.tStart = performance.now(); OVR.tFull = OVR.jobs.every(j => j.c.done) ? 0.001 : 0;
+  }
+  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open' });
+  function ovrCount(c, i, r) {
+    c.fly.delete(i);
+    if (!r || r.err || c.got.has(i)) return;
+    c.got.add(i); c.n++; OVR.ran++;
+    if (!r.none) { if (r.winner === 0) c.w0++; else if (r.winner === 1) c.w1++; }
+    if (!c.done && c.n >= c.want) { c.done = true; OVR.dirty = true; if (OVR.jobs.every(j => j.c.done)) OVR.tFull = performance.now() - OVR.tStart; }
+  }
+  // the next fight to run: the first unfinished pair in the list, its lowest seed not done or running
+  function ovrNext() {
+    for (const j of OVR.jobs) { const c = j.c; if (c.done) continue;
+      for (let i = 0; i < c.want; i++) if (!c.got.has(i) && !c.fly.has(i)) return { c, i }; }
+    return null;
+  }
+  function ovrOnRes(d) {
+    const q = d && d.gen && typeof d.gen === 'object' ? d.gen : null;
+    if (q && q.ovr) { const c = OVR.cache.get(q.ovr); if (c) ovrCount(c, q.i, d.r); }
+    ovrFeed();
+  }
+  function ovrFeed() {
+    if (!OVR.open || BOOKIE.onres !== ovrOnRes) return;
+    let live = 0;
+    for (const o of BOOKIE.pool || []) { if (o.dead) continue; if (o.ready) live++; if (!o.ready || o.busy) continue;
+      const nx = ovrNext(); if (!nx) break;
+      o.busy = true; nx.c.fly.add(nx.i); o.w.postMessage({ gen: { ovr: nx.c.key, i: nx.i }, bb: ovrBB(nx.c, nx.i), seed: ovrSeed(nx.c.sk, nx.i) }); }
+    OVR.how = live ? 'on ' + live + ' helper' + (live > 1 ? 's' : '') + ' beside the game' : 'starting the helpers';
+  }
+  // the fight bookie (simOdds) owns the pool while it runs: then wait. A page opened from a file (no helpers) runs the fights on the
+  // page itself in small slices of a few ms when the browser is idle, so the game never freezes; it is just slower.
+  function ovrPump() {
+    if (!OVR.open || window.__noOddsFights || !OVR.jobs.length) return;
+    let pool = null; try { pool = bookiePool(); } catch (e) { pool = null; }
+    if (pool && pool.some(o => !o.dead)) {
+      if (BOOKIE.onres && BOOKIE.onres !== ovrOnRes) { OVR.how = 'waiting: the fight bookie is busy'; return; }
+      if (BOOKIE.onres !== ovrOnRes) { for (const c of OVR.cache.values()) c.fly.clear(); BOOKIE.onres = ovrOnRes; BOOKIE.onready = ovrFeed; }
+      ovrFeed(); return;
+    }
+    if (OVR.idle || (!ovrNext() && !OVR.cur)) return;
+    OVR.how = location.protocol === 'file:' ? 'opened from a file, so they run on this page in small slices and go very slowly; from the web (play-latest online) they run beside the game' : 'on this page in small slices, slowly: no helpers';
+    const later = () => { OVR.idle = window.requestIdleCallback ? requestIdleCallback(slice, { timeout: 60 }) : setTimeout(slice, 20); };
+    const slice = dl => { OVR.idle = null; if (!OVR.open) { OVR.cur = null; return; }
+      const ms = ovrCfg().sliceMs, end = performance.now() + (dl && !dl.didTimeout && dl.timeRemaining ? Math.max(1, Math.min(2 * ms, dl.timeRemaining() - 1)) : ms);   // idle time: up to 2 slices
+      try {
+        while (performance.now() < end) {
+          if (!OVR.cur) { const nx = ovrNext(); if (!nx) break; nx.c.fly.add(nx.i); OVR.cur = { c: nx.c, i: nx.i, S: DL.create(ovrBB(nx.c, nx.i)), g: 0 }; }
+          const K = OVR.cur, S = K.S;
+          for (let k = 0; k < 4 && !S.over && K.g < 48000; k++, K.g++) { DL.step(S); S.fx.length = 0; }   // the clock is read every few steps (about 1 ms each on a slow PC)
+          if (S.over || K.g >= 48000) { const x = S.result; ovrCount(K.c, K.i, x ? { winner: x.winner } : { none: 1 }); OVR.cur = null; }
+        }
+      } catch (e) { console.warn('odds overview', e); OVR.cur = null; OVR.jobs = []; return; }
+      if (ovrNext() || OVR.cur) later();
+    };
+    later();
+  }
 
   /* ---------- Trade-in (Kev, 8 Nov): win a robot lot with a full garage, scrap one of your robots ----------
    * Scrap money = BAL.tradeIn.base + perLevel × its level. Its parts go to the Stash (full Stash: a person picks what to keep,
@@ -6258,7 +6528,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -7500,7 +7770,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (LOTS[it.id] && LOTS[it.id].robot && isL4(LOTS[it.id].starter)) help(x, y, w, 18, '★★★★ Level 4', 'End-game robot, one of ' + BAL.level4.perGame + ' this game, from round ' + BAL.level4.fromRound + '. ' + esc(BAL.level4.priceNote) + ' ' + BAL.level4.minBid + ' Cr: a lower top bid leaves it unsold (it comes back later).');
       if (LOTS[it.id] && LOTS[it.id].legend) help(x, y, w, 18, '🌟 Legendary', 'One copy in the whole game, announced one round ahead. Unsold, it comes back later.');
       const RL = LOTS[it.id];
-      if (RL && RL.bot) drawRobotLot(ctx, RL, x, yb, w, h - 18);
+      if (RL && RL.bot) drawRobotLot(ctx, RL, x, yb, w, h - 18, it.id);
       else {
         // art window: the icon in a round frame for chips and crew, a square one otherwise
         const round = K.k === 'chip' || K.k === 'crew', ax = x + w / 2, ay = yb + 26;
@@ -7518,13 +7788,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         // 🎩 what the lot does to each of your robots' odds vs the field
         if (LOTS[it.id] && needsRobot(it.id)) {
           const sh = me().robots.map(r => [r, oddsShiftRaw(viewerSeat, r, LOTS[it.id])]).filter(x2 => x2[1] !== undefined);
-          if (!sh.length) { ctx.fillStyle = '#8A4A10'; fitText(ctx, '📦 no free slot on your robots', x + w / 2, yb + 168, w - 12, '700', 10.5); ctx.fillStyle = MUTED; fitText(ctx, 'win it for your Stash (bank: ' + bankHalf(it.id) + ' Cr)', x + w / 2, yb + 184, w - 12, '600', 10); help(x + 4, yb + 158, w - 8, 34, 'No free slot', 'None of your robots has a free slot for it (2 part slots + 1 legendary slot each; at most 3 drones). You can still win it: it goes into your 📦 Stash, to trade in a deal, fit later on a new robot, or sell to the bank at half value (' + bankHalf(it.id) + ' Cr).'); }
+          if (!sh.length) { ctx.fillStyle = '#8A4A10'; fitText(ctx, '📦 no free slot on your robots', x + w / 2, yb + 168, w - 12, '700', 10.5); ctx.fillStyle = MUTED; fitText(ctx, 'win it for your Stash (bank: ' + bankHalf(it.id) + ' Cr)', x + w / 2, yb + 184, w - 12, '600', 10); help(x + 4, yb + 158, w - 8, 34, 'No free slot', 'None of your robots has a free slot for it (2 part slots + 1 legendary slot each; at most 3 drones). You can still win it: it goes into your 📦 Stash, to trade in a deal, fit later on a new robot, or sell to the bank at half value (' + bankHalf(it.id) + ' Cr).' + OVR_CLICK); }
           else if (sh.length === 1) {
             const [r, v] = sh[0];
             ctx.fillStyle = MUTED; fitText(ctx, '🎩 ' + r.name, x + w / 2, yb + 168, w - 12, '600', 10.5);
             ctx.fillStyle = v.col; fitText(ctx, v.text, x + w / 2, yb + 186, w - 12, '700', 12.5, F_MONO);
           } else sh.forEach(([r, v], jj) => { ctx.fillStyle = v.col; fitText(ctx, r.name.replace('s1. ', '') + ': ' + v.short, x + w / 2, yb + 166 + jj * 14, w - 12, '700', 10.5, F_MONO); });
-          help(x + 4, yb + 156, w - 8, 40, '🎩 What it does to your odds', 'The bookie\'s chance vs the field for each of your robots, <b>before→after</b> fitting this part. ' + (me().robots.some(r => swapOut(r, LOTS[it.id])) ? '<b>⇄</b> = it replaces that robot\'s own module: ' + me().robots.filter(r => swapOut(r, LOTS[it.id])).map(r => esc(swapOut(r, LOTS[it.id])) + ' (' + esc(r.name) + ')').join(', ') + '. ' : '') + BAND_HELP);
+          help(x + 4, yb + 156, w - 8, 40, '🎩 What it does to your odds', 'The bookie\'s chance vs the field for each of your robots, <b>before→after</b> fitting this part. ' + (me().robots.some(r => swapOut(r, LOTS[it.id])) ? '<b>⇄</b> = it replaces that robot\'s own module: ' + me().robots.filter(r => swapOut(r, LOTS[it.id])).map(r => esc(swapOut(r, LOTS[it.id])) + ' (' + esc(r.name) + ')').join(', ') + '. ' : '') + BAND_HELP + OVR_CLICK);
+          hitRegions.push({ kind: 'lot_odds', lot: it.id, x: x + 4, y: yb + 156, w: w - 8, h: 40 });   // T7: click = the odds overview
         }
       }
       const btnY = yb + 122;
@@ -7543,7 +7814,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
   // a New Robot lot (2.0): the robot itself, its level, weapon, a line about it and the bookie's chance vs the field
   // a New Robot lot (2.0): the robot itself, its level, weapon, a line about it and the bookie's chance vs the field (y = under the band)
-  function drawRobotLot(ctx, RL, x, y, w, h) {
+  function drawRobotLot(ctx, RL, x, y, w, h, lotId) {
     const t = me(), bot = RL.bot, full = t.robots.length >= 3;
     drawPortrait(ctx, bot, t, x + w / 2 - 30, y + 6, 60, 60);
     ctx.textAlign = 'center'; ctx.fillStyle = INK;
@@ -7554,19 +7825,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (full && tradeInOn()) {
       ctx.fillStyle = '#8A4A10'; fitText(ctx, '♻️ Full garage:', x + w / 2, y + 168, w - 12, '700', 10.5);
       ctx.fillStyle = MUTED; fitText(ctx, 'you\'ll scrap one robot', x + w / 2, y + 184, w - 12, '600', 10);
+      hitRegions.push({ kind: 'lot_odds', lot: lotId, x: x + 4, y: y + 158, w: w - 8, h: 34 });
       help(x + 4, y + 158, w - 8, 34, '♻️ Trade-in', 'You already have 3 robots. If you win this lot, you pick one of your robots to scrap: you get ' + BAL.tradeIn.base + ' Cr + its level (' + t.robots.map(r => esc(r.name) + ' ' + scrapMoney(r) + ' Cr').join(', ') + '), and its parts go to your 📦 Stash. A Fan Favourite takes its fame with it.');
       return;
     }
     if (full) {
       ctx.fillStyle = '#8A4A10'; fitText(ctx, '🏠 your bays are full', x + w / 2, y + 168, w - 12, '700', 10.5);
       ctx.fillStyle = MUTED; fitText(ctx, 'win it: +2 Cr instead', x + w / 2, y + 184, w - 12, '600', 10);
+      hitRegions.push({ kind: 'lot_odds', lot: lotId, x: x + 4, y: y + 158, w: w - 8, h: 34 });
       help(x + 4, y + 158, w - 8, 34, 'Bays full', 'You already have 3 robots. Winning this lot pays you 2 Cr instead (the robot goes back to the deck). You can still bid to keep it from a rival.');
       return;
     }
     const p = fieldOdds(viewerSeat, bot).p, c = oddsChip(p);
     ctx.fillStyle = MUTED; fitText(ctx, '🎩 vs the field', x + w / 2, y + 168, w - 12, '600', 10.5);
     ctx.fillStyle = c.col; fitText(ctx, bandOf(p).short, x + w / 2, y + 186, w - 12, '700', 12.5, F_MONO);
-    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name, 'The bookie\'s view of <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts).' + fieldTable(bot, viewerSeat));
+    help(x + 4, y + 158, w - 8, 34, '🎩 Bookie vs the field: ' + bandOf(p).name, 'The bookie\'s view of <b>' + esc(RL.name) + '</b> against every robot of the other teams, as it comes (new, no parts).' + fieldTable(bot, viewerSeat) + OVR_CLICK);
+    hitRegions.push({ kind: 'lot_odds', lot: lotId, x: x + 4, y: y + 158, w: w - 8, h: 34 });   // T7: click = the odds overview
   }
   /* Kev, 11 Nov: the 1v1s behind "vs the field". For every rival robot in play: this robot against it with both as new
    * (the Lineup Arena table, as a 20% range), a counter mark, and the band as that rival stands now when it has parts or damage. */
@@ -7908,6 +8182,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     { const rx = hitRegions.slice().reverse().find(r => r.kind === 'rarity' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);   // part rarity: the ladder (not while a robot click means install / send)
       const busy = rx && rx.robot && ((G.phase === 'market' && (PS().install || []).length) || (G.phase === 'arena' && (PS().choose || (G.host === HS && G.pickTeams && !G.fight))));
       if (rx && !busy) { openRarity(rx.part, rx.rar, rx.robot ? { robot: rx.robot } : {}); return; } }
+    { const lo = G.phase === 'market' && hitRegions.find(r => r.kind === 'lot_odds' && wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h);   // T7: the odds overview (display only, no act)
+      if (lo && lo.lot && LOTS[lo.lot]) { openOddsOverview(lo.lot); return; } }
     for (let i = hitRegions.length - 1; i >= 0; i--) {
       const r = hitRegions[i];
       if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
@@ -8007,6 +8283,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, odds overview', '16 Nov 2026', [
+      'Market: click the 🎩 odds on a part or robot lot for the full picture: every robot against every rival robot, before → after, for each team that could win it (a tab per team; pick which robot the part goes on). The changes that touch your robots are outlined, with a line on top like "your Scythe vs Rust\'s Mincer: Even → Underdog".',
+      'The grid starts from the bookie\'s quick estimate; test fights then check it in the background (a small dot in a cell\'s corner = checked). Only for your eyes: the fight odds, bets and the AI don\'t use these numbers.' ]],
     ['2.0.1, choices in the note', '16 Nov 2026', [
       'When you are invited to a fight, the yellow note has a button per robot: click one to send it to the pit (a damaged robot says so, an exhausted one is greyed out). The button on the robot card still works.',
       'The note also has a button per choice when you sign a sponsor, keep a starter, fit a part you won, pick the 2 teams to invite as host, and −/+ for a tie rebid.' ]],
