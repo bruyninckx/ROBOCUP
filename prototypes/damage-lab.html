@@ -2278,8 +2278,12 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const back = () => b.getWorldPoint(V(-R.hl - 0.25, 0));
     if (m === 'shield') { if (S.t - R.lastHurt > 3 && R.eSh < R.eShMax) R.eSh = Math.min(R.eShMax, R.eSh + 8 * pkR('shield', R) * DT); }
     else if (m === 'repair') {
-      R.healing = S.t - R.lastHurt > 1.5 && f < 1;
-      if (R.healing) { const c = R.chassis, hk = pkR('repair', R); c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT); }
+      // Kev, 16 Nov (T5): the Repair kit part card also patches the robot up while it is being hit, at ARC.pk.repairFire of the full
+      // rate (full rate after ARC.pk.repairWait s without a hit); a robot's built-in module (Mauler) keeps 1.5 s and nothing under fire
+      const kit = R.spec && (R.spec.fromParts || []).includes('repair'), quiet = S.t - R.lastHurt > (kit && ARC.pk.repairWait != null ? ARC.pk.repairWait : 1.5);
+      const rk = quiet ? 1 : kit ? (ARC.pk.repairFire || 0) : 0;
+      R.healing = rk > 0 && f < 1;
+      if (R.healing) { const c = R.chassis, hk = pkR('repair', R) * rk; c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT); }
     }
     else if (m === 'emp' && ready && dist < 1.5) {
       E.stun = Math.max(E.stun, 1.8 * pkQ('emp', R)); R.modCd = 10; for (const dd of E.drones) { if (!dd.alive) continue; const q = dd.body.getPosition(); if (Math.hypot(q.x - p.x, q.y - p.y) < 2) dd.off = Math.max(dd.off, 2.5); } S.fx.push({ type: 'emp', x: p.x, y: p.y, robot: R.id });
