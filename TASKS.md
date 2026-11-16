@@ -52,7 +52,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
-- **T17. `tools/market-install-test.js` is stale** (it expects the 8 Nov install prompt). Update or retire it.
 - **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
   lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
   out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
@@ -70,10 +69,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
-  default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
-  check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
-  Worker on branch `claude/mp-test-2`, started 16 Nov.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
@@ -82,6 +77,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T14 + T17. The online check tests the 2.0 page, also offline; `market-install-test.js` updated** (16 Nov):
+  `node tools/mp-test.js` now runs `tabletop-2.html` with a local planck (`tools/planck-local.js`, shared with game-sim
+  and the scenario scripts); planck is a devDependency; `AGENTS.md` 4.3 names the command and what a pass looks like.
+  `market-install-test.js` covers the fit-at-once flow (32 checks). Tools only: no game file changed. Branch
+  `claude/mp-test-2`, commit `e21c984`.
 - **T13. Power map overlay** (16 Nov): `🗺 power map` button and key M; all 33 robots by level and strength for their
   level; this game's robots ringed in team colours and placed where they fight now (parts, tiers, damage) with a ghost
   at their as-new spot; click for counters and bands. The 15 Nov artifact is now in the repo as
