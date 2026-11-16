@@ -12,6 +12,15 @@ Mockup: Design artifact "ROBOCUS slideshow UI" (https://claude.ai/artifact/5fBhS
 - Phase slide (`SLIDE` in `renderWorld`): the old pit slides out left, the new one in from the right, 520 ms; only pixels move. `window.__noSlide = true` turns it off.
 - The banner over the pit, the dots in the top bar, the hand's tab and pin are gone.
 
+## Choices in the note (T9, 16 Nov)
+
+Kev: "When you can send a robot to the pit, also make that 'to the pit' option visible in the yellow window on the right. As much as possible."
+
+- Invited to a fight (any format): one green button per robot in the note, `▶ <name>` with a hint on the right (no damage, damaged ⚔, broken ⚙; pinkish when damaged). Exhausted robots are shown greyed out. Same click as the card's SEND … TO THE PIT (`act('sendBot', id)`); the card button stays.
+- Same idea, same action paths as the pit/card: Sign <sponsor> (`pickSponsor`), Keep <starter> (`pickStarter`), fit a won part on a robot (`install`; hint: the odds change, greyed when there is no room), host invite toggles per team (`pickTeam`; hint: ready robots), tie rebid − / + (`rebidAdj`).
+- Built with `pickBtn()` (class `.act.pick`, data-send / data-fit / data-keep / data-sign / data-inv). The waiting list does not repeat them (`.wr-go` skips `.pick`). In a tight note the buttons come first (as before); with 4 or more they go two per row without hints (`.many`).
+- Not in the note (need a picker): repairs, lot bids, bets, Intrigue cards.
+
 ## Fewer clicks (Kev said yes to all four, 15 Nov)
 
 - Upkeep: a player with nothing to repair and no Stash part that fits (also no robots, round 1) is ready after 0.6 s (`upkeepIdle`, `autoStep`).
@@ -24,6 +33,8 @@ Mockup: Design artifact "ROBOCUS slideshow UI" (https://claude.ai/artifact/5fBhS
 All 9 fixed checks pass on 3a606e0's file except that the last small addition (button in the waiting list) was re-checked with waiting.js, reaction.js and a click on the new button only; 8 mouse-driven games without findings over the two steps.
 
 ## Open
+
+- Questions from T9 (16 Nov): repairs, bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
 
 - Reaction window inside the note instead of a popup.
 - Fight as a slide (still its own full screen).

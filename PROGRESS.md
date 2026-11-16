@@ -288,3 +288,11 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Kev: "K5, let the formula count damage again." `BAL.oddsDamage` true (prototypes/tabletop-2.html): the formula odds in the Market/auction overlays, the bands, the AI valuations and the fallback at a fight count each robot's damage again, so they agree with the test fights (`simOdds`, unchanged). BUILD 2026-11-16a, changelog line.
 - Check (seed 3, round 2): Scythe L0 with a broken Body vs a new Mincer L0: 65% read as new, 56% with damage; vs the field 49% -> 45%.
 - Docs: robocus-sim-bookie.md (Decided, 16 Nov), robocus-part-levels.md (section 5 and the whole-games note).
+
+## 16 Nov 2026: "Send to the pit" in the yellow note (T9)
+- Kev: "When you can send a robot to the pit, also make that 'to the pit' option visible in the yellow window on the right. As much as possible."
+- prototypes/tabletop-2.html, note code only (`renderPromptBar`, `pickBtn`, `dmgHint`, `.act.pick` CSS, `fitPrompt` adds `many`): invited to a fight (duel, mirror, 2v2, free-for-all, 2 per side), the note shows one green button per robot with a quiet hint (no damage / damaged ⚔ / broken, pinkish when damaged; exhausted shown greyed). Click = the robot card's click (`act('sendBot', id)`, exhausted check first). The card button stays.
+- Also in the note now: Sign <sponsor> (×2), Keep <starter> (×2), fit a won part: one button per robot with the odds change (no room: greyed), host invite: one toggle per team with its ready robots, tie rebid − / +. All through the same `act()` calls as the pit/card clicks, so online play is unchanged (clients forward them to the host).
+- Choice buttons are not repeated in the waiting list (`.wr-go` skips `.pick`); with 4+ of them in a tight note they go two per row without hints.
+- Not added (a picker that does not fit the note): repairs (robot × zone), lot bids (amounts per lot), bets (amount × side), Intrigue cards (drag onto a team). The Scrap Crate step is dead code in 2.0 (free repair instead).
+- Checks: game-sim 2/2 games, 0 errors; mp-test 0 desyncs (3 clients, 3 fights checked); sync-check.html unchanged; waiting.js OK; a joined player clicking the note's send button: the host takes that robot. BUILD 2026-11-16b, changelog line, docs/robocus-2.0.1-screen.md.
