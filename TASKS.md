@@ -7,11 +7,23 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K7. Which box is "the red box" that should flash yellow for a decision?** (T12.) Guess taken if no answer: your own
-  robot's card (the red team's work order) flashes yellow when it needs a click.
+- **K9. The bookie on your PC: play through a local address so it uses all cores?** (T6.) Opened as a file
+  (`play-latest.cmd`), the game can't use background workers: test fights run on the page, 62-81 a duel in 4 s, but only
+  9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
+  (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
+  with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K10. Rarity overlay** (T11): glow and shine on Works and Masterwork only, or Race-spec too? A click on a part card's
+  header now opens the ladder instead of bidding +1: fine, or a small "?" button? On rivals' small tickets too?
+- **K11. Tow cable and wall slams** (T10): yellow-and-black cable or plain steel? Comic impact star or a plain flash? Wall
+  dents stay all fight (newest 18): fine, or fade? The same impact when a robot is slammed into another robot? The lab
+  pages still draw the old thin line: port it?
+- **K12. Choices in the note** (T9): should repairs, bets or lot bids also get buttons in the note, even if it gets
+  crowded? Send buttons are green, other choices dark: fine?
 
 ### Answered
 
+- **K7 (16 Nov): the YOUR MOVE box flashes red when a choice has to be made.** Kev: "I meant the your move box should
+  flash red when a choice needs to be made". Part of T12.
 - **K8 (16 Nov): the in-game power map shows robots as they are.** Kev: "power map shold be the shifted version, lets wait
   until other workers finish and then start". Each robot is placed by its level plus its parts and damage.
 - **K4 (16 Nov): the auction odds overview is refined with test fights.** Kev: "lets refine a bit, put another worker on
@@ -25,6 +37,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
+  default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
+  check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
 - **T13. Interactive power map as an in-game overlay.** Kev (16 Nov, with a screenshot of the Robocus Power Map: robots by
   level, left to right by strength for their level, counter arrows for the picked robot): "what I would love, but don't
   know if feasible, is to have an interactive powermap as an overlay with all the robots in game". Feasible: the game
@@ -35,17 +50,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `prototypes/tabletop-2.html`, `docs/`. Robots are placed as they are in this game: shifted by parts and damage (K8). Depends on: starts when the running
   workers (T5, T7, T9, T10, T11) are merged (Kev). Done when:
   screenshots of the overlay in a 4-team game with a robot picked; opens in under 200 ms; game-sim check and `mp-test`.
-- **T12. A bought part goes on the robot at once, with undo.** Kev (16 Nov): "when you buy a part, put it on the robot
-  immediately but do show an undo button for 5 sec in the yellow box so people can undo that, also not sure yet how it
-  works for multiple robots (not seen that yet in my playtest), but also in these case try to put options to click also in
-  the yellow box at all time. Flash the red box yellow for decision". Goal: winning a part fits it straight away (today:
-  a "Fit" button on the robot card, and a popup "On which robot?" when several robots can take it); the note shows an
-  Undo button for 5 s; with several robots the part goes on the best fit and the note offers the other robots as buttons;
-  the box that needs a decision flashes yellow. Files: `prototypes/tabletop-2.html` (install flow near `ivModal('🔩 Fit`,
-  the note). Depends on: after T9 (same note code). Open: K7. Done when: screenshots of the note with Undo and with the
-  robot choices, undo works online (`mp-test` 0 desyncs), game-sim check passes.
-- **T6. Bookie speed on Kev's PC.** How many test fights the host's PC runs in 4 s; read the `bookie` events of the next real
-  game's log (`docs/robocus-sim-bookie.md`). Done when: the number is in that doc, and `BAL.bookie` is set to suit.
 - **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
   lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
   out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
@@ -63,29 +67,20 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T11. A nice overlay for part rarity.** Kev (16 Nov, with a screenshot of the card headers "PART ◇◇◇◇" and
-  "TUNED ◆◇◇◇"): "make a nice overlay for the part rarity". Goal: hovering or clicking the diamonds on a part card opens
-  an overlay that shows the five tiers (name, colour, diamonds, how rare, what it adds), which tier this card rolled and
-  what that does for this part. Files: `prototypes/tabletop-2.html` (`RAR`, the market tile header, the help overlays).
-  Runs next to T7 and T9 in the same file; later merges rebase. Worker on branch `claude/rarity-overlay`, started 16 Nov.
-  Done when: screenshots of the overlay on a Standard, a Tuned and a Masterwork card; game-sim check and `mp-test` pass.
-- **T10. Tow cable and wall slams need to be seen.** Kev (16 Nov, with a screenshot of Snapjaw slinging Forklift): "the tow
-  cable upgrade on the snapjaw was barely visible, forklift just slammed in the wall without much visual effect". Goal: the
-  tow cable is a clear cable from hook to victim for the whole sling; a hard wall hit shows on the wall and the robot.
-  Drawing only, no change to how fights go. Files: `src2/view.js` (and `tools/damage-lab/ui.js` if the labs share it).
-  Worker on branch `claude/sling-visuals`, started 16 Nov. Done when: before/after screenshots of a sling into the wall,
-  the stock-fight fingerprint is unchanged, game-sim check and `mp-test` pass.
+- **T12. A bought part goes on the robot at once, with undo; the YOUR MOVE box flashes red for a choice.** Kev (16 Nov):
+  "when you buy a part, put it on the robot immediately but do show an undo button for 5 sec in the yellow box so people
+  can undo that, also not sure yet how it works for multiple robots (not seen that yet in my playtest), but also in these
+  case try to put options to click also in the yellow box at all time"; "the your move box should flash red when a choice
+  needs to be made". Goal: winning a part fits it straight away; the note shows Undo for 5 s; with several robots it goes
+  on the best fit and the note offers the other robots; the note flashes red when the game waits for your choice. Also:
+  the pit header says "FIT … ON A ROBOT (RIGHT)" but the robots are on the left. Files: `prototypes/tabletop-2.html`.
+  Worker on branch `claude/fit-at-once`, started 16 Nov. Done when: screenshots of the note with Undo and with the robot
+  choices, undo works online (0 desyncs on the 2.0 page), game-sim check passes.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
   the part test (`tools/damage-lab/parttest.js`, `PARTS=repair`) gives +0.65 to +0.85, and robots without the part card
   (Mauler's own repair module too) fight exactly as before.
-- **T9. "Send to the pit" in the yellow note.** Kev (16 Nov): "When you can send a robot to the pit, also make that 'to the
-  pit' option visible in the yellow window on the right. As much as possible". Goal: when you have to send a robot, the
-  note on the right has a button per robot you can send; the same for other steps where the note only tells you to click
-  somewhere else, where it fits. Files: `prototypes/tabletop-2.html` (the note, `pb.innerHTML` per phase). Runs next to T7
-  in the same file on Kev's word; the second to merge rebases. Worker on branch `claude/pit-in-note`, started 16 Nov. Done
-  when: a screenshot of the note with the buttons, a click sends the robot, game-sim check and `mp-test` pass.
 - **T7. Full odds overview in the auction overlay, refined with test fights.** Kev (16 Nov): "the overlay when checking
   odds on parts/robot should give an overview of effect of all the robots vs all the other robots, also from the opponents
   and how these changes affect you"; on test fights: "lets refine a bit". Goal: the odds overlay on a lot shows a grid,
@@ -97,6 +92,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T9. Send to the pit and other choices in the yellow note** (16 Nov): a button per robot when you are invited; also
+  sponsor, starter, fitting a part, host invite, tie rebid. Branch `claude/pit-in-note`, commit `962cafa`.
+- **T10. Tow cable and wall slams can be seen** (16 Nov): `src2/view.js`, drawing only; stock-fight fingerprint unchanged.
+  Branch `claude/sling-visuals`, commit `a477ee1`. Files stamp `c572d16c`.
+- **T11. Rarity ladder overlay** (16 Nov): hover tip and click-through overlay from part card headers, robots' parts
+  lines, the Stash, the log. Branch `claude/rarity-overlay`, commit `bb02d5c`.
+  T9-T11 merged together: BUILD `2026-11-16d`, files stamp `c572d16c`; game-sim 2/2 games, 0 page errors; online test on
+  the 2.0 page (`PAGE=tabletop-2.html`, planck served locally) 0 desyncs, 5 fights checked.
+- **T6. Bookie speed on Kev's PC** (16 Nov, from Kev's playtest log): 62-81 test fights a duel in 4 s, 9-11 for a mirror
+  or double duel; always on the page, not in workers (the game was opened as a file). `BAL.bookie` not changed yet: K9.
+  Numbers in `docs/robocus-sim-bookie.md`.
 - **T8. The formula bookie counts damage again** (16 Nov, K5): `BAL.oddsDamage` true; changelog line, BUILD
   `2026-11-16a`. Example: a Scythe with a broken Body against a new Mincer, 65% as new, 56% damaged. Check: 2/2 games,
   0 page errors. Branch `claude/formula-counts-damage`, commit `8017271`. Files stamp unchanged: `e63a7588`.

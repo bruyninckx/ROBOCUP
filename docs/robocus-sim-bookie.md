@@ -47,3 +47,21 @@ Scripts (cloud scratch, not in the repo): measure.js (bot games, 24 test fights 
 - Kev: "test fight bookie does not ignore damage, it should run the simulation as is". The test fights keep each robot's real damage (K1 in `TASKS.md`, answered). The formula then still read robots as new (`BAL.oddsDamage` false): question K5.
 - Kev (K5, answered): "let the formula count damage again". `BAL.oddsDamage` is true again, so the formula odds (Market and auction overlays, bands, the AI's valuations, the fallback at a fight when the host's PC is too slow for test fights) count each robot's damage, like the test fights. Example (seed 3, round 2): Scythe L0 with a broken Body against a new Mincer L0 drops from 65% (read as new) to 56%.
 - The odds shown in the Market and auction overlays come from the formula (matchup table and part values), not from test fights. Test fights run only for the fight itself, in `afterChoose()`.
+
+## Kev's PC: how many test fights fit in 4 s (16 Nov, from his playtest log)
+
+Log `robocus2-playtest-2026-11-16T19-10-46.json`, build 2026-11-16a, 6 fights, game opened with `play-latest.cmd` (a file, so no workers: every run says `how: page`).
+
+| Round | Fight | Test fights | Time | Used | Formula → final odds |
+|---|---|---|---|---|---|
+| 1 | Duel | 71 | 4.1 s | yes | 81% → 74% |
+| 2 | Duel | 65 | 4.0 s | yes | 91% → 87% |
+| 3 | Mirror (2v2) | 11 | 4.4 s | no (under 40) | 65% (all 11 test fights went to the favourite) |
+| 4 | Duel | 62 | 4.1 s | yes | 95% → 91% |
+| 5 | Duel | 81 | 4.0 s | yes | 16% → 3% |
+| 6 | Double duel (2v2) | 9 | 4.1 s | no (under 40) | 86% (8 of 9 to the favourite) |
+
+- Duels: 62-81 fights, about 16-20 a second on the page. Enough to use, short of the 200 target.
+- Fights with four robots: 9-11, about 2.5 a second. They always fall back to the formula on this setup.
+- Workers never ran, because a page opened from a file can't start them. Through a web address (GitHub Pages, or a local server) the PC would use its cores minus 2.
+- `BAL.bookie` is unchanged; the options are question K9 in `TASKS.md`.
