@@ -7,19 +7,30 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K1. The test-fight bookie counts damage; Kev said the odds should ignore damage (15 Nov).** The formula odds ignore it
-  (`BAL.oddsDamage` false), but the bookie that runs test fights (`simOdds`, 15 Nov) runs them with each robot's real damage,
-  and it decides the odds when the host's PC is fast enough. Options: (a) test fights with robots as new, (b) keep damage in
-  test fights (the most accurate odds; whole games: Brier 0.164 with damage vs 0.180 without), (c) leave as is.
-  Docs: `docs/robocus-part-levels.md`, `docs/robocus-sim-bookie.md`.
-- **K2. Counter trust 0.65 as the default?** The formula bookie trusts the matchup table fully; in whole games counters held
-  at about two thirds (the underdog of a counter wins 33% at odds of 20%). Matters less now that the test-fight bookie sets
-  most odds. Doc: `docs/robocus-tuned-lineup-in-game.md`.
-- **K3. More fights end on the judges' call (15%, was 5%; fights 12 s longer).** Shorter time limit, or a little less power for
-  the grinders (Gaucho, Thwacker, Pincher, Whaler)? Doc: `docs/robocus-tuned-lineup-in-game.md`.
+- **K4. Full odds overview in the auction: formula now, or test fights too?** (T7.) The auction odds come from the matchup
+  table and the part values, with no test fights, so a whole grid is instant. Test fights for every pair would be far too
+  slow (a dozen robots is about 50 pairs). Safest choice taken for T7: the formula grid. Later option: refine the grid with
+  a few test fights in the background.
+- **K5. Fight odds count damage, auction odds don't.** After K1 the test-fight bookie keeps damage, but the formula
+  (`BAL.oddsDamage` false) reads every robot as new, so a damaged robot can look better in the auction overview than at the
+  fight. Leave it, or let the formula count damage again?
+
+### Answered
+
+- **K1 (16 Nov): the test-fight bookie keeps damage.** Kev: "test fight bookie does not ignore damage, it should run the
+  simulation as is". No change to the code.
+- **K2 (16 Nov): counter trust stays 1.** Kev: "don't counter trust, bookies run simulations anyway".
+- **K3 (16 Nov): judges' calls stay as they are.** Kev: "leave as is". T3 no longer waits for this.
 
 ## To do
 
+- **T7. Full odds overview in the auction overlay.** Kev (16 Nov): "the overlay when checking odds on parts/robot should
+  give an overview of effect of all the robots vs all the other robots, also from the opponents and how these changes
+  affect you". Goal: the odds overlay on a lot shows a grid, every robot against every rival robot, for each team that
+  could win the lot: bands before and after, with the changes that touch your robots marked. Formula odds only (K4).
+  Files: `prototypes/tabletop-2.html` (the `sc-t` overlay, `partThreat`, the lot odds near "what a lot does to this robot").
+  Depends on: after T2 (same file). Done when: a screenshot of the grid in a 4-team game, the game-sim check passes, and
+  opening the overlay takes under 100 ms.
 - **T6. Bookie speed on Kev's PC.** How many test fights the host's PC runs in 4 s; read the `bookie` events of the next real
   game's log (`docs/robocus-sim-bookie.md`). Done when: the number is in that doc, and `BAL.bookie` is set to suit.
 - **T5. Repair kit needs a different trigger.** It stays at about +0.5 of a level however fast it heals, because it only

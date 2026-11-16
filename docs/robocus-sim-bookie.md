@@ -42,6 +42,7 @@ Scripts (cloud scratch, not in the repo): measure.js (bot games, 24 test fights 
 
 `PART_LV` in tabletop-2.html: levels a part adds [all, on level 0-1, level 2-3, level 4], from the parts test rounds 3 and 4 (see robocus-part-levels.md). Shown in quarters: orange coins next to a robot's level on its work order, the value behind each part, "fights like ★x", "+¾ LEVEL" on market part cards, per-level row in the hover. The bookie's formula still uses the flat values in src2/repair.js (0.42 a part, 0.9 a legendary); with the simulating bookie that matters only when it falls back.
 
-## Open (16 Nov, orchestration setup)
+## Decided (16 Nov)
 
-- The test fights run with the robots' real damage, while Kev decided the odds should ignore damage (`BAL.oddsDamage` false, 15 Nov). Question K1 in `TASKS.md`.
+- Kev: "test fight bookie does not ignore damage, it should run the simulation as is". The test fights keep each robot's real damage (K1 in `TASKS.md`, answered). The formula still reads robots as new (`BAL.oddsDamage` false): question K5.
+- The odds shown in the Market and auction overlays come from the formula (matchup table and part values), not from test fights. Test fights run only for the fight itself, in `afterChoose()`.
