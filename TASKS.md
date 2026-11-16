@@ -12,6 +12,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
+  enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
+  out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
+  when it is not being hit": fine?
 - **K17. Power map** (T13): axis in levels (quarter ticks), not the -60..+60 points of the old map: fine? Position counts
   parts, tiers and damage, not part fit or epic combos: should those move the robot too? A robot with a broken weapon
   lands far left tagged "< ★0": fine? Light paper look, not dark: fine? Next round's robot lots shown as NEXT: fine?
@@ -52,13 +56,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
-- **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
-  lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
-  out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
-  robots and hurts others; then re-measure `ARENA_FIT` and the arena tags. Report how big the effect is, so Kev can decide
-  whether picking an arena should cost credits. Files: `tools/damage-lab/` (engine hazards, `arenafit.js`), then `build.py`.
-  Depends on: after T5 (same engine files). Done when: on every arena at least 4 robots move 8 points or more against
-  their open-floor record (numbers with fight counts), and the open floor is unchanged.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
   check the level steps again (`tools/damage-lab/tag-sim2.js` duel section). Done when: every step is 63-68%.
 - **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
@@ -69,14 +66,24 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
-  however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
-  `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
-  the part test (`tools/damage-lab/parttest.js`, `PARTS=repair`) gives +0.65 to +0.85, and robots without the part card
-  (Mauler's own repair module too) fight exactly as before.
+- **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
+  lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
+  out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
+  robots and hurts others; then re-measure `ARENA_FIT` and the arena tags. Report how big the effect is, so Kev can decide
+  whether picking an arena should cost credits. Files: `tools/damage-lab/` (engine hazards, `arenafit.js`), then `build.py`.
+  Done when: on every arena at least 4 robots move 8 points or more against
+  their open-floor record (numbers with fight counts), and the open floor is unchanged.
+  Also: drop the Scythe + Repair kit poor-fit tag (`PART_FIT.Scythe.repair`; re-measured 31 → 43%, no longer a poor fit).
+  Worker on branch `claude/arenas`, started 17 Nov.
 
 ## Done
 
+- **T5. The Repair kit card repairs under fire too** (16 Nov): slowly (0.3 of its rate) while hit, full rate after 1.5 s
+  without a hit. Measured +0.64 of a level (was +0.53), about ±0.13, 1,632 fights each way: at the bottom edge of the
+  +0.65 to +0.85 target, not clearly inside; healing faster does not lift it (K18). Mauler's own module and every robot
+  without the card fight as before (stock-fight fingerprint unchanged). The card is still out of the deck
+  (`partCopies.repair: 0`). Branch `claude/repair-kit`, commit `9124a4c`. BUILD `2026-11-16j`, files stamp `b62ec563`;
+  game-sim 2/2, online test 0 desyncs (9 fights checked).
 - **T14 + T17. The online check tests the 2.0 page, also offline; `market-install-test.js` updated** (16 Nov):
   `node tools/mp-test.js` now runs `tabletop-2.html` with a local planck (`tools/planck-local.js`, shared with game-sim
   and the scenario scripts); planck is a devDependency; `AGENTS.md` 4.3 names the command and what a pass looks like.
