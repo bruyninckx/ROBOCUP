@@ -41,6 +41,12 @@ _None._
 
 ## In progress
 
+- **T11. A nice overlay for part rarity.** Kev (16 Nov, with a screenshot of the card headers "PART ◇◇◇◇" and
+  "TUNED ◆◇◇◇"): "make a nice overlay for the part rarity". Goal: hovering or clicking the diamonds on a part card opens
+  an overlay that shows the five tiers (name, colour, diamonds, how rare, what it adds), which tier this card rolled and
+  what that does for this part. Files: `prototypes/tabletop-2.html` (`RAR`, the market tile header, the help overlays).
+  Runs next to T7 and T9 in the same file; later merges rebase. Worker on branch `claude/rarity-overlay`, started 16 Nov.
+  Done when: screenshots of the overlay on a Standard, a Tuned and a Masterwork card; game-sim check and `mp-test` pass.
 - **T10. Tow cable and wall slams need to be seen.** Kev (16 Nov, with a screenshot of Snapjaw slinging Forklift): "the tow
   cable upgrade on the snapjaw was barely visible, forklift just slammed in the wall without much visual effect". Goal: the
   tow cable is a clear cable from hook to victim for the whole sling; a hard wall hit shows on the wall and the robot.
