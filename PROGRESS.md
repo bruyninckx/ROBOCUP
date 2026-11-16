@@ -361,4 +361,4 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 ## 16 Nov 2026: Repair kit repairs under fire (T5)
 - Kev: "start repair kit fix". The Repair kit card now repairs all the time: 0.3 of its full rate while being hit, full rate after 1.5 s without a hit (engine `repair` branch for kits in `spec.fromParts`, lineup `PK.repairFire` 0.3). Mauler's built-in module unchanged; l4-regress fingerprint identical.
 - parttest, 1,632 fights each way: +0.64 of a level (was +0.53), L0-1 +0.92, L2-3 +0.74, L4 +0.25, ±0.13. Tried 0.06 / 0.15 / 0.4: the kit levels off at about +0.65. Top gainers Vertigo +1.7, Thumper +1.5 (120 fights). Scythe + Repair kit no longer a poor fit (31 -> 43%).
-- PART_LV.repair updated, changelog, BUILD 2026-11-16g. docs/robocus-part-levels.md (Repair kit update).
+- PART_LV.repair updated, changelog, BUILD 2026-11-16j. docs/robocus-part-levels.md (Repair kit update).
