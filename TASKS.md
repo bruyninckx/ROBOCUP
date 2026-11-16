@@ -7,7 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-_None._
+- **K7. Which box is "the red box" that should flash yellow for a decision?** (T12.) Guess taken if no answer: your own
+  robot's card (the red team's work order) flashes yellow when it needs a click.
 
 ### Answered
 
@@ -22,6 +23,15 @@ _None._
 
 ## To do
 
+- **T12. A bought part goes on the robot at once, with undo.** Kev (16 Nov): "when you buy a part, put it on the robot
+  immediately but do show an undo button for 5 sec in the yellow box so people can undo that, also not sure yet how it
+  works for multiple robots (not seen that yet in my playtest), but also in these case try to put options to click also in
+  the yellow box at all time. Flash the red box yellow for decision". Goal: winning a part fits it straight away (today:
+  a "Fit" button on the robot card, and a popup "On which robot?" when several robots can take it); the note shows an
+  Undo button for 5 s; with several robots the part goes on the best fit and the note offers the other robots as buttons;
+  the box that needs a decision flashes yellow. Files: `prototypes/tabletop-2.html` (install flow near `ivModal('🔩 Fit`,
+  the note). Depends on: after T9 (same note code). Open: K7. Done when: screenshots of the note with Undo and with the
+  robot choices, undo works online (`mp-test` 0 desyncs), game-sim check passes.
 - **T6. Bookie speed on Kev's PC.** How many test fights the host's PC runs in 4 s; read the `bookie` events of the next real
   game's log (`docs/robocus-sim-bookie.md`). Done when: the number is in that doc, and `BAL.bookie` is set to suit.
 - **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
