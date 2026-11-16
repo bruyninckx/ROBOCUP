@@ -124,6 +124,12 @@ html, body {
 .prompt-bar .act.pick.on { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
 .prompt-bar .act.pick.on:hover:not(:disabled) { background: #fff; color: var(--ink); }
 .prompt-bar .act.pick:disabled { opacity: .45; }
+/* T15 (Kev, 16 Nov: "should be something like a checkmark after that button so we know it did its work"): the clicked choice
+   shows ✓ at once, the others grey out until the game moves on */
+.prompt-bar .act.pick.done, .prompt-bar .act.pick.done:disabled { opacity: 1; background: #1F5C35; color: #fff; box-shadow: inset 0 0 0 2px #9BE0B0; cursor: default; }
+.prompt-bar.sent .act:not(.done) { opacity: .3; filter: grayscale(1); cursor: default; }
+.prompt-bar .act.pressed { box-shadow: inset 0 0 0 3px #2F7D4A; }
+.prompt-bar .sent-list { flex: 1 1 100%; font-weight: 700; color: #1F5C35; }
 .prompt-bar.tight .act.pick { padding-top: 2px; padding-bottom: 2px; font-size: 12.5px; }
 .prompt-bar.tight.many .act.pick { flex-basis: calc(50% - 3px); }
 .prompt-bar.tight.many .act.pick small { display: none; }
@@ -1821,7 +1827,26 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const legendNote = () => analystNote() + (G.nextMarket && G.nextRound === G.round + 1 ? '<br>🔭 <b>Next round:</b> ' + G.nextMarket.map((id, k) => conveyorShown(k) ? lotRef(id) : '📦 mystery crate').join(' · ') : '');
   // T9 (Kev, 16 Nov: "make that 'to the pit' option visible in the yellow window"): a choice button in the note; data-<k> holds
   // the value, cls 'go' (green) / 'on' (picked) / 'warn' (a hint to check), off = shown but not clickable
-  const pickBtn = (k, v, name, hint, o = {}) => '<button class="act pick' + (o.cls ? ' ' + o.cls : '') + '" data-' + k + '="' + esc(String(v)) + '"' + (o.off ? ' disabled' : '') + (o.tip ? ' title="' + esc(o.tip) + '"' : '') + '><b>' + esc(name) + '</b>' + (hint ? '<small>' + esc(hint) + '</small>' : '') + '</button>';
+  const pickBtn = (k, v, name, hint, o = {}) => { const w = pickWaiting(k), dn = w && w.v === String(v);   // T15: a choice just clicked on this screen: ✓, the rest greyed
+    return '<button class="act pick' + (o.cls ? ' ' + o.cls : '') + (dn ? ' done' : '') + '" data-' + k + '="' + esc(String(v)) + '"' + (o.off || w ? ' disabled' : '') + (o.tip ? ' title="' + esc(o.tip) + '"' : '') + '><b>' + esc(dn ? '✓ ' + w.label : name) + '</b>' + (hint && !dn ? '<small>' + esc(hint) + '</small>' : '') + '</button>'; };
+  /* T15 (Kev, 16 Nov: "when I clicked it it somehow didn't register, or perhaps it did register but the button still showed"):
+   * a choice clicked in the note (or SEND on a robot card) is shown as done (✓ Hornet sent, the other buttons greyed) and that
+   * is painted BEFORE the action runs: a send starts the bookie's test fights, which on a page opened from a file run on the
+   * page itself for 4 s. Local display only: the action is the same act() call as before. On this page (solo, or the host)
+   * the mark is dropped just before the action runs, so a refused click re-renders from the real state at once; on a joined
+   * screen it lasts until the host's answer re-renders the note, 4 s at most. */
+  let pickWait = null;
+  const pickWaiting = k => pickWait && (!k || pickWait.k === k) && G && pickWait.round === G.round && pickWait.phase === G.phase && performance.now() - pickWait.t < 4000 ? pickWait : null;
+  const afterPaint = () => new Promise(res => { let d = false; const go = () => { if (!d) { d = true; res(); } }; requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100); });   // the next frame is on screen (a hidden tab: 0.1 s)
+  function pickNow(k, v, label, run) {
+    if (pickWaiting()) return;   // one choice at a time: a second click while the first is on its way does nothing
+    pickWait = { k, v: String(v), label, t: performance.now(), round: G.round, phase: G.phase };
+    renderPromptBar(); try { renderWaiting(); } catch (e) { promptState(); } fitPrompt();
+    afterPaint().then(() => {
+      if (!isClient()) pickWait = null; else setTimeout(() => { if (pickWait && performance.now() - pickWait.t >= 4000) { pickWait = null; if (G) updateHud(); } }, 4100);
+      run();
+    });
+  }
   const dmgHint = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? (wrecked(r) ? 'broken ' : 'damaged ') + bad.map(z => z.icon).join('') : 'no damage'; };
   // T12: a part you won went on by itself: what happened, Move to <robot> (several robots with room) and Undo with the host's count
   function renderFitUndo() {
@@ -1835,8 +1860,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         alts.map(o => pickBtn('mv', rec.id + ':' + o.id, '↪ ' + o.name, 'odds ' + lotPreview(o, lot).replace(/ vs the field.*$/, ''), { tip: 'Move ' + lot.name + ' to ' + o.name + ': ' + lotPreview(o, lot) })).join('');
     }).join('');
     pb.insertAdjacentHTML('afterbegin', '<div class="fit-undo">' + html + '</div>');
-    pb.querySelectorAll('[data-undo]').forEach(b => { b.onclick = () => act('undoFit', +b.dataset.undo); });
-    pb.querySelectorAll('[data-mv]').forEach(b => { b.onclick = () => { const [id, rid] = b.dataset.mv.split(':'); act('moveFit', +id, rid); }; });
+    pb.querySelectorAll('[data-undo]').forEach(b => { b.onclick = () => { if (isClient()) b.classList.add('pressed'); act('undoFit', +b.dataset.undo); }; });   // T15: a joined screen shows the press until the host answers
+    pb.querySelectorAll('[data-mv]').forEach(b => { b.onclick = () => { if (isClient()) b.classList.add('pressed'); const [id, rid] = b.dataset.mv.split(':'); act('moveFit', +id, rid); }; });
   }
   function renderPromptBar() {
     const pb = $('#promptBar');
@@ -1860,7 +1885,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [...new Set([7, 4, 2, 1, 0, BAL_DEFAULT.startFame, G.startFame])].sort((a, b) => b - a).map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === BAL_DEFAULT.startFame ? ' (default)' : '') + '</option>').join('') + '</select></label>') +
           '<button class="act secondary" id="pAct1">Random Sponsor</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
         if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
-        pb.querySelectorAll('[data-sign]').forEach(b => { b.onclick = () => act('pickSponsor', b.dataset.sign); });
+        pb.querySelectorAll('[data-sign]').forEach(b => { b.onclick = () => pickNow('sign', b.dataset.sign, SPONSORS[b.dataset.sign].name + ' signed', () => act('pickSponsor', b.dataset.sign)); });
         $('#pAct1').onclick = () => act('pickSponsor', null);
         if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
       } else if (PS().draftPick || !PS().draftOffer) {
@@ -1873,7 +1898,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           // T9: one button per starter, the same click as KEEP … in the pit
           myDraftOffer().map((n, k) => STARTERS[n] ? pickBtn('keep', k, '✋ Keep ' + n, wepLabel(n), { tip: 'Keep ' + n + ': ' + descOf(n) }) : '').join('') +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
-        pb.querySelectorAll('[data-keep]').forEach(b => { b.onclick = () => act('pickStarter', +b.dataset.keep); });
+        pb.querySelectorAll('[data-keep]').forEach(b => { b.onclick = () => pickNow('keep', b.dataset.keep, myDraftOffer()[+b.dataset.keep] + ' kept', () => act('pickStarter', +b.dataset.keep)); });
         $('#pAct1').onclick = () => act('pickStarter', -1);
       }
       return;
@@ -1907,8 +1932,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
             // T9: the − / + of the rebid panel in the pit, here too
             `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>` +
             `<button class="act" id="pAct1">Lock Rebid (+${myAdd} Cr) →</button>`;
-          $('#pRbM').onclick = () => act('rebidAdj', -1);
-          $('#pRbP').onclick = () => act('rebidAdj', 1);
+          $('#pRbM').onclick = () => { if (isClient()) $('#pRbM').classList.add('pressed'); act('rebidAdj', -1); };
+          $('#pRbP').onclick = () => { if (isClient()) $('#pRbP').classList.add('pressed'); act('rebidAdj', 1); };
           $('#pAct1').onclick = () => act('rebidLock');
         } else if (tieLocked()) {
           pb.innerHTML = `<span>⚔️ <b>Rebid locked</b> (+${myAdd} Cr → Total ${tie.baseBid + myAdd} Cr on ${esc(lotName)}). Waiting for the other tied team.${relockTxt('your rebid')}</span>` +
@@ -1939,7 +1964,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
             const L0 = LOTS[inst[0].lot];
             if (!canFit(bot, L0)) { notify('⚠️ ' + lotRef(inst[0].lot) + ' doesn\'t fit ' + esc(bot.name) + ': ' + esc(lotPreview(bot, L0)) + '.', '#b45309'); return; }
             if (swapAsk) return;
-            act('install', bot.id);
+            pickNow('fit', bot.id, 'Fitting on ' + bot.name, () => act('install', bot.id));   // T15: ✓ first
           }; });
           $('#pAct1').onclick = () => act('installKeep');
         } else if (iWait(G.hostResolved ? 'mres2' : 'mres')) {
@@ -1995,9 +2020,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         pb.querySelectorAll('[data-send]').forEach(b => { b.onclick = () => {
           const bot = t.robots.find(r => String(r.id) === b.dataset.send); if (!bot || !PS().choose) return;
           if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
-          act('sendBot', bot.id);
+          pickNow('send', bot.id, bot.name + ' sent', () => act('sendBot', bot.id));   // T15: ✓ painted first, then the send (the bookie starts)
         }; });
-        if (!ev) $('#pAct1').onclick = () => act('decline');
+        if (!ev) $('#pAct1').onclick = () => { if (!pickWaiting()) act('decline'); };
+      } else if (G.fight) {
+        // T15: the fighters are in (the second-robot question of a double duel, then the bookie's test fights): nothing to click
+        // here. Before this the note kept the old send buttons (or, for a host who invited itself, the invite buttons).
+        const mine = G.fight.robots.filter((r, e) => r && G.fight.teams[e] === HS);
+        pb.innerHTML = (mine.length ? '<span class="sent-list">' + mine.map(r => '✓ ' + esc(r.name) + ' sent').join(' · ') + '</span>' : '') +
+          '<span>' + (bookieOn ? '🎩 <b>The bookie is watching test fights</b> of this matchup to set the odds… (a few seconds)' : G.fight.format === 'double' && mine.length === 1 && readyRobots(t).some(r => !mine.includes(r)) ? '🤖🤖 <b>2 robots per side:</b> send a second robot (the question in the middle), or Just one.' : '⏳ <b>Fighters are in.</b> The bookie sets the odds next…') + '</span>';
       } else if (G.host === HS) {
         const n = (G.pickTeams || []).length;
         pb.innerHTML = '<span>👑 <b>You are Host:</b> pick 2 teams to invite (here, or their tickets / your rail) (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
@@ -2005,7 +2036,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           // T9: one toggle per team, the same click as its ticket (picked: light; ready robots as the hint)
           G.teams.map(o => { const on = (G.pickTeams || []).includes(o.i), rr = readyRobots(o).length; return pickBtn('inv', o.i, (on ? '✓ ' : '') + (o.i === HS ? 'You' : isHuman(o.i) ? seatName(o.i) : o.name), rr + ' ready robot' + (rr === 1 ? '' : 's'), { cls: on ? 'on' : '', off: !on && n >= 2, tip: (on ? 'Picked. Click again to drop ' : 'Invite ') + o.name }); }).join('') +
           '<button class="act" id="pAct1"' + (n === 2 ? '' : ' disabled') + '>Invite Fighters →</button>';
-        pb.querySelectorAll('[data-inv]').forEach(b => { b.onclick = () => act('pickTeam', +b.dataset.inv); });
+        pb.querySelectorAll('[data-inv]').forEach(b => { b.onclick = () => { if (isClient()) b.classList.add('pressed'); act('pickTeam', +b.dataset.inv); }; });   // T15: a joined screen waits for the host: show the press
         $('#pAct1').onclick = () => act('invite');
         if ($('#pArena')) { $('#pArena').onchange = e => act('pickArena', e.target.value); $('#pArena').title = ARENA_INFO[G.arenaPick || 'open'].text; }
       } else if (G.host >= 0 && !G.fight) {
@@ -2719,7 +2750,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16g bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16h a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5407,6 +5438,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * from a file, where workers can't load the engine): the odds stay the formula's, as before. The formula's odds also count
    * as BAL.bookie.prior (8) fights, so a short run does not jump about. */
   const BOOKIE = { pool: null, bad: false, gen: 0, onres: null, onready: null };
+  let bookieOn = false;   // T15: this page's bookie is watching test fights right now (the note and the pit say so; not synced)
   const bookieCfg = () => Object.assign({ n: 200, ms: 4000, min: 40, prior: 8 }, BAL.bookie || {});
   function bookiePool() {
     if (BOOKIE.pool || BOOKIE.bad) return BOOKIE.pool;
@@ -5474,7 +5506,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (F.nSides === 2 && F.robots.length === 2 && copies === 1 && !F.house && F.robots[0] && F.robots[1]) { const p0 = Math.max(0.03, Math.min(0.95, pairP(F.robots[F.sides[0] === 0 ? 0 : 1], F.robots[F.sides[0] === 0 ? 1 : 0], F.arena))); F.p = [p0, 1 - p0]; }   // a duel: the Lineup Arena matchup
     }
     { const p0 = F.p.slice(), C = bookieCfg(); let sim = null;
+      // T15: say so in the note, and let that be painted before the test fights start (on a page opened from a file they run on
+      // the page itself and the screen stood still for 4 s with the old send buttons on it). Local display only.
+      if (C.n && !G.fast && !window.__noBookie) { bookieOn = true; updateHud(); await afterPaint(); }
       try { sim = await simOdds(F); } catch (e) { console.warn('bookie', e); }
+      if (bookieOn) { bookieOn = false; updateHud(); }
       if (G.fight !== F) return;   // the game was restarted while the bookie watched
       if (sim && sim.n >= C.min) {
         F.p = p0.map((p, sd) => Math.max(0.03, Math.min(0.95, ((sim.wins[sd] || 0) + C.prior * p) / (sim.n + C.prior)))); F.simN = sim.n;
@@ -6506,7 +6542,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function renderWaiting() {
     const el = document.getElementById('waitRail'); if (!el || !G || !G.teams) return;
-    const fight = G.phase === 'fight', list = !G.over && !fight ? netWaiting || [] : [];
+    const fight = G.phase === 'fight', list = (!G.over && !fight ? netWaiting || [] : []).filter(x => !(x.seat === HS && pickWaiting()));   // T15: a choice just clicked here: no longer your move
     const react = list.find(x => x.seat === -1), n = react ? 0 : list.length;
     const rows = G.teams.map(t => {
       const hum = isHuman(t.i), b = !react && list.find(x => x.seat === t.i), turn = G.phase === 'intrigue' && G.intrigueTurn === t.i && !G.over;
@@ -6532,10 +6568,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * NOTHING FOR YOU TO DO (grey) when the step is someone else's. */
   function promptState() {
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
-    const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
+    const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS) && !pickWaiting(), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
     const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]) || tieLocked();
+    const sent = !!pickWaiting();   // T15: a choice just clicked here is on its way: not YOUR MOVE, nothing else to click
+    if (sent) pb.querySelectorAll('button, select').forEach(x => { x.disabled = true; });
+    pb.classList.toggle('sent', sent);
     const undo = G.phase === 'market' && !G.over && myFitUndos().length;   // T12: a part just fitted, Undo / Move in the note
-    const st = meIn || react || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
+    const st = sent ? 'idle' : meIn || react || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
     pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
     flashNote(pb, st === 'move' ? choiceKey(pb, meIn || react) : '');
   }
@@ -7425,7 +7464,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       let px = cx - tw / 2; ctx.textAlign = 'left';
       parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 8); px += ctx.measureText(p.t).width; });
       ctx.textAlign = 'center'; ctx.fillStyle = '#2F7D4A';
-      fitText(ctx, PS().choose ? '▶ Pick a robot: SEND TO THE PIT on its card (left) or in the note' : G.chooseMyBot ? 'Waiting for the invited teams…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
+      fitText(ctx, pickWaiting('send') ? '✓ ' + pickWaiting('send').label : PS().choose ? '▶ Pick a robot: SEND TO THE PIT on its card (left) or in the note' : G.chooseMyBot ? 'Waiting for the invited teams…' : bookieOn ? '🎩 The bookie is watching test fights…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
     } else if (G.phase === 'arena' && G.host === HS) {
       pitHead('4 · HOST · YOU HOST', 'PICK 2 TEAMS');
       paperBox(ctx, px0, cy - 52, pw, 96);
@@ -7651,9 +7690,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       help(actX, actY, actW, actH, 'Fit ' + esc(nextLot.name) + ' on ' + esc(r.name), esc(pv) + '<br>' + esc(nextLot.desc || '') + '<br><i>Click to fit it here.</i>');
       hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
     } else if (G.phase === 'arena' && PS().choose) {
-      btn(r.exhausted ? DASH : '#2F7D4A'); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-      fitText(ctx, r.exhausted ? r.name + ' is exhausted' : 'SEND ' + r.name.toUpperCase() + ' TO THE PIT' + (wrecked(r) ? ' (damaged!)' : ''), actX + actW / 2, actY + 13, actW - 10, '700', 11.5);
-      hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
+      const sw = pickWaiting('send'), sent = sw && sw.v === String(r.id);   // T15: just clicked: ✓ on this one, the others greyed and not clickable
+      btn(sent ? '#1F5C35' : r.exhausted || sw ? DASH : '#2F7D4A', null, sent ? '#9BE0B0' : null); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      fitText(ctx, sent ? '✓ ' + r.name.toUpperCase() + ' SENT' : r.exhausted ? r.name + ' is exhausted' : 'SEND ' + r.name.toUpperCase() + ' TO THE PIT' + (wrecked(r) ? ' (damaged!)' : ''), actX + actW / 2, actY + 13, actW - 10, '700', 11.5);
+      if (!sw) hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
     } else {
       const dmg = R2.ZONES.some(z => zonesOf(r)[z.key].damaged);
       ctx.fillStyle = myUpkeep && dmg ? '#8A4A10' : MUTED; ctx.textAlign = 'center';
@@ -8384,7 +8424,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           act('install', bot.id);
         } else if (G.phase === 'arena' && PS().choose) {
           if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
-          act('sendBot', bot.id);
+          pickNow('send', bot.id, bot.name + ' sent', () => act('sendBot', bot.id));   // T15: the same ✓ as the note's button, painted first
         } else continue;   // e.g. the host picking teams: a click on one of your robots picks your whole team (the rail below it)
         return;
       }
@@ -8445,6 +8485,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, a click shows it worked', '16 Nov 2026', [
+      'When you send a robot to the pit (in the note or on its card), the button turns into "✓ Mauler sent" at once and the other buttons grey out. The note then says the bookie is watching test fights, so you know the game is busy, not waiting for you.',
+      'Signing a sponsor, keeping a starter and fitting a part show the same ✓.' ]],
     ['2.0.1, change after locking', '16 Nov 2026', [
       'Locked your bids, but someone else has not locked yet? You can still change them: lot bids, the host bid and robot count, bets, fight-card bids and a tie rebid. A change takes your lock off (the note goes back to YOUR MOVE and the waiting list shows you deciding again); lock again when you are done. When everyone has locked, the step goes on.',
       'A change that comes in after the step went on is not made, and your log says so.' ]],
