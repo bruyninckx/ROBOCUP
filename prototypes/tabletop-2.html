@@ -725,7 +725,7 @@ html, body {
    * RAR[t]: name, colour, chance in % (BAL.rarity.odds), and lv = what the tier adds in levels on top of the part
    * (tools/damage-lab/rarity-test.js; the strength multipliers are Lineup.RAR_Q). Tiers 1-3 are equal steps; tier 4 is the 1%. */
   const RAR = [ { n: 'Standard', col: '#6E6457', p: 62, lv: 0 }, { n: 'Tuned', col: '#2F7D4A', p: 24, lv: 0.25 }, { n: 'Race-spec', col: '#2F6DB5', p: 10, lv: 0.5 }, { n: 'Works', col: '#7C4D9E', p: 3, lv: 0.75 }, { n: 'Masterwork', col: '#B07A10', p: 1, lv: 1 } ];   // measured about +0.2 / +0.4 / +0.55 / +0.9, each good to about 0.2
-  const RAR_MARK = ['', ' ▲', ' ▲▲', ' ▲▲▲', ' ✹'];
+  const RAR_MARK = ['', ' ◆◇◇◇', ' ◆◆◇◇', ' ◆◆◆◇', ' ◆◆◆◆'];   // filled and hollow diamonds (Kev, 16 Nov)
   for (const k of Object.keys(window.Lineup.PARTS)) { if (window.Lineup.PARTS[k].kind === 'chip') continue;
     for (let t = 1; t < RAR.length; t++) LOTS['p_' + k + '~' + t] = Object.assign({}, LOTS['p_' + k], { name: RAR[t].n + ' ' + LOTS['p_' + k].name, rar: t, base: 'p_' + k }); }
   const rarOf = id => (LOTS[id] && LOTS[id].rar) || 0, baseLot = id => (LOTS[id] && LOTS[id].base) || id;
@@ -2400,7 +2400,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -7150,9 +7150,9 @@ html, body {
     const L = LOTS[id]; if (!L) return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
     if (L.robot) return isL4(L.starter) ? { k: 'l4', col: '#6A3FA0', fg: '#fff', label: 'ROBOT', when: '★★★★ LEVEL 4' } : { k: 'robot', col: '#2F7D4A', fg: '#fff', label: 'ROBOT', when: levelOf(L.starter) ? 'LEVEL ' + levelOf(L.starter) : 'STARTER' };
     if (L.crew) return { k: 'crew', col: '#8A5A2B', fg: '#fff', label: 'CREW', when: (CREW[L.crew] ? CREW[L.crew].name : '').toUpperCase() };
-    if (L.legend) return { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: L.rar ? RAR[L.rar].n.toUpperCase() : '1 COPY' };
+    if (L.legend) return L.rar ? { k: 'legend', col: '#B8860B', fg: INK, label: RAR[L.rar].n.toUpperCase(), when: 'LEGENDARY', rar: L.rar } : { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: '1 COPY', rar: 0 };
     if (L.part && isChip(L.part)) return { k: 'chip', col: '#0E7490', fg: '#fff', label: 'TUNING CHIP', when: 'LEVEL 0-1' };
-    if (L.part) return L.rar ? { k: 'part', col: RAR[L.rar].col, fg: '#fff', label: RAR[L.rar].n.toUpperCase(), when: String(L.kind || '').toUpperCase() } : { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase() };
+    if (L.part) return L.rar ? { k: 'part', col: RAR[L.rar].col, fg: '#fff', label: RAR[L.rar].n.toUpperCase(), when: String(L.kind || '').toUpperCase(), rar: L.rar } : { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase(), rar: 0 };
     return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
   }
   // the lot's frame and type band (stage space); the content goes below y + 18
@@ -7171,7 +7171,13 @@ html, body {
     ctx.strokeStyle = opt.edge || K.col; ctx.lineWidth = opt.lw || 3; rrect(ctx, x, y, w, h, R); ctx.stroke();
     ctx.textAlign = 'left'; ctx.fillStyle = K.fg; ctx.font = '700 9px ' + F_MONO; const lw = Math.min(w * 0.55, ctx.measureText(K.label).width + 2);
     fitText(ctx, K.label, x + 7, y + 12.5, w * 0.55, '700', 9, F_MONO);
-    if (K.when) { ctx.font = '700 7.5px ' + F_MONO; const ww = Math.min(w - lw - 20, ctx.measureText(K.when).width + 8); if (ww > 14) { ctx.fillStyle = K.fg; rrect(ctx, x + w - 6 - ww, y + 4, ww, 11, 2); ctx.fill(); ctx.fillStyle = K.col; ctx.textAlign = 'center'; fitText(ctx, K.when, x + w - 6 - ww / 2, y + 12.5, ww - 4, '700', 7.5, F_MONO); ctx.textAlign = 'left'; } }
+    // Kev, 16 Nov: four diamonds as a second sign of the tier: filled for every step above a standard copy, hollow for the rest
+    let dw = 0;
+    if (K.rar != null && w >= 120) { const r = 3.6, st = 9.5, dx0 = x + 7 + lw + 7; dw = 4 * st + 4;
+      for (let i = 0; i < 4; i++) { const cx = dx0 + i * st, cy = y + 9.2; ctx.beginPath(); ctx.moveTo(cx, cy - r - 0.6); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r + 0.6); ctx.lineTo(cx - r, cy); ctx.closePath();
+        if (i < K.rar) { ctx.fillStyle = K.fg; ctx.fill(); } ctx.strokeStyle = K.fg; ctx.lineWidth = 1.1; ctx.stroke(); }
+      ctx.fillStyle = K.fg; }
+    if (K.when) { ctx.font = '700 7.5px ' + F_MONO; const pr = opt.padR || 0, ww = Math.min(w - lw - 20 - dw - pr, ctx.measureText(K.when).width + 8); if (ww > 14) { ctx.fillStyle = K.fg; rrect(ctx, x + w - 6 - pr - ww, y + 4, ww, 11, 2); ctx.fill(); ctx.fillStyle = K.col; ctx.textAlign = 'center'; fitText(ctx, K.when, x + w - 6 - pr - ww / 2, y + 12.5, ww - 4, '700', 7.5, F_MONO); ctx.textAlign = 'left'; } }
   }
   function drawStepper(ctx, x, y, w, txt, col) {   // [−] value [+] at the foot of a lot
     ctx.fillStyle = PAPER2; ctx.strokeStyle = INK; ctx.lineWidth = 2;
@@ -7300,7 +7306,7 @@ html, body {
     const items = G.marketStage === 'host' ? [{ id: 'host', k: HOST_K, name: 'Host the Fight', icon: '👑', text: '+1 Fame & Pick Fighters' }] : G.market.map((id, k) => ({ id, k, ...LOTS[id] }));
     const gap = items.length > 3 ? 12 : 16, w = Math.min(200, Math.floor((L.aw - 12 - (items.length - 1) * gap) / items.length)), h = 218;
     const totalW = items.length * w + (items.length - 1) * gap;
-    const startX = L.ax - totalW / 2, y = L.ay - h / 2 + 4;
+    const startX = L.ax - totalW / 2, y = L.ay - h / 2 + 4 - (G.marketStage !== 'host' && G.nextMarket && G.nextRound === G.round + 1 ? 16 : 0);   // with the next-round strip under them the cards sit a little higher, so the group is in the middle
     if (G.marketStage === 'host') {
       pitHead('3 · MARKET · THE HOST BID', 'A SEPARATE SEALED BID AFTER THE LOTS');
       const hb = G.teams.map(t => t.name.split(' ')[0] + ' ' + t.credits + ' Cr').join('  ·  ');
@@ -7313,7 +7319,7 @@ html, body {
     items.forEach((it, j) => {
       const k = it.k, x = startX + j * (w + gap), bid = (PS().bids || [])[k] || 0, K = lotKind(it.id), yb = y + 18;
       const noFit = k < NLOTS && !canTake(me(), it.id);
-      drawLotFrame(ctx, K, x, y, w, h, { dim: noFit, edge: bid > 0 ? INK : null, lw: bid > 0 ? 4 : 3 });
+      drawLotFrame(ctx, K, x, y, w, h, { dim: noFit, edge: bid > 0 ? INK : null, lw: bid > 0 ? 4 : 3, padR: bid > 0 ? 42 : 0 });   // padR: the BID tag sits on the right of the header
       if (k === G.bargainK && G.marketStage !== 'host') { ctx.fillStyle = '#2F6DB5'; rrect(ctx, x + 6, y + h + 2, w - 12, 16, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🏷️ BARGAIN BIN · ' + BARGAIN_OFF + ' CR OFF', x + w / 2, y + h + 14, w - 20, '700', 9.5, F_MONO);
         help(x + 6, y + h + 2, w - 12, 16, '🏷️ Bargain bin', 'Nobody bought this part last round. Whoever wins it now pays ' + BARGAIN_OFF + ' Cr less than their bid (a bid of ' + BARGAIN_OFF + ' gets it free). Unsold again, it goes back into the deck.'); }
       if (rarOf(it.id) >= 3) { const pu = 0.55 + 0.45 * Math.sin(performance.now() / 300); ctx.save(); ctx.globalAlpha = pu; ctx.strokeStyle = RAR[rarOf(it.id)].col; ctx.lineWidth = rarOf(it.id) === 4 ? 6 : 4; rrect(ctx, x - 4, y - 4, w + 8, h + 8, 8); ctx.stroke(); ctx.restore(); }   // a Works or Masterwork copy glows
@@ -7340,7 +7346,7 @@ html, body {
         ctx.fillStyle = INK; fitText(ctx, it.name, x + w / 2, yb + 68, w - 12, '400', 16, F_STEN);
         ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 84, w - 12, '500', 11);
         if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; ctx.fillStyle = '#B4560F'; fitText(ctx, qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' LEVEL · ' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()), x + w / 2, yb + 101, w - 12, '700', 10.5, F_MONO);
-          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' level', (rarOf(it.id) ? '<b style="color:' + RAR[rarOf(it.id)].col + '">' + RAR[rarOf(it.id)].n + ' copy</b>: a better copy of this part, ' + qTxt(RAR[rarOf(it.id)].lv) + ' level on top (about ' + RAR[rarOf(it.id)].p + ' in 100 part cards). Back in the deck it rolls again.<br>' : '') + '<b>Worth in levels, standard copy:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
+          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' level', (rarOf(it.id) ? '<b style="color:' + RAR[rarOf(it.id)].col + '">' + RAR[rarOf(it.id)].n + ' copy' + RAR_MARK[rarOf(it.id)] + '</b>: a better copy of this part, ' + qTxt(RAR[rarOf(it.id)].lv) + ' level on top (about ' + RAR[rarOf(it.id)].p + ' in 100 part cards). Back in the deck it rolls again.<br>' : '') + '<b>Worth in levels, standard copy:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
         else if (it.crew && CREW[it.crew]) help(x + 4, yb + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
         else if (k === HOST_K) help(x + 4, yb + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
         { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, yb + 89, w - 8, 13, hl[0], hl[1]); }
@@ -7845,6 +7851,7 @@ html, body {
       'Parts: drones and modules grow with the level of the robot that carries them; every part is tuned to about three quarters of a level, a legendary to a level and a half.',
       'Upgrades are shown in levels: orange coins next to a robot\'s level (a quarter each), "+¾ level" on part cards, and "fights like ★1.7" on a robot with parts.',
       'Rarity: every part card that comes up is a Standard, Tuned, Race-spec or Works copy, each a quarter level better than the one before, and 1 in 100 is a Masterwork, worth a full level on top. The tier stays with the part on your robot and in your Stash.',
+      'Rarity also shows as four diamonds on a part card and behind a part on your robot: ◆ for every step above a standard copy, ◇ for the rest.',
       'This list.' ]],
     ['2.0, reaction window', '15 Nov 2026', [
       'One reaction window for everyone at the same time, with a countdown: blocks, Security Bots, Override and Firewall, Pile-On, Botched Install. It also appears when you have nothing to play, so nobody can tell who holds a reaction card.',
