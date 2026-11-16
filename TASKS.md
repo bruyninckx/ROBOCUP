@@ -40,6 +40,12 @@ _None._
 
 ## In progress
 
+- **T9. "Send to the pit" in the yellow note.** Kev (16 Nov): "When you can send a robot to the pit, also make that 'to the
+  pit' option visible in the yellow window on the right. As much as possible". Goal: when you have to send a robot, the
+  note on the right has a button per robot you can send; the same for other steps where the note only tells you to click
+  somewhere else, where it fits. Files: `prototypes/tabletop-2.html` (the note, `pb.innerHTML` per phase). Runs next to T7
+  in the same file on Kev's word; the second to merge rebases. Worker on branch `claude/pit-in-note`, started 16 Nov. Done
+  when: a screenshot of the note with the buttons, a click sends the robot, game-sim check and `mp-test` pass.
 - **T7. Full odds overview in the auction overlay, refined with test fights.** Kev (16 Nov): "the overlay when checking
   odds on parts/robot should give an overview of effect of all the robots vs all the other robots, also from the opponents
   and how these changes affect you"; on test fights: "lets refine a bit". Goal: the odds overlay on a lot shows a grid,
