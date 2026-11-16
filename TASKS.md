@@ -7,14 +7,13 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K8. Power map in the game: robots as new, or as they are?** (T13.) As new = the map from the screenshot with this
-  game's robots lit up. As they are = each robot shifted by its parts and damage. Guess taken if no answer: as new, with
-  a small marker on robots that carry parts or damage.
 - **K7. Which box is "the red box" that should flash yellow for a decision?** (T12.) Guess taken if no answer: your own
   robot's card (the red team's work order) flashes yellow when it needs a click.
 
 ### Answered
 
+- **K8 (16 Nov): the in-game power map shows robots as they are.** Kev: "power map shold be the shifted version, lets wait
+  until other workers finish and then start". Each robot is placed by its level plus its parts and damage.
 - **K4 (16 Nov): the auction odds overview is refined with test fights.** Kev: "lets refine a bit, put another worker on
   it". Part of T7.
 - **K6 (16 Nov): big odds swings against a wrecked robot stay.** Kev: "no it is what it is". No change.
@@ -33,7 +32,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   robots in this game (teams' robots in team colours, Market lots) stand out, the rest are dimmed; click a robot for its
   counters (green = it beats, red = it loses to). Source: the map is only a claude.ai artifact today ("Robocus Power Map",
   15 Nov; `docs/robocus-power-map.html` is named in a doc but is not in the repo): bring it into the repo first. Files:
-  `prototypes/tabletop-2.html`, `docs/`. Depends on: one of T7/T9/T11 merged first (same file). Open: K8. Done when:
+  `prototypes/tabletop-2.html`, `docs/`. Robots are placed as they are in this game: shifted by parts and damage (K8). Depends on: starts when the running
+  workers (T5, T7, T9, T10, T11) are merged (Kev). Done when:
   screenshots of the overlay in a 4-team game with a robot picked; opens in under 200 ms; game-sim check and `mp-test`.
 - **T12. A bought part goes on the robot at once, with undo.** Kev (16 Nov): "when you buy a part, put it on the robot
   immediately but do show an undo button for 5 sec in the yellow box so people can undo that, also not sure yet how it
