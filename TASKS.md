@@ -12,6 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K17. Power map** (T13): axis in levels (quarter ticks), not the -60..+60 points of the old map: fine? Position counts
+  parts, tiers and damage, not part fit or epic combos: should those move the robot too? A robot with a broken weapon
+  lands far left tagged "< ★0": fine? Light paper look, not dark: fine? Next round's robot lots shown as NEXT: fine?
 - **K15. Bid lock** (T16): a change takes your lock off and you lock again (taken), or stay locked while changing? Should
   others see a log line when someone unlocks? Bookie's Friend / Hedge Bet playable after locking bets?
 - **K16. Send feedback** (T15): wording "✓ Mauler sent" and the bookie line: fine? In a double duel, pick the second robot
@@ -71,17 +74,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
   check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
   Worker on branch `claude/mp-test-2`, started 16 Nov.
-- **T13. Interactive power map as an in-game overlay.** Kev (16 Nov, with a screenshot of the Robocus Power Map: robots by
-  level, left to right by strength for their level, counter arrows for the picked robot): "what I would love, but don't
-  know if feasible, is to have an interactive powermap as an overlay with all the robots in game". Feasible: the game
-  already loads the matchup table (`src2/matrix.js`) and the levels. Goal: a button opens the map over the game; the
-  robots in this game (teams' robots in team colours, Market lots) stand out, the rest are dimmed; click a robot for its
-  counters (green = it beats, red = it loses to). Source: the map is only a claude.ai artifact today ("Robocus Power Map",
-  15 Nov; `docs/robocus-power-map.html` is named in a doc but is not in the repo): bring it into the repo first. Files:
-  `prototypes/tabletop-2.html`, `docs/`. Robots are placed as they are in this game: shifted by parts and damage (K8). Depends on: starts when the running
-  workers (T5, T7, T9, T10, T11) are merged (Kev). Done when:
-  screenshots of the overlay in a 4-team game with a robot picked; opens in under 200 ms; game-sim check and `mp-test`.
-  Worker on branch `claude/power-map`, started 16 Nov.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
@@ -90,6 +82,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T13. Power map overlay** (16 Nov): `🗺 power map` button and key M; all 33 robots by level and strength for their
+  level; this game's robots ringed in team colours and placed where they fight now (parts, tiers, damage) with a ghost
+  at their as-new spot; click for counters and bands. The 15 Nov artifact is now in the repo as
+  `docs/robocus-power-map.html`. Display only. Branch `claude/power-map`, commit `618037a`. BUILD `2026-11-16i`, files
+  stamp `c572d16c`; game-sim 2/2, online test on the 2.0 page 0 desyncs (8 fights checked).
 - **T15. A click in the note shows it worked** (16 Nov): cause found: after a send the bookie's test fights ran on the page
   before anything was painted (5.4 s frozen on the test box), and the note had no text for "bookie busy". Now: "✓ <robot>
   sent" at once (25 ms), others greyed, a bookie line, the same ✓ on the card and for the other note choices. Branch
