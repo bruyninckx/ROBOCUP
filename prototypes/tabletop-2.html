@@ -131,6 +131,17 @@ html, body {
 .prompt-bar .ivorder { flex: 1 1 100%; background: rgba(255,253,248,.6); color: var(--ink); border-radius: 3px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
 .prompt-bar .ivorder i { font-style: normal; font-weight: 700; }
 .prompt-bar .sc-note { color: #5A4C24; }
+.prompt-bar .fit-undo { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; background: rgba(255,253,248,.7); border: 2px solid var(--ink); border-radius: 3px; padding: 6px 8px; }
+.prompt-bar .fit-undo .fu-txt { flex: 1 1 58%; min-width: 0; }
+.prompt-bar .act.fu-undo { flex: 0 0 auto; align-self: center; background: linear-gradient(to right, rgba(26,22,18,.22) calc(var(--p, 1) * 100%), transparent 0); }
+.prompt-bar .fit-undo .act.pick { flex-basis: calc(50% - 3px); }
+.prompt-bar.tight .fit-undo { padding: 4px 6px; gap: 4px; }
+.prompt-bar.tight .fit-undo .act.pick small { display: none; }
+.prompt-bar .act.fu-undo i { font-style: normal; font-variant-numeric: tabular-nums; }
+/* T12 (Kev, 16 Nov: "the your move box should flash red when a choice needs to be made"): three pulses, then yellow again */
+@keyframes pbFlash { 0%, 100% { background-color: var(--hazard); } 45%, 60% { background-color: #F05A45; box-shadow: 0 0 0 4px rgba(217,58,43,.45), 0 4px 10px rgba(0,0,0,.2); } }
+.prompt-bar.flash:not(.idle) { animation: pbFlash .55s ease-in-out 3; }
+@media (prefers-reduced-motion: reduce) { .prompt-bar.flash:not(.idle) { animation: none; outline: 4px solid #D93A2B; outline-offset: 2px; } }
 
 /* ---------- 7 · log clipboard under the pit ---------- */
 .logpanel {
@@ -1045,6 +1056,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const f = ACT[name];
     if (!f || !G || S == null) return;   // S = -1: autopilot (no person), only the "go on" steps make sense
     const prev = actSeat; actSeat = S;
+    if (name !== 'undoFit' && name !== 'moveFit' && S >= 0 && G.ps && G.ps[S] && (G.ps[S].fitUndo || []).length) G.ps[S].fitUndo = [];   // T12: acting on something else makes an auto-fit final
     if (isNetGame()) tlog('act', { seat: S, name, remote: isRemote(S) || undefined });
     try { return f(S, ...(args || [])); }
     catch (e) { ptError('action ' + name + ' failed: ' + e.message, e.stack); }
@@ -1685,7 +1697,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     setup: 'Pick a sponsor and draft your level-0 starter robot.',
     upkeep: 'Robots and crew get ready, Mechanics earn credits, body parts heal to half, then repairs: click a damaged zone on a robot.',
     intrigue: 'Teams take turns playing schemes (fame gates, backing, reactions) or cashing cards in.',
-    market: 'Sealed bids on 4 lots (one per player), then a separate bid to host. Ties: rebid, less fame wins.',
+    market: 'Sealed bids on 4 lots (one per player), then a separate bid to host. Ties: rebid, less fame wins. A part you win goes on your best robot for it at once; the note has Undo (and Move) for 5 s.',
     arena: 'The host invites two teams; each sends a robot.',
     bets: 'Everyone bets on the fight at the bookie\'s odds.',
     fight: 'The physics fight, on its own full screen.',
@@ -1758,6 +1770,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     renderWhoDots();
     renderWinWatch();
     renderPromptBar();
+    renderFitUndo();
     if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
     if (G.autoLeft != null && !G.over) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
@@ -1798,6 +1811,21 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // the value, cls 'go' (green) / 'on' (picked) / 'warn' (a hint to check), off = shown but not clickable
   const pickBtn = (k, v, name, hint, o = {}) => '<button class="act pick' + (o.cls ? ' ' + o.cls : '') + '" data-' + k + '="' + esc(String(v)) + '"' + (o.off ? ' disabled' : '') + (o.tip ? ' title="' + esc(o.tip) + '"' : '') + '><b>' + esc(name) + '</b>' + (hint ? '<small>' + esc(hint) + '</small>' : '') + '</button>';
   const dmgHint = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? (wrecked(r) ? 'broken ' : 'damaged ') + bad.map(z => z.icon).join('') : 'no damage'; };
+  // T12: a part you won went on by itself: what happened, Move to <robot> (several robots with room) and Undo with the host's count
+  function renderFitUndo() {
+    const pb = $('#promptBar'), t = me(), L = G && !G.over && G.phase === 'market' ? myFitUndos() : [];
+    if (!pb || !L.length) return;
+    const html = L.map(rec => {
+      const r = myBot(HS, rec.rid), lot = LOTS[rec.lot]; if (!r || !lot) return '';
+      const alts = t.robots.filter(o => o !== r && canFit(o, lot));
+      return '<span class="fu-txt">🔩 <b>' + esc(lot.name) + '</b> fitted on <b>' + esc(r.name) + '</b>' + (alts.length ? ' (best fit)' : '') + (rec.pv && /%/.test(rec.pv) ? ', odds ' + esc(rec.pv) : '') + '.' + (alts.length ? ' Move it?' : '') + '</span>' +
+        '<button class="act secondary fu-undo" data-undo="' + rec.id + '" style="--p:' + Math.max(0, Math.min(1, rec.left * 1000 / FIT_UNDO_MS)).toFixed(2) + '" title="Take it off again: then pick a robot or keep it in the Stash">↶ Undo <i>' + rec.left + ' s</i></button>' +
+        alts.map(o => pickBtn('mv', rec.id + ':' + o.id, '↪ ' + o.name, 'odds ' + lotPreview(o, lot).replace(/ vs the field.*$/, ''), { tip: 'Move ' + lot.name + ' to ' + o.name + ': ' + lotPreview(o, lot) })).join('');
+    }).join('');
+    pb.insertAdjacentHTML('afterbegin', '<div class="fit-undo">' + html + '</div>');
+    pb.querySelectorAll('[data-undo]').forEach(b => { b.onclick = () => act('undoFit', +b.dataset.undo); });
+    pb.querySelectorAll('[data-mv]').forEach(b => { b.onclick = () => { const [id, rid] = b.dataset.mv.split(':'); act('moveFit', +id, rid); }; });
+  }
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
@@ -2408,6 +2436,81 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ok = toStash(t, it.lot);
     if (G.marketResults && G.marketResults[it.idx]) G.marketResults[it.idx].target = ok ? '📦 Kept in the Stash' : '🏦 Stash full: sold';
   };
+  /* T12 (Kev, 16 Nov: "when you buy a part, put it on the robot immediately but do show an undo button for 5 sec in the
+   * yellow box"). A part a person wins goes on at once: on its only robot with room, or (several) on the one whose odds gain
+   * most (the same "odds a → b" the fit buttons show). PS(S).fitUndo lists these fits. For FIT_UNDO_MS the note shows Undo
+   * (the part goes back to "pick a robot or keep it in the Stash", as before T12) and, with several robots, Move to <robot>.
+   * Moving starts the 5 s again. The host decides when a fit is final: its own clock (every screen shows the host's count,
+   * `left`), any other action of that player, or the Market moving on to the host bid. Undo and Move are ordinary actions. */
+  const FIT_UNDO_MS = 5000;
+  const fitSnap = (r, L) => ({ rid: r.id, part: L.part, leg: LU.PARTS[L.part].kind === 'legendary', legWas: r.leg || null, hadLeg: 'leg' in r,
+    rarWas: r.rar && r.rar[L.part] != null ? r.rar[L.part] : null, hadRar: r.rar !== undefined, hadParts: r.parts !== undefined });
+  function fitOff(r, rec) {   // takes a fitted part off again: the robot is as it was before the fit (parts, legendary, rarity tier)
+    if (rec.leg) { if (rec.hadLeg) r.leg = rec.legWas; else delete r.leg; }
+    else { const i = (r.parts || []).lastIndexOf(rec.part); if (i >= 0) r.parts.splice(i, 1); if (!rec.hadParts && r.parts && !r.parts.length) delete r.parts; }
+    r.rar = Object.assign({}, r.rar); if (rec.rarWas == null) delete r.rar[rec.part]; else r.rar[rec.part] = rec.rarWas;
+    if (!rec.hadRar && !Object.keys(r.rar).length) delete r.rar;
+  }
+  function bestFit(T, lot) {   // the robot whose odds vs the field gain most from the part (ties: the stronger robot)
+    const L = LOTS[lot], fit = T.robots.filter(r => canFit(r, L));
+    if (fit.length < 2) return fit[0] || null;
+    const gain = r => { try { const a = fieldOdds(T.i, r).p, b = fieldOdds(T.i, withPart(r, L.part)).p; return a != null && b != null ? b - a : null; } catch (e) { return null; } };
+    const g = fit.map(r => ({ r, g: gain(r) }));
+    if (g.some(x => x.g == null)) return aiPickRobot(T, lot);   // the bookie is still working: the AI's pick
+    return g.sort((a, b) => b.g - a.g || baseStr(b.r) - baseStr(a.r))[0].r;
+  }
+  function autoFitPart(T, x, r, n) {   // n = how many robots had room
+    const L = LOTS[x.lot], pv = lotPreview(r, L), P = PS(T.i);
+    const rec = Object.assign({ id: G.fitSeq = (G.fitSeq || 0) + 1, lot: x.lot, item: Object.assign({}, x), round: G.round, at: Date.now(), left: Math.ceil(FIT_UNDO_MS / 1000), pv: pv.replace(/ vs the field.*$/, '') }, fitSnap(r, L));
+    const dest = applyLot(T.i, x.lot, r) || 'Fitted on ' + r.name;
+    (P.fitUndo = P.fitUndo || []).push(rec);
+    notify('🔩 ' + nm(T) + ' fits <b>' + esc(L.name) + '</b> on ' + esc(r.name) + (n > 1 ? ' (best odds of its ' + n + ' robots with room).' : ' (its only robot with room).'), T.col);
+    return dest;
+  }
+  // still undoable? (host: its clock; a screen: the host's count)
+  const fitUndoLive = (S, rec) => !!rec && G.phase === 'market' && G.marketResolved && G.marketStage === 'lots' && G.round === rec.round &&
+    (isClient() ? rec.left > 0 : Date.now() - rec.at < FIT_UNDO_MS) && !!(myBot(S, rec.rid) && partsOf(myBot(S, rec.rid)).includes(rec.part));
+  const myFitUndos = (S = HS) => (PS(S).fitUndo || []).filter(rec => fitUndoLive(S, rec));
+  function fitUndoGet(S, id) {
+    const L = PS(S).fitUndo || [], rec = L.find(x => x.id === +id);
+    if (fitUndoLive(S, rec)) return rec;
+    if (rec) L.splice(L.indexOf(rec), 1);
+    say(S, '🔩 Too late to change that: the part stays where it is.', '#b45309');
+    return null;
+  }
+  ACT.undoFit = (S, id) => {
+    const rec = fitUndoGet(S, id); if (!rec) return;
+    const t = G.teams[S], r = myBot(S, rec.rid), P = PS(S);
+    P.fitUndo.splice(P.fitUndo.indexOf(rec), 1);
+    fitOff(r, rec);
+    (P.install = P.install || []).unshift(rec.item);   // back to "pick a robot (or keep it in the Stash)", as before T12
+    if (G.marketResults && G.marketResults[rec.item.idx]) G.marketResults[rec.item.idx].target = '▶ Pick a robot (left) or keep it';
+    notify('↶ ' + nm(t) + ' takes <b>' + esc(LOTS[rec.lot].name) + '</b> off ' + esc(r.name) + ' again (undo).', t.col);
+  };
+  ACT.moveFit = (S, id, rid) => {
+    const rec = fitUndoGet(S, id); if (!rec) return;
+    const t = G.teams[S], from = myBot(S, rec.rid), to = myBot(S, rid), L = LOTS[rec.lot];
+    if (!to || to === from) return;
+    if (!canFit(to, L)) { say(S, '⚠️ ' + lotRef(rec.lot) + ' doesn\'t fit ' + esc(to.name) + ' (no free slot).', '#b45309'); return; }
+    fitOff(from, rec);
+    const pv = lotPreview(to, L);
+    Object.assign(rec, fitSnap(to, L), { at: Date.now(), left: Math.ceil(FIT_UNDO_MS / 1000), pv: pv.replace(/ vs the field.*$/, '') });   // moving starts the 5 s again
+    const dest = applyLot(S, rec.lot, to);
+    if (G.marketResults && G.marketResults[rec.item.idx]) G.marketResults[rec.item.idx].target = dest || 'Fitted on ' + to.name;
+    notify('🔩 ' + nm(t) + ' moves <b>' + esc(L.name) + '</b> from ' + esc(from.name) + ' to ' + esc(to.name) + '.', t.col);
+  };
+  function fitUndoTick() {   // host / one screen: the count every screen shows, and the end of the window
+    if (!G || !G.ps || isClient()) return;
+    let ch = false;
+    G.ps.forEach((P, s) => {
+      if (!P || !(P.fitUndo || []).length) return;
+      const keep = P.fitUndo.filter(rec => fitUndoLive(s, rec));
+      if (keep.length !== P.fitUndo.length) { P.fitUndo = keep; ch = true; }
+      for (const rec of keep) { const left = Math.max(1, Math.ceil((FIT_UNDO_MS - (Date.now() - rec.at)) / 1000)); if (rec.left !== left) { rec.left = left; ch = true; } }
+    });
+    if (ch) updateHud();
+  }
+  setInterval(() => { try { fitUndoTick(); } catch (e) { console.warn('fit undo', e); } }, 250);
   ACT.sellStash = (S, k) => sellStash(G.teams[S], k);
   ACT.fitStash = (S, k, id, rid, twinKey) => {
     const t = G.teams[S], r = myBot(S, rid);
@@ -2596,7 +2699,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16e odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16f part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3927,7 +4030,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const iDone = S => !!(G.gather && G.gather.done[S]);
   function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the ' + NLOTS + ' lots.', '#111'); updateHud(); }
   function continueMarket() {
-    for (const h of humanSeats()) flushInstalls(h, true);   // safety net (a skipped seat, an AI takeover): nothing waits past the Market
+    for (let s = 0; s < 4; s++) if (G.ps && G.ps[s]) G.ps[s].fitUndo = [];   // T12: the Market moves on, auto-fits are final
+    for (const h of humanSeats()) flushInstalls(h, true);  // safety net (a skipped seat, an AI takeover): nothing waits past the Market
     if (G.hostResolved) startArena(); else startHostBid();
   }
   function startHostBid() {
@@ -4589,14 +4693,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (!needsRobot(x.lot)) continue;
       const T = G.teams[x.team];
       if (isHuman(x.team)) {
-        // 2.0.1 (Kev, 15 Nov: less clicking): only one robot it fits: it goes on at once. Two or three: you pick the bay.
+        // 2.0.1 (Kev, 15 Nov: less clicking): only one robot it fits: it goes on at once. T12 (16 Nov): several: on the best
+        // fit at once too; for 5 s the note has Undo (and Move to <robot>), see autoFitPart.
         const fit = T.robots.filter(r => canFit(r, LOTS[x.lot]));
-        if (fit.length === 1 && BAL.autoFit !== false) {
-          A.results[x.idx].target = applyLot(x.team, x.lot, fit[0]) || 'Fitted on ' + fit[0].name;
-          notify('🔩 ' + nm(T) + ' fits <b>' + esc(LOTS[x.lot].name) + '</b> on ' + esc(fit[0].name) + ' (its only robot with room).', T.col);
+        if (fit.length && BAL.autoFit !== false) {
+          A.results[x.idx].target = autoFitPart(T, x, bestFit(T, x.lot), fit.length);
           continue;
         }
-        if (fit.length) { PS(x.team).install.push(x); A.results[x.idx].target = '▶ Click one of your Robot Bays (left)'; continue; }
+        if (fit.length) { PS(x.team).install.push(x); A.results[x.idx].target = '▶ Pick a robot (left) or keep it'; continue; }
       }
       const pickR = isHuman(x.team) ? null : aiPickRobot(T, x.lot);
       if (pickR) { A.results[x.idx].target = applyLot(x.team, x.lot, pickR); continue; }
@@ -6397,8 +6501,30 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
     const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
     const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]);
-    const st = meIn || react ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
+    const undo = G.phase === 'market' && !G.over && myFitUndos().length;   // T12: a part just fitted, Undo / Move in the note
+    const st = meIn || react || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
     pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
+    flashNote(pb, st === 'move' ? choiceKey(pb, meIn || react) : '');
+  }
+  /* T12: the YOUR MOVE note flashes red (three pulses, ~1.7 s; reduced motion: a red outline for 2 s) each time a new choice lands
+   * on you: a new step, a new question, a part to fit, or a part fitted with other robots to move it to. Not for LOCKED IN,
+   * NOTHING FOR YOU TO DO, a step that goes on by itself, or a part fitted on your only robot with room (Undo only). */
+  function choiceKey(pb, asked) {
+    const P = PS(), und = G.phase === 'market' ? myFitUndos() : [];
+    const multi = und.filter(rec => me().robots.some(o => String(o.id) !== String(rec.rid) && canFit(o, LOTS[rec.lot]))).map(rec => G.gid + ':' + rec.id);
+    const head = Array.from(pb.querySelectorAll(':scope > span b')).slice(0, 1).map(b => b.textContent).join('');
+    if (und.length && !asked && !multi.length && !(P.install || []).length) return '';   // only Undo (one robot with room) next to a step that goes on by itself: no flash
+    // a new fit with robots to move it to flashes once (by its id: moving it or the end of its window does not flash again)
+    const fresh = multi.filter(id => !PFLASH.seen.has(id)); fresh.forEach(id => PFLASH.seen.add(id));
+    return [G.round, G.phase, G.setupStep, G.marketStage, !!G.marketResolved, G.intrigueTurn, head, (P.install || []).map(x => x.lot).join(',')].join('|') + (fresh.length ? '|new' + fresh.join(',') : '');
+  }
+  const PFLASH = { key: '', tm: 0, seen: new Set() };
+  function flashNote(pb, key) {
+    if (key === PFLASH.key) return;
+    const was = PFLASH.key; PFLASH.key = key.replace(/\|new.*$/, '');
+    if (!key || (key === PFLASH.key && key === was)) return;
+    pb.classList.remove('flash'); void pb.offsetWidth; pb.classList.add('flash');
+    clearTimeout(PFLASH.tm); PFLASH.tm = setTimeout(() => pb.classList.remove('flash'), 2000);
   }
   function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
     if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
@@ -6444,7 +6570,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- test bots (?bot=1): a seat that plays itself with simple rules, through the same actions ---------- */
-  let botBusy = false;
+  let botBusy = false, botRepRound = null;
   function botStep() {
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
     if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
@@ -6468,8 +6594,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
     if (busy === 'stash') return act('trimStash', 0);
     if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }
-    if (busy === 'upkeep' && !P.botRep && G.phase === 'upkeep') { P.botRep = true; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) > 0) act('repairZone', r.id, z.key); return; }
-    if (busy === 'upkeep') P.botRep = false;
+    // repairs once per round (kept on this screen: on a joined screen every snapshot replaced P.botRep, and a repair that needs more
+    // actions than are left was tried again and again, so a joined bot could stay in Upkeep for good), then Done
+    if (busy === 'upkeep' && botRepRound !== G.gid + ':' + G.round && G.phase === 'upkeep') { botRepRound = G.gid + ':' + G.round; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) >= repairCost(r, z.key)) act('repairZone', r.id, z.key); return; }
     if (busy === 'robot pick') { const r = readyRobots(t)[0]; return r ? act('sendBot', r.id) : act('decline'); }
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
     if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
@@ -7702,7 +7829,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.marketResolved && G.marketResults) {
       // --- after the bids: who won what, for how much, and every sealed bid ---
       const myInst = PS().install || [], waitingInstall = myInst.length > 0;
-      pitHead('3 · MARKET · RESULTS', waitingInstall ? '▶ FIT ' + LOTS[myInst[0].lot].name.toUpperCase() + ' ON A ROBOT (RIGHT)' : 'WHO GOT WHAT, FOR HOW MUCH', waitingInstall ? HAZ : '#CFC6B7');
+      pitHead('3 · MARKET · RESULTS', waitingInstall ? '▶ FIT ' + LOTS[myInst[0].lot].name.toUpperCase() + ' ON A ROBOT (LEFT)' : 'WHO GOT WHAT, FOR HOW MUCH', waitingInstall ? HAZ : '#CFC6B7');
       if (!waitingInstall) {
         const btnW = 168, btnH = 22, btnX = x0 + L.aw - btnW - 6, btnY = y0 + 4;
         inkButton(ctx, btnX, btnY, btnW, btnH, 'CONTINUE TO HOST →', false);
@@ -8283,6 +8410,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, part goes on at once', '16 Nov 2026', [
+      'A part you win goes straight on a robot. One robot with room: that one. Several: the one whose odds gain most, and the yellow note has a "Move to …" button for each other robot.',
+      'For 5 seconds the note also has Undo (with a count): the part comes off again and you pick a robot or keep it in the Stash, as before. After 5 s, or when you click something else, it stays on.',
+      'The YOUR MOVE note flashes red a few times when a new choice is waiting for you (a red outline if your computer is set to reduce motion).',
+      'Fix: the pit said "fit … on a robot (right)"; your robots are on the left.' ]],
     ['2.0.1, odds overview', '16 Nov 2026', [
       'Market: click the 🎩 odds on a part or robot lot for the full picture: every robot against every rival robot, before → after, for each team that could win it (a tab per team; pick which robot the part goes on). The changes that touch your robots are outlined, with a line on top like "your Scythe vs Rust\'s Mincer: Even → Underdog".',
       'The grid starts from the bookie\'s quick estimate; test fights then check it in the background (a small dot in a cell\'s corner = checked). Only for your eyes: the fight odds, bets and the AI don\'t use these numbers.' ]],
