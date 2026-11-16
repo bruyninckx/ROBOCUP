@@ -164,7 +164,7 @@ So the average stays where it was; what changed is that the upgrades now sit clo
 | Tow cable | 1 → 0.59 | +1.23 | +1.21 | **+0.61** | +0.27 / +0.67 |
 | Sensor scrambler | 1 → 0.75 | +0.94 | +1.14 | **+0.70** | +1.04 / +0.94 |
 | Overdrive | x1.55 → x1.52 | +0.90 | +1.00 | **+0.80** | +0.79 / +0.80 |
-| Repair kit | 4 → 12 | +0.21 | +0.37 | **+0.53** | +0.64 / +0.71 |
+| Repair kit | 4 → 12, then (16 Nov) also repairs under fire at 0.3 of that | +0.21 | +0.37 | **+0.64** (was +0.53) | +0.92 / +0.74 |
 | Weapon overhaul | x1.35 → x1.29 | +1.32 | +0.92 | **+0.75** | +0.94 / +0.62 |
 | Reinforced hull | x1.45 → x1.36 | +0.81 | +0.85 | **+0.80** | +1.04 / +0.76 |
 | Power kit | HP x1.2 → x1.13 | +0.54 | +1.04 | **+0.87** | +0.64 / +1.25 |
@@ -178,7 +178,30 @@ So the average stays where it was; what changed is that the upgrades now sit clo
 
 Two parts don't tune cleanly:
 - **Overdrive** jumps between +0.6 and +1.1 for tiny changes, because every hit also strains its own weapon motor. It is set in between, at x1.52.
-- **Repair kit** stays at about +0.5 however fast it heals, because it only works while the robot is not being hit. A different trigger would be needed for more.
+- **Repair kit** stayed at about +0.5 however fast it healed, because it only worked while the robot was not being hit. **Fixed on 16 Nov (T5)** with a new trigger, below.
+
+## Update (16 Nov): the Repair kit repairs under fire (T5)
+
+Kev: "start repair kit fix".
+
+- **New trigger:** the Repair kit card repairs the robot all the time: slowly (0.3 of its full rate) while it is being hit, at the full rate after 1.5 s without a hit. Card: "Repairs the robot all the time, fast when it is not being hit".
+- Only the part card. Mauler's built-in repair module still only works after 1.5 s without a hit (the stock-fight fingerprint, `l4-regress.js`, is unchanged).
+- Where: engine `modules()`, the `repair` branch (a kit is a `repair` in `spec.fromParts`); the setting is `PK.repairFire` in lineup.js (engine `ARC.pk.repairFire`; unset = the old behaviour).
+- **Measured** (`parttest.js`, every robot with and without the kit against every robot a level up, same seeds; 1,632 fights each way):
+
+  | | All | Level 0-1 | Level 2-3 | Level 4 |
+  |---|---|---|---|---|
+  | Before (only when not hit) | +0.53 | +0.70 | +0.67 | +0.19 |
+  | **Now** | **+0.64** | **+0.92** | **+0.74** | **+0.25** |
+
+  Good to about ±0.13 overall (the per-group numbers about ±0.2-0.3). Wins vs a level up: 37% without, 46% with.
+- **Tried:**
+  - Repair under fire at 0.06 of the full rate: +0.59 (816 fights). At 0.15: no better (+0.54 on 612 fights). At 0.4: +0.66 (1,020 fights), the same as 0.3.
+  - So the kit levels off at about +0.65. More healing does not help much: most fights end on points at time-out (healing doesn't score), or on a broken battery, drive or weapon rather than an empty chassis. 0.3 is the gentler setting with the same result.
+- **Robots it helps most** (120 fights each way vs every robot a level up): Vertigo 35 → 58% (+1.7 levels), Thumper 38 → 60% (+1.5). Snapjaw and Pincher about +2 on 40 fights (noisy). Least: Buzzkill -0.9, Orbiter -0.6, Whaler -0.6 (40-56 fights, noisy). Thumper was already the top gainer under the old trigger.
+- **Scythe + Repair kit is no longer a poor fit:** 31 → 43% (120 fights each way), about the kit's average gain (+9 points). Its 🧩 poor fit tag (`PART_FIT` in tabletop-2) should go. No epic combo or great fit uses the Repair kit.
+- The bookie (`src2/repair.js`) counts every part as 0.42 (about 0.72 of a level), close enough to the kit's +0.64: unchanged. `PART_LV.repair` in tabletop-2 now has the new numbers.
+- The Repair kit is still out of the game's deck (`partCopies.repair: 0`, Kev, 9 Nov), so the change shows in the Lineup Arena and in tests, and in games only if the card comes back.
 
 Each value in "now" is good to about ±0.15. Level 4 robots gain less from parts, mostly because they already win most fights at their own level. Their per-group number is good only to about ±0.35.
 
@@ -200,7 +223,7 @@ Each value in "now" is good to about ±0.15. Level 4 robots gain less from parts
 
   Gone: Air Support, Tug of War, Launch Pad and Flip & Maul, because the Gun drone and Pop-up flipper were toned down. Drill & Drip (Corkscrew + Field hospital) is now a great fit.
 - **Great fits:** Corkscrew + Field hospital, Wrecker + Pester chip, Thwacker + Mine layer.
-- **Poor fits:** Forklift + Laser drone, Scythe + Repair kit, Rotisserie + Pester chip, Yo-yo + Blocker drone.
+- **Poor fits:** Forklift + Laser drone, Scythe + Repair kit (no longer, 16 Nov: see the Repair kit update), Rotisserie + Pester chip, Yo-yo + Blocker drone.
 - **Giant-slayer builds:**
 
   | Robot | Parts | Wins vs level 3-4, as it comes → kitted | vs kitted level 3-4 |
