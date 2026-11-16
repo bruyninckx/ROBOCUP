@@ -31,3 +31,5 @@ if mxf.exists():
 cl = (headl + body[:i] + '<script>window.CX_ON = 1;</script>\n</head><body>\n' + body[i:] + '</body></html>\n').replace('ROBOCUS 2.0 Lineup Arena.', 'ROBOCUS 2.0.1 Contact Lab (Lineup Arena + contact experiments on).').replace('<title>ROBOCUS 2.0 Lineup Arena</title>', '<title>ROBOCUS 2.0.1 Contact Lab</title>').replace('<h1>ROBOCUS 2.0 Lineup Arena</h1>', '<h1>ROBOCUS 2.0.1 Contact Lab</h1>')
 (d.parent.parent/'prototypes'/'contact-lab.html').write_text(cl)
 print('built prototypes/contact-lab.html')
+# version stamp (Kev, 16 Nov): the pages that load src2/ check they got matching files (tools/stamp.py)
+import runpy; runpy.run_path(str(d.parent / 'stamp.py'), run_name='__main__')

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta name="robocus-files" content="e63a7588">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -418,16 +418,17 @@ html, body {
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/dmath.js"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=e63a7588"></script>
+<script src="../src2/dmath.js?b=e63a7588"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js"></script>
-<script src="../src2/lineup.js"></script>
-<script src="../src2/matrix.js"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js"></script>
-<script src="../src2/sound.js"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js"></script>
+<script src="../src2/engine.js?b=e63a7588"></script>
+<script src="../src2/lineup.js?b=e63a7588"></script>
+<script src="../src2/matrix.js?b=e63a7588"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=e63a7588"></script>
+<script src="../src2/sound.js?b=e63a7588"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=e63a7588"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -7930,6 +7931,14 @@ html, body {
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js"></script>
+<script src="../src2/net.js?b=e63a7588"></script>
+<script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
+(function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
+  const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
+  s.style.cssText = 'position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1.2 ui-monospace,monospace;opacity:.55;pointer-events:none;color:#444;background:rgba(255,255,255,.6);padding:1px 4px;border-radius:3px';
+  s.textContent = F ? 'files ' + F.hash + ' · ' + F.date + ' · ' + F.robots + ' robots' : 'files: unknown'; document.body.appendChild(s);
+  if (!ok) { const b = document.createElement('div'); b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100000;background:#B23A2B;color:#fff;font:600 14px system-ui,sans-serif;padding:8px 12px;text-align:center';
+    b.textContent = 'Old game files are loaded (' + (F ? F.hash : 'none') + ', this page wants ' + want + '). Press Ctrl+F5, or close the tab and open the game again.'; document.body.appendChild(b); }
+})();</script>
 </body>
 </html>

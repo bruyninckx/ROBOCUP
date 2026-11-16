@@ -277,3 +277,9 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Drones and modules from part cards grow with the carrier's level (PART_K x1 / 1.15 / 1.45 / 2.0 / 2.1, engine pkR, spec.fromParts); stock robots unchanged.
 - Every part tuned to about 0.75 of a level (legendaries 1.5, chips 0.75 on L0-1): 4 rounds of parttest.js. Bookie PART 0.42 / LEG 0.9; epics, fits and giant-slayer builds re-tested.
 - Whole games: levels mean more (higher level 67/78/83/93% by gap); ignoring damage makes the odds less accurate (Brier 0.180 vs 0.164). docs/robocus-part-levels.md.
+
+## 16 Nov 2026: orchestration setup (Kev: "orchestrate via fable and set tasks up for opus")
+- `AGENTS.md` rewritten (main is the truth, only the orchestrator merges and pushes, Kev's folder stays on main, checklists to start and finish, never end unpushed); `CLAUDE.md` (orchestrator and worker roles, worker brief); `TASKS.md` (board + questions for Kev); `docs/orchestration.md` (Kev's guide).
+- Files stamp: `tools/stamp.py` (run by build.py) writes `src2/version.js` and puts `?b=<fingerprint>` on every ../src2 script link in tabletop-2, draft-arena and sync-check; the pages show the stamp bottom left and a red bar when cached files don't match.
+- `play-latest.cmd` (update to main, open the game), `tools/retire-side-folders.cmd` (push the 11 Nov experiment branches, then remove .wt).
+- Four docs that only existed in the claude.ai project copied into `docs/`: sim-bookie, rarity, 2.0.1-screen, two-pc-test.

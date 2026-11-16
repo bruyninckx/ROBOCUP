@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="e63a7588"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <!-- ROBOCUS Draft Arena (test mode, separate from the tabletop games). Online 1v1 / 2v2 / free-for-all: every round each
      fighter drafts a robot (1 of 3), an upgrade (1 of 3), another upgrade (1 of 3) and rolls a die for a bonus upgrade.
      Fights run on the 2.0 physics engine (src2/), every screen runs them from the same seed. Points per round, first to the
@@ -109,14 +109,15 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
 <div class="wrap"><main id="main"></main><aside id="side"></aside></div>
 <div id="fv"></div>
 <div class="toast" id="toast" hidden></div>
-<script src="../src2/dmath.js"></script>
+<script src="../src2/version.js?b=e63a7588"></script>
+<script src="../src2/dmath.js?b=e63a7588"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js"></script>
-<script src="../src2/lineup.js"></script>
-<script src="../src2/sound.js"></script>
-<script src="../src2/view.js"></script>
+<script src="../src2/engine.js?b=e63a7588"></script>
+<script src="../src2/lineup.js?b=e63a7588"></script>
+<script src="../src2/sound.js?b=e63a7588"></script>
+<script src="../src2/view.js?b=e63a7588"></script>
 <script src="../src/net-config.js"></script>
 <script>
 /* ROBOCUS Draft Arena. The host's browser holds the match state (G) and is the referee; other screens get G and send clicks.
@@ -723,4 +724,12 @@ h3 { font: 700 12px var(--f-mono); letter-spacing: .12em; text-transform: upperc
   else render();
 })();
 </script>
+<script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
+(function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
+  const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
+  s.style.cssText = 'position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1.2 ui-monospace,monospace;opacity:.55;pointer-events:none;color:#444;background:rgba(255,255,255,.6);padding:1px 4px;border-radius:3px';
+  s.textContent = F ? 'files ' + F.hash + ' · ' + F.date + ' · ' + F.robots + ' robots' : 'files: unknown'; document.body.appendChild(s);
+  if (!ok) { const b = document.createElement('div'); b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100000;background:#B23A2B;color:#fff;font:600 14px system-ui,sans-serif;padding:8px 12px;text-align:center';
+    b.textContent = 'Old game files are loaded (' + (F ? F.hash : 'none') + ', this page wants ' + want + '). Press Ctrl+F5, or close the tab and open the game again.'; document.body.appendChild(b); }
+})();</script>
 </body></html>

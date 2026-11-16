@@ -18,12 +18,16 @@ GitHub: https://github.com/bruyninckx/ROBOCUP
 | `docs/rulebook.md`, `docs/todo.md` | Rulebook draft and the open-holes checklist with all of Kev's decisions. |
 | `tools/economy-sim.py` | Economy / game-length sim (reads `tools/economy-cards.json`). |
 | `docs/archive/` | Older or rejected directions, kept for reference. |
-| `AGENTS.md` | Rules for AI coding assistants (Claude, Antigravity, ...) working in this folder. |
+| `AGENTS.md`, `CLAUDE.md` | Rules for AI assistants: one orchestrator (Fable) owns `main`, Opus workers do one task each. Kev's guide: `docs/orchestration.md`. |
+| `TASKS.md` | The task board and the questions waiting for Kev. |
+| `play-latest.cmd` | Double-click: update this folder to `main` and open the 2.0 game (`play-latest online`: the GitHub Pages copy). |
 | `PROGRESS.md` | Who works on what, plus a log of changes. Update it after every work session. |
 
 ## How to run
 
 No build step. Double-click an `.html` file in `prototypes/` to open it in a browser.
+
+To play the newest 2.0 game: double-click `play-latest.cmd`. The game shows the stamp of its files bottom left (`files <code> · <date> · <n> robots`); a red bar at the top means old files are cached: press Ctrl+F5.
 
 ## Online play (tabletop prototype)
 

@@ -21,3 +21,6 @@ vendor/
 # overnight click test runs (tools/click-night.cmd): texts and screenshots per game
 playtests/click-runs/
 playtests/remote-runs/
+
+# one-time cleanup is done by tools/retire-side-folders.cmd; side folders for experiments go in .wt/ (ignored)
+.wt/
