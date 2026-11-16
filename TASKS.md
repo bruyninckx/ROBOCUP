@@ -11,12 +11,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   table and the part values, with no test fights, so a whole grid is instant. Test fights for every pair would be far too
   slow (a dozen robots is about 50 pairs). Safest choice taken for T7: the formula grid. Later option: refine the grid with
   a few test fights in the background.
-- **K5. Fight odds count damage, auction odds don't.** After K1 the test-fight bookie keeps damage, but the formula
-  (`BAL.oddsDamage` false) reads every robot as new, so a damaged robot can look better in the auction overview than at the
-  fight. Leave it, or let the formula count damage again?
 
 ### Answered
 
+- **K5 (16 Nov): the formula counts damage again.** Kev: "let the formula count damage again". Task T8.
 - **K1 (16 Nov): the test-fight bookie keeps damage.** Kev: "test fight bookie does not ignore damage, it should run the
   simulation as is". No change to the code.
 - **K2 (16 Nov): counter trust stays 1.** Kev: "don't counter trust, bookies run simulations anyway".
@@ -49,7 +47,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-_None._
+- **T8. The formula bookie counts damage again** (K5). `BAL.oddsDamage` true, help texts and docs corrected. Worker on
+  branch `claude/formula-counts-damage`, started 16 Nov. Done when: a damaged robot's formula odds are lower than as new
+  (numbers), the game-sim check passes, changelog line and new `BUILD`.
 
 ## Done
 
