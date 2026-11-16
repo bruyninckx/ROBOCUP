@@ -12,6 +12,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K13. Odds overview** (T7): a click on a lot's odds strip now opens the overview instead of adding 1 Cr: fine? 12 test
+  fights a pair (24 for your changed duels): enough? A rival is assumed to fit the part where the AI would: fine?
 - **K10. Rarity overlay** (T11): glow and shine on Works and Masterwork only, or Race-spec too? A click on a part card's
   header now opens the ladder instead of bidding +1: fine, or a small "?" button? On rivals' small tickets too?
 - **K11. Tow cable and wall slams** (T10): yellow-and-black cable or plain steel? Comic impact star or a plain flash? Wall
@@ -97,17 +99,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
   the part test (`tools/damage-lab/parttest.js`, `PARTS=repair`) gives +0.65 to +0.85, and robots without the part card
   (Mauler's own repair module too) fight exactly as before.
-- **T7. Full odds overview in the auction overlay, refined with test fights.** Kev (16 Nov): "the overlay when checking
-  odds on parts/robot should give an overview of effect of all the robots vs all the other robots, also from the opponents
-  and how these changes affect you"; on test fights: "lets refine a bit". Goal: the odds overlay on a lot shows a grid,
-  every robot against every rival robot, for each team that could win the lot: bands before and after, the changes that
-  touch your robots marked. The formula fills it at once; test fights in the background then refine the cells, without
-  slowing the game or changing what the game decides. Files: `prototypes/tabletop-2.html`. Worker on branch
-  `claude/odds-overview`, started 16 Nov. Done when: screenshots of the grid in a 4-team game (formula, then refined), the
-  game-sim check passes, `node tools/mp-test.js` 0 desyncs, the overlay opens in under 100 ms.
 
 ## Done
 
+- **T7. Odds overview on Market lots, refined with test fights** (16 Nov): click the 🎩 odds strip of a lot; a tab per team
+  that could win it, every robot against every rival robot, bands before → after, your changed duels outlined; test
+  fights in the background (12 a pair, 24 for your changed duels). Display only. Branch `claude/odds-overview`, commit
+  `4465b9b`. BUILD `2026-11-16e`, files stamp `c572d16c`.
 - **T9. Send to the pit and other choices in the yellow note** (16 Nov): a button per robot when you are invited; also
   sponsor, starter, fitting a part, host invite, tie rebid. Branch `claude/pit-in-note`, commit `962cafa`.
 - **T10. Tow cable and wall slams can be seen** (16 Nov): `src2/view.js`, drawing only; stock-fight fingerprint unchanged.
