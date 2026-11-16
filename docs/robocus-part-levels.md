@@ -99,9 +99,10 @@ Win % = with the part, vs a level up, all robots (no part: 38%). Then levels gai
 
 ## 5. Also done today
 
-**The bookie ignores damage** (Kev: "don't take damages into account for bookie odds anymore"). Every robot's odds now read it as new: duels, free-for-alls, 2v2 and the starter values. A damaged robot still shows its range like a robot as it comes.
-- The switch is `BAL.oddsDamage` (false; true brings the old behaviour back).
-- Damage still matters in the fight itself and to the AI's choices.
+**The bookie ignored damage** (Kev, 15 Nov: "don't take damages into account for bookie odds anymore"). Every robot's odds read it as new: duels, free-for-alls, 2v2 and the starter values.
+- **Undone on 16 Nov (K5):** Kev: "let the formula count damage again". `BAL.oddsDamage` is true again: the formula odds drop for a damaged robot, the same as the test fights (`simOdds`), which always kept real damage. A damaged robot shows a band again, not the range of a robot as it comes.
+- The switch is `BAL.oddsDamage` (true; false reads every robot as new, the 15 Nov test).
+- Damage always mattered in the fight itself and to the AI's choices.
 
 
 ---
@@ -225,5 +226,5 @@ Each value in "now" is good to about ±0.15. Level 4 robots gain less from parts
 What it says:
 1. **Levels mean more in a real game now.** Before, parts on small robots flattened the bigger gaps; now a level 1 robot rarely beats a level 4 robot.
 2. **The odds for robots with parts are about right.** The bookie is within 5 points everywhere.
-3. **Ignoring damage costs the bookie accuracy.** Brier 0.180 against 0.164 with damage in, and the favourite wins 73% instead of 76%. That is Kev's call (15 Nov). Players who track damage now have an edge over the odds.
+3. **Ignoring damage costs the bookie accuracy.** Brier 0.180 against 0.164 with damage in, and the favourite wins 73% instead of 76%. That was Kev's call (15 Nov); on 16 Nov he turned damage back on in the odds (K5), so the right-hand column is what the game does now.
 4. **counterTrust 0.65 would still help.** The underdog of a counter still wins about 33% at odds of 20%.

@@ -44,5 +44,6 @@ Scripts (cloud scratch, not in the repo): measure.js (bot games, 24 test fights 
 
 ## Decided (16 Nov)
 
-- Kev: "test fight bookie does not ignore damage, it should run the simulation as is". The test fights keep each robot's real damage (K1 in `TASKS.md`, answered). The formula still reads robots as new (`BAL.oddsDamage` false): question K5.
+- Kev: "test fight bookie does not ignore damage, it should run the simulation as is". The test fights keep each robot's real damage (K1 in `TASKS.md`, answered). The formula then still read robots as new (`BAL.oddsDamage` false): question K5.
+- Kev (K5, answered): "let the formula count damage again". `BAL.oddsDamage` is true again, so the formula odds (Market and auction overlays, bands, the AI's valuations, the fallback at a fight when the host's PC is too slow for test fights) count each robot's damage, like the test fights. Example (seed 3, round 2): Scythe L0 with a broken Body against a new Mincer L0 drops from 65% (read as new) to 56%.
 - The odds shown in the Market and auction overlays come from the formula (matchup table and part values), not from test fights. Test fights run only for the fight itself, in `afterChoose()`.
