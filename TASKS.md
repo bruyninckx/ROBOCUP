@@ -12,6 +12,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K14. Part goes on at once** (T12): "best robot" = the one whose odds gain most: right? Undo puts the part back to
+  "pick a robot or keep it in the Stash": fine? A Move starts the 5 s again: fine? No red flash when the part went on your
+  only robot (nothing you must do): fine? The Stash panel's own Fit still asks "On which robot?" in a popup: move that to
+  the note too?
 - **K13. Odds overview** (T7): a click on a lot's odds strip now opens the overview instead of adding 1 Cr: fine? 12 test
   fights a pair (24 for your changed duels): enough? A rival is assumed to fit the part where the AI would: fine?
 - **K10. Rarity overlay** (T11): glow and shine on Works and Masterwork only, or Race-spec too? A click on a part card's
@@ -39,6 +43,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T17. `tools/market-install-test.js` is stale** (it expects the 8 Nov install prompt). Update or retire it.
 - **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
   default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
   check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
@@ -85,15 +90,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   for the other choice buttons in the note. Files: `prototypes/tabletop-2.html` (the note's send buttons). Worker on
   branch `claude/send-feedback`, started 16 Nov. Done when: a screenshot taken straight after the click shows the
   checkmark, on a page opened as a file; game-sim check and the online test on the 2.0 page pass.
-- **T12. A bought part goes on the robot at once, with undo; the YOUR MOVE box flashes red for a choice.** Kev (16 Nov):
-  "when you buy a part, put it on the robot immediately but do show an undo button for 5 sec in the yellow box so people
-  can undo that, also not sure yet how it works for multiple robots (not seen that yet in my playtest), but also in these
-  case try to put options to click also in the yellow box at all time"; "the your move box should flash red when a choice
-  needs to be made". Goal: winning a part fits it straight away; the note shows Undo for 5 s; with several robots it goes
-  on the best fit and the note offers the other robots; the note flashes red when the game waits for your choice. Also:
-  the pit header says "FIT … ON A ROBOT (RIGHT)" but the robots are on the left. Files: `prototypes/tabletop-2.html`.
-  Worker on branch `claude/fit-at-once`, started 16 Nov. Done when: screenshots of the note with Undo and with the robot
-  choices, undo works online (0 desyncs on the 2.0 page), game-sim check passes.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
@@ -102,6 +98,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T12. A won part goes on at once, with Undo and Move; the note flashes red for a choice** (16 Nov): one robot: fitted,
+  Undo for 5 s; several robots: fitted on the one whose odds gain most, the others as Move buttons; Undo and Move are
+  synced actions, final on the host's clock. Also a test-bot fix (repairs once per round). Branch `claude/fit-at-once`,
+  commit `504fbee`. BUILD `2026-11-16f`, files stamp `c572d16c`; game-sim 2/2, online test on the 2.0 page 0 desyncs
+  (11 fights checked).
 - **T7. Odds overview on Market lots, refined with test fights** (16 Nov): click the 🎩 odds strip of a lot; a tab per team
   that could win it, every robot against every rival robot, bands before → after, your changed duels outlined; test
   fights in the background (12 a pair, 24 for your changed duels). Display only. Branch `claude/odds-overview`, commit
