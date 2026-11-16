@@ -283,3 +283,8 @@ Newest first. Format: `YYYY-MM-DD, who: what changed (files)`.
 - Files stamp: `tools/stamp.py` (run by build.py) writes `src2/version.js` and puts `?b=<fingerprint>` on every ../src2 script link in tabletop-2, draft-arena and sync-check; the pages show the stamp bottom left and a red bar when cached files don't match.
 - `play-latest.cmd` (update to main, open the game), `tools/retire-side-folders.cmd` (push the 11 Nov experiment branches, then remove .wt).
 - Four docs that only existed in the claude.ai project copied into `docs/`: sim-bookie, rarity, 2.0.1-screen, two-pc-test.
+
+## 16 Nov 2026: the formula bookie counts damage again (K5)
+- Kev: "K5, let the formula count damage again." `BAL.oddsDamage` true (prototypes/tabletop-2.html): the formula odds in the Market/auction overlays, the bands, the AI valuations and the fallback at a fight count each robot's damage again, so they agree with the test fights (`simOdds`, unchanged). BUILD 2026-11-16a, changelog line.
+- Check (seed 3, round 2): Scythe L0 with a broken Body vs a new Mincer L0: 65% read as new, 56% with damage; vs the field 49% -> 45%.
+- Docs: robocus-sim-bookie.md (Decided, 16 Nov), robocus-part-levels.md (section 5 and the whole-games note).

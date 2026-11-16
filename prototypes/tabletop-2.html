@@ -511,7 +511,7 @@ html, body {
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
-    oddsDamage: false,            // Kev, 15 Nov: the bookie ignores damage (true = odds drop for damaged robots, as before)
+    oddsDamage: true,             // Kev, 16 Nov (K5): the formula odds count damage again, like the test fights (false = read every robot as new, the 15 Nov test)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
     counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
@@ -1157,7 +1157,8 @@ html, body {
   }
   const rarStr = r => r && r.rar ? partsOf(r).reduce((a, k) => a + RAR[rarOn(r)(k)].lv, 0) * R2.LEVEL : 0;   // rarity tiers, in the model's units
   const baseStr = r => R2.strength(null, r.name, r.level, partsOf(r)) + rarStr(r);   // as new
-  // Kev, 15 Nov: "don't take damages into account for bookie odds anymore": the odds read every robot as new (BAL.oddsDamage brings damage back)
+  // Kev, 16 Nov (K5): "let the formula count damage again": the formula odds (overlays, bands, AI, fallback at a fight) count each robot's damage,
+  // like the test fights do. BAL.oddsDamage false brings back the 15 Nov test (every robot read as new).
   const oddsStr = r => BAL.oddsDamage ? str2(r) : baseStr(r);
   const power = r => str2(r);
   const FINE_ZONES = () => { const Z = {}; for (const z of R2.ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, damaged: false, labels: [], lost: [] }; return Z; };
@@ -2401,7 +2402,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-16a formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -7840,6 +7841,8 @@ html, body {
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, formula odds', '16 Nov 2026', [
+      'The bookie counts damage everywhere again: the odds in the Market and auction overlays (and at a fight when the host\'s PC is too slow for test fights) drop for a damaged robot, the same as the test fights.' ]],
     ['2.0.1', '15 Nov 2026', [
       'The screen: your robots on the left, the pit in the middle, and on the right your move, who we are waiting for, and the log.',
       'Waiting list: one row per player (your move, deciding, ready, nothing to do). On your own row the button you have to press flashes.',
