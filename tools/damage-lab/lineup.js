@@ -41,6 +41,13 @@
   // bodyguard 1.8, popper 2.4, emp 1.6, repair 4, shield 1.5, mines 1.4, blocker 1.5, waller 1.5, the rest 1.
   const PK = { medic: 0.68, gunner: 0.9, laser: 0.96, bodyguard: 1.3, popper: 1.04, emp: 1.03, repair: 12, shield: 1.2, mines: 0.95, blocker: 2.9, waller: 1.57,
     tow: 0.59, jam: 0.75, booster: 0.85, spotter: 0.89, jammer: 1.1, qshield: 0.85, fieldmedic: 1.3, chip_matador: 1.5 };
+  /* Rarity (Kev, 16 Nov: "a rarity like real loot ... boosts its power with linear steps and a real epic category for 1% chances").
+   * A part card can be a better copy of the same part. RAR_Q[tier] multiplies what the part does: a drone's or module's strength
+   * (engine pq), and for stat parts and legendaries the bonus over 1 (x1.29 becomes x(1 + 0.29 q)). Tiers 0-3 go up in equal
+   * steps; tier 4 is the 1% copy and is allowed to be too good. Chips have no tiers. build(name, parts, rar): rar[part] = tier. */
+  const RAR_Q = [1, 1.3, 1.6, 1.9, 2.8];   // measured (rarity-test.js, 2 x 3,146 fights): about +0.2 / +0.4 / +0.55 / +0.9 of a level; the gain flattens above x2
+  const up = (m, q) => 1 + (m - 1) * (q || 1);
+  const PQ_KEY = { hospital: 'fieldmedic', quantum: 'qshield' };   // the engine's name for what the part adds
   const plates = sp => { const a = Object.assign({}, sp.armour); for (const k of ['front', 'side', 'rear', 'top']) if (!(k === 'front' && L.frontTool(sp.weapon))) a[k] = Math.min(3, a[k] + 1); return a; };
   const drone = k => (sp) => ({ helpers: (sp.helpers || []).concat([k]).slice(0, 3) });
   // kind: drone / module / stat / legendary. copies = cards in the deck. vs = win % with it vs every robot a level up, all robots (15 Nov, parttest.js; no part: 39%)
@@ -60,14 +67,14 @@
     popper: { name: 'Pop-up flipper', kind: 'module', copies: 1, vs: 48, d: 'On contact: hit and shove; the hit grows with the robot\'s level (replaces the module).', apply: () => ({ mod: 'popper' }) },
     tow: { name: 'Tow cable', kind: 'module', copies: 1, vs: 47, d: 'Hooks the enemy up close and slings it towards the nearest wall, every 8 s (replaces the module).', apply: () => ({ mod: 'tow' }) },
     jam: { name: 'Sensor scrambler', kind: 'module', copies: 1, vs: 49, d: 'Scrambles the enemy within 3 m: it steers haywire for 2 s and its module goes offline for 3 s, every 6 s (replaces the module).', apply: () => ({ mod: 'jam' }) },
-    overdrive: { name: 'Overdrive', kind: 'stat', copies: 1, vs: 50, d: 'Weapon damage x1.52, but every hit it lands strains its own weapon motor.', apply: (sp, b) => ({ dmgK: b.dmgK * STAT.overdrive, overdrive: 0.12 }) },
+    overdrive: { name: 'Overdrive', kind: 'stat', copies: 1, vs: 50, d: 'Weapon damage x1.52, but every hit it lands strains its own weapon motor.', apply: (sp, b, q) => ({ dmgK: b.dmgK * up(STAT.overdrive, q), overdrive: 0.12 }) },
     repair: { name: 'Repair kit', kind: 'module', copies: 1, vs: 46, d: 'Repairs the robot fast when it is not being hit; grows with the robot\'s level (replaces the module).', apply: () => ({ mod: 'repair' }) },
-    weapon: { name: 'Weapon overhaul', kind: 'stat', copies: 2, vs: 49, d: 'Weapon damage x1.29.', apply: (sp, b) => ({ dmgK: b.dmgK * STAT.weapon }) },
-    hull: { name: 'Reinforced hull', kind: 'stat', copies: 2, vs: 50, d: 'Every part x1.36 HP.', apply: (sp, b) => ({ hpK: b.hpK * STAT.hull }) },
-    powerkit: { name: 'Power kit', kind: 'stat', copies: 1, vs: 51, d: 'Hot-wound motors, big battery, HP x1.13.', apply: (sp, b) => ({ motor: 'hot', battery: 'big', hpK: b.hpK * STAT.powerkit }) },
-    armourkit: { name: 'Armour kit', kind: 'stat', copies: 1, vs: 49, d: '+1 on every armour plate, HP x1.23.', apply: (sp, b) => ({ armour: plates(sp), hpK: b.hpK * STAT.armourkit }) },
-    core: { name: 'Prototype core', kind: 'legendary', copies: 1, vs: 60, d: 'Legendary: weapon damage x1.28 and every part x1.28 HP.', apply: (sp, b) => ({ dmgK: b.dmgK * STAT.coreD, hpK: b.hpK * STAT.coreH }) },
-    hospital: { name: 'Field hospital', kind: 'legendary', copies: 1, vs: 61, d: 'Legendary: a strong medic drone (grows with the robot\'s level) and HP x1.13.', apply: (sp, b) => ({ helpers: (sp.helpers || []).concat(['fieldmedic']).slice(0, 3), hpK: b.hpK * STAT.hospital }) },
+    weapon: { name: 'Weapon overhaul', kind: 'stat', copies: 2, vs: 49, d: 'Weapon damage x1.29.', apply: (sp, b, q) => ({ dmgK: b.dmgK * up(STAT.weapon, q) }) },
+    hull: { name: 'Reinforced hull', kind: 'stat', copies: 2, vs: 50, d: 'Every part x1.36 HP.', apply: (sp, b, q) => ({ hpK: b.hpK * up(STAT.hull, q) }) },
+    powerkit: { name: 'Power kit', kind: 'stat', copies: 1, vs: 51, d: 'Hot-wound motors, big battery, HP x1.13.', apply: (sp, b, q) => ({ motor: 'hot', battery: 'big', hpK: b.hpK * up(STAT.powerkit, q) }) },
+    armourkit: { name: 'Armour kit', kind: 'stat', copies: 1, vs: 49, d: '+1 on every armour plate, HP x1.23.', apply: (sp, b, q) => ({ armour: plates(sp), hpK: b.hpK * up(STAT.armourkit, q) }) },
+    core: { name: 'Prototype core', kind: 'legendary', copies: 1, vs: 60, d: 'Legendary: weapon damage x1.28 and every part x1.28 HP.', apply: (sp, b, q) => ({ dmgK: b.dmgK * up(STAT.coreD, q), hpK: b.hpK * up(STAT.coreH, q) }) },
+    hospital: { name: 'Field hospital', kind: 'legendary', copies: 1, vs: 61, d: 'Legendary: a strong medic drone (grows with the robot\'s level) and HP x1.13.', apply: (sp, b, q) => ({ helpers: (sp.helpers || []).concat(['fieldmedic']).slice(0, 3), hpK: b.hpK * up(STAT.hospital, q) }) },
     quantum: { name: 'Quantum shield', kind: 'legendary', copies: 1, vs: 61, d: 'Legendary: the first real hit after it recharges is cancelled and the robot phases out for 1.3 s; recharges in 8 s.', apply: () => ({ qshield: true }) },
     // tuning chips (Kev, 9 Nov): routines worked out for light robots; from level 2 up they can overload (engine CHIP_GLITCH)
     matador: { name: 'Matador chip', kind: 'chip', copies: 1, vs: 43, d: 'Tuning chip: waits in front of the enemy, sidesteps its charge and hits its side. On a level 0-1 robot it also drives nimbly: +25% push, +20% speed, sharper turns. May glitch on heavier robots.', apply: () => ({ chip: 'matador' }) },
@@ -79,17 +86,19 @@
   // between any two neighbouring levels (a flat 1 + boost x level widened the low gaps most); 0 = as measured
   let levelBoost = 0;
   const grade = name => { const r = ROBOTS[name] || ROBOTS4[name]; return r ? r[1] * Math.pow(1 + levelBoost, r[0]) : 1; };
-  function build(name, parts = []) {
+  function build(name, parts = [], rar = null) {
+    const qOf = k => RAR_Q[Math.max(0, Math.min(RAR_Q.length - 1, (rar && rar[k]) | 0))] || 1;
     const P = L.PRESETS[name], p = grade(name);
     let spec = { preset: name, dmgK: (TUNED && (ROBOTS[name] || ROBOTS4[name]) ? 1 : (P.dmgK || 1)) * p, hpK: p };
     if (parts.some(k => PARTS[k] && PARTS[k].kind === 'chip')) spec.lv = (ROBOTS[name] || ROBOTS4[name] || [0])[0];   // a tuning chip needs to know the frame it is on
-    for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec)); }
+    for (const k of parts) { if (!k || !PARTS[k]) continue; const sp = L.normSpec(spec); spec = Object.assign({}, spec, PARTS[k].apply(sp, spec, qOf(k))); }
     // which drones and modules came from part cards, and how much they grow on this robot (engine pkR)
     const fp = parts.filter(k => k && PARTS[k] && (PARTS[k].kind === 'drone' || PARTS[k].kind === 'module')).concat(parts.includes('hospital') ? ['fieldmedic'] : []);
     if (TUNED && fp.length) { spec.fromParts = fp; spec.partK = PART_K[Math.min(4, (ROBOTS[name] || ROBOTS4[name] || [0])[0])]; }
+    if (rar) { const pqm = {}; for (const k of parts) if (k && PARTS[k] && PARTS[k].kind !== 'chip' && qOf(k) !== 1) pqm[PQ_KEY[k] || k] = qOf(k); if (Object.keys(pqm).length) spec.partQ = pqm; }
     return spec;
   }
   function usePK() { Object.assign(L.ARC.pk, PK); }
-  const API = { ROBOTS, ROBOTS4, ROBOTS_2_0, ROBOTS4_2_0, TUNED, PART_K, STAT, CANDIDATES, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
+  const API = { RAR_Q, ROBOTS, ROBOTS4, ROBOTS_2_0, ROBOTS4_2_0, TUNED, PART_K, STAT, CANDIDATES, LEVELS, PK, PARTS, build, usePK, grade, get levelBoost() { return levelBoost; }, set levelBoost(x) { levelBoost = +x || 0; } };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Lineup = API;
 })(typeof window !== 'undefined' ? window : globalThis);

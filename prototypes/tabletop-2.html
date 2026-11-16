@@ -718,6 +718,26 @@ html, body {
   }
   // copies of a part in the lot deck: BAL.lots.partCopies[id], else BAL.lots.kindCopies[kind], else its own copies
   const partCopies = k => { const P = window.Lineup.PARTS[k], L = BAL.lots; const n = L.partCopies[k] != null ? L.partCopies[k] : L.kindCopies[P.kind] != null ? L.kindCopies[P.kind] : P.copies; return Math.max(0, Math.round(+n || 0)); };
+  /* Rarity (Kev, 16 Nov: "a rarity like real loot feel, every time an item gets dropped it is assigned a rarity which boosts its
+   * power with linear steps and a real epic category for 1% chances"). Every time a part card comes off the deck (the Market, a
+   * crate) it rolls a tier; the tier travels with the card (lot id p_<part>~<tier>) and with the robot it is fitted on (r.rar).
+   * A card that goes back into the deck loses it and rolls again next time. Chips have no tiers.
+   * RAR[t]: name, colour, chance in % (BAL.rarity.odds), and lv = what the tier adds in levels on top of the part
+   * (tools/damage-lab/rarity-test.js; the strength multipliers are Lineup.RAR_Q). Tiers 1-3 are equal steps; tier 4 is the 1%. */
+  const RAR = [ { n: 'Standard', col: '#6E6457', p: 62, lv: 0 }, { n: 'Tuned', col: '#2F7D4A', p: 24, lv: 0.25 }, { n: 'Race-spec', col: '#2F6DB5', p: 10, lv: 0.5 }, { n: 'Works', col: '#7C4D9E', p: 3, lv: 0.75 }, { n: 'Masterwork', col: '#B07A10', p: 1, lv: 1 } ];   // measured about +0.2 / +0.4 / +0.55 / +0.9, each good to about 0.2
+  const RAR_MARK = ['', ' ▲', ' ▲▲', ' ▲▲▲', ' ✹'];
+  for (const k of Object.keys(window.Lineup.PARTS)) { if (window.Lineup.PARTS[k].kind === 'chip') continue;
+    for (let t = 1; t < RAR.length; t++) LOTS['p_' + k + '~' + t] = Object.assign({}, LOTS['p_' + k], { name: RAR[t].n + ' ' + LOTS['p_' + k].name, rar: t, base: 'p_' + k }); }
+  const rarOf = id => (LOTS[id] && LOTS[id].rar) || 0, baseLot = id => (LOTS[id] && LOTS[id].base) || id;
+  const rarOn = r => k => (r && r.rar && r.rar[k]) || 0;
+  const rarKey = r => r && r.rar ? Object.keys(r.rar).sort().map(k => k + r.rar[k]).join('') : '';
+  function rollRar(id) {
+    const L = LOTS[id], C = BAL.rarity || {};
+    if (!L || !L.part || L.rar || L.base || L.kind === 'chip' || C.on === false) return id;
+    const odds = C.odds || RAR.map(x => x.p), tot = odds.reduce((a, b) => a + b, 0); let x = rnd() * tot, t = 0;
+    for (; t < odds.length - 1; t++) { x -= odds[t]; if (x < 0) break; }
+    return t > 0 && LOTS[id + '~' + t] ? id + '~' + t : id;
+  }
   const lotDeck = () => shuffle(Object.keys(window.Lineup.PARTS).filter(k => window.Lineup.PARTS[k].kind !== 'legendary').flatMap(k => Array(partCopies(k)).fill('p_' + k)).concat(Array(Math.max(0, BAL.lots.robot | 0)).fill('robot'), Array(Math.max(0, BAL.lots.crew | 0)).fill('crew')));
   /* CREW CARDS (Kev, 6 Nov; docs/upgrade-cards.md): every crew member is a named card. t.crew = [{ uid, kind }].
    * t.mechs / t.engPool are counts of Mechanic / Chief Engineer cards (getters + setters, so older code keeps working).
@@ -1066,16 +1086,17 @@ html, body {
   const qTxt = v => { const q = qtr(v), a = Math.abs(q), w = Math.floor(a), f = ['', '¼', '½', '¾'][Math.round((a - w) * 4)]; return (q < 0 ? '−' : '+') + (w || !f ? w : '') + f; };
   const partLv = (k, level) => { const a = PART_LV[k]; return a ? a[level == null ? 0 : level <= 1 ? 1 : level <= 3 ? 2 : 3] : 0.75; };
   const partLvRow = k => PART_LV[k] ? '★0-1 ' + qTxt(PART_LV[k][1]) + ' · ★2-3 ' + qTxt(PART_LV[k][2]) + ' · ★4 ' + qTxt(PART_LV[k][3]) : '';
-  const upLv = r => partsOf(r).reduce((a, k) => a + qtr(partLv(k, r.level || 0)), 0);   // what the upgrades add, in levels
+  const partLvOn = (r, k) => partLv(k, r.level || 0) + RAR[rarOn(r)(k)].lv;   // this copy on this robot
+  const upLv = r => partsOf(r).reduce((a, k) => a + qtr(partLvOn(r, k)), 0);   // what the upgrades add, in levels
   const likeTxt = r => { const u = upLv(r); return partsOf(r).length ? 'fights like ★' + ((r.level || 0) + u).toFixed(1).replace(/\.0$/, '') : ''; };
   function likeHelp(r) {
     const ps = partsOf(r); if (!ps.length) return '';
     const eff = (r.level || 0) + upLv(r), base = Math.floor(eff + 1e-9), p = Math.round(100 / (1 + Math.exp(-(eff - base) * R2.LEVEL)));
-    return '<br><b>Upgrades, in levels:</b> ' + ps.map(k => esc(LU.PARTS[k].name) + ' ' + qTxt(partLv(k, r.level || 0))).join(' · ') + '.<br>Together it ' + likeTxt(r) + ': about ' + p + '% against a ' + (base ? '★' + base : 'starter') + ' robot as it comes. Measured in test fights; good to about a quarter level.';
+    return '<br><b>Upgrades, in levels:</b> ' + ps.map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' ' + qTxt(partLvOn(r, k))).join(' · ') + '.<br>Together it ' + likeTxt(r) + ': about ' + p + '% against a ' + (base ? '★' + base : 'starter') + ' robot as it comes. Measured in test fights; good to about a quarter level.';
   }
   // quarter pips, right-aligned at xr: one coin per upgrade, filled by quarters (a legendary is one full coin and a part of a second)
   function drawPips(ctx, xr, y, r) {
-    const coins = []; partsOf(r).forEach(k => { let v = Math.max(0, qtr(partLv(k, r.level || 0))); if (v <= 0) coins.push(0); while (v > 0) { coins.push(Math.min(1, v)); v -= 1; } });
+    const coins = []; partsOf(r).forEach(k => { let v = Math.max(0, qtr(partLvOn(r, k))); if (v <= 0) coins.push(0); while (v > 0) { coins.push(Math.min(1, v)); v -= 1; } });
     const R = 4.5, gap = 3; let x = xr - R;
     for (let i = coins.length - 1; i >= 0; i--) {
       ctx.fillStyle = '#FFFDF8'; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
@@ -1094,7 +1115,7 @@ html, body {
   const palOf = col => ({ name: '', col, dark: shade(col, -0.32), light: shade(col, 0.4) });
   function spec2(r, team, extra) {
     const T = team == null ? null : typeof team === 'number' ? G.teams[team] : team;
-    const sp = Object.assign(LU.build(r.name, partsOf(r)), { name: r.name, level: r.level, teamName: T ? T.name : '' }, extra || {});
+    const sp = Object.assign(LU.build(r.name, partsOf(r), r.rar), { name: r.name, level: r.level, teamName: T ? T.name : '' }, extra || {});
     if (T) sp.pal = palOf(T.col);
     if (r.wear) sp.wear = clone(r.wear);
     return sp;
@@ -1126,14 +1147,15 @@ html, body {
   // strength (logit units, Repair2): level, power grade, parts and the damage it carries. Cached: zones need a test build.
   const STR = new Map(), ZN = new Map();
   const WK = new WeakMap(), wjson = w => { if (!WK.has(w)) WK.set(w, JSON.stringify(w)); return WK.get(w); };   // wear objects are replaced, never changed in place
-  const wearKey = r => r.name + '|' + partsOf(r).join(',') + '|' + (r.wear ? wjson(r.wear) : '');
+  const wearKey = r => r.name + '|' + partsOf(r).join(',') + rarKey(r) + '|' + (r.wear ? wjson(r.wear) : '');
   function str2(r) {
     const k = wearKey(r);
     if (STR.has(k)) return STR.get(k);
-    const s = R2.strength(r.wear ? spec2(r) : null, r.name, r.level, partsOf(r));
+    const s = R2.strength(r.wear ? spec2(r) : null, r.name, r.level, partsOf(r)) + rarStr(r);
     if (STR.size > 600) STR.clear(); STR.set(k, s); return s;
   }
-  const baseStr = r => R2.strength(null, r.name, r.level, partsOf(r));   // as new
+  const rarStr = r => r && r.rar ? partsOf(r).reduce((a, k) => a + RAR[rarOn(r)(k)].lv, 0) * R2.LEVEL : 0;   // rarity tiers, in the model's units
+  const baseStr = r => R2.strength(null, r.name, r.level, partsOf(r)) + rarStr(r);   // as new
   // Kev, 15 Nov: "don't take damages into account for bookie odds anymore": the odds read every robot as new (BAL.oddsDamage brings damage back)
   const oddsStr = r => BAL.oddsDamage ? str2(r) : baseStr(r);
   const power = r => str2(r);
@@ -2378,7 +2400,7 @@ html, body {
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, tuned robots, upgrades in levels, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-15c phase slides, waiting list, fewer clicks, open hand, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2589,7 +2611,7 @@ html, body {
    * AI teams value a bundle as credits + what each part is worth to them (the bookie's band jump on their robots).
    * ============================================================================ */
   const STASH_MAX = 4;
-  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return L.legend ? 5 : L.kind === 'drone' || L.kind === 'module' ? 3 : 2; };
+  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return (L.legend ? 5 : L.kind === 'drone' || L.kind === 'module' ? 3 : 2) + [0, 1, 2, 3, 6][L.rar || 0]; };   // a better copy is worth more
   const bankHalf = id => Math.max(1, Math.floor(partValue(id) / 2));
   const stashOf = t => (t.stash = t.stash || []);
   function toStash(t, id, quiet) {
@@ -3933,9 +3955,9 @@ html, body {
    * A guaranteed mix: slot 0 a robot (rounds 1..robotLevels.rounds, else a wild lot), slots 1-2 two part lots of different groups
    * (drone / module / upgrade-or-chip), slot 3 the mystery crate (wild, face down until its round). An announced legendary or
    * level 4 robot takes the mystery slot and is shown. Parts are found from the top of the shuffled lot deck. */
-  const partKindOf = id => typeof id === 'string' && id.startsWith('p_') && LU.PARTS[id.slice(2)] ? LU.PARTS[id.slice(2)].kind : null;
+  const partKindOf = id => typeof id === 'string' && id.startsWith('p_') && LOTS[id] && LU.PARTS[LOTS[id].part] ? LU.PARTS[LOTS[id].part].kind : null;
   const mixGroup = id => { const k = partKindOf(id); return k === 'stat' || k === 'chip' ? 'tune' : k; };
-  function returnLot(old) { const Lo = LOTS[old]; if (Lo && Lo.starter) returnStarter(Lo.starter); else if (Lo && Lo.crew) G.crewDeck.unshift(Lo.crew); else if (old && !(Lo && Lo.legend)) G.lots.unshift(old); else if (Lo && Lo.legend && !G.legends.includes(old)) G.legends.unshift(old); }
+  function returnLot(old) { const Lo = LOTS[old]; if (Lo && Lo.starter) returnStarter(Lo.starter); else if (Lo && Lo.crew) G.crewDeck.unshift(Lo.crew); else if (old && !(Lo && Lo.legend)) G.lots.unshift(baseLot(old)); else if (Lo && Lo.legend && !G.legends.includes(baseLot(old))) G.legends.unshift(baseLot(old)); }   // back in the deck: the tier is gone, it rolls again
   function drawLotWhere(pred) {
     for (let pass = 0; pass < 2; pass++) {
       for (let i = G.lots.length - 1; i >= 0; i--) if (pred(G.lots[i])) return G.lots.splice(i, 1)[0];
@@ -3946,7 +3968,7 @@ html, body {
   function dealMarket(round) {
     const r0 = G.round; G.round = round;   // robot levels and chip hold-back go by the round the lots are for
     try {
-      const out = [null, null, null, null], used = new Set(), held = id => isChip((id || '').slice(2)) && partKindOf(id) === 'chip' && round < (BAL.chips.fromRound || 1);
+      const out = [null, null, null, null], used = new Set(), held = id => partKindOf(id) === 'chip' && round < (BAL.chips.fromRound || 1);
       const open = id => id === 'crew' ? (() => { const k = G.crewDeck.pop(); return k ? crewLot(k) : 'mech'; })() : id === 'robot' ? dealRobot() : id;
       const part = () => { const id = drawLotWhere(x => partKindOf(x) && partKindOf(x) !== 'legendary' && !held(x) && !used.has(mixGroup(x))); if (id) used.add(mixGroup(id)); return id; };
       const wild = () => { const id = drawLotWhere(x => !held(x) && (!partKindOf(x) || !used.has(mixGroup(x)))) || drawLotWhere(x => !held(x)); if (id && partKindOf(id)) used.add(mixGroup(id)); return id; };
@@ -3958,7 +3980,7 @@ html, body {
       if (G.legendNext) { returnLot(out[NLOTS - 1]); out[NLOTS - 1] = G.legendNext; G.legendNext = null; }
       if (G.l4Next && l4Due(round)) { let n = G.l4Next; G.l4Next = null; if (G.teams.some(t => t.robots.some(r => r.name === n))) n = null;
         if (n) { const k = LOTS[out[NLOTS - 1]] && LOTS[out[NLOTS - 1]].legend ? 2 : NLOTS - 1; returnLot(out[k]); out[k] = robotLot(n); } }
-      return out;
+      return out.map(rollRar);   // every part card that comes up rolls its tier
     } finally { G.round = r0; }
   }
   // which of next round's lots are face up: the first three, and an announced special in the mystery slot
@@ -3967,13 +3989,13 @@ html, body {
   function dealLot() {
     let id = G.lots.pop();
     // chips held back until BAL.chips.fromRound: to the bottom of the deck, deal the next lot (if the deck has anything else)
-    for (let k = 0; k < G.lots.length && id && id.startsWith('p_') && isChip(id.slice(2)) && G.round < (BAL.chips.fromRound || 1); k++) { G.lots.unshift(id); id = G.lots.pop(); }
+    for (let k = 0; k < G.lots.length && id && partKindOf(id) === 'chip' && G.round < (BAL.chips.fromRound || 1); k++) { G.lots.unshift(id); id = G.lots.pop(); }
     if (id === 'crew') { const k = G.crewDeck.pop(); return k ? crewLot(k) : 'mech'; }
     if (id === 'robot' || (LOTS[id] && LOTS[id].robot)) {
       if (LOTS[id] && LOTS[id].starter) returnStarter(LOTS[id].starter);
       id = dealRobot();
     }
-    return id;
+    return rollRar(id);
   }
   // what a robot lot is worth to an AI team: more when the bookie rates it well against that team's rivals
   // level 4: valued like a legendary (base at least 6) on top of its level and odds
@@ -4052,7 +4074,7 @@ html, body {
    * the AI keeps the most useful; the rest goes to the bank at half value). Fan Favourite fame leaves with it (robotLeaves). */
   const tradeInOn = () => !!(BAL.tradeIn && BAL.tradeIn.on);
   const scrapMoney = r => Math.max(0, Math.round((BAL.tradeIn.base || 0) + (BAL.tradeIn.perLevel || 0) * (r ? r.level || 0 : 0)));
-  const partLots = r => (r.parts || []).map(k => 'p_' + k).concat(r.leg ? ['p_' + r.leg] : []).filter(id => LOTS[id]);
+  const partLots = r => (r.parts || []).concat(r.leg ? [r.leg] : []).map(k => 'p_' + k + (rarOn(r)(k) ? '~' + rarOn(r)(k) : '')).filter(id => LOTS[id]);   // with their tiers
   // strength without its parts (they go to the Stash), with its damage
   const bareStr = r => power(r) - (baseStr(r) - R2.strength(null, r.name, r.level, []));
   function aiTradeInPick(t) {   // the weakest robot by strength (damage counted, parts not: they are kept); a Fan Favourite only if clearly weakest
@@ -4122,6 +4144,7 @@ html, body {
     if (!canFit(r, L)) return 'No room on ' + r.name;
     if (L.part) {
       if (LU.PARTS[L.part].kind === 'legendary') r.leg = L.part; else (r.parts = r.parts || []).push(L.part);
+      r.rar = Object.assign({}, r.rar); if (L.rar) r.rar[L.part] = L.rar; else delete r.rar[L.part];   // the tier of this copy (two copies of one part on a robot share the newest tier)
     }
     return `Fitted on ${r.name}`;
   }
@@ -7017,9 +7040,9 @@ html, body {
     ctx.textAlign = 'left';
     { const tgW = drawBookieTags(ctx, r, bx + bw - 10, by + 36, 14, 9, tw * 0.62); ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name) + ' · 🎖 ' + r.wins, tx, by + 47, tw - tgW - 4, '600', 11); }
     const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
-    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => (LU.PARTS[k] ? LU.PARTS[k].name : k) + ' ' + qTxt(partLv(k, r.level || 0))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
-    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name + ' ' + qTxt(partLv(r.leg, r.level || 0)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
-    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b>' + esc(LU.PARTS[k].name) + ' (' + qTxt(partLv(k, r.level || 0)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
+    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => (LU.PARTS[k] ? LU.PARTS[k].name : k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
+    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
+    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
@@ -7127,9 +7150,9 @@ html, body {
     const L = LOTS[id]; if (!L) return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
     if (L.robot) return isL4(L.starter) ? { k: 'l4', col: '#6A3FA0', fg: '#fff', label: 'ROBOT', when: '★★★★ LEVEL 4' } : { k: 'robot', col: '#2F7D4A', fg: '#fff', label: 'ROBOT', when: levelOf(L.starter) ? 'LEVEL ' + levelOf(L.starter) : 'STARTER' };
     if (L.crew) return { k: 'crew', col: '#8A5A2B', fg: '#fff', label: 'CREW', when: (CREW[L.crew] ? CREW[L.crew].name : '').toUpperCase() };
-    if (L.legend) return { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: '1 COPY' };
+    if (L.legend) return { k: 'legend', col: '#B8860B', fg: INK, label: 'LEGENDARY', when: L.rar ? RAR[L.rar].n.toUpperCase() : '1 COPY' };
     if (L.part && isChip(L.part)) return { k: 'chip', col: '#0E7490', fg: '#fff', label: 'TUNING CHIP', when: 'LEVEL 0-1' };
-    if (L.part) return { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase() };
+    if (L.part) return L.rar ? { k: 'part', col: RAR[L.rar].col, fg: '#fff', label: RAR[L.rar].n.toUpperCase(), when: String(L.kind || '').toUpperCase() } : { k: 'part', col: '#1F8A8A', fg: '#fff', label: 'PART', when: String(L.kind || '').toUpperCase() };
     return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
   }
   // the lot's frame and type band (stage space); the content goes below y + 18
@@ -7293,6 +7316,7 @@ html, body {
       drawLotFrame(ctx, K, x, y, w, h, { dim: noFit, edge: bid > 0 ? INK : null, lw: bid > 0 ? 4 : 3 });
       if (k === G.bargainK && G.marketStage !== 'host') { ctx.fillStyle = '#2F6DB5'; rrect(ctx, x + 6, y + h + 2, w - 12, 16, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🏷️ BARGAIN BIN · ' + BARGAIN_OFF + ' CR OFF', x + w / 2, y + h + 14, w - 20, '700', 9.5, F_MONO);
         help(x + 6, y + h + 2, w - 12, 16, '🏷️ Bargain bin', 'Nobody bought this part last round. Whoever wins it now pays ' + BARGAIN_OFF + ' Cr less than their bid (a bid of ' + BARGAIN_OFF + ' gets it free). Unsold again, it goes back into the deck.'); }
+      if (rarOf(it.id) >= 3) { const pu = 0.55 + 0.45 * Math.sin(performance.now() / 300); ctx.save(); ctx.globalAlpha = pu; ctx.strokeStyle = RAR[rarOf(it.id)].col; ctx.lineWidth = rarOf(it.id) === 4 ? 6 : 4; rrect(ctx, x - 4, y - 4, w + 8, h + 8, 8); ctx.stroke(); ctx.restore(); }   // a Works or Masterwork copy glows
       { const tt = it.part && k < NLOTS ? tripleTargets(it.part) : [];
         const ep = (it.part && k < NLOTS ? epicTargets(it.part) : []).concat(tt.map(q => ({ T: q.T, r: q.r, e: ['Giant-slayer ' + q.r.name, q.t[1], q.t[2]], tri: true })));   // Kev, 10 Nov: an epic combo on the table: the bookie flags the lot
         if (ep.length) { const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 260);
@@ -7315,8 +7339,8 @@ html, body {
         ctx.font = '24px ' + F_SANS; ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.fillText(it.icon, ax, ay + 8);
         ctx.fillStyle = INK; fitText(ctx, it.name, x + w / 2, yb + 68, w - 12, '400', 16, F_STEN);
         ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 84, w - 12, '500', 11);
-        if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; ctx.fillStyle = '#B4560F'; fitText(ctx, qTxt(partLv(it.part)) + ' LEVEL · ' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()), x + w / 2, yb + 101, w - 12, '700', 10.5, F_MONO);
-          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part)) + ' level', '<b>Worth in levels:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
+        if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; ctx.fillStyle = '#B4560F'; fitText(ctx, qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' LEVEL · ' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()), x + w / 2, yb + 101, w - 12, '700', 10.5, F_MONO);
+          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' level', (rarOf(it.id) ? '<b style="color:' + RAR[rarOf(it.id)].col + '">' + RAR[rarOf(it.id)].n + ' copy</b>: a better copy of this part, ' + qTxt(RAR[rarOf(it.id)].lv) + ' level on top (about ' + RAR[rarOf(it.id)].p + ' in 100 part cards). Back in the deck it rolls again.<br>' : '') + '<b>Worth in levels, standard copy:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
         else if (it.crew && CREW[it.crew]) help(x + 4, yb + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
         else if (k === HOST_K) help(x + 4, yb + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
         { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, yb + 89, w - 8, 13, hl[0], hl[1]); }
@@ -7820,6 +7844,7 @@ html, body {
       'Robots: a new, tuned lineup of 33 robots over the starters and four levels; every level is about equally strong inside, and a level up wins about two fights in three.',
       'Parts: drones and modules grow with the level of the robot that carries them; every part is tuned to about three quarters of a level, a legendary to a level and a half.',
       'Upgrades are shown in levels: orange coins next to a robot\'s level (a quarter each), "+¾ level" on part cards, and "fights like ★1.7" on a robot with parts.',
+      'Rarity: every part card that comes up is a Standard, Tuned, Race-spec or Works copy, each a quarter level better than the one before, and 1 in 100 is a Masterwork, worth a full level on top. The tier stays with the part on your robot and in your Stash.',
       'This list.' ]],
     ['2.0, reaction window', '15 Nov 2026', [
       'One reaction window for everyone at the same time, with a countdown: blocks, Security Bots, Override and Firewall, Pile-On, Botched Install. It also appears when you have nothing to play, so nobody can tell who holds a reaction card.',
