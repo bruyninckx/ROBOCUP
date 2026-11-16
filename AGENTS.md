@@ -44,7 +44,11 @@ Before you say "done":
      0 page errors;
    - engine or robots: the stock-fight fingerprint is unchanged unless the task was to change it
      (`tools/damage-lab/l4-regress.js`, compare with a run on `origin/main`);
-   - online play or anything in `src2/net.js`: `node tools/mp-test.js` → 0 desyncs; `prototypes/sync-check.html` unchanged;
+   - online play or anything in `src2/net.js`: `node tools/mp-test.js` (the 2.0 page, 3 bot clients) → last line "OK",
+     desyncs 0 on every client line; `prototypes/sync-check.html` unchanged. It takes 3-20 minutes; a TIMEOUT line says how
+     far it got (give more minutes: `node tools/mp-test.js 3 5 90`). The 1.0 page: `PAGE=tabletop-prototype.html node tools/mp-test.js`;
+   - offline or with the CDN blocked: `npm install --no-package-lock` once (it brings playwright and a local planck; there is no
+     package-lock.json, so `npm ci` fails); the tools then serve that planck themselves (`tools/planck-local.js`);
    - balance: the numbers the task asked for, with how many fights and how sure they are.
 4. Write it down: a dated entry in `PROGRESS.md`; the matching doc in `docs/` (and its claude.ai project copy); for anything
    players see, a line in the changelog (`CHANGES` in `prototypes/tabletop-2.html`) and a new `BUILD` string.
