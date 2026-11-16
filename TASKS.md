@@ -67,6 +67,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T16. Bids can still be changed after locking, until everybody has locked.** Kev (16 Nov): "when people lock bids,
+  people can still change their bids after that if there are other people not locked yet but if everybody locked it it
+  continues". Goal: a locked player can still change a bid while somebody else has not locked; the step goes on only when
+  every player is locked. Safest reading taken: changing a bid takes your lock off, and you lock again (so the step can't
+  resolve on a half-made change). The same for bets and the host bid where they use the same lock. Files:
+  `prototypes/tabletop-2.html` (`gather`, `ACT.lockBids`, `ACT.lockBets`, the bid clicks). Worker on branch
+  `claude/relock-bids`, started 16 Nov. Done when: scripted solo and online checks (lock, change, others see you
+  unlocked, lock again, resolves with the new bid), game-sim check and the online test on the 2.0 page pass.
 - **T15. The send button in the note must show it worked.** Kev (16 Nov): "when I clicked it it somehow didn't register,
   or perhaps it did register but the button still showed, should be something like a checkmark after that button so we
   know it did its work". Likely cause: right after the last robot is sent the bookie runs its test fights on the page
