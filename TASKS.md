@@ -67,6 +67,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T15. The send button in the note must show it worked.** Kev (16 Nov): "when I clicked it it somehow didn't register,
+  or perhaps it did register but the button still showed, should be something like a checkmark after that button so we
+  know it did its work". Likely cause: right after the last robot is sent the bookie runs its test fights on the page
+  (the game opened as a file has no workers), so the screen stands still for about 4 s with the buttons unchanged. Goal:
+  the clicked button shows a checkmark at once, the others grey out, and the note says the bookie is working; the same
+  for the other choice buttons in the note. Files: `prototypes/tabletop-2.html` (the note's send buttons). Worker on
+  branch `claude/send-feedback`, started 16 Nov. Done when: a screenshot taken straight after the click shows the
+  checkmark, on a page opened as a file; game-sim check and the online test on the 2.0 page pass.
 - **T12. A bought part goes on the robot at once, with undo; the YOUR MOVE box flashes red for a choice.** Kev (16 Nov):
   "when you buy a part, put it on the robot immediately but do show an undo button for 5 sec in the yellow box so people
   can undo that, also not sure yet how it works for multiple robots (not seen that yet in my playtest), but also in these
