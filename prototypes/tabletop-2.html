@@ -318,6 +318,33 @@ html, body {
 .waitrail .wr-row.busy b { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); animation: whoPulse 1.2s ease-in-out infinite; }
 .waitrail .wr-row.done b { background: #2F7D4A; color: #fff; }
 .tb-who { display: none !important; }
+/* the power map (Kev, 16 Nov, T13): every robot by level and strength for its level; this game's robots where they fight now */
+#pmapBox { position: fixed; inset: 0; z-index: 8500; background: rgba(43,33,24,.45); display: flex; align-items: stretch; justify-content: center; padding: 10px; box-sizing: border-box; }
+#pmapBox[hidden] { display: none; }
+#pmapBox .pm-card { flex: 1; max-width: 1900px; min-height: 0; display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.35); overflow: hidden; }
+#pmapBox .pm-head { display: flex; align-items: center; gap: 14px; padding: 5px 10px 5px 14px; border-bottom: 2px solid var(--ink); }
+#pmapBox .pm-t { font: 400 20px var(--stencil); white-space: nowrap; }
+#pmapBox .pm-sub { flex: 1; min-width: 0; font: 12px/1.3 var(--sans); color: var(--muted); }
+#pmapBox .pm-head label { font: 600 12.5px var(--sans); display: flex; gap: 5px; align-items: center; cursor: pointer; white-space: nowrap; }
+#pmapBox .pm-x, #pmapBox .pm-x2 { font: 700 13px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--panel); cursor: pointer; padding: 1px 8px; }
+#pmapBox .pm-body { flex: 1; display: flex; min-height: 0; }
+#pmapBox .pm-map { flex: 1; position: relative; min-width: 0; }
+#pmapBox .pm-map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#pmapBox .pm-side { width: 272px; flex: none; border-left: 2px solid var(--ink); overflow: auto; padding: 8px 10px 10px; font: 12.5px/1.4 var(--sans); background: var(--panel); box-sizing: border-box; }
+#pmapBox .pm-side p { margin: 4px 0 8px; }
+#pmapBox .pm-h { font: 600 10.5px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin: 10px 0 4px; }
+#pmapBox .pm-top { display: flex; align-items: center; gap: 6px; font-size: 17px; } #pmapBox .pm-top .pm-x2 { margin-left: auto; padding: 0 6px; }
+#pmapBox .pm-sub2, #pmapBox .pm-side .pm-sub { color: var(--muted); margin-bottom: 4px; font-size: 12px; }
+#pmapBox .pm-n { color: var(--muted); font-size: 11.5px; }
+#pmapBox .pm-li { all: unset; box-sizing: border-box; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; width: 100%; padding: 2px 7px; margin: 2px 0; border-radius: 4px; font-size: 12.5px; }
+#pmapBox .pm-li.g { background: #DCEBDD; } #pmapBox .pm-li.b { background: #F3D9D3; } #pmapBox .pm-li:hover { outline: 2px solid var(--ink); }
+#pmapBox .pm-li i { font-style: normal; color: #b45309; font-size: 11px; } #pmapBox .pm-li em { font: 500 11px var(--mono); font-style: normal; color: var(--muted); }
+#pmapBox .pm-vs { border-collapse: collapse; width: 100%; } #pmapBox .pm-vs td { padding: 2px 3px; border-bottom: 1px solid var(--line); } #pmapBox .pm-vs td:last-child { text-align: right; white-space: nowrap; }
+#pmapBox .sc-chip, #pmTip .sc-chip { color: #fff; border-radius: 9px; padding: 1px 7px; font: 600 11px var(--mono); }
+.pm-pill { display: inline-block; color: #fff; border-radius: 3px; padding: 0 4px; font: 700 10px var(--mono); }
+.pm-st { color: #b45309; } .pm-q { color: #D9731A; font-weight: 700; }
+#pmTip { position: fixed; z-index: 10040; pointer-events: none; max-width: 300px; background: var(--paper); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.22); padding: 6px 9px; font: 12px/1.45 var(--sans); color: var(--ink); }
+#pmTip[hidden] { display: none; }
 /* the changelog (Kev, 15 Nov), behind the button next to the sound button */
 #clogBox { position: fixed; inset: 0; z-index: 2000; background: rgba(43,33,24,.45); display: flex; align-items: flex-start; justify-content: flex-end; padding: 58px 14px 14px; }
 #clogBox[hidden] { display: none; }
@@ -500,6 +527,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     <option value="2">Seat: Moss Gears</option>
     <option value="3">Seat: Plum Ohms</option>
   </select>
+  <button type="button" class="seat-select" id="pmapBtn" title="Power map: every robot by level and strength; this game's robots where they fight now (key M)">🗺 power map</button>
   <button type="button" class="seat-select" id="clogBtn" title="What changed in the game, newest first">📋 changes</button>
   <button type="button" class="seat-select" id="sndBtn" title="Sound on or off">🔊</button>
 </div>
@@ -8480,6 +8508,292 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (F.S.over && F.viewDone && !isClient()) aftermath();
     }
   }
+
+  /* ============================================================================
+   * POWER MAP (Kev, 16 Nov, T13): "an interactive powermap as an overlay with all the robots in game"; "power map shold be the
+   * shifted version". Every robot of the lineup by level (bands) and strength for its level (left to right); this game's robots
+   * where they fight now (parts with their tiers, and damage), a faint copy where they stood as new. Display only: it reads G, the
+   * matchup table and the strength model, changes nothing and rolls no dice (docs/robocus-power-map.md).
+   * ============================================================================ */
+  const PM = { el: null, cv: null, open: false, sel: null, hov: null, only: false, items: [], base: null, geo: null, xm: 0.75, jobs: [], pumping: false, sig: '', timer: null, msOpen: 0 };
+  const PM_LV = ['Starters', 'Level 1', 'Level 2', 'Level 3', 'Level 4'], PM_LC = ['#7C8A83', '#4F8FB0', '#6C6CC0', '#B3569A', '#D9822B'];
+  // each robot as it comes: a rating from the matchup table (Bradley-Terry fit on the open-floor pairs, half a fight each way added
+  // to every pair), given as levels from the average of its own level (one level = Repair2.LEVEL in the model's units)
+  function pmBase() {
+    if (PM.base) return PM.base;
+    const names = ROB_ALL(), P = (MXT.open && MXT.open.pairs) || {}, ix = {}, N = names.length, W = new Array(N).fill(0), pairs = [];
+    names.forEach((n, i) => { ix[n] = i; });
+    for (const k in P) { const [a, b] = k.split('|'); if (ix[a] == null || ix[b] == null) continue; const n = P[k][1] + 1, w = P[k][0] + 0.5; pairs.push([ix[a], ix[b], n]); W[ix[a]] += w; W[ix[b]] += n - w; }
+    let s = new Array(N).fill(1);
+    for (let it = 0; it < 150; it++) {
+      const D = new Array(N).fill(0); for (const [a, b, n] of pairs) { const q = n / (s[a] + s[b]); D[a] += q; D[b] += q; }
+      const ns = s.map((v, i) => D[i] ? W[i] / D[i] : v), g = Math.exp(ns.reduce((x, v) => x + Math.log(v), 0) / N); s = ns.map(v => v / g);
+    }
+    const lvOf = n => Math.max(0, Math.min(4, levelOf(n))), byLv = [[], [], [], [], []];
+    names.forEach((n, i) => byLv[lvOf(n)].push(Math.log(s[i])));
+    const tgt = byLv.map(a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0), R = {};
+    names.forEach((n, i) => { R[n] = { lv: lvOf(n), dev: (Math.log(s[i]) - tgt[lvOf(n)]) / R2.LEVEL }; });
+    const up = [null];   // how often a robot of this level beats one a level down, both as they come
+    for (let l = 1; l < 5; l++) { let a = 0, c = 0; for (const k in P) { const [x, y] = k.split('|'), p = P[k][0] / P[k][1];
+      if (R[x] && R[y] && R[x].lv === l && R[y].lv === l - 1) { a += p; c++; } else if (R[x] && R[y] && R[y].lv === l && R[x].lv === l - 1) { a += 1 - p; c++; } }
+      up.push(c ? Math.round(100 * a / c) : null); }
+    return (PM.base = { names, R, up, n: byLv.map(a => a.length) });
+  }
+  // where a robot fights now. shift = what its parts add (the game's "fights like", tiers included) minus what its damage costs
+  // (the strength model, as the bookie counts it), in levels. Band = its level + the shift rounded; x = its as-new place in its
+  // own band + the rest of the shift. So "fights like ★2.6" sits in the Level 3 band, a little left of the level average.
+  const pmDmgLv = r => BAL.oddsDamage && r.wear ? Math.max(0, baseStr(r) - str2(r)) / R2.LEVEL : 0;
+  function pmPlace(r) {
+    const B = pmBase().R[r.name] || { lv: Math.max(0, Math.min(4, r.level || 0)), dev: 0 }, up = upLv(r), dmg = pmDmgLv(r), sh = up - dmg;
+    const band = Math.max(0, Math.min(4, B.lv + Math.round(sh)));
+    return { band, x: B.dev + sh - (band - B.lv), lv: B.lv, dev: B.dev, up, dmg, sh, eff: B.lv + sh };
+  }
+  const pmLike = v => v < -0.05 ? 'below ★0' : '★' + (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
+  // what is on the map: this game's robots (teams, the Market's robot lots, next round's lots that are shown), then one token per
+  // lineup robot as it comes (faint when a copy of it is in this game: the copy has a line back to it)
+  function pmItems() {
+    const B = pmBase(), out = [], by = {};
+    const add = (r, kind, T, lot) => { const pl = pmPlace(r), it = { r, kind, T, lot, name: r.name, pl, band: pl.band, x: pl.x, home: null }; out.push(it); (by[r.name] = by[r.name] || []).push(it); };
+    if (G && G.teams) for (const T of G.teams) for (const r of T.robots || []) add(r, 'team', T);
+    if (G && G.phase === 'market' && !G.marketResolved && G.market) for (const id of G.market) { const L = LOTS[id]; if (L && L.robot && L.bot) add(L.bot, 'lot', null, id); }
+    if (G && G.nextMarket && G.nextRound === G.round + 1) G.nextMarket.forEach((id, k) => { const L = LOTS[id]; if (L && L.robot && L.bot && conveyorShown(k)) add(L.bot, 'next', null, id); });
+    for (const n of B.names) {
+      const b = B.R[n], ins = by[n] || [], same = i => i.band === b.lv && Math.abs(i.x - b.dev) < 0.03;
+      if (ins.length && ins.every(same)) continue;   // every copy is as it comes: the copies stand on its spot
+      const it = { r: { name: n, level: b.lv, parts: [], leg: null, wear: null }, kind: ins.length ? 'ghost' : 'line', T: null, name: n, band: b.lv, x: b.dev, home: null,
+        pl: { band: b.lv, x: b.dev, lv: b.lv, dev: b.dev, up: 0, dmg: 0, sh: 0, eff: b.lv } };
+      out.push(it); ins.forEach(i => { if (!same(i)) i.home = it; });
+    }
+    return out;
+  }
+  const pmInGame = it => it.kind === 'team' || it.kind === 'lot' || it.kind === 'next';
+  const pmShown = it => !PM.only || it.kind !== 'line';
+  function pmGeo(W, H) {
+    const left = W < 1000 ? 96 : 122, right = 14, top = 28, bot = 22, BH = (H - top - bot) / 5;
+    const rows = BH >= 84 ? 3 : 2, RAD = Math.max(9, Math.min(17, (BH - 10) / rows / 2 - 6.5)), xm = PM.xm;
+    return { W, H, left, right, top, bot, BH, rows, RAD, xm, font: RAD >= 13 ? 11 : 10,
+      X: x => left + 18 + (Math.max(-xm, Math.min(xm, x)) + xm) / (2 * xm) * (W - left - right - 36), Y: b => top + (4 - b) * BH };
+  }
+  // spread the tokens of a band: in-game robots first, each as close to its true place as the names allow (no overlaps)
+  const pmR = it => pmInGame(it) ? PM.geo.RAD : Math.max(8, PM.geo.RAD * 0.72);
+  function pmBox(it, ctx) {
+    const g = PM.geo, r = pmR(it), mine = it.kind === 'team' && it.T.i === viewerSeat, ring = mine ? 7 : 2;
+    ctx.font = (pmInGame(it) ? '700 ' : '500 ') + pmFont(it) + 'px IBM Plex Sans, system-ui, sans-serif';
+    const pill = mine || it.kind === 'lot' || it.kind === 'next', tag = pmInGame(it) && Math.abs(it.pl.sh) >= 0.124 ? 26 : 0;
+    return { l: Math.max(r + ring + 2, ctx.measureText(it.name).width / 2 + 3), r: Math.max(r + ring + 2 + tag, ctx.measureText(it.name).width / 2 + 3), t: r + ring + (pill ? 8 : 1), b: r + ring + pmFont(it) + 3 };
+  }
+  const pmFont = it => pmInGame(it) ? PM.geo.font : PM.geo.font - 1;
+  function pmLayout() {
+    const g = PM.geo, ctx = PM.cv.getContext('2d'), step = (g.BH - 10) / (g.rows * 2), ks = g.rows === 3 ? [0, -2, 2, -1, 1] : [-1, 1, 0];
+    for (let l = 0; l < 5; l++) {
+      const cy = g.Y(l) + g.BH / 2 - 4, done = [], y0 = g.Y(l) + 2, y1 = g.Y(l) + g.BH - 4;
+      const its = PM.items.filter(it => it.band === l && pmShown(it)).sort((a, b) => (pmInGame(b) - pmInGame(a)) || a.x - b.x);
+      for (const it of its) {
+        const x0 = g.X(it.x), bx = pmBox(it, ctx), lo = g.left + 8 + bx.l, hi = g.W - g.right - bx.r;
+        const hit = (x, y) => done.some(o => x - bx.l < o.x + o.bx.r && x + bx.r > o.x - o.bx.l && y - bx.t < o.y + o.bx.b && y + bx.b > o.y - o.bx.t);
+        let best = null;
+        for (const k of ks) { let y = cy + k * step; y = Math.max(y0 + bx.t, Math.min(y1 - bx.b, y));
+          for (const sg of [1, -1]) { let dx = 0, x = x0;
+            for (; dx < g.W; dx += 2) { x = Math.max(lo, Math.min(hi, x0 + sg * dx)); if (!hit(x, y)) break; }
+            const c = Math.abs(x - x0) + Math.abs(k) * 4; if (!best || c < best.c) best = { c, x, y }; } }
+        done.push({ x: best.x, y: best.y, bx }); it.px = best.x; it.py = best.y;
+      }
+    }
+  }
+  // the robot's picture: the game's own portrait (src2/view.js, team colours, lost parts missing), from the table's cache when it has it
+  const pmPk = it => (it.T ? it.T.col : '') + 128 + '|' + wearKey(it.r);
+  function pmImg(it) {
+    const k = pmPk(it); if (PORT.has(k)) return PORT.get(k);
+    if (!PM.jobs.some(j => j.k === k)) PM.jobs.push({ k, it });
+    return undefined;
+  }
+  function pmPump() {
+    if (!PM.open || !PM.jobs.length) { PM.pumping = false; return; }
+    PM.pumping = true; const t0 = performance.now();
+    while (PM.jobs.length && performance.now() - t0 < 14) { const j = PM.jobs.shift(); if (PORT.has(j.k)) continue; let img = null;
+      try { img = VW.portrait(spec2(j.it.r, j.it.T), 128); } catch (e) { img = null; } if (PORT.size > 200) PORT.clear(); PORT.set(j.k, img); }
+    pmDraw(); setTimeout(pmPump, 0);
+  }
+  function pmCounters(it) {   // the same rule as the game's 🎯 / ⚠️ tags (counterOf: 40+ points off what the level gap gives)
+    const beats = [], lose = [];
+    for (const n of pmBase().names) { if (n === it.name) continue; const c = counterOf(it.r, { name: n, level: pmBase().R[n].lv });
+      if (c) (c.good ? beats : lose).push({ n, p: c.p, e: c.e }); }
+    return { beats, lose };
+  }
+  // the tokens an arrow goes to: this game's copies of that robot, else the lineup token
+  const pmTargets = n => { const a = PM.items.filter(i => i.name === n && pmInGame(i) && pmShown(i)); return a.length ? a : PM.items.filter(i => i.name === n && !pmInGame(i) && pmShown(i)); };
+  function pmArrow(ctx, p, q, col) {
+    const dx = q.px - p.px, dy = q.py - p.py, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    const x1 = p.px + ux * (pmR(p) + 3), y1 = p.py + uy * (pmR(p) + 3), x2 = q.px - ux * (pmR(q) + 5), y2 = q.py - uy * (pmR(q) + 5), bend = 0.18 * d;
+    const mx = (x1 + x2) / 2 - uy * bend, my = (y1 + y2) / 2 + ux * bend;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, x2, y2); ctx.stroke();
+    const a = Math.atan2(y2 - my, x2 - mx); ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  }
+  const pmRR = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+  function pmPill(ctx, x, y, txt, bg, fg) {
+    ctx.font = '700 10px IBM Plex Sans, system-ui, sans-serif'; const w = ctx.measureText(txt).width + 7;
+    ctx.fillStyle = bg; pmRR(ctx, x - w / 2, y - 6, w, 12, 3); ctx.fill(); ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y + 0.5);
+  }
+  function pmTok(ctx, it, a) {
+    const g = PM.geo, R = pmR(it), x = it.px, y = it.py, mine = it.kind === 'team' && it.T.i === viewerSeat, game = pmInGame(it), fs = pmFont(it);
+    ctx.globalAlpha = a;
+    if (mine) { ctx.fillStyle = it.T.col; ctx.beginPath(); ctx.arc(x, y, R + 6, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#FFFDF8'; ctx.beginPath(); ctx.arc(x, y, R + 2, 0, Math.PI * 2); ctx.fill();
+    const img = pmImg(it);
+    ctx.save(); ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#EDE7DC'; ctx.fillRect(x - R, y - R, 2 * R, 2 * R);
+    if (img) ctx.drawImage(img, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24);
+    else { ctx.fillStyle = PM_LC[it.pl.lv]; ctx.font = '700 ' + Math.round(R) + 'px IBM Plex Sans, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(it.name[0], x, y + 1); }
+    ctx.restore();
+    ctx.lineWidth = game ? 3 : 1.6; ctx.setLineDash(it.kind === 'lot' || it.kind === 'next' || it.kind === 'ghost' ? [4, 3] : []);
+    ctx.strokeStyle = it.kind === 'team' ? it.T.col : it.kind === 'lot' ? '#D9731A' : it.kind === 'next' ? '#A79C8C' : it.kind === 'ghost' ? '#8F857A' : PM_LC[it.pl.lv];
+    ctx.beginPath(); ctx.arc(x, y, R + 1, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    if (mine) { ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, R + 6.5, 0, Math.PI * 2); ctx.stroke(); }
+    if (PM.sel === it) { ctx.strokeStyle = '#2B2118'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, R + (mine ? 9.5 : 5), 0, Math.PI * 2); ctx.stroke(); }
+    ctx.font = (game ? '700 ' : '500 ') + fs + 'px IBM Plex Sans, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,253,248,.85)'; ctx.strokeText(it.name, x, y + R + fs + (mine ? 6 : 2)); ctx.fillStyle = it.kind === 'ghost' ? '#8F857A' : '#2B2118'; ctx.fillText(it.name, x, y + R + fs + (mine ? 6 : 2));
+    const top = y - R - (mine ? 8 : 4);
+    if (mine) pmPill(ctx, x, top, 'YOU', '#2B2118', '#E8C547');
+    else if (it.kind === 'lot') pmPill(ctx, x, top, 'LOT', '#D9731A', '#fff');
+    else if (it.kind === 'next') pmPill(ctx, x, top, 'NEXT', '#A79C8C', '#fff');
+    if (game && Math.abs(it.pl.sh) >= 0.124) { ctx.font = '700 10px IBM Plex Sans, sans-serif'; const tx = pmLike(it.pl.eff), w = ctx.measureText(tx).width; pmPill(ctx, x + R + (mine ? 7 : 3) + w / 2, y - R * 0.45, tx, it.pl.sh > 0 ? '#D9731A' : '#B23A2B', '#fff'); }
+    if (game && Math.abs(it.x) > g.xm) pmPill(ctx, x + (it.x > 0 ? R + 4 : -R - 4), y + R * 0.4, it.x > 0 ? '»' : '«', '#2B2118', '#fff');
+    ctx.globalAlpha = 1;
+  }
+  function pmDraw() {
+    const cv = PM.cv, g = PM.geo; if (!cv || !g) return;
+    const dpr = window.devicePixelRatio || 1, ctx = cv.getContext('2d'), B = pmBase();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, g.W, g.H); ctx.textBaseline = 'alphabetic';
+    for (let l = 0; l < 5; l++) {
+      const y = g.Y(l), n = PM.items.filter(i => i.band === l && pmInGame(i)).length;
+      ctx.fillStyle = l % 2 ? '#F1ECE2' : '#FFFDF8'; ctx.fillRect(0, y, g.W, g.BH - 3);
+      ctx.fillStyle = PM_LC[l]; ctx.fillRect(0, y, 6, g.BH - 3);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#2B2118'; ctx.font = '400 17px Saira Stencil One, Impact, sans-serif'; ctx.fillText(PM_LV[l], 14, y + 22);
+      ctx.font = '11px IBM Plex Sans, sans-serif'; ctx.fillStyle = '#6E6457'; ctx.fillText(B.n[l] + ' robots', 14, y + 39);
+      if (B.up[l] != null) ctx.fillText(B.up[l] + '% vs a level down', 14, y + 53);
+      if (n) { ctx.font = '700 11px IBM Plex Sans, sans-serif'; ctx.fillStyle = '#2B2118'; ctx.fillText(n + ' in this game', 14, y + (B.up[l] != null ? 67 : 53)); }
+      ctx.strokeStyle = PM_LC[l]; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(g.X(0), y + 4); ctx.lineTo(g.X(0), y + g.BH - 8); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.font = '11px IBM Plex Mono, monospace'; ctx.textAlign = 'center';
+    for (let q = -g.xm; q <= g.xm + 1e-9; q += 0.25) {
+      const x = g.X(q), lab = Math.abs(q) < 1e-9 ? 'level average' : qTxt(q) + ' level';
+      if (Math.abs(q) > 1e-9) { ctx.strokeStyle = 'rgba(207,198,183,.8)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x, g.top - 4); ctx.lineTo(x, g.top + 5 * g.BH - 4); ctx.stroke(); }
+      ctx.fillStyle = '#6E6457'; ctx.fillText(lab, x, g.top - 10);
+    }
+    ctx.textAlign = 'left'; ctx.fillText('← weaker for its level', g.left + 18, g.H - 6); ctx.textAlign = 'right'; ctx.fillText('stronger for its level →', g.W - g.right, g.H - 6);
+    const sel = PM.sel && PM.items.includes(PM.sel) ? PM.sel : null, rel = new Set(), arrows = [];
+    if (sel) { rel.add(sel); const C = pmCounters(sel);
+      for (const c of C.beats) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([sel, t, '#2F7D4A']); }
+      for (const c of C.lose) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([t, sel, '#B23A2B']); } }
+    const alpha = it => sel ? (rel.has(it) ? 1 : 0.2) : pmInGame(it) ? 1 : it.kind === 'ghost' ? 0.45 : 0.38;
+    // a line from the as-new copy to where it fights now
+    for (const it of PM.items) { if (!it.home || !pmShown(it) || it.px == null) continue;
+      ctx.globalAlpha = sel && !rel.has(it) ? 0.15 : 0.85; ctx.strokeStyle = it.T ? it.T.col : '#D9731A'; ctx.lineWidth = 2; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(it.home.px, it.home.py); ctx.lineTo(it.px, it.py); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.globalAlpha = 1;
+    const order = PM.items.filter(it => pmShown(it) && it.px != null).sort((a, b) => (pmInGame(a) - pmInGame(b)) || ((PM.sel === a) - (PM.sel === b)));
+    for (const it of order) if (!pmInGame(it)) pmTok(ctx, it, alpha(it));
+    for (const [a, b, c] of arrows) pmArrow(ctx, a, b, c);
+    for (const it of order) if (pmInGame(it)) pmTok(ctx, it, alpha(it));
+  }
+  const pmOwner = it => it.kind === 'team' ? (it.T.i === viewerSeat ? '<b style="color:' + it.T.col + '">Yours</b> (' + esc(it.T.name) + ')' : '<b style="color:' + it.T.col + '">' + esc(it.T.name) + '</b>')
+    : it.kind === 'lot' ? '<b style="color:#D9731A">In the Market</b> (a robot lot)' : it.kind === 'next' ? 'In next round\'s Market' : it.kind === 'ghost' ? 'As it comes (new); a copy is in this game' : 'Not in this game';
+  const pmParts = r => partsOf(r).length ? partsOf(r).map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + (LU.PARTS[k] ? LU.PARTS[k].name : k)) + ' <span class="pm-q">' + qTxt(partLvOn(r, k)) + '</span>').join(', ') : 'no parts';
+  function pmFights(it) {
+    const p = it.pl;
+    if (!pmInGame(it)) return 'As it comes: ' + (Math.abs(p.dev) < 0.125 ? 'right at its level' : qTxt(p.dev) + ' level for a ' + starsOf(p.lv) + ' robot');
+    const bits = []; if (p.up) bits.push('parts ' + qTxt(p.up)); if (p.dmg >= 0.05) bits.push('damage −' + qTxt(p.dmg).slice(1));
+    return (p.eff < -0.05 ? 'Fights <b>below a starter</b>' : 'Fights like <b>' + pmLike(p.eff) + '</b>') + (bits.length ? ' (' + bits.join(', ') + ' level)' : ' (as it comes)');
+  }
+  function pmTipHtml(it) {
+    const r = it.r;
+    return '<b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span> · ' + esc(wepLabel(r.name)) + '<br>' + pmOwner(it) +
+      (pmInGame(it) ? '<br>Parts: ' + pmParts(r) + '<br>Damage: ' + esc(zoneTxt(r)) : '') + '<br>' + pmFights(it) + '<br><i>Click for counters' + (pmInGame(it) ? ' and odds' : '') + '</i>';
+  }
+  function pmSide() {
+    const el = PM.el && PM.el.querySelector('.pm-side'); if (!el) return;
+    const it = PM.sel;
+    if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
+      '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
+      '<p>A robot with parts or damage stands where it <b>fights now</b>, with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
+      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it (the 🎯 / ⚠️ rule: 40+ points off what the level gap gives). For a robot in this game you also get the bookie\'s band against each rival.</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
+    const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
+    const li = (c, good) => '<button class="pm-li ' + (good ? 'g' : 'b') + '" data-pm="' + esc(c.n) + '"><span>' + (inG(c.n) ? '<b>' + esc(c.n) + '</b>' : esc(c.n)) + ' <i>' + starsOf(pmBase().R[c.n].lv) + '</i></span><em>' + (good ? rangeTxt(c.p) : rangeTxt(1 - c.p)) + '</em></button>';
+    let vs = '';
+    if (pmInGame(it)) {
+      const riv = (G.teams || []).filter(T => !(it.kind === 'team' && T === it.T)).flatMap(T => T.robots.map(x => ({ T, r: x })));
+      const chip = x => { const p = pairP(r, x.r, 'open'), c = oddsChip(p, false, isStock(x.r) ? r : null); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
+      vs = '<div class="pm-h">Against the robots in this game</div>' + (riv.length ? '<table class="pm-vs">' + riv.map(x => { const c = counterOf(r, x.r);
+        return '<tr><td><b style="color:' + x.T.col + '">' + esc(x.T.i === viewerSeat ? 'You' : x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + '</td><td>' + chip(x) + (c ? (c.good ? ' 🎯' : ' ⚠️') : '') + '</td></tr>'; }).join('') + '</table>' : '<p class="pm-n">No rival robots yet.</p>') +
+        '<p class="pm-n">The bookie\'s duel odds on open floor, with parts and damage. A band only for changed robots; both robots as they come show the arena range.</p>';
+    }
+    el.innerHTML = '<div class="pm-top"><b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span><button class="pm-x2" data-pm="">✕</button></div><div class="pm-sub">' + esc(wepLabel(r.name)) + ' · ' + pmOwner(it) + '</div>' +
+      (pmInGame(it) ? '<div>Parts: ' + pmParts(r) + '</div><div>Damage: ' + esc(zoneTxt(r)) + '</div>' : '') + '<div>' + pmFights(it) + '</div>' + vs +
+      '<div class="pm-h">Counters (' + C.beats.length + ')</div>' + (C.beats.map(c => li(c, true)).join('') || '<p class="pm-n">none</p>') +
+      '<div class="pm-h">Countered by (' + C.lose.length + ')</div>' + (C.lose.map(c => li(c, false)).join('') || '<p class="pm-n">none</p>') +
+      '<p class="pm-n">Counters: from the matchup table, as they come (20 fights a pair); the range is its chance in that duel. Bold = in this game.</p>';
+  }
+  function pmHit(e) {
+    const g = PM.geo, b = PM.cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top; let best = null, bd = 1e9;
+    for (const it of PM.items) { if (it.px == null || !pmShown(it)) continue; const d = Math.hypot(it.px - x, it.py - y) - (pmInGame(it) ? 3 : 0);
+      if (d < pmR(it) + 5 && d < bd) { bd = d; best = it; } }
+    return best;
+  }
+  function pmTip(e, it) {
+    const tp = document.getElementById('pmTip'); if (!tp) return;
+    if (!it) { tp.hidden = true; return; }
+    tp.innerHTML = pmTipHtml(it); tp.hidden = false;
+    const w = tp.offsetWidth, h = tp.offsetHeight;
+    tp.style.left = Math.max(4, Math.min(innerWidth - w - 6, e.clientX + 14)) + 'px'; tp.style.top = Math.max(4, Math.min(innerHeight - h - 6, e.clientY + 16)) + 'px';
+  }
+  const pmSig = () => !G || !G.teams ? '' : G.phase + '|' + (G.market || []).join(',') + '|' + (G.marketResolved ? 1 : 0) + '|' + (G.nextMarket || []).join(',') + '|' + G.teams.map(T => T.robots.map(wearKey).join(';')).join('#');
+  function pmBuild() {
+    const keep = PM.sel; PM.items = pmItems();
+    PM.sel = keep ? PM.items.find(i => i.r === keep.r) || PM.items.find(i => i.name === keep.name && i.kind === keep.kind) || null : null;
+    const mx = PM.items.filter(i => Math.abs(i.x) <= 1).reduce((a, i) => Math.max(a, Math.abs(i.x)), 0);
+    PM.xm = Math.max(0.75, Math.min(1, Math.ceil((mx + 0.04) * 4) / 4));
+    const box = PM.el.querySelector('.pm-map'), W = box.clientWidth, H = box.clientHeight, dpr = window.devicePixelRatio || 1;
+    if (PM.cv.width !== Math.round(W * dpr) || PM.cv.height !== Math.round(H * dpr)) { PM.cv.width = Math.round(W * dpr); PM.cv.height = Math.round(H * dpr); }
+    PM.geo = pmGeo(W, H); pmLayout(); pmDraw(); pmSide(); PM.sig = pmSig();
+    if (PM.jobs.length && !PM.pumping) setTimeout(pmPump, 0);
+  }
+  function openPowerMap() {
+    const t0 = performance.now();
+    if (!G || !G.teams) return;
+    let el = document.getElementById('pmapBox');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'pmapBox'; el.hidden = true;
+      el.innerHTML = '<div class="pm-card"><div class="pm-head"><span class="pm-t">POWER MAP</span><span class="pm-sub">Every robot by level and strength for its level. This game\'s robots stand where they fight now (parts and damage). Hover for details, click for counters.</span>' +
+        '<label><input type="checkbox" id="pmOnly"> only this game\'s robots</label><button type="button" class="pm-x" title="Close (Esc)">✕</button></div>' +
+        '<div class="pm-body"><div class="pm-map"><canvas></canvas></div><div class="pm-side"></div></div></div>';
+      document.body.appendChild(el);
+      const tp = document.createElement('div'); tp.id = 'pmTip'; tp.hidden = true; document.body.appendChild(tp);
+      PM.el = el; PM.cv = el.querySelector('canvas');
+      el.addEventListener('click', e => {
+        if (e.target === el || e.target.closest('.pm-x')) return closePowerMap();
+        const b = e.target.closest('[data-pm]'); if (b) { const n = b.dataset.pm; PM.sel = n ? (pmTargets(n)[0] || null) : null; pmDraw(); pmSide(); }
+      });
+      PM.cv.addEventListener('mousemove', e => { const it = pmHit(e); if (it !== PM.hov) { PM.hov = it; PM.cv.style.cursor = it ? 'pointer' : 'default'; } pmTip(e, it); });
+      PM.cv.addEventListener('mouseleave', () => { PM.hov = null; pmTip(null, null); });
+      PM.cv.addEventListener('click', e => { const it = pmHit(e); PM.sel = it && it !== PM.sel ? it : null; pmDraw(); pmSide(); });
+      el.querySelector('#pmOnly').addEventListener('change', e => { PM.only = e.target.checked; if (PM.sel && !pmShown(PM.sel)) PM.sel = null; pmBuild(); });
+      window.addEventListener('resize', () => { if (PM.open) pmBuild(); });
+    }
+    el.hidden = false; PM.open = true;
+    pmBuild();
+    if (!PM.timer) PM.timer = setInterval(() => { if (!PM.open) return; if (!G || !G.teams) return closePowerMap(); if (pmSig() !== PM.sig) pmBuild(); }, 700);
+    PM.msOpen = performance.now() - t0;
+  }
+  function closePowerMap() {
+    PM.open = false; if (PM.el) PM.el.hidden = true; const tp = document.getElementById('pmTip'); if (tp) tp.hidden = true;
+    if (PM.timer) { clearInterval(PM.timer); PM.timer = null; } PM.jobs = [];
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && PM.open) return closePowerMap();
+    if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target && e.target.isContentEditable)) { if (PM.open) closePowerMap(); else openPowerMap(); }
+  });
+  { const pb = document.getElementById('pmapBtn'); if (pb) pb.onclick = () => { if (PM.open) closePowerMap(); else openPowerMap(); }; }
+  if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { openPowerMap, closePowerMap, get PM() { return PM; } });
 
   /* ---------- Top Pill & Hand Controls ---------- */
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
