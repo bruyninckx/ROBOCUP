@@ -50,19 +50,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
 - **T17. `tools/market-install-test.js` is stale** (it expects the 8 Nov install prompt). Update or retire it.
-- **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
-  default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
-  check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
-- **T13. Interactive power map as an in-game overlay.** Kev (16 Nov, with a screenshot of the Robocus Power Map: robots by
-  level, left to right by strength for their level, counter arrows for the picked robot): "what I would love, but don't
-  know if feasible, is to have an interactive powermap as an overlay with all the robots in game". Feasible: the game
-  already loads the matchup table (`src2/matrix.js`) and the levels. Goal: a button opens the map over the game; the
-  robots in this game (teams' robots in team colours, Market lots) stand out, the rest are dimmed; click a robot for its
-  counters (green = it beats, red = it loses to). Source: the map is only a claude.ai artifact today ("Robocus Power Map",
-  15 Nov; `docs/robocus-power-map.html` is named in a doc but is not in the repo): bring it into the repo first. Files:
-  `prototypes/tabletop-2.html`, `docs/`. Robots are placed as they are in this game: shifted by parts and damage (K8). Depends on: starts when the running
-  workers (T5, T7, T9, T10, T11) are merged (Kev). Done when:
-  screenshots of the overlay in a 4-team game with a robot picked; opens in under 200 ms; game-sim check and `mp-test`.
 - **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
   lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
   out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
@@ -80,6 +67,21 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T14. `mp-test` can't test the 2.0 page where the planck CDN is blocked.** `tools/mp-test.js` tests the 1.0 page by
+  default and has no local planck like `game-sim.js`. Give it the same fallback and make `PAGE=tabletop-2.html` the
+  check in `AGENTS.md` 4.3. Done when: `node tools/mp-test.js` passes on the 2.0 page with no network.
+  Worker on branch `claude/mp-test-2`, started 16 Nov.
+- **T13. Interactive power map as an in-game overlay.** Kev (16 Nov, with a screenshot of the Robocus Power Map: robots by
+  level, left to right by strength for their level, counter arrows for the picked robot): "what I would love, but don't
+  know if feasible, is to have an interactive powermap as an overlay with all the robots in game". Feasible: the game
+  already loads the matchup table (`src2/matrix.js`) and the levels. Goal: a button opens the map over the game; the
+  robots in this game (teams' robots in team colours, Market lots) stand out, the rest are dimmed; click a robot for its
+  counters (green = it beats, red = it loses to). Source: the map is only a claude.ai artifact today ("Robocus Power Map",
+  15 Nov; `docs/robocus-power-map.html` is named in a doc but is not in the repo): bring it into the repo first. Files:
+  `prototypes/tabletop-2.html`, `docs/`. Robots are placed as they are in this game: shifted by parts and damage (K8). Depends on: starts when the running
+  workers (T5, T7, T9, T10, T11) are merged (Kev). Done when:
+  screenshots of the overlay in a 4-team game with a robot picked; opens in under 200 ms; game-sim check and `mp-test`.
+  Worker on branch `claude/power-map`, started 16 Nov.
 - **T5. Repair kit needs a different trigger.** Kev (16 Nov): "start repair kit fix". It stays at about +0.5 of a level
   however fast it heals, because it only works while the robot is not hit (`docs/robocus-part-levels.md`). Files:
   `tools/damage-lab/` (engine, lineup), then `build.py`. Worker on branch `claude/repair-kit`, started 16 Nov. Done when:
