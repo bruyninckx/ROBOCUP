@@ -12,6 +12,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K23. Rogue Firmware keeps a robot out for two fights** (this round's and next round's) when it is played in the
+  Intrigue step; the card says "sits out its next fight". Keep two, or make it one? And at the fate step a 2 Cr plea to
+  spare lost to a 2 Cr offer to scrap: should a tie go to the owner (spare)?
+- **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
+  right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
   at the bottom? Stash parts that fit also get a button in Upkeep: keep?
 - **K21. Arenas in whole games** (T19): the bookie's formula uses old per-arena tables for same-level duels and the new
@@ -74,13 +79,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T23. Power map: arrow size shows how strong the counter is.** Kev (17 Nov, with a screenshot of the map with Pogo
-  picked): "maybe we can tune this powermap, I think we decided to decrease the counter arrows because it was too much,
-  but what about increasing the size of the arrow depending on how much it counters". Goal: a counter arrow's thickness
-  (and head) grows with how far the matchup is from what the levels predict; with that, weaker counters can show as thin
-  arrows without clutter. Files: `prototypes/tabletop-2.html` (`openPowerMap`), `docs/robocus-power-map.md`. Worker on
-  branch `claude/power-map-arrows`, started 17 Nov. Done when: before/after screenshots for Pogo, Gyro and a starter;
-  the map still opens under 200 ms; game-sim passes.
+- **T25. Say why a robot rests and when it is back; make the fate step clear.** From Kev's playtest log of 17 Nov (two
+  in-game reports): "it seems like my robot wrecker is permanently resting, I cannot seem to unlock it" (Rogue Firmware,
+  played on him in round 6, keeps the robot out of round 6 and round 7: `sitOut`; the banner only said "RESTING · can't
+  fight this round · ready next Upkeep") and "I think I only was able to spare angler, not wrecker?" (Wrecker was safe
+  as a Fan Favourite; his 2 Cr plea for Angler lost to Plum's 2 Cr to scrap). Goal: the resting banner and hover name the
+  cause, who did it and the round the robot is back; the fate step shows per robot why there is or isn't a plea (safe:
+  Fan Favourite) and how the host decided. No rule change (K23). Files: `prototypes/tabletop-2.html` (robot card banner,
+  fate step texts). Worker on branch `claude/resting-and-fate`, started 17 Nov. Done when: screenshots of both, game-sim
+  and `mp-test` pass.
 - **T21. Bid on sponsors; no screen flip when someone else picks.** (Stopped 18:30, resumed 18:50 on Kev's word:
   "continue both".) Kev (17 Nov): "when game starts and sponsor needs to be
   chosen, when another player picked another sponsor suddenly the screen flipped for the player, which is strange, let
@@ -100,6 +107,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
 ## Done
 
+- **T23. Power map: counter arrows sized by strength** (17 Nov): width and head grow from 30 to 85+ points off the level
+  odds; 30-39 thin and light (no tag in the game), 40+ dark (the game's 🎯/⚠️ counters); lists strongest first with a
+  bar; hover picks out a pair. Arrows per robot: median 2 → 4 (max 14). Display only. Branch `claude/power-map-arrows`,
+  commit `c614f0c`. BUILD `2026-11-17d`, files stamp `d318237d`; game-sim 2/2.
 - **T22. Repair buttons in the YOUR MOVE note** (17 Nov): one button per damaged zone with its cost (actions, crew
   exhausted, credits), broken first; greyed with the reason when it can't be paid; Done stays at the top right; Stash
   parts that fit also get a button. Same `repairZone` / `fitStash` actions as the card. Branch `claude/repairs-in-note`,
