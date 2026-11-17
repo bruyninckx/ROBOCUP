@@ -12,7 +12,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K23. Fate step tie.** A 2 Cr plea to spare lost to a 2 Cr offer to scrap: should a tie go to the owner (spare)?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
@@ -47,6 +46,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K23 (17 Nov): the fate step tie stays.** Kev: "I think the spare scrap situation was handled well". The host keeps
+  deciding between equal offers as it does now; T25 only makes the outcome clearer.
 - **Rogue Firmware (17 Nov): out for 2 rounds.** Kev: "this is ambigous to me, just make it 2 rounds then, how can it sit
   out its next fight if it cannot be selected its fight". The rule stays as coded (this round and the next); every text
   says "2 rounds" and the round it is back, not "its next fight". Part of T25.
