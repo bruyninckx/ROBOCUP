@@ -30,7 +30,7 @@ const path = require('path'), fs = require('fs');
   // you (seat 0) get `mine` extra robots (copies of the AI starters), the AI teams keep one ready robot each
   const prep = (p, mine = 0, o = {}) => p.evaluate(([mine, o]) => { const D = window.ROBOCUS_DEBUG, G = D.G;
     G.teams.forEach((t, i) => { t.credits = 12; t.fame = (o.fame || [8, 8, 8, 8])[i]; t.hand = []; t.secBots = 0; t.exSec = 0; t.debt = 0; t.stash = []; t.robots.forEach(r => { r.exhausted = false; }); });
-    const me = G.teams[0]; me.robots = me.robots.slice(0, 1);
+    const me = G.teams[0]; if (!window.__r0) window.__r0 = JSON.stringify(me.robots[0]); me.robots = [JSON.parse(window.__r0)];   // always your own starter first (a sold robot comes back)
     for (let k = 0; k < mine; k++) { const src = G.teams[1 + k % 3].robots[0], r = JSON.parse(JSON.stringify(src)); r.id = 900 + k; r.name = src.name; r.wins = 0; me.robots.push(r); }
     G.nextEvent = null; window.__res = undefined; D.updateHud(); }, [mine, o]);
   const note = p => p.evaluate(() => { const el = document.getElementById('promptBar'), r = el.getBoundingClientRect(), iv = document.getElementById('ivModal');
@@ -39,7 +39,8 @@ const path = require('path'), fs = require('fs');
       title: (el.querySelector('.q-t') || {}).textContent || '', text: (el.querySelector('.rx-txt') || {}).textContent || '', bs, h: Math.round(r.height), box: !!(iv && !iv.hidden),
       wait: (document.querySelector('#waitRail .wr-row.move small') || {}).textContent || '' }; });
   const waitQ = async (p, pop) => { for (let t = 0; t < 8000; t += 100) { const n = await note(p); if (pop ? n.pop : n.q && !n.pop && n.bs.length && !n.sent) return n; await p.waitForTimeout(100); } return null; };
-  const click = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); return !!bt; }, re.source);
+  // re: a RegExp on the button's text, or a number: the k-th answer (robots can share a name)
+  const click = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => typeof src === 'number' ? +x.dataset.rk === src : new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d && /^✓/.test(d.textContent.trim()) ? 'tick' : 'clicked'; }, typeof re === 'number' ? re : re.source);
   const waitRes = async p => { for (let t = 0; t < 8000; t += 100) { const v = await p.evaluate(() => window.__res); if (v !== undefined) return v; await p.waitForTimeout(100); } return 'TIMEOUT'; };
   const cancel = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); });
   // one question: run `start` (it sets window.__res when the game step is over), check the note, answer with `ans` (a RegExp,
@@ -58,9 +59,9 @@ const path = require('path'), fs = require('fs');
     let after = null;
     if (ans === 'cancel') await cancel(p);
     else if (o.pop) await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, ans.source);
-    else { if (!(await click(p, ans))) bad.push(tag + ' ' + name + ': no button ' + ans); after = await note(p); if (!after.bs.some(x => x.done && /^✓/.test(x.t))) bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }
+    else { const c = await click(p, ans); if (!c) bad.push(tag + ' ' + name + ': no button ' + ans); else if (c !== 'tick') bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }   // ✓ checked right after the click, in the same moment
     const res = await waitRes(p);
-    console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
+    console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
     return { n: n2, after, res };
   }
 
@@ -112,11 +113,12 @@ const path = require('path'), fs = require('fs');
       const id = Object.keys(D.LOTS).find(k => D.LOTS[k].part && !D.LOTS[k].legendary && me.robots.every(r => D.canFit(r, D.LOTS[k])));
       me.stash = [id]; window.__fitId = id; D.updateHud();
       setTimeout(() => { document.querySelector('#stashCard [data-fit="0"]').click(); }, 50);
-      const t0 = Date.now(), iv = setInterval(() => { const on = me.robots.find(r => (r.parts || []).includes(id) || r.leg === id);
+      const was = me.robots.map(r => JSON.stringify([r.parts, r.leg]));
+      const t0 = Date.now(), iv = setInterval(() => { const on = me.robots.find((r, j) => JSON.stringify([r.parts, r.leg]) !== was[j]);
         if (on || (me.stash.length && Date.now() - t0 > 1500 && !(window.ROBOCUS_DEBUG.RX.q && !window.ROBOCUS_DEBUG.RX.q.over))) { clearInterval(iv); window.__res = { on: on ? on.id : null, stash: me.stash.length }; } }, 100); };
-    for (const [ans, want] of [[/Snapjaw/, { on: 900, stash: 0 }], [/^Cancel$/, { on: null, stash: 1 }]]) {
+    for (const [ans, want] of [[1, { on: 900, stash: 0 }], [/^Cancel$/, { on: null, stash: 1 }]]) {   // answer #1: your second robot (id 900)
       await prep(p, 1);
-      const r = await ask(p, tag, 'Stash fit', fit, ans, { shot: /Snap/.test(ans.source) ? 'stash-fit' : null });
+      const r = await ask(p, tag, 'Stash fit', fit, ans, { shot: ans === 1 ? 'stash-fit' : null });
       if (r.n && !(/On which robot/.test(r.n.text) && r.n.bs.length === 3)) bad.push(tag + ' Stash fit: the note shows ' + JSON.stringify(r.n.bs.map(x => x.t)));
       if (JSON.stringify(r.res) !== JSON.stringify(want)) bad.push(tag + ' Stash fit (' + ans + '): ' + JSON.stringify(r.res) + ', want ' + JSON.stringify(want));
     }
@@ -125,7 +127,7 @@ const path = require('path'), fs = require('fs');
     const debt = () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.debt = 1; const ids = me.robots.map(r => r.id);
       D.settleDebts().then(() => { window.__res = { gone: ids.filter(i => !me.robots.some(r => r.id === i)) }; }); };
     { await prep(p, 1);
-      const r = await ask(p, tag, 'upkeep debt (2 robots)', debt, /Snapjaw/, { shot: 'debt-note' });
+      const r = await ask(p, tag, 'upkeep debt (2 robots)', debt, 1, { shot: 'debt-note' });
       if (JSON.stringify(r.res.gone) !== '[900]') bad.push(tag + ' debt: ' + JSON.stringify(r.res) + ', want robot 900 scrapped'); }
     { await prep(p, 6);
       const r = await ask(p, tag, 'upkeep debt (7 robots)', debt, /Thumper/, { pop: true, shot: 'popup-pointer' });
