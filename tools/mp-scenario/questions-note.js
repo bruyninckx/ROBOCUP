@@ -8,7 +8,9 @@
 //   4. Tag Team offer (an AI team wants you as ally): Team up / Refuse;
 //   5. Tag Team Licence (you pick the ally among 3 teams);
 //   6. the Stash's Fit button, a part two robots can take: "On which robot?" / Cancel;
-//   7. upkeep debt with 2 robots (note) and with 7 robots (7 answers: stays in the box; the note points at it and flashes).
+//   7. upkeep debt with 2 robots (note) and with 7 robots (7 answers: stays in the box; the note points at it and flashes);
+//   8. Bookie's Friend: 1 hidden card (note, OK) and 4 (a list: stays in the box, the note points at it);
+//   9. six answers and a long text (debug askBox): nothing cut off, each answer its own value, closed: the default.
 //   node tools/mp-scenario/questions-note.js [screenshotFolder]
 const path = require('path'), fs = require('fs');
 (async () => {
@@ -134,6 +136,28 @@ const path = require('path'), fs = require('fs');
       if (r.n && !(r.n.pop && r.n.box && r.n.move && r.n.flash && /in the middle/.test(r.n.text) && /upkeep/.test(r.n.title))) bad.push(tag + ' debt with 7 robots: the note does not point at the box: ' + JSON.stringify(r.n));
       if (JSON.stringify(r.res.gone) !== '[902]') bad.push(tag + ' debt (7): ' + JSON.stringify(r.res) + ', want robot 902 scrapped');
       const n = await note(p); if (n.pop) bad.push(tag + ' debt (7): the note still points at a closed box'); }
+    // ---- 8. Bookie's Friend: one hidden card → an info line with OK in the note; four → a list to read, the box stays, the note points
+    const bf = rows => () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.hand = ['bookie_s_friend'];
+      const r0 = G.teams[1].robots[0], r1 = G.teams[2].robots[0];
+      G.fight = { teams: [1, 2], robots: [r0, r1], sides: [0, 1] }; r0.faceDown = []; r1.faceDown = [];
+      for (let k = 0; k < rows; k++) (k % 2 ? r1 : r0).faceDown.push({ id: 'hostile_buyout', from: 3 });
+      D.humanBookiesFriend(0);
+      const iv = setInterval(() => { const R = D.RX, box = document.getElementById('ivModal'); if (!(R.q && !R.q.over) && !(box && !box.hidden)) { clearInterval(iv); r0.faceDown = []; r1.faceDown = []; G.fight = null; window.__res = { hand: me.hand.length }; } }, 100); };
+    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (1 card)', bf(1), /^OK$/, { shot: 'bookies-friend' });
+      if (r.n && !(r.n.bs.length === 1 && /Hidden cards/.test(r.n.text))) bad.push(tag + ' Bookie\'s Friend (1): ' + JSON.stringify(r.n)); }
+    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (4 cards)', bf(4), /^OK$/, { pop: true });
+      if (r.n && !(r.n.pop && r.n.box && r.n.flash)) bad.push(tag + ' Bookie\'s Friend (4): the note does not point at the box: ' + JSON.stringify(r.n)); }
+    // ---- 9. layout: 6 answers and a long text (the most the note takes): every button inside the note, the text scrolls;
+    //      each answer gives that button's value, closing it gives the default
+    const long = 'The host called a 2v2. ' + 'Your robot may go left or right, or stay, or call for help from the crowd. '.repeat(3);
+    const six = k => () => { const D = window.ROBOCUS_DEBUG; D.askBox('🧪 Six answers', long, ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Not now'].map((l, i) => ({ label: l, secondary: i === 5, value: () => 'v' + i })), 0, 'dflt').then(v => { window.__res = v; }); };
+    for (const [ans, want] of [[/^Echo$/, 'v4'], [/^Not now$/, 'v5'], ['cancel', 'dflt']]) {
+      await prep(p);
+      const r = await ask(p, tag, 'six answers', six(), ans, { shot: ans === 'cancel' ? null : /Echo/.test(ans.source) ? 'six-answers' : null });
+      if (r.n && r.n.bs.length !== 6) bad.push(tag + ' six answers: ' + r.n.bs.length + ' buttons in the note');
+      if (r.res !== want) bad.push(tag + ' six answers (' + ans + '): ' + JSON.stringify(r.res) + ', want ' + want);
+    }
+    if (await p.evaluate(t => window.ROBOCUS_DEBUG.noteFits(t + t + t, [{}, {}]), long)) bad.push(tag + ' a very long text should stay in the box');
     await p.close();
   }
   console.log(errs.length ? 'PAGE ERRORS:\n' + errs.join('\n') : 'no page errors');

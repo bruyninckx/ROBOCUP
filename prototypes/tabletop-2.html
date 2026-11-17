@@ -2942,9 +2942,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * button per answer (✓ when clicked), and the red flash when it lands. Same answers, same defaults, same order (one question at
    * a time on a screen, as the box had: modalChain), same host-side decisions; a joined screen gets the same message and decides
    * the same way from what it holds. It stays in the box when the note can't hold it: ticks to set (checkboxes, text) or more than
-   * Q_MAX answers; then the note says a question is open in the middle and flashes. No countdown: the box had none (Kev, 6 Nov). */
-  const Q_MAX = 6;
-  const noteFits = (html, buttons) => buttons.length >= 1 && buttons.length <= Q_MAX && !/<(input|textarea|select)\b/i.test(html || '');
+   * Q_MAX answers, or a long list to read (3+ lines of list, or more than Q_TXT letters: Bookie's Friend with many hidden cards,
+   * a Host step with several Arena cards); then the note says a question is open in the middle and flashes. The host and a joined
+   * screen decide this from the same html, so both show it in the same place. No countdown: the box had none (Kev, 6 Nov). */
+  const Q_MAX = 6, Q_TXT = 320;
+  const noteFits = (html, buttons) => { html = html || '';
+    if (!(buttons.length >= 1 && buttons.length <= Q_MAX) || /<(input|textarea|select)\b/i.test(html)) return false;
+    return (html.match(/<br\s*\/?>/gi) || []).length < 3 && html.replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').length <= Q_TXT; };
   function askBox(title, html, buttons, timeout, def) {
     return noteFits(html, buttons) ? noteAsk(title, html, buttons, def) : ivModal(title, html, buttons, timeout, def, true);
   }
@@ -3039,7 +3043,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* One reaction window on every person's screen AT THE SAME TIME (Kev, 14 Nov). Until now people were asked one after the
    * other, seat 0 first, and only those who held a card: slow, the first seat always had the first go, and a window popping up
    * told the table who held an answer. Now, in a game with several people, every seat in `seats` gets the window: its cards
-   * (optsOf(seat) -> [{ label, value }]) and Pass, or "you have no card to play here" and OK. It ends when someone plays a card
+   * (optsOf(seat) -> [{ label, value }]) and Let it happen (it was Pass), or "you have no card to play here" and OK. It ends when someone plays a card
    * (the first click the host receives wins; nobody else's card is spent), when everyone has answered, or when the time is up.
    * Returns [{ seat, v }] in the order the answers came in (empty: nobody reacted). */
   const REACT_MS = () => BAL.reactMs != null ? BAL.reactMs : 10000;
@@ -3586,7 +3590,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   /* Security Bots (target only). 14 Nov: a person DECIDES each roll, and the choice sits in the reaction window that
    * everyone gets (its cards, "Roll a Security Bot" from the garage, "Discard a Security Bot from your hand and roll", or
-   * Pass), so the table can't tell a bot in the hand from a reaction card or from nothing. The AI still rolls every bot. */
+   * Let it happen), so the table can't tell a bot in the hand from a reaction card or from nothing. The AI still rolls every bot. */
   const canBots = (F, c, T) => !!(T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name));   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
   async function rollBot(F, c, T, fromHand) {   // one bot is used up; true = it blocks
     if (fromHand) { if (!removeFromHand(T, 'security_bot')) return false; } else { if (secReady(T) < 1) return false; T.secBots--; }
@@ -7132,7 +7136,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
