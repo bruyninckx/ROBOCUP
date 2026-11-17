@@ -2200,7 +2200,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + spent + ' Cr). ' + waitTxt('lots') + dealTxt + '<br><small>You can still change bids, trade or sell until everyone has locked. A change or a trade unlocks you; then lock again.</small></span>' + tradeBtns;
         } else {
           pb.innerHTML = '<span>📦 <b>Market: trade and bid.</b> Bid on the lots in secret (' + spent + '/' + t.credits + ' Cr); trade and sell while you bid. Lock when done.' +
-            (over ? ' <b style="color:#b91c1c">Your bids are more than your credits: lower them first.</b>' : '') + dealTxt + legendNote() + '</span>' + tradeBtns +
+            (over ? ' <b style="color:#b91c1c">Your bids are more than your credits: lower them first.</b>' : '') + dealTxt + analystNote() + '</span>' + tradeBtns +   // next round's lots: on the pit's NEXT ROUND strip (the 🔭 line did not fit at 1280x720)
             '<button class="act" id="pAct1"' + (over ? ' disabled' : '') + '>Lock Bids →</button>';
           $('#pAct1').onclick = () => act('lockBids');
         }
