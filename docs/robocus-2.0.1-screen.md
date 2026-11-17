@@ -17,7 +17,7 @@ Mockup: Design artifact "ROBOCUS slideshow UI" (https://claude.ai/artifact/5fBhS
 Kev: "When you can send a robot to the pit, also make that 'to the pit' option visible in the yellow window on the right. As much as possible."
 
 - Invited to a fight (any format): one green button per robot in the note, `▶ <name>` with a hint on the right (no damage, damaged ⚔, broken ⚙; pinkish when damaged). Exhausted robots are shown greyed out. Same click as the card's SEND … TO THE PIT (`act('sendBot', id)`); the card button stays.
-- Same idea, same action paths as the pit/card: Sign <sponsor> (`pickSponsor`), Keep <starter> (`pickStarter`), fit a won part on a robot (`install`; hint: the odds change, greyed when there is no room), host invite toggles per team (`pickTeam`; hint: ready robots), tie rebid − / + (`rebidAdj`).
+- Same idea, same action paths as the pit/card: Keep <starter> (`pickStarter`), fit a won part on a robot (`install`; hint: the odds change, greyed when there is no room), host invite toggles per team (`pickTeam`; hint: ready robots), tie rebid − / + (`rebidAdj`).
 - Built with `pickBtn()` (class `.act.pick`, data-send / data-fit / data-keep / data-sign / data-inv). The waiting list does not repeat them (`.wr-go` skips `.pick`). In a tight note the buttons come first (as before); with 4 or more they go two per row without hints (`.many`).
 - Not in the note (need a picker): lot bids, bets, Intrigue cards. (Repairs: in the note since T22, 17 Nov, below.)
 
@@ -41,7 +41,7 @@ Kev: "when I clicked it it somehow didn't register, or perhaps it did register b
 - What happened: after a send, the bookie's test fights started at once. On a page opened from a file (`play-latest.cmd`) they run on the page itself (no workers) for `BAL.bookie.ms` (4 s), and each test fight blocks the screen, so nothing was painted for seconds; and the note had no text for "fighters in, bookie busy", so it kept the old green buttons (a host who invited itself got the invite buttons back). Measured here (file://, a loaded test box): first paint 5.4 s after the click in a duel, 7.8 s after the second-robot click in a double duel.
 - Now: `pickNow(kind, value, label, run)` marks the choice (`pickWait`, local only), redraws the note (clicked button `✓ Mauler sent`, class `.done`; the rest greyed, `.sent`, disabled; note grey AT THE TABLE, not YOUR MOVE; your row in the waiting list no longer YOUR MOVE) and runs the action only after that frame is on screen (`afterPaint`: next frame, 0.1 s at most). The robot card's SEND button and the pit text show the same ✓. Measured: ✓ painted 4-35 ms after the click.
 - New note while the fighters are in (`G.fight`, not choosing): `✓ <robots> sent`, then "🎩 The bookie is watching test fights of this matchup…" while this page's bookie runs (`bookieOn`, set at the call in `afterChoose`, which also waits one paint before the test fights start), or "2 robots per side: send a second robot (the question in the middle), or Just one" / "Fighters are in. The bookie sets the odds next…".
-- Same ✓ for Sign <sponsor>, Keep <starter>, fit on <robot>. Invite toggles and rebid −/+ already change at once; on a joined screen they get a green ring (`.pressed`) until the host answers.
+- Same ✓ for Keep <starter>, fit on <robot>. Invite toggles and rebid −/+ already change at once; on a joined screen they get a green ring (`.pressed`) until the host answers.
 - Online: display only, the action is the same `act()`. On the host's page (and solo) the mark is dropped just before the action runs, so a refused click (exhausted robot, too late) re-renders the real state at once. On a joined screen it stays until the host's answer re-renders the note, 4 s at most.
 
 ## Fewer clicks (Kev said yes to all four, 15 Nov)
@@ -108,3 +108,10 @@ All 9 fixed checks pass on 3a606e0's file except that the last small addition (b
 - Fight as a slide (still its own full screen).
 - With 6 or more cards the open hand overlaps again.
 - The log is small now (about 270 world units); robot value, timers and deals could use the right column instead.
+
+## Sponsor auction (T21, 17 Nov)
+- Kev (17 Nov, online): "when another player picked another sponsor suddenly the screen flipped for the player ... let people bet on sponsors instead, with rebid, if rebid still undecided, do random".
+- Cause of the flip: with 4 people the 2-sponsor deals overlapped; when one person signed a sponsor that was also in another person's deal, the game swapped that card for a free sponsor on the other person's screen (same place, other sponsor; also the note's Sign button).
+- Now: the pit shows all 6 sponsors in a 3 × 2 grid, each with − / + (your sealed bid, a BID n tag) like the Market lots; the note (two lines) explains it, with Lock Bids (or "Lock: bid nothing"), ✖ Bid nothing, and in solo Start fame and Quick-Start. Locked: LOCKED IN, "You can still change …". A tie: the tied sponsor glows orange; tied players get − / + in the pit and in the note and Lock Rebid, with the red flash; the others see "… rebid in secret". Signed sponsors show SIGNED: <team> and the price (REBID / RANDOM DRAW / FREE). Chips at the foot of the pit: who is still bidding / locked ✓ / rebidding (never amounts). The waiting list says "sponsor bids" / "tie-break bid".
+- Nothing on a screen changes because of someone else's bid or lock except the chips and the waiting list (checked frame by frame: camera target, scroll, note box, pit click boxes, note buttons). The starter draft was already safe (deals are made once, revealed together) and was checked the same way.
+

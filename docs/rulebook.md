@@ -37,7 +37,7 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 
 **Setup steps**
 
-1. **Sponsor:** each team is dealt 2 sponsors and keeps 1. People pick on their own screen; AI teams are dealt 2 of the rest and keep 1.
+1. **Sponsor auction** (17 Nov, T21; was: dealt 2, keep 1): all 6 sponsors lie face up. Every team bids for them in secret, at the same time, in credits (at most its credits in total; bidding nothing is allowed). Bids can change after locking until everyone has locked. Then the sponsor with the highest bid is decided first (equal highest bids: in table order); its highest bidder pays its bid to the bank and signs it, and that team's other bids are dropped (a team signs exactly one). A tie for the highest bid: only the tied teams rebid in secret, adding on top; if they are still tied, a random draw decides (logged). Repeat until no unsigned team has a bid on a free sponsor. A team with no sponsor then gets one of the rest at random, for free. Sovereign Foundry's tie rule does not apply here (nobody has a sponsor yet).
 2. **Starter draft:** every team is dealt 2 `s1.` starters at the same time and keeps 1 in secret; all picks are revealed together, so nobody can pick a counter to what the others took (the AI keeps the one with the better average). The other goes back into the starter deck. The starter goes into bay 1 with its Chief Engineer. Starter matchups: `docs/starter-balance.md`.
 
 | Sponsor | Rule |
