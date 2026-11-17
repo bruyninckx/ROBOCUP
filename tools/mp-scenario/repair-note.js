@@ -112,6 +112,15 @@ const path = require('path'), fs = require('fs');
       const clicked = await clickNote(p, id + ':weapon');
       await p.evaluate(id => window.ROBOCUS_DEBUG.act('repairZone', id, 'weapon'), id); await p.waitForTimeout(400); s1 = await state(p, 0, 'weapon');
       console.log(tag + ' refused: clickable ' + clicked + ', ' + JSON.stringify(s0) + ' → ' + JSON.stringify(s1)); if (clicked || !same(s0, s1)) bad.push(tag + ': an unpaid repair went through'); }
+    // 7. a Stash part that fits (Upkeep lets you fit it, as the Stash card's Fit): a button; a click fits it
+    await setup(p, [{ body: 0.5 }]);
+    const lot = await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, t = D.G.teams[0], r = t.robots[0]; const id = Object.keys(D.LOTS).find(k => D.LOTS[k].part && D.canFit(r, D.LOTS[k])); if (id) { t.stash = [id]; D.updateHud(); } return id; });
+    await p.waitForTimeout(300); n = await note(p); await noteShot(p, tag + '-7-stash-note.png');
+    console.log(tag + ' stash part ' + lot + ': ' + n.bs.map(x => x.t).join(' | '));
+    if (!lot || !n.bs.some(x => /^🔩/.test(x.t))) bad.push(tag + ': no Stash fit button');
+    else { await p.evaluate(() => { const bt = document.querySelector('#promptBar [data-sfit]'); if (bt) bt.click(); }); await p.waitForTimeout(500);
+      const st = await p.evaluate(() => ({ stash: window.ROBOCUS_DEBUG.G.teams[0].stash.length, btn: !!document.querySelector('#promptBar [data-sfit]') }));
+      console.log(tag + ' after fit: ' + JSON.stringify(st)); if (st.stash !== 0 || st.btn) bad.push(tag + ': the Stash fit from the note did not fit it'); }
     // 6. nothing to repair
     await setup(p, [{}]); await p.waitForTimeout(300);
     n = await note(p); await noteShot(p, tag + '-6-nothing-note.png');
