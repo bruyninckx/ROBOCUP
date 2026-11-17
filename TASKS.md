@@ -74,6 +74,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
+  "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
+  Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
+  Firewall "ANSWER?", he clicked it, the Override was stopped and his own scheme stayed blocked. Goal: a reaction window
+  only offers a card to a player it can help; where it is offered, each button says what it does to whom ("Firewall:
+  stop the Override, the block on Inside Leak stands"). Files: `prototypes/tabletop-2.html` (`reactionWindow`, the
+  override step). Depends on: after T20 (same code). Done when: the scenario is scripted (own scheme, block, rival's
+  Override: no Firewall offer to the scheme's player; a rival who is hurt still gets it), `reaction.js`, game-sim and
+  `mp-test` pass.
 - **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
   everybody locks bids, the open auction is done and we can move on to rebids or next". Reading (to confirm, K25): the
   Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
