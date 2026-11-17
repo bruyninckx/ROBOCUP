@@ -72,6 +72,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T23. Power map: arrow size shows how strong the counter is.** Kev (17 Nov, with a screenshot of the map with Pogo
+  picked): "maybe we can tune this powermap, I think we decided to decrease the counter arrows because it was too much,
+  but what about increasing the size of the arrow depending on how much it counters". Goal: a counter arrow's thickness
+  (and head) grows with how far the matchup is from what the levels predict; with that, weaker counters can show as thin
+  arrows without clutter. Files: `prototypes/tabletop-2.html` (`openPowerMap`), `docs/robocus-power-map.md`. Worker on
+  branch `claude/power-map-arrows`, started 17 Nov. Done when: before/after screenshots for Pogo, Gyro and a starter;
+  the map still opens under 200 ms; game-sim passes.
 - **T22. Repair options in the YOUR MOVE note.** Kev (17 Nov, with a screenshot of Upkeep: Wrecker with BODY · BROKEN · FIX
   on its card, the note only saying "Click a lit zone"): "also add repair options in red box" (the red box is the YOUR
   MOVE note; it flashes red). Goal: in Upkeep the note has a button for each repair you can make (robot, zone, what it
