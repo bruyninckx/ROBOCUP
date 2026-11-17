@@ -9,7 +9,7 @@
 const { setup } = require('./lib.js');
 const seed = +(process.argv[2] || 7), only = process.argv[3] ? process.argv[3].split(',') : null;
 const modalOf = () => { { const pb = document.getElementById('promptBar'), bs = pb && pb.classList.contains('rxmode') ? [...pb.querySelectorAll('[data-rk]:not(:disabled)')] : [];   // T2: the reaction window is in the note
-    if (bs.length) return { id: 'reactWin', title: ((pb.querySelector('.rx-head b') || {}).textContent || '').replace(/\s+/g, ' ').trim(), btns: bs.map(b => { const r = b.getBoundingClientRect(); return { label: b.textContent.replace(/\s+/g, ' ').trim(), k: b.dataset.rk, primary: !b.classList.contains('secondary'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) }; }
+    if (bs.length) return { id: pb.classList.contains('qmode') ? 'question' : 'reactWin', title: ((pb.querySelector('.rx-head b') || pb.querySelector('.q-t') || {}).textContent || '').replace(/\s+/g, ' ').trim(), btns: bs.map(b => { const r = b.getBoundingClientRect(); return { label: b.textContent.replace(/\s+/g, ' ').trim(), k: b.dataset.rk, primary: !b.classList.contains('secondary'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) }; }
   for (const id of ['ivModal', 'dealModal']) { const m = document.getElementById(id); if (m && !m.hidden) { const h = m.querySelector('h3') || m.querySelector('.rw-head span'); return { id, title: (h ? h.textContent : '').replace(/\s+/g, ' ').trim(), btns: [...m.querySelectorAll('button')].filter(b => !b.disabled).map(b => { const r = b.getBoundingClientRect(); return { label: b.textContent.replace(/\s+/g, ' ').trim(), k: b.dataset.k || '', primary: b.classList.contains('primary'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }) }; } } return null; };
 (async () => {
   const { b, host, errs, seatOf } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); });
@@ -49,7 +49,7 @@ const modalOf = () => { { const pb = document.getElementById('promptBar'), bs = 
         for (let s = 0; s < 4; s++) {
           const m = await seatOf[s].evaluate(modalOf); if (!m) continue; any = true;
           const who = s === actor ? 'PLAYER' : s === TARGET ? 'TARGET' : 'OTHER', tag = who + ': ' + norm(m.title, actor, TARGET); if (!asked.includes(tag)) asked.push(tag);
-          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /^Pass$|^OK$|No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
+          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /^Let it happen$|^OK$|No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
           if (bt) { await seatOf[s].mouse.move(bt.x, bt.y); await seatOf[s].mouse.down(); await seatOf[s].mouse.up(); }
         }
         const busy = await host.evaluate(() => !!window.ROBOCUS_DEBUG.G.ivBusy);
@@ -60,7 +60,7 @@ const modalOf = () => { { const pb = document.getElementById('promptBar'), bs = 
       return { plays: pl.map(e => ({ text: e.text, result: e.result, steps: e.steps || [] })), warn, inHand: D.G.teams[actor].hand.includes(id), sec: D.G.teams[actor].secBots || 0, stuck: !!D.G.ivBusy, over: !!D.G.over }; }, [mark, actor, c.id]);
     out.warn = await p.evaluate(m => window.ROBOCUS_DEBUG.PT.game.events.slice(m).filter(e => e.k === 'msg' && /⚠️/.test(e.text)).map(e => e.text), mark2);
     if (out.stuck) {   // a question nobody could answer by clicking: close everything so the next card starts clean
-      for (let s = 0; s < 4; s++) await seatOf[s].evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX; if (R && R.cur && !R.cur.over) R.cur.cancel(); for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } });
+      for (let s = 0; s < 4; s++) await seatOf[s].evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX; if (R && R.cur && !R.cur.over) R.cur.cancel(); if (R && R.q && !R.q.over) R.q.cancel(); for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } });
       await host.evaluate(() => { for (let s = 1; s < 4; s++) window.ROBOCUS_NET.cancelSeat(s); }); await host.waitForTimeout(800);
     }
     const what = geo.err ? 'NOT PLAYED: ' + geo.err : out.stuck ? 'STUCK: the play never finished' : out.plays.length ? out.plays.map(x => x.result).join('+') : out.sec ? 'installed' : out.warn.length ? 'refused: ' + norm(out.warn[0], actor, TARGET).replace(/^⚠️ /, '') : out.inHand ? 'NOTHING HAPPENED (card still in hand, no message)' : 'played (no log entry)';

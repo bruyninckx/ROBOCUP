@@ -37,8 +37,11 @@ exports.setup = async (seed, until, o = {}) => {
 };
 // the open question or deal panel on a screen, as text ('-' = none)
 // (T2, 17 Nov: the reaction window is drawn in the note, #promptBar.rxmode, while it is open on that screen)
+// (T20, 17 Nov: a question to one player is drawn in the note too, #promptBar.qmode, RX.q)
 exports.modal = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX, pb = document.getElementById('promptBar');
-  return [R && R.cur && !R.cur.over && pb && pb.classList.contains('rxmode') ? 'reaction: ' + pb.innerText.replace(/\s+/g, ' ').slice(0, 300) : null].concat(['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + el.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; })).filter(Boolean).join(' || ') || '-'; });
+  return [R && R.cur && !R.cur.over && pb && pb.classList.contains('rxmode') ? 'reaction: ' + pb.innerText.replace(/\s+/g, ' ').slice(0, 300) : null,
+    R && R.q && !R.q.over ? 'question: ' + (pb && pb.classList.contains('qmode') ? pb.innerText : R.q.title).replace(/\s+/g, ' ').slice(0, 300) : null].concat(['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + el.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; })).filter(Boolean).join(' || ') || '-'; });
 // press the first button whose text matches, in the open question (ivModal) or deal panel (dealModal)
-exports.press = (p, box, re) => p.evaluate(([box, src]) => { const el = document.getElementById(box); if (!el || el.hidden) return false; const bt = [...el.querySelectorAll('button')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) bt.click(); return !!bt; }, [box, re.source]);
+// (T20: a question asked in the note counts as 'ivModal': its buttons are in #promptBar.qmode)
+exports.press = (p, box, re) => p.evaluate(([box, src]) => { if (box === 'ivModal') { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]:not(:disabled)')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) { bt.click(); return true; } } const el = document.getElementById(box); if (!el || el.hidden) return false; const bt = [...el.querySelectorAll('button')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) bt.click(); return !!bt; }, [box, re.source]);
 exports.hostLog = (host, n) => host.evaluate(n => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-n).map(e => e.text), n);

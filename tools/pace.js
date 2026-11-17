@@ -18,7 +18,7 @@ const N = +(process.argv[2] || 4), TAG = process.argv[3] || 'base', SETUP = proc
     for (let i = 0; i < 20000; i++) {
       const st = await p.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; if (G.over || G.round > 30) return null;
         const btn = document.getElementById('pAct2') || document.getElementById('pAct1'); if (btn && !btn.disabled) btn.click();
-        const m = document.querySelector('#ivModal:not([hidden]) button'); if (m) m.click();
+        const m = document.querySelector('#ivModal:not([hidden]) button') || document.querySelector('#promptBar.qmode [data-rk]:not(:disabled)'); if (m) m.click();   // T20: or a question in the note
         return G.round + ':' + G.phase + ':' + (G.marketStage || '') + ':' + G.teams.map(t => t.fame).join('/'); });
       if (!st) break;
       same = st === last ? same + 1 : 0; last = st;
