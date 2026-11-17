@@ -8,7 +8,9 @@ const collect = () => {
   const D = window.ROBOCUS_DEBUG, out = { modal: null, items: [], cards: [], drops: [] };
   const at = el => { const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return null; const x = r.left + r.width / 2, y = r.top + r.height / 2; if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return null; const top = document.elementFromPoint(x, y); return top && (top === el || el.contains(top) || top.contains(el)) ? { x, y } : null; };
   const lab = el => (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
-  for (const id of ['reactWin', 'ivModal', 'dealModal']) {   // the small reaction window first, then a question (it opens on top of a deal panel)
+  { const pb = document.getElementById('promptBar'), bs = pb && pb.classList.contains('rxmode') ? [...pb.querySelectorAll('[data-rk]:not(:disabled)')] : [];   // T2: the reaction window is in the note
+    if (bs.length) { out.modal = 'reactWin'; out.title = lab(pb.querySelector('.rx-head b') || pb); bs.forEach(b => { const p = at(b); if (p) out.items.push(Object.assign({ type: 'btn', label: lab(b), primary: !b.classList.contains('secondary'), k: b.dataset.rk }, p)); }); return out; } }
+  for (const id of ['ivModal', 'dealModal']) {   // a question (it opens on top of a deal panel)
     const m = document.getElementById(id);
     if (m && !m.hidden) {
       out.modal = id; out.title = lab(m.querySelector('h3') || m.querySelector('.rw-head span') || m);

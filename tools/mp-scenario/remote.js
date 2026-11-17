@@ -72,7 +72,7 @@ async function playSeat(p, tag, dir, say, isHost, until, stop, beat) {   // beat
       const file = path.join(dir, 'stuck-' + tag + '-' + (++shots) + '-' + label.replace(/[^a-z0-9]+/gi, '_').slice(0, 40) + '.png'); try { await p.screenshot({ path: file }); } catch (e) {}
       R.stuck.push({ label, round: st.round, phase: st.phase + (st.stage ? '/' + st.stage : ''), canClick: [...new Set(C.items.map(i => i.label))].slice(0, 12), shot: file }); say('STUCK ' + tag + ' · ' + label + ' · round ' + st.round + ' ' + st.phase);
       lastKey = '!' + key;
-      await p.evaluate(() => { for (const id of ['dealModal', 'ivModal', 'reactWin']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } window.__noBot = false; }).catch(() => {});
+      await p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX; if (R && R.cur && !R.cur.over) R.cur.cancel(); for (const id of ['dealModal', 'ivModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } window.__noBot = false; }).catch(() => {});
       await sleep(1500); await p.evaluate(() => { window.__noBot = true; }).catch(() => {});
       continue;
     }

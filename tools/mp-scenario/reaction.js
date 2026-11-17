@@ -3,7 +3,8 @@
 //   1. it opens on all three other screens at once, the one without cards included; the player of the scheme sees no names;
 //      (T2, 17 Nov: the window is in the yellow note; without a card: the count and no buttons, the note stays quiet)
 //   2. nobody answers: it closes by itself when the time is up and the scheme lands;
-//   3. two players hold an answer and the second one in seat order clicks first: its card blocks, the other card is not spent.
+//   3. two players hold an answer and the second one in seat order clicks first: its card blocks, the other card is not spent;
+//   4. (T2) the target, a joined screen, presses Pass in its note: the scheme lands and its Firewall stays in its hand.
 //   node tools/mp-scenario/reaction.js [seed] [screenshotFolder]
 const { setup, hostLog } = require('./lib.js');
 const fs = require('fs'), path = require('path');
@@ -51,6 +52,20 @@ const fs = require('fs'), path = require('path');
   if (!log2.some(x => /P2 blocks it with Firewall/.test(x))) bad.push('the first click did not block');
   if (hands[0] !== 'firewall') bad.push('the other player\'s Firewall was spent too');
   if (hands[2] !== '') bad.push('the clicked Firewall is still in the hand');
+  // ---- 4 (T2): the target (a joined client) holds Firewall and clicks Pass in its note: the scheme lands, the card stays
+  await prep({ [A]: ['smash_and_grab'], [T]: ['firewall'] });
+  await host.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; G.teams.forEach(t => { t.secBots = 0; t.fame = 10; t.credits = 12; }); window.ROBOCUS_DEBUG.updateHud(); }); await host.waitForTimeout(500);
+  const cr0 = await host.evaluate(T => window.ROBOCUS_DEBUG.G.teams[T].credits, T);
+  await play(); await host.waitForTimeout(1200);
+  const w4 = await win(seatOf[T]); if (shots) await seatOf[T].screenshot({ path: path.join(shots, 'reaction-client-firewall.png') });
+  if (!(w4 && w4.move && w4.btns.join('|') === '🛡️ Firewall|Pass')) bad.push('pass case: the target\'s note shows ' + JSON.stringify(w4));
+  await seatOf[T].evaluate(() => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim() === 'Pass'); if (bt) bt.click(); });
+  await host.waitForTimeout(300); const w4b = await win(seatOf[T]);
+  if (shots) await seatOf[T].locator('#promptBar').screenshot({ path: path.join(shots, 'reaction-client-passed-note.png') });
+  await host.waitForTimeout(12000);
+  const log4 = await hostLog(host, 4), after4 = await host.evaluate(T => ({ cr: window.ROBOCUS_DEBUG.G.teams[T].credits, hand: window.ROBOCUS_DEBUG.G.teams[T].hand.join(',') }), T);
+  console.log('target passed from its note: ✓ shown ' + !!(w4b && w4b.btns.some(x => /✓/.test(x))) + ' · credits ' + cr0 + ' → ' + after4.cr + ', hand [' + after4.hand + ']');
+  if (!(after4.cr < cr0 && after4.hand === 'firewall' && log4.some(x => /grabs/.test(x)))) bad.push('Pass from a joined client did not let the scheme land');
   if (errs.length) bad.push(errs.length + ' page errors: ' + errs[0]);
   console.log(bad.length ? 'FAIL: ' + bad.join('; ') : 'OK');
   await b.close(); process.exit(bad.length ? 1 : 0);

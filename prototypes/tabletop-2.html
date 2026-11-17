@@ -2769,7 +2769,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const has = cards.length > 0, sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
     pb.innerHTML = '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>' +
       (r.ms > 0 ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
-      '<div class="rx-txt">' + r.html + (has ? '' : '<div class="rw-none">You have no card to play here. The window closes by itself.</div>') + '</div>' +
+      '<div class="rx-txt">' + r.html + '' + '</div>' +
       (has ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
     pb.classList.add('rxmode'); pb.classList.toggle('rx-sent', !!r.done);
     pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk); });
@@ -2810,7 +2810,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ms = REACT_MS(), got = []; let first = null; const gotOne = new Promise(res => { first = res; });
     G.reacting = { title: ptPlain(title) }; updateHud();
     const pend = seats.map(s => { const o = optsOf(s) || [];
-      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
+      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here. The window closes by itself.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
         .then(v => { if (v != null) { got.push({ seat: s, v }); first(); } }, () => {}); });
     let tm = null;
     await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
