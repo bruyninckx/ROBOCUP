@@ -67,7 +67,7 @@ The game checks for a winner after the Intrigue phase, after the Market and afte
 
 All teams do Upkeep at the same time; the game does the bookkeeping. Upkeep ends when every person has pressed **Done**.
 
-1. **Ready:** every robot, crew card and Security Bot is ready again, unless a card keeps it out (Rogue Firmware, played in the Intrigue step: the robot misses that round's fight and the next round's, and is ready again in the Upkeep after that). The robot card says why a robot rests and in which round it is back.
+1. **Ready:** every robot, crew card and Security Bot is ready again, unless a card keeps it out (Rogue Firmware, an Intrigue-step scheme: the robot is out for 2 rounds, the round it is played and the next one, and is ready again in the Upkeep after that). The robot card says why a robot rests and in which round it is back.
 2. **Ledger:** +1 credit per Mechanic, −1 credit per robot, −1 credit per 2 helper drones (the Accountant: only your first robot costs 1). The ledger is in the log.
 3. **Can't pay:** scrap one robot of your choice for each credit you can't pay. A team left without robots gets a free Scrap Bot.
 4. **Draw:** 3 Intrigue cards (Blackwire +1; a Tinker that sat out last round +1).

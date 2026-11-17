@@ -50,7 +50,7 @@ const path = require('path'), fs = require('fs');
     if (!W.ex || W.sitOut !== 1 || W.back !== 8 || !/OUT · Rogue Firmware \(Rust Rivets\) · back in round 8/.test(W.line)) bad.push(tag + ': round 6 banner ' + W.line);
     if (!/RESTING · fought this round · ready next Upkeep/.test(A.line || '')) bad.push(tag + ': fought banner ' + A.line);
     const lg6 = await logTail(p, 6); console.log('  log: ' + lg6.filter(x => /Rogue Firmware/.test(x)).join(' / '));
-    if (!lg6.some(x => /Rust Rivets played Rogue Firmware: Wrecker \(Steel Bolts\) misses this round's fight and next round's; back in round 8/.test(x))) bad.push(tag + ': no clear victim line in the log');
+    if (!lg6.some(x => /Rust Rivets played Rogue Firmware: Wrecker \(Steel Bolts\) is out for 2 rounds \(this one and the next\); back in round 8/.test(x))) bad.push(tag + ': no clear victim line in the log');
     await shot(p, tag + '-1-round6-firmware-and-fought.png');
     let hv = await hover(p, /^😴 Wrecker/); console.log('  hover: ' + (hv && hv.title));
     if (!hv || !/out until round 8/.test(hv.title)) bad.push(tag + ': hover title ' + (hv && hv.title));
