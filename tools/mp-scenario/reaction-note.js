@@ -3,7 +3,8 @@
 //   1. one answer card: the note flashes red (YOUR MOVE), a click on Firewall shows ✓ and blocks: your credits stay, the card is spent;
 //   2. three answer cards + a Security Bot: all fit in the note (at 1600x900 and 1280x720), Pass lets it happen: credits go;
 //   3. two answer cards, nobody clicks: the window closes by itself and the scheme lands (the default answer), the cards stay.
-// The online side (a joined client, a player with no card) is in reaction.js.
+//   4. no card in a solo game: no window and no wait (as before T2).
+// The online side (a joined client, a player with no card and OK, everyone clicked) is in reaction.js.
 //   node tools/mp-scenario/reaction-note.js [screenshotFolder]
 const path = require('path'), fs = require('fs');
 (async () => {
@@ -55,7 +56,9 @@ const path = require('path'), fs = require('fs');
     console.log(tag + ' three cards: ' + JSON.stringify({ tight: n.tight, h: n.h, btns: n.bs.map(x => x.t + (x.cut ? ' (CUT)' : '')) }));
     if (n.bs.some(x => x.cut)) bad.push(tag + ': a button is cut off with three cards');
     if (n.bs.length < 4) bad.push(tag + ': three cards: only ' + n.bs.length + ' buttons');
-    await click(p, /^Pass$/); await waitDone(p, 8000); s1 = await state(p);
+    const tp = Date.now(); await click(p, /^Pass$/); await waitDone(p, 8000); s1 = await state(p);
+    console.log(tag + ' Pass: the window ended ' + ((Date.now() - tp) / 1000).toFixed(1) + ' s after the click');
+    if (Date.now() - tp > 4000) bad.push(tag + ': Pass (the only person) did not end the window early');
     console.log(tag + ' passed: my credits 12 → ' + s1.me + ', team 1 12 → ' + s1.f + ', hand [' + s1.hand + ']');
     if (!s1.done || s1.me >= 12 || s1.f <= 12 || s1.hand !== 'firewall,paid_off,pr_spin') bad.push(tag + ': Pass did not let it happen (' + JSON.stringify(s1) + ')');
     // 3. two cards, nobody clicks: the time runs out
@@ -69,6 +72,14 @@ const path = require('path'), fs = require('fs');
     console.log(tag + ' nobody clicked: over after ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s, my credits ' + s1.me + ', hand [' + s1.hand + ']');
     if (!s1.done || s1.me >= 12 || s1.hand !== 'firewall,paid_off') bad.push(tag + ': timeout did not give the default (let it happen) (' + JSON.stringify(s1) + ')');
     if (Date.now() - t0 < 9000) bad.push(tag + ': the window closed before its time');
+    // 4. solo, no card: no window at all (as before T2: in a game with one person only those who hold an answer are asked);
+    //    the ~4-5 s are the card's play animation, which comes before any window (with a window: ~15 s)
+    await p.waitForTimeout(500);
+    const t4 = Date.now(); await play(p, []); let seen = false;
+    for (let k = 0; k < 40 && !(await state(p)).done; k++) { if ((await note(p)).rx) seen = true; await p.waitForTimeout(100); }
+    s1 = await state(p);
+    console.log(tag + ' solo, no card: window shown ' + seen + ', scheme over after ' + ((Date.now() - t4) / 1000).toFixed(1) + ' s');
+    if (seen || !s1.done || Date.now() - t4 > 7000) bad.push(tag + ': solo without a card: a window or a wait');
     await p.close();
   }
   if (errs.length) bad.push(errs.length + ' page errors: ' + errs[0]);

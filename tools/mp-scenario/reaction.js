@@ -1,10 +1,11 @@
 // The reaction window (Kev, 14 Nov): when a scheme is played, EVERY other player gets a small window at the same time, with
-// a countdown: its cards and Pass, or "you have no card to play here" (since T2 without a button). Checks:
+// a countdown: its cards and Pass, or "you have no card to play here" and OK. Checks:
 //   1. it opens on all three other screens at once, the one without cards included; the player of the scheme sees no names;
-//      (T2, 17 Nov: the window is in the yellow note; without a card: the count and no buttons, the note stays quiet)
+//      (T2, 17 Nov: the window is in the yellow note; without a card: the count and OK, the note stays quiet)
 //   2. nobody answers: it closes by itself when the time is up and the scheme lands;
 //   3. two players hold an answer and the second one in seat order clicks first: its card blocks, the other card is not spent;
-//   4. (T2) the target, a joined screen, presses Pass in its note: the scheme lands and its Firewall stays in its hand.
+//   4. (T2) the target, a joined screen, presses Pass in its note: the scheme lands and its Firewall stays in its hand;
+//   5. (T2) everyone clicks (Pass, OK, OK): the window closes early, as before T2.
 //   node tools/mp-scenario/reaction.js [seed] [screenshotFolder]
 const { setup, hostLog } = require('./lib.js');
 const fs = require('fs'), path = require('path');
@@ -29,7 +30,7 @@ const fs = require('fs'), path = require('path');
   if (shots) { await seatOf[T].screenshot({ path: path.join(shots, 'reaction-target.png') }); await seatOf[2].screenshot({ path: path.join(shots, 'reaction-no-cards.png') }); await seatOf[A].screenshot({ path: path.join(shots, 'reaction-player.png') }); }
   for (const s of [0, 1, 2]) if (!w[s]) bad.push('seat ' + s + ' got no reaction window');
   if (w[T] && !(w[T].btns.some(x => /Paid Off/.test(x)) && w[T].btns.some(x => /Roll a Security Bot/.test(x)) && w[T].btns.includes('Pass'))) bad.push('the target does not see its bot, its card and Pass');
-  for (const s of [0, 2]) if (w[s] && !(/no card to play here/.test(w[s].text) && w[s].btns.length === 0 && !w[s].move)) bad.push('seat ' + s + ' (no cards) does not see "no card", the count and no buttons (quiet note)');
+  for (const s of [0, 2]) if (w[s] && !(/no card to play here/.test(w[s].text) && w[s].btns.join() === 'OK' && !w[s].move)) bad.push('seat ' + s + ' (no cards) does not see "no card" and OK in a quiet (grey) note');
   if (w[T] && !w[T].move) bad.push('the target\'s note is not YOUR MOVE');
   if (/DECIDING|YOUR MOVE|READY/.test(await banner(seatOf[A])) || !/REACTION WINDOW/.test(await banner(seatOf[A]))) bad.push('the list shows who is still answering');
   let closed = 0; for (let k = 0; k < 60; k++) { await host.waitForTimeout(250); if (!(await win(seatOf[T])) && !(await win(seatOf[0])) && !(await win(seatOf[2]))) { closed = Date.now() - t0; break; } }
@@ -66,6 +67,17 @@ const fs = require('fs'), path = require('path');
   const log4 = await hostLog(host, 4), after4 = await host.evaluate(T => ({ cr: window.ROBOCUS_DEBUG.G.teams[T].credits, hand: window.ROBOCUS_DEBUG.G.teams[T].hand.join(',') }), T);
   console.log('target passed from its note: ✓ shown ' + !!(w4b && w4b.btns.some(x => /✓/.test(x))) + ' · credits ' + cr0 + ' → ' + after4.cr + ', hand [' + after4.hand + ']');
   if (!(after4.cr < cr0 && after4.hand === 'firewall' && log4.some(x => /grabs/.test(x)))) bad.push('Pass from a joined client did not let the scheme land');
+  // ---- 5 (T2): everyone clicks (the target Pass, the two others OK): the window closes early, before the 10 s
+  await prep({ [A]: ['smash_and_grab'], [T]: ['firewall'] });
+  await host.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; G.teams.forEach(t => { t.secBots = 0; t.fame = 10; t.credits = 12; }); window.ROBOCUS_DEBUG.updateHud(); }); await host.waitForTimeout(500);
+  const m5 = await host.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').length);
+  await play();
+  for (let k = 0; k < 40 && !(await win(seatOf[0])); k++) await host.waitForTimeout(100);
+  const t5 = Date.now();
+  for (const [s, lab] of [[T, 'Pass'], [0, 'OK'], [2, 'OK']]) await seatOf[s].evaluate(lab => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim() === lab); if (bt) bt.click(); }, lab);
+  let land5 = 0; for (let k = 0; k < 60; k++) { await host.waitForTimeout(250); if (await host.evaluate(m => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(m).some(e => /grabs/.test(e.text)), m5)) { land5 = Date.now() - t5; break; } }
+  console.log('everyone clicked (Pass, OK, OK): the scheme landed ' + (land5 / 1000).toFixed(1) + ' s after the clicks (the window is 10 s)');
+  if (!land5 || land5 > 4000) bad.push('the window did not close early when everyone had clicked (' + land5 + ' ms)');
   if (errs.length) bad.push(errs.length + ' page errors: ' + errs[0]);
   console.log(bad.length ? 'FAIL: ' + bad.join('; ') : 'OK');
   await b.close(); process.exit(bad.length ? 1 : 0);

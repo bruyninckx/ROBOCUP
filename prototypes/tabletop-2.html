@@ -145,7 +145,7 @@ html, body {
 .prompt-bar.tight .fit-undo .act.pick small { display: none; }
 .prompt-bar .act.fu-undo i { font-style: normal; font-variant-numeric: tabular-nums; }
 /* T2 (17 Nov): the reaction window lives in the note (it was a box over the pit): what is played on whom, the countdown, and
-   your answers as buttons. Holding an answer: YOUR MOVE (flashes red); nothing to answer: the same countdown, quiet, no buttons */
+   your answers as buttons. Holding an answer: YOUR MOVE (flashes red); nothing to answer: the same countdown and OK, quiet (grey) */
 .prompt-bar.rxmode { flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; gap: 0; }
 .prompt-bar.rxmode::before { content: 'YOUR MOVE · ANSWER?'; }
 .prompt-bar.rxmode.idle::before { content: 'REACTION WINDOW'; }
@@ -2748,8 +2748,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   /* The reaction window (Kev, 14 Nov: a countdown, not a screen-filling question). T2 (17 Nov): it lives in the yellow note
    * (it was a little box over the pit): what is played on whom, the countdown (bar and seconds) and your answers as buttons.
-   * Holding an answer: YOUR MOVE, the note flashes red. Nothing to answer: the same countdown, quiet (no buttons, no YOUR MOVE,
-   * no flash), so what a screen does still tells the table nothing. One at a time on a screen. It ends on a click, or from
+   * Holding an answer: YOUR MOVE, the note flashes red. Nothing to answer: the same countdown and one quiet OK (grey, no
+   * YOUR MOVE, no flash), as the box had, so the window still ends early once everyone has clicked, and nothing tells the table
+   * who held an answer. One at a time on a screen. It ends on a click, or from
    * outside (RX.cur.finish: the time is up, or somebody else reacted first). The countdown is only shown; the host keeps the time.
    * A click shows ✓ and greys the rest (like pickNow, T15) and is sent after that frame is painted; the note keeps the ✓ and the
    * count until the window is over on the host (G.reacting cleared) or the count runs out. */
@@ -2765,12 +2766,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const btns = r.buttons.map((b, k) => ({ b, k })), cards = btns.filter(x => !x.b.secondary), pass = btns.filter(x => x.b.secondary);
     const lab = h => { const m = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(h); return m ? [m[1], m[2]] : [h, '']; };   // "🤖 Roll a Security Bot (1 in your garage…)": name + quiet hint
     const btn = (x, cls) => { const dn = r.done && r.done.k === x.k, [nm0, hint] = lab(x.b.label);
-      return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + (dn && x.b.secondary ? 'ed' : '') + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
+      return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + (dn && x.b.label === 'Pass' ? 'ed' : '') + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
     const has = cards.length > 0, sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
     pb.innerHTML = '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>' +
       (r.ms > 0 ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
       '<div class="rx-txt">' + r.html + '' + '</div>' +
-      (has ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
+      (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
     pb.classList.add('rxmode'); pb.classList.toggle('rx-sent', !!r.done);
     pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk); });
     return true;
@@ -2786,7 +2787,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (RX.cur) { RX.cur = null; clearInterval(RX.tick); }
       const box = document.createElement('div'); box.innerHTML = html;   // inputs for value(el), as the old box had
       const r = RX.cur = { id: ++RX.n, title, html, ms: ms > 0 ? ms : 0, t0: performance.now(), box, done: null, over: false,
-        buttons: buttons.filter(b => !(b.secondary && /^OK$/.test(b.label) && buttons.length === 1)) };   // nothing to answer: no OK, only the count
+        buttons };   // nothing to answer: only OK (quiet), as the box had: the window still ends early once everyone has clicked
       const finish = v => { if (r.over) return; r.over = true; if (!r.done) { if (RX.cur === r) rxClear(); } else updateHud(); renderWaiting(); res(v); };
       r.finish = finish; r.cancel = () => finish(def);
       RX.tick = setInterval(() => { const pb = document.getElementById('promptBar'), c = rxOn();
@@ -2810,7 +2811,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ms = REACT_MS(), got = []; let first = null; const gotOne = new Promise(res => { first = res; });
     G.reacting = { title: ptPlain(title) }; updateHud();
     const pend = seats.map(s => { const o = optsOf(s) || [];
-      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here. The window closes by itself.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
+      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
         .then(v => { if (v != null) { got.push({ seat: s, v }); first(); } }, () => {}); });
     let tm = null;
     await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
@@ -8866,7 +8867,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with every build that changes what players see. */
   const CHANGES = [
     ['2.0.1, reactions in the note', '17 Nov 2026', [
-      'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it shows the same countdown quietly, with no buttons, and closes by itself. Same 10 seconds, same rules; the list below still says CAN ANSWER for everyone.' ]],
+      'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it stays grey with the same countdown and an OK button, as before. Same 10 seconds, and it still ends as soon as everyone has clicked; same rules; the list below still says CAN ANSWER for everyone.' ]],
     ['2.0.1, arenas', '17 Nov 2026', [
       'Arenas now change who wins, for reasons you can see: Floor Saws favour hit-and-run robots and punish grabbers; the Killbox has spikes along every wall (throwers and lifters love it, spinners bounce into it); The Cage is smaller (4.75 × 4.75 m, was 6 × 6: no room for tails, harpoons or orbit blades); the Ice Rink is slipperier for wheels (tracks and legs grip better). Saws and spikes now hurt a level 3-4 robot as much as a level 0 one. The bookie and the tags (🪚 ☠️ 🔒 🧊) use the new numbers; hover an arena for who it favours. The open floor is unchanged.' ]],
     ['2.0.1, repair kit', '16 Nov 2026', [
