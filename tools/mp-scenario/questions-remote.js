@@ -21,8 +21,8 @@ const fs = require('fs'), path = require('path');
     window.__res = undefined; D.updateHud(); }, [C, extra]);
   const note = p => p.evaluate(() => { const el = document.getElementById('promptBar');
     return { q: el.classList.contains('qmode') && !el.classList.contains('qpop'), rx: el.classList.contains('rxmode') && !el.classList.contains('qmode'), move: !el.classList.contains('idle'), flash: el.classList.contains('flash'),
-      title: (el.querySelector('.q-t') || {}).textContent || '', bs: [...el.querySelectorAll('[data-rk]:not(:disabled)')].map(x => x.textContent.trim()), box: !!(document.getElementById('ivModal') && !document.getElementById('ivModal').hidden), sec: (el.querySelector('.rx-sec') || {}).textContent || '' }; });
-  const waitQ = async (p, re) => { for (let t = 0; t < 15000; t += 150) { const n = await note(p); if (n.q && n.bs.length && re.test(n.title)) return n; await p.waitForTimeout(150); } return null; };
+      title: (el.querySelector('.q-t') || {}).textContent || '', bs: [...el.querySelectorAll('[data-rk]:not(:disabled)')].map(x => x.textContent.trim()), box: !!(document.getElementById('ivModal') && !document.getElementById('ivModal').hidden), sec: (el.querySelector('.rx-sec') || {}).textContent || '', all: el.querySelectorAll('[data-rk]').length, sent: el.classList.contains('rx-sent'), mine: ((document.querySelector('#waitRail .wr-row.move') || {}).innerText || '').replace(/\s+/g, ' ') }; });
+  const waitQ = async (p, re) => { for (let t = 0; t < 15000; t += 150) { const n = await note(p); if (n.q && n.all && !n.sent && re.test(n.title)) return n; await p.waitForTimeout(150); } return null; };
   const click = async (p, re) => { for (let t = 0; t < 3000; t += 100) { if (await p.evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await p.waitForTimeout(100); } return click0(p, re); };   // T20: buttons inactive for 0.8 s
   const click0 = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]:not(:disabled)')].find(x => new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d ? 'tick' : 'clicked'; }, re.source);
   const res = async () => { for (let t = 0; t < 20000; t += 200) { const v = await host.evaluate(() => window.__res); if (v !== undefined) return v; await host.waitForTimeout(200); } return 'TIMEOUT'; };
@@ -36,12 +36,14 @@ const fs = require('fs'), path = require('path');
     await prep(2); await second(C);
     const n = await waitQ(seatOf[C], /Second robot/);
     if (!n) { bad.push('second robot: no question in seat ' + C + '\'s note'); continue; }
-    await seatOf[C].waitForTimeout(250);
+    await seatOf[C].waitForTimeout(1000);   // the buttons wait 0.8 s
     const n2 = await note(seatOf[C]);
     const wl = await host.evaluate(C => { const rows = [...document.querySelectorAll('#waitRail .wr-row')]; return rows.map(r => r.textContent.replace(/\s+/g, ' ').trim()).join(' / '); }, C);
     console.log('seat ' + C + ' (joined) note: ' + n2.title + ' · ' + n2.bs.join(' | ') + (n2.flash ? ' · flashing' : '') + (n2.box ? ' · BOX OPEN' : '') + '\n  host waiting list: ' + wl);
     if (shots && want) { await seatOf[C].screenshot({ path: path.join(shots, 'joined-second-robot.png') }); await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-second-robot-note.png') }); }
-    if (!(n2.move && n2.flash) || n2.box || n2.bs.length !== 3) bad.push('second robot on the joined screen: ' + JSON.stringify(n2));
+    if (!(n2.move && (n.flash || n2.flash)) || n2.box || n2.bs.length !== 3) bad.push('second robot on the joined screen: ' + JSON.stringify(n2));
+    console.log('  seat ' + C + '\'s own waiting list: ' + n2.mine);
+    if (!/YOUR MOVE/i.test(n2.mine)) bad.push('second robot: the joined screen\'s waiting list does not say YOUR MOVE: ' + n2.mine);
     if (!/Second robot/.test(wl)) bad.push('the host\'s waiting list does not name the question: ' + wl);
     const c = await click(seatOf[C], ans); if (c !== 'tick') bad.push('second robot: click on the joined screen gave ' + c);
     const r = await res();
