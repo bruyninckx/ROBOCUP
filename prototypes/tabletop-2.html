@@ -144,6 +144,35 @@ html, body {
 .prompt-bar.tight .fit-undo { padding: 4px 6px; gap: 4px; }
 .prompt-bar.tight .fit-undo .act.pick small { display: none; }
 .prompt-bar .act.fu-undo i { font-style: normal; font-variant-numeric: tabular-nums; }
+/* T2 (17 Nov): the reaction window lives in the note (it was a box over the pit): what is played on whom, the countdown, and
+   your answers as buttons. Holding an answer: YOUR MOVE (flashes red); nothing to answer: the same countdown and OK, quiet (grey) */
+.prompt-bar.rxmode { flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; gap: 0; }
+.prompt-bar.rxmode::before { content: 'YOUR MOVE · ANSWER?'; }
+.prompt-bar.rxmode.idle::before { content: 'REACTION WINDOW'; }
+.prompt-bar.rxmode.rx-sent::before { content: 'ANSWER SENT'; }
+.prompt-bar .rx-head { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.prompt-bar .rx-head b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prompt-bar .rx-sec { font: 700 13px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prompt-bar .rx-bar { flex: 0 0 auto; height: 5px; margin: 3px 0 5px; background: rgba(26,22,18,.15); border-radius: 3px; overflow: hidden; }
+.prompt-bar .rx-bar i { display: block; height: 100%; width: 100%; background: #D93A2B; transform-origin: left; }
+.prompt-bar.idle .rx-bar i { background: #6E6457; }
+.prompt-bar .rx-txt { flex: 0 1 auto; min-height: calc(1.3em + 1px); overflow-y: auto; scrollbar-width: thin; font-weight: 500; }
+.prompt-bar .rx-txt .rw-none { color: #5A4C24; font-style: italic; }
+.prompt-bar .rx-btns { flex: 0 0 auto; min-height: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; margin-top: 6px; overflow-y: auto; }   
+.prompt-bar .rx-btns.lots { flex-shrink: 1; min-height: 48px; }   /* 6+ answers (Botched Install, several parts): the buttons scroll */
+.prompt-bar .rx-btns .act.pick { flex: 1 1 100%; }
+.prompt-bar .rx-btns.two .act.pick { flex-basis: calc(50% - 3px); }
+.prompt-bar .rx-btns.two .act.pick small { display: none; }
+.prompt-bar .rx-btns .act.pick.go { background: var(--ink); color: var(--hazard); }
+.prompt-bar .rx-btns .act.pick.go:hover:not(:disabled) { background: #000; color: #fff; }
+.prompt-bar .rx-btns .act.pick.done, .prompt-bar .rx-btns .act.pick.done:disabled { background: #1F5C35; color: #fff; }
+.prompt-bar .rx-btns .act.pass { flex: 1 1 100%; }
+.prompt-bar .rx-btns.two .act.pass { flex-basis: calc(50% - 3px); }
+.prompt-bar.tight .rx-btns { margin-top: 4px; gap: 4px; }
+.prompt-bar.tight.rxmode .rx-head { position: absolute; top: 4px; right: 10px; }   /* small note: the seconds go up on the label line, the title goes (the text says it) */
+.prompt-bar.tight.rxmode .rx-head b { display: none; }
+.prompt-bar.tight .rx-bar { margin-top: 0; }
+.prompt-bar.tight .rx-btns .act.pass { padding-top: 1px; padding-bottom: 1px; }
 /* T12 (Kev, 16 Nov: "the your move box should flash red when a choice needs to be made"): three pulses, then yellow again */
 @keyframes pbFlash { 0%, 100% { background-color: var(--hazard); } 45%, 60% { background-color: #F05A45; box-shadow: 0 0 0 4px rgba(217,58,43,.45), 0 4px 10px rgba(0,0,0,.2); } }
 .prompt-bar.flash:not(.idle) { animation: pbFlash .55s ease-in-out 3; }
@@ -285,16 +314,6 @@ html, body {
 .aw-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .aw-btns button, .iv-btns button, .sc-spar { font: 700 12.5px var(--sans); padding: 7px 13px; border-radius: 4px; border: 2px solid var(--ink); cursor: pointer; background: transparent; color: var(--ink); }
 .aw-btns button.primary, .iv-btns button.primary { font: 400 15px var(--stencil); letter-spacing: 1px; background: var(--ink); color: var(--hazard); }
-#reactWin { position: fixed; left: 50%; top: 120px; transform: translateX(-50%); z-index: 9997; width: min(420px, 92vw); background: #FFFDF8; border: 3px solid #2B2118; border-radius: 8px; box-shadow: 0 8px 26px rgba(0,0,0,.35); font: 14px system-ui, sans-serif; color: #2B2118; overflow: hidden; }
-#reactWin[hidden] { display: none; }
-#reactWin .rw-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #2B2118; color: #F4EDE2; font: 700 13px var(--mono); padding: 5px 10px; }
-#reactWin .rw-body { padding: 8px 10px 4px; line-height: 1.35; }
-#reactWin .rw-none { color: #6E6457; font-style: italic; }
-#reactWin .rw-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 10px 9px; }
-#reactWin .rw-btns button { font: 700 13px system-ui, sans-serif; padding: 6px 12px; border-radius: 5px; border: 2px solid #2B2118; background: #2B2118; color: #fff; cursor: pointer; }
-#reactWin .rw-btns button.secondary { background: #fff; color: #2B2118; }
-#reactWin .rw-bar { height: 5px; background: #E9E1D2; }
-#reactWin .rw-bar i { display: block; height: 100%; width: 100%; background: #D9731A; transform-origin: left; }
 @keyframes rwRun { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 #waitBanner { position: fixed; left: 50%; top: 62px; transform: translateX(-50%); z-index: 900; pointer-events: none; background: #2B2118; color: #F4EDE2; font: 700 15px var(--mono); padding: 7px 16px; border-radius: 6px; border: 2px solid #E8C23A; box-shadow: 0 4px 14px rgba(0,0,0,.3); white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 #waitBanner span { font-weight: 400; opacity: .8; }
@@ -1816,9 +1835,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     renderWhoDots();
     renderWinWatch();
     renderPromptBar();
-    renderFitUndo();
+    if (!RX.cur) renderFitUndo();
     if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
-    if (G.autoLeft != null && !G.over) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
+    if (G.autoLeft != null && !G.over && !RX.cur) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
     fitPrompt();
     renderHand();
@@ -1894,6 +1913,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
+    pb.classList.remove('rxmode', 'rx-sent');
+    if (rxNote(pb)) return;   // T2: a reaction window is open on this screen: it has the note
     if (G.over) {
       // the winner checkWin picked (most fame, tie: most credits); a Grand Final can put both winners on the target at once
       const w = G.teams[G.winner] || G.teams.slice().sort((a, b) => b.fame - a.fame || b.credits - a.credits)[0];
@@ -2725,24 +2746,55 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     });
     return small ? smallAsk(title, html, buttons, timeout, def) : ivModal(title, html, buttons, timeout, def);
   }
-  /* The small reaction window (Kev, 14 Nov): a little box over the pit with a countdown, not a screen-filling question, so the
-   * board and your cards stay readable. One at a time on a screen. It closes on a click, or from outside (el._finish: the time
-   * is up, or somebody else reacted first). The countdown is only shown here; the host keeps the time. */
+  /* The reaction window (Kev, 14 Nov: a countdown, not a screen-filling question). T2 (17 Nov): it lives in the yellow note
+   * (it was a little box over the pit): what is played on whom, the countdown (bar and seconds) and your answers as buttons.
+   * Holding an answer: YOUR MOVE, the note flashes red. Nothing to answer: the same countdown and one quiet OK (grey, no
+   * YOUR MOVE, no flash), as the box had, so the window still ends early once everyone has clicked, and nothing tells the table
+   * who held an answer. One at a time on a screen. It ends on a click, or from
+   * outside (RX.cur.finish: the time is up, or somebody else reacted first). The countdown is only shown; the host keeps the time.
+   * A click shows ✓ and greys the rest (like pickNow, T15) and is sent after that frame is painted; the note keeps the ✓ and the
+   * count until the window is over on the host (G.reacting cleared) or the count runs out. */
   let smallChain = Promise.resolve();
+  const RX = { cur: null, n: 0, tick: null };
+  const rxLeft = r => r.ms > 0 ? Math.max(0, r.ms - (performance.now() - r.t0)) : 0;
+  const rxOn = () => { const r = RX.cur; if (!r) return null;
+    if (r.done && (rxLeft(r) <= 0 || (G && !G.reacting && performance.now() - r.doneAt > 400) || performance.now() - r.doneAt > 15000)) { rxClear(); return null; }
+    return r; };
+  function rxClear() { RX.cur = null; clearInterval(RX.tick); RX.tick = null; if (G) updateHud(); }
+  function rxNote(pb) {   // draws the window into the note; false when there is none
+    const r = rxOn(); if (!r) return false;
+    const btns = r.buttons.map((b, k) => ({ b, k })), cards = btns.filter(x => !x.b.secondary), pass = btns.filter(x => x.b.secondary);
+    const lab = h => { const m = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(h); return m ? [m[1], m[2]] : [h, '']; };   // "🤖 Roll a Security Bot (1 in your garage…)": name + quiet hint
+    const btn = (x, cls) => { const dn = r.done && r.done.k === x.k, [nm0, hint] = lab(x.b.label);
+      return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + (dn && x.b.label === 'Pass' ? 'ed' : '') + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
+    const has = cards.length > 0, sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
+    pb.innerHTML = '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>' +
+      (r.ms > 0 ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
+      '<div class="rx-txt">' + r.html + '' + '</div>' +
+      (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
+    pb.classList.add('rxmode'); pb.classList.toggle('rx-sent', !!r.done);
+    pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk); });
+    return true;
+  }
+  function rxPick(k) {
+    const r = RX.cur; if (!r || r.done || r.over) return;
+    r.done = { k }; r.doneAt = performance.now();
+    updateHud();
+    afterPaint().then(() => r.finish(r.buttons[k].value(r.box)));   // ✓ on screen first, then the answer
+  }
   function smallAsk(title, html, buttons, ms, def) {
     const p = smallChain.then(() => new Promise(res => {
-      let el = document.getElementById('reactWin');
-      if (!el) { el = document.createElement('div'); el.id = 'reactWin'; document.body.appendChild(el); }
-      el.innerHTML = '<div class="rw-head"><span>' + title + '</span><span class="rw-sec"></span></div><div class="rw-bar"><i></i></div><div class="rw-body">' + html + '</div><div class="rw-btns">' +
-        buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') + '</div>';
-      { const pit = hitRegions.find(r => r.kind === 'arena'), at = pit ? worldToScreen(pit.x + pit.w / 2, pit.y) : null; el.style.top = (at ? Math.round(at.y + 46 * cam.zoom) + 8 : 120) + 'px'; el.style.left = (at ? Math.round(at.x) : Math.round(window.innerWidth / 2)) + 'px'; }
-      el.hidden = false; renderWaiting();
-      let done = false, tick = null; const t0 = performance.now();
-      if (ms > 0) { el.querySelector('.rw-bar i').style.animation = 'rwRun ' + ms + 'ms linear forwards'; const sec = el.querySelector('.rw-sec'), show = () => { sec.textContent = Math.max(0, Math.ceil((ms - (performance.now() - t0)) / 1000)) + ' s'; }; show(); tick = setInterval(show, 250); }
-      const finish = v => { if (done) return; done = true; clearInterval(tick); el.hidden = true; el.innerHTML = ''; el._finish = null; renderWaiting(); res(v); };
-      el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
-      el._finish = () => finish(def);
-      if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) bs[Math.floor(Math.random() * bs.length)].click(); }, 60 + Math.random() * 120);
+      if (RX.cur) { RX.cur = null; clearInterval(RX.tick); }
+      const box = document.createElement('div'); box.innerHTML = html;   // inputs for value(el), as the old box had
+      const r = RX.cur = { id: ++RX.n, title, html, ms: ms > 0 ? ms : 0, t0: performance.now(), box, done: null, over: false,
+        buttons };   // nothing to answer: only OK (quiet), as the box had: the window still ends early once everyone has clicked
+      const finish = v => { if (r.over) return; r.over = true; if (!r.done) { if (RX.cur === r) rxClear(); } else updateHud(); renderWaiting(); res(v); };
+      r.finish = finish; r.cancel = () => finish(def);
+      RX.tick = setInterval(() => { const pb = document.getElementById('promptBar'), c = rxOn();
+        if (!c) return; if (c !== r) return;
+        const sc = pb && pb.querySelector('.rx-sec'); if (sc && r.ms > 0) sc.textContent = Math.ceil(rxLeft(r) / 1000) + ' s'; }, 250);
+      updateHud(); renderWaiting();
+      if (BOT) setTimeout(() => { if (!r.done && !r.over && r.buttons.length && !window.__noBot && RX.cur === r) rxPick(Math.floor(Math.random() * r.buttons.length)); }, 60 + Math.random() * 120);
     }));
     smallChain = p.catch(() => null);
     return p;
@@ -2765,7 +2817,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
     // over: close the windows that are still open (a late click on one of them no longer counts)
     const N = window.ROBOCUS_NET;
-    for (const s of seats) { if (isRemote(s) && N && N.cancelSmall) N.cancelSmall(s); else if (s === HS) { const el = document.getElementById('reactWin'); if (el && !el.hidden && el._finish) el._finish(); } }
+    for (const s of seats) { if (isRemote(s) && N && N.cancelSmall) N.cancelSmall(s); else if (s === HS && RX.cur && !RX.cur.over) RX.cur.cancel(); }
     await Promise.race([Promise.all(pend), new Promise(res => setTimeout(res, 300))]);
     G.reacting = null; updateHud();
     return got.slice(0, 1).concat(got.slice(1));
@@ -2778,7 +2830,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17a arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17b reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -2869,7 +2921,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * showing at that moment ('report_mark': open question or panel, the banner, the prompt, its hand). So one report marks
    * the same moment in all four logs. */
   function screenState() {
-    const open = ['reactWin', 'ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + ptPlain(el.innerHTML).slice(0, 300) : null; }).filter(Boolean);
+    const open = ['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + ptPlain(el.innerHTML).slice(0, 300) : null; }).filter(Boolean);
+    if (RX.cur && !RX.cur.over) open.unshift('reaction window in the note: ' + ptPlain(RX.cur.title + ' ' + RX.cur.html).slice(0, 300));
     const txt = id => { const el = document.getElementById(id); return el && !el.hidden ? ptPlain(el.innerHTML).slice(0, 300) : ''; }, fv = document.getElementById('fightView');
     return { seat: HS, role: NETROLE || 'solo', view: [window.innerWidth, window.innerHeight], round: G ? G.round : 0, phase: G ? G.phase + (G.phase === 'market' ? '/' + G.marketStage : '') : '', open, banner: txt('waitRail'), prompt: txt('promptBar'),
       fightOnScreen: !!(fv && !fv.hidden), hand: G && G.teams[HS] ? G.teams[HS].hand.slice() : [], waitsFor: G && HS >= 0 ? seatBusyWith(HS) : null, clickable: [...new Set(hitRegions.map(r => r.kind))], errors: PT.errs };
@@ -6540,7 +6593,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function autoStep() {
     if (!G || G.over || isClient() || window.__noAuto) return;
     const step = gatherStep(), hs = humanSeats();
-    const quiet = !!step && !G.reacting && !autoPend && !['ivModal', 'dealModal', 'reactWin'].some(id => { const el = document.getElementById(id); return el && !el.hidden; }) && hs.every(s => { const b = seatBusyWith(s); return !b || b === step[0]; });
+    const quiet = !!step && !G.reacting && !autoPend && !(RX.cur && !RX.cur.over) && !['ivModal', 'dealModal'].some(id => { const el = document.getElementById(id); return el && !el.hidden; }) && hs.every(s => { const b = seatBusyWith(s); return !b || b === step[0]; });
     const key = quiet ? step[0] + ':' + G.round : null;
     if (key !== AUTO.key) { AUTO.key = key; AUTO.t0 = Date.now(); }
     const isDone = s => !!(G.gather && G.gather.key === key && G.gather.done[s]);
@@ -6598,15 +6651,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * NOTHING FOR YOU TO DO (grey) when the step is someone else's. */
   function promptState() {
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
+    const rx = RX.cur && pb.classList.contains('rxmode') ? RX.cur : null;   // T2: a reaction window in the note
+    if (rx) {   // YOUR MOVE (and the red flash) only with an answer to click; nothing to answer: quiet, the same count
+      const can = !rx.done && !rx.over && rx.buttons.some(b => !b.secondary);
+      pb.classList.toggle('idle', !can); pb.classList.remove('locked', 'wait', 'sent');
+      flashNote(pb, (can ? 'rx|' : 'rxq|') + rx.id);   // rxq: quiet (no flash), but the step under it is remembered
+      return;
+    }
     const list = (!G.over && G.phase !== 'fight' && netWaiting) || [], meIn = list.some(x => x.seat === HS) && !pickWaiting(), others = list.some(x => x.seat !== HS && x.seat >= 0), react = list.some(x => x.seat === -1);
     const has = !!pb.querySelector('button, select'), ready = !!(G.gather && G.gather.done && G.gather.done[HS]) || tieLocked();
     const sent = !!pickWaiting();   // T15: a choice just clicked here is on its way: not YOUR MOVE, nothing else to click
     if (sent) pb.querySelectorAll('button, select').forEach(x => { x.disabled = true; });
     pb.classList.toggle('sent', sent);
     const undo = G.phase === 'market' && !G.over && myFitUndos().length;   // T12: a part just fitted, Undo / Move in the note
-    const st = sent ? 'idle' : meIn || react || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
+    const st = sent || react ? 'idle' : meIn || undo ? 'move' : G.autoLeft != null ? 'wait' : others ? (ready ? 'locked' : 'wait') : has ? 'move' : 'idle';
     pb.classList.toggle('idle', st !== 'move'); pb.classList.toggle('locked', st === 'locked'); pb.classList.toggle('wait', st === 'wait');
-    flashNote(pb, st === 'move' ? choiceKey(pb, meIn || react) : '');
+    flashNote(pb, st === 'move' ? choiceKey(pb, meIn) : '');
   }
   /* T12: the YOUR MOVE note flashes red (three pulses, ~1.7 s; reduced motion: a red outline for 2 s) each time a new choice lands
    * on you: a new step, a new question, a part to fit, or a part fitted with other robots to move it to. Not for LOCKED IN,
@@ -6624,7 +6684,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function flashNote(pb, key) {
     if (key === PFLASH.key) return;
     const was = PFLASH.key; PFLASH.key = key.replace(/\|new.*$/, '');
-    if (!key || (key === PFLASH.key && key === was)) return;
+    // T2: a reaction window flashes when it opens; back from it to the step you were on is not a new choice
+    if (/^rxq?\|/.test(key) && !/^rxq?\|/.test(was)) PFLASH.before = was;
+    else if (/^rxq?\|/.test(was) && !/^rxq?\|/.test(key)) { const b = PFLASH.before; PFLASH.before = null; if (key === b) return; }
+    if (!key || /^rxq\|/.test(key) || (key === PFLASH.key && key === was)) return;
     pb.classList.remove('flash'); void pb.offsetWidth; pb.classList.add('flash');
     clearTimeout(PFLASH.tm); PFLASH.tm = setTimeout(() => pb.classList.remove('flash'), 2000);
   }
@@ -6754,12 +6817,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       return (q.small ? smallAsk : ivModal)(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })), q.small ? q.ms : undefined);
     },
     showDeal(o) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null })); },
-    closeModals() { for (const id of ['ivModal', 'dealModal', 'reactWin']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } },
+    closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } if (RX.cur && !RX.cur.over) RX.cur.cancel(); },
     notify, get desyncs() { return desyncs; }, get resims() { return resims; }
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get RX() { return RX; }, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -7269,7 +7332,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     fitPrompt.key = key;
     pb.classList.remove('tight');
     pb.classList.toggle('many', pb.querySelectorAll('.act.pick').length > 3);   // T9: 4+ choice buttons go two per row when tight
-    if (pb.scrollHeight > pb.clientHeight + 2) pb.classList.add('tight');
+    const tx = pb.classList.contains('rxmode') && pb.querySelector('.rx-txt');   // T2: the reaction window: the text shrinks first
+    if (pb.scrollHeight > pb.clientHeight + 2 || (tx && tx.scrollHeight > tx.clientHeight + 2)) pb.classList.add('tight');
   }
   /* ---------- HTML zones placed over the canvas: 4 · sticky note, 7 · log, 5 · Stash ---------- */
   const OVL = { key: '' };
@@ -8802,6 +8866,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, reactions in the note', '17 Nov 2026', [
+      'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it stays grey with the same countdown and an OK button, as before. Same 10 seconds, and it still ends as soon as everyone has clicked; same rules; the list below still says CAN ANSWER for everyone.' ]],
     ['2.0.1, arenas', '17 Nov 2026', [
       'Arenas now change who wins, for reasons you can see: Floor Saws favour hit-and-run robots and punish grabbers; the Killbox has spikes along every wall (throwers and lifters love it, spinners bounce into it); The Cage is smaller (4.75 × 4.75 m, was 6 × 6: no room for tails, harpoons or orbit blades); the Ice Rink is slipperier for wheels (tracks and legs grip better). Saws and spikes now hurt a level 3-4 robot as much as a level 0 one. The bookie and the tags (🪚 ☠️ 🔒 🧊) use the new numbers; hover an arena for who it favours. The open floor is unchanged.' ]],
     ['2.0.1, repair kit', '16 Nov 2026', [

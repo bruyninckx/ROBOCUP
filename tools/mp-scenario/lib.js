@@ -25,7 +25,8 @@ exports.setup = async (seed, until, o = {}) => {
       if (quiet) break;
       await freeze(false);
       // a question that opened while the bots were frozen has missed its bot answer: answer it now, as the bot would
-      for (const p of all) await p.evaluate(() => { for (const id of ['reactWin', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden) { const bs = [...m.querySelectorAll('button[data-k]')]; if (bs.length) bs[Math.floor(Math.random() * bs.length)].click(); } } const d = document.getElementById('dealModal'); if (d && !d.hidden) { const no = d.querySelector('[data-k="no"]'); if (no) no.click(); } });
+      for (const p of all) await p.evaluate(() => { { const bs = [...document.querySelectorAll('#promptBar.rxmode [data-rk]:not(:disabled)')]; if (bs.length) bs[Math.floor(Math.random() * bs.length)].click(); }   // T2: the reaction window is in the note
+        for (const id of ['ivModal']) { const m = document.getElementById(id); if (m && !m.hidden) { const bs = [...m.querySelectorAll('button[data-k]')]; if (bs.length) bs[Math.floor(Math.random() * bs.length)].click(); } } const d = document.getElementById('dealModal'); if (d && !d.hidden) { const no = d.querySelector('[data-k="no"]'); if (no) no.click(); } });
     }
     await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const s = v.querySelector('.fv-skip:not([hidden])'); if (s) s.click(); const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); } });
     if (Date.now() - t0 > 240000) throw new Error('setup timeout');
@@ -35,7 +36,9 @@ exports.setup = async (seed, until, o = {}) => {
   return { b, host, cl, all, errs, seatOf };
 };
 // the open question or deal panel on a screen, as text ('-' = none)
-exports.modal = p => p.evaluate(() => ['reactWin', 'ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + el.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; }).filter(Boolean).join(' || ') || '-');
+// (T2, 17 Nov: the reaction window is drawn in the note, #promptBar.rxmode, while it is open on that screen)
+exports.modal = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX, pb = document.getElementById('promptBar');
+  return [R && R.cur && !R.cur.over && pb && pb.classList.contains('rxmode') ? 'reaction: ' + pb.innerText.replace(/\s+/g, ' ').slice(0, 300) : null].concat(['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + el.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; })).filter(Boolean).join(' || ') || '-'; });
 // press the first button whose text matches, in the open question (ivModal) or deal panel (dealModal)
 exports.press = (p, box, re) => p.evaluate(([box, src]) => { const el = document.getElementById(box); if (!el || el.hidden) return false; const bt = [...el.querySelectorAll('button')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) bt.click(); return !!bt; }, [box, re.source]);
 exports.hostLog = (host, n) => host.evaluate(n => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-n).map(e => e.text), n);
