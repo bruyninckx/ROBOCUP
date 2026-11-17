@@ -4,7 +4,7 @@
 //      on the host; the host's waiting list names the question for seat 1 (as before); "Just one" adds none;
 //   2. Hostile Buyout played by the host on seat 1: Refuse costs seat 1 one fame, Sell it hands over its robot for 4 Cr;
 //   3. Joint Venture played by the host on seat 1: the host answers in its own note; seat 1's question is closed by the host
-//      (a player who left: cancelSeat) and counts as Commit, its default, as before.
+//      (a player who left: cancelSeat) and counts as Defect, its default since T20 (a default never costs you credits).
 //   node tools/mp-scenario/questions-remote.js [seed=7] [screenshotFolder]
 const { setup, hostLog } = require('./lib.js');
 const fs = require('fs'), path = require('path');
@@ -21,7 +21,7 @@ const fs = require('fs'), path = require('path');
     window.__res = undefined; D.updateHud(); }, [C, extra]);
   const note = p => p.evaluate(() => { const el = document.getElementById('promptBar');
     return { q: el.classList.contains('qmode') && !el.classList.contains('qpop'), rx: el.classList.contains('rxmode') && !el.classList.contains('qmode'), move: !el.classList.contains('idle'), flash: el.classList.contains('flash'),
-      title: (el.querySelector('.q-t') || {}).textContent || '', bs: [...el.querySelectorAll('[data-rk]:not(:disabled)')].map(x => x.textContent.trim()), box: !!(document.getElementById('ivModal') && !document.getElementById('ivModal').hidden) }; });
+      title: (el.querySelector('.q-t') || {}).textContent || '', bs: [...el.querySelectorAll('[data-rk]:not(:disabled)')].map(x => x.textContent.trim()), box: !!(document.getElementById('ivModal') && !document.getElementById('ivModal').hidden), sec: (el.querySelector('.rx-sec') || {}).textContent || '' }; });
   const waitQ = async (p, re) => { for (let t = 0; t < 15000; t += 150) { const n = await note(p); if (n.q && n.bs.length && re.test(n.title)) return n; await p.waitForTimeout(150); } return null; };
   const click = async (p, re) => { for (let t = 0; t < 3000; t += 100) { if (await p.evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await p.waitForTimeout(100); } return click0(p, re); };   // T20: buttons inactive for 0.8 s
   const click0 = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]:not(:disabled)')].find(x => new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d ? 'tick' : 'clicked'; }, re.source);
@@ -69,11 +69,14 @@ const fs = require('fs'), path = require('path');
     if (!nh) bad.push('Joint Venture: no question in the host\'s note'); else { const c = await click(host, /^Commit$/); if (c !== 'tick') bad.push('Joint Venture on the host: ' + c); }
     const n = await waitQ(seatOf[C], /Joint Venture/);
     if (!n) bad.push('Joint Venture: no question in seat ' + C + '\'s note');
+    else { await seatOf[C].waitForTimeout(1200); const n3 = await note(seatOf[C]); console.log('  seat ' + C + ' (joined) Joint Venture countdown: ' + n3.sec);
+      if (shots) await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-joint-venture-note.png') });
+      if (!/^\d+ s$/.test(n3.sec) || +n3.sec.split(' ')[0] > 19) bad.push('Joint Venture on the joined screen: no running countdown (' + n3.sec + ')'); }
     await host.evaluate(C => window.ROBOCUS_NET.cancelSeat(C), C);
     const r = await res();
     const gone = await note(seatOf[C]);
-    console.log('Joint Venture (host Commit, seat ' + C + ' closed by the host): ' + JSON.stringify(r) + ' · seat ' + C + '\'s note after: ' + (gone.q ? 'STILL THE QUESTION' : 'back to the game'));
-    if (!(r.host === 5 && r.seat === 5)) bad.push('Joint Venture: a closed question did not count as Commit: ' + JSON.stringify(r));
+    console.log('Joint Venture (host Commit, seat ' + C + ' closed by the host: Defect, T20): ' + JSON.stringify(r) + ' · seat ' + C + '\'s note after: ' + (gone.q ? 'STILL THE QUESTION' : 'back to the game'));
+    if (!(r.host === -2 && r.seat === 2)) bad.push('Joint Venture: a closed question did not count as Defect: ' + JSON.stringify(r));
     if (gone.q && gone.bs.length) bad.push('Joint Venture: the closed question stays in seat ' + C + '\'s note'); }
   console.log(errs.length ? 'PAGE ERRORS:\n' + errs.join('\n') : 'no page errors');
   console.log(bad.length ? 'FAIL\n' + bad.join('\n') : 'OK');

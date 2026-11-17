@@ -25,7 +25,7 @@ const path = require('path'), fs = require('fs');
     await PLK.route(p, PL);
     await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11'); await p.waitForTimeout(800);
     await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
-    await p.click('#pAct2'); await p.waitForTimeout(1500);
+    await p.click('#pAct2'); await p.waitForTimeout(1500); await p.mouse.move(5, 5);   // T20: off the note (a button that opens under the pointer waits for it to leave)
     return p;
   }
   // the table: 12 Cr and 8 fame each, empty hands (nobody can react, so no reaction window in a solo game), no bots;
@@ -39,13 +39,14 @@ const path = require('path'), fs = require('fs');
     const bs = [...el.querySelectorAll('[data-rk]')].map(x => { const q = x.getBoundingClientRect(); return { t: x.textContent.trim(), cut: q.bottom > r.bottom - 1 || q.top < r.top || q.right > r.right + 1 || q.left < r.left - 1, done: x.classList.contains('done') }; });
     return { q: el.classList.contains('qmode'), pop: el.classList.contains('qpop'), move: !el.classList.contains('idle'), flash: el.classList.contains('flash'), tight: el.classList.contains('tight'), sent: el.classList.contains('rx-sent'),
       title: (el.querySelector('.q-t') || {}).textContent || '', text: (el.querySelector('.rx-txt') || {}).textContent || '', bs, h: Math.round(r.height), box: !!(iv && !iv.hidden),
-      wait: (document.querySelector('#waitRail .wr-row.move small') || {}).textContent || '' }; });
+      wait: (document.querySelector('#waitRail .wr-row.move small') || {}).textContent || '', head: (document.getElementById('waitRail') || {}).innerText || '',
+      sec: (el.querySelector('.rx-sec') || {}).textContent || '', bar: !!el.querySelector('.rx-bar') }; });
   const waitQ = async (p, pop) => { for (let t = 0; t < 8000; t += 100) { const n = await note(p); if (pop ? n.pop : n.q && !n.pop && n.bs.length && !n.sent) return n; await p.waitForTimeout(100); } return null; };
   // re: a RegExp on the button's text, or a number: the k-th answer (robots can share a name)
   // T20: a question's buttons are inactive for 0.8 s after it lands (a click already on its way must not answer it): wait for them
   const click = async (p, re) => { for (let t = 0; t < 3000; t += 100) { if (await p.evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await p.waitForTimeout(100); } return click0(p, re); };
   const click0 = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => typeof src === 'number' ? +x.dataset.rk === src : new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d && /^✓/.test(d.textContent.trim()) ? 'tick' : 'clicked'; }, typeof re === 'number' ? re : re.source);
-  const waitRes = async p => { for (let t = 0; t < 8000; t += 100) { const v = await p.evaluate(() => window.__res); if (v !== undefined) return v; await p.waitForTimeout(100); } return 'TIMEOUT'; };
+  const waitRes = async (p, max = 8000) => { for (let t = 0; t < max; t += 100) { const v = await p.evaluate(() => window.__res); if (v !== undefined) return v; await p.waitForTimeout(100); } return 'TIMEOUT'; };
   const cancel = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); });
   // one question: run `start` (it sets window.__res when the game step is over), check the note, answer with `ans` (a RegExp,
   // or 'cancel'), return { n: the note before the click, after: the note right after the click, res }
@@ -58,14 +59,17 @@ const path = require('path'), fs = require('fs');
     if (!o.pop) {
       if (!n2.move || !n2.flash) bad.push(tag + ' ' + name + ': the note is not a flashing YOUR MOVE (' + JSON.stringify({ move: n2.move, flash: n2.flash }) + ')');
       if (n2.box) bad.push(tag + ' ' + name + ': the box over the pit is open too');
+      if (o.timed ? !(n2.bar && /^\d+ s$/.test(n2.sec)) : n2.sec) bad.push(tag + ' ' + name + ': countdown ' + JSON.stringify({ bar: n2.bar, sec: n2.sec }) + (o.timed ? ', want one' : ', want none'));
       if (n2.bs.some(x => x.cut)) bad.push(tag + ' ' + name + ': buttons cut off: ' + n2.bs.filter(x => x.cut).map(x => x.t).join(' | '));
     }
+    if (/NOBODY HAS TO CLICK/i.test(n2.head) || !n2.wait) bad.push(tag + ' ' + name + ': the waiting list does not wait for you: ' + n2.head.replace(/\s+/g, ' ').slice(0, 120));
     let after = null;
     if (ans === 'cancel') await cancel(p);
+    else if (ans === 'wait') { /* T20: let the countdown run out */ }
     else if (o.pop) { await p.waitForTimeout(900); await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, ans.source); }
     else { const c = await click(p, ans); if (!c) bad.push(tag + ' ' + name + ': no button ' + ans); else if (c !== 'tick') bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }   // ✓ checked right after the click, in the same moment
-    const res = await waitRes(p);
-    console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
+    const res = await waitRes(p, ans === 'wait' ? 26000 : 8000);
+    console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : ans === 'wait' ? '(no answer, time up)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
     return { n: n2, after, res };
   }
 
@@ -84,9 +88,9 @@ const path = require('path'), fs = require('fs');
     // ---- 2. Joint Venture: you play it on team 1 (its answer is the AI's own coin)
     const jv = () => { const D = window.ROBOCUS_DEBUG, G = D.G; G.teams[0].hand = ['joint_venture']; const c0 = G.teams[0].credits, c1 = G.teams[1].credits;
       D.playScheme(G.teams[0], 'joint_venture', G.teams[1]).then(() => { window.__res = { me: G.teams[0].credits - c0, ai: G.teams[1].credits - c1 }; }); };
-    for (const [ans, ok] of [[/^Commit$/, [5, -2]], [/^Defect$/, [2, 0]], ['cancel', [5, -2]]]) {
+    for (const [ans, ok] of [[/^Commit$/, [5, -2]], [/^Defect$/, [2, 0]], ['cancel', [2, 0]]].concat(w === 1600 ? [['wait', [2, 0]]] : [])) {   // closed: Defect (T20: never a default that can cost you)
       await prep(p);
-      const r = await ask(p, tag, 'Joint Venture', jv, ans, { shot: ans === 'cancel' ? null : ans.source === '^Commit$' ? 'joint-venture' : null });
+      const r = await ask(p, tag, 'Joint Venture', jv, ans, { timed: true, shot: typeof ans === 'string' ? null : ans.source === '^Commit$' ? 'joint-venture' : null });
       if (!ok.includes(r.res.me)) bad.push(tag + ' Joint Venture (' + ans + '): your credits moved ' + r.res.me + ', want one of ' + ok.join(' / '));
     }
     // ---- 3. Hostile Buyout: team 1 plays it on you (you have 2 robots)
@@ -94,7 +98,7 @@ const path = require('path'), fs = require('fs');
       D.playScheme(G.teams[1], 'hostile_buyout', me).then(() => { window.__res = { cr: me.credits - c0, fame: me.fame - f0, robots: me.robots.length - n0 }; }); };
     for (const [ans, want] of [[/^Sell it/, { cr: 4, fame: 0, robots: -1 }], [/^Refuse/, { cr: 0, fame: -1, robots: 0 }], ['cancel', { cr: 0, fame: -1, robots: 0 }]]) {
       await prep(p, 1);
-      const r = await ask(p, tag, 'Hostile Buyout', hb, ans, { shot: ans === 'cancel' ? null : /Sell/.test(ans.source) ? 'hostile-buyout' : null });
+      const r = await ask(p, tag, 'Hostile Buyout', hb, ans, { timed: true, shot: ans === 'cancel' ? null : /Sell/.test(ans.source) ? 'hostile-buyout' : null });
       if (JSON.stringify(r.res) !== JSON.stringify(want)) bad.push(tag + ' Hostile Buyout (' + ans + '): ' + JSON.stringify(r.res) + ', want ' + JSON.stringify(want));
     }
     // ---- 4. Tag Team offer: team 1 plays Tag Team Licence; only you have a ready robot, so it asks you
@@ -168,8 +172,8 @@ const path = require('path'), fs = require('fs');
       [1, 2, 3].forEach(i => { const T = G.teams[i], r0 = T.robots[0]; T.robots = [r0]; for (let k = 1; k < (i === 1 ? 3 : 2); k++) { const r = JSON.parse(JSON.stringify(r0)); r.id = 700 + 10 * i + k; T.robots.push(r); } });
       G.teams[1].credits = 3;
       const snap = () => G.teams.map(t => t.credits + '/' + t.robots.map(r => r.id).join(','));
-      window.__before = snap(); G.phase = 'market'; G.marketStage = 'open'; D.updateHud();   // the phase changes and the offer comes at once
-      D.openMarketAI().then(() => { window.__res = { before: window.__before, after: snap() }; }); };
+      window.__before = snap(); const ms0 = G.marketStage; G.marketStage = 'open'; D.updateHud();   // the open market starts and the offer comes at once (the pit's Market drawing needs a real Market, so the phase stays)
+      D.openMarketAI().then(() => { G.marketStage = ms0; window.__res = { before: window.__before, after: snap() }; }); };
     const tradeNote = () => p.evaluate(() => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)), pb = document.getElementById('promptBar');
       if (!bt) return null; const r = bt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, arming: bt.classList.contains('arming'), text: (pb.querySelector('.rx-txt') || {}).textContent || '' }; });
     { await prep(p); await p.mouse.move(5, 5);
@@ -190,7 +194,7 @@ const path = require('path'), fs = require('fs');
         if (early !== 'ignored' || !still || !(held && held.arming)) bad.push(tag + ' robot offer: a click already on its way answered it, or Accept is not greyed under the pointer');
         await p.mouse.move(5, 5); await p.waitForTimeout(150); await p.mouse.move(a.x, a.y); await p.waitForTimeout(150); await p.mouse.click(a.x, a.y);
         const res = await waitRes(p);
-        const got = res.after && res.before && res.after[0] !== res.before[0] && /,7\d\d$/.test(res.after[0].split('/')[1]);
+        const got = res.after && res.before && res.after[0].split('/')[1].split(',').length === 2 && res.after[1].split('/')[1].split(',').length === 2 && +res.after[0].split('/')[0] < 12;   // you: one robot more, fewer credits; Rust Rivets: one robot less
         console.log(tag + ' robot offer → Accept after the pointer moved: ' + JSON.stringify(res));
         if (!got) bad.push(tag + ' robot offer: Accept did not buy the robot: ' + JSON.stringify(res));
       } }
