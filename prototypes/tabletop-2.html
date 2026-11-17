@@ -179,6 +179,10 @@ html, body {
 .prompt-bar .rx-btns { flex: 0 0 auto; min-height: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; margin-top: 6px; overflow-y: auto; }   
 .prompt-bar .rx-btns.lots { flex-shrink: 1; min-height: 48px; }   /* 6+ answers (Botched Install, several parts): the buttons scroll */
 .prompt-bar .rx-btns .act.pick { flex: 1 1 100%; }
+/* T27: a reaction button keeps its whole name, and its hint (what it does, to whom) wraps instead of being cut, when the buttons are one per row */
+.prompt-bar.rxmode:not(.qmode) .rx-btns:not(.two) .act.pick { white-space: normal; }
+.prompt-bar.rxmode:not(.qmode) .rx-btns:not(.two) .act.pick b { flex-shrink: 0; max-width: 62%; white-space: nowrap; }
+.prompt-bar.rxmode:not(.qmode) .rx-btns:not(.two) .act.pick small { text-align: right; white-space: normal; overflow: visible; }
 .prompt-bar .rx-btns.two .act.pick { flex-basis: calc(50% - 3px); }
 .prompt-bar .rx-btns.two .act.pick small { display: none; }
 .prompt-bar .rx-btns .act.pick.go { background: var(--ink); color: var(--hazard); }
@@ -3762,7 +3766,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let o = null;
     { const got = await reactionWindow(humanSeats().filter(s => !(T && s === T.i) && (multi || can(G.teams[s]))), '⛓️ Override?',
         s => blk(s) + ' just blocked ' + yourSch(F, c, s) + onT(s) + '.<br><b>Override</b> cancels the block: ' + (F.i === s ? 'your scheme goes through' : 'the scheme goes through') + '. Only Firewall can stop it.',
-        s => can(G.teams[s]) ? [{ label: '⛓️ Override: cancel the block (' + btnSch(F, c, s) + ' goes through)', value: () => true }] : [],
+        s => can(G.teams[s]) ? [{ label: '⛓️ Override the block (' + btnSch(F, c, s) + ' goes through)', value: () => true }] : [],
         s => F.i === s ? 'your ' + schNm(c) + ' stays blocked' : 'the block stands');
       for (const a of got) if (can(G.teams[a.seat])) { o = G.teams[a.seat]; break; } }
     if (!o) for (const oi of seatOrder()) { const q = G.teams[oi]; if (!isHuman(oi) && can(q) && aiWantsOverride(q, F, c, T)) { o = q; break; } }
@@ -3779,7 +3783,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const got = await reactionWindow(humanSeats().filter(s => s !== o.i && (multi || canFw(G.teams[s]))), '🛡️ Firewall?',
         s => nm(o) + ' played <b>Override</b> on ' + (B && B.i === s ? '<b>your</b> block' : B ? nm(B) + '\'s block' : 'the block') + ' of ' + yourSch(F, c, s) + onT(s) + ': ' +
           (F.i === s ? 'your scheme goes through' : hits(s) ? 'it hits you' : 'the scheme goes through') + ' unless someone stops the Override.<br><b>Firewall</b> stops the Override: the block stands.',
-        s => canFw(G.teams[s]) ? [{ label: '🛡️ Firewall: stop the Override (' + (B && B.i === s ? 'your' : B ? shortNm(B) + '\'s' : 'the') + ' block stands, ' + btnSch(F, c, s) + ' fails)', value: () => true }] : [],
+        s => canFw(G.teams[s]) ? [{ label: '🛡️ Firewall: keep the block (' + btnSch(F, c, s) + ' fails)', value: () => true }] : [],
         s => F.i === s ? 'your ' + schNm(c) + ' goes through' : hits(s) ? 'the ' + schNm(c) + ' hits you' : btnSch(F, c, s) + ' goes through');
       for (const a of got) if (canFw(G.teams[a.seat])) { q = G.teams[a.seat]; break; } }
     if (!q) for (const qi of seatOrder()) { const x = G.teams[qi]; if (!isHuman(qi) && canFw(x) && aiWantsBlock(x, F, c, T)) { q = x; break; } }

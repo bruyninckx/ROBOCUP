@@ -49,7 +49,7 @@ const modalOf = () => { { const pb = document.getElementById('promptBar'), bs = 
         for (let s = 0; s < 4; s++) {
           const m = await seatOf[s].evaluate(modalOf); if (!m) continue; any = true;
           const who = s === actor ? 'PLAYER' : s === TARGET ? 'TARGET' : 'OTHER', tag = who + ': ' + norm(m.title, actor, TARGET); if (!asked.includes(tag)) asked.push(tag);
-          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /^Let it happen$|^OK$|No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
+          const bt = m.id === 'dealModal' ? m.btns.find(x => x.k === 'lock') : s === TARGET && react && m.btns.find(x => react.test(x.label)) ? m.btns.find(x => react.test(x.label)) : s === actor ? (m.btns.find(x => x.primary) || m.btns[0]) : (m.btns.find(x => /Accept|Team up/.test(x.label)) || m.btns.find(x => /^Let it happen|^OK$|No bot|Let it through|^No$|Stay out|Refuse/.test(x.label)) || m.btns[0]);
           if (bt) { await seatOf[s].mouse.move(bt.x, bt.y); await seatOf[s].mouse.down(); await seatOf[s].mouse.up(); }
         }
         const busy = await host.evaluate(() => !!window.ROBOCUS_DEBUG.G.ivBusy);

@@ -29,7 +29,7 @@ const fs = require('fs'), path = require('path');
   console.log('seat ' + A + ' (plays the scheme): banner "' + await banner(seatOf[A]) + '"');
   if (shots) { await seatOf[T].screenshot({ path: path.join(shots, 'reaction-target.png') }); await seatOf[2].screenshot({ path: path.join(shots, 'reaction-no-cards.png') }); await seatOf[A].screenshot({ path: path.join(shots, 'reaction-player.png') }); }
   for (const s of [0, 1, 2]) if (!w[s]) bad.push('seat ' + s + ' got no reaction window');
-  if (w[T] && !(w[T].btns.some(x => /Paid Off/.test(x)) && w[T].btns.some(x => /Roll a Security Bot/.test(x)) && w[T].btns.includes('Let it happen'))) bad.push('the target does not see its bot, its card and Let it happen');
+  if (w[T] && !(w[T].btns.some(x => /Paid Off/.test(x)) && w[T].btns.some(x => /Roll a Security Bot/.test(x)) && w[T].btns.some(x => /^Let it happen/.test(x)))) bad.push('the target does not see its bot, its card and Let it happen');
   for (const s of [0, 2]) if (w[s] && !(/no card to play here/.test(w[s].text) && w[s].btns.join() === 'OK' && !w[s].move)) bad.push('seat ' + s + ' (no cards) does not see "no card" and OK in a quiet (grey) note');
   if (w[T] && !w[T].move) bad.push('the target\'s note is not YOUR MOVE');
   if (/DECIDING|YOUR MOVE|READY/.test(await banner(seatOf[A])) || !/REACTION WINDOW/.test(await banner(seatOf[A]))) bad.push('the list shows who is still answering');
@@ -59,8 +59,8 @@ const fs = require('fs'), path = require('path');
   const cr0 = await host.evaluate(T => window.ROBOCUS_DEBUG.G.teams[T].credits, T);
   await play(); await host.waitForTimeout(1200);
   const w4 = await win(seatOf[T]); if (shots) await seatOf[T].screenshot({ path: path.join(shots, 'reaction-client-firewall.png') });
-  if (!(w4 && w4.move && w4.btns.join('|') === '🛡️ Firewall|Let it happen')) bad.push('pass case: the target\'s note shows ' + JSON.stringify(w4));
-  await seatOf[T].evaluate(() => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim() === 'Let it happen'); if (bt) bt.click(); });
+  if (!(w4 && w4.move && /^🛡️ Firewall: block it.*\|Let it happen.*hits you$/.test(w4.btns.join('|')))) bad.push('pass case: the target\'s note shows ' + JSON.stringify(w4));
+  await seatOf[T].evaluate(() => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim().startsWith('Let it happen')); if (bt) bt.click(); });
   await host.waitForTimeout(300); const w4b = await win(seatOf[T]);
   if (shots) await seatOf[T].locator('#promptBar').screenshot({ path: path.join(shots, 'reaction-client-passed-note.png') });
   await host.waitForTimeout(12000);
@@ -74,7 +74,7 @@ const fs = require('fs'), path = require('path');
   await play();
   for (let k = 0; k < 40 && !(await win(seatOf[0])); k++) await host.waitForTimeout(100);
   const t5 = Date.now();
-  for (const [s, lab] of [[T, 'Let it happen'], [0, 'OK'], [2, 'OK']]) await seatOf[s].evaluate(lab => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim() === lab); if (bt) bt.click(); }, lab);
+  for (const [s, lab] of [[T, 'Let it happen'], [0, 'OK'], [2, 'OK']]) await seatOf[s].evaluate(lab => { const bt = [...document.querySelectorAll('#promptBar [data-rk]')].find(x => x.textContent.trim().startsWith(lab)); if (bt) bt.click(); }, lab);
   let land5 = 0; for (let k = 0; k < 60; k++) { await host.waitForTimeout(250); if (await host.evaluate(m => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(m).some(e => /grabs/.test(e.text)), m5)) { land5 = Date.now() - t5; break; } }
   console.log('everyone clicked (Let it happen, OK, OK): the scheme landed ' + (land5 / 1000).toFixed(1) + ' s after the clicks (the window is 10 s)');
   if (!land5 || land5 > 4000) bad.push('the window did not close early when everyone had clicked (' + land5 + ' ms)');
