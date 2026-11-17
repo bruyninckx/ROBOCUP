@@ -12,6 +12,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
+  at the bottom? Stash parts that fit also get a button in Upkeep: keep?
 - **K21. Arenas in whole games** (T19): the bookie's formula uses old per-arena tables for same-level duels and the new
   `ARENA_FIT` for the rest. Make it one source (drop the old tables: a few lines)? Let the AI host pay for an arena down
   to 1 Cr left (it keeps 3 Cr now, so arenas are rare in bot games)?
@@ -79,15 +81,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   arrows without clutter. Files: `prototypes/tabletop-2.html` (`openPowerMap`), `docs/robocus-power-map.md`. Worker on
   branch `claude/power-map-arrows`, started 17 Nov. Done when: before/after screenshots for Pogo, Gyro and a starter;
   the map still opens under 200 ms; game-sim passes.
-- **T22. Repair options in the YOUR MOVE note.** Kev (17 Nov, with a screenshot of Upkeep: Wrecker with BODY · BROKEN · FIX
-  on its card, the note only saying "Click a lit zone"): "also add repair options in red box" (the red box is the YOUR
-  MOVE note; it flashes red). Goal: in Upkeep the note has a button for each repair you can make (robot, zone, what it
-  costs: repair actions or credits), next to Done; the zone buttons on the robot card stay. Files:
-  `prototypes/tabletop-2.html` (the Upkeep branch of `renderPromptBar`). Worker on branch `claude/repairs-in-note`,
-  started 17 Nov. Done when: screenshots with 1, 3 and many repairs at both window sizes, a click repairs (same action as
-  the card), game-sim and `mp-test` pass.
-- **T21. Bid on sponsors; no screen flip when someone else picks.** (STOPPED 17 Nov 18:30: the worker was stopped from
-  Kev's side; its work is committed on its branch at `d7113f6`, not finished or checked; waiting for Kev to say continue.) Kev (17 Nov): "when game starts and sponsor needs to be
+- **T21. Bid on sponsors; no screen flip when someone else picks.** (Stopped 18:30, resumed 18:50 on Kev's word:
+  "continue both".) Kev (17 Nov): "when game starts and sponsor needs to be
   chosen, when another player picked another sponsor suddenly the screen flipped for the player, which is strange, let
   people bet on sponsors instead, with rebid, if rebid still undecided, do random". Goal: the sponsor step is a sealed
   auction (everyone bids at the same time, ties rebid, a rebid that is still tied is decided at random); nobody's screen
@@ -95,8 +90,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   bot), `rules.html`, `docs/sponsors.md`. Worker on branch `claude/sponsor-auction`, started 17 Nov. Done when: scripted
   solo and 4-player online runs (bids, tie, rebid, random), screenshots, game-sim and `mp-test` pass, and what the prices
   do to start credits is measured.
-- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (STOPPED 17 Nov 18:30, as T21;
-  branch at `abc0629`, not finished or checked; waiting for Kev to say continue.) Kev (17 Nov): "let it happen";
+- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (Stopped 18:30, resumed 18:50 on Kev's
+  word: "continue both".) Kev (17 Nov): "let it happen";
   "move into note yes" (to: other popup questions such as the second robot in a double duel, Joint Venture, Hostile
   Buyout). Goal: every question the game asks one player mid-turn shows in the note with its answers as buttons, the same
   way the reaction window does since T2; popups stay only where the note cannot hold the question (say which). Files:
@@ -105,6 +100,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
 ## Done
 
+- **T22. Repair buttons in the YOUR MOVE note** (17 Nov): one button per damaged zone with its cost (actions, crew
+  exhausted, credits), broken first; greyed with the reason when it can't be paid; Done stays at the top right; Stash
+  parts that fit also get a button. Same `repairZone` / `fitStash` actions as the card. Branch `claude/repairs-in-note`,
+  commit `86ba19b`. BUILD `2026-11-17c`, files stamp `d318237d`; game-sim 2/2, `repair-note.js` OK, online test 0
+  desyncs.
 - **T19. Game length after the arena change** (17 Nov, measuring only): 200 paired bot games, 11.55 → 11.63 rounds
   (+0.09 ± 0.13): not longer. Also found: the host's edge on its own picked arena is not seen in whole games (78% won vs
   77% expected without the arena); the bookie's same-level arena duels still use the 15 Nov per-arena tables; the AI
