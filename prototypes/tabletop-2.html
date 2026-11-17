@@ -2570,7 +2570,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
       for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; if (!r.exhausted) { delete r.exWhy; delete r.exBy; delete r.exRound; } }
       // T25: a robot still out says so in its owner's log, with the cause and the round it is back (nothing to do)
-      for (const r of t.robots) if (r.exhausted && isHuman(t.i)) { const xi = exInfo(r); say(t.i, '😴 <b>' + esc(r.name) + '</b> is still out (' + esc(xi.cause) + '): it misses this round\'s fight too and is back by itself in round ' + xi.back + '. Nothing to do' + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' (you can still repair its damage)' : '') + '.', t.col); }
+      for (const r of t.robots) if (r.exhausted && isHuman(t.i)) { const xi = exInfo(r); say(t.i, '😴 <b>' + esc(r.name) + '</b> is still out: ' + esc(xi.cause) + '. It misses this round\'s fight too and comes back by itself in round ' + xi.back + ': nothing to do' + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' (you can still repair its damage)' : '') + '.', t.col); }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
         const bots = hasCrew(t, 'accountant') || BAL.robotUpkeep === 'first' ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
@@ -6364,7 +6364,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     F.loser = F.fateQueue.shift();
     if (F.fateN > 1) notify('👑 The host now decides spare or scrap for each losing robot, first knocked out first: ' + order.map(x => esc(F.robots[x.e].name) + ' (' + esc(G.teams[x.ti].name.split(' ')[0]) + ')').join(', ') + '.', G.teams[G.host].col);
     // T25 (Kev, 17 Nov: "I think I only was able to spare angler, not wrecker?"): each owner sees, before any offer, what can happen to each of its losing robots
-    [...new Set(order.map(x => x.ti))].forEach(ti => { if (isHuman(ti)) say(ti, '👑 Your losing robots: ' + order.filter(x => x.ti === ti).map(x => fateStatus(G.teams[ti], F.robots[x.e])).join(' · ') + '.', G.teams[ti].col); });
+    fateIntro(order.map(x => ({ ti: x.ti, r: F.robots[x.e] })));
 
     // 2.0: every losing team gets a free repair action next Upkeep (Vulture Salvage: 2), after the spare/scrap decisions
     F.crateQueue = [...new Set(losers.map(x => x.ti))].map(ti => ({ team: ti }));
@@ -6380,6 +6380,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const F = G.fight; if (!F || !F.loser) return '';
     const q = [F.loser].concat(F.fateQueue || []).filter(x => x && x.team === HS && x.robot);
     return q.length ? '<br>' + q.map((x, k) => (k === 0 && F.loser.team === HS ? '▶ ' : '') + fateStatus(G.teams[HS], x.robot)).join(' · ') : '';
+  }
+  function fateIntro(list) {
+    [...new Set(list.map(x => x.ti))].forEach(ti => { if (isHuman(ti)) say(ti, '👑 Your losing robots: ' + list.filter(x => x.ti === ti).map(x => fateStatus(G.teams[ti], x.r)).join(' · ') + '.', G.teams[ti].col); });
   }
   // T25: one robot's fate status for its owner (the same rule as fateStep's canScrap)
   function fateStatus(T, r) {
@@ -9058,6 +9061,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target && e.target.isContentEditable)) { if (PM.open) closePowerMap(); else openPowerMap(); }
   });
   { const pb = document.getElementById('pmapBtn'); if (pb) pb.onclick = () => { if (PM.open) closePowerMap(); else openPowerMap(); }; }
+  if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { exInfo, exBack, exhaustBot, startRound, resolveScheme, fateIntro, fateStep, fateStatus });   // T25 checks
   if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { openPowerMap, closePowerMap, get PM() { return PM; } });
 
   /* ---------- Top Pill & Hand Controls ---------- */
