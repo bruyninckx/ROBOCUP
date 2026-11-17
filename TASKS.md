@@ -12,6 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K19. Arenas** (T4): an arena costs 1 Cr and is now worth about two thirds of a level for one fight: keep 1 Cr or 2 Cr?
+  Thwacker is hopeless on Ice (20%) and weak in the Cage (26%): a known weakness, or soften Ice? Whaler wins 97% on Saws
+  against its own level (it already did): keep as the Saw specialist, or cap? Killbox is the mildest arena: sharper?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
   enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
   out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
@@ -56,6 +59,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
+- **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
+  Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
   check the level steps again (`tools/damage-lab/tag-sim2.js` duel section). Done when: every step is 63-68%.
 - **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
@@ -66,18 +71,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T4. Make arenas change who wins.** Kev (16 Nov): "yes, lets change the arenas so they have an impact. If impact is a
-  lot more we can decide on coins it needs as well". Today, with 32 fights a robot per arena, only Whaler (Saws) stands
-  out (`docs/robocus-tuned-lineup-tags.md` 4.5). Goal: stronger or more selective hazards, so each arena clearly helps some
-  robots and hurts others; then re-measure `ARENA_FIT` and the arena tags. Report how big the effect is, so Kev can decide
-  whether picking an arena should cost credits. Files: `tools/damage-lab/` (engine hazards, `arenafit.js`), then `build.py`.
-  Done when: on every arena at least 4 robots move 8 points or more against
-  their open-floor record (numbers with fight counts), and the open floor is unchanged.
-  Also: drop the Scythe + Repair kit poor-fit tag (`PART_FIT.Scythe.repair`; re-measured 31 → 43%, no longer a poor fit).
-  Worker on branch `claude/arenas`, started 17 Nov.
+_None._
 
 ## Done
 
+- **T4. Arenas change who wins** (17 Nov): Saws and Killbox damage grows with the victim's level, Killbox spikes along the
+  whole wall, Cage 4.75 m (was 6), Ice grip 0.3 (was 0.4). Robots moved 8+ points vs open floor: Saws 19, Cage 15,
+  Ice 17, Killbox 9 (3,168 fights an arena; a cell ±4 to ±6). An arena pick is worth about +11 points to the host (was
+  +4). Open floor unchanged (25 of 32 fingerprint lines identical; the 7 Killbox lines changed, as intended). New
+  `ARENA_FIT`, tags, texts; `docs/robocus-arenas.md`. Also: Scythe + Repair kit poor-fit tag removed. Branch
+  `claude/arenas`, commit `6794fff`. BUILD `2026-11-17a`, files stamp `d318237d`; game-sim 2/2, online test 0 desyncs.
 - **T5. The Repair kit card repairs under fire too** (16 Nov): slowly (0.3 of its rate) while hit, full rate after 1.5 s
   without a hit. Measured +0.64 of a level (was +0.53), about ±0.13, 1,632 fights each way: at the bottom edge of the
   +0.65 to +0.85 target, not clearly inside; healing faster does not lift it (K18). Mauler's own module and every robot
