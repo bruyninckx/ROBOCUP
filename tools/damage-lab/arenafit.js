@@ -4,7 +4,7 @@
 // 17 Nov (T4, arenas change who wins): seeds no longer depend on the running fight count, so a run can be split over
 // processes (firstSeed), and the output also has wins/fights per robot, fight length, KO / judges share and hazard damage.
 const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
-const args = process.argv.slice(2).filter(a => !a.startsWith('--')), opt = Object.fromEntries(process.argv.slice(2).filter(a => a.startsWith('--')).map(a => a.slice(2).split('=')));
+const args = process.argv.slice(2).filter(a => !a.startsWith('--')), opt = Object.fromEntries(process.argv.slice(2).filter(a => a.startsWith('--')).map(a => { const [k, v] = a.slice(2).split('='); return [k, v == null ? true : v]; }));
 const arena = args[0] || 'open', seeds = +args[1] || 1, s0 = +args[2] || 0;
 const all = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), by = {}; for (const n in all) (by[all[n][0]] = by[all[n][0]] || []).push(n);
 const w = {}, n = {}, trait = {}; let secs = 0, fights = 0, kos = 0, judges = 0, hz = 0, dmg = 0, pairI = 0; const koWhy = {};
