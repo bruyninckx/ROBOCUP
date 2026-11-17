@@ -113,6 +113,7 @@ The p column is the tuned power. "Off" is the rating gap from its level's target
    - With 32 fights per arena no other robot moves more than the noise.
    - The arenas still look different, but they hardly change who wins.
    - If Kev wants arena choice to matter for betting, the hazards need to be stronger or more selective (for example saws that only bite wheels, ice that hurts spinners).
+   - **17 Nov update (T4): superseded by docs/robocus-arenas.md.** 32 fights was too few: with 128-256 fights a robot the arenas already moved many robots, and the hazards are now stronger (Killbox spikes on every wall, Cage 4.75 m, ice slipperier for wheels, saws and spikes grow with level). 15-19 robots now move 8+ points on Saws, Cage and Ice, 9 on the Killbox; `ARENA_FIT` and the arena tags in the game come from there.
 6. **Part fits and epic combos (all re-tested on fresh seeds):**
    - Average gain from a part vs robots a level up: Prototype core +22, Quantum shield +20, Weapon overhaul +19, Tow cable +17 … Repair kit +3.
    - **Epic (gains 30+ points and 20+ above the part's average):**
