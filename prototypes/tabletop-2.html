@@ -2829,7 +2829,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17a arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17b reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -8865,6 +8865,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, reactions in the note', '17 Nov 2026', [
+      'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it shows the same countdown quietly, with no buttons, and closes by itself. Same 10 seconds, same rules; the list below still says CAN ANSWER for everyone.' ]],
     ['2.0.1, arenas', '17 Nov 2026', [
       'Arenas now change who wins, for reasons you can see: Floor Saws favour hit-and-run robots and punish grabbers; the Killbox has spikes along every wall (throwers and lifters love it, spinners bounce into it); The Cage is smaller (4.75 × 4.75 m, was 6 × 6: no room for tails, harpoons or orbit blades); the Ice Rink is slipperier for wheels (tracks and legs grip better). Saws and spikes now hurt a level 3-4 robot as much as a level 0 one. The bookie and the tags (🪚 ☠️ 🔒 🧊) use the new numbers; hover an arena for who it favours. The open floor is unchanged.' ]],
     ['2.0.1, repair kit', '16 Nov 2026', [
