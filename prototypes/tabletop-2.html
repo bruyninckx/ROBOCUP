@@ -375,6 +375,10 @@ html, body {
 #pmapBox .pm-n { color: var(--muted); font-size: 11.5px; }
 #pmapBox .pm-li { all: unset; box-sizing: border-box; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; width: 100%; padding: 2px 7px; margin: 2px 0; border-radius: 4px; font-size: 12.5px; }
 #pmapBox .pm-li.g { background: #DCEBDD; } #pmapBox .pm-li.b { background: #F3D9D3; } #pmapBox .pm-li:hover { outline: 2px solid var(--ink); }
+#pmapBox .pm-li { align-items: center; } #pmapBox .pm-li .pm-nm { flex: 1; min-width: 0; } #pmapBox .pm-li.lt { opacity: .78; } #pmapBox .pm-li.hl { outline: 2px solid var(--ink); }
+#pmapBox .pm-bar { width: 56px; flex: none; display: flex; align-items: center; } #pmapBox .pm-bar span { display: block; border-radius: 2px; }
+#pmapBox .pm-leg { display: flex; gap: 6px; align-items: flex-start; font-size: 11.5px; line-height: 1.3; color: var(--muted); margin: 8px 0 2px; } #pmapBox .pm-leg svg { flex: none; margin-top: 2px; }
+#pmapBox .pm-note { margin: 8px 0 2px; padding: 4px 7px; border-left: 4px solid #D9731A; background: #FBEBD9; font-size: 12px; line-height: 1.35; }
 #pmapBox .pm-li i { font-style: normal; color: #b45309; font-size: 11px; } #pmapBox .pm-li em { font: 500 11px var(--mono); font-style: normal; color: var(--muted); }
 #pmapBox .pm-vs { border-collapse: collapse; width: 100%; } #pmapBox .pm-vs td { padding: 2px 3px; border-bottom: 1px solid var(--line); } #pmapBox .pm-vs td:last-child { text-align: right; white-space: nowrap; }
 #pmapBox .sc-chip, #pmTip .sc-chip { color: #fff; border-radius: 9px; padding: 1px 7px; font: 600 11px var(--mono); }
@@ -2897,7 +2901,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17c repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17d power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -8649,7 +8653,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * where they fight now (parts with their tiers, and damage), a faint copy where they stood as new. Display only: it reads G, the
    * matchup table and the strength model, changes nothing and rolls no dice (docs/robocus-power-map.md).
    * ============================================================================ */
-  const PM = { el: null, cv: null, open: false, sel: null, hov: null, only: false, items: [], base: null, geo: null, xm: 0.75, jobs: [], pumping: false, sig: '', timer: null, msOpen: 0 };
+  const PM = { el: null, cv: null, open: false, sel: null, hov: null, only: false, items: [], base: null, geo: null, xm: 0.75, jobs: [], pumping: false, sig: '', timer: null, msOpen: 0, hl: null, arr: [] };
   const PM_LV = ['Starters', 'Level 1', 'Level 2', 'Level 3', 'Level 4'], PM_LC = ['#7C8A83', '#4F8FB0', '#6C6CC0', '#B3569A', '#D9822B'];
   // each robot as it comes: a rating from the matchup table (Bradley-Terry fit on the open-floor pairs, half a fight each way added
   // to every pair), given as levels from the average of its own level (one level = Repair2.LEVEL in the model's units)
@@ -8749,20 +8753,41 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       try { img = VW.portrait(spec2(j.it.r, j.it.T), 128); } catch (e) { img = null; } if (PORT.size > 200) PORT.clear(); PORT.set(j.k, img); }
     pmDraw(); setTimeout(pmPump, 0);
   }
-  function pmCounters(it) {   // the same rule as the game's 🎯 / ⚠️ tags (counterOf: 40+ points off what the level gap gives)
-    const beats = [], lose = [];
-    for (const n of pmBase().names) { if (n === it.name) continue; const c = counterOf(it.r, { name: n, level: pmBase().R[n].lv });
-      if (c) (c.good ? beats : lose).push({ n, p: c.p, e: c.e }); }
+  /* Kev, 17 Nov (T23): "what about increasing the size of the arrow depending on how much it counters". A counter here is a matchup
+   * PM_MIN (30 points) or more off what the level gap gives (open floor, robots as they come, 20 fights a pair: ±11 points is one
+   * standard error at 50%, so 30 is well outside the noise). Width grows with the distance; 40+ (the game's 🎯 / ⚠️ rule,
+   * BAL.counterTag) is dark, 30-39 thin and light. Strongest first. Display only: the tags keep their own rule. */
+  const PM_MIN = 0.30, PM_TOP = 0.85;
+  function pmCounters(it) {
+    const beats = [], lose = [], B = pmBase();
+    for (const n of B.names) { if (n === it.name) continue;
+      const m = mxP(it.name, n, 'open'), e = MX_EXP[baseLv(it.r) - baseLv({ name: n })]; if (!m || e == null) continue;
+      const d = m.p - e; if (Math.abs(d) < PM_MIN - 1e-9) continue;
+      (d > 0 ? beats : lose).push({ n, p: m.p, e, d: Math.abs(d), tag: Math.abs(d) >= BAL.counterTag - 1e-9 }); }
+    const by = (a, b) => b.d - a.d || (a.n < b.n ? -1 : 1); beats.sort(by); lose.sort(by);
     return { beats, lose };
   }
+  const pmW = d => 1.6 + 8.4 * Math.max(0, Math.min(1, (d - PM_MIN) / (PM_TOP - PM_MIN)));   // line width: 1.6 px at 30 points, 10 px at 85+
+  const PM_GC = ['#2F7D4A', '#7FB592'], PM_RC = ['#B23A2B', '#DA8E83'];   // [40+, 30-39]: green = it counters, red = countered by
+  const pmCol = (good, tag) => (good ? PM_GC : PM_RC)[tag ? 0 : 1];
   // the tokens an arrow goes to: this game's copies of that robot, else the lineup token
   const pmTargets = n => { const a = PM.items.filter(i => i.name === n && pmInGame(i) && pmShown(i)); return a.length ? a : PM.items.filter(i => i.name === n && !pmInGame(i) && pmShown(i)); };
-  function pmArrow(ctx, p, q, col) {
-    const dx = q.px - p.px, dy = q.py - p.py, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
-    const x1 = p.px + ux * (pmR(p) + 3), y1 = p.py + uy * (pmR(p) + 3), x2 = q.px - ux * (pmR(q) + 5), y2 = q.py - uy * (pmR(q) + 5), bend = 0.18 * d;
-    const mx = (x1 + x2) / 2 - uy * bend, my = (y1 + y2) / 2 + ux * bend;
-    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, x2, y2); ctx.stroke();
-    const a = Math.atan2(y2 - my, x2 - mx); ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  // one arrow p -> q; c = the counter ({ d, tag, good }); returns its curve (for hovering) and its middle
+  function pmArrow(ctx, p, q, c, fade, hl) {
+    const dx = q.px - p.px, dy = q.py - p.py, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, w = pmW(c.d) + (hl ? 1 : 0), head = 8 + 1.5 * w;
+    // bent to one side; two robots close together get a wider loop, so a short arrow still shows outside the tokens
+    const bend = 0.18 * d + Math.max(0, 130 - d) * 0.45, mx = (p.px + q.px) / 2 - uy * bend, my = (p.py + q.py) / 2 + ux * bend;
+    const du = (o, r) => { const vx = mx - o.px, vy = my - o.py, l = Math.hypot(vx, vy) || 1; return [o.px + vx / l * r, o.py + vy / l * r]; };
+    const [x1, y1] = du(p, pmR(p) + 3), [x2, y2] = du(q, pmR(q) + 5), a = Math.atan2(y2 - my, x2 - mx);
+    const ex = x2 - Math.cos(a) * head * 0.7, ey = y2 - Math.sin(a) * head * 0.7, col = pmCol(c.good, c.tag);
+    ctx.globalAlpha = fade ? 0.18 : 1; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,253,248,.75)'; ctx.lineWidth = w + 3; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+    const sp = 0.32 + 0.02 * w; ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - head * Math.cos(a - sp), y2 - head * Math.sin(a - sp)); ctx.lineTo(x2 - head * Math.cos(a + sp), y2 - head * Math.sin(a + sp)); ctx.closePath();
+    ctx.strokeStyle = 'rgba(255,253,248,.75)'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+    const pts = []; for (let k = 0; k <= 16; k++) { const t = k / 16, u = 1 - t; pts.push([u * u * x1 + 2 * u * t * mx + t * t * ex, u * u * y1 + 2 * u * t * my + t * t * ey]); }
+    return { pts, w, mid: pts[8] };
   }
   const pmRR = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
   function pmPill(ctx, x, y, txt, bg, fg) {
@@ -8818,8 +8843,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.textAlign = 'left'; ctx.fillText('← weaker for its level', g.left + 18, g.H - 6); ctx.textAlign = 'right'; ctx.fillText('stronger for its level →', g.W - g.right, g.H - 6);
     const sel = PM.sel && PM.items.includes(PM.sel) ? PM.sel : null, rel = new Set(), arrows = [];
     if (sel) { rel.add(sel); if (sel.home) rel.add(sel.home); PM.items.forEach(i => { if (i.home === sel) rel.add(i); }); const C = pmCounters(sel);
-      for (const c of C.beats) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([sel, t, '#2F7D4A']); }
-      for (const c of C.lose) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([t, sel, '#B23A2B']); } }
+      for (const c of C.beats) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([sel, t, Object.assign({ good: true }, c)]); }
+      for (const c of C.lose) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([t, sel, Object.assign({ good: false }, c)]); } }
+    arrows.sort((a, b) => a[2].d - b[2].d);   // the strongest on top
+    const hl = sel && PM.hl && arrows.some(a => a[2].n === PM.hl) ? PM.hl : null;
     const alpha = it => sel ? (rel.has(it) ? 1 : 0.2) : pmInGame(it) ? 1 : it.kind === 'ghost' ? 0.45 : 0.38;
     // a line from the as-new copy to where it fights now
     for (const it of PM.items) { if (!it.home || !pmShown(it) || it.px == null) continue;
@@ -8827,9 +8854,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.beginPath(); ctx.moveTo(it.home.px, it.home.py); ctx.lineTo(it.px, it.py); ctx.stroke(); ctx.setLineDash([]); }
     ctx.globalAlpha = 1;
     const order = PM.items.filter(it => pmShown(it) && it.px != null).sort((a, b) => (pmInGame(a) - pmInGame(b)) || ((PM.sel === a) - (PM.sel === b)));
-    for (const it of order) if (!pmInGame(it)) pmTok(ctx, it, alpha(it));
-    for (const [a, b, c] of arrows) pmArrow(ctx, a, b, c);
-    for (const it of order) if (pmInGame(it)) pmTok(ctx, it, alpha(it));
+    for (const it of order) if (!pmInGame(it) && !(sel && rel.has(it))) pmTok(ctx, it, alpha(it));
+    PM.arr = [];
+    for (const [a, b, c] of arrows) if (!hl || c.n !== hl) PM.arr.push(Object.assign({ n: c.n }, pmArrow(ctx, a, b, c, !!hl, false)));
+    for (const [a, b, c] of arrows) if (hl && c.n === hl) PM.arr.push(Object.assign({ n: c.n, c }, pmArrow(ctx, a, b, c, false, true)));
+    for (const it of order) if (!pmInGame(it) && sel && rel.has(it)) pmTok(ctx, it, hl && it !== sel && it.name !== hl ? 0.35 : 1);   // the robots at the arrows' ends stay readable
+    for (const it of order) if (pmInGame(it)) pmTok(ctx, it, hl && rel.has(it) && it !== sel && it.name !== hl ? 0.35 : alpha(it));
+    // the hovered pair: its odds at the arrow's middle
+    for (const A of PM.arr) if (A.c) { const c = A.c, win = c.good ? c.p : 1 - c.p, exp = c.good ? c.e : 1 - c.e, who = c.good ? sel.name : c.n;
+      pmPill(ctx, A.mid[0], A.mid[1], who + ' wins ' + rangeTxt(win) + ' · levels give ' + Math.round(exp * 100) + '%', pmCol(c.good, true), '#fff'); }
+    PM.arr = PM.arr.reverse();   // hover finds the top arrow first
   }
   const pmOwner = it => it.kind === 'team' ? (it.T.i === viewerSeat ? '<b style="color:' + it.T.col + '">Yours</b> (' + esc(it.T.name) + ')' : '<b style="color:' + it.T.col + '">' + esc(it.T.name) + '</b>')
     : it.kind === 'lot' ? '<b style="color:#D9731A">In the Market</b> (a robot lot)' : it.kind === 'next' ? 'In next round\'s Market' : it.kind === 'ghost' ? 'As it comes (new); a copy is in this game' : 'Not in this game';
@@ -8851,9 +8885,18 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
       '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
       '<p>A robot with parts or damage stands where it <b>fights now</b>, with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
-      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it (the 🎯 / ⚠️ rule: 40+ points off what the level gap gives). For a robot in this game you also get the bookie\'s band against each rival.</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
+      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. For a robot in this game you also get the bookie\'s band against each rival.</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
     const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
-    const li = (c, good) => '<button class="pm-li ' + (good ? 'g' : 'b') + '" data-pm="' + esc(c.n) + '"><span>' + (inG(c.n) ? '<b>' + esc(c.n) + '</b>' : esc(c.n)) + ' <i>' + starsOf(pmBase().R[c.n].lv) + '</i></span><em>' + (good ? rangeTxt(c.p) : rangeTxt(1 - c.p)) + '</em></button>';
+    // a row per counter, strongest first: a bar as thick as its arrow and as long as how far it is off the level odds
+    const li = (c, good) => { const win = good ? c.p : 1 - c.p, exp = good ? c.e : 1 - c.e, w = pmW(c.d), L = Math.round(8 + 46 * Math.min(1, (c.d - PM_MIN) / (PM_TOP - PM_MIN)));
+      const tip = (good ? r.name : c.n) + ' wins ' + rangeTxt(win) + ' where the level gap gives ' + Math.round(exp * 100) + '%' + (c.tag ? ' (a ' + (good ? '🎯' : '⚠️') + ' tag in the game)' : ' (no tag in the game: under 40 points)');
+      return '<button class="pm-li ' + (good ? 'g' : 'b') + (c.tag ? '' : ' lt') + (PM.hl === c.n ? ' hl' : '') + '" data-pm="' + esc(c.n) + '" title="' + esc(tip) + '"><span class="pm-nm">' + (inG(c.n) ? '<b>' + esc(c.n) + '</b>' : esc(c.n)) + ' <i>' + starsOf(pmBase().R[c.n].lv) + '</i></span>' +
+        '<span class="pm-bar"><span style="width:' + L + 'px;height:' + Math.max(2, Math.round(w)) + 'px;background:' + pmCol(good, c.tag) + '"></span></span><em>' + rangeTxt(win) + '</em></button>'; };
+    const legend = '<div class="pm-leg"><svg width="64" height="14" viewBox="0 0 64 14"><line x1="2" y1="4" x2="22" y2="4" stroke="#7FB592" stroke-width="1.6"/><path d="M28 4 l-7 -3 v6z" fill="#7FB592"/><line x1="34" y1="8" x2="52" y2="8" stroke="#2F7D4A" stroke-width="7"/><path d="M63 8 l-12 -7 v14z" fill="#2F7D4A"/></svg>' +
+      '<span>Thicker = a bigger upset than the levels say. Light: 30–39 points off; dark: 40+ (🎯 / ⚠️).</span></div>';
+    const changed = x => pmInGame(x) && !isStock(x.r), selCh = changed(it), othCh = [...C.beats, ...C.lose].some(c => PM.items.some(i => i.name === c.n && changed(i)));
+    const hasP = selCh && partsOf(r).length > 0, hasD = selCh && !isStock(Object.assign({}, r, { parts: [], leg: null })), what = [hasP && 'parts', hasD && 'damage'].filter(Boolean).join(' and ');
+    const note = selCh || othCh ? '<div class="pm-note">Arrows: robots <b>as they come</b>. ' + (selCh ? esc(r.name) + ' has ' + what : 'Some of these have parts or damage') + ' now; ' + (pmInGame(it) ? 'today\'s odds are the bands above.' : 'today\'s odds: the scout panel.') + '</div>' : '';
     let vs = '';
     if (pmInGame(it)) {
       const riv = (G.teams || []).filter(T => !(it.kind === 'team' && T === it.T)).flatMap(T => T.robots.map(x => ({ T, r: x })));
@@ -8864,15 +8907,25 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     el.innerHTML = '<div class="pm-top"><b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span><button class="pm-x2" data-pm="">✕</button></div><div class="pm-sub">' + esc(wepLabel(r.name)) + ' · ' + pmOwner(it) + '</div>' +
       (pmInGame(it) ? '<div>Parts: ' + pmParts(r) + '</div><div>Damage: ' + esc(zoneTxt(r)) + '</div>' : '') + '<div>' + pmFights(it) + '</div>' + vs +
-      '<div class="pm-h">Counters (' + C.beats.length + ')</div>' + (C.beats.map(c => li(c, true)).join('') || '<p class="pm-n">none</p>') +
+      note + legend + '<div class="pm-h">Counters (' + C.beats.length + ')</div>' + (C.beats.map(c => li(c, true)).join('') || '<p class="pm-n">none</p>') +
       '<div class="pm-h">Countered by (' + C.lose.length + ')</div>' + (C.lose.map(c => li(c, false)).join('') || '<p class="pm-n">none</p>') +
-      '<p class="pm-n">Counters: from the matchup table, as they come (20 fights a pair); the range is its chance in that duel. Bold = in this game.</p>';
+      '<p class="pm-n">Counters: from the matchup table, as they come (20 fights a pair); the range is its chance in that duel. Bold = in this game. Hover a row or an arrow to pick out the pair.</p>';
   }
   function pmHit(e) {
     const g = PM.geo, b = PM.cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top; let best = null, bd = 1e9;
     for (const it of PM.items) { if (it.px == null || !pmShown(it)) continue; const d = Math.hypot(it.px - x, it.py - y) - (pmInGame(it) ? 3 : 0);
       if (d < pmR(it) + 5 && d < bd) { bd = d; best = it; } }
     return best;
+  }
+  // hovering an arrow, its robot or its row picks out that pair (display only: a redraw)
+  function pmArrowHit(e) {
+    const b = PM.cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    for (const A of PM.arr) for (const [px, py] of A.pts) if (Math.hypot(px - x, py - y) < A.w / 2 + 5) return A.n;
+    return null;
+  }
+  function pmHl(n) {
+    if (!PM.sel) n = null; if (n === PM.hl) return; PM.hl = n; pmDraw();
+    if (PM.el) PM.el.querySelectorAll('.pm-side .pm-li').forEach(r => r.classList.toggle('hl', !!n && r.dataset.pm === n));
   }
   function pmTip(e, it) {
     const tp = document.getElementById('pmTip'); if (!tp) return;
@@ -8906,11 +8959,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       PM.el = el; PM.cv = el.querySelector('canvas');
       el.addEventListener('click', e => {
         if (e.target === el || e.target.closest('.pm-x')) return closePowerMap();
-        const b = e.target.closest('[data-pm]'); if (b) { const n = b.dataset.pm; PM.sel = n ? (pmTargets(n)[0] || null) : null; pmDraw(); pmSide(); }
+        const b = e.target.closest('[data-pm]'); if (b) { const n = b.dataset.pm; PM.hl = null; PM.sel = n ? (pmTargets(n)[0] || null) : null; pmDraw(); pmSide(); }
       });
-      PM.cv.addEventListener('mousemove', e => { const it = pmHit(e); if (it !== PM.hov) { PM.hov = it; PM.cv.style.cursor = it ? 'pointer' : 'default'; } pmTip(e, it); });
-      PM.cv.addEventListener('mouseleave', () => { PM.hov = null; pmTip(null, null); });
-      PM.cv.addEventListener('click', e => { const it = pmHit(e); PM.sel = it && it !== PM.sel ? it : null; pmDraw(); pmSide(); });
+      PM.cv.addEventListener('mousemove', e => { const it = pmHit(e), an = it ? null : pmArrowHit(e); if (it !== PM.hov) { PM.hov = it; } PM.cv.style.cursor = it ? 'pointer' : 'default'; pmTip(e, it); pmHl(an || (it && it !== PM.sel && PM.arr.some(A => A.n === it.name) ? it.name : null)); });
+      PM.cv.addEventListener('mouseleave', () => { PM.hov = null; pmTip(null, null); pmHl(null); });
+      PM.cv.addEventListener('click', e => { const it = pmHit(e); if (!it && pmArrowHit(e)) return; PM.hl = null; PM.sel = it && it !== PM.sel ? it : null; pmDraw(); pmSide(); });
+      const side = el.querySelector('.pm-side');
+      side.addEventListener('mouseover', e => { const b = e.target.closest('.pm-li'); pmHl(b ? b.dataset.pm : null); });
+      side.addEventListener('mouseleave', () => pmHl(null));
       el.querySelector('#pmOnly').addEventListener('change', e => { PM.only = e.target.checked; if (PM.sel && !pmShown(PM.sel)) PM.sel = null; pmBuild(); });
       window.addEventListener('resize', () => { if (PM.open) pmBuild(); });
     }
@@ -8934,6 +8990,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, power map arrows', '17 Nov 2026', [
+      'Power map: the thicker the arrow, the stronger the counter (how far the matchup is from what the levels say). Gyro over Pogo (wins 80–100% where the levels give 15%) is the fattest arrow; a starter over a ★4 robot stands out too.',
+      'More counters shown: also the medium ones (30–39 points off the level odds) as thin, light arrows; the dark ones are the game\'s 🎯 / ⚠️ counters (40+). A robot now gets 1 to 14 arrows, usually 4 (was 0 to 9, usually 2).',
+      'The side list is strongest first with a bar as thick as the arrow. Hover an arrow, its robot or its row to pick out that pair, with its chance and what the levels give. Arrows are robots as they come: when parts or damage are in play, the panel says so (the bands are today\'s odds).' ]],
     ['2.0.1, repairs in the note', '17 Nov 2026', [
       'Upkeep: the yellow note now lists every repair you can make, one button each: robot, zone, broken or how damaged, and what it costs (repair actions, which crew it exhausts, or credits). Broken zones first, in red like the card. A click repairs it, the same as clicking the zone on the robot card (that still works). A repair you can\'t pay is shown greyed with the reason. Stash parts that fit a robot get a button too. Done → Intrigue sits at the top right of the note. With many repairs the buttons go two per row and the list scrolls.' ]],
     ['2.0.1, reactions in the note', '17 Nov 2026', [
