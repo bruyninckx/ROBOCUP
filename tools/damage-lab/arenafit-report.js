@@ -25,6 +25,9 @@ for (const a of Object.keys(runs)) {
     list.push({ r, lv: A.trait[r].lv, p0, p1, d: p1 - p0, se, n: A.n[r], n0: O.n[r], f, t: A.trait[r] }); }
   list.sort((x, y) => y.d - x.d); rows[a] = list;
   if (asFit) continue;
+  { const L2 = list.map(x => { const a = Math.min(0.97, Math.max(0.03, x.p1)), b = Math.min(0.97, Math.max(0.03, x.p0)); return { d: lg(a) - lg(b), v: 1 / (A.n[x.r] * a * (1 - a)) + 1 / (O.n[x.r] * b * (1 - b)) }; });
+    const vd = L2.reduce((s, x) => s + x.d * x.d, 0) / L2.length, vn = L2.reduce((s, x) => s + x.v, 0) / L2.length;
+    if (!asFit) console.log(`spread of the logit change ${Math.sqrt(vd).toFixed(2)}, of which noise ${Math.sqrt(vn).toFixed(2)}: the noise shrink that fits is x${Math.max(0, 1 - vn / vd).toFixed(2)}`); }
   const big = list.filter(x => Math.abs(x.d) >= 0.08), sure = list.filter(x => Math.abs(x.d) >= 2 * x.se);
   console.log(`robots moved 8+ points: ${big.length} (${big.filter(x => x.d > 0).length} up, ${big.filter(x => x.d < 0).length} down); outside 2 sd: ${sure.length}; mean |change| ${pc(list.reduce((s, x) => s + Math.abs(x.d), 0) / list.length)} pts`);
   console.log('| Robot | Lv | kg | drive | weapon | open % | here % | change | ± | fit |'); console.log('|---|---|---|---|---|---|---|---|---|---|');
