@@ -1996,26 +1996,42 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       return;
     }
     if (G.phase === 'setup') {
-      if (G.setupStep === 'sponsor' && isNetGame() && PS().sponsor) {
-        const w = humanSeats().filter(h => !PS(h).sponsor);
-        pb.innerHTML = '<span>🏁 <b>Sponsor signed.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '…</span>';
-      } else if (G.setupStep === 'sponsor') {
-        pb.innerHTML = '<span>🏁 <b>Starting Phase (1/3) — Choose Your Team Sponsor:</b> you are dealt 2 sponsor contracts; keep one (AI teams are dealt 2 of the rest and keep 1).</span>' +
-          // T9: one button per contract, the same click as SIGN … in the pit
-          mySponsorDeal().map(k => SPONSORS[k] ? pickBtn('sign', k, '✍ Sign ' + SPONSORS[k].name, SPONSORS[k].tag, { tip: SPONSORS[k].name + ': ' + SPONSORS[k].text }) : '').join('') +
-          (isNetGame() ? '<span class="sc-note">Start fame ' + G.startFame + '</span>' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [...new Set([7, 4, 2, 1, 0, BAL_DEFAULT.startFame, G.startFame])].sort((a, b) => b - a).map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === BAL_DEFAULT.startFame ? ' (default)' : '') + '</option>').join('') + '</select></label>') +
-          '<button class="act secondary" id="pAct1">Random Sponsor</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
+      if (G.setupStep === 'sponsor') {   // T21: sealed bids for the sponsors, then a rebid for the tied teams
+        const tie = curTie(), spent = spSpent(), fameSel = isNetGame() ? '' : '<label style="font-size:12px;font-weight:700">Start fame <select id="pFame">' + [...new Set([7, 4, 2, 1, 0, BAL_DEFAULT.startFame, G.startFame])].sort((a, b) => b - a).map(v => '<option value="' + v + '"' + (v === G.startFame ? ' selected' : '') + '>' + v + (v === BAL_DEFAULT.startFame ? ' (default)' : '') + '</option>').join('') + '</select></label>';
+        if (tie) {
+          const spn = esc(SPONSORS[tie.sp].name), tied = tie.teams.map(i => esc(G.teams[i].name)).join(', '), myAdd = (tie.add || {})[HS] || 0, maxMyAdd = (tie.maxAdd || {})[HS] || 0;
+          if (tieMine()) {
+            pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr for ${spn}</b> (${tied}). Add on top in secret: +${myAdd} → ${tie.baseBid + myAdd} Cr.<br>Still tied after this: a random draw.</span>` +
+              `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>` +
+              `<button class="act" id="pAct1">Lock Rebid (+${myAdd} Cr) →</button>`;
+            $('#pRbM').onclick = () => { if (isClient()) $('#pRbM').classList.add('pressed'); act('rebidAdj', -1); };
+            $('#pRbP').onclick = () => { if (isClient()) $('#pRbP').classList.add('pressed'); act('rebidAdj', 1); };
+            $('#pAct1').onclick = () => act('rebidLock');
+          } else if (tieLocked()) {
+            pb.innerHTML = `<span>⚔️ <b>Rebid locked</b> (+${myAdd} Cr → total ${tie.baseBid + myAdd} Cr for ${spn}). Waiting for the other tied team.${relockTxt('your rebid')}</span>` +
+              `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>`;
+            $('#pRbM').onclick = () => act('rebidAdj', -1);
+            $('#pRbP').onclick = () => act('rebidAdj', 1);
+          } else pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr for ${spn}:</b> ${tied} rebid in secret… Your bids wait.</span>`;
+        } else if (!spOpen()) pb.innerHTML = '<span>🏁 <b>Sponsors:</b> deciding who signs what…</span>';
+        else if (iWait('spbids')) {
+          pb.innerHTML = '<span>🏁 <b>Sponsor bids locked</b> (' + spent + ' Cr). ' + waitTxt('spbids') + relockTxt('your sponsor bids') + '</span>';
+        } else {
+          pb.innerHTML = '<span>🏁 <b>Bid for a sponsor in secret</b> (' + spent + '/' + t.credits + ' Cr): − / + on the cards.<br>Top bid signs it and pays. Tie: rebid. Win none: one free.</span>' +
+            fameSel + (spent ? '<button class="act secondary" id="pClr">✖ Bid nothing</button>' : '') +
+            '<button class="act" id="pAct1">' + (spent ? 'Lock Bids →' : 'Lock: bid nothing →') + '</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
+          $('#pAct1').onclick = () => act('spLock');
+          if ($('#pClr')) $('#pClr').onclick = () => act('spClear');
+          if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
+        }
         if ($('#pFame')) $('#pFame').onchange = e => { G.startFame = +e.target.value; G.teams.forEach(x => { x.fame = G.startFame; }); notify('Every team starts on <b>' + G.startFame + '</b> fame.', '#111'); updateHud(); };
-        pb.querySelectorAll('[data-sign]').forEach(b => { b.onclick = () => pickNow('sign', b.dataset.sign, SPONSORS[b.dataset.sign].name + ' signed', () => act('pickSponsor', b.dataset.sign)); });
-        $('#pAct1').onclick = () => act('pickSponsor', null);
-        if ($('#pAct2')) $('#pAct2').onclick = quickFinishSetup;
       } else if (PS().draftPick || !PS().draftOffer) {
         const w = humanSeats().filter(h => PS(h).draftOffer && !PS(h).draftPick);
         pb.innerHTML = '<span>🤖 <b>Starter picked' + (PS().draftPick ? ': ' + esc(PS().draftPick) : '') + '.</b> Waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the others') + '… All picks are revealed together.</span>';
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
-        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Keep 1 of your 2 level-0 starters (here or in the pit). Everyone picks at the same time; all picks are revealed together.</span>` +
+        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> keep 1 of your 2 level-0 starters.<br>Everyone picks at once; all picks are shown together.</span>` +
           // T9: one button per starter, the same click as KEEP … in the pit
           myDraftOffer().map((n, k) => STARTERS[n] ? pickBtn('keep', k, '✋ Keep ' + n, wepLabel(n), { tip: 'Keep ' + n + ': ' + descOf(n) }) : '').join('') +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
@@ -2403,15 +2419,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       legends: shuffle(['p_core', 'p_hospital', 'p_quantum']), legendNext: null, l4Next: null, nextMarket: null, nextRound: 0, bargainK: null, nextBargain: false,
       fight: null, over: false, crateChoices: null,
       stats: newStats(),   // the end-of-game awards' tally (Kev, 9 Nov)
-      sponsorDeal: shuffle(SPONSOR_KEYS.slice()).slice(0, 2)   // Kev, 6 Nov: you are dealt 2 sponsors and keep 1
+      spAuc: { stage: 'bids', all: null, tie: null, signed: {}, results: [] }   // T21 (Kev, 17 Nov): sponsors are bid for, see spResolve
     };
     if (BAL.level4.on) G.robotDecks[4] = shuffle(robotsOfLevel(4)).slice(0, Math.max(0, BAL.level4.perGame | 0));   // level 4: this game's end-game robots (dealt last: with level 4 off the shuffles are as before)
     G.teams.forEach(t => { crewProps(t); fameProps(t); for (const k of Object.keys(BAL.startCrew)) if (CREW[k]) setCrewCount(t, k, BAL.startCrew[k]); });
     G.gid = GAME_SEED.toString(36) + '-' + (++gameSeq);
-    if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); mpDealSponsors(); }   // a person's team carries their name
+    if (isNetGame()) { G.names = netNames.slice(); G.teams.forEach((t, i) => { if (netNames[i]) { t.player = netNames[i]; t.name = netNames[i]; } }); }   // a person's team carries their name
     setCameraGoal('compound');
     tlog('new_game', { startFame: G0fame, starterPicks: STARTER_PICKS, teams: G.teams.map(t => t.name) });
-    notify('<b>ROBOCUS 2.0 · Opening Setup:</b> choose your Team Sponsor on the Arena Stage, then draft your level-0 starter robot (you get 2 and keep 1, everyone at the same time)!', '#111');
+    notify('<b>ROBOCUS 2.0 · Opening Setup:</b> bid for a Team Sponsor (sealed bids, everyone at the same time), then draft your level-0 starter robot (you get 2 and keep 1)!', '#111');
     updateHud();
   }
 
@@ -2442,51 +2458,116 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return chosen;
   }
 
-  // multiplayer: every person is dealt 2 sponsors (disjoint while the 6 last; overlaps are refilled when one is signed)
-  const mySponsorDeal = () => isNetGame() ? (PS().deal || []) : G.sponsorDeal;
-  function mpDealSponsors() {
-    const hs = humanSeats(); let pool = shuffle(SPONSOR_KEYS.filter(k => !G.sponsorDeal.includes(k)));
-    hs.forEach((s, n) => {
-      if (n === 0) { PS(s).deal = G.sponsorDeal.slice(); return; }
-      if (pool.length < 2) pool = pool.concat(shuffle(SPONSOR_KEYS.filter(k => !pool.includes(k))));
-      PS(s).deal = pool.splice(0, 2);
-    });
+  /* T21 (Kev, 17 Nov, online with friends: "when game starts and sponsor needs to be chosen, when another player picked another
+   * sponsor suddenly the screen flipped for the player, which is strange, let people bet on sponsors instead, with rebid, if
+   * rebid still undecided, do random"). Before: each person was dealt 2 sponsors; with 4 people the deals overlapped, and when
+   * one person signed a sponsor that was also in another person's deal, that person's card was swapped for another sponsor
+   * under their mouse. Now all 6 sponsors lie face up and every team bids for them in secret, like the Market lots:
+   *  - sealed bids in credits on any sponsors, at most your credits in total; bids can change after locking until all have locked;
+   *  - the sponsor with the highest bid is decided first (equal highest bids: in table order); its highest bidder pays its bid
+   *    and signs it; that team's other bids are dropped (a team signs exactly one);
+   *  - a tie for the highest bid: only the tied teams rebid in secret, adding on top (the Market's rebid screens, ACT.rebidAdj /
+   *    rebidLock); still tied: a random draw among them (the game's seeded dice, on the host), said in the log;
+   *  - a team without a sponsor at the end gets one of the rest at random, for free. Sovereign's tie rule is not used here.
+   * AI teams value the sponsors by the 11 Nov 2.0 check (Sovereign 35%, Blackwire 33%, Aegis 24%, Lucky 23%, Apex 19%,
+   * Vulture 17% of games won): SPONSOR_AI below, ±1 noise, at most 3 Cr on one sponsor and 3 Cr in all; a rebid adds 1 Cr half
+   * the time. So a person who bids 4 Cr on a sponsor always gets it. */
+  const SPONSOR_AI = { sovereign: 2, blackwire: 2, aegis: 1, lucky: 1, apex: 1, vulture: 0 };
+  const SP_AI_MAX = 3;
+  function aiSponsorBids(t) {
+    if (window.__spAiBids) return Object.assign({}, window.__spAiBids[t.i] || {});   // test hook (scripted checks): fixed AI bids
+    const v = SPONSOR_KEYS.map(k => ({ k, v: SPONSOR_AI[k] + (rnd() < 0.3 ? 1 : 0) - (rnd() < 0.3 ? 1 : 0) })).sort((a, b) => b.v - a.v);
+    const b = {}; let budget = Math.min(t.credits, SP_AI_MAX);
+    v.slice(0, 2).forEach((x, j) => { const n = Math.max(0, Math.min(SP_AI_MAX, budget, x.v - j)); if (n > 0) { b[x.k] = n; budget -= n; } });   // first choice: its worth; second: 1 less
+    return b;
   }
-  ACT.pickSponsor = (S, key) => {
-    if (G.phase !== 'setup' || G.setupStep !== 'sponsor' || !isHuman(S)) return;
-    if (!isNetGame()) { pickSetupSponsor(key || pick(G.sponsorDeal)); return; }
-    const P = PS(S); if (P.sponsor) return;
-    const deal = P.deal || [];
-    if (!deal.includes(key)) key = pick(deal);
-    P.sponsor = key;
-    say(S, 'Signed with <b>' + esc(SPONSORS[key].name) + '</b> (' + esc(SPONSORS[key].tag) + ').', G.teams[S].col);
-    notify(nm(G.teams[S]) + ' signs a sponsor.', G.teams[S].col);
-    const taken = humanSeats().map(h => PS(h).sponsor).filter(Boolean);
-    for (const h of humanSeats()) {   // someone else held the same contract: swap in a free one
-      const Q = PS(h); if (Q.sponsor || !Q.deal) continue;
-      Q.deal = Q.deal.map(k => taken.includes(k) ? (shuffle(SPONSOR_KEYS.filter(x => !taken.includes(x) && !Q.deal.includes(x)))[0] || k) : k);
-    }
-    if (humanSeats().every(h => PS(h).sponsor)) assignSponsors(h => PS(h).sponsor);
+  const aiSponsorRebid = (t, k, cur, maxAdd) => window.__spAiRebid != null ? Math.min(maxAdd, window.__spAiRebid) : maxAdd > 0 && cur <= SP_AI_MAX && rnd() < 0.5 ? 1 : 0;
+  const spBidsOf = (S = HS) => PS(S).spBids || {};
+  const spSpent = (S = HS) => Object.values(spBidsOf(S)).reduce((a, x) => a + (x || 0), 0);
+  const spOpen = () => G && G.phase === 'setup' && G.setupStep === 'sponsor' && G.spAuc && G.spAuc.stage === 'bids';
+  ACT.spBid = (S, key, kind) => {
+    if (!SPONSORS[key] || !isHuman(S)) return;
+    if (!spOpen()) { if (G.phase === 'setup' && G.setupStep === 'sponsor') tooLate(S, 'the sponsor bids'); return; }
+    const P = PS(S), b = P.spBids || (P.spBids = {}), t = G.teams[S], was = b[key] || 0;
+    if (kind === 'minus') b[key] = Math.max(0, was - 1);
+    else if (spSpent(S) + 1 <= t.credits) b[key] = was + 1;
+    else if (kind === 'tile') b[key] = 0;
+    if (!b[key]) delete b[key];
+    if ((b[key] || 0) !== was) unlockSeat(S, 'spbids');   // T16: a change after locking takes the lock off
   };
-  function pickSetupSponsor(mySp) {
-    if (G.phase !== 'setup' || G.setupStep !== 'sponsor') return;
-    if (!G.sponsorDeal.includes(mySp)) mySp = G.sponsorDeal[0];
-    assignSponsors(() => mySp);
-  }
-  // the people's contracts are set; AI teams are dealt 2 of the rest and keep 1; then the starter draft
-  function assignSponsors(pickOf) {
-    let free = SPONSOR_KEYS.filter(k => !humanSeats().some(h => pickOf(h) === k));
-    G.teams.forEach((t, i) => {
-      if (isHuman(i)) t.sponsor = pickOf(i);
-      else { const deal = shuffle(free.slice()).slice(0, 2); t.sponsor = pick(deal); free = free.filter(k => k !== t.sponsor); }   // AI: dealt 2 of the rest, keeps 1
-      t.mechs = t.sponsor === 'sovereign' ? BAL.sovereignMechanics : (BAL.startCrew.mechanic || 0);
+  ACT.spClear = S => { if (!spOpen() || !isHuman(S)) return; const had = spSpent(S) > 0; PS(S).spBids = {}; if (had) unlockSeat(S, 'spbids'); };
+  ACT.spLock = S => { if (spOpen()) gather(S, 'spbids', spResolve); };
+  function spResolve() {
+    const A = G.spAuc; if (!A || A.stage !== 'bids') return;
+    A.all = G.teams.map(t => {
+      if (!isHuman(t.i)) return aiSponsorBids(t);
+      const b = {}; let left = t.credits;   // people: what they bid (never more than they hold)
+      for (const k of SPONSOR_KEYS) { const n = Math.max(0, Math.min(left, spBidsOf(t.i)[k] || 0)); if (n) { b[k] = n; left -= n; } }
+      return b;
     });
+    A.bidsIn = A.all.map(b => Object.assign({}, b));   // as bid, for the results (shown when all are signed)
+    A.stage = 'resolve';
+    tlog('sponsor_bids', { bids: A.bidsIn });
+    spStep();
+  }
+  function spStep() {
+    const A = G.spAuc; if (!A || A.stage !== 'resolve') return;
+    for (let guard = 0; guard < 60; guard++) {
+      const open = G.teams.filter(t => !t.sponsor).map(t => t.i), free = SPONSOR_KEYS.filter(k => A.signed[k] == null);
+      let k = null, mx = 0;
+      if (A.tie && A.tie.done) { k = A.tie.sp; mx = Math.max(...A.tie.teams.map(i => A.all[i][k] || 0)); }
+      else for (const s of free) { const m = Math.max(0, ...open.map(i => A.all[i][s] || 0)); if (m > mx) { mx = m; k = s; } }
+      if (k == null || mx <= 0) break;
+      const sp = SPONSORS[k], who = (A.tie && A.tie.done ? A.tie.teams : open).filter(i => (A.all[i][k] || 0) === mx);
+      if (who.length === 1) { spSign(who[0], k, mx, A.tie && A.tie.done ? 'rebid' : 'bid'); A.tie = null; continue; }
+      if (A.tie && A.tie.done) {   // the rebid did not decide it: a random draw among the teams still tied (seeded, on the host)
+        const w = who[Math.floor(rnd() * who.length)];
+        notify('🎲 Still tied for <b>' + esc(sp.name) + '</b> at ' + mx + ' Cr after the rebid (' + who.map(i => nm(G.teams[i])).join(', ') + '): a random draw gives it to ' + nm(G.teams[w]) + '.', G.teams[w].col);
+        spSign(w, k, mx, 'draw'); A.tie = null; continue;
+      }
+      const maxAdd = {}; who.filter(isHuman).forEach(i => { maxAdd[i] = Math.max(0, G.teams[i].credits - mx); });
+      A.tie = { sp: k, teams: who, baseBid: mx, add: {}, maxAdd, waiting: who.filter(isHuman), waitingHuman: who.some(isHuman), done: false };
+      notify('⚔️ Tie for <b>' + esc(sp.name) + '</b> at ' + mx + ' Cr: ' + who.map(i => nm(G.teams[i])).join(', ') + ' rebid in secret (still tied: a random draw).', '#D9731A');
+      if (A.tie.waitingHuman) { updateHud(); return; }
+      spRebidApply();
+    }
+    spFinish();
+  }
+  function spRebidApply() {   // the tied teams' adds go on top of their bids; then the same sponsor is looked at again
+    const A = G.spAuc, T = A && A.tie; if (!T || T.done) return;
+    T.added = {};
+    for (const i of T.teams) {
+      const cap = Math.max(0, G.teams[i].credits - T.baseBid);
+      const add = isHuman(i) ? Math.min(cap, (T.add || {})[i] || 0) : aiSponsorRebid(G.teams[i], T.sp, T.baseBid, cap);
+      A.all[i][T.sp] = (A.all[i][T.sp] || 0) + add; T.added[i] = add;
+    }
+    T.done = true; T.waitingHuman = false; T.waiting = [];
+  }
+  function spSign(i, k, price, how) {
+    const A = G.spAuc, t = G.teams[i];
+    t.sponsor = k; A.signed[k] = i;
+    if (price > 0) payCr(t, price, 'signing');
+    A.results.push({ sp: k, team: i, price, how });
+    A.all[i] = {};   // a team signs exactly one: its other bids are dropped
+    notify('✍️ ' + nm(t) + ' signs <b>' + esc(SPONSORS[k].name) + '</b>' + (how === 'free' ? ' (free: no sponsor won, one of the rest at random)' : ' for ' + price + ' Cr' + (how === 'rebid' ? ' after a rebid' : how === 'draw' ? ' (random draw)' : '')) + '.', t.col);
+    tlog('sponsor', { team: i, sp: k, price, how });
+  }
+  function spFinish() {
+    const A = G.spAuc; if (!A || A.stage === 'done') return;
+    for (const t of G.teams) if (!t.sponsor) { const free = SPONSOR_KEYS.filter(k => A.signed[k] == null); spSign(t.i, pick(free), 0, 'free'); }
+    A.stage = 'done'; A.tie = null;
+    afterSponsors();
+  }
+  // AI styles, crew, a line for each person; then the starter draft
+  function afterSponsors() {
+    G.teams.forEach(t => { t.mechs = t.sponsor === 'sovereign' ? BAL.sovereignMechanics : (BAL.startCrew.mechanic || 0); });
     if (BAL.aiStyles && !AIP_SET) {   // Kev, 11 Nov: AI teams with a character (grudges, loyalty, backstabbing, card play, hosting)
       const pool = shuffle(['vengeful', 'loyal', 'backstabber', 'schemer', 'showman', 'steady']); G.aiStyle = [null, null, null, null];
       G.teams.forEach((t, i) => { if (isHuman(i)) return; const st = pool.pop(); G.aiStyle[i] = st; AIP[i] = Object.assign({}, AI_PARAMS, AI_STYLES[st] || null); });
       const txt = G.teams.filter(t => !isHuman(t.i)).map(t => nm(t) + ': ' + G.aiStyle[t.i]).join(' · '); if (txt) notify('🎭 The rivals: ' + txt + '.', '#4A5560');
     }
-    for (const h of humanSeats()) { const sp = SPONSORS[G.teams[h].sponsor]; say(h, `Signed with <b>${esc(sp.name)}</b> (${esc(sp.tag)}). Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}starter robot!`, G.teams[h].col); }
+    for (const h of humanSeats()) { const T = G.teams[h], sp = SPONSORS[T.sponsor], r = G.spAuc.results.find(x => x.team === h);
+      say(h, `Your sponsor: <b>${esc(sp.name)}</b> (${esc(sp.tag)})${r && r.price ? ', ' + r.price + ' Cr paid' : r && r.how === 'free' ? ', for free' : ''}. Now draft your ${STARTER_PICKS > 1 ? '1st ' : ''}starter robot!`, T.col); }
     G.setupStep = 'draft1';
     startDraftRound();
     updateHud();
@@ -2549,8 +2630,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
   function quickFinishSetup() {
     if (G.phase !== 'setup' || isNetGame()) return;
-    if (G.setupStep === 'sponsor') {
-      pickSetupSponsor(pick(G.sponsorDeal));
+    if (G.setupStep === 'sponsor') {   // T21: Quick-Start bids for you as an AI team would, then locks (and rebids like one)
+      if (spOpen()) { PS(HS).spBids = aiSponsorBids(me()); runAct(HS, 'spLock', []); }
+      for (let n = 0; n < 12 && tieMine(HS); n++) { const T = curTie(); if (T.maxAdd[HS] > 0 && rnd() < 0.5) T.add[HS] = 1; runAct(HS, 'rebidLock', []); }
     }
     while (G.phase === 'setup') {
       const P = PS(HS);
@@ -2928,7 +3010,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17e resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17f sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4959,19 +5041,25 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   // a tie with people in it: each tied person sets how much to add on top, then locks it in
-  const tieMine = (S = HS) => { const T = G.marketAuction && G.marketAuction.tie; return !!T && T.waitingHuman && (T.waiting || []).includes(S); };
+  // T21: the same rebid screens and actions serve a Market tie and a sponsor tie (G.spAuc.tie, the setup step)
+  const curTie = () => G ? (G.marketAuction && G.marketAuction.tie) || (G.phase === 'setup' && G.spAuc && G.spAuc.tie) || null : null;
+  const tieMine = (S = HS) => { const T = curTie(); return !!T && T.waitingHuman && (T.waiting || []).includes(S); };
   // T16: a tied person who locked the rebid can still change it while another tied person has not locked (that unlocks them)
-  const tieLocked = (S = HS) => { const T = G && G.marketAuction && G.marketAuction.tie; return !!T && T.waitingHuman && isHuman(S) && (T.teams || []).includes(S) && !(T.waiting || []).includes(S); };
+  const tieLocked = (S = HS) => { const T = curTie(); return !!T && T.waitingHuman && isHuman(S) && (T.teams || []).includes(S) && !(T.waiting || []).includes(S); };
   ACT.rebidAdj = (S, d) => {
-    if (!tieMine(S) && !tieLocked(S)) { if (G.phase === 'market' && isHuman(S)) tooLate(S, 'the tie rebid'); return; }
-    const T = G.marketAuction.tie, was = T.add[S] || 0; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, was + d));
+    if (!tieMine(S) && !tieLocked(S)) { if ((G.phase === 'market' || G.phase === 'setup') && isHuman(S)) tooLate(S, 'the tie rebid'); return; }
+    const T = curTie(), was = T.add[S] || 0; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, was + d));
     if (T.add[S] !== was && tieLocked(S)) { T.waiting.push(S); say(S, '🔓 You changed your rebid after locking, so you are not locked any more. Lock again when you are done.', '#b45309'); }
   };
   ACT.rebidLock = S => {
     if (!tieMine(S)) return;
-    const T = G.marketAuction.tie; T.waiting = T.waiting.filter(x => x !== S);
-    if (!T.waiting.filter(isHuman).length) submitHumanRebid();
+    const T = curTie(); T.waiting = T.waiting.filter(x => x !== S);
+    if (!T.waiting.filter(isHuman).length) tieSubmit();
   };
+  function tieSubmit() {   // every tied person has locked (or left): the rebid goes through
+    if (G.phase === 'setup' && G.spAuc && G.spAuc.tie) { spRebidApply(); spStep(); }
+    else submitHumanRebid();
+  }
   function submitHumanRebid() {
     const A = G.marketAuction;
     if (!A || !A.tie) return;
@@ -6513,7 +6601,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function snapFor(s) {
     if (!G) return null;
     const fightPhase = G.phase === 'fight', analyst = s >= 0 && hasCrew(G.teams[s], 'analyst');
-    const tie = G.marketAuction && G.marketAuction.tie;
+    const tie = curTie(), spa = G.spAuc && G.spAuc.stage !== 'done' ? G.spAuc : null;
     return JSON.stringify(G, function (k, v) {
       if (typeof v === 'function') return true;
       if (this === G) {
@@ -6527,7 +6615,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (G.fight && this === G.fight && (k === 'B' || k === 'S' || k === 'introT' || k === 'rollout' || k === 'countdown' || k === 'rolloutDone' || k === 'fightFlash')) return undefined;
       if (k === 'hand' && this && this.robots && typeof this.i === 'number' && this.i !== s) return v.map(() => '?');
       if (G.marketAuction && this === G.marketAuction && (k === 'all' || k === 'initialAll' || k === 'rebidAdds')) return v.map((row, i) => i === s ? row : row.map(() => 0));
-      if (tie && this === tie && (k === 'add' || k === 'maxAdd')) { const o = {}; if (v[s] != null) o[s] = v[s]; return o; }
+      if (spa && this === spa && (k === 'all' || k === 'bidsIn') && Array.isArray(v)) return v.map((row, i) => i === s ? row : {});   // T21: sponsor bids stay sealed until all are signed
+      if (tie && this === tie && (k === 'add' || k === 'maxAdd' || k === 'added')) { const o = {}; if (v[s] != null) o[s] = v[s]; return o; }
       if (!fightPhase && k === 'faceDown' && Array.isArray(v)) return v.map(x => x.from === s ? x : { from: x.from, id: 'hidden' });
       if (!fightPhase && k === 'tamper' && this && this.b) return {};
       return v;
@@ -6702,9 +6791,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* ---------- the host's nudge / skip: a seat that keeps everyone waiting gets the default for what it is asked ---------- */
   function seatBusyWith(s) {   // what the game waits for from this seat right now (for the host's banner), or null
     if (!G || !isHuman(s) || G.over) return null;
-    if (G.phase === 'setup') return G.setupStep === 'sponsor' ? (!isNetGame() || !PS(s).sponsor ? 'sponsor' : null) : (PS(s).draftOffer && !PS(s).draftPick ? 'draft' : null);
+    if (G.phase === 'setup') { if (G.setupStep !== 'sponsor') return PS(s).draftOffer && !PS(s).draftPick ? 'draft' : null;   // T21: the sponsor bids, then maybe a rebid
+      if (tieMine(s)) return 'rebid';
+      return spOpen() && !(G.gather && G.gather.key === 'spbids:' + G.round && G.gather.done[s]) ? 'spbids' : null; }
     if (G.phase === 'intrigue') return G.intrigueTurn === s ? 'intrigue turn' : null;
-    if (G.marketAuction && G.marketAuction.tie && tieMine(s)) return 'rebid';
+    if (curTie() && tieMine(s)) return 'rebid';
     if ((PS(s).tradeIn || []).length) return 'trade-in';
     if (PS(s).stashTrim) return 'stash';
     if ((PS(s).install || []).length) return 'install';
@@ -6720,7 +6811,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * joined players could not tell that the game was waiting on one person's question). The host works the list out once a
    * second (src2/net.js: its open questions and deal panels, else seatBusyWith) and every screen shows it over the pit:
    * the others when you are done yourself, or "everyone is waiting for you" when you are the only one left. */
-  const WAIT_WORDS = { sponsor: 'picking a sponsor', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
+  const WAIT_WORDS = { sponsor: 'picking a sponsor', spbids: 'sponsor bids', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
     'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', open: 'open market',
     lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
   /* 2.0.1, fewer clicks (Kev, 15 Nov, after the Friday playtest: "too much clicking"). The host's page moves three kinds of
@@ -6835,6 +6926,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     clearTimeout(PFLASH.tm); PFLASH.tm = setTimeout(() => pb.classList.remove('flash'), 2000);
   }
   function gatherStep() {   // the simultaneous step the game is in: [gather key, action]
+    if (G.phase === 'setup') return spOpen() ? ['spbids', 'spLock'] : null;   // T21: the sponsor bids
     if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
     if (G.phase === 'market' && !G.marketAuction) {
       if (G.marketResolved) return [G.hostResolved ? 'mres2' : 'mres', 'continueMarket'];
@@ -6850,7 +6942,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!G || !isHuman(s)) return;
     if (window.ROBOCUS_NET) window.ROBOCUS_NET.cancelSeat(s);   // its open questions and deal panels get their default answer
     const P = PS(s);
-    if (G.phase === 'setup') { if (G.setupStep === 'sponsor' && isNetGame() && !P.sponsor) runAct(s, 'pickSponsor', [null]); else if (PS(s).draftOffer && !PS(s).draftPick) runAct(s, 'pickStarter', [-1]); return; }
+    if (G.phase === 'setup') {   // T21: Skip in the sponsor step = bid nothing (and add nothing to a rebid)
+      if (G.setupStep === 'sponsor') { if (tieMine(s)) runAct(s, 'rebidLock', []); else if (spOpen()) { P.spBids = {}; runAct(s, 'spLock', []); } }
+      else if (PS(s).draftOffer && !PS(s).draftPick) runAct(s, 'pickStarter', [-1]);
+      return; }
     if (G.phase === 'intrigue' && G.intrigueTurn === s) { P.skipTurn = true; if (G.endHumanTurn && !G.ivBusy) G.endHumanTurn(); return; }
     if (tieMine(s)) { runAct(s, 'rebidLock', []); return; }
     while ((P.tradeIn || []).length) { const it = P.tradeIn[0], r = aiTradeInPick(G.teams[s]); runAct(s, 'tradeIn', [r.id]); if (P.tradeIn[0] === it) P.tradeIn.shift(); }
@@ -6872,7 +6967,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     notify('🤖 The AI now plays ' + nm(G.teams[s]) + '.', G.teams[s].col);
     if (G.phase === 'intrigue' && G.intrigueTurn === s && G.endHumanTurn) G.endHumanTurn();
     if (G.phase === 'arena' && G.chooseMyBot && !humanSeats().some(h => PS(h).choose)) afterChoose();
-    if (tieMine(s) || (G.marketAuction && G.marketAuction.tie && G.marketAuction.tie.waitingHuman && !G.marketAuction.tie.waiting.some(isHuman))) submitHumanRebid();
+    if (tieMine(s) || (curTie() && curTie().waitingHuman && !curTie().waiting.some(isHuman))) tieSubmit();
     recheckGather();
     updateHud();
   }
@@ -6887,7 +6982,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const t = me(), P = PS(), R = Math.random;
     const busy = seatBusyWith(HS);
     if (!busy) return;
-    if (busy === 'sponsor') return act('pickSponsor', null);
+    if (busy === 'spbids') { const bk0 = 'spbids:' + G.gid; if (botDid !== bk0) { botDid = bk0; const ks = SPONSOR_KEYS.filter(() => R() < 0.3); for (const k of ks) { const n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('spBid', k, 'plus'); } } return act('spLock'); }
     if (busy === 'draft') return act('pickStarter', -1);
     if (busy === 'intrigue turn') {
       if (G.ivBusy) return;
@@ -6900,7 +6995,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     // T16: a change after locking takes the lock off, and a joined screen sees its own lock a moment late, so a bot makes its
     // choice once per step (botDid) and after that only locks: it can never un-lock itself in a loop
-    const bk = busy + ':' + G.gid + ':' + G.round + ':' + G.phase + (busy === 'rebid' ? ':' + G.marketAuction.tie.k + ':' + G.marketAuction.tie.baseBid : '');
+    const bk = busy + ':' + G.gid + ':' + G.round + ':' + G.phase + (busy === 'rebid' ? ':' + (curTie().k != null ? curTie().k : curTie().sp) + ':' + curTie().baseBid : '');
     if (busy === 'rebid') { if (botDid !== bk) { botDid = bk; if (R() < 0.5) act('rebidAdj', 1); } return act('rebidLock'); }
     if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
     if (busy === 'stash') return act('trimStash', 0);
@@ -6965,7 +7060,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get RX() { return RX; }, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -7547,34 +7642,47 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         ctx.fillStyle = '#EDE6DA'; fitText(ctx, txt, x + 10, y0 + L.ah - 9, w - 14, '600', 10); x += w + 6; });
     };
 
-    if (G.setupStep === 'sponsor') {
-      pitHead('0 · DRAFT · KEEP 1 OF 2 SPONSORS', 'AI TEAMS: DEALT 2 OF THE REST', '#CFC6B7');
-      if (isNetGame() && PS().sponsor) {
-        paperBox(ctx, cx - 190, cy - 34, 380, 64);
-        ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'You signed with ' + SPONSORS[PS().sponsor].name + '.', cx, cy - 6, 360, '400', 17, F_STEN);
-        ctx.fillStyle = MUTED; fitText(ctx, 'Waiting for the other players to sign…', cx, cy + 16, 360, '600', 11.5);
-        others(); return;
-      }
-      const deal = mySponsorDeal(), cw = 268, ch = 150, gapX = 18;
-      const startX = cx - (deal.length * cw + (deal.length - 1) * gapX) / 2, by = cy - ch / 2 - 6;
-      deal.forEach((spKey, idx) => {
-        const sp = SPONSORS[spKey], bx = startX + idx * (cw + gapX);
-        const hov = mouse.wx >= bx && mouse.wx <= bx + cw && mouse.wy >= by && mouse.wy <= by + ch;
-        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 5; ctx.fillStyle = PAPER; rrect(ctx, bx, by, cw, ch, 6); ctx.fill(); ctx.restore();
-        ctx.save(); rrect(ctx, bx, by, cw, ch, 6); ctx.clip();
-        ctx.fillStyle = hov ? HAZ : INK; ctx.fillRect(bx, by, cw, 22);
-        ctx.restore();
-        ctx.strokeStyle = hov ? HAZ : PAPER; ctx.lineWidth = 3; rrect(ctx, bx, by, cw, ch, 6); ctx.stroke();
-        if (hov) { ctx.strokeStyle = INK; ctx.lineWidth = 2; rrect(ctx, bx - 3, by - 3, cw + 6, ch + 6, 8); ctx.stroke(); }
-        ctx.fillStyle = hov ? INK : HAZ; ctx.textAlign = 'left'; fitText(ctx, sp.tag.toUpperCase(), bx + 10, by + 15, cw - 20, '700', 10, F_MONO);
-        ctx.fillStyle = INK; fitText(ctx, sp.name, bx + 10, by + 46, cw - 20, '400', 19, F_STEN);
-        ctx.fillStyle = '#4A4136'; ctx.font = '500 11.5px ' + F_SANS;
-        wrapLines(ctx, sp.text, cw - 20, 4).forEach((ln, li) => ctx.fillText(ln, bx + 10, by + 66 + li * 15));
-        inkButton(ctx, bx + 10, by + ch - 30, cw - 20, 22, 'SIGN ' + sp.name.toUpperCase() + ' →', false);
-        help(bx, by, cw, ch - 34, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text));
-        hitRegions.push({ kind: 'setup_sponsor', spKey, x: bx, y: by, w: cw, h: ch });
+    if (G.setupStep === 'sponsor') {   // T21: all 6 sponsors face up; sealed bids with − / +; a tie: the rebid on the tied sponsor
+      const A = G.spAuc || {}, tie = curTie(), open = spOpen(), mine = spBidsOf(), spent = spSpent();
+      pitHead(tie ? '0 · SPONSORS · TIE FOR ' + SPONSORS[tie.sp].name.toUpperCase() : '0 · SPONSORS · SEALED BIDS',
+        tie ? tie.teams.map(i => G.teams[i].name.split(' ')[0]).join(' VS ').toUpperCase() + ' @ ' + tie.baseBid + ' CR' : 'YOU BID ' + spent + ' OF ' + t.credits + ' CR · HIGHEST BID SIGNS', tie ? '#F2B27A' : '#CFC6B7');
+      const gap = 10, cw = Math.min(226, Math.floor((L.aw - 16 - 2 * gap) / 3)), ch = Math.max(138, Math.min(160, Math.floor((L.ah - 40 - gap) / 2)));
+      const sx = cx - (3 * cw + 2 * gap) / 2, sy = Math.max(y0 + 6, cy - ch - gap / 2 - 10);
+      SPONSOR_KEYS.forEach((k, idx) => {
+        const sp = SPONSORS[k], bx = sx + (idx % 3) * (cw + gap), by = sy + Math.floor(idx / 3) * (ch + gap), bid = mine[k] || 0;
+        const signedBy = A.signed && A.signed[k] != null ? G.teams[A.signed[k]] : null, isTie = tie && tie.sp === k;
+        const edge = isTie ? '#D9731A' : signedBy ? signedBy.col : bid > 0 ? INK : PAPER;
+        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4; ctx.fillStyle = signedBy ? '#E6E0D5' : PAPER; rrect(ctx, bx, by, cw, ch, 6); ctx.fill(); ctx.restore();
+        ctx.save(); rrect(ctx, bx, by, cw, ch, 6); ctx.clip(); ctx.fillStyle = signedBy ? signedBy.col : INK; ctx.fillRect(bx, by, cw, 18); ctx.restore();
+        ctx.strokeStyle = edge; ctx.lineWidth = isTie || bid > 0 ? 4 : 3; rrect(ctx, bx, by, cw, ch, 6); ctx.stroke();
+        ctx.fillStyle = signedBy ? '#fff' : HAZ; ctx.textAlign = 'left'; fitText(ctx, signedBy ? 'SIGNED: ' + signedBy.name.toUpperCase() : sp.tag.toUpperCase(), bx + 8, by + 13, cw - (bid > 0 ? 62 : 16), '700', 9.5, F_MONO);
+        if (bid > 0 && !signedBy) { ctx.fillStyle = HAZ; ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, bx + cw - 50, by + 2, 46, 14, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'BID ' + bid, bx + cw - 27, by + 12.5, 42, '700', 9, F_MONO); }
+        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, sp.name, bx + 8, by + 39, cw - 16, '400', 18, F_STEN);
+        ctx.fillStyle = '#4A4136'; ctx.font = '500 12px ' + F_SANS;
+        wrapLines(ctx, sp.text, cw - 16, 3).forEach((ln, li) => ctx.fillText(ln, bx + 8, by + 57 + li * 15));
+        help(bx, by, cw, ch - 40, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text) + '<br><i>Sealed bids: the highest bid signs it and pays its bid. A team signs one sponsor.</i>');
+        const fy = by + ch - 36;
+        if (signedBy) { const r = (A.results || []).find(x => x.sp === k); ctx.fillStyle = signedBy.col; ctx.textAlign = 'center'; fitText(ctx, (r && r.price ? 'PAID ' + r.price + ' CR' : 'FREE') + (r && r.how === 'rebid' ? ' · REBID' : r && r.how === 'draw' ? ' · RANDOM DRAW' : ''), bx + cw / 2, fy + 19, cw - 16, '700', 11, F_MONO); }
+        else if (isTie && (tieMine() || tieLocked())) {
+          const myAdd = (tie.add || {})[HS] || 0;
+          drawStepper(ctx, bx + 8, fy, cw - 16, tie.baseBid + ' +' + myAdd + ' Cr', '#2F6DB5');
+          hitRegions.push({ kind: 'rebid_minus', x: bx + 8, y: fy, w: 28, h: 28 });
+          hitRegions.push({ kind: 'rebid_plus', x: bx + cw - 36, y: fy, w: 28, h: 28 });
+        } else if (isTie) { ctx.fillStyle = '#D9731A'; ctx.textAlign = 'center'; fitText(ctx, '⚔️ TIE AT ' + tie.baseBid + ' CR · SECRET REBID…', bx + cw / 2, fy + 19, cw - 16, '700', 10, F_MONO); }
+        else if (open) {
+          drawStepper(ctx, bx + 8, fy, cw - 16, bid + ' Cr', bid > 0 ? '#2F6DB5' : INK);
+          hitRegions.push({ kind: 'sp_tile', sp: k, x: bx, y: by, w: cw, h: ch });   // − and + pushed after the tile, so they are found first
+          hitRegions.push({ kind: 'sp_minus', sp: k, x: bx + 8, y: fy, w: 28, h: 28 });
+          hitRegions.push({ kind: 'sp_plus', sp: k, x: bx + cw - 36, y: fy, w: 28, h: 28 });
+        } else { ctx.fillStyle = MUTED; ctx.textAlign = 'center'; fitText(ctx, bid ? 'Your bid: ' + bid + ' Cr' : 'no bid from you', bx + cw / 2, fy + 19, cw - 16, '600', 10.5, F_MONO); }
       });
-      others();
+      // who has locked (public: only who, never how much); AI teams bid in secret too
+      if (isNetGame() || tie) { let x = x0 + 8; const yb = y0 + L.ah - 22;
+        G.teams.forEach(tm => { if (tm.i === HS) return;
+          const st = !isHuman(tm.i) ? 'AI' : tie ? (tie.teams.includes(tm.i) ? (tie.waiting.includes(tm.i) ? 'rebidding…' : 'rebid locked ✓') : 'waiting') : open ? (G.gather && G.gather.key === 'spbids:' + G.round && G.gather.done[tm.i] ? 'locked ✓' : 'bidding…') : '…';
+          const txt = (isHuman(tm.i) ? seatName(tm.i) : tm.name) + ': ' + st;
+          ctx.font = '600 10px ' + F_SANS; const w = Math.min(196, ctx.measureText(txt).width + 18); ctx.fillStyle = 'rgba(43,33,24,0.78)'; rrect(ctx, x, yb, w, 18, 3); ctx.fill(); ctx.fillStyle = tm.col; ctx.fillRect(x, yb, 5, 18);
+          ctx.fillStyle = '#EDE6DA'; ctx.textAlign = 'left'; fitText(ctx, txt, x + 10, yb + 13, w - 14, '600', 10); x += w + 6; }); }
       return;
     }
 
@@ -7582,6 +7690,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const pickNum = G.setupStep === 'draft1' ? 1 : 2;
     pitHead(STARTER_PICKS > 1 ? '0 · DRAFT · STARTER ' + pickNum + ' OF ' + STARTER_PICKS + ': KEEP 1 OF 2' : '0 · DRAFT · YOUR 2 STARTERS: KEEP 1', 'LEVEL 0 · 2 PART SLOTS + 1 LEGENDARY', '#CFC6B7');
     const offer = myDraftOffer(), picked = PS().draftPick;
+    if (G.setupStep === 'draft1' && G.spAuc && (G.spAuc.results || []).length) {   // T21: who signed which sponsor, for how much (the auction's result)
+      const R = G.spAuc.results; let x = x0 + 8; ctx.textAlign = 'left';
+      G.teams.forEach(tm => { const r = R.find(q => q.team === tm.i); if (!r || !SPONSORS[r.sp]) return;
+        const txt = (tm.i === HS ? 'You' : isHuman(tm.i) ? seatName(tm.i) : tm.name) + ': ' + SPONSORS[r.sp].name + ' · ' + (r.how === 'free' ? 'free' : r.price + ' Cr' + (r.how === 'draw' ? ', draw' : r.how === 'rebid' ? ', rebid' : ''));
+        ctx.font = '600 10px ' + F_SANS; const w = Math.min((L.aw - 40) / 4, ctx.measureText(txt).width + 18); ctx.fillStyle = 'rgba(43,33,24,0.78)'; rrect(ctx, x, y0 + 8, w, 18, 3); ctx.fill(); ctx.fillStyle = tm.col; ctx.fillRect(x, y0 + 8, 5, 18);
+        ctx.fillStyle = '#EDE6DA'; fitText(ctx, txt, x + 10, y0 + 21, w - 14, '600', 10); x += w + 6; });
+    }
     const cw = 214, ch = 200, gap = 16;
     const startX = cx - (offer.length * cw + (offer.length - 1) * gap) / 2, by = cy - ch / 2 - 12;
     if (picked) { ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'You keep ' + picked + '. All picks are revealed together.', cx, by + ch + 22, 560, '400', 15, F_STEN); }
@@ -7784,7 +7899,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     drawBar(ctx, hx, y0 + 42, hw, 6, t.fame / WIN_FAME, t.col, LINE, 0);
     help(hx - 4, y0 + 26, hw + 8, 24, esc(t.name) + ': fame ' + t.fame + '/' + WIN_FAME, 'First team to ' + WIN_FAME + ' fame wins.<br><br>' + WIN_CHECKS);
     drawPurse(ctx, t, hx, y0 + 61, hw, 3.6);
-    ctx.fillStyle = MUTED; fitText(ctx, sp ? sp.name : 'Sponsor: picking…', hx, y0 + 80, hw, '600', 10.5);
+    ctx.fillStyle = MUTED; fitText(ctx, sp ? sp.name : 'Sponsor: bidding…', hx, y0 + 80, hw, '600', 10.5);
     if (sp) help(hx - 4, y0 + 70, hw + 8, 14, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text));
     const assets = '🃏' + t.hand.length + ' ' + secTxt(t) + ' 📦' + stashOf(t).length + ' ' + crewIcons(t);
     ctx.fillStyle = INK; fitText(ctx, assets, hx, y0 + 96, hw, '600', 10.5, F_MONO);
@@ -8633,10 +8748,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const r = hitRegions[i];
       if (wx < r.x || wx > r.x + r.w || wy < r.y || wy > r.y + r.h) continue;
 
-      if (r.kind === 'setup_sponsor') {
-        act('pickSponsor', r.spKey);
-        return;
-      }
+      if (r.kind === 'sp_minus') { act('spBid', r.sp, 'minus'); return; }   // T21: sponsor bids
+      if (r.kind === 'sp_plus' || r.kind === 'sp_tile') { act('spBid', r.sp, r.kind === 'sp_tile' ? 'tile' : 'plus'); return; }
 
       if (r.kind === 'setup_draft') {
         act('pickStarter', r.idx);
@@ -9068,6 +9181,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, sponsors are bid for', '17 Nov 2026', [
+      'Sponsors: all six lie face up in the pit and every team bids for them in secret, with − / + on each sponsor (at most your credits in total; bid nothing if you like). When everyone has locked, the sponsor with the highest bid goes first: its highest bidder pays and signs it, and that team\'s other bids drop out (you get one sponsor). A tie: only the tied teams rebid in secret, adding on top; still tied: a random draw, said in the log. A team with no sponsor at the end gets one of the rest for free. You can change your bids after locking until everyone has locked, as in the Market.',
+      'Fixed: with 4 players online, one player signing a sponsor could swap a card in another player\'s 2-sponsor deal under their mouse. Nothing on your screen changes now when someone else bids or locks; you only see who is still bidding.',
+      'The starter draft shows who signed which sponsor, and for how much, at the top of the pit.']],
     ['2.0.1, why a robot rests; the fate step', '17 Nov 2026', [
       'A resting robot says why and when it is back: "😴 OUT · Rogue Firmware (Rust Rivets) · back in round 8", or "😴 RESTING · fought this round · ready next Upkeep". The same on rival tickets (short) and in the hover help.',
       'Rogue Firmware: out for 2 rounds (this one and the next), and the log says so at once with the round it is back ("back in round 8"); the card text now says so too (it always worked that way). Coolant Leak names the robots it takes out.',
