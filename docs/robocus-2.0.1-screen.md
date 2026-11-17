@@ -7,7 +7,7 @@ Mockup: Design artifact "ROBOCUS slideshow UI" (https://claude.ai/artifact/5fBhS
 ## Layout now (device commits 52e6469 and 3a606e0, BUILD "tabletop 2.0.1 2026-11-15c ...")
 
 - Left: your robots and Stash. Middle: the pit, and under it the hand, always open, cards side by side (`HAND_H` in `benchLayout` is worked out in screen pixels: 222 px). Right, top to bottom: the note (`L.note`, 176), the waiting list (`L.wait`, 232), the log.
-- `#waitRail` (drawn by `renderWaiting()` from `netWaiting`): one row per team with YOUR MOVE / DECIDING / READY / NOTHING TO DO / AI / PLAYING, heading "WAITING FOR n" or "NOBODY HAS TO CLICK". In a reaction window every row says CAN ANSWER (no names). On your own row, when it is your move, the note's main button is repeated and flashes (`.wr-go`; a click presses the note's button); with no button to press the YOUR MOVE pill flashes.
+- `#waitRail` (drawn by `renderWaiting()` from `netWaiting`): one row per team with YOUR MOVE / DECIDING / READY / NOTHING TO DO / AI / PLAYING, heading "WAITING FOR n" or "NOBODY HAS TO CLICK". In a reaction window every row says CAN ANSWER (no names); the window itself is in the note (T2, below). On your own row, when it is your move, the note's main button is repeated and flashes (`.wr-go`; a click presses the note's button); with no button to press the YOUR MOVE pill flashes.
 - The note has three states (`promptState()`): YOUR MOVE yellow, LOCKED IN green, NOTHING FOR YOU TO DO grey. LOCKED IN for bids and bets can be undone by changing them while others still decide (T16, below).
 - Phase slide (`SLIDE` in `renderWorld`): the old pit slides out left, the new one in from the right, 520 ms; only pixels move. `window.__noSlide = true` turns it off.
 - The banner over the pit, the dots in the top bar, the hand's tab and pin are gone.
@@ -65,6 +65,20 @@ Kev: "when you buy a part, put it on the robot immediately but do show an undo b
 - Fix: the pit header said "FIT … ON A ROBOT (RIGHT)"; your robots are on the left.
 - Not changed: the Stash's own Fit button still asks "On which robot?" in a popup when several robots can take a Stash part.
 
+## The reaction window is in the note (T2, 17 Nov)
+
+Kev agreed on 15 Nov ("Reaction window inside the note instead of a popup"); from the playtests: "it wasn't very clear when people had to click", options to click "in the yellow box at all time", "the your move box should flash red when a choice needs to be made".
+
+- Before: a small box over the pit (`#reactWin`) with a countdown, its cards and Pass, or "You have no card to play here" and OK.
+- Now (`smallAsk` draws into the note through `RX` / `rxNote()`; same `askSeat(..., { small: true })` path, same `reactionWindow()`): the note shows the window's title, the seconds and a shrinking bar, the text the box had (who plays what on whom, the card's text), and one button per answer (`.act.pick`, data-rk), then Pass. A label with a part in brackets ("🤖 Roll a Security Bot (1 in your garage, blocks on 4–6)") shows the bracket as the quiet hint on the right.
+- Holding an answer: YOUR MOVE · ANSWER?, the note flashes red (`flashNote`, key `rx|<id>`). Nothing to answer: label REACTION WINDOW, grey, the same countdown, the text "You have no card to play here. The window closes by itself.", no buttons, no flash. A screen with no window during someone else's window (the player of the scheme) is AT THE TABLE, no longer YOUR MOVE.
+- A click: ✓ on the button at once, the rest greyed, label ANSWER SENT; the answer goes out after that frame is painted (`afterPaint`, as T15's `pickNow`, but its own state, so it can't grey the next note). The note keeps the ✓ and the count until the host closes the window (`G.reacting` cleared) or the count runs out. Coming back from the window to the step you were on does not flash again.
+- Fit: 1–3 answers plus Pass fit at 1600x900 (note 179 px) and 1280x720 (141 px). Four or more buttons go two per row (hints hidden). When the note is tight the seconds move up to the label line and the title goes (the text says it); the text keeps at least one line and scrolls; the buttons never shrink. Six or more (Botched Install with several parts) scroll inside the note.
+- Unchanged: window length (`REACT_MS`, 10 s), who gets a window, the default on timeout (null: let it happen), first answer on the host wins, the waiting list (CAN ANSWER on every row), online path (`N.ask` with `small`, `N.cancelSmall`, client `showAsk`). Nothing new is synced.
+- One change in timing: a player with no answer no longer has an OK button, so the window no longer ends early when everyone clicked OK/Pass; it ends on a played card or at 10 s. Less to read from: before, an early close told the table everyone had looked and passed.
+- Other mid-turn questions stay as the big question box (`ivModal`): Joint Venture, Hostile Buyout, Tag Team, second robot, Treacherous, threats and payoffs, spare or scrap deals, Hacker / Scope / Bookie's Friend information, upkeep debt, hand limit. They are one person's question, not a timed window for the whole table; some have checkboxes or long text; moving them is a look Kev has not asked for. `askSeat(..., { small: true })` would put one in the note (with a countdown) if he wants.
+- Test hooks: `ROBOCUS_DEBUG.RX`; tools/mp-scenario/reaction-note.js (solo, both screen sizes, screenshots), reaction.js and lib.js / clicker.js / cards.js find the window in the note (`#promptBar.rxmode [data-rk]`).
+
 ## Tested
 
 All 9 fixed checks pass on 3a606e0's file except that the last small addition (button in the waiting list) was re-checked with waiting.js, reaction.js and a click on the new button only; 8 mouse-driven games without findings over the two steps.
@@ -72,9 +86,9 @@ All 9 fixed checks pass on 3a606e0's file except that the last small addition (b
 ## Open
 
 - Questions from T9 (16 Nov): repairs, bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
+- Questions from T2 (17 Nov): wording "YOUR MOVE · ANSWER?" / "REACTION WINDOW" / "ANSWER SENT" and "Pass" (or "Let it happen")? Should a player with no answer get an OK button back (ends the window early when everyone has clicked)?
 - Questions from T15 (16 Nov): the wording "✓ Mauler sent" and "The bookie is watching test fights…"? Should the second robot of a double duel be picked in the note too, instead of the question box?
 
-- Reaction window inside the note instead of a popup.
 - Fight as a slide (still its own full screen).
 - With 6 or more cards the open hand overlaps again.
 - The log is small now (about 270 world units); robot value, timers and deals could use the right column instead.
