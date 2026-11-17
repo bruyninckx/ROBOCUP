@@ -2897,7 +2897,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17b reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17c repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -8934,6 +8934,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, repairs in the note', '17 Nov 2026', [
+      'Upkeep: the yellow note now lists every repair you can make, one button each: robot, zone, broken or how damaged, and what it costs (repair actions, which crew it exhausts, or credits). Broken zones first, in red like the card. A click repairs it, the same as clicking the zone on the robot card (that still works). A repair you can\'t pay is shown greyed with the reason. Stash parts that fit a robot get a button too. Done → Intrigue sits at the top right of the note. With many repairs the buttons go two per row and the list scrolls.' ]],
     ['2.0.1, reactions in the note', '17 Nov 2026', [
       'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it stays grey with the same countdown and an OK button, as before. Same 10 seconds, and it still ends as soon as everyone has clicked; same rules; the list below still says CAN ANSWER for everyone.' ]],
     ['2.0.1, arenas', '17 Nov 2026', [
