@@ -156,17 +156,22 @@ html, body {
 .prompt-bar .rx-bar { flex: 0 0 auto; height: 5px; margin: 3px 0 5px; background: rgba(26,22,18,.15); border-radius: 3px; overflow: hidden; }
 .prompt-bar .rx-bar i { display: block; height: 100%; width: 100%; background: #D93A2B; transform-origin: left; }
 .prompt-bar.idle .rx-bar i { background: #6E6457; }
-.prompt-bar .rx-txt { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; font-weight: 500; }
+.prompt-bar .rx-txt { flex: 0 1 auto; min-height: calc(1.3em + 1px); overflow-y: auto; scrollbar-width: thin; font-weight: 500; }
 .prompt-bar .rx-txt .rw-none { color: #5A4C24; font-style: italic; }
-.prompt-bar .rx-btns { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; max-height: 100%; overflow-y: auto; }
+.prompt-bar .rx-btns { flex: 0 0 auto; min-height: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; margin-top: 6px; overflow-y: auto; }   
+.prompt-bar .rx-btns.lots { flex-shrink: 1; min-height: 48px; }   /* 6+ answers (Botched Install, several parts): the buttons scroll */
 .prompt-bar .rx-btns .act.pick { flex: 1 1 100%; }
 .prompt-bar .rx-btns.two .act.pick { flex-basis: calc(50% - 3px); }
 .prompt-bar .rx-btns.two .act.pick small { display: none; }
 .prompt-bar .rx-btns .act.pick.go { background: var(--ink); color: var(--hazard); }
 .prompt-bar .rx-btns .act.pick.go:hover:not(:disabled) { background: #000; color: #fff; }
+.prompt-bar .rx-btns .act.pick.done, .prompt-bar .rx-btns .act.pick.done:disabled { background: #1F5C35; color: #fff; }
 .prompt-bar .rx-btns .act.pass { flex: 1 1 100%; }
 .prompt-bar .rx-btns.two .act.pass { flex-basis: calc(50% - 3px); }
 .prompt-bar.tight .rx-btns { margin-top: 4px; gap: 4px; }
+.prompt-bar.tight.rxmode .rx-head { position: absolute; top: 4px; right: 10px; }   /* small note: the seconds go up on the label line, the title goes (the text says it) */
+.prompt-bar.tight.rxmode .rx-head b { display: none; }
+.prompt-bar.tight .rx-bar { margin-top: 0; }
 .prompt-bar.tight .rx-btns .act.pass { padding-top: 1px; padding-bottom: 1px; }
 /* T12 (Kev, 16 Nov: "the your move box should flash red when a choice needs to be made"): three pulses, then yellow again */
 @keyframes pbFlash { 0%, 100% { background-color: var(--hazard); } 45%, 60% { background-color: #F05A45; box-shadow: 0 0 0 4px rgba(217,58,43,.45), 0 4px 10px rgba(0,0,0,.2); } }
@@ -2765,7 +2770,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     pb.innerHTML = '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>' +
       (r.ms > 0 ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
       '<div class="rx-txt">' + r.html + (has ? '' : '<div class="rw-none">You have no card to play here. The window closes by itself.</div>') + '</div>' +
-      (has ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
+      (has ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
     pb.classList.add('rxmode'); pb.classList.toggle('rx-sent', !!r.done);
     pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk); });
     return true;
