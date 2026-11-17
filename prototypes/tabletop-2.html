@@ -133,6 +133,24 @@ html, body {
 .prompt-bar.tight .act.pick { padding-top: 2px; padding-bottom: 2px; font-size: 12.5px; }
 .prompt-bar.tight.many .act.pick { flex-basis: calc(50% - 3px); }
 .prompt-bar.tight.many .act.pick small { display: none; }
+/* T22 (Kev, 17 Nov: "also add repair options in red box"): Upkeep lists one button per repair (broken zones red, like the card), the
+   Stash parts that fit, and Done at the bottom; from 4 buttons two per row (name over cost), and the list scrolls when it is long */
+.prompt-bar.repmode { flex-direction: column; flex-wrap: nowrap; align-items: stretch; overflow: hidden; gap: 5px; }
+.prompt-bar.repmode > span { flex: 0 0 auto; }
+.prompt-bar.repmode .rep-ok { color: #1F5C35; }
+.prompt-bar .rep-btns { flex: 0 1 auto; min-height: 30px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; overflow-y: auto; scrollbar-width: thin; }
+.prompt-bar .rep-head { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; }
+.prompt-bar .rep-head > span { flex: 1 1 auto; min-width: 0; }
+.prompt-bar .rep-head > .act { flex: 0 0 auto; white-space: nowrap; }
+.prompt-bar .rep-btns .act.pick { font: 700 12px var(--sans); letter-spacing: 0; padding: 3px 8px; }
+.prompt-bar .rep-btns .act.pick b { font-weight: 700; flex-shrink: 0; max-width: 72%; }
+.prompt-bar .rep-btns .act.pick:disabled:not(.done) { opacity: 1; background: rgba(26,22,18,.1); color: #5A4C24; box-shadow: inset 0 0 0 1px rgba(26,22,18,.35); }
+.prompt-bar .rep-btns .act.pick:disabled:not(.done) small { color: #8E2A1F; opacity: 1; }
+.prompt-bar .act.pick.brk { background: #B23A2B; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+.prompt-bar .act.pick.brk:hover:not(:disabled) { background: #8E2A1F; color: #fff; }
+.prompt-bar .act.pick.brk.warn small { color: #FFE08A; }
+.prompt-bar.repmode.many .rep-btns .act.pick { flex-basis: calc(50% - 2px); flex-direction: column; align-items: stretch; gap: 0; line-height: 1.2; padding: 2px 7px; font-size: 11.5px; }
+.prompt-bar.repmode.many .rep-btns .act.pick b, .prompt-bar.repmode.many .rep-btns .act.pick small { display: block; margin-left: 0; white-space: nowrap; max-width: none; }
 .prompt-bar select { font: 600 12px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); padding: 2px 4px; }
 .prompt-bar .ivorder { flex: 1 1 100%; background: rgba(255,253,248,.6); color: var(--ink); border-radius: 3px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
 .prompt-bar .ivorder i { font-style: normal; font-weight: 700; }
@@ -1457,6 +1475,31 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // Kev, 9 Nov: what a repair really costs once the free repair actions run out (shown in red)
   const repairCrFor = (t, n) => Math.max(0, n - repairActs(t)) * repairCr();
   const repairTxt = t => { const n = repairActs(t); return actsWord(n) + ' left' + (n ? '' : ' (then ' + repairCr() + ' Cr each)'); };
+  /* T22 (Kev, 17 Nov: "also add repair options in red box"): the repairs you can make now, for buttons in the note.
+   * repairPlan says how n actions would be paid, in the order spendRepair pays them (free actions, crew already at work,
+   * fresh crew who are then exhausted, credits), without changing anything. */
+  function repairPlan(t, n) {
+    const R = repState(t); let need = n;
+    const free = Math.min(R.free || 0, need); need -= free;
+    let busy = 0; for (const c of t.crew) if (R.used[c.uid] != null && need > 0) { const m = Math.min(need, Math.max(0, CREW_ACTS(c.kind) - R.used[c.uid])); busy += m; need -= m; }
+    const ex = []; for (const c of freshCrew(t)) { if (need <= 0) break; const m = Math.min(need, CREW_ACTS(c.kind)); need -= m; ex.push(CREW[c.kind].name); }
+    return { acts: n - need, ex, cr: need * repairCr(), ok: canPayActs(t, n), free };
+  }
+  const crewList = L => [...new Set(L)].map(x => { const k = L.filter(y => y === x).length; return k > 1 ? k + ' ' + x + 's' : x; }).join(', ');   // 'Mechanic, Mechanic' → '2 Mechanics'
+  // order (Kev's choice, see PROGRESS 17 Nov): broken zones first, then the worst damage; ties: weapon, drive, body; robots in bay order
+  function upkeepJobs(t) {
+    const jobs = [], ZO = { weapon: 0, drive: 1, body: 2 };
+    t.robots.forEach((r, ri) => { if (!r.wear) return; const Z = zonesOf(r); for (const z of R2.ZONES) { const q = Z[z.key]; if (!q.damaged) continue;
+      const n = repairCost(r, z.key), p = repairPlan(t, n);
+      const hint = !p.ok ? 'can\'t pay: ' + p.cr + ' Cr (you have ' + t.credits + ')'
+        : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
+      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
+      jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: q.broken ? 'broken' : Math.round(q.f * 100) + '%', p, hint, tip });
+    } });
+    return jobs.sort((a, b) => (b.broken - a.broken) || (a.f - b.f) || (ZO[a.zk] - ZO[b.zk]) || (a.ri - b.ri));
+  }
+  // Stash parts that fit a robot now (the Stash card's Fit, one button per part × robot)
+  function upkeepFits(t) { const L = []; stashOf(t).forEach((id, k) => { if (LOTS[id]) for (const r of t.robots) if (canFit(r, LOTS[id])) L.push({ k, id, r, pv: lotPreview(r, LOTS[id]) }); }); return L; }
   // the repair rules in one line, for help texts
   const repairRulesTxt = () => {
     const R = RB(), who = R.engineersOnly ? 'only ' + R.engineers.map(k => CREW[k] ? CREW[k].name : k).join(', ') + ' repair' : 'every crew member repairs';
@@ -1882,7 +1925,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * page itself for 4 s. Local display only: the action is the same act() call as before. On this page (solo, or the host)
    * the mark is dropped just before the action runs, so a refused click re-renders from the real state at once; on a joined
    * screen it lasts until the host's answer re-renders the note, 4 s at most. */
-  let pickWait = null;
+  let pickWait = null, repDone = null;   // repDone (T22): the last repair clicked in the note, for its ✓ line
   const pickWaiting = k => pickWait && (!k || pickWait.k === k) && G && pickWait.round === G.round && pickWait.phase === G.phase && performance.now() - pickWait.t < 4000 ? pickWait : null;
   const afterPaint = () => new Promise(res => { let d = false; const go = () => { if (!d) { d = true; res(); } }; requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 100); });   // the next frame is on screen (a hidden tab: 0.1 s)
   function pickNow(k, v, label, run) {
@@ -1913,7 +1956,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
-    pb.classList.remove('rxmode', 'rx-sent');
+    pb.classList.remove('rxmode', 'rx-sent', 'repmode');
     if (rxNote(pb)) return;   // T2: a reaction window is open on this screen: it has the note
     if (G.over) {
       // the winner checkWin picked (most fame, tie: most credits); a Grand Final can put both winners on the target at once
@@ -1955,8 +1998,32 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.phase === 'upkeep') {
       if (iWait('upkeep')) pb.innerHTML = '<span>🔧 <b>Upkeep:</b> you are done. ' + waitTxt('upkeep') + '</span>';
       else {
-        pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.</span>' +
-          '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
+        // T22 (Kev, 17 Nov: "also add repair options in red box"): one button per repair you can make, the same act() as the zone on the card
+        { const w = pickWaiting('rep'); if (w && isClient()) { const [rid, zk] = w.v.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk] || !zonesOf(r)[zk].damaged) pickWait = null; } }   // a joined screen: the host's answer came
+        const jobs = upkeepJobs(t), fits = upkeepFits(t);
+        const lr = repDone && repDone.round === G.round && G.phase === 'upkeep' ? myBot(HS, repDone.rid) : null;
+        const doneTxt = lr && ZONE[repDone.zk] && !zonesOf(lr)[repDone.zk].damaged ? ' <b class="rep-ok">✓ ' + esc(lr.name) + ' ' + ZONE[repDone.zk].icon + ' ' + ZONE[repDone.zk].label + ' repaired.</b>' : '';
+        if (!jobs.length && !fits.length) {
+          pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.' + doneTxt + '</span>' +
+            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
+        } else {
+          const n = repairActs(t);
+          pb.classList.add('repmode');
+          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep: repairs.</b> ' + (jobs.length ? actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
+            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button></div>' +
+            '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
+            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + LOTS[f.id].name + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + LOTS[f.id].name + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
+          pb.querySelectorAll('[data-rep]').forEach(b => { b.onclick = () => {
+            const [rid, zk] = b.dataset.rep.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk]) return;
+            const h = hitRegions.find(x => x.kind === 'zone_fix' && String(x.robot.id) === rid && x.zone === zk);
+            repDone = { rid, zk, round: G.round };
+            pickNow('rep', b.dataset.rep, r.name + ' ' + ZONE[zk].label + ' repaired', () => { if (h) spawnWeldSparks(h.x + h.w / 2, h.y + h.h / 2); act('repairZone', r.id, zk); });   // the card's zone click
+          }; });
+          pb.querySelectorAll('[data-sfit]').forEach(b => { b.onclick = () => {
+            const [k, rid] = b.dataset.sfit.split(':'), id = stashOf(t)[+k], r = myBot(HS, rid); if (!id || !r) return;
+            pickNow('sfit', b.dataset.sfit, LOTS[id].name + ' fitted', () => act('fitStash', +k, id, r.id));   // the Stash card's Fit
+          }; });
+        }
         $('#pAct1').onclick = () => act('upkeepDone');
       }
     } else if (G.phase === 'intrigue') {
@@ -2830,7 +2897,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17b reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17c repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -6674,7 +6741,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function choiceKey(pb, asked) {
     const P = PS(), und = G.phase === 'market' ? myFitUndos() : [];
     const multi = und.filter(rec => me().robots.some(o => String(o.id) !== String(rec.rid) && canFit(o, LOTS[rec.lot]))).map(rec => G.gid + ':' + rec.id);
-    const head = Array.from(pb.querySelectorAll(':scope > span b')).slice(0, 1).map(b => b.textContent).join('');
+    const head = Array.from(pb.querySelectorAll(':scope > span b, :scope > .rep-head > span b')).slice(0, 1).map(b => b.textContent).join('');
     if (und.length && !asked && !multi.length && !(P.install || []).length) return '';   // only Undo (one robot with room) next to a step that goes on by itself: no flash
     // a new fit with robots to move it to flashes once (by its id: moving it or the end of its window does not flash again)
     const fresh = multi.filter(id => !PFLASH.seen.has(id)); fresh.forEach(id => PFLASH.seen.add(id));
@@ -7333,7 +7400,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     pb.classList.remove('tight');
     pb.classList.toggle('many', pb.querySelectorAll('.act.pick').length > 3);   // T9: 4+ choice buttons go two per row when tight
     const tx = pb.classList.contains('rxmode') && pb.querySelector('.rx-txt');   // T2: the reaction window: the text shrinks first
-    if (pb.scrollHeight > pb.clientHeight + 2 || (tx && tx.scrollHeight > tx.clientHeight + 2)) pb.classList.add('tight');
+    const rb = pb.classList.contains('repmode') && pb.querySelector('.rep-btns');   // T22: the repair list: tight before it scrolls
+    if (pb.scrollHeight > pb.clientHeight + 2 || (tx && tx.scrollHeight > tx.clientHeight + 2) || (rb && rb.scrollHeight > rb.clientHeight + 2)) pb.classList.add('tight');
   }
   /* ---------- HTML zones placed over the canvas: 4 · sticky note, 7 · log, 5 · Stash ---------- */
   const OVL = { key: '' };
@@ -8504,7 +8572,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         return;
       }
 
-      if (r.kind === 'zone_fix') { spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2); act('repairZone', r.robot.id, r.zone); return; }
+      if (r.kind === 'zone_fix') { repDone = { rid: String(r.robot.id), zk: r.zone, round: G.round }; spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2); act('repairZone', r.robot.id, r.zone); return; }
 
       if (r.kind === 'bay_action' || (r.kind === 'bay' && r.team === HS)) {
         const t = me(), bot = r.robot, inst = PS().install || [];
@@ -8866,6 +8934,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, repairs in the note', '17 Nov 2026', [
+      'Upkeep: the yellow note now lists every repair you can make, one button each: robot, zone, broken or how damaged, and what it costs (repair actions, which crew it exhausts, or credits). Broken zones first, in red like the card. A click repairs it, the same as clicking the zone on the robot card (that still works). A repair you can\'t pay is shown greyed with the reason. Stash parts that fit a robot get a button too. Done → Intrigue sits at the top right of the note. With many repairs the buttons go two per row and the list scrolls.' ]],
     ['2.0.1, reactions in the note', '17 Nov 2026', [
       'Reaction window: it is now in the yellow note on the right (it was a box over the pit). The note says who plays what on whom, counts down (bar and seconds), and shows one button per card you can answer with, and Pass. A click shows ✓ at once. If you can answer, the note says YOUR MOVE and flashes red. If you can\'t, it stays grey with the same countdown and an OK button, as before. Same 10 seconds, and it still ends as soon as everyone has clicked; same rules; the list below still says CAN ANSWER for everyone.' ]],
     ['2.0.1, arenas', '17 Nov 2026', [

@@ -19,7 +19,7 @@ Kev: "When you can send a robot to the pit, also make that 'to the pit' option v
 - Invited to a fight (any format): one green button per robot in the note, `▶ <name>` with a hint on the right (no damage, damaged ⚔, broken ⚙; pinkish when damaged). Exhausted robots are shown greyed out. Same click as the card's SEND … TO THE PIT (`act('sendBot', id)`); the card button stays.
 - Same idea, same action paths as the pit/card: Sign <sponsor> (`pickSponsor`), Keep <starter> (`pickStarter`), fit a won part on a robot (`install`; hint: the odds change, greyed when there is no room), host invite toggles per team (`pickTeam`; hint: ready robots), tie rebid − / + (`rebidAdj`).
 - Built with `pickBtn()` (class `.act.pick`, data-send / data-fit / data-keep / data-sign / data-inv). The waiting list does not repeat them (`.wr-go` skips `.pick`). In a tight note the buttons come first (as before); with 4 or more they go two per row without hints (`.many`).
-- Not in the note (need a picker): repairs, lot bids, bets, Intrigue cards.
+- Not in the note (need a picker): lot bids, bets, Intrigue cards. (Repairs: in the note since T22, 17 Nov, below.)
 
 ## Change after locking (T16, 16 Nov)
 
@@ -79,13 +79,29 @@ Kev agreed on 15 Nov ("Reaction window inside the note instead of a popup"); fro
 - Other mid-turn questions stay as the big question box (`ivModal`): Joint Venture, Hostile Buyout, Tag Team, second robot, Treacherous, threats and payoffs, spare or scrap deals, Hacker / Scope / Bookie's Friend information, upkeep debt, hand limit. They are one person's question, not a timed window for the whole table; some have checkboxes or long text; moving them is a look Kev has not asked for. `askSeat(..., { small: true })` would put one in the note (with a countdown) if he wants.
 - Test hooks: `ROBOCUS_DEBUG.RX`; tools/mp-scenario/reaction-note.js (solo, both screen sizes, screenshots), reaction.js and lib.js / clicker.js / cards.js find the window in the note (`#promptBar.rxmode [data-rk]`).
 
+## Repairs in the note (T22, 17 Nov)
+
+Kev, 17 Nov (round 2 Upkeep, one broken Body on Wrecker): "also add repair options in red box".
+
+- Upkeep, something to repair: the note says `🔧 Upkeep: repairs. N actions left, then 2 Cr each.` with Done → Intrigue on the same line (right), and under it one button per damaged zone of your robots: `Wrecker · ⛨ Body (broken)` with the cost on the right: `2 actions · exhausts 2 Mechanics`, `2 free actions`, `1 action + 2 Cr` or `4 Cr`. Broken zones are red, like the card; damaged ones dark. A cost in credits is shown in pink (yellow on red). Zones that are ok get no button. The full rule (who repairs, costs, free actions) is in the hover help of the text and in each button's tooltip.
+- How it is paid comes from `repairPlan(t, n)`: the same order as `spendRepair` (free actions, crew already at work, fresh crew who are then exhausted, then credits), without changing anything.
+- A click: `pickNow('rep', ...)` (✓ at once), then the same `act('repairZone', robotId, zone)` as the zone click on the card (welding sparks on the card too). The button goes, the counts update, and the text adds `✓ Wrecker ⛨ Body repaired.` (also after a zone click on the card). On a joined screen the ✓ mark is dropped as soon as the host's answer shows the zone repaired, so the next repair can be clicked at once.
+- Can't be paid (no actions, not enough credits): the button stays, greyed, `can't pay: 4 Cr (you have 1)`; it can't be clicked, and the host refuses `repairZone` as before.
+- Order: broken zones first, then the worst damage (lowest health), then weapon, drive, body, then robots in bay order.
+- Fit: up to 3 buttons one per row (name left, cost right); from 4 on two per row with the cost on a second line. Done stays visible; the button list scrolls inside the note when it is longer (1600x900: 6 fit, 9 scroll; 1280x720: 2-3 rows show, the rest scroll).
+- Also in the note in Upkeep: `🔩 <part> → <robot>` for each Stash part that fits a robot now (hint: the odds), the same `act('fitStash', k, id, robotId)` as the Stash card's Fit.
+- Nothing to repair and no Stash part to fit: the old one-line text and Done (a person with nothing to do still goes on by itself after 0.6 s).
+- Not changed: repair rules, costs, the zone buttons on the card, what is synced, the bots and AI teams.
+- Test: tools/mp-scenario/repair-note.js (solo, both screen sizes, screenshots), tools/mp-scenario/repair-note-online.js (a joined client presses the note buttons and the card zone).
+
 ## Tested
 
 All 9 fixed checks pass on 3a606e0's file except that the last small addition (button in the waiting list) was re-checked with waiting.js, reaction.js and a click on the new button only; 8 mouse-driven games without findings over the two steps.
 
 ## Open
 
-- Questions from T9 (16 Nov): repairs, bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
+- Questions from T22 (17 Nov): the order of the repair buttons (broken first, then worst damage)? Broken zones red like the card, credits in pink? Done at the top right of the note (beside the text) or at the bottom? The wording "exhausts 2 Mechanics" / "can't pay: 4 Cr (you have 1)"?
+- Questions from T9 (16 Nov): bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
 - Questions from T2 (17 Nov): wording "YOUR MOVE · ANSWER?" / "REACTION WINDOW" / "ANSWER SENT" and "Pass" (or "Let it happen")? Should a player with no card have to click at all (today: an OK that ends the window early once everyone has clicked, as before T2)?
 - Questions from T15 (16 Nov): the wording "✓ Mauler sent" and "The bookie is watching test fights…"? Should the second robot of a double duel be picked in the note too, instead of the question box?
 
