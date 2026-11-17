@@ -28,7 +28,7 @@ Nothing else in the fight view changed. Hazard damage is also counted in `R.stat
 
 ## 3. How it was measured
 
-`tools/damage-lab/arenafit.js <arena> <seeds> [firstSeed] --out=f.json`: every robot against every robot of its own level on
+`tools/damage-lab/arenafit.js <arena> <seeds> [firstSeed] --out=f.json` (raw runs: `tools/damage-lab/arena-runs/before`, `after`, `up`): every robot against every robot of its own level on
 that arena, both sides; `arenafit-report.js <dir> --eb` merges runs and prints the tables. Final numbers: 16 seeds = 3,168
 fights an arena (and 3,168 on the open floor): **256 fights a robot at level 0, 128 at levels 1-2, 160 at level 3, 224 at level 4**.
 The ± below is one standard deviation of the change (open-floor noise included): about ±4 at level 0, ±6 at levels 1-2.
