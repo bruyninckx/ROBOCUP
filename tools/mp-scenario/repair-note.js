@@ -16,7 +16,7 @@ const path = require('path'), fs = require('fs');
   async function open(w, h) {
     const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
     await PLK.route(p, PL);
-    await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11'); await p.waitForTimeout(800);
+    await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=13'); await p.waitForTimeout(800);   // T21: seed 13 (was 11; the sponsor auction uses the dice differently): Wrecker, as before
     await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
     await p.click('#pAct2'); await p.waitForTimeout(1500);
     return p;
