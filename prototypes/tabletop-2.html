@@ -143,12 +143,14 @@ html, body {
 .prompt-bar .rep-head > span { flex: 1 1 auto; min-width: 0; }
 .prompt-bar .rep-head > .act { flex: 0 0 auto; white-space: nowrap; }
 .prompt-bar .rep-btns .act.pick { font: 700 12px var(--sans); letter-spacing: 0; padding: 3px 8px; }
-.prompt-bar .rep-btns .act.pick b { font-weight: 700; }
-.prompt-bar .act.pick.brk { background: #B23A2B; color: #fff; }
+.prompt-bar .rep-btns .act.pick b { font-weight: 700; flex-shrink: 0; max-width: 72%; }
+.prompt-bar .rep-btns .act.pick:disabled:not(.done) { opacity: 1; background: rgba(26,22,18,.1); color: #5A4C24; box-shadow: inset 0 0 0 1px rgba(26,22,18,.35); }
+.prompt-bar .rep-btns .act.pick:disabled:not(.done) small { color: #8E2A1F; opacity: 1; }
+.prompt-bar .act.pick.brk { background: #B23A2B; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
 .prompt-bar .act.pick.brk:hover:not(:disabled) { background: #8E2A1F; color: #fff; }
 .prompt-bar .act.pick.brk.warn small { color: #FFE08A; }
 .prompt-bar.repmode.many .rep-btns .act.pick { flex-basis: calc(50% - 2px); flex-direction: column; align-items: stretch; gap: 0; line-height: 1.2; padding: 2px 7px; font-size: 11.5px; }
-.prompt-bar.repmode.many .rep-btns .act.pick b, .prompt-bar.repmode.many .rep-btns .act.pick small { display: block; margin-left: 0; white-space: nowrap; }
+.prompt-bar.repmode.many .rep-btns .act.pick b, .prompt-bar.repmode.many .rep-btns .act.pick small { display: block; margin-left: 0; white-space: nowrap; max-width: none; }
 .prompt-bar select { font: 600 12px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); padding: 2px 4px; }
 .prompt-bar .ivorder { flex: 1 1 100%; background: rgba(255,253,248,.6); color: var(--ink); border-radius: 3px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
 .prompt-bar .ivorder i { font-style: normal; font-weight: 700; }
@@ -2007,7 +2009,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         } else {
           const n = repairActs(t);
           pb.classList.add('repmode');
-          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>' + (jobs.length ? 'Repairs:</b> ' + actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Upkeep:</b> nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
+          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep: repairs.</b> ' + (jobs.length ? actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
             '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button></div>' +
             '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
             fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + LOTS[f.id].name + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + LOTS[f.id].name + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
@@ -6739,7 +6741,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function choiceKey(pb, asked) {
     const P = PS(), und = G.phase === 'market' ? myFitUndos() : [];
     const multi = und.filter(rec => me().robots.some(o => String(o.id) !== String(rec.rid) && canFit(o, LOTS[rec.lot]))).map(rec => G.gid + ':' + rec.id);
-    const head = Array.from(pb.querySelectorAll(':scope > span b')).slice(0, 1).map(b => b.textContent).join('');
+    const head = Array.from(pb.querySelectorAll(':scope > span b, :scope > .rep-head > span b')).slice(0, 1).map(b => b.textContent).join('');
     if (und.length && !asked && !multi.length && !(P.install || []).length) return '';   // only Undo (one robot with room) next to a step that goes on by itself: no flash
     // a new fit with robots to move it to flashes once (by its id: moving it or the end of its window does not flash again)
     const fresh = multi.filter(id => !PFLASH.seen.has(id)); fresh.forEach(id => PFLASH.seen.add(id));
