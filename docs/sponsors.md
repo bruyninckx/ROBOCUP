@@ -45,3 +45,18 @@ Sovereign Foundry's "wins every Market lot tie" does not apply (nobody has a spo
 
 **Quick-Start** (solo) bids for you as an AI team would.
 
+**Economy check (17 Nov, T21; 80 bot games before = origin/main 072ac9c, after = this branch, same seeds 1-80, AI v2, start 0, win 12; 80/80 finished each after re-running 6 / 7 round-1 stalls of the loaded box one by one; all four teams bid as the AI, Quick-Start bids for seat 0).**
+
+| | Before (dealt 2, keep 1) | After (auction) |
+|---|---|---|
+| Paid for a sponsor, per team | 0 | 1.60 ± 0.08 Cr (0 Cr: 117 of 320; 1: 29, 2: 63, 3: 87, 4: 24) |
+| Credits going into round 1 | 8.0 | 6.4 |
+| Round-1 Market: Cr spent (all teams) | 8.22 ± 0.25 | 6.89 ± 0.22 |
+| Round-1 Market: lots sold of 4 | 1.65 ± 0.06 | 1.36 ± 0.05 |
+| Game length (rounds) | 11.40 ± 0.20 | 11.51 ± 0.19 (paired by seed: +0.11 ± 0.29) |
+
+- Mean price by sponsor: Blackwire 2.9, Sovereign 2.5, Aegis 1.4, Lucky 0.4, Apex 0.3, Vulture 0.0 Cr. The sponsors are no longer dealt evenly: of 320 seats Blackwire 77, Sovereign 72, Aegis 56, Apex 47, Lucky 39, Vulture 29 (before about 53 each).
+- Wins by sponsor (fair 25%, ± about 6 points): before Sovereign 35%, Blackwire 34%, Aegis 32%, Apex 22%, Vulture 15%, Lucky 13%; after Blackwire 32%, Sovereign 28%, Vulture 24% (29 seats, ±8), Apex 23%, Aegis 23%, Lucky 10%. The strong sponsors now cost about 3 Cr and win a little less; nothing moved more than the noise except that pattern. Teams that paid won 29% (203 seats), teams that got a free sponsor 19% (117).
+- The first Market is about 1.3 Cr (16%) quieter: the money paid for sponsors is missing there. Option for Kev (not done): start with 10 Cr instead of 8 (`BAL.startCredits`), so round 1 has as much to spend as before.
+
+Scripts (outside the repo): t21-scripts/econ2.js (numbers), solo.js, mp.js, skip.js, flip.js, shots2.js.
