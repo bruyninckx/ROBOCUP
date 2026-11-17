@@ -59,7 +59,7 @@ A round has 7 steps (the bar at the top of the screen). A game runs about 8–12
 4. **Host:** Arena cards that change the fight, then the host invites the fighters.
 5. **Bets:** the bookie sets the odds; everyone bets in public and bids in secret on 2 fight cards.
 6. **Fight:** the robots auto-battle; live combat cards can be played.
-7. **Fate:** the host spares or scraps each losing robot; losers open a Scrap Crate.
+7. **Fate:** the host spares or scraps each losing robot; each losing team gets a free repair action next Upkeep.
 
 The game checks for a winner after the Intrigue phase, after the Market and after the Fate step (section 9).
 
@@ -67,7 +67,7 @@ The game checks for a winner after the Intrigue phase, after the Market and afte
 
 All teams do Upkeep at the same time; the game does the bookkeeping. Upkeep ends when every person has pressed **Done**.
 
-1. **Ready:** every robot, crew card and Security Bot is ready again, unless a card keeps it out (Rogue Firmware: the robot sits out its next fight).
+1. **Ready:** every robot, crew card and Security Bot is ready again, unless a card keeps it out (Rogue Firmware, played in the Intrigue step: the robot misses that round's fight and the next round's, and is ready again in the Upkeep after that). The robot card says why a robot rests and in which round it is back.
 2. **Ledger:** +1 credit per Mechanic, −1 credit per robot, −1 credit per 2 helper drones (the Accountant: only your first robot costs 1). The ledger is in the log.
 3. **Can't pay:** scrap one robot of your choice for each credit you can't pay. A team left without robots gets a free Scrap Bot.
 4. **Draw:** 3 Intrigue cards (Blackwire +1; a Tinker that sat out last round +1).
@@ -147,7 +147,7 @@ A losing bet goes to the bank (Lucky Seven gets 1 credit back; its winning bets 
 
 **6. Results.** Every team on the winning side gains **1 fame** (2 in a Grand Final), once per team, and no prize money. Each winning robot gets a Fan token; its 3rd (Apex: 2nd) makes it a **Fan Favourite**: +1 fame. A House Robot win or a draw gives nobody fame. Each fighter adds its seconds in the arena to its battle time (section 8). A spared loser keeps at most half its health as damage.
 
-**7. Fate: spare or scrap.** The host judges every losing robot, one at a time, first knocked out first. The losing team may offer the host a deal to spare it, rivals to scrap it; the host takes the offers of the side it picks. The host's own robot and Fan Favourites are always safe. A scrapped robot is gone with its parts (its card goes back to its deck); Vulture Salvage gets 2 credits; a team left without robots gets a free Scrap Bot.
+**7. Fate: spare or scrap.** The host judges every losing robot, one at a time, first knocked out first. The losing team may offer the host a deal to spare it, rivals to scrap it; the host takes the offers of the side it picks. The host's own robot and Fan Favourites are always safe; before any offer, each owner sees which of its losing robots are safe and which the host decides. Offers are only paid by the side the host picks. An AI host leans to scrap a robot of a team that leads or is close to it in fame (most of the time) and then needs spare offers worth 2 credits more than the scrap offers to spare it; without that lean, scrap offers must be worth 2 credits more than the spare offers. After the decision the owner (and everyone who made an offer) is told why. A scrapped robot is gone with its parts (its card goes back to its deck); Vulture Salvage gets 2 credits; a team left without robots gets no free robot: it wins one in the Market.
 
 **8. Scrap Crate.** Then each losing team draws 3 of the 7 Scrap Crate items and keeps 1 (Vulture Salvage keeps 2): Salvaged Plate, Hull, Servo, Gear or Sights (+1 armour, health, speed, turret or accuracy level, ⚡1, gone for good when it breaks; it goes on the losing robot, else another robot, else the Stash), Scrap Patch Kit (repair 30 damage) or Black-Box Tape (draw 1 Intrigue card, +1 credit).
 
