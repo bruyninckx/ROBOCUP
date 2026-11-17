@@ -12,9 +12,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K25. "Open auction during the betting"** (T26): does this mean the open market (trading) runs while people place
-  their sealed bids on the lots, with no separate "Start the auction" step? And: if a trade changes someone's credits
-  after they locked, are they unlocked (as a changed bid does)?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
@@ -49,6 +46,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K25 (17 Nov): a trade after locking unlocks you.** Kev: "yes" (to: a trade that changes your credits after you locked
+  your bids takes your lock off, as a changed bid does). He did not object to the reading of T26 (the open market runs
+  during the sealed bids), so T26 goes ahead on that reading once T21 is merged.
 - **K23 (17 Nov): the fate step tie stays.** Kev: "I think the spare scrap situation was handled well". The host keeps
   deciding between equal offers as it does now; T25 only makes the outcome clearer.
 - **Rogue Firmware (17 Nov): out for 2 rounds.** Kev: "this is ambigous to me, just make it 2 rounds then, how can it sit
@@ -84,7 +84,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Override: no Firewall offer to the scheme's player; a rival who is hurt still gets it), `reaction.js`, game-sim and
   `mp-test` pass.
 - **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
-  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading (to confirm, K25): the
+  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
   Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
   "Start the auction" click; it stays open while everyone places sealed bids on the lots, and ends when everybody has
   locked their bids; then rebids or the next step. Files: `prototypes/tabletop-2.html` (Market stages, `gather`, deal
