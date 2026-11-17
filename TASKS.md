@@ -12,9 +12,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K20. Reaction window** (T2): should a player with no card have to click OK at all (today: yes, as before, so the window
-  can end early)? "Pass" or "Let it happen"? Move other popup questions into the note too (second robot in a double
-  duel, Joint Venture, Hostile Buyout)?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
   enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
   out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
@@ -42,6 +39,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K20 (17 Nov): reaction window.** Kev: "1 ok so window can end early; 2 let it happen; 3 move into note yes": a player
+  with no card keeps the OK button; the button "Pass" becomes "Let it happen"; the other popup questions move into the
+  note (T20).
 - **K19 (17 Nov): arenas.** Kev: "Keep arena credit at 1. 2. Good 3. Ok": an arena stays 1 Cr; Thwacker's weakness on Ice
   and in the Cage stays; Whaler stays the Saw specialist. (The Killbox question was not asked: it stays as it is.)
 - **K7 (16 Nov): the YOUR MOVE box flashes red when a choice has to be made.** Kev: "I meant the your move box should
@@ -69,6 +69,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** Kev (17 Nov): "let it happen";
+  "move into note yes" (to: other popup questions such as the second robot in a double duel, Joint Venture, Hostile
+  Buyout). Goal: every question the game asks one player mid-turn shows in the note with its answers as buttons, the same
+  way the reaction window does since T2; popups stay only where the note cannot hold the question (say which). Files:
+  `prototypes/tabletop-2.html` (`askSeat`, `smallAsk`, `RX`). Worker on branch `claude/questions-in-note`, started 17 Nov.
+  Done when: screenshots of each moved question in the note at both window sizes, scripted answers work solo and from a
+  joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
 - **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
   Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
   Kev (17 Nov): "Do some work". Worker on branch `claude/game-length`, started 17 Nov.
