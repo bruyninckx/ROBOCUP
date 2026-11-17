@@ -76,7 +76,7 @@ Kev agreed on 15 Nov ("Reaction window inside the note instead of a popup"); fro
 - Fit: 1–3 answers plus Pass fit at 1600x900 (note 179 px) and 1280x720 (141 px). Four or more buttons go two per row (hints hidden). When the note is tight the seconds move up to the label line and the title goes (the text says it); the text keeps at least one line and scrolls; the buttons never shrink. Six or more (Botched Install with several parts) scroll inside the note.
 - Unchanged: window length (`REACT_MS`, 10 s), early end, who gets a window, the default on timeout (null: let it happen), first answer on the host wins, the waiting list (CAN ANSWER on every row), online path (`N.ask` with `small`, `N.cancelSmall`, client `showAsk`). Nothing new is synced.
 - Timing exactly as before T2: the window lasts `REACT_MS` (10 s) and ends early when a card is played or when every person in it has clicked (card, Pass or OK). In a game with one person only someone holding an answer gets a window at all (no card: no window, no wait), as before.
-- Other mid-turn questions stay as the big question box (`ivModal`): Joint Venture, Hostile Buyout, Tag Team, second robot, Treacherous, threats and payoffs, spare or scrap deals, Hacker / Scope / Bookie's Friend information, upkeep debt, hand limit. They are one person's question, not a timed window for the whole table; some have checkboxes or long text; moving them is a look Kev has not asked for. `askSeat(..., { small: true })` would put one in the note (with a countdown) if he wants.
+- Other mid-turn questions stay as the big question box (`ivModal`): Joint Venture, Hostile Buyout, Tag Team, second robot, Treacherous, threats and payoffs, spare or scrap deals, Hacker / Scope / Bookie's Friend information, upkeep debt, hand limit. They are one person's question, not a timed window for the whole table; some have checkboxes or long text; moving them is a look Kev has not asked for. `askSeat(..., { small: true })` would put one in the note (with a countdown) if he wants. (T20, 17 Nov: these now go in the note too, see below.)
 - Test hooks: `ROBOCUS_DEBUG.RX`; tools/mp-scenario/reaction-note.js (solo, both screen sizes, screenshots), reaction.js and lib.js / clicker.js / cards.js find the window in the note (`#promptBar.rxmode [data-rk]`).
 
 ## Repairs in the note (T22, 17 Nov)
@@ -94,12 +94,85 @@ Kev, 17 Nov (round 2 Upkeep, one broken Body on Wrecker): "also add repair optio
 - Not changed: repair rules, costs, the zone buttons on the card, what is synced, the bots and AI teams.
 - Test: tools/mp-scenario/repair-note.js (solo, both screen sizes, screenshots), tools/mp-scenario/repair-note-online.js (a joined client presses the note buttons and the card zone).
 
+## Questions in the note (T20, 17 Nov)
+
+Kev, 17 Nov: "1 ok so window can end early", "2 let it happen", "3 move into note yes"; from the playtest: "this joint venture should
+also be in the yellow box with a timer", and "wonder why I suddenly ended up with snapjaw in my garage" (an AI offer opened as a
+popup where his pointer was, right after End turn, and his next click landed on Accept).
+
+- The reaction window's "Pass" reads **Let it happen** (the value behind it is the same; a player with no card still gets OK, so the window can end early).
+- A question to one player (`askSeat` without `small`, and the Stash's "On which robot?") is drawn in the YOUR MOVE note: `askBox()` →
+  `noteAsk()` (RX.q) when `noteFits()`, else the old box (`ivModal(..., game=true)`). In the note: its title and text, one button per
+  answer (✓ when clicked, ANSWER SENT), YOUR MOVE and the red flash when it lands. Same answers, same values, same order (one question
+  at a time per screen: `modalChain`), same host-side decisions, same messages online (a joined screen decides note or box from the same html).
+- `noteFits`: 1 to 6 answers (4+ two per row), no ticks or text fields, fewer than 3 lines of list (`<br>`) and at most 320 letters. Otherwise it
+  stays in the box over the pit, and the note says `YOUR MOVE · IN THE MIDDLE ←` "This question is open in the box in the middle of the
+  screen: answer it there." (and flashes). A deal panel gets the same pointer ("A deal panel is open in the middle of the screen").
+- Countdown: only the questions that had a time limit in the code (it was never shown or used since Kev's 6 Nov "no countdown bars"):
+  Joint Venture, Hostile Buyout, the Host step's Arena card. They count down **20 s** in the note (bar and seconds, as the reaction
+  window), then take their default: Joint Venture **Defect** (it was Commit: Commit loses your 2 Cr if the other side defects, and a
+  "yes" that can cost you is never the default), Hostile Buyout Refuse (−1 fame, the card's own price for saying no), Host step No.
+  Online the joined screen counts down and sends "no answer"; if that never arrives the host closes it 4 s later (its default). Every
+  other question waits for its answer, as before.
+- No answer by a click already on its way: a question's buttons (note or box) are inactive for 0.8 s after it appears (greyed, `.arming`),
+  and a button that opened under the mouse pointer stays inactive until the pointer has left it (`armBtns`, `PTR`). The test bot and the
+  AI answer through the code, not by a click.
+- AI offers say what you give and what you get: "Rust Rivets offers you its robot Snapjaw (...) for 2 Cr. You give 2 Cr, you get Snapjaw in
+  your garage."; a part: "you give 2 Cr, you get the part"; a Stash part they want: "you give the part, you get 3 Cr". Default on a closed
+  offer: refuse (unchanged).
+- Waiting list: while a question is open for you (note or box or deal panel), your row says YOUR MOVE with the question's title and the
+  heading is WAITING FOR n (the box now redraws the list when it opens; before T20 it could stay NOTHING TO DO). For a joined player the host
+  lists the open question's title, as before. A reaction window still shows no names.
+
+| Question | Where now | Why |
+|---|---|---|
+| Reaction window (cards, Security Bots, Let it happen / OK) | note (T2), 10 s | as T2; "Pass" now "Let it happen" |
+| 🤖🤖 Second robot? (double duel) | note | a few robots + Just one |
+| 🤝 Joint Venture | note, 20 s, default Defect | two answers; Kev asked for a timer |
+| 🏢 Hostile Buyout | note, 20 s, default Refuse | two answers |
+| 🤝 Tag Team Licence (pick ally) | note | up to 3 teams |
+| 🤝 Tag Team offer (Team up / Refuse) | note | two answers |
+| 🤝 … hesitates (sweeten the Tag Team) | box (deal panel) + pointer in the note | a deal panel: credits, parts, robots to put on the table |
+| 🔩 Fit … On which robot? (Stash card) | note | robots + Cancel |
+| 🧾 You can't pay your upkeep | note up to 6 robots; box + pointer with 7+ | one button per robot |
+| 🤝 Ask for backing | box + pointer | ticks (which teams, Board Seat) |
+| 🤝 Ask … for backing (offer) | box (deal panel) + pointer | a deal panel |
+| 🤝 Backing request (Accept / Refuse) | note | two answers |
+| 🤝 Offer from … (AI: part, robot, Stash part) | note | two answers; says what you give and get |
+| 🤝 Trade with … (your own trade) | box (deal panel) | you opened it yourself |
+| 🤝 Trade offer from … (Accept / Refuse) | note | two answers |
+| 💰 Paid Off (which team gets your 3 Cr) | note | up to 3 teams |
+| 🙅 Not My Robot (who is hit instead) | note | up to 3 teams |
+| 🏛️ Museum Donation | note up to 6 choices; box + pointer with more | one button per robot / ready crew member |
+| 💰 Over your hand limit | box + pointer | ticks (cards to cash in) |
+| 🔧 Botch it now? | note | two answers |
+| 💰 A threat (Pay / Refuse, or Accept / Refuse a demand) | note | two answers |
+| 💰 Payoff from … / Buy off … (demand or offer) | box (deal panel) + pointer | a deal panel |
+| 👑 Host … picks the fighters (Invite me / Leave me out / No deal) | note | three answers |
+| ✋ Ask to be invited / 🙈 left out (offer) | box (deal panel) + pointer | a deal panel |
+| 🏟️ Host step (play an Arena card?) | note, 20 s, default No; box + pointer with 3+ cards | card texts are long |
+| 💻 Hacker (what it saw) | note (OK) | one line |
+| 🔍 Bookie's Friend | note with 1-2 hidden cards; box + pointer with 3+ | a list to read |
+| 🔀 Swap the Entry? | note up to 5 swaps + No; box + pointer with more | one button per swap |
+| 🔀 Swap or payoff? | note | two answers |
+| 👑 Spare or scrap? | note | three answers |
+| 👍 Plead to spare / 👎 Push to scrap (offer) | box (deal panel) + pointer | a deal panel |
+| ✦ Treacherous, ✦ Scope | note (not asked in 2.0: robots have no quirks there) | two answers / one line |
+| 🐞 Report a problem, Add a note, Playtest log | box | playtest tools, not game questions (text field) |
+
+- Tests: tools/mp-scenario/questions-note.js (solo, 1600x900 and 1280x720: every moved question answered each way, closed, and Joint
+  Venture left to run out; countdowns; the waiting list; Bookie's Friend 1 and 4 cards; six answers with a long text; the robot offer:
+  Decline changes nothing, a click at once or under the pointer does nothing, Accept after the pointer moved buys the robot);
+  tools/mp-scenario/questions-remote.js (a joined player: second robot both ways, Hostile Buyout both ways, Joint Venture countdown and
+  closed by the host = Defect, its own waiting list says YOUR MOVE). Screenshots in /home/claude/t20-shots (not in the repo).
+
 ## Tested
 
 All 9 fixed checks pass on 3a606e0's file except that the last small addition (button in the waiting list) was re-checked with waiting.js, reaction.js and a click on the new button only; 8 mouse-driven games without findings over the two steps.
 
 ## Open
 
+- Questions from T20 (17 Nov): Joint Venture without an answer counts as Defect now (was Commit): right? 20 s for Joint Venture, Hostile Buyout and the Host step: right length, and should other questions that hold up the table (threats, Tag Team offer, backing requests) get one too? Should the reaction window's buttons also wait 0.8 s / for the pointer to leave? The wording "YOUR MOVE · IN THE MIDDLE ←" for a question that stays in the box? Bookie's Friend: a box from 3 hidden cards on, or always the note?
 - Questions from T22 (17 Nov): the order of the repair buttons (broken first, then worst damage)? Broken zones red like the card, credits in pink? Done at the top right of the note (beside the text) or at the bottom? The wording "exhausts 2 Mechanics" / "can't pay: 4 Cr (you have 1)"?
 - Questions from T9 (16 Nov): bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
 - Questions from T2 (17 Nov): wording "YOUR MOVE · ANSWER?" / "REACTION WINDOW" / "ANSWER SENT" and "Pass" (or "Let it happen")? Should a player with no card have to click at all (today: an OK that ends the window early once everyone has clicked, as before T2)?
