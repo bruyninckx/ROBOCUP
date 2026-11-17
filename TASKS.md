@@ -12,6 +12,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K28. Questions in the note** (T20): 20 s for Joint Venture, Hostile Buyout and the host's Arena card: right? Should
+  threats, Tag Team offers and backing requests get a timer too? Should the reaction window's buttons also wait 0.8 s?
 - **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
   and Security Bots are exhausted. Fix the text or the rule?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
@@ -78,6 +80,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
+  open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
 - **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
   weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
@@ -110,17 +114,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T29. Teams start with 10 Cr.** Kev (17 Nov): "10" (to: start with 10 credits instead of 8, to make up for what
   sponsors now cost). `BAL.startCredits` 8 → 10, texts and docs. Worker on branch `claude/start-10`, started 17 Nov. Done
   when: round-1 Market spend and game length measured against 8 Cr on the same seeds, game-sim and `mp-test` pass.
-- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (Handed back 20:30 at `916b6f7`;
-  SENT BACK: merged with T21 and T25 its `questions-note.js` fails (the sponsor auction changed the dice, so the test
-  games deal other robots) and its "deal panel is open" note hides T25's fate status line. Rebase and fix.) Kev (17 Nov): "let it happen";
-  "move into note yes" (to: other popup questions such as the second robot in a double duel, Joint Venture, Hostile
-  Buyout). Goal: every question the game asks one player mid-turn shows in the note with its answers as buttons, the same
-  way the reaction window does since T2; popups stay only where the note cannot hold the question (say which). Files:
-  `prototypes/tabletop-2.html` (`askSeat`, `smallAsk`, `RX`). Worker on branch `claude/questions-in-note`, started 17 Nov.
-  Done when: screenshots of each moved question in the note at both window sizes, scripted answers work solo and from a
-  joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
 ## Done
 
+- **T20. Questions and offers in the note; timers; no accidental yes** (17 Nov): the reaction button reads "Let it
+  happen"; second robot, Joint Venture, Hostile Buyout, Tag Team, Stash fit, backing requests, AI and player trade offers,
+  threats, spare-or-scrap and more are asked in the note with the red flash; offers say what you give and get; answer
+  buttons ignore clicks for 0.8 s and while the pointer was already on them; a yes that costs credits or changes the
+  garage is never the default; Joint Venture, Hostile Buyout and the host's Arena card count down 20 s (Defect, Refuse,
+  No); the waiting list shows YOUR MOVE for any open question. Tick-box and deal-panel questions stay boxes with the
+  note pointing at them. Sent back once (broke with T21 and T25 merged), fixed. Branch `claude/questions-in-note`, commit
+  `abddac4`. BUILD `2026-11-17g`, files stamp `d318237d`; game-sim 2/2; `questions-note.js`, `resting.js`,
+  `repair-note.js`, `reaction.js`, `waiting.js` OK; online test 0 desyncs (12 fights).
 - **T21. Sponsors are bid for** (17 Nov): all 6 sponsors on the table; sealed bids, a change after locking unlocks, tie
   rebid, a random draw if still tied, a free sponsor for a team that wins none; the draft shows who signed what for how
   much. The "flip": with 4 people the dealt hands overlapped, and when another player signed a sponsor you also held, your
