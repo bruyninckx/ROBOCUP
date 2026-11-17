@@ -802,7 +802,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Cards at 0 copies are cut (kept here so old saves and logs still read). The 6 live cards and Swap the Entry
    * are not in the Intrigue deck any more: they are the Auction deck (16 cards), 2 offered in every fight's Bets step.
    * ============================================================================ */
-  const IV_DATA = [["We Have Your Number", "S", 2, 1, 3, "Put a bounty on a rival robot with 3+ Fan tokens: whoever beats it in a fight gets +1 fame (then the mark is gone).", "Sabotage"], ["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot sits out its next fight and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a huge house robot with a giant hammer joins in. It rarely lands a hit, but when it does it hurts. Robots keep away from it.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Floor Spikes", "R", 0, 1, 2, "Live: spikes at a spot for 4 s; they hurt robots on them and pop tyres.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: nitro on your fighter for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: your fighter: clear jams, stalls and fire; +18 HP to its chassis and worst part.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live: an oil spill at a spot; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live: an EMP at a spot: 0.9 s stun, 5 damage and drones off for every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction (it also stops an Override).", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"], ["Public Disgrace", "S", 15, 2, 1, "Target −3 fame. Gate 15: you will need backing.", "Smear"], ["Corporate Raid", "S", 14, 2, 1, "Target loses up to 8 Cr, split evenly between you and every team that backed it (the rest to you).", "Corporate"], ["Override", "R", 2, 2, 2, "Right after any block: cancel the block, the scheme goes through. Any team but the target. Only Firewall stops it.", "Leverage"], ["Call the Hammer", "R", 0, 1, 2, "Live: the ceiling hammer slams a spot after a 1.1 s warning.", "Match-fixing"], ["Floor Launcher", "R", 0, 1, 2, "Live: a launch pad pops up at a spot and throws robots.", "Match-fixing"], ["Supply Drop", "R", 0, 1, 2, "Live: drop a crate (nitro, overcharge, repair or shield) at a spot.", "Match-fixing"], ["Chip Hack", "R", 0, 1, 2, "Live: a robot glitches; much worse if its top plate is off.", "Match-fixing"], ["Rattle Loose", "R", 0, 1, 2, "Live: a robot's top plate rattles loose (down to 30%).", "Match-fixing"], ["Hype Surge", "R", 0, 1, 2, "Live: your fighter rages for 6 s.", "Match-fixing"], ["Electromagnet", "R", 0, 1, 2, "Live: pulls robots and scrap to a spot for 2 s.", "Match-fixing"], ["Smoke Bomb", "R", 0, 1, 2, "Live: smoke at a spot; robots inside are hidden.", "Match-fixing"]];
+  const IV_DATA = [["We Have Your Number", "S", 2, 1, 3, "Put a bounty on a rival robot with 3+ Fan tokens: whoever beats it in a fight gets +1 fame (then the mark is gone).", "Sabotage"], ["Overtime Shift", "S", 0, 0, 4, "Target team gains 1 credit per ready crew member.", "Contracts"], ["Smash and Grab", "S", 0, 0, 3, "Take up to 3 credits from a target team.", "Contracts"], ["Crunch Week", "S", 1, 0, 2, "Exhaust any of your robots, crew and Security Bots: 1 credit each.", "Contracts"], ["Scrapyard Salvage", "S", 4, 1, 3, "Gain 3 credits.", "Contracts"], ["Headhunter Fee", "S", 4, 1, 2, "Discard one of your ready crew: gain twice its credit value.", "Contracts"], ["Consulting Gig", "S", 6, 1, 3, "Target team gains 2 credits per ready crew member.", "Contracts"], ["Industry Insider", "S", 6, 2, 2, "Target team draws 2 Intrigue cards.", "Contracts"], ["Scrap Deal", "S", 7, 1, 3, "Gain 5 credits.", "Contracts"], ["Joint Venture", "S", 12, 2, 1, "You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes.", "Contracts"], ["Fire Sale", "R", 1, 1, 0, "Any time: sell your robots, crew or parts to the bank at value +1 each.", "Contracts"], ["Fan Meet", "S", 0, 2, 3, "+1 fame to a target team with 2+ ready robots.", "Publicity"], ["Roadshow", "S", 0, 2, 1, "+2 fame to a target team with 3+ ready robots.", "Publicity"], ["Public Demo", "S", 0, 2, 2, "Pay 3 credits: +1 fame to a target team with 1+ ready robot.", "Publicity"], ["Launch Party", "S", 0, 2, 1, "Pay every other team 2 credits: +1 fame to target.", "Publicity"], ["Team-Building Day", "S", 1, 2, 2, "Target may exhaust 2 of its crew for +1 fame.", "Publicity"], ["Underdog Story", "S", 2, 1, 1, "+2 fame to the team with the least fame (not on a tie).", "Publicity"], ["Press Tour", "S", 4, 2, 2, "Target may exhaust 3 robots, crew or Security Bots for +1 fame.", "Publicity"], ["Museum Donation", "S", 4, 1, 2, "Target may discard a robot or crew member for +1 fame.", "Publicity"], ["Celebrity Endorsement", "S", 6, 2, 2, "+1 fame to target.", "Publicity"], ["Hype Reel", "S", 8, 1, 2, "Give a target robot a Fan token. 3 tokens = Fan Favourite.", "Publicity"], ["Prime-Time Interview", "S", 11, 2, 2, "+1 fame to target.", "Publicity"], ["Viral Moment", "S", 12, 1, 2, "+1 fame to target.", "Publicity"], ["Co-Branding Deal", "S", 12, 2, 2, "+1 fame to two teams.", "Publicity"], ["Blaze of Glory", "R", 0, 2, 0, "After a robot is scrapped: +1 fame to its owner.", "Publicity"], ["Grand Melee", "R", 5, 2, 1, "Event: the host must run a free-for-all or team fight; if it happens, host +1 fame.", "Publicity"], ["Bribe Scandal", "S", 0, 1, 3, "Pay a target team 3 credits; target −1 fame.", "Smear"], ["Inside Leak", "S", 4, 2, 2, "Discard one of your ready crew (they leak and leave): target −1 fame.", "Smear"], ["Paparazzi", "S", 4, 2, 2, "Target −1 fame; pay another team 3 credits.", "Smear"], ["Robot Rights Protest", "S", 4, 2, 0, "You −2 fame, every other team −1. Only Firewall can block it.", "Smear"], ["Rival Sponsor", "S", 9, 2, 1, "Target −1 fame, another team +1.", "Smear"], ["Smear Campaign", "S", 10, 2, 1, "Target −2 fame.", "Smear"], ["Rigged Ratings", "S", 18, 2, 0, "Target −2 fame; two teams of your choice +1.", "Smear"], ["Skeleton Crew", "R", 3, 1, 0, "−1 fame to a team with no ready crew.", "Smear"], ["Leaked Footage", "R", 3, 1, 0, "−1 fame to a team with no ready robots.", "Smear"], ["Kick When Down", "R", 3, 1, 2, "−1 fame to a rival with 0 credits, no ready robots or no ready crew.", "Smear"], ["Bankrupt!", "R", 3, 1, 0, "−1 fame to a team with 0 credits.", "Smear"], ["Pile-On", "R", "▲", 2, 0, "When the target loses fame this round, they lose 1 more.", "Smear"], ["Poached Mechanic", "S", 0, 1, 3, "Target discards a ready crew member.", "Sabotage"], ["Security Override", "S", 0, 1, 2, "Pay 1 credit per Security Bot asset the target has: exhaust them all. Security Bots can't block it.", "Sabotage"], ["EMP the Garage", "S", 1, 1, 2, "Target's modules and helpers are offline in its next fight.", "Sabotage"], ["Sugar in the Tank", "F", 2, 1, 3, "On a rival robot: its drive motors start its next fight at 60%.", "Sabotage"], ["Smudged Lens", "F", 2, 1, 3, "On a rival robot: −15% weapon damage in its next fight.", "Sabotage"], ["Loose Bolts", "S", 3, 2, 3, "A target robot's top plate is left loose (lasting Body damage until repaired).", "Sabotage"], ["Rogue Firmware", "S", 5, 1, 2, "A target robot misses this round's fight and the next one, and its chassis takes lasting damage.", "Sabotage"], ["Tax Audit", "S", 6, 1, 2, "Target pays the bank 5 credits (or everything it has).", "Sabotage"], ["Coolant Leak", "S", 10, 2, 2, "Exhaust 1–2 robots of the target team.", "Sabotage"], ["Asset Strip", "R", "▲", 1, 2, "Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it.", "Corporate"], ["Hostile Buyout", "R", "▲", 2, 1, "Target sells you a robot or crew member at 2× its value, or loses 1 fame.", "Corporate"], ["Shill Bidder", "R", "▲", 1, 2, "After sealed bids are revealed: the target's bid counts 2 lower.", "Corporate"], ["Botched Install", "R", 3, 1, 2, "When a rival wins a Market part: the install fails and the part goes back to the deck. They get half their bid back; you take 1 Cr salvage.", "Sabotage"], ["Secret Upgrade", "F", 2, 1, 3, "On your robot: +20% weapon damage and +20% HP in its next fight.", "Match-fixing"], ["Overclock", "F", 3, 1, 2, "On your robot: hot-wound motors next fight; afterwards its Drive is damaged.", "Match-fixing"], ["Unleash the House Robot", "S", 5, 2, 1, "Host only: a huge house robot with a giant hammer joins in. It rarely lands a hit, but when it does it hurts. Robots keep away from it.", "Match-fixing"], ["Swap the Entry", "R", 0, 2, 2, "After bets are placed: change which robot an invited team sends.", "Match-fixing"], ["Hedge Bet", "R", 1, 1, 0, "Bet up to 4 credits on this fight, even against your own robot.", "Match-fixing"], ["Bookie's Friend", "R", 4, 2, 0, "Before bets close: look at every face-down card in this fight.", "Match-fixing"], ["Mirror", "R", 3, 2, 1, "Host only, event: each team picks one robot; it fights as 2–3 copies.", "Match-fixing"], ["Grand Final", "S", 10, 2, 2, "Event: next fight is 2v2, the two fame leaders vs the other two. Double fame.", "Match-fixing"], ["Tag Team Licence", "S", 4, 2, 2, "Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame.", "Match-fixing"], ["Floor Spikes", "R", 0, 1, 2, "Live: spikes at a spot for 4 s; they hurt robots on them and pop tyres.", "Match-fixing"], ["Pilot Waypoint", "R", 0, 1, 3, "Live: send your fighter to one spot in the arena.", "Match-fixing"], ["Target Overclock", "R", 3, 1, 2, "Live: nitro on your fighter for 3.5 s.", "Match-fixing"], ["Field Engineer", "R", 1, 1, 3, "Live: your fighter: clear jams, stalls and fire; +18 HP to its chassis and worst part.", "Match-fixing"], ["Oil Canister", "R", 0, 1, 2, "Live: an oil spill at a spot; robots slide and spin.", "Match-fixing"], ["EMP Grenade", "R", 2, 1, 2, "Live: an EMP at a spot: 0.9 s stun, 5 damage and drones off for every robot it catches.", "Match-fixing"], ["Security Bot", "G", 0, 2, 18, "Discard and roll 4–6 to block a scheme. Or install it as a garage asset.", "Security"], ["Paid Off", "R", 2, 3, 2, "Pay another team 3 credits: block a scheme.", "Security"], ["Fall Guy", "R", 2, 3, 2, "Discard one of your ready crew: block a scheme.", "Security"], ["Firewall", "R", 4, 4, 1, "Block any scheme or reaction (it also stops an Override).", "Security"], ["Backup Restore", "R", 4, 3, 0, "Take Firewall back from the discard pile.", "Security"], ["PR Spin", "R", 6, 3, 2, "Block a scheme.", "Security"], ["Not My Robot", "R", 6, 2, 1, "When targeted: pick a new target, or the player loses 1 fame if it still lands.", "Security"], ["Sponsor's Lawyers", "R", 8, 3, 1, "Block a scheme and take a Security Bot back from the discard pile.", "Security"], ["Under the Radar", "R", "▼", 2, 2, "Block a scheme played by a team with more fame than you.", "Security"], ["Overreach", "R", "▲", 2, 2, "Block a scheme played by a team with less fame than you.", "Security"], ["Board Seat", "R", 5, 2, 0, "Target team must back a scheme of your choice with all its fame.", "Leverage"], ["Public Disgrace", "S", 15, 2, 1, "Target −3 fame. Gate 15: you will need backing.", "Smear"], ["Corporate Raid", "S", 14, 2, 1, "Target loses up to 8 Cr, split evenly between you and every team that backed it (the rest to you).", "Corporate"], ["Override", "R", 2, 2, 2, "Right after any block: cancel the block, the scheme goes through. Any team but the target. Only Firewall stops it.", "Leverage"], ["Call the Hammer", "R", 0, 1, 2, "Live: the ceiling hammer slams a spot after a 1.1 s warning.", "Match-fixing"], ["Floor Launcher", "R", 0, 1, 2, "Live: a launch pad pops up at a spot and throws robots.", "Match-fixing"], ["Supply Drop", "R", 0, 1, 2, "Live: drop a crate (nitro, overcharge, repair or shield) at a spot.", "Match-fixing"], ["Chip Hack", "R", 0, 1, 2, "Live: a robot glitches; much worse if its top plate is off.", "Match-fixing"], ["Rattle Loose", "R", 0, 1, 2, "Live: a robot's top plate rattles loose (down to 30%).", "Match-fixing"], ["Hype Surge", "R", 0, 1, 2, "Live: your fighter rages for 6 s.", "Match-fixing"], ["Electromagnet", "R", 0, 1, 2, "Live: pulls robots and scrap to a spot for 2 s.", "Match-fixing"], ["Smoke Bomb", "R", 0, 1, 2, "Live: smoke at a spot; robots inside are hidden.", "Match-fixing"]];
   const LIVE_KEYS = { 'Floor Spikes': 'spikes', 'Pilot Waypoint': 'waypoint', 'Target Overclock': 'overclock', 'Field Engineer': 'field_eng', 'Oil Canister': 'oil_card', 'EMP Grenade': 'emp_card',
     'Call the Hammer': 'hammer', 'Floor Launcher': 'launcher', 'Supply Drop': 'supply', 'Chip Hack': 'chiphack', 'Rattle Loose': 'rattle', 'Hype Surge': 'hype', 'Electromagnet': 'magnet', 'Smoke Bomb': 'smoke' };
   // 2.0: card id -> engine command type (DamageLab.LIVE); 1.0 ids kept (oil_card, emp_card) so old logs read
@@ -1046,7 +1046,32 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // Kev, 7 Nov: make exhausted crew, Security Bots and robots obvious (they are back in the next Upkeep)
   const exCrew = t => Math.min(t.crew.length, t.exMechs || 0);
   const secTxt = t => '🤖' + secReady(t) + ((t.exSec || 0) > 0 ? '/' + (t.secBots || 0) + ' 😴' : '');
-  const EXH_HELP = '<b>😴 Exhausted</b>: used up this round by a card (Crunch Week, Press Tour, Team-Building Day, Coolant Leak, Rogue Firmware…), by fighting, or (crew) by repairing. Exhausted robots can\'t fight; exhausted crew don\'t count for cards that need ready crew (and Mechanics still earn); exhausted Security Bots can\'t roll. Everything is ready again in the next Upkeep (Rogue Firmware: the robot sits out one more fight).';
+  const EXH_HELP = '<b>😴 Exhausted</b>: used up this round by a card (Crunch Week, Press Tour, Team-Building Day, Coolant Leak, Rogue Firmware…), by fighting, or (crew) by repairing. Exhausted robots can\'t fight; exhausted crew don\'t count for cards that need ready crew (and Mechanics still earn); exhausted Security Bots can\'t roll. Everything is ready again in the next Upkeep, except a robot hit by Rogue Firmware: it also misses next round\'s fight (the banner on the card says in which round it is back).';
+  /* T25 (Kev, 17 Nov: "it seems like my robot wrecker is permanently resting"): why a robot rests and when it is back.
+   * r.exWhy = 'fight' or the card that took it out, r.exBy = the team that played it, r.exRound = the round it happened.
+   * Set with the exhausted flag (exhaustBot); saved and sent online with the rest of the robot. The round it is back is
+   * worked out from sitOut (the Upkeep step readies it once sitOut is used up). */
+  const exBack = r => G.round + 1 + (r.sitOut > 0 ? r.sitOut : 0);   // the round whose Upkeep readies it
+  function exhaustBot(r, why, by) {
+    if (!r.exhausted || !r.exWhy) { r.exWhy = why; r.exBy = by == null ? null : by; r.exRound = G.round; }   // already out: keep the first cause (it lasts at least as long)
+    r.exhausted = true;
+  }
+  const EX_OUT = new Set(['Rogue Firmware', 'Coolant Leak']);   // a rival's card took it out: OUT (resting after a fight or a buyout: RESTING)
+  const rdFights = (a, b) => a >= b ? 'round ' + a + '\'s fight' : b === a + 1 ? 'round ' + a + '\'s and round ' + b + '\'s fights' : 'the fights of rounds ' + a + '–' + b;
+  function exInfo(r) {
+    const back = exBack(r), why = r.exWhy || null, by = why && r.exBy != null && G.teams[r.exBy] ? G.teams[r.exBy] : null;
+    const out = EX_OUT.has(why), r0 = r.exRound || G.round;
+    const cause = why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought (Hostile Buyout)' : why ? why + (by ? ' (' + by.name + ')' : '') : 'used up this round';
+    const ret = !out && back === G.round + 1 ? 'ready next Upkeep' : 'back in round ' + back;
+    let help;
+    if (why === 'fight') help = esc(r.name) + ' fought in round ' + r0 + '. A robot rests after a fight: it is ready again by itself in round ' + back + '\'s Upkeep.';
+    else if (out) help = (by ? '<b>' + esc(by.name) + '</b>' : 'A rival') + ' played <b>' + esc(why) + '</b> on it in round ' + r0 + '\'s Intrigue: it misses ' + rdFights(r0, back - 1) + '. It is ready again by itself in round ' + back + '\'s Upkeep: nothing to do.' + (why === 'Rogue Firmware' ? ' (The card also damaged its ⛨ Body; repairs still work while it rests.)' : '');
+    else if (why === 'Hostile Buyout') help = esc(r.name) + ' changed teams with Hostile Buyout in round ' + r0 + ' and rests for the round: ready again in round ' + back + '\'s Upkeep.';
+    else help = esc(r.name) + ' is used up this round: ready again in round ' + back + '\'s Upkeep.';
+    return { back, out, cause, tag: out ? '😴 OUT' : '😴 RESTING', line: (out ? '😴 OUT' : '😴 RESTING') + ' · ' + cause + ' · ' + ret,
+      short: (out ? '😴 OUT' : '😴 RESTING') + ' · back rd ' + back, small2: why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought' : why ? why + (by ? ' · ' + by.name.split(' ')[0] : '') : 'used up this round',
+      until: out || back > G.round + 1 ? 'out until round ' + back : 'resting until next Upkeep', help };
+  }
   const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>' + repairRulesTxt();
   function crewLot(k) {
     const id = 'crew:' + k + ':' + (++crewLotSeq);
@@ -1801,7 +1826,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const bits = [];
     if (r.wins) bits.push('<b>🎖</b> = Fan tokens, one per win (each: +2 Cr appearance money).');
     if (r.wins >= favWins(t)) bits.push('<b>[FAV]</b> Fan Favourite: +' + BAL.fame.fanFav + ' fame while it stays on your team, and 6 Cr appearance money.');
-    if (r.exhausted) bits.push('<b>😴</b> exhausted: can\'t fight this round.');
+    if (r.exhausted) bits.push('<b>😴</b> ' + esc(exInfo(r).line.replace(/^😴 /, '')) + '. ' + exInfo(r).help);
     if (r.faceDown && r.faceDown.length) bits.push('<b>🂠×' + r.faceDown.length + '</b> face-down cards on it: hidden until its next fight.');
     return [esc(r.name) + ' (' + starsOf(r.level) + ')', (bits.join('<br>') || 'No wins yet.') + '<br>' + favWins(t) + ' wins make a Fan Favourite: +' + BAL.fame.fanFav + ' fame while it stays on your team.<br>' + LEVEL_HELP];
   }
@@ -2135,11 +2160,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const ev = G.fight && G.fight.format !== 'duel' && G.fight.format !== 'mirror';
         pb.innerHTML = '<span>⚔️ <b>' + (ev ? esc(fightTitle(G.fight)) + ': you\'re in!' : 'Invited to Fight!') + '</b> Pick the robot you send to the pit (here or on its card, left).' + (G.fight && G.fight.format === 'mirror' ? ' Your robot fights as 2 copies.' : '') + (G.fight && G.fight.arena && G.fight.arena !== 'open' ? ' Arena: ' + arenaRef(G.fight.arena) + ' (' + esc(ARENA_INFO[G.fight.arena].text) + ')' : '') + '</span>' +
           // T9: one green button per robot, the same click as the SEND … TO THE PIT button on its card (exhausted: shown, greyed)
-          t.robots.map(r => pickBtn('send', r.id, '▶ ' + r.name, r.exhausted ? '😴 exhausted' : dmgHint(r), { cls: 'go' + (!r.exhausted && R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' warn' : ''), off: r.exhausted, tip: r.exhausted ? r.name + ' is exhausted and can\'t fight this round.' : 'Send ' + r.name + ' to the pit. Damage: ' + zoneTxt(r) })).join('') +
+          t.robots.map(r => pickBtn('send', r.id, '▶ ' + r.name, r.exhausted ? exInfo(r).short : dmgHint(r), { cls: 'go' + (!r.exhausted && R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' warn' : ''), off: r.exhausted, tip: r.exhausted ? r.name + ' can\'t fight this round: ' + exInfo(r).line.replace(/^😴 /, '') + '.' : 'Send ' + r.name + ' to the pit. Damage: ' + zoneTxt(r) })).join('') +
           (ev ? '' : '<button class="act secondary" id="pAct1">Decline (−1 Fame)</button>');
         pb.querySelectorAll('[data-send]').forEach(b => { b.onclick = () => {
           const bot = t.robots.find(r => String(r.id) === b.dataset.send); if (!bot || !PS().choose) return;
-          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
+          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> can\'t fight this round: ' + esc(exInfo(bot).line.replace(/^😴 /, '')) + '.', '#b45309'); return; }
           pickNow('send', bot.id, bot.name + ' sent', () => act('sendBot', bot.id));   // T15: ✓ painted first, then the send (the bookie starts)
         }; });
         if (!ev) $('#pAct1').onclick = () => { if (!pickWaiting()) act('decline'); };
@@ -2187,9 +2212,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         $('#pAct1').onclick = () => act('fate', false);
         $('#pAct2').onclick = () => act('fate', true);
       } else if (G.fateBusy) {
-        pb.innerHTML = '<span>👑 <b>Spare or scrap:</b> offers are going to the host…</span>';
+        pb.innerHTML = '<span>👑 <b>Spare or scrap:</b> offers are going to the host…' + myFateTxt() + '</span>';
       } else if (G.awaitingJudgment) {
-        pb.innerHTML = '<span>👑 <b>Host ' + esc(seatName(G.host)) + '</b> decides: spare or scrap…</span>';
+        pb.innerHTML = '<span>👑 <b>Host ' + esc(seatName(G.host)) + '</b> decides: spare or scrap…' + myFateTxt() + '</span>';
       } else if (G.crateChoices && G.crateChoices.items && G.crateChoices.team === HS) {
         pb.innerHTML = '<span>📦 <b>Scrap Crate:</b> your robot lost. Click ' + (G.crateChoices.keep - G.crateChoices.picked.length) + ' of the 3 salvage items on the arena floor to keep.</span>';
       } else if (G.crateChoices && G.crateChoices.items) {
@@ -2543,7 +2568,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     setCameraGoal('compound');
     for (const t of G.teams) {
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
-      for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; }
+      for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; if (!r.exhausted) { delete r.exWhy; delete r.exBy; delete r.exRound; } }
+      // T25: a robot still out says so in its owner's log, with the cause and the round it is back (nothing to do)
+      for (const r of t.robots) if (r.exhausted && isHuman(t.i)) { const xi = exInfo(r); say(t.i, '😴 <b>' + esc(r.name) + '</b> is still out (' + esc(xi.cause) + '): it misses this round\'s fight too and is back by itself in round ' + xi.back + '. Nothing to do' + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' (you can still repair its damage)' : '') + '.', t.col); }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
         const bots = hasCrew(t, 'accountant') || BAL.robotUpkeep === 'first' ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
@@ -3579,7 +3606,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const sell = isHuman(T.i)
       ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
       : T.robots.length >= 3 || T.fame <= 2;
-    if (sell) { r.exhausted = true; robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
+    if (sell) { exhaustBot(r, 'Hostile Buyout', F.i); robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
   }
   // Tag Team Licence: pick an ally; it may refuse for −1 fame
@@ -3672,9 +3699,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         notify('🂠 ' + nm(F) + ' puts a face-down card on a robot of ' + nm(X) + '.', F.col); break;
       }
       case 'Loose Bolts': if (BAL.cards.boltsMode === 'wheel') { const r = pickReady(T), lb = r && baseInfo(r).wheels[0]; if (r && lb) { r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts[lb] = Math.min(r.wear.parts[lb] != null ? r.wear.parts[lb] : 1, BAL.cards.boltsWheel); r.loose = { part: lb, by: F.i }; say('🔧 Loose Bolts: ' + esc(r.name) + '\'s ' + esc(lb.toLowerCase()) + ' is left loose (⚙ Drive damage until repaired).'); } break; } else { const r = pickReady(T); if (r) { r.wear = Object.assign(r.wear ? clone(r.wear) : emptyWear(), { lid: Math.min(r.wear && r.wear.lid != null ? r.wear.lid : 1, BAL.cards.boltsLid) }); r.loose = { part: 'lid', by: F.i }; say('🔧 Loose Bolts: ' + esc(r.name) + '\'s top plate is left loose (⛨ Body damage until repaired).'); } break; }
-      case 'Rogue Firmware': { const r = pickReady(T); if (r) { r.exhausted = true; r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 Rogue Firmware: ' + esc(r.name) + ' sits out its next fight and its chassis is damaged (⛨ Body).'); } break; }
+      case 'Rogue Firmware': { const r = pickReady(T); if (r) { exhaustBot(r, 'Rogue Firmware', F.i); r.sitOut = 1; r.wear = r.wear ? clone(r.wear) : emptyWear(); r.wear.parts = r.wear.parts || {}; r.wear.parts.Chassis = Math.min(r.wear.parts.Chassis != null ? r.wear.parts.Chassis : 1, 0.4); say('🔧 ' + nm(F) + ' played Rogue Firmware: <b>' + esc(r.name) + '</b> (' + nm(T) + ') misses this round\'s fight and next round\'s; back in round ' + exBack(r) + '. Its chassis is damaged (⛨ Body).'); } break; }
       case 'Tax Audit': { const p = payCr(T, 5, 'card'); say('🔧 Tax Audit: ' + nm(T) + ' pays ' + p + ' Cr to the bank.'); break; }
-      case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { r.exhausted = true; }); say('🔧 Coolant Leak: ' + rs.length + ' of ' + nm(T) + '\'s robots are exhausted this round.'); break; }
+      case 'Coolant Leak': { const rs = readyRobots(T).sort((a, b) => power(b) - power(a)).slice(0, 2); rs.forEach(r => { exhaustBot(r, 'Coolant Leak', F.i); }); say('🔧 ' + nm(F) + ' played Coolant Leak: ' + (rs.length ? nm(T) + '\'s ' + rs.map(r => '<b>' + esc(r.name) + '</b>').join(' and ') + (rs.length > 1 ? ' miss' : ' misses') + ' this round\'s fight; back in round ' + (G.round + 1) + '.' : nm(T) + ' has no ready robot: nothing happens.')); break; }
       case 'Asset Strip': { const k = Math.min(3, secReady(T), Math.floor(F.credits / 3)); T.secBots -= k; F.secBots = (F.secBots || 0) + k; addCr(T, payCr(F, 3 * k, 'card'), 'card'); say('🏢 Asset Strip: ' + nm(F) + ' buys ' + k + ' Security Bot' + (k === 1 ? '' : 's') + ' from ' + nm(T) + '.'); break; }
       case 'Hostile Buyout': await hostileBuyout(F, T); break;
       case 'Corporate Raid': {   // the take is split evenly between the player and every backer; the remainder goes to the player
@@ -5434,7 +5461,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.sendBot = (S, rid) => {
     const F = G.fight, bot = myBot(S, rid);
     if (G.phase !== 'arena' || !F || !PS(S).choose || !bot) return;
-    if (bot.exhausted) { say(S, '😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
+    if (bot.exhausted) { say(S, '😴 <b>' + esc(bot.name) + '</b> can\'t fight this round: ' + esc(exInfo(bot).line.replace(/^😴 /, '')) + '.', '#b45309'); return; }
     const e = F.teams.indexOf(S); if (e < 0) return;
     F.robots[e] = bot; PS(S).choose = false;
     notify('🤖 ' + nm(G.teams[S]) + ' sends <b>' + esc(bot.name) + '</b>.', G.teams[S].col);
@@ -6258,7 +6285,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const ti of F.teams) { G.teams[ti].tamper = {}; G.teams[ti].schemeLog = []; }
     F.robots.forEach(r => {
       if (!r) return;
-      r.tamper = {}; r.faceDown = []; r.exhausted = true;
+      r.tamper = {}; r.faceDown = []; exhaustBot(r, 'fight', null);
     });
 
     F.robots.forEach(r => { if (r) r.lastFight = G.round; });
@@ -6336,6 +6363,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     F.fateN = F.fateQueue.length; F.fateI = 1;
     F.loser = F.fateQueue.shift();
     if (F.fateN > 1) notify('👑 The host now decides spare or scrap for each losing robot, first knocked out first: ' + order.map(x => esc(F.robots[x.e].name) + ' (' + esc(G.teams[x.ti].name.split(' ')[0]) + ')').join(', ') + '.', G.teams[G.host].col);
+    // T25 (Kev, 17 Nov: "I think I only was able to spare angler, not wrecker?"): each owner sees, before any offer, what can happen to each of its losing robots
+    [...new Set(order.map(x => x.ti))].forEach(ti => { if (isHuman(ti)) say(ti, '👑 Your losing robots: ' + order.filter(x => x.ti === ti).map(x => fateStatus(G.teams[ti], F.robots[x.e])).join(' · ') + '.', G.teams[ti].col); });
 
     // 2.0: every losing team gets a free repair action next Upkeep (Vulture Salvage: 2), after the spare/scrap decisions
     F.crateQueue = [...new Set(losers.map(x => x.ti))].map(ti => ({ team: ti }));
@@ -6346,6 +6375,39 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     fateStep();
   }
 
+  // T25: my robots still waiting for the host's decision (the one on the line now, then the queue), for the note
+  function myFateTxt() {
+    const F = G.fight; if (!F || !F.loser) return '';
+    const q = [F.loser].concat(F.fateQueue || []).filter(x => x && x.team === HS && x.robot);
+    return q.length ? '<br>' + q.map((x, k) => (k === 0 && F.loser.team === HS ? '▶ ' : '') + fateStatus(G.teams[HS], x.robot)).join(' · ') : '';
+  }
+  // T25: one robot's fate status for its owner (the same rule as fateStep's canScrap)
+  function fateStatus(T, r) {
+    const n = '<b>' + esc(r.name) + '</b>: ';
+    if (G.host === T.i) return n + 'safe (the host\'s own robot)';
+    if (r.wins >= favWins(T)) return n + 'safe (Fan Favourite, can\'t be scrapped)';
+    return n + 'the host decides; you can offer credits to spare it';
+  }
+  /* T25: after the host decides, why, in plain words, for the owner and every player who made an offer: the offers on both
+   * sides (public: the "Offers to the host" line) and which the host took. An AI host (fateStep) leans to scrap or not, then
+   * scraps when 2 (lean) + scrap offers − spare offers − 1 (no lean) > 0, offers counted at bundleWorth: so against a lean,
+   * spare offers must be worth 2 Cr more than the scrap offers; without one, scrap offers must be worth 2 Cr more. */
+  function fateWhyTxt(v, T, robot, scrap, fo, why) {
+    const H = G.teams[G.host], side = scrap ? 'scrap' : 'spare', other = scrap ? 'spare' : 'scrap';
+    const list = arr => arr.map(o => (o.team === v ? 'your' : '<b>' + esc(G.teams[o.team].name) + '</b>\'s') + ' ' + bundleText(o.B)).join(' and ');
+    const took = fo[side] || [], left = fo[other] || [];
+    let s = (scrap ? '👎 Why ' : '👍 Why ') + esc(robot.name) + (scrap ? ' was scrapped: ' : ' was spared: ');
+    if (took.length && left.length) s += 'the host took ' + list(took) + ' to ' + side + ' over ' + list(left) + ' to ' + other + '.';
+    else if (took.length) s += 'the host took ' + list(took) + ' to ' + side + '.';
+    else if (left.length) s += 'the host turned down ' + list(left) + ' to ' + other + ' (an offer is only paid if the host picks its side).';
+    else s += 'nobody made an offer.';
+    if (why && why.ai) {
+      const W = x => Math.ceil(x - 1e-9);
+      s += ' ' + nm(H) + ' (AI) ' + (why.lean ? 'leaned to scrap' + (why.reason ? ' (' + why.reason + ')' : '') + ': against that, spare offers must be worth 2 Cr more than the scrap offers' : 'did not lean to scrap this time: then scrap offers must be worth 2 Cr more than the spare offers') + '.';
+      if (scrap) s += ' ' + (why.lean ? W(why.vScrap + 2) : Math.max(0, W(why.vScrap - 1))) + ' Cr to spare in all would have saved it.';
+    } else if (why) s += ' The host is a player: it picks a side and gets only that side\'s offers.';
+    return s;
+  }
   // Spare or scrap, with deals (Kev, 6 Nov): the loser's team pleads, rivals push to scrap; the host takes the offers of the side it picks
   async function fateStep() {
     if (!G.fight.loser) { nextCrate(); return; }   // no losing robot (safety net)
@@ -6385,11 +6447,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const base = canScrap && (aiV2(H, 'fate') ? (L.fame >= H.fame - aiP(H).scrapThreat || L.i === lead) && rnd() < 0.85 : (L.i === lead ? rnd() < 0.7 : rnd() < 0.3));
     const v = side => F.fateOffers[side].reduce((a, o) => a + bundleWorth(H, o.B), 0);
     const score = (base ? 2 : 0) + v('scrap') - v('spare') - (base ? 0 : 1);
-    resolveFate(canScrap && score > 0);
+    // T25: why (for fateWhyTxt; no rnd, nothing stored)
+    const reason = !base ? '' : aiV2(H, 'fate') ? (L.i === lead ? nm(L) + ' leads in fame' : nm(L) + ' has ' + L.fame + ' fame, ' + (L.fame >= H.fame ? 'at or above' : 'close to') + ' its ' + H.fame) : (L.i === lead ? nm(L) + ' leads in fame' : 'by chance');
+    resolveFate(canScrap && score > 0, null, { ai: true, lean: !!base, reason, vScrap: v('scrap'), vSpare: v('spare') });
   }
 
-  ACT.fate = (S, scrap) => { if (G.phase === 'after' && G.awaitingJudgment && G.host === S) resolveFate(!!scrap); };
-  function resolveFate(scrap, safeWhy) {
+  ACT.fate = (S, scrap) => { if (G.phase === 'after' && G.awaitingJudgment && G.host === S) resolveFate(!!scrap, null, { ai: false }); };
+  function resolveFate(scrap, safeWhy, why) {
     if (!G.fight || !G.fight.loser) { G.awaitingJudgment = false; return; }   // already settled (a late second call)
     G.awaitingJudgment = false;
     const { team, robot } = G.fight.loser, T = G.teams[team];
@@ -6406,6 +6470,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       notify('🛡️ <b>' + esc(robot.name) + '</b> (' + nm(T) + ') is safe: ' + safeWhy + '.', '#2a9d3a');
     } else {
       notify('👍 Host spared <b>' + esc(robot.name) + '</b>.', '#2a9d3a');
+    }
+    if (why) {   // T25: why, to the owner and to every player who made an offer (only what the offers line already showed, plus the AI host's rule)
+      const fo = G.fight.fateOffers || { spare: [], scrap: [] };
+      const who = new Set([team].concat(fo.spare.map(o => o.team), fo.scrap.map(o => o.team)));
+      who.forEach(v => { if (isHuman(v) && v !== G.host) say(v, fateWhyTxt(v, T, robot, scrap, fo, why), scrap ? '#d62828' : '#2a9d3a'); });
     }
     if (checkWin()) return;
     const F = G.fight;
@@ -7858,15 +7927,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     } else if (G.phase === 'arena' && PS().choose) {
       const sw = pickWaiting('send'), sent = sw && sw.v === String(r.id);   // T15: just clicked: ✓ on this one, the others greyed and not clickable
       btn(sent ? '#1F5C35' : r.exhausted || sw ? DASH : '#2F7D4A', null, sent ? '#9BE0B0' : null); ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-      fitText(ctx, sent ? '✓ ' + r.name.toUpperCase() + ' SENT' : r.exhausted ? r.name + ' is exhausted' : 'SEND ' + r.name.toUpperCase() + ' TO THE PIT' + (wrecked(r) ? ' (damaged!)' : ''), actX + actW / 2, actY + 13, actW - 10, '700', 11.5);
+      fitText(ctx, sent ? '✓ ' + r.name.toUpperCase() + ' SENT' : r.exhausted ? r.name + ': ' + exInfo(r).until : 'SEND ' + r.name.toUpperCase() + ' TO THE PIT' + (wrecked(r) ? ' (damaged!)' : ''), actX + actW / 2, actY + 13, actW - 10, '700', 11.5);
       if (!sw) hitRegions.push({ kind: 'bay_action', robot: r, x: actX, y: actY, w: actW, h: actH });
     } else {
-      const dmg = R2.ZONES.some(z => zonesOf(r)[z.key].damaged);
-      ctx.fillStyle = myUpkeep && dmg ? '#8A4A10' : MUTED; ctx.textAlign = 'center';
-      fitText(ctx, myUpkeep ? (dmg ? '🔧 Click a lit zone · ' + repairTxt(t) : '✓ No damage: nothing to repair') : dmg ? 'Damage: ' + zoneTxt(r) : '✓ No damage', actX + actW / 2, actY + 13, actW - 10, '600', 11);
-      help(actX, actY, actW, actH, '🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt());
+      const dmg = R2.ZONES.some(z => zonesOf(r)[z.key].damaged), xo = myUpkeep && r.exhausted ? exInfo(r) : null;
+      ctx.fillStyle = xo ? '#6B5A3A' : myUpkeep && dmg ? '#8A4A10' : MUTED; ctx.textAlign = 'center';
+      // T25: a robot still out in Upkeep is nothing to fix: it comes back by itself (its damage can still be repaired)
+      fitText(ctx, xo ? (dmg ? '😴 Back by itself in round ' + xo.back + ' · repairs still work' : '😴 Nothing to do: it comes back by itself in round ' + xo.back) : myUpkeep ? (dmg ? '🔧 Click a lit zone · ' + repairTxt(t) : '✓ No damage: nothing to repair') : dmg ? 'Damage: ' + zoneTxt(r) : '✓ No damage', actX + actW / 2, actY + 13, actW - 10, '600', 11);
+      help(actX, actY, actW, actH, xo ? '😴 ' + esc(r.name) + ': ' + esc(xo.until) : '🔧 Repairs', (xo ? xo.help + '<br><br>' : '') + ZONE_HELP() + '<br>' + repairRulesTxt());
     }
-    drawExhaustedOverlay(ctx, r, bx, by + 8, bw, bh - 8, false);
+    drawExhaustedOverlay(ctx, r, bx, by + 8, bw, bh - 8, false, myUpkeep ? 101 - 8 - 3 : 0);
     pickGlow(ctx, r, ti, bx - 3, by - 3, bw + 6, bh + 6);
   }
 
@@ -7885,16 +7955,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   // a washed-out card with a clear banner: this robot can't fight this round
-  function drawExhaustedOverlay(ctx, r, bx, by, bw, bh, small) {
+  function drawExhaustedOverlay(ctx, r, bx, by, bw, bh, small, washH) {
     if (!r || !r.exhausted) return;
+    const xi = exInfo(r), wh = washH || bh;   // washH: wash only the top (own robot in Upkeep: its zones stay clickable for repairs)
     ctx.save();
-    ctx.fillStyle = 'rgba(233,228,218,0.66)'; ctx.fillRect(bx + 1, by + 1, bw - 2, bh - 2);
-    const h = small ? 18 : 24, y = by + bh / 2 - h / 2;
+    ctx.fillStyle = 'rgba(233,228,218,0.66)'; ctx.fillRect(bx + 1, by + 1, bw - 2, wh - 2);
+    const h = small ? 26 : 24, y = by + wh / 2 - h / 2;
     ctx.fillStyle = 'rgba(43,33,24,0.92)'; ctx.fillRect(bx + 1, y, bw - 2, h);
     ctx.fillStyle = HAZ; ctx.textAlign = 'center';
-    fitText(ctx, '😴 RESTING · ' + (r.sitOut > 0 ? (small ? 'out next fight too' : 'sits out its next fight too') : small ? 'out this round' : "can't fight this round · ready next Upkeep"), bx + bw / 2, y + h / 2 + (small ? 4 : 4.5), bw - 12, '700', small ? 9.5 : 12, F_MONO);
+    if (small) {   // a rival's ticket: two short lines (OUT / RESTING and the round it is back; the cause)
+      fitText(ctx, xi.short, bx + bw / 2, y + 11, bw - 8, '700', 9.5, F_MONO);
+      ctx.fillStyle = '#F2E6C8'; fitText(ctx, xi.small2, bx + bw / 2, y + 22, bw - 8, '600', 8.5, F_MONO);
+    } else fitText(ctx, xi.line, bx + bw / 2, y + h / 2 + 4.5, bw - 12, '700', 12, F_MONO);
     ctx.restore();
-    help(bx, y, bw, h, '😴 ' + esc(r.name) + ' is exhausted', EXH_HELP);
+    help(bx, y, bw, h, '😴 ' + esc(r.name) + ': ' + esc(xi.until), xi.help + '<br><br>' + EXH_HELP);
   }
   // EMP the Garage (public: it is a played scheme): a strip along the bottom of the portrait of each robot that has a
   // module or helper drones to lose. Robots with neither get nothing (the card changes nothing for them).
@@ -8589,7 +8663,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2);
           act('install', bot.id);
         } else if (G.phase === 'arena' && PS().choose) {
-          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> is exhausted and can\'t fight this round.', '#b45309'); return; }
+          if (bot.exhausted) { notify('😴 <b>' + esc(bot.name) + '</b> can\'t fight this round: ' + esc(exInfo(bot).line.replace(/^😴 /, '')) + '.', '#b45309'); return; }
           pickNow('send', bot.id, bot.name + ' sent', () => act('sendBot', bot.id));   // T15: the same ✓ as the note's button, painted first
         } else continue;   // e.g. the host picking teams: a click on one of your robots picks your whole team (the rail below it)
         return;
