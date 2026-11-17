@@ -120,6 +120,10 @@ popup where his pointer was, right after End turn, and his next click landed on 
 - AI offers say what you give and what you get: "Rust Rivets offers you its robot Snapjaw (...) for 2 Cr. You give 2 Cr, you get Snapjaw in
   your garage."; a part: "you give 2 Cr, you get the part"; a Stash part they want: "you give the part, you get 3 Cr". Default on a closed
   offer: refuse (unchanged).
+- Fate step (T25): under a question in the note, or under the pointer at a deal panel ("Plead to spare Angler"), the note keeps T25's
+  status of your losing robots ("▶ Angler: the host decides; you can offer credits to spare it · Wrecker: safe (Fan Favourite, ...)").
+- Sponsor step (T21): its bids, lock and tie rebid are the note's own buttons, not questions: no 0.8 s wait, no pointer; the waiting list
+  says YOUR MOVE · sponsor bids.
 - Waiting list: while a question is open for you (note or box or deal panel), your row says YOUR MOVE with the question's title and the
   heading is WAITING FOR n (the box now redraws the list when it opens; before T20 it could stay NOTHING TO DO). For a joined player the host
   lists the open question's title, as before. A reaction window still shows no names.
