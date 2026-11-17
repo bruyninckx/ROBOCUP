@@ -3098,12 +3098,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * (the first click the host receives wins; nobody else's card is spent), when everyone has answered, or when the time is up.
    * Returns [{ seat, v }] in the order the answers came in (empty: nobody reacted). */
   const REACT_MS = () => BAL.reactMs != null ? BAL.reactMs : 10000;
-  async function reactionWindow(seats, title, html, optsOf) {
+  /* T27 (17 Nov): html may be a function of the seat (the text says YOU / YOUR to the team it is about), and passOf(seat) gives
+   * the Let it happen button its hint (what letting it happen does, to whom). Who holds what still never shows: a seat with
+   * nothing it may play gets the same text, "no card to play here" and the quiet OK, whatever its hand. */
+  async function reactionWindow(seats, title, html, optsOf, passOf) {
     if (!seats.length) return [];
     const ms = REACT_MS(), got = []; let first = null; const gotOne = new Promise(res => { first = res; });
     G.reacting = { title: ptPlain(title) }; updateHud();
-    const pend = seats.map(s => { const o = optsOf(s) || [];
-      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Let it happen', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
+    const pend = seats.map(s => { const o = optsOf(s) || [], h = typeof html === 'function' ? html(s) : html, pass = passOf ? passOf(s) : '';
+      return askSeat(s, title, h + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Let it happen' + (pass ? ' (' + pass + ')' : ''), secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
         .then(v => { if (v != null) { got.push({ seat: s, v }); first(); } }, () => {}); });
     let tm = null;
     await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
@@ -3598,7 +3601,51 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- defence: Security Bots (target only), then a reaction window for everyone ---------- */
+  /* T27 (Kev's playtest, 17 Nov: "wondering now, moss gear did not get -1 fame"): his own Firewall was offered to him against
+   * a rival's Override that was pushing HIS scheme through, and it kept his scheme blocked. The rule now, for people and AI:
+   * a reaction is only offered to (or played by) a team when it can be in that team's interest, judged by who the thing being
+   * answered helps and who it hurts:
+   *   - a block (or Not My Robot) of a scheme: never the player of the scheme, never a team the scheme only gives something to
+   *     (giftedBy: the target of Fan Meet, Industry Insider, ...; the second team of Co-Branding; the bottom team of Underdog Story);
+   *   - an Override of a block: never the target (the card's rule), never the team that made the block;
+   *   - a Firewall on an Override (the block stands): never the player of the scheme, never a team the scheme only gives something to.
+   * Everything else stays offered (stopping a scheme on an ally, denying a rival a gain), and every button says what it does. */
+  const GIFT_T = new Set(ANY_T.filter(n => !['Team-Building Day', 'Press Tour'].includes(n)));   // those two cost the target crew or bots: it may want to stop them
+  function giftedBy(F, c, T) {   // the teams a scheme only gives something to (fame, credits, cards): stopping it can only hurt them
+    const out = [];
+    if (T && T !== F && !c.harmful && GIFT_T.has(c.name)) out.push(T);
+    if (c.name === 'Co-Branding Deal' && T) { const o = lowestOther([T.i]); if (o && o !== F && !out.includes(o)) out.push(o); }
+    if (c.name === 'Underdog Story') { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame && s[0] !== F) out.push(s[0]); }
+    return out;
+  }
+  const mayStop = (q, F, c, T) => q !== F && !giftedBy(F, c, T).includes(q);   // may block the scheme, or keep a block on it (Firewall on an Override)
+  // the words in the window: the scheme ("Steel's Inside Leak", "YOUR Inside Leak"), a team ("Moss Gears", "YOU"), short names on buttons
+  const schNm = c => c.t === 'F' ? 'face-down card' : esc(c.name);
+  const shortNm = X => esc(X.name.split(' ')[0]);
+  const youOr = (X, s) => X.i === s ? '<b>YOU</b>' : nm(X);
+  const yourSch = (F, c, s) => (F.i === s ? '<b>YOUR</b> ' : nm(F) + '\'s ') + '<b>' + schNm(c) + '</b>';
+  const btnSch = (F, c, s) => (F.i === s ? 'your ' : shortNm(F) + '\'s ') + schNm(c);
+  // what the scheme does to this seat if it lands (one line), and the hint on Let it happen
+  function schemeStakes(F, c, T, s) {
+    const gift = giftedBy(F, c, T);
+    if (gift.length) return gift.some(x => x.i === s) ? 'It helps <b>you</b>.' : 'It helps ' + gift.map(nm).join(' and ') + '.';
+    if (c.harmful && T && T !== F) return T.i === s ? '<b>It hits you</b> unless it is stopped.' : 'It hits ' + nm(T) + ' unless someone stops it.';
+    if (c.name === 'Robot Rights Protest') return 'It hits every team but ' + nm(F) + ' unless someone stops it.';
+    return '';
+  }
+  function letHint(F, c, T, s) {
+    const gift = giftedBy(F, c, T);
+    if (gift.some(x => x.i === s)) return 'you get it';
+    if (c.harmful && T && T !== F) return T.i === s ? 'it hits you' : 'it hits ' + shortNm(T);
+    if (c.name === 'Robot Rights Protest') return 'it hits you';
+    return 'it lands';
+  }
+  const blockLab = (id, F, c) => { const n = CARDS[id].name, b = '🛡️ ' + esc(n) + ': block it (';
+    return n === 'Not My Robot' ? '🙅 Not My Robot: send it to another team (if it still lands, ' + shortNm(F) + ' loses 1 fame)'
+      : n === 'Paid Off' ? b + 'you pay another team 3 Cr)' : n === 'Fall Guy' ? b + 'you lose a ready crew member)'
+      : n === "Sponsor's Lawyers" ? b + 'and take a Security Bot back)' : b + shortNm(F) + '\'s ' + schNm(c) + ' fails)'; };
   function blockOptions(o, F, c, T) {
+    if (!mayStop(o, F, c, T)) return [];   // T27: never against your own interest
     return [...new Set(o.hand.filter(id => CARDS[id] && BLOCKERS.has(CARDS[id].name)))].filter(id => {
       const b = CARDS[id];
       if (c.name === 'Robot Rights Protest' && b.name !== 'Firewall') return false;
@@ -3612,6 +3659,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     });
   }
   function aiWantsBlock(o, F, c, T) {
+    if (!mayStop(o, F, c, T)) return false;   // T27: the AI never blocks its own scheme or a gift to itself (it did block a Fan Meet on itself)
     if (T && T.i === o.i && c.harmful) return rnd() < 0.85;
     if (c.name === 'Robot Rights Protest') return rnd() < 0.5;
     const helpsF = c.fam === 'Publicity' || c.name === 'Scrap Deal';
@@ -3656,7 +3704,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function aiBots(F, c, T) {   // an AI target: every bot it has, garage first. Returns { blocked, T } when a bot settled it, else null
     if (!canBots(F, c, T) || isHuman(T.i)) return null;
     while (secReady(T) + T.hand.filter(x => x === 'security_bot').length > 0) {
-      if (await rollBot(F, c, T, secReady(T) < 1)) return (await overrideStep(F, c, T, 'the Security Bot')) ? { blocked: false, T } : { blocked: true, T };
+      if (await rollBot(F, c, T, secReady(T) < 1)) return (await overrideStep(F, c, T, T, 'Security Bot')) ? { blocked: false, T } : { blocked: true, T };
     }
     return null;
   }
@@ -3669,15 +3717,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (T && s === T.i && canBots(F, c, T)) { const inst = secReady(q), need = hasCrew(q, 'secchief') ? 3 : 4;
           if (inst) o.push({ label: '🤖 Roll a Security Bot (' + inst + ' in your garage, blocks on ' + need + '–6)', value: () => 'bot:garage' });
           if (q.hand.includes('security_bot')) o.push({ label: '🤖 Discard a Security Bot from your hand and roll', value: () => 'bot:hand' }); }
-        return o.concat(blockOptions(q, F, c, T).map(id => ({ label: '🛡️ ' + esc(CARDS[id].name), value: () => id }))); };
+        return o.concat(blockOptions(q, F, c, T).map(id => ({ label: blockLab(id, F, c), value: () => id }))); };
       const seats = humanSeats().filter(s => s !== F.i && (multi || optsOf(s).length));
-      const got = await reactionWindow(seats, '⏱️ Reaction window', nm(F) + ' plays ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>'), optsOf);
+      const T0 = T, st = s => schemeStakes(F, c, T0, s);
+      const got = await reactionWindow(seats, '⏱️ Reaction window', s => nm(F) + ' plays ' + shown + (T0 && T0 !== F ? ' on ' + youOr(T0, s) : '') + (c.t === 'F' ? '' : ': <i>' + esc(c.text) + '</i>') + (st(s) ? '<br>' + st(s) : ''), optsOf, s => letHint(F, c, T0, s));
       let o = null, use = null;
       for (const a of got) { const q = G.teams[a.seat];   // the first answer that still holds
         if (a.v === 'bot:garage' || a.v === 'bot:hand') { if (T && q === T && canBots(F, c, T) && (a.v === 'bot:hand' ? q.hand.includes('security_bot') : secReady(q) > 0)) { o = q; use = a.v; break; } }
         else if (blockOptions(q, F, c, T).includes(a.v)) { o = q; use = a.v; break; } }
       if (use === 'bot:garage' || use === 'bot:hand') {
-        if (await rollBot(F, c, T, use === 'bot:hand')) return (await overrideStep(F, c, T, 'the Security Bot')) ? { blocked: false, T } : { blocked: true, T };
+        if (await rollBot(F, c, T, use === 'bot:hand')) return (await overrideStep(F, c, T, T, 'Security Bot')) ? { blocked: false, T } : { blocked: true, T };
         continue;   // not enough: a new window (another bot, a card, or let it through)
       }
       if (!use) for (const oi of seatOrder()) {   // nobody at the table reacted: the AI teams, in this round's seat order
@@ -3686,7 +3735,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
       if (!use) break;
       const r = await applyBlock(o, use, F, c, T);
-      if (r.blocked && await overrideStep(F, c, T, nm(o) + '\'s ' + cardRef(use))) return { blocked: false, T };
+      if (r.blocked && await overrideStep(F, c, T, o, cardRef(use))) return { blocked: false, T };
       if (r.blocked) return r;
       if (r.T === T) break;
       T = r.T;   // Not My Robot: the new target defends itself (an AI rolls its bots now, a person gets them in the next window)
@@ -3702,13 +3751,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const soleLeader = G.teams.every(x => x === T || x.fame < T.fame);
     return soleLeader || T.fame >= WIN_FAME - 2;   // help a scheme against a sole leader or a team about to win
   }
-  async function overrideStep(F, c, T, what) {
+  /* B: the team that made the block (the target for its Security Bot); what: the blocking card ('Security Bot' or a card link).
+   * T27: the blocker is not offered Override against its own block, the player of the scheme and a team it only gives
+   * something to are not offered Firewall against the Override; the texts and buttons say what each answer does, to whom. */
+  async function overrideStep(F, c, T, B, what) {
     const shown = c.t === 'F' ? 'a face-down card' : cardRef(c.id), multi = humanSeats().length > 1;
-    const can = q => !(T && q.i === T.i) && q.hand.includes('override') && q.fame >= (CARDS.override.need || 0);
+    const can = q => !(T && q.i === T.i) && q !== B && q.hand.includes('override') && q.fame >= (CARDS.override.need || 0);
+    const onT = s => T && T !== F ? ' on ' + youOr(T, s) : '';
+    const blk = s => (B && B.i === s ? '<b>Your</b> ' : B ? nm(B) + '\'s ' : 'The ') + what;
     let o = null;
     { const got = await reactionWindow(humanSeats().filter(s => !(T && s === T.i) && (multi || can(G.teams[s]))), '⛓️ Override?',
-        what + ' just blocked ' + nm(F) + '\'s ' + shown + (T && T !== F ? ' on ' + nm(T) : '') + '.<br><b>Override</b> cancels the block and the scheme goes through. Only Firewall can stop it.',
-        s => can(G.teams[s]) ? [{ label: '⛓️ Override', value: () => true }] : []);
+        s => blk(s) + ' just blocked ' + yourSch(F, c, s) + onT(s) + '.<br><b>Override</b> cancels the block: ' + (F.i === s ? 'your scheme goes through' : 'the scheme goes through') + '. Only Firewall can stop it.',
+        s => can(G.teams[s]) ? [{ label: '⛓️ Override: cancel the block (' + btnSch(F, c, s) + ' goes through)', value: () => true }] : [],
+        s => F.i === s ? 'your ' + schNm(c) + ' stays blocked' : 'the block stands');
       for (const a of got) if (can(G.teams[a.seat])) { o = G.teams[a.seat]; break; } }
     if (!o) for (const oi of seatOrder()) { const q = G.teams[oi]; if (!isHuman(oi) && can(q) && aiWantsOverride(q, F, c, T)) { o = q; break; } }
     if (!o) return false;
@@ -3716,15 +3771,18 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     await boardFx({ kind: 'react', ti: o.i, card: 'override', label: '⛓️ OVERRIDE' });
     const st = cst('override', o.i); cstBy('override', o.i, 'played'); st.played++;
     notify('⛓️ ' + nm(o) + ' plays ' + cardRef('override') + ': the block is cancelled!', o.col);
-    tlog('override', { by: o.i, scheme: c.id, player: F.i, target: T ? T.i : null, what: ptPlain(what) });
-    // only Firewall can stop an Override
-    const canFw = q => q !== o && q.hand.includes('firewall') && q.fame >= (CARDS.firewall.need || 0);
+    tlog('override', { by: o.i, scheme: c.id, player: F.i, target: T ? T.i : null, what: ptPlain((B ? B.name + '\'s ' : '') + what) });
+    // only Firewall can stop an Override (T27: never offered to the player of the scheme, nor to a team the scheme only helps)
+    const canFw = q => q !== o && mayStop(q, F, c, T) && q.hand.includes('firewall') && q.fame >= (CARDS.firewall.need || 0);
     let q = null;
-    { const got = await reactionWindow(humanSeats().filter(s => s !== o.i && (multi || canFw(G.teams[s]))), '🛡️ Firewall?',
-        nm(o) + ' played <b>Override</b> to push ' + nm(F) + '\'s ' + shown + ' through' + (T && T !== F ? ' on ' + nm(T) : '') + '.<br><b>Firewall</b> stops the Override: the block stands.',
-        s => canFw(G.teams[s]) ? [{ label: '🛡️ Firewall', value: () => true }] : []);
+    { const hits = s => c.harmful && T && T !== F && T.i === s;
+      const got = await reactionWindow(humanSeats().filter(s => s !== o.i && (multi || canFw(G.teams[s]))), '🛡️ Firewall?',
+        s => nm(o) + ' played <b>Override</b> on ' + (B && B.i === s ? '<b>your</b> block' : B ? nm(B) + '\'s block' : 'the block') + ' of ' + yourSch(F, c, s) + onT(s) + ': ' +
+          (F.i === s ? 'your scheme goes through' : hits(s) ? 'it hits you' : 'the scheme goes through') + ' unless someone stops the Override.<br><b>Firewall</b> stops the Override: the block stands.',
+        s => canFw(G.teams[s]) ? [{ label: '🛡️ Firewall: stop the Override (' + (B && B.i === s ? 'your' : B ? shortNm(B) + '\'s' : 'the') + ' block stands, ' + btnSch(F, c, s) + ' fails)', value: () => true }] : [],
+        s => F.i === s ? 'your ' + schNm(c) + ' goes through' : hits(s) ? 'the ' + schNm(c) + ' hits you' : btnSch(F, c, s) + ' goes through');
       for (const a of got) if (canFw(G.teams[a.seat])) { q = G.teams[a.seat]; break; } }
-    if (!q) for (const qi of seatOrder()) { const x = G.teams[qi]; if (!isHuman(qi) && canFw(x) && x !== F && aiWantsBlock(x, F, c, T)) { q = x; break; } }
+    if (!q) for (const qi of seatOrder()) { const x = G.teams[qi]; if (!isHuman(qi) && canFw(x) && aiWantsBlock(x, F, c, T)) { q = x; break; } }
     if (q) {
       removeFromHand(q, 'firewall'); discardCard('firewall');
       await boardFx({ kind: 'react', ti: q.i, card: 'firewall', label: '✋ STOPS THE OVERRIDE' });
@@ -3746,7 +3804,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let o = null;
     { const got = await reactionWindow(humanSeats().filter(s => s !== X.i && (multi || can(G.teams[s]))), '⏱️ Pile-On?',
         nm(X) + ' just lost fame.<br><b>Pile-On</b>: they lose 1 more. Only a team with more fame than ' + nm(X) + ' can play it.',
-        s => can(G.teams[s]) ? [{ label: '🗞️ Pile on', value: () => true }] : []);
+        s => can(G.teams[s]) ? [{ label: '🗞️ Pile on (' + shortNm(X) + ' loses 1 more fame)', value: () => true }] : []);
       for (const a of got) if (can(G.teams[a.seat])) { o = G.teams[a.seat]; break; } }
     if (!o) for (const oi of seatOrder()) { const q = G.teams[oi]; if (!isHuman(oi) && can(q) && X === leaderOf() && rnd() < 0.7) { o = q; break; } }
     if (o) { removeFromHand(o, 'pile_on'); discardCard('pile_on'); addFame(X, -1); notify('🗞️ ' + nm(o) + ' plays ' + cardRef('pile_on') + ': ' + nm(X) + ' loses 1 more fame.', o.col); }
