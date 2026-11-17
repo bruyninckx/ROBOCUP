@@ -1208,6 +1208,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function recheckGather() {
     if (!G || !G.gather || !gatherThen) return false;
     if (!humanSeats().every(s => G.gather.done[s])) { updateHud(); return false; }
+    if (G.gather.step === 'lots' && G.phase === 'market' && dealsOpen()) { updateHud(); return false; }   // T26: the last lock waits for an open deal
     const f = gatherThen; G.gather = null; gatherThen = null; f(); return true;
   }
   /* T16 (Kev, 16 Nov: "when people lock bids, people can still change their bids after that if there are other people not
@@ -1873,7 +1874,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     setup: 'Pick a sponsor and draft your level-0 starter robot.',
     upkeep: 'Robots and crew get ready, Mechanics earn credits, body parts heal to half, then repairs: click a damaged zone on a robot.',
     intrigue: 'Teams take turns playing schemes (fame gates, backing, reactions) or cashing cards in.',
-    market: 'Sealed bids on 4 lots (one per player), then a separate bid to host. Ties: rebid, less fame wins. A part you win goes on your best robot for it at once; the note has Undo (and Move) for 5 s.',
+    market: 'Trade and bid in one step: sealed bids on 4 lots (one per player), and trades and bank sales at the same time; a trade or a sale unlocks your bids. When everyone has locked, the lots go out, then a separate bid to host. Ties: rebid, less fame wins. A part you win goes on your best robot for it at once; the note has Undo (and Move) for 5 s.',
     arena: 'The host invites two teams; each sends a robot.',
     bets: 'Everyone bets on the fight at the bookie\'s odds.',
     fight: 'The physics fight, on its own full screen.',
@@ -2176,16 +2177,6 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
             : '<span>📦 <b>Auction Results:</b> lots are done. Next: a separate sealed bid for the right to host.</span><button class="act" id="pAct1">👑 Bid for Host →</button>';
           $('#pAct1').onclick = () => act('continueMarket');
         }
-      } else if (G.marketStage === 'open' && iWait('open')) {
-        pb.innerHTML = '<span>🤝 <b>Open market:</b> you are ready for the auction. ' + waitTxt('open') + ' You can still trade.</span>' +
-          G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '">🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('');
-        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
-      } else if (G.marketStage === 'open') {
-        pb.innerHTML = '<span>🤝 <b>Open market:</b> trade credits, 📦 Stash parts, robots, crew and Security Bots with other teams, or sell Stash parts to the bank at half value. The lots below come up next.' + (G.openBusy ? ' <i>Offers coming in…</i>' : '') + legendNote() + '</span>' +
-          G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('') +
-          '<button class="act" id="pAct1"' + (G.openBusy ? ' disabled' : '') + '>Start the auction →</button>';
-        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
-        $('#pAct1').onclick = () => act('startLots');
       } else if (G.marketStage === 'host' && iWait('hostbid')) {
         const hc = PS().hostCount || 1;
         pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
@@ -2198,13 +2189,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
         $('#pCount').onclick = () => act('hostCount');
         $('#pAct1').onclick = () => act('lockHost');
-      } else if (iWait('lots')) {
-        pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0) + ' Cr). ' + waitTxt('lots') + relockTxt('your bids on the lots') + '</span>';
-      } else {
-        const spent = (PS().bids || zeroBids()).slice(0, NLOTS).reduce((a, b) => a + b, 0);
-        pb.innerHTML = '<span>📦 <b>Sealed Bids:</b> Click the lots in the pit to bid (' + spent + '/' + t.credits + ' Cr). Ties trigger a Spartacus Rebid! Hosting is bid for separately afterwards.' + legendNote() + '</span>' +
-          '<button class="act" id="pAct1">Lock Bids →</button>';
-        $('#pAct1').onclick = () => act('lockBids');
+      } else if (G.marketStage === 'lots') {
+        /* T26: one step: sealed bids on the lots and the open market at the same time; it ends when everyone has locked.
+         * The 🤝 buttons open a trade with that team; the 📦 Stash card (left) sells parts to the bank. A trade or a sale
+         * unlocks you. Bids above your credits (after a trade) must come down before Lock works. */
+        const spent = lotBidSum(HS), over = spent > t.credits, mine = !!(G.mDeals && G.mDeals[HS]);
+        const tradeBtns = G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Credits, 📦 Stash parts, robots, crew and Security Bots, both ways. Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '. A trade that goes through unlocks both teams\' bids.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('');
+        const dealTxt = mine && !popOpen() ? ' <i>Your trade waits for an answer.</i>' : '';
+        if (iWait('lots')) {
+          pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + spent + ' Cr). ' + waitTxt('lots') + dealTxt + '<br><small>You can still change bids, trade or sell until everyone has locked. A change or a trade unlocks you; then lock again.</small></span>' + tradeBtns;
+        } else {
+          pb.innerHTML = '<span>📦 <b>Market: trade and bid.</b> Bid on the lots in secret (' + spent + '/' + t.credits + ' Cr); trade and sell while you bid. Lock when done.' +
+            (over ? ' <b style="color:#b91c1c">Your bids are more than your credits: lower them first.</b>' : '') + dealTxt + legendNote() + '</span>' + tradeBtns +
+            '<button class="act" id="pAct1"' + (over ? ' disabled' : '') + '>Lock Bids →</button>';
+          $('#pAct1').onclick = () => act('lockBids');
+        }
+        pb.querySelectorAll('[data-trade]').forEach(b => { b.onclick = () => act('trade', +b.dataset.trade); });
       }
     } else if (G.phase === 'arena') {
       if (G.hostStep) {
@@ -2831,7 +2831,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (ch) updateHud();
   }
   setInterval(() => { try { fitUndoTick(); } catch (e) { console.warn('fit undo', e); } }, 250);
-  ACT.sellStash = (S, k) => sellStash(G.teams[S], k);
+  ACT.sellStash = (S, k) => { const t = G.teams[S], n = stashOf(t).length; sellStash(t, k); if (stashOf(t).length < n) tradeUnlock(t, 'Your bank sale'); };   // T26: a sale while bidding unlocks you
   ACT.fitStash = (S, k, id, rid, twinKey) => {
     const t = G.teams[S], r = myBot(S, rid);
     const canFitNow = G.phase === 'upkeep' || (G.phase === 'market' && !G.marketAuction);
@@ -4574,7 +4574,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     G.nextMarket = dealMarket(G.round + 1); G.nextRound = G.round + 1;
     notify('🔭 <b>Next round\'s Market:</b> ' + G.nextMarket.map((id, k) => conveyorShown(k) ? lotRef(id) : '📦 a mystery crate').join(' · ') + '.', '#4A5560');
     for (let s = 0; s < 4; s++) { PS(s).bids = zeroBids(); PS(s).install = []; }
-    G.marketStage = 'open'; G.hostResolved = false;   // Kev, 6 Nov: open market first (trades), then the lots, then hosting as its own bid
+    // T26 (Kev, 17 Nov: "lets do the open auction during the betting, and when everybody locks bids, the open auction is done"):
+    // one step. The lots are biddable from the start and the open market is open at the same time (trades, bank sales, offers);
+    // it ends when every person has locked their bids. Then the lots, tie rebids, installs, and hosting as its own bid (6 Nov).
+    G.marketStage = 'lots'; G.hostResolved = false; G.mDeals = {};
+    notify('📦 <b>Market:</b> bid on the ' + NLOTS + ' lots in secret; trade and sell while you bid. When everyone has locked, the lots go out.', '#111');
     updateHud();
     openMarketAI();
   }
@@ -4612,11 +4616,56 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (G.l4Next) notify('⭐ <b>Next round\'s Market:</b> ' + esc(G.l4Next) + ' (level 4, ' + esc(wepLabel(G.l4Next)) + '). Save your credits!', '#7c3aed');
     }
   }
-  /* ---------- Market step 1: open market (Kev, 6 Nov) ----------
+  /* ---------- the open market (Kev, 6 Nov), while the bids are open (T26, 17 Nov) ----------
    * Teams trade credits and Stash parts, and may sell Stash parts to the bank at half value. AI teams sell parts they
-   * can't use to teams that can, and make you offers; you can propose a trade to any team (it accepts if it gains). */
+   * can't use to teams that can, and make you offers; you can propose a trade to any team (it accepts if it gains).
+   * T26: this runs at the same time as the sealed bids on the lots, and ends when every person has locked (mktOpen).
+   *  - A completed trade or a bank sale takes the lock off (Kev: "yes"), on both sides of a trade (tradeUnlock).
+   *  - A person's bids may never add up to more than their credits: Lock is refused until they fit (lockBids), and the
+   *    resolve trims anything left over (fitBids; only a skipped or dropped seat can get there).
+   *  - An open deal (a trade panel, or an offer waiting for its answer) holds the end of the step: the last lock waits for it
+   *    (G.mDeals, recheckGather). Nothing moves until both sides said yes, and then it moves at once on the host.
+   *  - AI teams make no new offers to a person who has locked. */
+  const mktOpen = () => !!G && G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved;
+  const lotsLocked = s => !!(G.gather && G.gather.key === 'lots:' + G.round && G.gather.done[s]);
+  const lotBidSum = s => ((G.ps && G.ps[s] && G.ps[s].bids) || zeroBids()).slice(0, NLOTS).reduce((a, x) => a + (x || 0), 0);
+  const bidsOver = s => lotBidSum(s) > G.teams[s].credits;
+  const dealsOpen = () => !!G.mDeals && Object.keys(G.mDeals).length > 0;
+  function dealIn(T, d) {   // count the open deals a person is part of (the end of the step waits for them)
+    if (!T || !isHuman(T.i)) return;
+    const D = G.mDeals || (G.mDeals = {}), n = Math.max(0, (D[T.i] || 0) + d);
+    if (n) D[T.i] = n; else delete D[T.i];
+    if (d < 0 && G.gather && G.gather.step === 'lots') recheckGather();
+  }
+  // a trade or a bank sale went through: a person who had locked is unlocked; bids above the credits now must come down first
+  function tradeUnlock(T, what) {
+    if (!T || !isHuman(T.i) || !mktOpen()) return;
+    const s = T.i;
+    if (lotsLocked(s)) { delete G.gather.done[s]; say(s, '🔓 ' + what + ' went through, so your bids are not locked any more. Check them and lock again.', '#b45309'); }
+    if (bidsOver(s)) say(s, '⚠️ Your bids add up to ' + lotBidSum(s) + ' Cr, but you have ' + T.credits + ' Cr now. Lower them before you lock.', '#b45309');
+  }
+  // bids above the credits (a skipped or dropped seat, or a safety net at the resolve): lowered from the last lot down
+  function fitBids(s) {
+    const t = G.teams[s], b = PS(s).bids; if (!b || !bidsOver(s)) return false;
+    let over = lotBidSum(s) - t.credits;
+    for (let k = NLOTS - 1; k >= 0 && over > 0; k--) { const cut = Math.min(b[k] || 0, over); b[k] -= cut; over -= cut; const mn = minBidOf(G.market[k]); if (mn && b[k] > 0 && b[k] < mn) b[k] = 0; }
+    say(s, '✂️ Your bids were more than your ' + t.credits + ' Cr, so they were lowered to fit.', '#b45309');
+    return true;
+  }
+  // both sides still hold what they put on the table (a trade waits for answers, so something may have moved meanwhile)
+  function bundleHeld(T, B) {
+    if (!B) return true;
+    if ((B.cr || 0) > T.credits || (B.sec || 0) > (T.secBots || 0)) return false;
+    const st = stashOf(T).slice();
+    for (const id of B.items || []) {
+      if (id.startsWith('R:')) { const x = robotById(id.slice(2)); if (!x || x.T !== T) return false; }
+      else if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); if (!x || x.T !== T) return false; }
+      else { const k = st.indexOf(id); if (k < 0) return false; st.splice(k, 1); }
+    }
+    return true;
+  }
   async function openMarketAI() {
-    G.openBusy = true; updateHud();
+    updateHud();
     for (const A of tieSort(G.teams)) {
       if (isHuman(A.i)) continue;
       for (const id of stashOf(A).slice()) {
@@ -4624,68 +4673,86 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const buyer = tieSort(G.teams).filter(B => B !== A && partGain(B, id) && B.credits >= partValue(id)).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
         if (!buyer) continue;
         const price = partValue(id);
+        if (!mktOpen()) break;
+        if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
         let yes;
-        if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i);
+        if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i); } finally { dealIn(buyer, -1); } }
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
         if (!yes) continue;
+        if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: [id] })) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: [id] });
         notify('🤝 ' + nm(buyer) + ' buys ' + lotRef(id) + ' from ' + nm(A) + ' for ' + price + ' Cr.', buyer.col);
+        tradeUnlock(buyer, 'Your trade with ' + esc(A.name));
         updateHud();
       }
     }
     // Kev, 6 Nov ("improve AI play"; AI teams never offered robots): a team with a spare robot sells its weakest to a
     // team that is down to one robot, when it is short of credits or has a full garage
     for (const A of tieSort(G.teams)) {
-      if (isHuman(A.i) || G.marketStage !== 'open' || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
+      if (isHuman(A.i) || !mktOpen() || A.robots.length < 2 || (A.robots.length < 3 && A.credits >= 5)) continue;
       const spare = A.robots.slice().sort((x, y) => power(x) - power(y))[0];
       const buyer = tieSort(G.teams).filter(Bt => Bt !== A && Bt.robots.length <= 1).sort((x, y) => y.credits - x.credits)[0];
       if (!buyer) continue;
       const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
       if (buyer.credits < price) continue;
+      if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
       let yes;
-      if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i);
+      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
+      if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: ['R:' + spare.id] }) || A.robots.length < 2 || buyer.robots.length >= 3) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
       transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
       notify('🤝 ' + nm(A) + ' sells its robot <b>' + esc(spare.name) + '</b> to ' + nm(buyer) + ' for ' + price + ' Cr.', A.col);
+      tradeUnlock(buyer, 'Your trade with ' + esc(A.name));
       updateHud();
     }
     // AI teams that can use a part in your Stash offer to buy it
     for (const P of G.teams.filter(T => isHuman(T.i))) for (const id of stashOf(P).slice()) {
-      if (G.marketStage !== 'open') break;
+      if (!mktOpen()) break;
       const A = G.teams.filter(T => !isHuman(T.i) && partGain(T, id) && T.credits >= partValue(id) + 1).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
       if (!A || rnd() < 0.4) continue;
+      if (!isHuman(P.i) || lotsLocked(P.i) || !stashOf(P).includes(id)) continue;   // T26: no new offers to a person who has locked (or left, or sold it meanwhile)
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
-      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i)) {
+      let yes; dealIn(P, 1);
+      try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i); } finally { dealIn(P, -1); }
+      if (yes) {
+        if (!mktOpen() || !bundleHeld(A, { cr: price }) || !bundleHeld(P, { items: [id] })) { say(P.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(A, P, { cr: price, items: [] }, 'trade'); transfer(P, A, { cr: 0, items: [id] });
         notify('🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
+        tradeUnlock(P, 'Your trade with ' + esc(A.name));
       }
     }
-    G.openBusy = false; updateHud();
+    updateHud();
   }
-  ACT.trade = (S, oi) => { if (G.phase === 'market' && G.marketStage === 'open' && oi !== S && G.teams[oi]) humanTrade(G.teams[oi], S); };
+  const closedTxt = '⌛ Too late: the Market bids are closed, so the trading is over for this round. Nothing changed hands.';
+  ACT.trade = (S, oi) => { if (!(oi !== S && G.teams[oi])) return; if (!mktOpen()) { if (G.phase === 'market' || G.phase === 'arena') say(S, closedTxt, '#b45309'); return; } humanTrade(G.teams[oi], S); };
   async function humanTrade(O, S = HS) {
     const Me = G.teams[S];
-    if (Me.trading) return; Me.trading = true;
+    if (Me.trading) return; Me.trading = true; dealIn(Me, 1);
     try {
-      const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + (isHuman(O.i) ? ' then accepts or refuses.' : ' accepts if it comes out ahead.') + ' Robots, crew and Security Bots only change hands here, in the open market.', from: O, want: true, assets: true, lock: 'Lock in trade' }, S);
+      const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + (isHuman(O.i) ? ' then accepts or refuses.' : ' accepts if it comes out ahead.') + ' Robots, crew and Security Bots only change hands here, in the Market while the bids are open. A trade that goes through unlocks your bids (and theirs).', from: O, want: true, assets: true, lock: 'Lock in trade' }, S);
       if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
+      if (!mktOpen()) { say(S, closedTxt, '#b45309'); return; }
       if (d.want.items.some(x => x.startsWith('R:')) && O.robots.length - d.want.items.filter(x => x.startsWith('R:')).length + d.give.items.filter(x => x.startsWith('R:')).length < 1) { say(S, '✋ ' + nm(O) + ' must keep a robot.', O.col); return; }
-      const yes = isHuman(O.i)
-        ? await dealAsk('🤝 Trade offer from ' + esc(Me.name), nm(Me) + ' offers <b>' + bundleText(d.give) + '</b> for your <b>' + bundleText(d.want) + '</b>.', O.i)
-        : bundleWorth(O, d.give) - bundleWorth(O, d.want) >= 1;
-      if (G.phase !== 'market' || G.marketStage !== 'open') { say(S, '⌛ Too late: the open market is closed.', '#b45309'); return; }
+      let yes;
+      if (isHuman(O.i)) { dealIn(O, 1); try { yes = await dealAsk('🤝 Trade offer from ' + esc(Me.name), nm(Me) + ' offers <b>' + bundleText(d.give) + '</b> for your <b>' + bundleText(d.want) + '</b>.' + (mktOpen() ? ' A yes unlocks your bids.' : ''), O.i); } finally { dealIn(O, -1); } }
+      else yes = bundleWorth(O, d.give) - bundleWorth(O, d.want) >= 1;
+      if (!mktOpen()) { say(S, closedTxt, '#b45309'); if (isHuman(O.i)) say(O.i, closedTxt, '#b45309'); return; }
+      if (yes && !(bundleHeld(Me, d.give) && bundleHeld(O, d.want))) {   // T26: atomic on the host: both sides must still hold it all, or nothing moves
+        const msg = '✋ The trade between ' + nm(Me) + ' and ' + nm(O) + ' fell through: something on the table changed hands meanwhile. Nothing moved.';
+        say(S, msg, '#b45309'); if (isHuman(O.i)) say(O.i, msg, '#b45309'); return;
+      }
       if (yes) {
         transfer(Me, O, d.give, 'trade'); transfer(O, Me, d.want, 'trade');
         notify('🤝 Trade: ' + nm(Me) + ' gives ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', Me.col);
+        tradeUnlock(Me, 'Your trade with ' + esc(O.name)); tradeUnlock(O, 'Your trade with ' + esc(Me.name));
       } else notify('✋ ' + nm(O) + ' turns down ' + nm(Me) + '\'s trade (' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
-    } finally { Me.trading = false; updateHud(); }
+    } finally { Me.trading = false; dealIn(Me, -1); updateHud(); }
   }
-  ACT.startLots = S => { if (G.phase === 'market' && G.marketStage === 'open' && !G.openBusy) gather(S, 'open', startLots); };
   ACT.bid = (S, k, kind) => {
     if (!(k >= 0 && k <= HOST_K)) return;
     const open = G.phase === 'market' && !G.marketAuction && !G.marketResolved && (k === HOST_K ? G.marketStage === 'host' : G.marketStage === 'lots');
-    if (!open) { if (G.phase !== 'market' || G.marketStage !== 'open') tooLate(S, k === HOST_K ? 'the host bid' : 'the bids on the lots'); return; }
+    if (!open) { if (!(k === HOST_K && G.phase === 'market' && G.marketStage === 'lots')) tooLate(S, k === HOST_K ? 'the host bid' : 'the bids on the lots'); return; }
     const P = PS(S), b = P.bids || (P.bids = zeroBids()), t = G.teams[S], was = b[k] || 0;
     const mn = k < NLOTS ? minBidOf(G.market[k]) : 0;   // level 4 lots: + jumps straight to the lowest winning bid, − below it goes to 0
     if (kind === 'minus') { b[k] = Math.max(0, (b[k] || 0) - 1); if (mn && b[k] < mn) b[k] = 0; }
@@ -4697,7 +4764,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     if ((b[k] || 0) !== was) unlockSeat(S, k === HOST_K ? 'hostbid' : 'lots');   // T16: a real change after locking takes the lock off
   };
-  ACT.lockBids = S => { if (G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved) gather(S, 'lots', () => resolveMarket()); };
+  ACT.lockBids = S => {
+    if (!mktOpen()) return;
+    if (bidsOver(S)) { say(S, '✋ Your bids add up to ' + lotBidSum(S) + ' Cr, but you have ' + G.teams[S].credits + ' Cr. Lower them, then lock.', '#b45309'); return; }   // T26
+    gather(S, 'lots', () => resolveMarket());
+  };
   ACT.hostCount = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) { PS(S).hostCount = (PS(S).hostCount || 1) === 2 ? 1 : 2; unlockSeat(S, 'hostbid'); } };
   ACT.lockHost = S => { if (G.phase === 'market' && G.marketStage === 'host' && !G.marketAuction && !G.marketResolved) gather(S, 'hostbid', () => resolveHostBid()); };
   // parts still waiting for a bay when a person continues go to the Stash (over the limit: the stash-trim prompt), never lost
@@ -4716,7 +4787,6 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.continueMarket = S => { if (G.phase === 'market' && G.marketResolved && !(PS(S).tradeIn || []).length) flushInstalls(S); if (G.phase === 'market' && G.marketResolved && !(PS(S).install || []).length && !(PS(S).tradeIn || []).length && !PS(S).stashTrim) gather(S, G.hostResolved ? 'mres2' : 'mres', continueMarket); };
   // this seat already locked the current simultaneous step
   const iDone = S => !!(G.gather && G.gather.done[S]);
-  function startLots() { if (G.openBusy) return; G.marketStage = 'lots'; notify('📦 <b>Auction:</b> sealed bids on the ' + NLOTS + ' lots.', '#111'); updateHud(); }
   function continueMarket() {
     for (let s = 0; s < 4; s++) if (G.ps && G.ps[s]) G.ps[s].fitUndo = [];   // T12: the Market moves on, auto-fits are final
     for (const h of humanSeats()) flushInstalls(h, true);  // safety net (a skipped seat, an AI takeover): nothing waits past the Market
@@ -5397,6 +5467,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function resolveMarket() {
     if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
+    for (const s of humanSeats()) fitBids(s);   // T26: a bid total may never be more than the credits (Lock refuses it; this is the safety net)
+    G.mDeals = {};
     const all = G.teams.map(t => isHuman(t.i) ? (PS(t.i).bids || zeroBids()).slice() : aiBids(t));
     G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
     all.forEach(b => { b[HOST_K] = 0; });
@@ -7176,6 +7248,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.awaitingJudgment && G.host === s) return 'spare/scrap';
     if (G.crateChoices && G.crateChoices.team === s) return 'crate';
     if (G.phase === 'arena' && G.host === s && G.pickTeams && !G.fight && !G.hostStep) return 'invites';
+    if (G.phase === 'market' && G.mDeals && G.mDeals[s] && mktOpen()) return 'trade';   // T26: an open deal holds the end of the bids
     const step = gatherStep();
     if (step && !(G.gather && G.gather.key === step[0] + ':' + G.round && G.gather.done[s])) return step[0];
     return null;
@@ -7185,7 +7258,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * second (src2/net.js: its open questions and deal panels, else seatBusyWith) and every screen shows it over the pit:
    * the others when you are done yourself, or "everyone is waiting for you" when you are the only one left. */
   const WAIT_WORDS = { sponsor: 'picking a sponsor', spbids: 'sponsor bids', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
-    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', open: 'open market',
+    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', trade: 'a trade',
     lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
   /* 2.0.1, fewer clicks (Kev, 15 Nov, after the Friday playtest: "too much clicking"). The host's page moves three kinds of
    * step on by itself:
@@ -7311,7 +7384,6 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.phase === 'upkeep' && !G.debtBusy) return ['upkeep', 'upkeepDone'];
     if (G.phase === 'market' && !G.marketAuction) {
       if (G.marketResolved) return [G.hostResolved ? 'mres2' : 'mres', 'continueMarket'];
-      if (G.marketStage === 'open' && !G.openBusy) return ['open', 'startLots'];
       if (G.marketStage === 'lots') return ['lots', 'lockBids'];
       if (G.marketStage === 'host') return ['hostbid', 'lockHost'];
     }
@@ -7339,6 +7411,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const opts = G.teams.filter(t => readyRobots(t).length).sort((a, b) => b.fame - a.fame).map(t => t.i);
       G.pickTeams = opts.slice(0, 2); if (G.pickTeams.length === 2) runAct(s, 'invite', []); return;
     }
+    if (mktOpen()) fitBids(s);   // T26: Skip locks the bids as they are, lowered to the credits if a trade left them too high
     const step = gatherStep(); if (step) runAct(s, step[1], []);
   }
   function seatToAI(s) {   // the host lets the AI play a seat whose person left
@@ -7389,7 +7462,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
     if (busy === 'crate') return act('crate', G.crateChoices.items.find(x => !G.crateChoices.picked.includes(x)));
     if (busy === 'invites') { const o = G.teams.filter(x => readyRobots(x).length).map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); const o2 = o.length ? o : G.teams.map(x => x.i).filter(i => !(G.pickTeams || []).includes(i)); if ((G.pickTeams || []).length < 2 && o2.length) return act('pickTeam', o2[Math.floor(R() * o2.length)]); return act('invite'); }
-    if (busy === 'lots' && botDid !== bk) { botDid = bk; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); return; }
+    if (busy === 'trade') return;   // T26: its own deal is open (it answers questions in the note, and says No deal in a panel)
+    if (busy === 'lots' && botDid !== bk) { botDid = bk; for (let k = 0; k < NLOTS; k++) if (R() < 0.35) act('bid', k, 'plus'); if (stashOf(t).length && R() < 0.25) act('sellStash', 0); return; }   // T26: sometimes sells a Stash part while bidding
+    if (busy === 'lots' && bidsOver(HS)) { const b = P.bids || [], k = [...Array(NLOTS).keys()].reverse().find(j => b[j] > 0); if (k != null) act('bid', k, 'minus'); return; }   // T26: a trade left the bids too high: one − a tick
     if (busy === 'hostbid' && botDid !== bk) { botDid = bk; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
     if (busy === 'bets' && botDid !== bk && G.fight) { botDid = bk; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); if (G.fight.auction && R() < 0.6) { const k = R() < 0.5 ? 0 : 1, n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('cardBid', k, 1); } return; }
     const step = gatherStep(); if (step) act(step[1]);
@@ -7452,7 +7527,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
   // T31 test hooks: the question clocks (tools/mp-scenario/questions-note.js, questions-remote.js)
@@ -8702,7 +8777,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - 230, y + h + 8, 460, 22, INK, 1.5);
       ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'Credits left: ' + hb, L.ax, y + h + 23, 440, '600', 10, F_MONO);
       help(L.ax - 230, y + h + 8, 460, 22, 'Credits left', 'What every team has left after the lots: that is all they can bid for hosting.');
-    } else pitHead(G.marketStage === 'open' ? '3 · MARKET · OPEN MARKET' : '3 · MARKET · SEALED BIDS', G.marketStage === 'open' ? 'TRADE FIRST · THESE LOTS COME UP NEXT' : 'NOBODY SEES YOUR BIDS UNTIL ALL LOCK');
+    } else pitHead('3 · MARKET · TRADE AND BID', 'SEALED BIDS · TRADE AND SELL WHILE YOU BID');
 
     if (G.marketStage !== 'host' && G.nextMarket && G.nextRound === G.round + 1) drawConveyor(ctx, L.ax, y + h + 22, Math.min(L.aw - 16, Math.max(totalW, 620)));
     items.forEach((it, j) => {
@@ -8753,10 +8828,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         }
       }
       const btnY = yb + 122;
-      if (G.marketStage === 'open') {   // preview: bidding opens after the open market
-        ctx.fillStyle = 'rgba(43,33,24,0.08)'; rrect(ctx, x + 8, btnY - 2, w - 16, 32, 4); ctx.fill();
-        ctx.fillStyle = MUTED; ctx.textAlign = 'center'; fitText(ctx, '🔒 bids open after the open market', x + w / 2, btnY + 18, w - 22, '600', 10);
-      } else {
+      {
         drawStepper(ctx, x + 12, btnY, w - 24, bid + ' Cr', bid > 0 ? '#2F6DB5' : INK);
         // the tile goes first: clicks are matched last-pushed-first, so − and + must sit on top (Kev, 6 Nov: − added a credit)
         hitRegions.push({ kind: 'market_tile', idx: k, x, y, w, h });
