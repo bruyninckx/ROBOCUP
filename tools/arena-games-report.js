@@ -1,6 +1,7 @@
 // Whole games before / after an arena change (T19, 17 Nov 2026): game length paired by seed, fame per round, arena picks,
 // the host on its own arena, upsets, the bookie on arena fights. Reads sims/<tag>.json from tools/game-sim.js (2.0 page).
 //   node tools/arena-games-report.js t19-before t19-after
+//   node tools/arena-games-report.js before+before-b after+after-b   ('+' merges runs; a later run's game replaces a stalled one of the same seed)
 // The first tag is the baseline; the paired lines compare every other tag with it, seed by seed (same seeds = same start).
 // The ARENA_FIT table is read from the page each run used (the "page" field in the json), so each run is judged by its own table.
 const fs = require('fs'), path = require('path');
@@ -15,7 +16,9 @@ const se = (k, n) => n ? Math.sqrt(Math.max(k, 0.5) / n * (1 - Math.min(k, n - 0
 const share = (k, n) => n ? pc(k / n) + ' ±' + Math.round(100 * se(k, n)) + ' (' + n + ')' : '- (0)';
 
 function load(tag) {
-  const D = JSON.parse(fs.readFileSync(path.join('sims', tag + '.json')));
+  const parts = tag.split('+').map(t => JSON.parse(fs.readFileSync(path.join('sims', t + '.json')))), by = {};
+  for (const P of parts) for (const r of P.res) { const old = by[r.seed]; if (old && old.over && !old.stall && !old.crash) continue; by[r.seed] = r; }
+  const D = Object.assign({}, parts[0], { res: Object.values(by).sort((a, b) => a.seed - b.seed) });
   let fit = {};
   try { const html = fs.readFileSync(path.resolve(D.page), 'utf8'), m = html.match(/const ARENA_FIT = (\{.*?\});/); if (m) fit = JSON.parse(m[1]); } catch (e) { console.warn(tag + ': no ARENA_FIT (' + e.message + ')'); }
   const g = D.res.filter(r => r.over && !r.stall && !r.crash && r.v2);
@@ -117,3 +120,15 @@ row('market spend / game', runs.map(R => f1(mean(R.g.map(r => r.marketCr.reduce(
 row('bets staked / game', runs.map(R => f1(mean(R.g.map(r => r.betCr || 0)))));
 row('robots bought / game', runs.map(R => f2(mean(R.g.map(r => r.v2.lots.filter(l => l.kind === 'robot' && l.winner != null && l.winner >= 0).length)))));
 row('host scraps / game', runs.map(R => f2(mean(R.g.map(r => r.v2.hostScrap || 0)))));
+
+// ---- 8. the host's arena pick, judged with the robots that actually fought ----
+console.log('\n8. Host duels on a picked arena: actual wins vs the bookie with and without the arena fit (p without ~ sigm(logit p - fit edge))');
+row('', runs.map(R => R.tag));
+const lg = p => Math.log(p / (1 - p)), sg = x => 1 / (1 + Math.exp(-x));
+const hostArena = R => FX(R).filter(f => isDuel(f) && decided(f) && hostIn(f) && f.arena !== 'open').map(f => { const h = f.x2.find(e => e && e.team === f.host), o = f.x2.find(e => e && e !== h), p = Math.max(0.03, Math.min(0.97, f.p[h.side])), ed = af(R.fit, h.name, f.arena) - af(R.fit, o.name, f.arena); return { w: f.win === h.side ? 1 : 0, p, p0: sg(lg(p) - ed), ed }; });
+row('host wins / bookie / bookie without arena', runs.map(R => { const a = hostArena(R); return pc(mean(a.map(x => x.w))) + ' ±' + Math.round(100 * se(a.filter(x => x.w).length, a.length)) + ' / ' + pc(mean(a.map(x => x.p))) + ' / ' + pc(mean(a.map(x => x.p0))) + ' (' + a.length + ')'; }));
+const ARS = ['saws', 'killbox', 'cage', 'ice'];
+const edgeOf = (R, f, a) => { const h = f.x2.find(e => e && e.team === f.host), o = f.x2.find(e => e && e !== h); return af(R.fit, h.name, a) - af(R.fit, o.name, a); };
+row('picked arena helps the robots sent (edge > 0)', runs.map(R => { const a = FX(R).filter(f => isDuel(f) && hostIn(f) && f.arena !== 'open'); return share(a.filter(f => edgeOf(R, f, f.arena) > 0).length, a.length); }));
+row('open-floor host duels with an arena edge > 0.15', runs.map(R => { const a = FX(R).filter(f => isDuel(f) && hostIn(f) && f.arena === 'open'); return share(a.filter(f => ARS.some(k => edgeOf(R, f, k) > 0.15)).length, a.length); }));
+row('  of those, host held < 4 Cr at the fight', runs.map(R => { let n = 0, k = 0; R.g.forEach(r => { const sn = r.v2.snaps.filter(s => s.k === 'fight'); if (sn.length !== r.v2.fightsX.length) return; r.v2.fightsX.forEach((f, i) => { if (!(isDuel(f) && hostIn(f) && f.arena === 'open' && ARS.some(a => edgeOf(R, f, a) > 0.15))) return; n++; if (sn[i].teams[f.host].cr < 4) k++; }); }); return share(k, n); }));
