@@ -166,10 +166,11 @@
   const ARENAS = { // the centre pit was removed (Kev, 8 Nov): every arena is open floor now
     open: { label: 'Open floor', pit: false, saws: [], spikes: false },
     saws: { label: 'Floor saws', pit: false, saws: [[-1.7, -1.7], [1.7, 1.7], [-1.7, 1.7], [1.7, -1.7]], spikes: false },
-    killbox: { label: 'Killbox (saws, spiked walls)', pit: false, saws: [[0, -2.5], [0, 2.5]], spikes: true },
+    // Kev, 17 Nov (T4, "lets change the arenas so they have an impact"): spikes along the whole of every wall (was the middle 2.8 m)
+    killbox: { label: 'Killbox (saws, spiked walls)', pit: false, saws: [[0, -2.5], [0, 2.5]], spikes: true, spikeLen: 3.7 },
     // Kev, 9 Nov (arena layouts for the tabletop): a smaller cage and a slippery floor
-    cage: { label: 'The Cage (6 x 6 m)', pit: false, saws: [], spikes: false, inset: 1 },        // the walls start 1 m in
-    ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.4 },   // grip x 0.4 everywhere (legs keep their footing)
+    cage: { label: 'The Cage (4.75 x 4.75 m)', pit: false, saws: [], spikes: false, inset: 1.625 },        // the walls start 1.625 m in (17 Nov, T4: was 1 m, 6 x 6)
+    ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.3, iceTracks: 0.6 },   // wheels grip x 0.3 (was 0.4), studded tracks x 0.6, legs keep their footing (17 Nov, T4)
     // Kev, 11 Nov (gang test: how many starters beat one stacked robot): an exotic floor. A turntable in the middle that
     // flips direction every 10 s, two conveyor belts along the top and bottom walls (clockwise loop), floor saws where the
     // belts end, and two spring pylons that throw robots back. Not in the tabletop's arena list.
@@ -302,7 +303,7 @@
       if (INSET) { if (axis === 'x') cx -= sgn * INSET; else cy -= sgn * INSET; }
       const wb = world.createBody({ type: 'kinematic', position: V(cx, cy) });
       wb.createFixture({ shape: pl.Box(hx, hy), friction: 0.5, restitution: 0.5, userData: { wall: true } });
-      if (S.arena.spikes) { const sx = axis === 'x' ? -sgn * (T + 0.06) : 0, sy = axis === 'y' ? -sgn * (T + 0.06) : 0; wb.createFixture({ shape: pl.Box(axis === 'x' ? 0.06 : 1.4, axis === 'y' ? 0.06 : 1.4, V(sx, sy)), friction: 0.6, restitution: 0.3, userData: { wall: true, spike: true } }); }
+      if (S.arena.spikes) { const sx = axis === 'x' ? -sgn * (T + 0.06) : 0, sy = axis === 'y' ? -sgn * (T + 0.06) : 0; const sl = S.arena.spikeLen || 1.4; wb.createFixture({ shape: pl.Box(axis === 'x' ? 0.06 : sl, axis === 'y' ? 0.06 : sl, V(sx, sy)), friction: 0.6, restitution: 0.3, userData: { wall: true, spike: true } }); }
       S.walls.push({ body: wb, axis, sgn, home: [cx, cy] });
     }
     S.arena.saws.forEach((p, i) => S.sawState.push({ x: p[0], y: p[1], r: 0.36, up: false, t: i * 1.3, spin: 0 }));
@@ -785,6 +786,8 @@
   const nameOf = R => R.name;
 
   // queue a hit on a part. lp = local point on the part's body.
+  // arena hazards (floor saws, wall spikes) grow with the victim's level like part cards do (lineup PART_K -> spec.hzK; 17 Nov, T4)
+  const hzK = R => (R && R.spec && R.spec.hzK) || 1;
   function hit(S, part, dmg, o) { if (part && dmg > 0) S.hitQ.push(Object.assign({ part, dmg }, o)); }
 
   function applyHit(S, h) {
@@ -841,7 +844,7 @@
     const before = part.hp;
     part.hp -= d;
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
-    R.stats.taken += d;
+    R.stats.taken += d; if (h.cause === 'floorsaw' || h.cause === 'spikes' || h.cause === 'icewall') R.stats.hz = (R.stats.hz || 0) + d;   // arena hazard damage (stats only)
     if (src) {
       src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
       if (d > src.stats.biggest) { src.stats.biggest = d; src.stats.biggestBy = k; }
@@ -1121,6 +1124,7 @@
     } else return;
     const J = c.J, Jd = cause === 'wall' || cause === 'debris' || cause === 'spikes' || cause === 'brick' ? Math.min(J, 45) : J; // walls and loose junk can crush, but not infinitely
     let d = Math.max(0, Jd - 7) * 0.2 * sharp * px.tough;
+    if (uy.spike && px.attached) d *= hzK(px.robot);   // arena spikes take the same share of a level 3 robot as of a level 0 one (17 Nov, T4)
     if (!px.attached && cause !== 'spinner' && cause !== 'flail' && cause !== 'shell' && cause !== 'sweeper') return; // debris barely matters
     if (ARC.cx.bend && px.attached && px.hp > 0 && WARP[px.key] && J > 25) { const lq = px.body.getLocalPoint(V(c.x, c.y)); warpHit(S, px.robot, px, { lp: [lq.x, lq.y], J, cause }, src); }
     if (ARC.cx.bend && px.attached && px.hp > 0 && BOWS[px.key] && px.body === px.robot.body && J > 45) { const lq = px.body.getLocalPoint(V(c.x, c.y)); bendHit(S, px.robot, px, { lp: [lq.x, lq.y], cause }, (J - 7) * 0.1, src); }
@@ -1632,7 +1636,7 @@
     // oil: robots in a puddle lose most of their grip and start to spin
     let oiled = false;
     if (S.oils.length && R.airborne <= 0) { const pp = b.getPosition(); for (const o of S.oils) if (Math.hypot(pp.x - o.x, pp.y - o.y) < o.r + 0.1) { oiled = true; break; } }
-    if (S.arena.ice && !legs) ground *= S.arena.ice;   // the ice rink
+    if (S.arena.ice && !legs) ground *= trk && S.arena.iceTracks ? S.arena.iceTracks : S.arena.ice;   // the ice rink: wheels slide most, studded tracks less, legs keep their footing
     if (oiled && !legs) { ground *= 0.22; if (S.step % 20 === 0) b.applyAngularImpulse((S.rng() - 0.5) * 18, true); R.oiled = 0.3; }
     // thruster dash
     if (R.dashT > 0) { R.dashT -= DT; if (R.thruster && R.thruster.hp > 0 && R.alive) { b.applyForce(V(fwd.x * m * 9, fwd.y * m * 9), b.getWorldCenter(), true); vmax *= 1.6; R.thruster.heat += 30 * DT; } }
@@ -2569,7 +2573,7 @@
         const R = part.robot; if (R.airborne > 0 || !part.attached) continue;
         const c = centroid(part.verts), wp = part.body.getWorldPoint(V(c[0], c[1]));
         if (Math.hypot(wp.x - s.x, wp.y - s.y) > s.r + 0.08) continue;
-        hit(S, part, 1.1, { cause: 'floorsaw', lp: c, blp: part.body === R.body ? c : null, x: wp.x, y: wp.y, ignoreThr: true, src: R.enemy });
+        hit(S, part, 1.1 * hzK(R), { cause: 'floorsaw', lp: c, blp: part.body === R.body ? c : null, x: wp.x, y: wp.y, ignoreThr: true, src: R.enemy });
         part.body.applyLinearImpulse(V((S.rng() - 0.5) * 30, (S.rng() - 0.5) * 30), wp, true);
         R.lifted = Math.max(R.lifted, 0.2);
         S.fx.push({ type: 'spark', x: wp.x, y: wp.y, power: 20 });

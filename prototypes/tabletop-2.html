@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="b62ec563">
+<meta charset="utf-8"><meta name="robocus-files" content="d318237d">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -562,17 +562,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=b62ec563"></script>
-<script src="../src2/dmath.js?b=b62ec563"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=d318237d"></script>
+<script src="../src2/dmath.js?b=d318237d"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=b62ec563"></script>
-<script src="../src2/lineup.js?b=b62ec563"></script>
-<script src="../src2/matrix.js?b=b62ec563"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=b62ec563"></script>
-<script src="../src2/sound.js?b=b62ec563"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=b62ec563"></script>
+<script src="../src2/engine.js?b=d318237d"></script>
+<script src="../src2/lineup.js?b=d318237d"></script>
+<script src="../src2/matrix.js?b=d318237d"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=d318237d"></script>
+<script src="../src2/sound.js?b=d318237d"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=d318237d"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -1539,7 +1539,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Scythe":{"repair":[-1,-13]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
+  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
   const EPIC = {   // Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
@@ -2778,7 +2778,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-16j repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17a arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5344,15 +5344,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * in the Damage Lab: every robot against its own level on each arena, tools/damage-lab/arenafit.js). The bookie and the AI use it. */
   const ARENA_INFO = {
     open: { icon: '🟫', name: 'Open Floor', text: 'The plain 8 × 8 m arena.' },
-    saws: { icon: '🪚', name: 'Floor Saws', text: 'Four saws pop out of the floor: shove a robot onto one.' },
-    killbox: { icon: '☠️', name: 'Killbox', text: 'Spiked walls and two floor saws: pushers love it.' },
-    cage: { icon: '🔒', name: 'The Cage', text: 'A small 6 × 6 m arena: nowhere to run (not with 4 robots or the House Robot).' },
-    ice: { icon: '🧊', name: 'Ice Rink', text: 'A slippery floor: wheels slide, legs keep their grip.' },
+    saws: { icon: '🪚', name: 'Floor Saws', text: 'Four saws pop out of the floor: hit-and-run robots (harpoon, flipper, spear, tail) win; robots that grab and hold or stand and grind end up on the saws.' },
+    killbox: { icon: '☠️', name: 'Killbox', text: 'Spikes along every wall and two saws: throwers and lifters slam robots into the spikes; spinners bounce themselves into them.' },
+    cage: { icon: '🔒', name: 'The Cage', text: 'A tiny 4.75 × 4.75 m box, duels only: close brawlers and grabbers win; robots that need room (tail, harpoon, orbit blades, spear, railgun) lose.' },
+    ice: { icon: '🧊', name: 'Ice Rink', text: 'Slippery floor: wheels slide, tracks and legs grip better; robots that must line up exactly (tail, forks, clamps, twin saws) slide past.' },
   };
   // measured 9 Nov: every lineup robot against each robot of its own level, both sides, 2 seeds (16–32 fights a robot per arena),
   // logit change vs open floor × 0.5 (shrunk for the noise)
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const ARENA_FIT = {"Rotisserie":{"saws":-0.22,"killbox":-0.03,"cage":-0.03,"ice":0.06},"Jukebox":{"saws":0.06,"killbox":0.06,"cage":0.06,"ice":0.06},"Pogo":{"saws":-0.1,"killbox":0.03,"cage":-0.03,"ice":-0.1},"Trebuchet":{"saws":0.19,"killbox":0.35,"cage":0.06,"ice":0.16},"Orbiter":{"saws":0.0,"killbox":0.06,"cage":-0.13,"ice":-0.13},"Lodestone":{"saws":0.06,"killbox":0.16,"cage":0.03,"ice":0.19},"Bricklayer":{"saws":-0.16,"killbox":-0.06,"cage":-0.03,"ice":-0.13},"Railgun":{"saws":-0.06,"killbox":-0.1,"cage":-0.2,"ice":0.06},"Tarantula":{"saws":0.13,"killbox":0.09,"cage":-0.03,"ice":0.16},"Scavenger":{"saws":-0.03,"killbox":0.0,"cage":0.16,"ice":0.03},"Slingshot":{"saws":0.16,"killbox":-0.03,"cage":-0.03,"ice":0.0},"Hydra":{"saws":-0.13,"killbox":-0.09,"cage":0.0,"ice":-0.13},"Grandmaster":{"saws":-0.19,"killbox":-0.03,"cage":-0.06,"ice":0.03},"Gaucho":{"saws":0.13,"killbox":-0.1,"cage":0.09,"ice":0.06},"Yoyo":{"saws":-0.19,"killbox":-0.06,"cage":-0.06,"ice":-0.03},"Whaler":{"saws":0.61,"killbox":0.32,"cage":0.07,"ice":0.16},"Pincher":{"saws":-0.32,"killbox":-0.06,"cage":0.0,"ice":-0.09},"Angler":{"saws":-0.03,"killbox":-0.06,"cage":-0.09,"ice":0.03},"Gyro":{"saws":0.06,"killbox":0.0,"cage":0.06,"ice":-0.09},"Mauler":{"saws":0.22,"killbox":0.13,"cage":0.09,"ice":0.09},"Corkscrew":{"saws":-0.06,"killbox":0.22,"cage":-0.06,"ice":-0.22},"Blacksmith":{"saws":0.06,"killbox":0.09,"cage":0.03,"ice":0.06},"Thwacker":{"saws":0.16,"killbox":0.03,"cage":0.06,"ice":-0.16},"Vertigo":{"saws":-0.03,"killbox":0.03,"cage":0.19,"ice":0.09},"Buzzkill":{"saws":0.06,"killbox":0.0,"cage":0.03,"ice":0.06},"Wrecker":{"saws":0.28,"killbox":0.06,"cage":-0.09,"ice":0.13},"Snapjaw":{"saws":-0.06,"killbox":0.06,"cage":0.16,"ice":0.0},"Hornet":{"saws":0.28,"killbox":0.0,"cage":-0.1,"ice":0.0},"Scythe":{"saws":0.13,"killbox":-0.13,"cage":-0.03,"ice":0.06},"Mincer":{"saws":-0.16,"killbox":-0.09,"cage":0.06,"ice":-0.06},"Forklift":{"saws":-0.03,"killbox":0.0,"cage":-0.06,"ice":-0.19},"Popcorn":{"saws":-0.13,"killbox":-0.03,"cage":-0.25,"ice":-0.19},"Thumper":{"saws":-0.1,"killbox":0.13,"cage":0.16,"ice":0.13}};
+  // Kev, 17 Nov (T4, "lets change the arenas so they have an impact"): stronger arenas, re-measured with 16 seeds (3,168 fights an arena,
+  // 64-256 a robot); logit change x each arena's own noise shrink (saws 0.85, cage 0.75, ice 0.75, killbox 0.45). docs/robocus-arenas.md
+  const ARENA_FIT = {"Buzzkill":{"saws":-0.21,"killbox":-0.16,"cage":-0.02,"ice":0.23},"Forklift":{"saws":0.09,"killbox":0.3,"cage":-0.06,"ice":-0.39},"Hornet":{"saws":0.43,"killbox":-0.06,"cage":-0.32,"ice":0.28},"Mincer":{"saws":-0.16,"killbox":-0.1,"cage":-0.02,"ice":-0.47},"Popcorn":{"saws":0.59,"killbox":0.17,"cage":0.24,"ice":0.29},"Scythe":{"saws":-0.25,"killbox":-0.05,"cage":-0.05,"ice":-0.33},"Snapjaw":{"saws":-0.33,"killbox":0.01,"cage":-0.2,"ice":0.06},"Thumper":{"saws":-0.43,"killbox":-0.02,"cage":0.31,"ice":0.24},"Wrecker":{"saws":0.32,"killbox":-0.08,"cage":0.08,"ice":0.1},"Blacksmith":{"saws":0.32,"killbox":0.03,"cage":0.05,"ice":-0.17},"Corkscrew":{"saws":-0.52,"killbox":0.2,"cage":0.67,"ice":0.45},"Mauler":{"saws":0.27,"killbox":-0.13,"cage":-0.05,"ice":0.4},"Thwacker":{"saws":0.51,"killbox":0.04,"cage":-0.96,"ice":-1.23},"Vertigo":{"saws":-0.59,"killbox":-0.14,"cage":0.25,"ice":0.45},"Angler":{"saws":-0.17,"killbox":0.05,"cage":0.16,"ice":0.05},"Gyro":{"saws":1.13,"killbox":0.3,"cage":0,"ice":0.36},"Pincher":{"saws":-0.45,"killbox":-0.06,"cage":0.52,"ice":-0.34},"Whaler":{"saws":1.91,"killbox":0.02,"cage":-0.86,"ice":0.33},"Yoyo":{"saws":-0.54,"killbox":-0.09,"cage":0.12,"ice":-0.02},"Gaucho":{"saws":0.04,"killbox":-0.14,"cage":-0.11,"ice":-0.23},"Grandmaster":{"saws":-0.21,"killbox":0.24,"cage":0.38,"ice":0.3},"Hydra":{"saws":-0.28,"killbox":-0.08,"cage":-0.13,"ice":-0.15},"Scavenger":{"saws":0.08,"killbox":-0.04,"cage":-0.15,"ice":0.2},"Slingshot":{"saws":0.48,"killbox":0.08,"cage":0.43,"ice":-0.1},"Tarantula":{"saws":-0.02,"killbox":-0.06,"cage":-0.36,"ice":0},"Bricklayer":{"saws":-0.14,"killbox":0.05,"cage":0.25,"ice":-0.14},"Jukebox":{"saws":-0.17,"killbox":-0.06,"cage":0.22,"ice":-0.31},"Lodestone":{"saws":0.46,"killbox":0.03,"cage":-0.11,"ice":0.08},"Orbiter":{"saws":0.54,"killbox":-0.06,"cage":-0.58,"ice":-0.26},"Pogo":{"saws":0.05,"killbox":-0.02,"cage":0.08,"ice":0.26},"Railgun":{"saws":-0.18,"killbox":-0.32,"cage":-0.28,"ice":0.17},"Rotisserie":{"saws":-0.85,"killbox":0.06,"cage":0.13,"ice":-0.05},"Trebuchet":{"saws":0.26,"killbox":0.33,"cage":0.33,"ice":0.3}};
   const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
   /* ---------- bookie notes (Kev, 9 Nov): a short tag on a robot card when something stands out from the odds ----------
    * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
@@ -5367,7 +5369,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
     const out = []; if (!r) return out;
     const a = G && G.fight && G.fight.arena;
-    if (a && ARENA_TAG[a]) { const f = arenaFit(r, a), T = ARENA_TAG[a]; if (Math.abs(f) >= 0.45) out.push({ ic: T[0], label: f > 0 ? T[1] : T[2], good: f > 0, help: 'The bookie: on ' + esc(ARENA_INFO[a] ? ARENA_INFO[a].name : a) + ' ' + esc(r.name) + (f > 0 ? ' does much better' : ' does much worse') + ' than on the open floor (measured in test fights; the odds count it).' }); }
+    if (a && ARENA_TAG[a]) { const f = arenaFit(r, a), T = ARENA_TAG[a]; if (Math.abs(f) >= 0.4) out.push({ ic: T[0], label: f > 0 ? T[1] : T[2], good: f > 0, help: 'The bookie: on ' + esc(ARENA_INFO[a] ? ARENA_INFO[a].name : a) + ' ' + esc(r.name) + (f > 0 ? ' does much better' : ' does much worse') + ' than on the open floor (measured in test fights; the odds count it).' }); }
     { const F = G && G.fight, e = F && F.robots ? F.robots.indexOf(r) : -1;   // Kev, 9 Nov: a counter matchup in this duel (Lineup Arena table)
       if (e >= 0 && F.robots.length === 2 && F.robots[1 - e]) { const o = F.robots[1 - e], c = counterOf(r, o);
         if (c) out.push(c.good ? { ic: '🎯', label: 'Counter pick', good: true, help: 'The bookie: in the Lineup Arena ' + esc(r.name) + ' beats ' + esc(o.name) + ' ' + Math.round(c.p * 100) + '% of the time, where its level gap usually gives ' + Math.round(c.e * 100) + '%. Its weapon and shape just suit this opponent.' }
@@ -8800,6 +8802,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, arenas', '17 Nov 2026', [
+      'Arenas now change who wins, for reasons you can see: Floor Saws favour hit-and-run robots and punish grabbers; the Killbox has spikes along every wall (throwers and lifters love it, spinners bounce into it); The Cage is smaller (4.75 × 4.75 m, was 6 × 6: no room for tails, harpoons or orbit blades); the Ice Rink is slipperier for wheels (tracks and legs grip better). Saws and spikes now hurt a level 3-4 robot as much as a level 0 one. The bookie and the tags (🪚 ☠️ 🔒 🧊) use the new numbers; hover an arena for who it favours. The open floor is unchanged.' ]],
     ['2.0.1, repair kit', '16 Nov 2026', [
       'Repair kit: it now repairs the robot all the time, slowly while it is being hit and fast after 1.5 s without a hit (before: only after 1.5 s without a hit). Worth about two thirds of a level now (was half). Mauler\'s own repair module is unchanged.' ]],
     ['2.0.1, power map', '16 Nov 2026', [
@@ -8921,7 +8925,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=b62ec563"></script>
+<script src="../src2/net.js?b=d318237d"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
