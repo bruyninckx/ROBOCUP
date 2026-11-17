@@ -64,7 +64,7 @@ Attacks on a rival garage. The face-down cards are what make the bookmaker wrong
 | **Sugar in the Tank** | Scheme (face-down) | 2 | 1 | 3 | On a rival robot: −2 speed in its next fight. | new |
 | **Smudged Lens** | Scheme (face-down) | 2 | 1 | 3 | On a rival robot: −2 accuracy in its next fight. | new |
 | **Loose Bolts** | Scheme | 3 | 2 | 3 | A target robot takes 30 lasting damage, or a crew member is exhausted for 2 rounds. | Poisoned Wine |
-| **Rogue Firmware** | Scheme | 5 | 1 | 2 | A target robot sits out its next fight and takes 30 lasting damage. | Incite Rebellion |
+| **Rogue Firmware** | Scheme | 5 | 1 | 2 | A target robot is out for 2 rounds (this one and the next) and its chassis takes lasting damage (2.0: ⛨ Body down to 40%). | Incite Rebellion |
 | **Tax Audit** | Scheme | 6 | 1 | 2 | Target pays the bank 5 credits (or everything it has). | Word to the Tax Collector |
 | **Coolant Leak** | Scheme | 10 | 2 | 2 | Exhaust 1–2 robots of the target team. | Piss in Your Porridge |
 | **Botched Install** | Reaction | 3 | 1 | 2 | When a rival wins a Market part (before it is fitted): the install fails and the part is scrapped. They get half their bid back; you take 1 credit. Security Bots and reactions can stop it. | new (Kev, 6 Nov: stopping a rival's upgrade is a scheme, not a blocking bid) |
