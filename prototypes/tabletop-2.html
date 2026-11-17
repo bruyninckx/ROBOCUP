@@ -139,11 +139,15 @@ html, body {
 .prompt-bar.repmode > span { flex: 0 0 auto; }
 .prompt-bar.repmode .rep-ok { color: #1F5C35; }
 .prompt-bar .rep-btns { flex: 0 1 auto; min-height: 30px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; overflow-y: auto; scrollbar-width: thin; }
-.prompt-bar.repmode > .act, .prompt-bar.tight.repmode > .act { flex: 0 0 auto; align-self: flex-start; order: 0; }
+.prompt-bar .rep-head { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; }
+.prompt-bar .rep-head > span { flex: 1 1 auto; min-width: 0; }
+.prompt-bar .rep-head > .act { flex: 0 0 auto; white-space: nowrap; }
+.prompt-bar .rep-btns .act.pick { font: 700 12px var(--sans); letter-spacing: 0; padding: 3px 8px; }
+.prompt-bar .rep-btns .act.pick b { font-weight: 700; }
 .prompt-bar .act.pick.brk { background: #B23A2B; color: #fff; }
 .prompt-bar .act.pick.brk:hover:not(:disabled) { background: #8E2A1F; color: #fff; }
 .prompt-bar .act.pick.brk.warn small { color: #FFE08A; }
-.prompt-bar.repmode.many .rep-btns .act.pick { flex-basis: calc(50% - 2px); flex-direction: column; align-items: stretch; gap: 0; line-height: 1.2; }
+.prompt-bar.repmode.many .rep-btns .act.pick { flex-basis: calc(50% - 2px); flex-direction: column; align-items: stretch; gap: 0; line-height: 1.2; padding: 2px 7px; font-size: 11.5px; }
 .prompt-bar.repmode.many .rep-btns .act.pick b, .prompt-bar.repmode.many .rep-btns .act.pick small { display: block; margin-left: 0; white-space: nowrap; }
 .prompt-bar select { font: 600 12px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); padding: 2px 4px; }
 .prompt-bar .ivorder { flex: 1 1 100%; background: rgba(255,253,248,.6); color: var(--ink); border-radius: 3px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; line-height: 1.5; }
@@ -1479,14 +1483,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ex = []; for (const c of freshCrew(t)) { if (need <= 0) break; const m = Math.min(need, CREW_ACTS(c.kind)); need -= m; ex.push(CREW[c.kind].name); }
     return { acts: n - need, ex, cr: need * repairCr(), ok: canPayActs(t, n), free };
   }
+  const crewList = L => [...new Set(L)].map(x => { const k = L.filter(y => y === x).length; return k > 1 ? k + ' ' + x + 's' : x; }).join(', ');   // 'Mechanic, Mechanic' → '2 Mechanics'
   // order (Kev's choice, see PROGRESS 17 Nov): broken zones first, then the worst damage; ties: weapon, drive, body; robots in bay order
   function upkeepJobs(t) {
     const jobs = [], ZO = { weapon: 0, drive: 1, body: 2 };
     t.robots.forEach((r, ri) => { if (!r.wear) return; const Z = zonesOf(r); for (const z of R2.ZONES) { const q = Z[z.key]; if (!q.damaged) continue;
       const n = repairCost(r, z.key), p = repairPlan(t, n);
       const hint = !p.ok ? 'can\'t pay: needs ' + (p.acts ? p.acts + ' + ' : '') + p.cr + ' Cr, you have ' + t.credits
-        : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + p.ex.join(', ') : '');
-      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + p.ex.join(', ') + ' will be exhausted this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
+        : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
+      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
       jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: q.broken ? 'broken' : Math.round(q.f * 100) + '%', p, hint, tip });
     } });
     return jobs.sort((a, b) => (b.broken - a.broken) || (a.f - b.f) || (ZO[a.zk] - ZO[b.zk]) || (a.ri - b.ri));
@@ -2002,10 +2007,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         } else {
           const n = repairActs(t);
           pb.classList.add('repmode');
-          pb.innerHTML = '<span class="rep-txt"' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep:</b> ' + (jobs.length ? '<b>' + actsWord(n) + ' left</b>' + (n ? ', then ' : ' (') + repairCr() + ' Cr each' + (n ? '' : ')') + '. Pick a repair (or a lit zone on the card).' : 'nothing to repair.') + (fits.length ? ' A Stash part fits.' : '') + doneTxt + '</span>' +
-            '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, '🔧 ' + j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
-            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + LOTS[f.id].name + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + LOTS[f.id].name + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>' +
-            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
+          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>' + (jobs.length ? 'Repairs:</b> ' + actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Upkeep:</b> nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
+            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button></div>' +
+            '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
+            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + LOTS[f.id].name + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + LOTS[f.id].name + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
           pb.querySelectorAll('[data-rep]').forEach(b => { b.onclick = () => {
             const [rid, zk] = b.dataset.rep.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk]) return;
             const h = hitRegions.find(x => x.kind === 'zone_fix' && String(x.robot.id) === rid && x.zone === zk);
