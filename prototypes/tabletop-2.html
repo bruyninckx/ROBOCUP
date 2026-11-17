@@ -4629,7 +4629,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const mktOpen = () => !!G && G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved;
   const lotsLocked = s => !!(G.gather && G.gather.key === 'lots:' + G.round && G.gather.done[s]);
   const lotBidSum = s => ((G.ps && G.ps[s] && G.ps[s].bids) || zeroBids()).slice(0, NLOTS).reduce((a, x) => a + (x || 0), 0);
-  const bidsOver = s => lotBidSum(s) > G.teams[s].credits;
+  const bidsOver = s => !!G.teams[s] && lotBidSum(s) > G.teams[s].credits;
   const dealsOpen = () => !!G.mDeals && Object.keys(G.mDeals).length > 0;
   function dealIn(T, d) {   // count the open deals a person is part of (the end of the step waits for them)
     if (!T || !isHuman(T.i)) return;
