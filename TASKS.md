@@ -12,6 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K20. Reaction window** (T2): should a player with no card have to click OK at all (today: yes, as before, so the window
+  can end early)? "Pass" or "Let it happen"? Move other popup questions into the note too (second robot in a double
+  duel, Joint Venture, Hostile Buyout)?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
   enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
   out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
@@ -66,15 +69,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
-  `docs/robocus-2.0.1-screen.md`).
-  Kev (17 Nov): "Do some work". Worker on branch `claude/reaction-in-note`, started 17 Nov.
 - **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
   Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
   Kev (17 Nov): "Do some work". Worker on branch `claude/game-length`, started 17 Nov.
 
 ## Done
 
+- **T2. The reaction window lives in the yellow note** (17 Nov): the floating box is gone; a player who can answer gets
+  the cards and Pass as buttons and the note flashes red; a player with nothing to answer gets a quiet OK in a grey note.
+  Timing as before (10 s, closes early when everyone has clicked; the first hand-back dropped the OK and was sent back).
+  Branch `claude/reaction-in-note`, commit `9f6d1b4`. BUILD `2026-11-17b`, files stamp `d318237d`; game-sim 2/2,
+  `reaction.js` OK, online test 0 desyncs.
 - **T4. Arenas change who wins** (17 Nov): Saws and Killbox damage grows with the victim's level, Killbox spikes along the
   whole wall, Cage 4.75 m (was 6), Ice grip 0.3 (was 0.4). Robots moved 8+ points vs open floor: Saws 19, Cage 15,
   Ice 17, Killbox 9 (3,168 fights an arena; a cell ±4 to ±6). An arena pick is worth about +11 points to the host (was
