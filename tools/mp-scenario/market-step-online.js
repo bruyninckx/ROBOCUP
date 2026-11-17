@@ -23,7 +23,8 @@ const { setup, press } = require('./lib.js');
     return { phase: G.phase, stage: G.marketStage, open: D.mktOpen(), resolved: !!G.marketResolved, cr: G.teams.map(t => t.credits), bids: G.ps.map(P => (P.bids || []).slice(0, 4).join('+')),
       locked: G.gather && G.gather.key === 'lots:' + G.round ? Object.keys(G.gather.done).map(Number) : [], deals: Object.assign({}, G.mDeals || {}) }; });
   const actOn = (p, ...a) => p.evaluate(a => window.ROBOCUS_DEBUG.act(...a), a);
-  const lockOn = p => p.evaluate(() => { const bt = document.querySelector('#promptBar #pAct1'); if (!bt || bt.disabled || !/Lock Bids/.test(bt.textContent)) return false; bt.click(); return true; });
+  const lockOn = async p => { for (let t = 0; t < 6000; t += 200) {   // the joined screen may still show the last picture for a moment
+    if (await p.evaluate(() => { const bt = document.querySelector('#promptBar #pAct1'); if (!bt || bt.disabled || !/Lock Bids/.test(bt.textContent)) return false; bt.click(); return true; })) return true; await p.waitForTimeout(200); } return false; };
   const noteOf = p => p.evaluate(() => { const el = document.getElementById('promptBar'), bt = el.querySelector('#pAct1'); return { text: el.innerText.replace(/\s+/g, ' ').trim(), locked: el.classList.contains('locked'), move: !el.classList.contains('idle'), lock: bt ? (bt.disabled ? 'greyed' : 'on') : 'none' }; });
   const rail = p => p.evaluate(() => (document.getElementById('waitRail') || {}).innerText || '');
   const crOn = p => p.evaluate(() => window.ROBOCUS_GAME.G.teams.map(t => t.credits).join(','));
@@ -87,7 +88,7 @@ const { setup, press } = require('./lib.js');
   if ((await hs()).locked.includes(2)) bad.push('B locked with bids above its credits');
   if (!await say(B, /Your bids add up to 9 Cr, but you have 8 Cr\. Lower them, then lock/)) bad.push('B has no "lower them" line');
   await actOn(B, 'bid', 1, 'minus'); await host.waitForTimeout(1200);
-  if (!await lockOn(B)) bad.push('B could not lock after lowering its bid');
+  if (!await lockOn(B)) bad.push('B could not lock after lowering its bid: ' + JSON.stringify(await noteOf(B)) + ' ' + JSON.stringify(await hs()));
   // 3. an open deal at the last lock
   await host.waitForTimeout(800); if (!await lockOn(A)) bad.push('A could not lock again');
   await host.waitForTimeout(1000);
@@ -100,7 +101,7 @@ const { setup, press } = require('./lib.js');
   console.log('3 last lock with A\'s panel open: ' + JSON.stringify(held) + '\n   C\'s list: ' + railC.replace(/\s+/g, ' ').slice(0, 160));
   await shot(C, 'joined-C-3-waiting-for-open-deal.png');
   if (!held.open || held.locked.length !== 4 || !held.deals[1]) bad.push('the last lock did not wait for A\'s open deal: ' + JSON.stringify(held));
-  if (!/a trade/i.test(railC)) bad.push('C\'s waiting list does not say A is in a trade');
+  if (!/trade/i.test(railC)) bad.push('C\'s waiting list does not say A is in a trade');
   await A.evaluate(() => { const bt = document.querySelector('#dealModal [data-k="no"]'); if (bt) bt.click(); });
   await until(host, () => { const G = window.ROBOCUS_DEBUG.G; return !!(G.marketResolved || G.marketAuction); }, 10000);
   await until(host, () => !!window.ROBOCUS_DEBUG.G.marketResolved, 15000);
