@@ -12,6 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K25. "Open auction during the betting"** (T26): does this mean the open market (trading) runs while people place
+  their sealed bids on the lots, with no separate "Start the auction" step? And: if a trade changes someone's credits
+  after they locked, are they unlocked (as a changed bid does)?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
@@ -71,6 +74,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
+  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading (to confirm, K25): the
+  Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
+  "Start the auction" click; it stays open while everyone places sealed bids on the lots, and ends when everybody has
+  locked their bids; then rebids or the next step. Files: `prototypes/tabletop-2.html` (Market stages, `gather`, deal
+  panel), `rules.html`, `docs/rulebook.md`. Depends on: after T21 (it reuses the Market auction code) and T20. Done when:
+  scripted solo and online runs (trade while bidding, lock, a trade after a lock, all locked → resolves), game-sim and
+  `mp-test` pass.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
