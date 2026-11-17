@@ -1491,7 +1491,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const jobs = [], ZO = { weapon: 0, drive: 1, body: 2 };
     t.robots.forEach((r, ri) => { if (!r.wear) return; const Z = zonesOf(r); for (const z of R2.ZONES) { const q = Z[z.key]; if (!q.damaged) continue;
       const n = repairCost(r, z.key), p = repairPlan(t, n);
-      const hint = !p.ok ? 'can\'t pay: needs ' + (p.acts ? p.acts + ' + ' : '') + p.cr + ' Cr, you have ' + t.credits
+      const hint = !p.ok ? 'can\'t pay: ' + p.cr + ' Cr (you have ' + t.credits + ')'
         : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
       const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
       jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: q.broken ? 'broken' : Math.round(q.f * 100) + '%', p, hint, tip });
