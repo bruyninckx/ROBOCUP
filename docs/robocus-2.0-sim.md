@@ -43,7 +43,7 @@ How to change it:
 | `startFame` | 0 | fame every team starts with (was 4) |
 | `winFame` | 12 | fame to win (same as `ROBOCUS_DEBUG.tune({win})`) |
 | `fameFloor` | 1 | losing fame stops here, or at the start fame if that is lower (start 0: fame can drop to 0) |
-| `startCredits` | 8 | credits at the start |
+| `startCredits` | 10 | credits at the start (8 until 17 Nov, T29) |
 | `startCrew` | **R3** `{mechanic: 2, chief: 0, accountant: 1, analyst: 1}` (was `{mechanic: 3, chief: 1}`) | starting crew cards per kind (objects merge: a variant that sets `startCrew` should name every kind, with 0 for none) |
 | `sovereignMechanics` | 4 | Mechanics a Sovereign Foundry team starts with |
 | `mechanicCr` | 1 | credits each Mechanic earns in Upkeep |
