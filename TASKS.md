@@ -12,6 +12,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K26. Sponsor auction** (T21): the first Market spends about 1.3 Cr less: start with 10 Cr instead of 8? The AI never
+  bids over 3 Cr, so a person who bids 4 always gets the sponsor: fine in solo? Should everyone see all bids after the
+  auction (today only who signed what and the price)?
+- **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
+  and Security Bots are exhausted. Fix the text or the rule?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
@@ -74,6 +79,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
+  weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
   "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
   Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
@@ -101,26 +108,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T25. Say why a robot rests and when it is back; make the fate step clear.** From Kev's playtest log of 17 Nov (two
-  in-game reports): "it seems like my robot wrecker is permanently resting, I cannot seem to unlock it" (Rogue Firmware,
-  played on him in round 6, keeps the robot out of round 6 and round 7: `sitOut`; the banner only said "RESTING · can't
-  fight this round · ready next Upkeep") and "I think I only was able to spare angler, not wrecker?" (Wrecker was safe
-  as a Fan Favourite; his 2 Cr plea for Angler lost to Plum's 2 Cr to scrap). Goal: the resting banner and hover name the
-  cause, who did it and the round the robot is back; the fate step shows per robot why there is or isn't a plea (safe:
-  Fan Favourite) and how the host decided. No rule change (K23). Files: `prototypes/tabletop-2.html` (robot card banner,
-  fate step texts). Worker on branch `claude/resting-and-fate`, started 17 Nov. Done when: screenshots of both, game-sim
-  and `mp-test` pass.
-- **T21. Bid on sponsors; no screen flip when someone else picks.** (Stopped 18:30, resumed 18:50 on Kev's word:
-  "continue both".) Kev (17 Nov): "when game starts and sponsor needs to be
-  chosen, when another player picked another sponsor suddenly the screen flipped for the player, which is strange, let
-  people bet on sponsors instead, with rebid, if rebid still undecided, do random". Goal: the sponsor step is a sealed
-  auction (everyone bids at the same time, ties rebid, a rebid that is still tied is decided at random); nobody's screen
-  moves because of another player's choice. Files: `prototypes/tabletop-2.html` (setup step, `ACT.pickSponsor`, AI,
-  bot), `rules.html`, `docs/sponsors.md`. Worker on branch `claude/sponsor-auction`, started 17 Nov. Done when: scripted
-  solo and 4-player online runs (bids, tie, rebid, random), screenshots, game-sim and `mp-test` pass, and what the prices
-  do to start credits is measured.
-- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (Stopped 18:30, resumed 18:50 on Kev's
-  word: "continue both".) Kev (17 Nov): "let it happen";
+- **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (Handed back 20:30 at `916b6f7`;
+  SENT BACK: merged with T21 and T25 its `questions-note.js` fails (the sponsor auction changed the dice, so the test
+  games deal other robots) and its "deal panel is open" note hides T25's fate status line. Rebase and fix.) Kev (17 Nov): "let it happen";
   "move into note yes" (to: other popup questions such as the second robot in a double duel, Joint Venture, Hostile
   Buyout). Goal: every question the game asks one player mid-turn shows in the note with its answers as buttons, the same
   way the reaction window does since T2; popups stay only where the note cannot hold the question (say which). Files:
@@ -129,6 +119,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
 ## Done
 
+- **T21. Sponsors are bid for** (17 Nov): all 6 sponsors on the table; sealed bids, a change after locking unlocks, tie
+  rebid, a random draw if still tied, a free sponsor for a team that wins none; the draft shows who signed what for how
+  much. The "flip": with 4 people the dealt hands overlapped, and when another player signed a sponsor you also held, your
+  card was swapped for another in place. Economy (80 bot games each way): teams pay 1.6 Cr on average, round-1 Market
+  spend 8.2 → 6.9 Cr, game length unchanged (+0.11 ± 0.29 rounds). Branch `claude/sponsor-auction`, commit `68cdd60`.
+- **T25. Resting robots say why and when they are back; the fate step says why** (17 Nov): banner "OUT · Rogue Firmware
+  (Rust Rivets) · back in round 8"; Rogue Firmware reads "out for 2 rounds" everywhere; per-robot status at the fate step
+  and a why line after the host decides. No robot can get stuck resting (checked). Branch `claude/resting-and-fate`,
+  commit `ef5feef`.
+  T21 + T25 merged together: BUILD `2026-11-17f`, files stamp `d318237d`; game-sim 2/2, `resting.js` and
+  `repair-note.js` OK, online test 0 desyncs.
 - **T23. Power map: counter arrows sized by strength** (17 Nov): width and head grow from 30 to 85+ points off the level
   odds; 30-39 thin and light (no tag in the game), 40+ dark (the game's 🎯/⚠️ counters); lists strongest first with a
   bar; hover picks out a pair. Arrows per robot: median 2 → 4 (max 14). Display only. Branch `claude/power-map-arrows`,
