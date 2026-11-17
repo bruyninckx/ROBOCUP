@@ -178,8 +178,11 @@ const path = require('path'), fs = require('fs');
       [1, 2, 3].forEach(i => { const T = G.teams[i], r0 = T.robots[0]; T.robots = [r0]; for (let k = 1; k < (i === 1 ? 3 : 2); k++) { const r = JSON.parse(JSON.stringify(r0)); r.id = 700 + 10 * i + k; T.robots.push(r); } });
       G.teams[1].credits = 3;
       const snap = () => G.teams.map(t => t.credits + '/' + t.robots.map(r => r.id).join(','));
-      window.__before = snap(); const ms0 = G.marketStage; G.marketStage = 'open'; D.updateHud();   // the open market starts and the offer comes at once (the pit's Market drawing needs a real Market, so the phase stays)
-      D.openMarketAI().then(() => { G.marketStage = ms0; window.__res = { before: window.__before, after: snap() }; }); };
+      // T26: the open market runs while the Market's bids are open (mktOpen: phase market, stage lots); for the offer the table is
+      // put in that step for a moment (with this round's lots, or the next round's), and back where it was afterwards
+      window.__before = snap(); const was = { ph: G.phase, ms: G.marketStage, mk: G.market, ma: G.marketAuction, mr: G.marketResolved };
+      G.phase = 'market'; G.marketStage = 'lots'; G.marketAuction = null; G.marketResolved = false; if (!(G.market && G.market.length)) G.market = (G.nextMarket || []).slice(0, 4); D.updateHud();
+      D.openMarketAI().then(() => { Object.assign(G, { phase: was.ph, marketStage: was.ms, market: was.mk, marketAuction: was.ma, marketResolved: was.mr }); D.updateHud(); window.__res = { before: window.__before, after: snap() }; }); };
     // (T31: only the new offer: right after the Decline case the note can still show that question's ✓ for a moment)
     const tradeNote = () => p.evaluate(() => { const q = window.ROBOCUS_DEBUG.RX.q; if (!q || q.done || q.over) return null; const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)), pb = document.getElementById('promptBar');
       if (!bt) return null; const r = bt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, arming: bt.classList.contains('arming'), text: (pb.querySelector('.rx-txt') || {}).textContent || '' }; });
