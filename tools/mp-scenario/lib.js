@@ -43,5 +43,9 @@ exports.modal = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window
     R && R.q && !R.q.over ? 'question: ' + (pb && pb.classList.contains('qmode') ? pb.innerText : R.q.title).replace(/\s+/g, ' ').slice(0, 300) : null].concat(['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + el.innerText.replace(/\s+/g, ' ').slice(0, 300) : null; })).filter(Boolean).join(' || ') || '-'; });
 // press the first button whose text matches, in the open question (ivModal) or deal panel (dealModal)
 // (T20: a question asked in the note counts as 'ivModal': its buttons are in #promptBar.qmode)
-exports.press = (p, box, re) => p.evaluate(([box, src]) => { if (box === 'ivModal') { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]:not(:disabled)')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) { bt.click(); return true; } } const el = document.getElementById(box); if (!el || el.hidden) return false; const bt = [...el.querySelectorAll('button')].find(x => new RegExp(src).test(x.textContent.trim())); if (bt) bt.click(); return !!bt; }, [box, re.source]);
+// (T20: a question's buttons are inactive for 0.8 s after it appears: while the matching button is there but inactive, press waits)
+exports.press = async (p, box, re) => { for (let t = 0; t < 3000; t += 150) { const r = await press1(p, box, re); if (r !== 'wait') return r; await p.waitForTimeout(150); } return false; };
+const press1 = (p, box, re) => p.evaluate(([box, src]) => { const m = x => new RegExp(src).test(x.textContent.trim()), go = bt => bt.disabled ? 'wait' : (bt.click(), true);
+  if (box === 'ivModal') { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(m); if (bt && !bt.classList.contains('done')) return go(bt); }
+  const el = document.getElementById(box); if (!el || el.hidden) return false; const bt = [...el.querySelectorAll('button')].find(m); return bt ? go(bt) : false; }, [box, re.source]);
 exports.hostLog = (host, n) => host.evaluate(n => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-n).map(e => e.text), n);

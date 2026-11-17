@@ -21,7 +21,7 @@ const path = require('path'), fs = require('fs');
   const shot = (p, n) => shots ? p.screenshot({ path: path.join(shots, n) }) : null;
   const noteShot = (p, n) => shots ? p.locator('#promptBar').screenshot({ path: path.join(shots, n) }) : null;
   async function open(w, h) {
-    const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
+    const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message + (process.env.STACK ? ' ' + e.stack : '')));
     await PLK.route(p, PL);
     await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11'); await p.waitForTimeout(800);
     await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
@@ -42,7 +42,9 @@ const path = require('path'), fs = require('fs');
       wait: (document.querySelector('#waitRail .wr-row.move small') || {}).textContent || '' }; });
   const waitQ = async (p, pop) => { for (let t = 0; t < 8000; t += 100) { const n = await note(p); if (pop ? n.pop : n.q && !n.pop && n.bs.length && !n.sent) return n; await p.waitForTimeout(100); } return null; };
   // re: a RegExp on the button's text, or a number: the k-th answer (robots can share a name)
-  const click = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => typeof src === 'number' ? +x.dataset.rk === src : new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d && /^✓/.test(d.textContent.trim()) ? 'tick' : 'clicked'; }, typeof re === 'number' ? re : re.source);
+  // T20: a question's buttons are inactive for 0.8 s after it lands (a click already on its way must not answer it): wait for them
+  const click = async (p, re) => { for (let t = 0; t < 3000; t += 100) { if (await p.evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await p.waitForTimeout(100); } return click0(p, re); };
+  const click0 = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => typeof src === 'number' ? +x.dataset.rk === src : new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d && /^✓/.test(d.textContent.trim()) ? 'tick' : 'clicked'; }, typeof re === 'number' ? re : re.source);
   const waitRes = async p => { for (let t = 0; t < 8000; t += 100) { const v = await p.evaluate(() => window.__res); if (v !== undefined) return v; await p.waitForTimeout(100); } return 'TIMEOUT'; };
   const cancel = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); });
   // one question: run `start` (it sets window.__res when the game step is over), check the note, answer with `ans` (a RegExp,
@@ -60,7 +62,7 @@ const path = require('path'), fs = require('fs');
     }
     let after = null;
     if (ans === 'cancel') await cancel(p);
-    else if (o.pop) await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, ans.source);
+    else if (o.pop) { await p.waitForTimeout(900); await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, ans.source); }
     else { const c = await click(p, ans); if (!c) bad.push(tag + ' ' + name + ': no button ' + ans); else if (c !== 'tick') bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }   // ✓ checked right after the click, in the same moment
     const res = await waitRes(p);
     console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
@@ -137,27 +139,61 @@ const path = require('path'), fs = require('fs');
       if (JSON.stringify(r.res.gone) !== '[902]') bad.push(tag + ' debt (7): ' + JSON.stringify(r.res) + ', want robot 902 scrapped');
       const n = await note(p); if (n.pop) bad.push(tag + ' debt (7): the note still points at a closed box'); }
     // ---- 8. Bookie's Friend: one hidden card → an info line with OK in the note; four → a list to read, the box stays, the note points
-    const bf = rows => () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.hand = ['bookie_s_friend'];
+    const bf = () => { const rows = window.__rows, D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.hand = ['bookie_s_friend'];
       const r0 = G.teams[1].robots[0], r1 = G.teams[2].robots[0];
       G.fight = { teams: [1, 2], robots: [r0, r1], sides: [0, 1] }; r0.faceDown = []; r1.faceDown = [];
       for (let k = 0; k < rows; k++) (k % 2 ? r1 : r0).faceDown.push({ id: 'hostile_buyout', from: 3 });
       D.humanBookiesFriend(0);
       const iv = setInterval(() => { const R = D.RX, box = document.getElementById('ivModal'); if (!(R.q && !R.q.over) && !(box && !box.hidden)) { clearInterval(iv); r0.faceDown = []; r1.faceDown = []; G.fight = null; window.__res = { hand: me.hand.length }; } }, 100); };
-    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (1 card)', bf(1), /^OK$/, { shot: 'bookies-friend' });
+    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (1 card)', (await p.evaluate(() => { window.__rows = 1; }), bf), /^OK$/, { shot: 'bookies-friend' });
       if (r.n && !(r.n.bs.length === 1 && /Hidden cards/.test(r.n.text))) bad.push(tag + ' Bookie\'s Friend (1): ' + JSON.stringify(r.n)); }
-    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (4 cards)', bf(4), /^OK$/, { pop: true });
+    { await prep(p); const r = await ask(p, tag, 'Bookie\'s Friend (4 cards)', (await p.evaluate(() => { window.__rows = 4; }), bf), /^OK$/, { pop: true });
       if (r.n && !(r.n.pop && r.n.box && r.n.flash)) bad.push(tag + ' Bookie\'s Friend (4): the note does not point at the box: ' + JSON.stringify(r.n)); }
     // ---- 9. layout: 6 answers and a long text (the most the note takes): every button inside the note, the text scrolls;
     //      each answer gives that button's value, closing it gives the default
     const long = 'The host called a 2v2. ' + 'Your robot may go left or right, or stay, or call for help from the crowd. '.repeat(3);
-    const six = k => () => { const D = window.ROBOCUS_DEBUG; D.askBox('🧪 Six answers', long, ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Not now'].map((l, i) => ({ label: l, secondary: i === 5, value: () => 'v' + i })), 0, 'dflt').then(v => { window.__res = v; }); };
+    const six = () => { const D = window.ROBOCUS_DEBUG; D.askBox('🧪 Six answers', window.__long, ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Not now'].map((l, i) => ({ label: l, secondary: i === 5, value: () => 'v' + i })), 0, 'dflt').then(v => { window.__res = v; }); };
     for (const [ans, want] of [[/^Echo$/, 'v4'], [/^Not now$/, 'v5'], ['cancel', 'dflt']]) {
-      await prep(p);
-      const r = await ask(p, tag, 'six answers', six(), ans, { shot: ans === 'cancel' ? null : /Echo/.test(ans.source) ? 'six-answers' : null });
+      await prep(p); await p.evaluate(t => { window.__long = t; }, long);
+      const r = await ask(p, tag, 'six answers', six, ans, { shot: ans === 'cancel' ? null : /Echo/.test(ans.source) ? 'six-answers' : null });
       if (r.n && r.n.bs.length !== 6) bad.push(tag + ' six answers: ' + r.n.bs.length + ' buttons in the note');
       if (r.res !== want) bad.push(tag + ' six answers (' + ans + '): ' + JSON.stringify(r.res) + ', want ' + want);
     }
     if (await p.evaluate(t => window.ROBOCUS_DEBUG.noteFits(t + t + t, [{}, {}]), long)) bad.push(tag + ' a very long text should stay in the box');
+    // ---- 10. an AI team's robot offer at the start of the Market (Kev's playtest, 17 Nov: a click meant for End turn landed on
+    //      Accept 2.3 s later and Snapjaw was in his garage). You have one robot, Rust Rivets three and little use for them.
+    //      a) Decline: nothing changes; b) the pointer is where Accept appears: a click at once, and again 1.5 s later without
+    //      moving, do nothing; a click within 0.8 s from the code does nothing; after the pointer left and came back, Accept trades.
+    const offer = () => { const D = window.ROBOCUS_DEBUG, G = D.G;
+      [1, 2, 3].forEach(i => { const T = G.teams[i], r0 = T.robots[0]; T.robots = [r0]; for (let k = 1; k < (i === 1 ? 3 : 2); k++) { const r = JSON.parse(JSON.stringify(r0)); r.id = 700 + 10 * i + k; T.robots.push(r); } });
+      G.teams[1].credits = 3;
+      const snap = () => G.teams.map(t => t.credits + '/' + t.robots.map(r => r.id).join(','));
+      window.__before = snap(); G.phase = 'market'; G.marketStage = 'open'; D.updateHud();   // the phase changes and the offer comes at once
+      D.openMarketAI().then(() => { window.__res = { before: window.__before, after: snap() }; }); };
+    const tradeNote = () => p.evaluate(() => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)), pb = document.getElementById('promptBar');
+      if (!bt) return null; const r = bt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, arming: bt.classList.contains('arming'), text: (pb.querySelector('.rx-txt') || {}).textContent || '' }; });
+    { await prep(p); await p.mouse.move(5, 5);
+      const r = await ask(p, tag, 'robot offer (Decline)', offer, /^Refuse$/, { shot: 'trade-offer' });
+      if (r.n && !/you get .* in your garage/.test(r.n.text)) bad.push(tag + ' robot offer: the note does not say what you give and get: ' + r.n.text);
+      if (JSON.stringify(r.res.before) !== JSON.stringify(r.res.after)) bad.push(tag + ' robot offer Decline changed the game: ' + JSON.stringify(r.res)); }
+    { await prep(p); await p.mouse.move(5, 5); await p.evaluate(offer);
+      let a = null; for (let t = 0; t < 8000 && !a; t += 100) { a = await tradeNote(); if (!a) await p.waitForTimeout(100); }
+      if (!a) bad.push(tag + ' robot offer: no Accept in the note');
+      else {
+        await p.evaluate(() => window.ROBOCUS_DEBUG.RX.q.arm = null);   // start again with the pointer on Accept, as if it opened under it
+        await p.mouse.move(a.x, a.y); await p.evaluate(() => window.ROBOCUS_DEBUG.updateHud());
+        const early = await p.evaluate(() => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)); bt.click(); return window.ROBOCUS_DEBUG.RX.q.done ? 'answered' : 'ignored'; });
+        await p.mouse.click(a.x, a.y); await p.waitForTimeout(1500); await p.mouse.click(a.x, a.y); await p.waitForTimeout(200);
+        const still = await p.evaluate(() => { const q = window.ROBOCUS_DEBUG.RX.q; return q && !q.done && !q.over; });
+        const held = await tradeNote();
+        console.log(tag + ' robot offer under the pointer: click from the code at once ' + early + '; mouse clicks at once and 1.5 s later: ' + (still ? 'ignored' : 'ANSWERED') + (held && held.arming ? ' (Accept greyed while the pointer stays on it)' : ''));
+        if (early !== 'ignored' || !still || !(held && held.arming)) bad.push(tag + ' robot offer: a click already on its way answered it, or Accept is not greyed under the pointer');
+        await p.mouse.move(5, 5); await p.waitForTimeout(150); await p.mouse.move(a.x, a.y); await p.waitForTimeout(150); await p.mouse.click(a.x, a.y);
+        const res = await waitRes(p);
+        const got = res.after && res.before && res.after[0] !== res.before[0] && /,7\d\d$/.test(res.after[0].split('/')[1]);
+        console.log(tag + ' robot offer → Accept after the pointer moved: ' + JSON.stringify(res));
+        if (!got) bad.push(tag + ' robot offer: Accept did not buy the robot: ' + JSON.stringify(res));
+      } }
     await p.close();
   }
   console.log(errs.length ? 'PAGE ERRORS:\n' + errs.join('\n') : 'no page errors');
