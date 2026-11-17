@@ -191,6 +191,18 @@ html, body {
 .prompt-bar.tight.rxmode .rx-head b { display: none; }
 .prompt-bar.tight .rx-bar { margin-top: 0; }
 .prompt-bar.tight .rx-btns .act.pass { padding-top: 1px; padding-bottom: 1px; }
+/* T20 (17 Nov): a question to you in the note (it was the box over the pit): its title, its text, one button per answer.
+   A question that stays in the box (ticks to set, many answers) or a deal panel: the note says so and points at it */
+.prompt-bar.rxmode.qmode::before { content: 'YOUR MOVE · ANSWER?'; }
+.prompt-bar.rxmode.qmode.rx-sent::before { content: 'ANSWER SENT'; }
+.prompt-bar.rxmode.qpop::before { content: 'YOUR MOVE · IN THE MIDDLE ←'; }
+.prompt-bar .q-t { display: block; font-weight: 700; margin-bottom: 1px; }
+.prompt-bar.tight .q-t { display: inline; margin-right: 5px; }
+.prompt-bar.qmode .rx-btns .act.pick.go { background: var(--ink); color: var(--hazard); }
+.prompt-bar.qpop .rx-txt { font-weight: 600; }
+/* T20: a question's answers are inactive for a moment after it appears, and one that opened under the pointer until the pointer
+   leaves it (a click already on its way must not answer it) */
+.prompt-bar .rx-btns .act.pick.arming, .prompt-bar .rx-btns .act.pick.arming:disabled, #ivModal button.arming { opacity: .45; cursor: wait; }
 /* T12 (Kev, 16 Nov: "the your move box should flash red when a choice needs to be made"): three pulses, then yellow again */
 @keyframes pbFlash { 0%, 100% { background-color: var(--hazard); } 45%, 60% { background-color: #F05A45; box-shadow: 0 0 0 4px rgba(217,58,43,.45), 0 4px 10px rgba(0,0,0,.2); } }
 .prompt-bar.flash:not(.idle) { animation: pbFlash .55s ease-in-out 3; }
@@ -1907,9 +1919,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     renderWhoDots();
     renderWinWatch();
     renderPromptBar();
-    if (!RX.cur) renderFitUndo();
+    const noteBusy = $('#promptBar').classList.contains('rxmode');   // T2/T20: a reaction window or a question has the note
+    if (!noteBusy) renderFitUndo();
     if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
-    if (G.autoLeft != null && !G.over && !RX.cur) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
+    if (G.autoLeft != null && !G.over && !noteBusy) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
     fitPrompt();
     renderHand();
@@ -1985,7 +1998,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
-    pb.classList.remove('rxmode', 'rx-sent', 'repmode');
+    pb.classList.remove('rxmode', 'rx-sent', 'repmode', 'qmode', 'qpop'); pb._rx = null;
     if (rxNote(pb)) return;   // T2: a reaction window is open on this screen: it has the note
     if (G.over) {
       // the winner checkWin picked (most fame, tie: most credits); a Grand Final can put both winners on the target at once
@@ -2892,12 +2905,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* small modal: buttons [{label, value(el), secondary}], optional timeout (ms) and default value */
   // one modal at a time: a second question waits until the first is answered (multiplayer: questions can overlap)
   let modalChain = Promise.resolve(), dealChain = Promise.resolve();
-  function ivModal(title, html, buttons, timeout, def) {
-    const p = modalChain.then(() => ivModal0(title, html, buttons, timeout, def));
+  function ivModal(title, html, buttons, timeout, def, game) {   // game: a game question (T20: the note points at it)
+    const p = modalChain.then(() => ivModal0(title, html, buttons, timeout, def, game));
     modalChain = p.catch(() => null);
     return p;
   }
-  function ivModal0(title, html, buttons, timeout, def) {
+  function ivModal0(title, html, buttons, timeout, def, game) {
     return new Promise(res => {
       let el = document.getElementById('ivModal');
       if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
@@ -2905,11 +2918,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') +
         '</div></div>';
       el.hidden = false;
+      if (game) { el.dataset.game = String(++RX.n); if (G) updateHud(); } else delete el.dataset.game;
       let done = false, tm = null;
-      const finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; res(v); };
+      let finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; if (el.dataset.game) { delete el.dataset.game; if (G) updateHud(); } res(v); };
       el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
       el._finish = () => finish(def);   // closed from outside (the host cancelled the question)
-      if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) bs[Math.floor(Math.random() * bs.length)].click(); }, 60 + Math.random() * 120);
+      if (game) { const st = {}, again = () => { if (done) return; const list = [...el.querySelectorAll('button[data-k]')].map(b => ({ el: b, k: +b.dataset.k }));
+          list.forEach(x => { x.el.disabled = false; }); armBtns(st, list, again); };
+        again(); const fin0 = finish; finish = v => { armDone(st); fin0(v); }; }   // T20: no answer by a click already on its way
+      if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) finish(buttons[+bs[Math.floor(Math.random() * bs.length)].dataset.k].value(el)); }, 60 + Math.random() * 120);
       // Kev, 6 Nov: no countdown bars, they put too much pressure on; every window waits for your answer
     });
   }
@@ -2920,11 +2937,73 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // title/html/labels, gets back {k: button index, inputs}, and runs that button's value() on a hidden copy of the modal.
   function askSeat(seat, title, html, buttons, timeout, def, opt) {   // opt.small: the small reaction window with a countdown (timeout ms) instead of the big question
     const N = window.ROBOCUS_NET, small = !!(opt && opt.small);
-    if (isRemote(seat) && N) return N.ask(seat, { title, html, small, ms: small ? timeout : 0, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
-      const el = document.createElement('div'); el.innerHTML = html; applyInputs(el, a && a.inputs);
-      const b = a && buttons[a.k]; return b ? b.value(el) : def;
-    });
-    return small ? smallAsk(title, html, buttons, timeout, def) : ivModal(title, html, buttons, timeout, def);
+    const qms = small ? timeout : timeout > 0 ? Q_MS : 0;   // T20: a question that had a time limit counts down in the note (Q_MS)
+    if (isRemote(seat) && N) {
+      let tm = null;
+      const p = N.ask(seat, { title, html, small, ms: qms, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
+        clearTimeout(tm);
+        const el = document.createElement('div'); el.innerHTML = html; applyInputs(el, a && a.inputs);
+        const b = a && buttons[a.k]; return b ? b.value(el) : def;
+      });
+      // T20: the joined screen counts down itself and sends "no answer" when the time is up; if that never arrives (a slow or
+      // lost link), the host closes the question a little later: its default answer, as for a player who left
+      if (!small && qms > 0 && N.cancelSeat) tm = setTimeout(() => N.cancelSeat(seat), qms + 4000);
+      return p;
+    }
+    return small ? smallAsk(title, html, buttons, timeout, def) : askBox(title, html, buttons, qms, def);
+  }
+  /* T20 (Kev, 17 Nov: "move into note yes"): a question to one player (the second robot of a double duel, Joint Venture, Hostile
+   * Buyout, Tag Team, a threat, an offer, ...) is asked in the yellow note, not in the box over the pit: its title and text, one
+   * button per answer (✓ when clicked), and the red flash when it lands. Same answers, same defaults, same order (one question at
+   * a time on a screen, as the box had: modalChain), same host-side decisions; a joined screen gets the same message and decides
+   * the same way from what it holds. It stays in the box when the note can't hold it: ticks to set (checkboxes, text) or more than
+   * Q_MAX answers, or a long list to read (3+ lines of list, or more than Q_TXT letters: Bookie's Friend with many hidden cards,
+   * a Host step with several Arena cards); then the note says a question is open in the middle and flashes. The host and a joined
+   * screen decide this from the same html, so both show it in the same place.
+   * Countdown (Kev, 17 Nov: "this joint venture should also be in the yellow box with a timer"): the questions that were given a
+   * time limit in the code (Joint Venture, Hostile Buyout, the Host step's Arena card; the box never showed or used it, Kev 6 Nov
+   * "no countdown bars") count down Q_MS in the note, bar and seconds as the reaction window, and take their default answer when
+   * the time is up. Every other question waits for its answer, as before. */
+  const Q_MAX = 6, Q_TXT = 320, Q_MS = 20000;
+  const noteFits = (html, buttons) => { html = html || '';
+    if (!(buttons.length >= 1 && buttons.length <= Q_MAX) || /<(input|textarea|select)\b/i.test(html)) return false;
+    return (html.match(/<br\s*\/?>/gi) || []).length < 3 && html.replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').length <= Q_TXT; };
+  function askBox(title, html, buttons, ms, def) {
+    return noteFits(html, buttons) ? noteAsk(title, html, buttons, def, ms) : ivModal(title, html, buttons, ms, def, true);
+  }
+  function noteAsk(title, html, buttons, def, ms = 0) {
+    const p = modalChain.then(() => new Promise(res => {
+      const box = document.createElement('div'); box.innerHTML = html;   // value(el) gets the question's html, as the box gave it
+      const q = RX.q = { id: ++RX.n, q: true, title, html, ms: ms > 0 ? ms : 0, t0: performance.now(), buttons, box, done: null, over: false };
+      let tick = null, tm = null;
+      if (q.ms) {   // the countdown: seconds in the note, the default answer when the time is up
+        tick = setInterval(() => { if (RX.q !== q || q.over) return; const sc = document.querySelector('#promptBar .rx-sec'); if (sc) sc.textContent = Math.ceil(rxLeft(q) / 1000) + ' s'; }, 250);
+        tm = setTimeout(() => { if (!q.done) q.finish(def); }, q.ms);
+      }
+      q.finish = v => { if (q.over) return; q.over = true; armDone(q.arm); clearInterval(tick); clearTimeout(tm);
+        if (!q.done) { if (RX.q === q) RX.q = null; }
+        else { setTimeout(() => { if (G) updateHud(); }, Q_HOLD + 50); setTimeout(() => { if (G) updateHud(); }, 4050); }   // the ✓ stays a moment (see qOn)
+        if (G) { updateHud(); renderWaiting(); } res(v); };
+      q.cancel = () => q.finish(def);   // closed from outside (the host cancelled the question, or a person left)
+      if (G) { updateHud(); renderWaiting(); }
+      if (BOT) setTimeout(() => { if (!q.done && !q.over && !window.__noBot && RX.q === q) rxPick(Math.floor(Math.random() * buttons.length), q); }, 60 + Math.random() * 120);
+    }));
+    modalChain = p.catch(() => null);
+    return p;
+  }
+  // the clicked answer (✓) stays in the note a moment: on this page until the game has gone on (Q_HOLD), on a joined screen until
+  // the host's next picture of the game arrived (4 s at most), as T15's ✓ does; a new question or a reaction window replaces it
+  const Q_HOLD = 600;
+  const qOpen = () => !!(RX.q && !RX.q.over);
+  const qOn = () => { const q = RX.q; if (!q) return null;
+    if (q.over && q.done) { const dt = performance.now() - q.doneAt; if (dt > 4000 || (dt > Q_HOLD && (!isClient() || RX.snapAt > q.doneAt))) { RX.q = null; return null; } }
+    return q; };
+  // a game question or deal panel open in the box over the pit on this screen (T20: the note points at it): { id, title } or null
+  function popOpen() {
+    const iv = document.getElementById('ivModal'), dm = document.getElementById('dealModal');
+    if (iv && !iv.hidden && iv.dataset.game) { const h = iv.querySelector('h3'); return { id: 'q' + iv.dataset.game, title: h ? h.innerHTML : 'A question', deal: false }; }
+    if (dm && !dm.hidden && dm.innerHTML) { const h = dm.querySelector('h3') || dm.querySelector('.rw-head span'); return { id: 'd' + (dm.dataset.pq || (dm.dataset.pq = String(++RX.n))), title: h ? h.innerHTML : 'A deal', deal: true }; }
+    return null;
   }
   /* The reaction window (Kev, 14 Nov: a countdown, not a screen-filling question). T2 (17 Nov): it lives in the yellow note
    * (it was a little box over the pit): what is played on whom, the countdown (bar and seconds) and your answers as buttons.
@@ -2936,28 +3015,61 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * count until the window is over on the host (G.reacting cleared) or the count runs out. */
   let smallChain = Promise.resolve();
   const RX = { cur: null, n: 0, tick: null };
+  /* T20 (Kev's playtest, 17 Nov: "wonder why I suddenly ended up with snapjaw in my garage": he clicked End turn, an AI offer
+   * opened where his pointer was, and his next click landed on Accept). A question's answer buttons are inactive for the first
+   * ARM_MS after it appears (they look greyed), and a button that opened under the mouse pointer stays inactive until the
+   * pointer has left it. The test bot and the AI answer through the code, not by a click, so they are not slowed down. */
+  const ARM_MS = 800, PTR = { x: -1e4, y: -1e4 }, ARMS = new Set();   // ARMS: open questions with a button held under the pointer
+  const ptrOver = el => { const r = el.getBoundingClientRect(); return r.width > 0 && PTR.x >= r.left && PTR.x <= r.right && PTR.y >= r.top && PTR.y <= r.bottom; };
+  // st: the question's arming state (kept across redraws); list: [{ el, k }] its answer buttons as drawn now; again(): redraw
+  function armBtns(st, list, again) {
+    const now = performance.now();
+    if (st.at == null) { st.at = now; st.again = again; st.hold = new Set(list.filter(x => ptrOver(x.el)).map(x => x.k)); if (st.hold.size) ARMS.add(st); setTimeout(() => { if (st.again) st.again(); }, ARM_MS + 30); }
+    st.list = list;
+    const early = now - st.at < ARM_MS;
+    list.forEach(x => { const off = early || st.hold.has(x.k); if (off) x.el.disabled = true; x.el.classList.toggle('arming', off); });
+  }
+  const armDone = st => { if (st) { st.again = null; ARMS.delete(st); } };
+  function armMove(e) {
+    PTR.x = e.clientX; PTR.y = e.clientY;
+    for (const st of [...ARMS]) { let ch = false;
+      for (const k of [...st.hold]) { const x = (st.list || []).find(y => y.k === k); if (!x || !x.el.isConnected || !ptrOver(x.el)) { st.hold.delete(k); ch = true; } }
+      if (!st.hold.size) ARMS.delete(st);
+      if (ch && st.again) st.again(); }
+  }
+  document.addEventListener('pointermove', armMove, { passive: true, capture: true });
+  document.addEventListener('pointerdown', armMove, { passive: true, capture: true });
   const rxLeft = r => r.ms > 0 ? Math.max(0, r.ms - (performance.now() - r.t0)) : 0;
   const rxOn = () => { const r = RX.cur; if (!r) return null;
     if (r.done && (rxLeft(r) <= 0 || (G && !G.reacting && performance.now() - r.doneAt > 400) || performance.now() - r.doneAt > 15000)) { rxClear(); return null; }
     return r; };
   function rxClear() { RX.cur = null; clearInterval(RX.tick); RX.tick = null; if (G) updateHud(); }
-  function rxNote(pb) {   // draws the window into the note; false when there is none
-    const r = rxOn(); if (!r) return false;
+  // T25 + T20: during the fate step the note keeps T25's status of your losing robots under a question or the pointer at a deal panel
+  const fateExtra = () => G && G.fight && (G.fateBusy || G.awaitingJudgment) ? myFateTxt() : '';
+  function rxNote(pb) {   // draws the window (or, T20, a question to this player) into the note; false when there is none
+    const r = rxOn() || qOn();
+    if (!r) {   // T20: a question that stays in the box over the pit (ticks to set, many answers) or a deal panel: the note points at it
+      const pop = popOpen(); if (!pop) return false;
+      pb.innerHTML = '<div class="rx-txt"><b class="q-t">' + pop.title + '</b>' + (pop.deal ? 'A deal panel is open in the middle of the screen: make your offer there, or say no.' : 'This question is open in the box in the middle of the screen: answer it there.') + fateExtra() + '</div>';
+      pb.classList.add('rxmode', 'qmode', 'qpop'); pb._rx = { pop: pop.id };
+      return true;
+    }
     const btns = r.buttons.map((b, k) => ({ b, k })), cards = btns.filter(x => !x.b.secondary), pass = btns.filter(x => x.b.secondary);
     const lab = h => { const m = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(h); return m ? [m[1], m[2]] : [h, '']; };   // "🤖 Roll a Security Bot (1 in your garage…)": name + quiet hint
     const btn = (x, cls) => { const dn = r.done && r.done.k === x.k, [nm0, hint] = lab(x.b.label);
-      return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + (dn && x.b.label === 'Pass' ? 'ed' : '') + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
-    const has = cards.length > 0, sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
-    pb.innerHTML = '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>' +
-      (r.ms > 0 ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
-      '<div class="rx-txt">' + r.html + '' + '</div>' +
-      (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
-    pb.classList.add('rxmode'); pb.classList.toggle('rx-sent', !!r.done);
-    pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk); });
+      return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
+    const sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
+    pb.innerHTML = (r.q ? (r.ms > 0 && !r.done ? '<div class="rx-head"><b></b><span class="rx-sec">' + sec + ' s</span></div>' : '') : '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>') +
+      (r.ms > 0 && !(r.q && r.done) ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
+      '<div class="rx-txt">' + (r.q ? '<b class="q-t">' + r.title + '</b>' : '') + r.html + (r.q ? fateExtra() : '') + '</div>' +
+      (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 && !r.q ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
+    pb.classList.add('rxmode'); pb.classList.toggle('qmode', !!r.q); pb.classList.toggle('rx-sent', !!r.done); pb._rx = r;
+    pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk, r); });
+    if (r.q && !r.done && !r.over) armBtns(r.arm || (r.arm = {}), [...pb.querySelectorAll('[data-rk]')].map(el => ({ el, k: +el.dataset.rk })), () => { if (G && RX.q === r && !r.over) updateHud(); });   // T20: no answer by a click already on its way
     return true;
   }
-  function rxPick(k) {
-    const r = RX.cur; if (!r || r.done || r.over) return;
+  function rxPick(k, r = RX.cur) {
+    if (!r || r.done || r.over) return;
     r.done = { k }; r.doneAt = performance.now();
     updateHud();
     afterPaint().then(() => r.finish(r.buttons[k].value(r.box)));   // ✓ on screen first, then the answer
@@ -2982,7 +3094,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* One reaction window on every person's screen AT THE SAME TIME (Kev, 14 Nov). Until now people were asked one after the
    * other, seat 0 first, and only those who held a card: slow, the first seat always had the first go, and a window popping up
    * told the table who held an answer. Now, in a game with several people, every seat in `seats` gets the window: its cards
-   * (optsOf(seat) -> [{ label, value }]) and Pass, or "you have no card to play here" and OK. It ends when someone plays a card
+   * (optsOf(seat) -> [{ label, value }]) and Let it happen (it was Pass), or "you have no card to play here" and OK. It ends when someone plays a card
    * (the first click the host receives wins; nobody else's card is spent), when everyone has answered, or when the time is up.
    * Returns [{ seat, v }] in the order the answers came in (empty: nobody reacted). */
   const REACT_MS = () => BAL.reactMs != null ? BAL.reactMs : 10000;
@@ -2991,7 +3103,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ms = REACT_MS(), got = []; let first = null; const gotOne = new Promise(res => { first = res; });
     G.reacting = { title: ptPlain(title) }; updateHud();
     const pend = seats.map(s => { const o = optsOf(s) || [];
-      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Pass', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
+      return askSeat(s, title, html + (o.length ? '' : '<div class="rw-none">You have no card to play here.</div>'), o.length ? o.concat([{ label: 'Let it happen', secondary: true, value: () => null }]) : [{ label: 'OK', secondary: true, value: () => null }], ms, null, { small: true })
         .then(v => { if (v != null) { got.push({ seat: s, v }); first(); } }, () => {}); });
     let tm = null;
     await Promise.race([Promise.all(pend), gotOne, new Promise(res => { tm = setTimeout(res, ms + 500); })]); clearTimeout(tm);
@@ -3010,7 +3122,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-17f sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-17g questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3103,6 +3215,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function screenState() {
     const open = ['ivModal', 'dealModal'].map(id => { const el = document.getElementById(id); return el && !el.hidden ? id + ': ' + ptPlain(el.innerHTML).slice(0, 300) : null; }).filter(Boolean);
     if (RX.cur && !RX.cur.over) open.unshift('reaction window in the note: ' + ptPlain(RX.cur.title + ' ' + RX.cur.html).slice(0, 300));
+    if (qOpen()) open.unshift('question in the note: ' + ptPlain(RX.q.title + ' ' + RX.q.html).slice(0, 300));
     const txt = id => { const el = document.getElementById(id); return el && !el.hidden ? ptPlain(el.innerHTML).slice(0, 300) : ''; }, fv = document.getElementById('fightView');
     return { seat: HS, role: NETROLE || 'solo', view: [window.innerWidth, window.innerHeight], round: G ? G.round : 0, phase: G ? G.phase + (G.phase === 'market' ? '/' + G.marketStage : '') : '', open, banner: txt('waitRail'), prompt: txt('promptBar'),
       fightOnScreen: !!(fv && !fv.hidden), hand: G && G.teams[HS] ? G.teams[HS].hand.slice() : [], waitsFor: G && HS >= 0 ? seatBusyWith(HS) : null, clickable: [...new Set(hitRegions.map(r => r.kind))], errors: PT.errs };
@@ -3312,7 +3425,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null });
       return N.deal(seat, o).then(st => st && st.give ? st : null);
     }
-    const p = dealChain.then(() => dealPanel0(opts, seat));
+    // T20: while the panel is open the note says so and points at it (popOpen)
+    const p = dealChain.then(() => { const pr = dealPanel0(opts, seat); if (G) updateHud();
+      const end = () => { const dm = document.getElementById('dealModal'); if (dm) delete dm.dataset.pq; if (G) updateHud(); };
+      return pr.then(v => { end(); return v; }, e => { end(); throw e; }); });
     dealChain = p.catch(() => null);
     return p;
   }
@@ -3404,7 +3520,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => act('sellStash', +b.dataset.sell); });
     el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
-      const r = fits.length === 1 ? fits[0] : await ivModal('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));
+      const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));   // T20: in the note
       if (!r || stashOf(t)[k] !== id) return;
       act('fitStash', k, id, r.id);
     }; });
@@ -3525,7 +3641,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   /* Security Bots (target only). 14 Nov: a person DECIDES each roll, and the choice sits in the reaction window that
    * everyone gets (its cards, "Roll a Security Bot" from the garage, "Discard a Security Bot from your hand and roll", or
-   * Pass), so the table can't tell a bot in the hand from a reaction card or from nothing. The AI still rolls every bot. */
+   * Let it happen), so the table can't tell a bot in the hand from a reaction card or from nothing. The AI still rolls every bot. */
   const canBots = (F, c, T) => !!(T && T !== F && c.harmful && !['Security Override', 'Asset Strip'].includes(c.name));   // Kev, 8 Nov: the Security Bot answers can't be blocked by the bots
   async function rollBot(F, c, T, fromHand) {   // one bot is used up; true = it blocks
     if (fromHand) { if (!removeFromHand(T, 'security_bot')) return false; } else { if (secReady(T) < 1) return false; T.secBots--; }
@@ -3675,8 +3791,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return null;
   }
   async function jointVenture(F, T) {
+    // T20 (17 Nov): no answer (the 20 s ran out, or a player left) counts as Defect, which never costs you credits (it was Commit,
+    // which loses your 2 Cr if the other side defects: a "yes" that costs credits is never the default)
     const ask = async X => isHuman(X.i)
-      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, true)
+      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, false)
       : rnd() < 0.65;
     const a = await ask(F), b = await ask(T);
     if (a && b) { addCr(F, 5, 'card'); addCr(T, 5, 'card'); notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
@@ -4253,7 +4371,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (!buyer) continue;
         const price = partValue(id);
         let yes;
-        if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>.<br>' + partForTxt(buyer, id), buyer.i);
+        if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i);
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
         if (!yes) continue;
         transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: [id] });
@@ -4271,7 +4389,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
       if (buyer.credits < price) continue;
       let yes;
-      if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You have only one robot.', buyer.i);
+      if (isHuman(buyer.i)) yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i);
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
       transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
@@ -4284,7 +4402,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const A = G.teams.filter(T => !isHuman(T.i) && partGain(T, id) && T.credits >= partValue(id) + 1).sort((x, y) => partWorth(y, id) - partWorth(x, id))[0];
       if (!A || rnd() < 0.4) continue;
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
-      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>.<br>For them: ' + partForTxt(A, id), P.i)) {
+      if (await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i)) {
         transfer(A, P, { cr: price, items: [] }, 'trade'); transfer(P, A, { cr: 0, items: [id] });
         notify('🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
       }
@@ -6637,6 +6755,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const checkedFids = new Set();
   function applySnap(m) {
     const old = G, g = JSON.parse(m.g);
+    RX.snapAt = performance.now();   // T20: an answered question's ✓ stays until the host's next picture of the game (qOn)
     SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null; netWaiting = m.waiting || null; renderWaiting();
     if (m.bal) { balMerge(BAL, m.bal); applyBal(false); }
     if (m.win) WIN_FAME = m.win; if (m.hostFame != null) HOST_FAME = m.hostFame;
@@ -6827,7 +6946,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function autoStep() {
     if (!G || G.over || isClient() || window.__noAuto) return;
     const step = gatherStep(), hs = humanSeats();
-    const quiet = !!step && !G.reacting && !autoPend && !(RX.cur && !RX.cur.over) && !['ivModal', 'dealModal'].some(id => { const el = document.getElementById(id); return el && !el.hidden; }) && hs.every(s => { const b = seatBusyWith(s); return !b || b === step[0]; });
+    const quiet = !!step && !G.reacting && !autoPend && !(RX.cur && !RX.cur.over) && !qOpen() && !['ivModal', 'dealModal'].some(id => { const el = document.getElementById(id); return el && !el.hidden; }) && hs.every(s => { const b = seatBusyWith(s); return !b || b === step[0]; });
     const key = quiet ? step[0] + ':' + G.round : null;
     if (key !== AUTO.key) { AUTO.key = key; AUTO.t0 = Date.now(); }
     const isDone = s => !!(G.gather && G.gather.key === key && G.gather.done[s]);
@@ -6850,8 +6969,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.reacting) list.push({ seat: -1, what: G.reacting.title });   // a reaction window: no names (who is still thinking would give its cards away)
     else for (const s of humanSeats()) {
       const q = (pend || []).find(x => x.seat === s);
-      const mine = s === HS && ['ivModal', 'dealModal'].map(id => document.getElementById(id)).find(el => el && !el.hidden);
-      const w = q ? ptPlain(q.title || 'a question') : mine ? ptPlain((mine.querySelector('h3') || {}).innerHTML || 'a question') : WAIT_WORDS[seatBusyWith(s)] || seatBusyWith(s);
+      const mine = s === HS && (qOpen() ? { q: RX.q } : ['ivModal', 'dealModal'].map(id => document.getElementById(id)).find(el => el && !el.hidden));   // T20: a question in the note counts as the box did
+      const w = q ? ptPlain(q.title || 'a question') : mine ? ptPlain((mine.q ? mine.q.title : (mine.querySelector('h3') || {}).innerHTML) || 'a question') : WAIT_WORDS[seatBusyWith(s)] || seatBusyWith(s);
       if (!q && !mine && AUTO_STEPS[seatBusyWith(s)] && !window.__noAuto) continue;   // a step that goes on by itself: nobody is waited for
       if (w) list.push({ seat: s, what: String(w).replace(/^[^A-Za-z0-9]+/, '').slice(0, 40) });
     }
@@ -6885,7 +7004,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * NOTHING FOR YOU TO DO (grey) when the step is someone else's. */
   function promptState() {
     const pb = document.getElementById('promptBar'); if (!pb || !G) return;
-    const rx = RX.cur && pb.classList.contains('rxmode') ? RX.cur : null;   // T2: a reaction window in the note
+    const rx = pb.classList.contains('rxmode') ? pb._rx : null;   // T2: a reaction window in the note; T20: or a question, or a pointer at the box
+    if (rx && rx.pop) { pb.classList.remove('idle', 'locked', 'wait', 'sent'); flashNote(pb, 'pq|' + rx.pop); return; }   // T20: YOUR MOVE, flashes once
+    if (rx && rx.q) {   // T20: a question to you: YOUR MOVE and the red flash; answered: ANSWER SENT, quiet
+      pb.classList.toggle('idle', !!rx.done || rx.over); pb.classList.remove('locked', 'wait', 'sent');
+      flashNote(pb, 'q|' + rx.id);
+      return;
+    }
     if (rx) {   // YOUR MOVE (and the red flash) only with an answer to click; nothing to answer: quiet, the same count
       const can = !rx.done && !rx.over && rx.buttons.some(b => !b.secondary);
       pb.classList.toggle('idle', !can); pb.classList.remove('locked', 'wait', 'sent');
@@ -6914,14 +7039,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const fresh = multi.filter(id => !PFLASH.seen.has(id)); fresh.forEach(id => PFLASH.seen.add(id));
     return [G.round, G.phase, G.setupStep, G.marketStage, !!G.marketResolved, G.intrigueTurn, head, (P.install || []).map(x => x.lot).join(',')].join('|') + (fresh.length ? '|new' + fresh.join(',') : '');
   }
-  const PFLASH = { key: '', tm: 0, seen: new Set() };
+  const PFLASH = { key: '', tm: 0, seen: new Set(), ov: new Set() };
+  const OVKEY = /^(rxq?|q|pq)\|/;   // the note is lent out: a reaction window (rx, rxq quiet), a question (q, T20), a pointer at the box (pq, T20)
   function flashNote(pb, key) {
     if (key === PFLASH.key) return;
     const was = PFLASH.key; PFLASH.key = key.replace(/\|new.*$/, '');
-    // T2: a reaction window flashes when it opens; back from it to the step you were on is not a new choice
-    if (/^rxq?\|/.test(key) && !/^rxq?\|/.test(was)) PFLASH.before = was;
-    else if (/^rxq?\|/.test(was) && !/^rxq?\|/.test(key)) { const b = PFLASH.before; PFLASH.before = null; if (key === b) return; }
-    if (!key || /^rxq\|/.test(key) || (key === PFLASH.key && key === was)) return;
+    // T2: a reaction window flashes when it opens; back from it to the step you were on is not a new choice.
+    // T20: the same for a question; each one flashes once (back to it from a reaction window: no second flash)
+    if (OVKEY.test(key)) { if (!OVKEY.test(was)) PFLASH.before = was; if (/^rxq\|/.test(key) || PFLASH.ov.has(key)) return; PFLASH.ov.add(key); }
+    else if (OVKEY.test(was)) { const b = PFLASH.before; PFLASH.before = null; if (key === b) return; }
+    if (!key || (key === PFLASH.key && key === was)) return;
     pb.classList.remove('flash'); void pb.offsetWidth; pb.classList.add('flash');
     clearTimeout(PFLASH.tm); PFLASH.tm = setTimeout(() => pb.classList.remove('flash'), 2000);
   }
@@ -6978,6 +7105,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
     if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
     if (document.getElementById('ivModal') && !document.getElementById('ivModal').hidden) return;
+    if (qOpen()) return;   // T20: a question in the note (the bot answers it there)
     if (document.getElementById('dealModal') && !document.getElementById('dealModal').hidden) return;
     const t = me(), P = PS(), R = Math.random;
     const busy = seatBusyWith(HS);
@@ -7052,15 +7180,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (VW.V && t.sp > 0) VW.V.speed = t.sp;   // only the host sets the speed
     },
     showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
-      return (q.small ? smallAsk : ivModal)(q.title, q.html, q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) })), q.small ? q.ms : undefined);
+      const bs = q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) }));
+      return q.small ? smallAsk(q.title, q.html, bs, q.ms) : askBox(q.title, q.html, bs, q.ms);   // T20: in the note when it fits, as on the host, with its countdown
     },
     showDeal(o) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null })); },
-    closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } if (RX.cur && !RX.cur.over) RX.cur.cancel(); },
+    closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } if (RX.cur && !RX.cur.over) RX.cur.cancel(); if (qOpen()) RX.q.cancel(); },
     notify, get desyncs() { return desyncs; }, get resims() { return resims; }
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, startLots, robotLot, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
 
@@ -9181,6 +9310,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, questions in the note', '17 Nov 2026', [
+      'Questions to you are now asked in the yellow note on the right, not in a box over the pit: the second robot of a double duel, Joint Venture, Hostile Buyout, Tag Team, offers and threats, Spare or scrap, the Stash\'s "On which robot?", and the rest. The note says YOUR MOVE, flashes red, and shows one button per answer (✓ when clicked). The waiting list shows you as the one it waits for.',
+      'Questions with ticks to set or a long list (Ask for backing, Over your hand limit, Bookie\'s Friend with 3+ cards, deal panels) stay in the box in the middle; the note then says so and flashes.',
+      'Joint Venture, Hostile Buyout and the Host step\'s Arena card count down 20 s in the note. No answer: Defect (Joint Venture, it was Commit), Refuse, No.',
+      'A question\'s buttons wait 0.8 s before they take a click, and a button that appears under your mouse waits until you move the mouse off it: a click meant for something else can no longer answer it. AI offers say what you give and what you get.',
+      'Reaction window: "Pass" is now "Let it happen".' ]],
     ['2.0.1, sponsors are bid for', '17 Nov 2026', [
       'Sponsors: all six lie face up in the pit and every team bids for them in secret, with − / + on each sponsor (at most your credits in total; bid nothing if you like). When everyone has locked, the sponsor with the highest bid goes first: its highest bidder pays and signs it, and that team\'s other bids drop out (you get one sponsor). A tie: only the tied teams rebid in secret, adding on top; still tied: a random draw, said in the log. A team with no sponsor at the end gets one of the rest for free. You can change your bids after locking until everyone has locked, as in the Market.',
       'Fixed: with 4 players online, one player signing a sponsor could swap a card in another player\'s 2-sponsor deal under their mouse. Nothing on your screen changes now when someone else bids or locks; you only see who is still bidding.',

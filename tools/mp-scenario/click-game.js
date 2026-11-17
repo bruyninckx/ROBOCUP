@@ -129,7 +129,7 @@ const { collect, choose, liveCards, click, drag } = require('./clicker.js');
         bump(label, s, 'stuck'); console.log('STUCK', kind(s), 'seat', s, '·', label, '· round', st.round, st.phase, st.stage);
         lastKey[s] = '!' + key;
         // let the game go on: close its questions, play the step with the test bot's own actions, then skip the seat
-        await p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX; if (R && R.cur && !R.cur.over) R.cur.cancel(); for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } window.__noBot = false; });
+        await p.evaluate(() => { const R = window.ROBOCUS_DEBUG && window.ROBOCUS_DEBUG.RX; if (R && R.cur && !R.cur.over) R.cur.cancel(); if (R && R.q && !R.q.over) R.q.cancel(); for (const id of ['dealModal', 'ivModal']) { const m = document.getElementById(id); if (m && !m.hidden && m._finish) m._finish(); } window.__noBot = false; });
         await p.waitForTimeout(1200); await p.evaluate(() => { window.__noBot = true; });
         await host.evaluate(s => window.ROBOCUS_GAME.skipSeat(s), s);
         continue;

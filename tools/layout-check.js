@@ -50,7 +50,7 @@ const OUT = require('path').join(process.env.LAYOUT_OUT || require('os').tmpdir(
     report.push(Object.assign({ name }, r));
   };
   const clickOn = async () => { const btn = (await p.$('#pAct2')) || (await p.$('#pAct1')); if (btn) try { await btn.click({ timeout: 400 }); } catch (e) {} };
-  const until = async (fn, max = 400) => { for (let i = 0; i < max; i++) { if (await p.evaluate(fn)) return true; const m = await p.$('#ivModal:not([hidden]) button.secondary'); if (m) { try { await m.click({ timeout: 300 }); } catch (e) {} continue; } const dm = await p.$('#dealModal:not([hidden]) [data-k="no"]'); if (dm) { try { await dm.click({ timeout: 300 }); } catch (e) {} continue; } await clickOn(); await p.waitForTimeout(90); } return false; };
+  const until = async (fn, max = 400) => { for (let i = 0; i < max; i++) { if (await p.evaluate(fn)) return true; const m = (await p.$('#ivModal:not([hidden]) button.secondary')) || (await p.$('#promptBar.qmode [data-rk].secondary:not(:disabled)')) || (await p.$('#promptBar.qmode [data-rk]:not(:disabled)')); if (m) { try { await m.click({ timeout: 300 }); } catch (e) {} continue; } const dm = await p.$('#dealModal:not([hidden]) [data-k="no"]'); if (dm) { try { await dm.click({ timeout: 300 }); } catch (e) {} continue; } await clickOn(); await p.waitForTimeout(90); } return false; };
   await check('01-setup');
   await p.click('#pAct2'); await p.waitForTimeout(500);
   await check('02-upkeep');

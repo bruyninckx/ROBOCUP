@@ -35,6 +35,7 @@ const collect = () => {
 // step it is in, m = this seat's memory ({ tries, pressed, at, n }; tries is kept by the caller)
 async function choose(p, C, label, key, m) {
     const press = re => C.items.find(i => i.type === 'btn' && re.test(i.label));
+    if (C.modal && !C.items.length) { await p.mouse.move(5, 5); return; }   // T20: a question's buttons wait 0.8 s, and one that opened under the pointer waits for it to leave
     if (C.modal === 'dealModal') { const plus = C.items.filter(i => i.label === '+'); if (plus.length && rnd() < 0.4) await click(p, pick(plus)); else await click(p, C.items.find(i => i.k === (rnd() < 0.7 ? 'lock' : 'no')) || pick(C.items)); return; }
     if (C.modal) { const bs = C.items.filter(i => i.type === 'btn'), ins = C.items.filter(i => i.type === 'in'); if (ins.length && rnd() < 0.3) await click(p, pick(ins)); else if (bs.length) await click(p, rnd() < 0.7 ? (bs.find(i => i.primary) || pick(bs)) : pick(bs)); return; }
     if (label === 'intrigue turn') {
