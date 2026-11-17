@@ -12,9 +12,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K19. Arenas** (T4): an arena costs 1 Cr and is now worth about two thirds of a level for one fight: keep 1 Cr or 2 Cr?
-  Thwacker is hopeless on Ice (20%) and weak in the Cage (26%): a known weakness, or soften Ice? Whaler wins 97% on Saws
-  against its own level (it already did): keep as the Saw specialist, or cap? Killbox is the mildest arena: sharper?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
   enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
   out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
@@ -42,6 +39,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K19 (17 Nov): arenas.** Kev: "Keep arena credit at 1. 2. Good 3. Ok": an arena stays 1 Cr; Thwacker's weakness on Ice
+  and in the Cage stays; Whaler stays the Saw specialist. (The Killbox question was not asked: it stays as it is.)
 - **K7 (16 Nov): the YOUR MOVE box flashes red when a choice has to be made.** Kev: "I meant the your move box should
   flash red when a choice needs to be made". Part of T12.
 - **K8 (16 Nov): the in-game power map shows robots as they are.** Kev: "power map shold be the shifted version, lets wait
@@ -59,19 +58,20 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
-- **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
-  Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
   check the level steps again (`tools/damage-lab/tag-sim2.js` duel section). Done when: every step is 63-68%.
-- **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
-  `docs/robocus-2.0.1-screen.md`).
 - **T1. Kev: retire the side folders.** Double-click `tools/retire-side-folders.cmd` once: it pushes the three 11 Nov
   experiment branches (`claude/arena-25d`, `claude/arena-3d`, `claude/arena-looks`; 4 commits only on Kev's PC) and only
   then removes the `.wt` folders.
 
 ## In progress
 
-_None._
+- **T2. Reaction window inside the note instead of a popup** (after T7: same file) (open item of the 2.0.1 screen rework,
+  `docs/robocus-2.0.1-screen.md`).
+  Kev (17 Nov): "Do some work". Worker on branch `claude/reaction-in-note`, started 17 Nov.
+- **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
+  Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
+  Kev (17 Nov): "Do some work". Worker on branch `claude/game-length`, started 17 Nov.
 
 ## Done
 
