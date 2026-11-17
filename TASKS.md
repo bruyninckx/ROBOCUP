@@ -12,6 +12,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
+- **K21. Arenas in whole games** (T19): the bookie's formula uses old per-arena tables for same-level duels and the new
+  `ARENA_FIT` for the rest. Make it one source (drop the old tables: a few lines)? Let the AI host pay for an arena down
+  to 1 Cr left (it keeps 3 Cr now, so arenas are rare in bot games)?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
   enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
   out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
@@ -69,6 +72,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T21. Bid on sponsors; no screen flip when someone else picks.** Kev (17 Nov): "when game starts and sponsor needs to be
+  chosen, when another player picked another sponsor suddenly the screen flipped for the player, which is strange, let
+  people bet on sponsors instead, with rebid, if rebid still undecided, do random". Goal: the sponsor step is a sealed
+  auction (everyone bids at the same time, ties rebid, a rebid that is still tied is decided at random); nobody's screen
+  moves because of another player's choice. Files: `prototypes/tabletop-2.html` (setup step, `ACT.pickSponsor`, AI,
+  bot), `rules.html`, `docs/sponsors.md`. Worker on branch `claude/sponsor-auction`, started 17 Nov. Done when: scripted
+  solo and 4-player online runs (bids, tie, rebid, random), screenshots, game-sim and `mp-test` pass, and what the prices
+  do to start credits is measured.
 - **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** Kev (17 Nov): "let it happen";
   "move into note yes" (to: other popup questions such as the second robot in a double duel, Joint Venture, Hostile
   Buyout). Goal: every question the game asks one player mid-turn shows in the note with its answers as buttons, the same
@@ -76,12 +87,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `prototypes/tabletop-2.html` (`askSeat`, `smallAsk`, `RX`). Worker on branch `claude/questions-in-note`, started 17 Nov.
   Done when: screenshots of each moved question in the note at both window sizes, scripted answers work solo and from a
   joined client, game-sim, `reaction.js`, `waiting.js` and `mp-test` pass.
-- **T19. Check game length after the arena change.** The two check games ran 15 and 13 rounds (11 and 12 before T4).
-  Two games prove nothing: run the game-length check (`docs/game-length-check.md`) on 20+ bot games.
-  Kev (17 Nov): "Do some work". Worker on branch `claude/game-length`, started 17 Nov.
-
 ## Done
 
+- **T19. Game length after the arena change** (17 Nov, measuring only): 200 paired bot games, 11.55 → 11.63 rounds
+  (+0.09 ± 0.13): not longer. Also found: the host's edge on its own picked arena is not seen in whole games (78% won vs
+  77% expected without the arena); the bookie's same-level arena duels still use the 15 Nov per-arena tables; the AI
+  rarely pays for an arena (keeps 3 Cr back). `docs/robocus-game-length-arenas.md`, `tools/arena-games-report.js`.
+  Branch `claude/game-length`, commit `0ab3723`. No game file changed.
 - **T2. The reaction window lives in the yellow note** (17 Nov): the floating box is gone; a player who can answer gets
   the cards and Pass as buttons and the note flashes red; a player with nothing to answer gets a quiet OK in a grey note.
   Timing as before (10 s, closes early when everyone has clicked; the first hand-back dropped the OK and was sent back).
