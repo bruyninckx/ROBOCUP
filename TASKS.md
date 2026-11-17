@@ -84,23 +84,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
 - **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
   weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
-- **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
-  "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
-  Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
-  Firewall "ANSWER?", he clicked it, the Override was stopped and his own scheme stayed blocked. Goal: a reaction window
-  only offers a card to a player it can help; where it is offered, each button says what it does to whom ("Firewall:
-  stop the Override, the block on Inside Leak stands"). Files: `prototypes/tabletop-2.html` (`reactionWindow`, the
-  override step). Depends on: after T20 (same code). Done when: the scenario is scripted (own scheme, block, rival's
-  Override: no Firewall offer to the scheme's player; a rival who is hurt still gets it), `reaction.js`, game-sim and
-  `mp-test` pass.
-- **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
-  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
-  Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
-  "Start the auction" click; it stays open while everyone places sealed bids on the lots, and ends when everybody has
-  locked their bids; then rebids or the next step. Files: `prototypes/tabletop-2.html` (Market stages, `gather`, deal
-  panel), `rules.html`, `docs/rulebook.md`. Depends on: after T21 (it reuses the Market auction code) and T20. Done when:
-  scripted solo and online runs (trade while bidding, lock, a trade after a lock, all locked → resolves), game-sim and
-  `mp-test` pass.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
@@ -111,6 +94,25 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
+  "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
+  Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
+  Firewall "ANSWER?", he clicked it, the Override was stopped and his own scheme stayed blocked. Goal: a reaction window
+  only offers a card to a player it can help; where it is offered, each button says what it does to whom ("Firewall:
+  stop the Override, the block on Inside Leak stands"). Files: `prototypes/tabletop-2.html` (`reactionWindow`, the
+  override step). Depends on: after T20 (same code). Done when: the scenario is scripted (own scheme, block, rival's
+  Override: no Firewall offer to the scheme's player; a rival who is hurt still gets it), `reaction.js`, game-sim and
+  `mp-test` pass.
+  Worker on branch `claude/reaction-own-scheme`, started 17 Nov.
+- **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
+  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
+  Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
+  "Start the auction" click; it stays open while everyone places sealed bids on the lots, and ends when everybody has
+  locked their bids; then rebids or the next step. Files: `prototypes/tabletop-2.html` (Market stages, `gather`, deal
+  panel), `rules.html`, `docs/rulebook.md`. Depends on: after T21 (it reuses the Market auction code) and T20. Done when:
+  scripted solo and online runs (trade while bidding, lock, a trade after a lock, all locked → resolves), game-sim and
+  `mp-test` pass.
+  Worker on branch `claude/market-one-step`, started 17 Nov.
 - **T29. Teams start with 10 Cr.** Kev (17 Nov): "10" (to: start with 10 credits instead of 8, to make up for what
   sponsors now cost). `BAL.startCredits` 8 → 10, texts and docs. Worker on branch `claude/start-10`, started 17 Nov. Done
   when: round-1 Market spend and game length measured against 8 Cr on the same seeds, game-sim and `mp-test` pass.
