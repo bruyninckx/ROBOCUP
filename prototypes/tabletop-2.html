@@ -1976,7 +1976,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (tie) {
           const spn = esc(SPONSORS[tie.sp].name), tied = tie.teams.map(i => esc(G.teams[i].name)).join(', '), myAdd = (tie.add || {})[HS] || 0, maxMyAdd = (tie.maxAdd || {})[HS] || 0;
           if (tieMine()) {
-            pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr for ${spn}!</b> Tied: ${tied}. Add on top in secret (+${myAdd}/${maxMyAdd} Cr → total ${tie.baseBid + myAdd} Cr). ⚠️ Still tied after this: a random draw.</span>` +
+            pb.innerHTML = `<span>⚔️ <b>Tie at ${tie.baseBid} Cr for ${spn}</b> (${tied}). Add on top in secret: +${myAdd} → ${tie.baseBid + myAdd} Cr.<br>Still tied after this: a random draw.</span>` +
               `<button class="act secondary" id="pRbM"${myAdd > 0 ? '' : ' disabled'}>− 1 Cr</button><button class="act secondary" id="pRbP"${myAdd < maxMyAdd ? '' : ' disabled'}>+ 1 Cr</button>` +
               `<button class="act" id="pAct1">Lock Rebid (+${myAdd} Cr) →</button>`;
             $('#pRbM').onclick = () => { if (isClient()) $('#pRbM').classList.add('pressed'); act('rebidAdj', -1); };
@@ -1992,7 +1992,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         else if (iWait('spbids')) {
           pb.innerHTML = '<span>🏁 <b>Sponsor bids locked</b> (' + spent + ' Cr). ' + waitTxt('spbids') + relockTxt('your sponsor bids') + '</span>';
         } else {
-          pb.innerHTML = '<span>🏁 <b>Bid for a sponsor</b> (' + spent + '/' + t.credits + ' Cr) with − / + in the pit, in secret.<br>Highest bid signs it and pays; you get one. Tie: rebid. None won: one free.</span>' +
+          pb.innerHTML = '<span>🏁 <b>Bid for a sponsor in secret</b> (' + spent + '/' + t.credits + ' Cr): − / + on the cards.<br>Top bid signs it and pays. Tie: rebid. Win none: one free.</span>' +
             fameSel + (spent ? '<button class="act secondary" id="pClr">✖ Bid nothing</button>' : '') +
             '<button class="act" id="pAct1">' + (spent ? 'Lock Bids →' : 'Lock: bid nothing →') + '</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
           $('#pAct1').onclick = () => act('spLock');
@@ -2006,7 +2006,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else {
         const pickNum = G.setupStep === 'draft1' ? 1 : 2;
         const stepNum = pickNum + 1;
-        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> Keep 1 of your 2 level-0 starters (here or in the pit). Everyone picks at the same time; all picks are revealed together.</span>` +
+        pb.innerHTML = `<span>🤖 <b>Starting Phase (${stepNum}/${STARTER_PICKS + 1}) — Draft ${STARTER_PICKS > 1 ? 'Starter Robot ' + pickNum + ' of ' + STARTER_PICKS : 'Your Starter Robot'}:</b> keep 1 of your 2 level-0 starters.<br>Everyone picks at once; all picks are shown together.</span>` +
           // T9: one button per starter, the same click as KEEP … in the pit
           myDraftOffer().map((n, k) => STARTERS[n] ? pickBtn('keep', k, '✋ Keep ' + n, wepLabel(n), { tip: 'Keep ' + n + ': ' + descOf(n) }) : '').join('') +
           `<button class="act secondary" id="pAct1">Random Starter →</button>`;
@@ -7573,7 +7573,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.setupStep === 'sponsor') {   // T21: all 6 sponsors face up; sealed bids with − / +; a tie: the rebid on the tied sponsor
       const A = G.spAuc || {}, tie = curTie(), open = spOpen(), mine = spBidsOf(), spent = spSpent();
       pitHead(tie ? '0 · SPONSORS · TIE FOR ' + SPONSORS[tie.sp].name.toUpperCase() : '0 · SPONSORS · SEALED BIDS',
-        tie ? tie.teams.map(i => G.teams[i].name.split(' ')[0]).join(' VS ').toUpperCase() + ' @ ' + tie.baseBid + ' CR · STILL TIED: RANDOM' : 'YOU BID ' + spent + ' OF ' + t.credits + ' CR · HIGHEST BID SIGNS', tie ? '#F2B27A' : '#CFC6B7');
+        tie ? tie.teams.map(i => G.teams[i].name.split(' ')[0]).join(' VS ').toUpperCase() + ' @ ' + tie.baseBid + ' CR' : 'YOU BID ' + spent + ' OF ' + t.credits + ' CR · HIGHEST BID SIGNS', tie ? '#F2B27A' : '#CFC6B7');
       const gap = 10, cw = Math.min(226, Math.floor((L.aw - 16 - 2 * gap) / 3)), ch = Math.max(138, Math.min(160, Math.floor((L.ah - 40 - gap) / 2)));
       const sx = cx - (3 * cw + 2 * gap) / 2, sy = Math.max(y0 + 6, cy - ch - gap / 2 - 10);
       SPONSOR_KEYS.forEach((k, idx) => {
@@ -7608,7 +7608,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (isNetGame() || tie) { let x = x0 + 8; const yb = y0 + L.ah - 22;
         G.teams.forEach(tm => { if (tm.i === HS) return;
           const st = !isHuman(tm.i) ? 'AI' : tie ? (tie.teams.includes(tm.i) ? (tie.waiting.includes(tm.i) ? 'rebidding…' : 'rebid locked ✓') : 'waiting') : open ? (G.gather && G.gather.key === 'spbids:' + G.round && G.gather.done[tm.i] ? 'locked ✓' : 'bidding…') : '…';
-          const txt = esc(isHuman(tm.i) ? seatName(tm.i) : tm.name) + ': ' + st;
+          const txt = (isHuman(tm.i) ? seatName(tm.i) : tm.name) + ': ' + st;
           ctx.font = '600 10px ' + F_SANS; const w = Math.min(196, ctx.measureText(txt).width + 18); ctx.fillStyle = 'rgba(43,33,24,0.78)'; rrect(ctx, x, yb, w, 18, 3); ctx.fill(); ctx.fillStyle = tm.col; ctx.fillRect(x, yb, 5, 18);
           ctx.fillStyle = '#EDE6DA'; ctx.textAlign = 'left'; fitText(ctx, txt, x + 10, yb + 13, w - 14, '600', 10); x += w + 6; }); }
       return;
@@ -7618,6 +7618,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const pickNum = G.setupStep === 'draft1' ? 1 : 2;
     pitHead(STARTER_PICKS > 1 ? '0 · DRAFT · STARTER ' + pickNum + ' OF ' + STARTER_PICKS + ': KEEP 1 OF 2' : '0 · DRAFT · YOUR 2 STARTERS: KEEP 1', 'LEVEL 0 · 2 PART SLOTS + 1 LEGENDARY', '#CFC6B7');
     const offer = myDraftOffer(), picked = PS().draftPick;
+    if (G.setupStep === 'draft1' && G.spAuc && (G.spAuc.results || []).length) {   // T21: who signed which sponsor, for how much (the auction's result)
+      const R = G.spAuc.results; let x = x0 + 8; ctx.textAlign = 'left';
+      G.teams.forEach(tm => { const r = R.find(q => q.team === tm.i); if (!r || !SPONSORS[r.sp]) return;
+        const txt = (tm.i === HS ? 'You' : isHuman(tm.i) ? seatName(tm.i) : tm.name) + ': ' + SPONSORS[r.sp].name + ' · ' + (r.how === 'free' ? 'free' : r.price + ' Cr' + (r.how === 'draw' ? ', draw' : r.how === 'rebid' ? ', rebid' : ''));
+        ctx.font = '600 10px ' + F_SANS; const w = Math.min((L.aw - 40) / 4, ctx.measureText(txt).width + 18); ctx.fillStyle = 'rgba(43,33,24,0.78)'; rrect(ctx, x, y0 + 8, w, 18, 3); ctx.fill(); ctx.fillStyle = tm.col; ctx.fillRect(x, y0 + 8, 5, 18);
+        ctx.fillStyle = '#EDE6DA'; fitText(ctx, txt, x + 10, y0 + 21, w - 14, '600', 10); x += w + 6; });
+    }
     const cw = 214, ch = 200, gap = 16;
     const startX = cx - (offer.length * cw + (offer.length - 1) * gap) / 2, by = cy - ch / 2 - 12;
     if (picked) { ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'You keep ' + picked + '. All picks are revealed together.', cx, by + ch + 22, 560, '400', 15, F_STEN); }
