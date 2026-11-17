@@ -3044,11 +3044,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (r.done && (rxLeft(r) <= 0 || (G && !G.reacting && performance.now() - r.doneAt > 400) || performance.now() - r.doneAt > 15000)) { rxClear(); return null; }
     return r; };
   function rxClear() { RX.cur = null; clearInterval(RX.tick); RX.tick = null; if (G) updateHud(); }
+  // T25 + T20: during the fate step the note keeps T25's status of your losing robots under a question or the pointer at a deal panel
+  const fateExtra = () => G && G.fight && (G.fateBusy || G.awaitingJudgment) ? myFateTxt() : '';
   function rxNote(pb) {   // draws the window (or, T20, a question to this player) into the note; false when there is none
     const r = rxOn() || qOn();
     if (!r) {   // T20: a question that stays in the box over the pit (ticks to set, many answers) or a deal panel: the note points at it
       const pop = popOpen(); if (!pop) return false;
-      pb.innerHTML = '<div class="rx-txt"><b class="q-t">' + pop.title + '</b>' + (pop.deal ? 'A deal panel is open in the middle of the screen: make your offer there, or say no.' : 'This question is open in the box in the middle of the screen: answer it there.') + '</div>';
+      pb.innerHTML = '<div class="rx-txt"><b class="q-t">' + pop.title + '</b>' + (pop.deal ? 'A deal panel is open in the middle of the screen: make your offer there, or say no.' : 'This question is open in the box in the middle of the screen: answer it there.') + fateExtra() + '</div>';
       pb.classList.add('rxmode', 'qmode', 'qpop'); pb._rx = { pop: pop.id };
       return true;
     }
@@ -3059,7 +3061,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
     pb.innerHTML = (r.q ? (r.ms > 0 && !r.done ? '<div class="rx-head"><b></b><span class="rx-sec">' + sec + ' s</span></div>' : '') : '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>') +
       (r.ms > 0 && !(r.q && r.done) ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
-      '<div class="rx-txt">' + (r.q ? '<b class="q-t">' + r.title + '</b>' : '') + r.html + '</div>' +
+      '<div class="rx-txt">' + (r.q ? '<b class="q-t">' + r.title + '</b>' : '') + r.html + (r.q ? fateExtra() : '') + '</div>' +
       (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 && !r.q ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
     pb.classList.add('rxmode'); pb.classList.toggle('qmode', !!r.q); pb.classList.toggle('rx-sent', !!r.done); pb._rx = r;
     pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk, r); });

@@ -47,10 +47,16 @@ const path = require('path'), fs = require('fs');
   const click = async (p, re) => { for (let t = 0; t < 3000; t += 100) { if (await p.evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await p.waitForTimeout(100); } return click0(p, re); };
   const click0 = (p, re) => p.evaluate(src => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => typeof src === 'number' ? +x.dataset.rk === src : new RegExp(src).test(x.textContent)); if (!bt) return false; bt.click(); const d = document.querySelector('#promptBar [data-rk].done'); return d && /^✓/.test(d.textContent.trim()) ? 'tick' : 'clicked'; }, typeof re === 'number' ? re : re.source);
   const waitRes = async (p, max = 8000) => { for (let t = 0; t < max; t += 100) { const v = await p.evaluate(() => window.__res); if (v !== undefined) return v; await p.waitForTimeout(100); } return 'TIMEOUT'; };
+  // close whatever question, box or deal panel is still open (each closes with its default answer), and let it settle
+  const clearAll = async p => { for (let i = 0; i < 20; i++) { const open = await p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; let any = false;
+      if (R.q && !R.q.over) { R.q.cancel(); any = true; }
+      for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) { el._finish(); any = true; } }
+      return any; }); if (!open) break; await p.waitForTimeout(300); } await p.evaluate(() => { window.__res = undefined; }); };
   const cancel = p => p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); });
   // one question: run `start` (it sets window.__res when the game step is over), check the note, answer with `ans` (a RegExp,
   // or 'cancel'), return { n: the note before the click, after: the note right after the click, res }
   async function ask(p, tag, name, start, ans, o = {}) {
+    await clearAll(p);   // a case that failed must not leave its question open for the next one
     await p.evaluate(start);
     const n = await waitQ(p, o.pop);
     if (!n) { bad.push(tag + ' ' + name + ': no question in the note'); await cancel(p); return { n: null, res: await waitRes(p) }; }
@@ -66,7 +72,7 @@ const path = require('path'), fs = require('fs');
     let after = null;
     if (ans === 'cancel') await cancel(p);
     else if (ans === 'wait') { /* T20: let the countdown run out */ }
-    else if (o.pop) { await p.waitForTimeout(900); await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, ans.source); }
+    else if (o.pop) { await p.waitForTimeout(900); await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => typeof src === 'number' ? +x.dataset.k === src : new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, typeof ans === 'number' ? ans : ans.source); }
     else { const c = await click(p, ans); if (!c) bad.push(tag + ' ' + name + ': no button ' + ans); else if (c !== 'tick') bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }   // ✓ checked right after the click, in the same moment
     const res = await waitRes(p, ans === 'wait' ? 26000 : 8000);
     console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : ans === 'wait' ? '(no answer, time up)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
@@ -78,7 +84,7 @@ const path = require('path'), fs = require('fs');
     // ---- 1. second robot: you have 4 robots (3 to pick from); F: you vs team 1
     const second = () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; const F = { teams: [0, 1], robots: [me.robots[0], G.teams[1].robots[0]], sides: [0, 1] };
       D.addSeconds(F).then(() => { window.__res = { n: F.robots.length, second: F.teams[2] === 0 ? F.robots[2].id : null, side: F.sides[2] }; }); };
-    for (const [ans, want] of [[/Thumper/, 'robot'], [/^Just one$/, null], ['cancel', null]]) {
+    for (const [ans, want] of [[2, 'robot'], [/^Just one$/, null], ['cancel', null]]) {   // answer #2: your third robot (id 902); the names depend on the deal
       await prep(p, 3);
       const r = await ask(p, tag, 'second robot', second, ans, { shot: ans === 'cancel' || want === null ? null : 'second-robot' });
       if (r.n && !(r.n.bs.length === 4 && /Second robot/.test(r.n.title))) bad.push(tag + ' second robot: the note shows ' + JSON.stringify(r.n.bs.map(x => x.t)) + ' / ' + r.n.title);
@@ -138,7 +144,7 @@ const path = require('path'), fs = require('fs');
       const r = await ask(p, tag, 'upkeep debt (2 robots)', debt, 1, { shot: 'debt-note' });
       if (JSON.stringify(r.res.gone) !== '[900]') bad.push(tag + ' debt: ' + JSON.stringify(r.res) + ', want robot 900 scrapped'); }
     { await prep(p, 6);
-      const r = await ask(p, tag, 'upkeep debt (7 robots)', debt, /Thumper/, { pop: true, shot: 'popup-pointer' });
+      const r = await ask(p, tag, 'upkeep debt (7 robots)', debt, 3, { pop: true, shot: 'popup-pointer' });   // answer #3: robot 902
       if (r.n && !(r.n.pop && r.n.box && r.n.move && r.n.flash && /in the middle/.test(r.n.text) && /upkeep/.test(r.n.title))) bad.push(tag + ' debt with 7 robots: the note does not point at the box: ' + JSON.stringify(r.n));
       if (JSON.stringify(r.res.gone) !== '[902]') bad.push(tag + ' debt (7): ' + JSON.stringify(r.res) + ', want robot 902 scrapped');
       const n = await note(p); if (n.pop) bad.push(tag + ' debt (7): the note still points at a closed box'); }
