@@ -12,9 +12,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K26. Sponsor auction** (T21): the first Market spends about 1.3 Cr less: start with 10 Cr instead of 8? The AI never
-  bids over 3 Cr, so a person who bids 4 always gets the sponsor: fine in solo? Should everyone see all bids after the
-  auction (today only who signed what and the price)?
 - **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
   and Security Bots are exhausted. Fix the text or the rule?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
@@ -51,6 +48,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K26 (17 Nov): sponsors.** Kev: "10, fine, ok": teams start with 10 Cr (was 8), T29; the AI bidding at most 3 Cr for a
+  sponsor is fine; Joint Venture with no answer counts as Defect.
 - **K25 (17 Nov): a trade after locking unlocks you.** Kev: "yes" (to: a trade that changes your credits after you locked
   your bids takes your lock off, as a changed bid does). He did not object to the reading of T26 (the open market runs
   during the sealed bids), so T26 goes ahead on that reading once T21 is merged.
@@ -108,6 +107,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T29. Teams start with 10 Cr.** Kev (17 Nov): "10" (to: start with 10 credits instead of 8, to make up for what
+  sponsors now cost). `BAL.startCredits` 8 → 10, texts and docs. Worker on branch `claude/start-10`, started 17 Nov. Done
+  when: round-1 Market spend and game length measured against 8 Cr on the same seeds, game-sim and `mp-test` pass.
 - **T20. Popup questions move into the yellow note; "Pass" becomes "Let it happen".** (Handed back 20:30 at `916b6f7`;
   SENT BACK: merged with T21 and T25 its `questions-note.js` fails (the sponsor auction changed the dice, so the test
   games deal other robots) and its "deal panel is open" note hides T25's fate status line. Rebase and fix.) Kev (17 Nov): "let it happen";
