@@ -169,8 +169,8 @@
     // Kev, 17 Nov (T4, "lets change the arenas so they have an impact"): spikes along the whole of every wall (was the middle 2.8 m)
     killbox: { label: 'Killbox (saws, spiked walls)', pit: false, saws: [[0, -2.5], [0, 2.5]], spikes: true, spikeLen: 3.7 },
     // Kev, 9 Nov (arena layouts for the tabletop): a smaller cage and a slippery floor
-    cage: { label: 'The Cage (5 x 5 m)', pit: false, saws: [], spikes: false, inset: 1.5 },        // the walls start 1.5 m in (17 Nov, T4: was 1 m, 6 x 6)
-    ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.25, iceTracks: 0.55 },   // wheels grip x 0.25 (was 0.4), studded tracks x 0.55, legs keep their footing (17 Nov, T4)
+    cage: { label: 'The Cage (4.5 x 4.5 m)', pit: false, saws: [], spikes: false, inset: 1.75 },        // the walls start 1.75 m in (17 Nov, T4: was 1 m, 6 x 6)
+    ice: { label: 'Ice rink (slippery floor)', pit: false, saws: [], spikes: false, ice: 0.3, iceTracks: 0.6 },   // wheels grip x 0.3 (was 0.4), studded tracks x 0.6, legs keep their footing (17 Nov, T4)
     // Kev, 11 Nov (gang test: how many starters beat one stacked robot): an exotic floor. A turntable in the middle that
     // flips direction every 10 s, two conveyor belts along the top and bottom walls (clockwise loop), floor saws where the
     // belts end, and two spring pylons that throw robots back. Not in the tabletop's arena list.
