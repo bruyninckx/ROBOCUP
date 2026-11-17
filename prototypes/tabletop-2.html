@@ -1992,7 +1992,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         else if (iWait('spbids')) {
           pb.innerHTML = '<span>🏁 <b>Sponsor bids locked</b> (' + spent + ' Cr). ' + waitTxt('spbids') + relockTxt('your sponsor bids') + '</span>';
         } else {
-          pb.innerHTML = '<span>🏁 <b>Bid for a sponsor</b> (' + spent + '/' + t.credits + ' Cr): use − / + on the sponsors in the pit; nobody sees your bids.<br>Highest bid signs it and pays; you sign one. Ties rebid; no sponsor won: a free one at random.</span>' +
+          pb.innerHTML = '<span>🏁 <b>Bid for a sponsor</b> (' + spent + '/' + t.credits + ' Cr) with − / + in the pit, in secret.<br>Highest bid signs it and pays; you get one. Tie: rebid. None won: one free.</span>' +
             fameSel + (spent ? '<button class="act secondary" id="pClr">✖ Bid nothing</button>' : '') +
             '<button class="act" id="pAct1">' + (spent ? 'Lock Bids →' : 'Lock: bid nothing →') + '</button>' + (isNetGame() ? '' : '<button class="act" id="pAct2">Quick-Start →</button>');
           $('#pAct1').onclick = () => act('spLock');
@@ -7574,7 +7574,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const A = G.spAuc || {}, tie = curTie(), open = spOpen(), mine = spBidsOf(), spent = spSpent();
       pitHead(tie ? '0 · SPONSORS · TIE FOR ' + SPONSORS[tie.sp].name.toUpperCase() : '0 · SPONSORS · SEALED BIDS',
         tie ? tie.teams.map(i => G.teams[i].name.split(' ')[0]).join(' VS ').toUpperCase() + ' @ ' + tie.baseBid + ' CR · STILL TIED: RANDOM' : 'YOU BID ' + spent + ' OF ' + t.credits + ' CR · HIGHEST BID SIGNS', tie ? '#F2B27A' : '#CFC6B7');
-      const gap = 10, cw = Math.min(196, Math.floor((L.aw - 16 - 2 * gap) / 3)), ch = 138;
+      const gap = 10, cw = Math.min(226, Math.floor((L.aw - 16 - 2 * gap) / 3)), ch = Math.max(138, Math.min(160, Math.floor((L.ah - 40 - gap) / 2)));
       const sx = cx - (3 * cw + 2 * gap) / 2, sy = Math.max(y0 + 6, cy - ch - gap / 2 - 10);
       SPONSOR_KEYS.forEach((k, idx) => {
         const sp = SPONSORS[k], bx = sx + (idx % 3) * (cw + gap), by = sy + Math.floor(idx / 3) * (ch + gap), bid = mine[k] || 0;
@@ -7585,9 +7585,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         ctx.strokeStyle = edge; ctx.lineWidth = isTie || bid > 0 ? 4 : 3; rrect(ctx, bx, by, cw, ch, 6); ctx.stroke();
         ctx.fillStyle = signedBy ? '#fff' : HAZ; ctx.textAlign = 'left'; fitText(ctx, signedBy ? 'SIGNED: ' + signedBy.name.toUpperCase() : sp.tag.toUpperCase(), bx + 8, by + 13, cw - (bid > 0 ? 62 : 16), '700', 9.5, F_MONO);
         if (bid > 0 && !signedBy) { ctx.fillStyle = HAZ; ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, bx + cw - 50, by + 2, 46, 14, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'BID ' + bid, bx + cw - 27, by + 12.5, 42, '700', 9, F_MONO); }
-        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, sp.name, bx + 8, by + 37, cw - 16, '400', 16, F_STEN);
-        ctx.fillStyle = '#4A4136'; ctx.font = '500 10.5px ' + F_SANS;
-        wrapLines(ctx, sp.text, cw - 16, 3).forEach((ln, li) => ctx.fillText(ln, bx + 8, by + 53 + li * 13));
+        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, sp.name, bx + 8, by + 39, cw - 16, '400', 18, F_STEN);
+        ctx.fillStyle = '#4A4136'; ctx.font = '500 12px ' + F_SANS;
+        wrapLines(ctx, sp.text, cw - 16, 3).forEach((ln, li) => ctx.fillText(ln, bx + 8, by + 57 + li * 15));
         help(bx, by, cw, ch - 40, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text) + '<br><i>Sealed bids: the highest bid signs it and pays its bid. A team signs one sponsor.</i>');
         const fy = by + ch - 36;
         if (signedBy) { const r = (A.results || []).find(x => x.sp === k); ctx.fillStyle = signedBy.col; ctx.textAlign = 'center'; fitText(ctx, (r && r.price ? 'PAID ' + r.price + ' CR' : 'FREE') + (r && r.how === 'rebid' ? ' · REBID' : r && r.how === 'draw' ? ' · RANDOM DRAW' : ''), bx + cw / 2, fy + 19, cw - 16, '700', 11, F_MONO); }
@@ -7820,7 +7820,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     drawBar(ctx, hx, y0 + 42, hw, 6, t.fame / WIN_FAME, t.col, LINE, 0);
     help(hx - 4, y0 + 26, hw + 8, 24, esc(t.name) + ': fame ' + t.fame + '/' + WIN_FAME, 'First team to ' + WIN_FAME + ' fame wins.<br><br>' + WIN_CHECKS);
     drawPurse(ctx, t, hx, y0 + 61, hw, 3.6);
-    ctx.fillStyle = MUTED; fitText(ctx, sp ? sp.name : 'Sponsor: picking…', hx, y0 + 80, hw, '600', 10.5);
+    ctx.fillStyle = MUTED; fitText(ctx, sp ? sp.name : 'Sponsor: bidding…', hx, y0 + 80, hw, '600', 10.5);
     if (sp) help(hx - 4, y0 + 70, hw + 8, 14, 'Sponsor: ' + esc(sp.name), '<b>' + esc(sp.tag) + '</b>: ' + esc(sp.text));
     const assets = '🃏' + t.hand.length + ' ' + secTxt(t) + ' 📦' + stashOf(t).length + ' ' + crewIcons(t);
     ctx.fillStyle = INK; fitText(ctx, assets, hx, y0 + 96, hw, '600', 10.5, F_MONO);
