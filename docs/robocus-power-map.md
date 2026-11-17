@@ -28,8 +28,11 @@ The in-game overlay below is new and works from the game's own data.
 - A robot with parts or damage stands where it fights now, with a tag like `★2.6` (orange: up; red: down). Its as-new spot
   keeps a faint copy, and a dotted line in the team colour joins the two.
 - Hover: name, level, weapon, owner, parts (with tier and what each adds), damage, "fights like".
-- Click: green arrows to the robots it counters, red arrows from the robots that counter it, everything else dimmed. The side
-  panel lists both, and for a robot in this game the bookie's band against each rival robot (open floor, `pairP` with parts
+- Click: green arrows to the robots it counters, red arrows from the robots that counter it, everything else dimmed. The
+  thicker the arrow, the stronger the counter (Kev, 17 Nov, T23: "increasing the size of the arrow depending on how much it
+  counters"); see "Counter arrows" below. The side panel lists both, strongest first, each with a bar as long and thick as its
+  arrow and the chance range. Hover an arrow, its robot or its row to pick out the pair: the others fade, and a label gives the
+  chance and what the levels give. The side panel also has, for a robot in this game, the bookie's band against each rival robot (open floor, `pairP` with parts
   and damage, the same chip as the scout panel: a band for changed robots, the 20% range when both come as new; 🎯 / ⚠️ as
   in the game).
 
@@ -46,8 +49,23 @@ The in-game overlay below is new and works from the game's own data.
   going down to its ★2 copy. Past the edge of the axis it stands at the edge with « or »; below starters it reads `< ★0`.
 - Tokens of a band are spread so names do not overlap: robots in this game first, each placed as close to its true spot as
   possible (5 rows at most, sideways as needed).
-- "Counters" use the game's tag rule (`counterOf`: the matchup is `BAL.counterTag`, 40 points, off what the level gap
-  gives), on the robots as they come. The arrows go to this game's copies of a robot when it has some.
+- Counters on the map (`pmCounters`): the matchup is 30 points (`PM_MIN`) or more off what the level gap gives (`MX_EXP`,
+  open floor), on the robots as they come. The arrows go to this game's copies of a robot when it has some.
+
+## Counter arrows (T23, 17 Nov 2026)
+
+- Width grows smoothly with how far the matchup is from what the levels give: 1.6 px at 30 points, 10 px at 85 points or more
+  (`pmW`); the head grows with it. 30-39 points: thin and light (no tag in the game); 40+: dark, the same counters as the game's
+  🎯 / ⚠️ tags (`counterOf`, `BAL.counterTag`; those keep their own rule). Strongest drawn on top.
+- Examples: Gyro over Pogo (Gyro wins 100% where the levels give 15%: 85 points, the thickest); Buzzkill (a starter) over Pogo
+  (65% where 6%: 59 points, thick); Pogo over Hydra (100% where 65%: 35 points, thin and light).
+- Why 30: a cell of the table is 20 fights, one standard error is ±11 points at 50% and ±8 at 15/85%; 30 points is at least
+  2.7 errors, so of the 528 pairs about 4 could pass by chance (25 would let in about 13). The level-gap value is an average of
+  many pairs, nearly noise-free.
+- Arrows per robot, over the 33 robots (min / median / max): 0 / 2 / 9 at 40 points (before T23), 1 / 4 / 14 at 30 (Hydra 14,
+  Gyro 13, Corkscrew 11).
+- When the picked robot, or a robot at its arrows, has parts or damage in this game, the panel says the arrows are as they
+  come and the bands above are today's odds.
 
 ## Display only
 
@@ -56,5 +74,5 @@ network, and calls no dice. Face-down cards are not counted (the strength model 
 lot stays a mystery. Checked: a state hash of `G` and `LOTS` before opening and after hovering and clicking every token and
 both switch positions is identical; an online game with every screen opening and closing the map every 3 s had 0 desyncs.
 
-Code: `openPowerMap` / `closePowerMap` and the `pm*` helpers in `prototypes/tabletop-2.html` (CSS `#pmapBox`). Debug:
+Code: `openPowerMap` / `closePowerMap` and the `pm*` helpers (arrows: `pmCounters`, `pmW`, `pmArrow`, `pmArrowHit`, `pmHl`) in `prototypes/tabletop-2.html` (CSS `#pmapBox`). Debug:
 `ROBOCUS_DEBUG.openPowerMap()`, `ROBOCUS_DEBUG.PM` (items with their place, `msOpen`).
