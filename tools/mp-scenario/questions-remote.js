@@ -15,6 +15,8 @@ const fs = require('fs'), path = require('path');
   const H = await host.evaluate(() => window.ROBOCUS_GAME.HS);
   if (H !== 0) bad.push('the host is not seat 0');
   const prep = (extra = 0) => host.evaluate(([C, extra]) => { const D = window.ROBOCUS_DEBUG, G = D.G;
+    if (window.ROBOCUS_NET && window.ROBOCUS_NET.cancelSeat) window.ROBOCUS_NET.cancelSeat(C);   // a failed case must not leave its question open for the next one
+   
     G.teams.forEach((t, i) => { t.credits = 12; t.fame = 8; t.hand = []; t.secBots = 0; t.exSec = 0; t.robots.forEach(r => { r.exhausted = false; }); });
     const T = G.teams[C]; if (!window.__r0) window.__r0 = JSON.stringify(T.robots[0]); T.robots = [JSON.parse(window.__r0)];
     for (let k = 0; k < extra; k++) { const src = G.teams[(C + 1 + k) % 4].robots[0], r = JSON.parse(JSON.stringify(src)); r.id = 800 + k; r.exhausted = false; T.robots.push(r); }
