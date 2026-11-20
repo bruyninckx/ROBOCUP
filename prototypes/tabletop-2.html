@@ -3935,7 +3935,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         let rs = !ready.length ? [] : isHuman(F.i) ? await crunchAsk(F, m, s, ready) : spareRobots(F);
         rs = (rs || []).filter(r => F.robots.includes(r) && !r.exhausted);
         F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; rs.forEach(r => exhaustBot(r, 'Crunch Week', F.i));
-        const g = m + s + rs.length; addCr(F, g, 'card'); if (rs.length) { const st = cst(id, F.i); st.robotsEx = (st.robotsEx || 0) + rs.length; }
+        const g = m + s + rs.length; addCr(F, g, 'card'); if (rs.length) { const st = cst(id); st.robotsEx = (st.robotsEx || 0) + rs.length; }
         say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + exList(m, s, rs) + ' for +' + g + ' Cr.' + (rs.length ? ' ' + rs.map(r => '<b>' + esc(r.name) + '</b>').join(' and ') + (rs.length > 1 ? ' miss' : ' misses') + ' this round\'s fight; ready next Upkeep.' : '')); break; }
       case 'Scrapyard Salvage': addCr(F, 3, 'card'); say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
       case 'Headhunter Fee': { const c = loseCrew(F); const g = c ? 2 * CREW[c.kind].value : 0; addCr(F, g, 'card'); say('💼 ' + nm(F) + ' sells its ' + (c ? crewRef(c.kind) : 'crew') + '\'s contract for +' + g + ' Cr.'); break; }
@@ -3959,7 +3959,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (rs) rs = rs.filter(r => T.robots.includes(r) && !r.exhausted);
         if (rs && rs.length === need) {
           T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + b; rs.forEach(r => exhaustBot(r, 'Press Tour', F.i)); addFame(T, 1);
-          if (rs.length) { const st = cst(id, F.i); st.robotsEx = (st.robotsEx || 0) + rs.length; }
+          if (rs.length) { const st = cst(id); st.robotsEx = (st.robotsEx || 0) + rs.length; }
           say('📣 Press Tour: ' + nm(T) + ' exhausts ' + exList(a, b, rs) + ': +1 fame.' + (rs.length ? ' ' + rs.map(r => '<b>' + esc(r.name) + '</b>').join(' and ') + (rs.length > 1 ? ' miss' : ' misses') + ' this round\'s fight; ready next Upkeep.' : ''));
         } else if (readyRobots(T).length >= need) say('📣 Press Tour: ' + nm(T) + ' keeps its robots ready (no fame).');
         else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready robots, crew or bots.');
