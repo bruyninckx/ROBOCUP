@@ -658,7 +658,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const BAL_DEFAULT = {
     startFame: 0, winFame: 12,
     fameFloor: 1,                 // fame never drops below this by losing it (or below the start fame, if that is lower)
-    startCredits: 8,
+    startCredits: 10,            // Kev, 17 Nov (T29): was 8; since T21 sponsors are bid for (about 1.6 Cr a team), the 2 extra Cr are for the first Market
     // Kev, 8 Nov (round 2 "combo"): 2 Mechanics + Accountant + Analyst; more engineers in the crew deck; 7 crew lots; lean part lots
     // Kev, 9 Nov (round 7): crew = Mechanics only (was 2 Mechanics + Accountant + Analyst, 13-card crew deck, 7 crew lots)
     startCrew: { mechanic: 2, chief: 0, accountant: 0, analyst: 0 }, sovereignMechanics: 3,   // Kev, 11 Nov: was 4 (Sovereign won 45% of 224 AI seats; 35% with 3)
@@ -3129,7 +3129,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-20a reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-20b start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -9372,6 +9372,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, start with 10 credits', '20 Nov 2026', [
+      'Every team starts with 10 credits (was 8), to make up for what the sponsor costs. The AI still pays at most 3 for a sponsor, so the first Market is a bit busier than before sponsors were bid for.']],
     ['2.0.1, reactions that help you', '20 Nov 2026', [
       'Kev\'s playtest: his own Firewall was offered against a rival\'s Override that was pushing HIS scheme through, and it kept his scheme blocked. A reaction is now only offered when it can help you: never a block of your own scheme or of a scheme that only gives you something (Fan Meet, Industry Insider, ... on you), never an Override of your own block, never a Firewall that keeps a block on your own scheme.',
       'Every answer button says what it does, to whom: "🛡️ PR Spin: block it (Steel\'s Inside Leak fails)", "⛓️ Override the block (your Inside Leak goes through)", "🛡️ Firewall: keep the block (...)", "Let it happen (it hits you)". The text says YOU / YOUR when it is about you.',
