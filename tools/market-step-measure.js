@@ -50,7 +50,11 @@ const PAGE = arg('page', 'prototypes/tabletop-2.html'), N = +arg('games', 60), P
 const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', ''));
 (async () => {
   const { chromium } = require('playwright');
-  const b = await chromium.launch(); const res = []; let next = SEED0; const t0 = Date.now();
+  // results are saved after every game; a run that was stopped carries on where it was (same tag, same page)
+  const OUT = path.join(OUTD, 'market-' + TAG + '.json'), old = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+  const res = old && old.page === PAGE ? old.res.filter(g => g.over || g.errs.every(e => !/^crash/.test(e))) : [], have = new Set(res.map(g => g.seed));
+  const save = () => fs.writeFileSync(OUT, JSON.stringify({ tag: TAG, page: PAGE, games: N, seed0: SEED0, res }, null, 0));
+  const b = await chromium.launch(); let next = SEED0; const t0 = Date.now();
   async function one(seed) {
     const p = await b.newPage({ viewport: { width: 1280, height: 800 } }); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
@@ -91,10 +95,10 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', ''));
       r.seed = seed; r.errs = errs.concat(r.errs); res.push(r);
       process.stdout.write(`\r${TAG}: ${res.length}/${N} games, ${((Date.now() - t0) / 60000).toFixed(1)} min   `);
     } catch (e) { res.push({ seed, over: false, errs: errs.concat(['crash: ' + e.message]), waits: {} }); }
-    finally { await p.close(); }
+    finally { await p.close().catch(() => {}); save(); }
   }
-  await Promise.all(Array.from({ length: PAR }, async () => { while (next < SEED0 + N) await one(next++); }));
+  await Promise.all(Array.from({ length: PAR }, async () => { while (next < SEED0 + N) { const sd = next++; if (!have.has(sd)) await one(sd); } }));
   await b.close();
-  fs.writeFileSync(path.join(OUTD, 'market-' + TAG + '.json'), JSON.stringify({ tag: TAG, page: PAGE, games: N, seed0: SEED0, res }, null, 0));
+  res.sort((x, y) => x.seed - y.seed); save();
   console.log('\nsaved sims/market-' + TAG + '.json');
 })();
