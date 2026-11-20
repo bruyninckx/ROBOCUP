@@ -78,7 +78,7 @@ All teams do Upkeep at the same time; the game does the bookkeeping. Upkeep ends
 
 ## 5. Intrigue phase
 
-Starting with last round's host and going clockwise (round 1: the first team), each team takes one Intrigue turn. There are no timers.
+Starting with last round's host and going clockwise (round 1: the first team), each team takes one Intrigue turn. The turn itself has no timer; a question to you during it does (see 10. Online play, Timers).
 
 **Your turn.** In any order, you may:
 
@@ -180,7 +180,7 @@ The first team at **12 fame** when the game checks wins. The checks: at the end 
 - **Start:** the host clicks 🌐 Online → Host a game and sends the invite link. Players open it, type a name, pick a colour and press Ready. Seats nobody takes are played by the AI. A person's team carries their name.
 - **The host's browser runs the game.** Everyone else sees the same table from their own seat: own hand, own bids, own questions. Hidden from others: hand cards, deck order, sealed bids, face-down cards.
 - **Same time:** Upkeep, open market, bids, host bid, bets, robot picks and the next-round button wait until every person is done ("Waiting for …"). Intrigue turns and the starter draft go one person at a time.
-- **No timers.** If someone keeps the table waiting, the host gets 🔔 Nudge and ⏭ Skip buttons (Skip takes the default answer for that step).
+- **Timers on questions** (Kev, 20 Nov; solo too): every question to one player that holds up the table (an offer, a threat, a backing request, a Tag Team offer, the second robot, a deal panel, the host picking the fighters or deciding spare or scrap, ...) counts down: 20 s, 30 s for a question in the box (ticks or a list), 45 s for a deal panel. No answer in time: the safe default (refuse, no deal, no swap, just one robot; a forced choice: what the AI or the host's Skip would do), and a ⌛ line in your log says what was decided. The clock starts when the question is on your screen and stops while the game is paused. Steps where everyone acts at once (Upkeep, Market, bids, bets, sponsor bids, the draft, sending a robot) have no timer: if someone keeps the table waiting there, the host gets 🔔 Nudge and ⏭ Skip buttons (Skip takes the default answer for that step). The table of every question: docs/robocus-2.0.1-screen.md (T31).
 - **Drop-outs:** the game pauses until the player is back (same link, same name). The host can let the AI take the seat instead.
 - **Save:** the game saves at the start of every round; the host downloads it from the 🌐 badge (💾 Save game) and can load it in the lobby of a new room (same names get the same seats).
 - **Fights** run on every screen in sync; live combat cards land at the same moment for everyone.
@@ -196,7 +196,7 @@ These were in the 5 Nov draft but the published game does not do them. Kev to de
 - **Invitations one team at a time** (and the 2v2 invite pairing): the host picks both teams at once.
 - **Fitting parts only in the open market** (Kev, 5 Nov): the game also lets you fit Stash parts in Upkeep.
 - **Selling robots and crew to the bank:** only Stash parts can be sold to the bank.
-- **Soft timers and voting to move on:** replaced by no timers plus the host's Nudge and Skip.
+- **Soft timers and voting to move on:** replaced by timers on one player's questions (20 Nov) plus the host's Nudge and Skip for the steps everyone plays at once.
 - **Robot-count wager of 3** and the Mirror with 3 copies: the game uses 1–2 robots per side and 2 copies.
 - **Breaks only on legendaries and parts worth 4–5:** in the game every part can break, at a rate set by its strain.
 

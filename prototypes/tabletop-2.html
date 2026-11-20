@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="a63dc7e9">
+<meta charset="utf-8"><meta name="robocus-files" content="352be701">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -632,17 +632,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=a63dc7e9"></script>
-<script src="../src2/dmath.js?b=a63dc7e9"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=352be701"></script>
+<script src="../src2/dmath.js?b=352be701"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=a63dc7e9"></script>
-<script src="../src2/lineup.js?b=a63dc7e9"></script>
-<script src="../src2/matrix.js?b=a63dc7e9"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=a63dc7e9"></script>
-<script src="../src2/sound.js?b=a63dc7e9"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=a63dc7e9"></script>
+<script src="../src2/engine.js?b=352be701"></script>
+<script src="../src2/lineup.js?b=352be701"></script>
+<script src="../src2/matrix.js?b=352be701"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=352be701"></script>
+<script src="../src2/sound.js?b=352be701"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=352be701"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -3259,7 +3259,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-20c play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-20d every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -9530,6 +9530,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, every question has a timer', '20 Nov 2026', [
+      'Every question to one player that holds up the table now counts down: offers, threats, backing requests, Tag Team, the second robot, Swap the Entry, Paid Off, Museum Donation, can\'t pay upkeep, the hand limit, and the rest. 20 s in the yellow note, 30 s for a question in the box (ticks or a list), 45 s for a deal panel. The last 5 seconds turn red.',
+      'No answer in time: the safe answer (refuse, no deal, no swap, just one robot, the part stays in the Stash; a forced choice: what the AI would pick), and a ⌛ line in your log says what was decided.',
+      'When you host: picking the fighters (30 s) and spare or scrap (20 s) count down too; time up does what the host\'s Skip does.',
+      'The clock starts when the question is on your screen (a second question waiting behind another gets its full time) and stops while the game is paused. Online the host\'s game decides when time is up, the same for everyone.' ]],
     ['2.0.1, play-latest serves the game', '20 Nov 2026', [
       'play-latest now starts a small game server on your PC (a black window: leave it open while you play) and opens the game at http://127.0.0.1:8765. The bookie\'s test fights then run beside the game on your cores, so fights with three or four robots get real test fights too, and the screen no longer stands still while the bookie watches. "play-latest file" opens the game as a file, the old way.',
       'Hosting online from your PC: the invite link now points at the public copy of the game (GitHub Pages) with the same room code, and the lobby says so. A link to your own PC was no use to your friends.' ]],
@@ -9686,7 +9691,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=a63dc7e9"></script>
+<script src="../src2/net.js?b=352be701"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
