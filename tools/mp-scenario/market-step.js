@@ -86,8 +86,9 @@ const path = require('path'), fs = require('fs');
     else if (s3.robots.length !== s3a.robots.length + 1 || s3.cr >= s3a.cr || JSON.stringify(s3.bids) !== JSON.stringify(s3a.bids) || s3.stage !== 'lots') bad.push(tag + ': accepting the offer: ' + JSON.stringify(s3));
     // 4. a trade (deal panel) that leaves the bids above the credits
     await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.teams[0].credits = 6; G.ps[0].bids = [3, 3, 0, 0, 0]; D.updateHud(); });
+    await until(p, () => !!document.querySelector('#promptBar [data-trade="2"]'), 5000);   // the answered offer's ✓ stays in the note a moment
     await p.evaluate(() => { const bt = document.querySelector('#promptBar [data-trade="2"]'); if (bt) bt.click(); });
-    if (!await until(p, () => { const d = document.getElementById('dealModal'); return d && !d.hidden; }, 5000)) bad.push(tag + ': no deal panel');
+    if (!await until(p, () => { const d = document.getElementById('dealModal'); return d && !d.hidden; }, 5000)) bad.push(tag + ': no deal panel; note: ' + JSON.stringify(await note(p)) + ' ' + (await lastMsgs(p, 4)).join(' / ') + ' ' + JSON.stringify(await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { trading: G.teams[0].trading, deals: G.mDeals, open: D.mktOpen(), offer: window.__offer, q: !!(D.RX.q && !D.RX.q.over), dm: (document.getElementById('dealModal') || {}).hidden }; })));
     for (let k = 0; k < 4; k++) await p.evaluate(() => { const bt = document.querySelector('#dealModal [data-cr="give"][data-d="1"]'); if (bt) bt.click(); });
     await p.waitForTimeout(200); await shot(p, tag + '-4-deal-panel-while-bidding.png');
     await p.evaluate(() => { const bt = document.querySelector('#dealModal [data-k="lock"]'); if (bt) bt.click(); });
