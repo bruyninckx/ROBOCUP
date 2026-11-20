@@ -286,4 +286,6 @@ What a player is told: **"Market: trade and bid. Bid on the lots in secret; trad
 - Botched Install: unchanged. It was and is after the lots are resolved, before the installs (it never touched the open market).
 - Bot (`?bot=1`): bids once per step, sometimes sells a Stash part while bidding (25%), lowers bids that a trade left too high (one − a tick), waits while its own deal is open, then locks.
 - Test tools: new tools/mp-scenario/market-step.js (solo, both sizes) and market-step-online.js (host + 3 joined); tools/market-step-measure.js (solo bot games, before/after); questions-note.js puts the table in the merged step for its AI offer; game-sim's Market snapshot reads the merged step.
+- Measured (60 + 60 solo bot games, seeds 1-60, test-bot person + 3 AI): click waits per round 3.73 ± 0.05 → 2.90 ± 0.03 (the open-market wait is gone); rounds 10.58 → 10.30 (paired −0.28 ± 0.55); trades per game 4.70 → 4.02 (± 0.5), AI offers to the person 5.85 → 5.07 (± 0.9: none once locked); Market spend 90.6 → 87.0 (± 4). Details in PROGRESS.md (17-20 Nov, T26).
+- A timed question (another branch adds countdowns to offers): an offer that times out answers its default (no), which closes the deal (`dealIn(-1)` in `finally`), so it cannot hold the step.
 
