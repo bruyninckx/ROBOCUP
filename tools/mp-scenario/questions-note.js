@@ -180,7 +180,8 @@ const path = require('path'), fs = require('fs');
       const snap = () => G.teams.map(t => t.credits + '/' + t.robots.map(r => r.id).join(','));
       window.__before = snap(); const ms0 = G.marketStage; G.marketStage = 'open'; D.updateHud();   // the open market starts and the offer comes at once (the pit's Market drawing needs a real Market, so the phase stays)
       D.openMarketAI().then(() => { G.marketStage = ms0; window.__res = { before: window.__before, after: snap() }; }); };
-    const tradeNote = () => p.evaluate(() => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)), pb = document.getElementById('promptBar');
+    // (T31: only the new offer: right after the Decline case the note can still show that question's ✓ for a moment)
+    const tradeNote = () => p.evaluate(() => { const q = window.ROBOCUS_DEBUG.RX.q; if (!q || q.done || q.over) return null; const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Accept/.test(x.textContent)), pb = document.getElementById('promptBar');
       if (!bt) return null; const r = bt.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, arming: bt.classList.contains('arming'), text: (pb.querySelector('.rx-txt') || {}).textContent || '' }; });
     { await prep(p); await p.mouse.move(5, 5);
       const r = await ask(p, tag, 'robot offer (Decline)', offer, /^Refuse$/, { shot: 'trade-offer' });
@@ -298,7 +299,7 @@ const path = require('path'), fs = require('fs');
         await lateLine('spare or scrap', /is spared/);
         await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.fight = null; G.phase = 'upkeep'; D.updateHud(); }); await clearAll(p); }
       // a second question waits behind the first: its clock starts when it shows (it gets its full 3 s)
-      { await prep(p); await clearAll(p);
+      { await prep(p); await clearAll(p); await p.mouse.move(5, 5);   // off the note (a button that opens under the pointer waits for it to leave)
         await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, bs = t => [{ label: 'Yes ' + t, value: () => 'y' + t }, { label: 'No', secondary: true, value: () => 'n' + t }]; window.__q = {};
           D.askSeat(0, '🧪 First', 'one', bs(1), 0, 'd1').then(v => { window.__q.a = [v, performance.now()]; });
           D.askSeat(0, '🧪 Second', 'two', bs(2), 0, 'd2').then(v => { window.__q.b = [v, performance.now()]; }); });
