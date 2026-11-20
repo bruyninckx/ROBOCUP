@@ -12,6 +12,9 @@
 //          --planck (local planck.min.js for 2.0 when the CDN can't be reached; default: node_modules/planck, then
 //          vendor/planck-1.4.3.min.js; --planck=cdn always uses the network), --maxRound (give up after, default 40)
 // The same seeds in two runs = the same shuffles to start with, so two settings compare like for like.
+// T35 (20 Nov): --aip0='{"rw":1}' plays the Fan Favourite "runaway" test AI in seat 0, --aipR='{"ctr":["noInvite","cards","host","smear"]}'
+// the counters in seats 1-3; --bal='{"fan":{...}}' the Fan Favourite test rules (docs/robocus-fan-favourite.md). The result also
+// records robot wins in res.ups[r].wins, res.v2.favSafe (losing Fan Favourites kept safe), res.v2.hosts; report: tools/fan-fav-report.js.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
