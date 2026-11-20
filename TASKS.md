@@ -7,6 +7,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K30. Start credits** (T29): 10 Cr makes the first Market a bit richer than before sponsors cost money (9.6 Cr spent,
+  was 8.2). Keep 10, or try 9 (not measured)?
+- **K31. Local server** (T32): how many logical processors does Kev's PC have (under about 6, four-robot fights may still
+  fall back to the formula)? Hosting from the local copy works only when it matches GitHub Pages (a few minutes after an
+  update): fine, or host through `play-latest online`?
 - **K29. Reaction offers** (T27): a team that made a block can no longer Override its own block: fine? Robot Rights
   Protest: any team but its player may still Override a block of it, though that team then loses 1 fame too: keep?
 - **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
@@ -112,14 +117,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `partCopies.repair: 0`; since T5 it repairs under fire and is worth about two thirds of a level). Files:
   `prototypes/tabletop-2.html` (`BAL.partCopies`, card text, `PART_LV`), docs. Worker on branch `claude/repair-kit-back`,
   started 20 Nov. Done when: the card comes up in bot games and is bought and fitted, game-sim and `mp-test` pass.
-- **T32. `play-latest` serves the game from a local address, so the bookie can use all cores.** Kev (20 Nov): "yes" (to: a
-  small local server for `play-latest`; opened as a file the game can't run test fights in background workers, so
-  four-robot fights fall back to the formula). Goal: `play-latest.cmd` starts a tiny server on this PC only (Node, else
-  Python, else it opens the file as today and says so) and opens the game there; closing is clean; `play-latest online`
-  is unchanged. Files: `play-latest.cmd`, `tools/` (a small server script), `docs/orchestration.md`. Worker on branch
-  `claude/play-local-server`, started 20 Nov. Done when: served from the local address the bookie log says `how:
-  workers`, the files stamp and the stale-file warning still work, and hosting an online game from it gives friends a
-  link they can open.
 - **T31. Every question that holds up the table gets a timer.** Kev (20 Nov): "yes, put them all on a timer". Goal:
   threats, Tag Team offers, backing requests and every other question that makes the table wait for one player count
   down in the note (20 s, as Joint Venture), with the safe answer when time runs out (never a yes that costs credits or
@@ -136,11 +133,18 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   scripted solo and online runs (trade while bidding, lock, a trade after a lock, all locked → resolves), game-sim and
   `mp-test` pass.
   Worker on branch `claude/market-one-step`, started 17 Nov.
-- **T29. Teams start with 10 Cr.** Kev (17 Nov): "10" (to: start with 10 credits instead of 8, to make up for what
-  sponsors now cost). `BAL.startCredits` 8 → 10, texts and docs. Worker on branch `claude/start-10`, started 17 Nov. Done
-  when: round-1 Market spend and game length measured against 8 Cr on the same seeds, game-sim and `mp-test` pass.
 ## Done
 
+- **T32. `play-latest` serves the game from this PC** (20 Nov): `tools/serve.js` (Node; `tools/serve.py` for Python), on
+  127.0.0.1:8765 only, read-only, repo files only; `play-latest` starts it and opens the game there, reuses a running
+  one; `play-latest file` is the old way, `play-latest online` unchanged. From a local address the invite link points to
+  the GitHub Pages copy. The batch file was not run on Windows (none here): Kev's first double-click is the test. Branch
+  `claude/play-local-server`, commit `e6364d5`.
+- **T29. Teams start with 10 Cr** (20 Nov): `BAL.startCredits` 10. 80 bot games each way: the first Market spends 9.6 Cr and
+  sells 2.15 lots (before sponsors cost money: 8.2 Cr, 1.65 lots; with 8 Cr: 6.9, 1.36), so 10 overshoots a little; game
+  length unchanged. Branch `claude/start-10`, commit `a3846f3`.
+  T29 + T32 merged together: BUILD `2026-11-20c`, files stamp `a63dc7e9` (net.js changed); game-sim 2/2, online test 0
+  desyncs; the server checked by hand (200 for the game, 403 for `..`, `.git` and a foreign Host).
 - **T27. Reactions are only offered where they can help you; buttons say what they do** (20 Nov): the scheme's player is
   no longer offered Firewall against an Override that pushes its own scheme through (Kev's case); a team is not offered a
   block of a scheme that only gives it something, nor Override against its own block; the AI follows the same rule;
