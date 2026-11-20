@@ -12,8 +12,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
   (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
   with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
-- **K28. Questions in the note** (T20): 20 s for Joint Venture, Hostile Buyout and the host's Arena card: right? Should
-  threats, Tag Team offers and backing requests get a timer too? Should the reaction window's buttons also wait 0.8 s?
+- **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
 - **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
   and Security Bots are exhausted. Fix the text or the rule?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
@@ -50,6 +49,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K28 (20 Nov): timers.** Kev: "yes, put them all on a timer" (to: should threats, Tag Team offers and backing requests
+  get a timer too?). 20 s for the three already timed stays (no objection). T31.
 - **K26 (17 Nov): sponsors.** Kev: "10, fine, ok": teams start with 10 Cr (was 8), T29; the AI bidding at most 3 Cr for a
   sponsor is fine; Joint Venture with no answer counts as Defect.
 - **K25 (17 Nov): a trade after locking unlocks you.** Kev: "yes" (to: a trade that changes your credits after you locked
@@ -94,6 +95,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T31. Every question that holds up the table gets a timer.** Kev (20 Nov): "yes, put them all on a timer". Goal:
+  threats, Tag Team offers, backing requests and every other question that makes the table wait for one player count
+  down in the note (20 s, as Joint Venture), with the safe answer when time runs out (never a yes that costs credits or
+  changes the garage). Files: `prototypes/tabletop-2.html` (`askSeat` time limits and defaults). Worker on branch
+  `claude/timers-everywhere`, started 20 Nov. Done when: a table of every question with its time and default, scripted
+  time-outs solo and from a joined client, `questions-note.js`, game-sim and `mp-test` pass.
+- (T26, T27 and T29 below were stopped by a server restart on 17 Nov at about 22:15 and resumed on 20 Nov.)
 - **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
   "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
   Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
