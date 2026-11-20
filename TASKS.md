@@ -93,6 +93,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T35. Is a Fan Favourite a money runaway? Measure, then propose.** Kev (20 Nov, after a solo game he led with 45 Cr
+  against 6-7): "I can runaway in money by making a robot fan favourite and after that getting into battles by whatever
+  means, they cannot scrap it and I get payed a lot. Can you check by doing AI battles if this can be countered or should
+  we balance it". His log: appearance money was 18 of his income, the same as Rust Rivets's 18; he also earned 12 from
+  backing, 12 from cashing in cards, 9 from host deals, and spent less than the AI teams. Goal: bot games that show (a)
+  what a Fan Favourite is worth in credits and wins, (b) whether a team playing Kev's line beats normal AI teams far more
+  than 1 in 4, (c) whether counters the game already has stop it, (d) what each balance option would do. Measuring and
+  options behind `BAL` switches (default off): no change to the game as played until Kev picks. Worker on branch
+  `claude/fan-favourite-check`, started 20 Nov. Done when: `docs/robocus-fan-favourite.md` with the numbers, game counts,
+  ± and a recommendation.
 - **T34. Crunch Week and Press Tour exhaust robots too.** Kev (20 Nov): "exhaust robots as well" (their card texts say
   they can exhaust robots, but the code only exhausted crew and Security Bots). Goal: the cards do what their text
   says; an exhausted robot shows the cause and when it is back (T25's banner). Files: `prototypes/tabletop-2.html` (the
