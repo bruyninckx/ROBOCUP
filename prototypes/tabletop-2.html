@@ -1074,18 +1074,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const EX_OUT = new Set(['Rogue Firmware', 'Coolant Leak']);   // a rival's card took it out: OUT (resting after a fight or a buyout: RESTING)
   const rdFights = (a, b) => a >= b ? 'round ' + a + '\'s fight' : b === a + 1 ? 'round ' + a + '\'s and round ' + b + '\'s fights' : 'the fights of rounds ' + a + '–' + b;
-  function exInfo(r) {
+  const EX_CARD = new Set(['Crunch Week', 'Press Tour']);   // T34: cards that exhaust a team's own robots (for credits or fame)
+  function exInfo(r, v = HS) {   // v: the seat that reads it (T34: the card's player is "you" there)
     const back = exBack(r), why = r.exWhy || null, by = why && r.exBy != null && G.teams[r.exBy] ? G.teams[r.exBy] : null;
-    const out = EX_OUT.has(why), r0 = r.exRound || G.round;
-    const cause = why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought (Hostile Buyout)' : why ? why + (by ? ' (' + by.name + ')' : '') : 'used up this round';
+    const out = EX_OUT.has(why), r0 = r.exRound || G.round, byW = by ? (by.i === v ? 'you' : by.name) : null;
+    const cause = why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought (Hostile Buyout)' : why ? why + (byW ? ' (' + byW + ')' : '') : 'used up this round';
     const ret = !out && back === G.round + 1 ? 'ready next Upkeep' : 'back in round ' + back;
     let help;
     if (why === 'fight') help = esc(r.name) + ' fought in round ' + r0 + '. A robot rests after a fight: it is ready again by itself in round ' + back + '\'s Upkeep.';
     else if (out) help = (by ? '<b>' + esc(by.name) + '</b>' : 'A rival') + ' played <b>' + esc(why) + '</b> on it in round ' + r0 + '\'s Intrigue: ' + (back - r0 > 1 ? 'it is out for ' + (back - r0) + ' rounds (' + rdFights(r0, back - 1) + ')' : 'it misses ' + rdFights(r0, back - 1)) + '. It is ready again by itself in round ' + back + '\'s Upkeep: nothing to do.' + (why === 'Rogue Firmware' ? ' (The card also damaged its ⛨ Body; repairs still work while it rests.)' : '');
     else if (why === 'Hostile Buyout') help = esc(r.name) + ' changed teams with Hostile Buyout in round ' + r0 + ' and rests for the round: ready again in round ' + back + '\'s Upkeep.';
+    else if (EX_CARD.has(why)) { const own = ownerOf(r); help = esc(r.name) + ' was exhausted for <b>' + esc(why) + '</b>' + (by ? ' (played by ' + (byW === 'you' ? 'you' : '<b>' + esc(by.name) + '</b>') + (own && own !== by ? ', and ' + (own.i === v ? 'you' : esc(own.name)) + ' agreed' : '') + ')' : '') + ' in round ' + r0 + '\'s Intrigue: it can\'t fight this round. It is ready again by itself in round ' + back + '\'s Upkeep: nothing to do.'; }
     else help = esc(r.name) + ' is used up this round: ready again in round ' + back + '\'s Upkeep.';
     return { back, out, cause, tag: out ? '😴 OUT' : '😴 RESTING', line: (out ? '😴 OUT' : '😴 RESTING') + ' · ' + cause + ' · ' + ret,
-      short: (out ? '😴 OUT' : '😴 RESTING') + ' · back rd ' + back, small2: why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought' : why ? why + (by ? ' · ' + by.name.split(' ')[0] : '') : 'used up this round',
+      short: (out ? '😴 OUT' : '😴 RESTING') + ' · back rd ' + back, small2: why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought' : why ? why + (byW ? ' · ' + byW.split(' ')[0] : '') : 'used up this round',
       until: out || back > G.round + 1 ? 'out until round ' + back : 'resting until next Upkeep', help };
   }
   const crewHelp = t => (t.crew.length ? Object.keys(CREW).filter(k => hasCrew(t, k)).map(k => CREW[k].icon + ' <b>' + CREW[k].name + '</b>' + (crewCount(t, k) > 1 ? ' ×' + crewCount(t, k) : '') + ': ' + esc(CREW[k].text)).join('<br>') : 'No crew.') + '<br>' + repairRulesTxt();
@@ -1560,7 +1562,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // Intrigue cards that count ready crew: an AI team holding one keeps a crew member out of the workshop
   // (how many ready crew each needs: Team-Building Day 2, Press Tour 3 minus its ready Security Bots, the rest 1)
   const CREW_CARDS = new Set(['Overtime Shift', 'Consulting Gig', 'Headhunter Fee', 'Inside Leak', 'Fall Guy', 'Team-Building Day', 'Press Tour', 'Crunch Week', 'Museum Donation']);
-  const crewKeep = (t, n) => n === 'Team-Building Day' ? 2 : n === 'Press Tour' ? Math.max(0, 3 - secReady(t)) : 1;
+  const crewKeep = (t, n) => n === 'Team-Building Day' ? 2 : n === 'Press Tour' ? Math.max(0, 3 - secReady(t) - spareRobots(t).length) : 1;
+  /* T34 (Kev, 20 Nov: "exhaust robots as well"): Crunch Week and Press Tour also exhaust robots, as their texts say. A robot is
+   * the last thing to go (crew first, then Security Bots, then robots), and the AI never gives up its fight for them: it keeps
+   * its strongest ready robot and offers the others, weakest first. A person picks which robots (or none) in a question. */
+  function spareRobots(t) { const rs = readyRobots(t).slice().sort((a, b) => power(a) - power(b)); return rs.slice(0, Math.max(0, rs.length - 1)); }
   // what repairing one zone wins back (strength, logits)
   function zoneGain(r, zk) { const sp = spec2(r), s0 = R2.strength(sp, r.name, r.level, partsOf(r)); R2.repairZone(sp, zk); return R2.strength(sp, r.name, r.level, partsOf(r)) - s0; }
   function aiRepairs(t) {
@@ -2669,7 +2675,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // rulebook Ready step: robots, crew and Security Bots ready again (Rogue Firmware keeps a robot out once)
       for (const r of t.robots) { r.exhausted = r.sitOut > 0; if (r.sitOut > 0) r.sitOut--; if (!r.exhausted) { delete r.exWhy; delete r.exBy; delete r.exRound; } }
       // T25: a robot still out says so in its owner's log, with the cause and the round it is back (nothing to do)
-      for (const r of t.robots) if (r.exhausted && isHuman(t.i)) { const xi = exInfo(r); say(t.i, '😴 <b>' + esc(r.name) + '</b> is still out: ' + esc(xi.cause) + '. It misses this round\'s fight too and comes back by itself in round ' + xi.back + ': nothing to do' + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' (you can still repair its damage)' : '') + '.', t.col); }
+      for (const r of t.robots) if (r.exhausted && isHuman(t.i)) { const xi = exInfo(r, t.i); say(t.i, '😴 <b>' + esc(r.name) + '</b> is still out: ' + esc(xi.cause) + '. It misses this round\'s fight too and comes back by itself in round ' + xi.back + ': nothing to do' + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' (you can still repair its damage)' : '') + '.', t.col); }
       t.exMechs = 0; t.exSec = 0; t.shill = 0; t.tamper = {};
       { // Ledger (rulebook 4): +1 per Mechanic, −1 per robot (🧮 Accountant: only the first), −1 per 2 helper drones
         const bots = hasCrew(t, 'accountant') || BAL.robotUpkeep === 'first' ? Math.min(1, t.robots.length) : t.robots.length, drones = Math.floor(t.robots.reduce((a, r) => a + partsOf(r).filter(k => LU.PARTS[k] && LU.PARTS[k].kind === 'drone').length, 0) / 2);
@@ -3894,6 +3900,27 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     G.nextEvent = { kind: 'tag', teams: [F.i, ally.i], by: F.i, card: id };
     notify('🤝 Tag Team: ' + nm(F) + ' and ' + nm(ally) + ' fight together this round, 2v2.', F.col);
   }
+  // T34: "2 crew, 1 Security Bot and Wrecker"
+  const exList = (m, s, rs) => [m ? m + ' crew' : '', s ? s + ' Security Bot' + (s > 1 ? 's' : '') : ''].concat(rs.map(r => '<b>' + esc(r.name) + '</b>')).filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1') || 'nothing';
+  // T34: Crunch Week, a person picks which robots go too (none ticked = none; no answer = none)
+  async function crunchAsk(F, m, s, ready) {
+    const html = (m + s ? 'Your ' + exList(m, s, []) + ' ' + (m + s > 1 ? 'are' : 'is') + ' exhausted: +' + (m + s) + ' Cr. ' : '') + 'You may also exhaust robots: <b>+1 Cr each, but an exhausted robot can\'t fight this round</b> (ready again next Upkeep). Tick the robots to exhaust:' +
+      ready.map(r => '<label><input type="checkbox" data-r="' + r.id + '"> 🤖 ' + esc(r.name) + ' (' + starsOf(r.level) + ')</label>').join('');
+    const rs = await askSeat(F.i, '💼 Crunch Week', html, [
+      { label: 'Exhaust the ticked robots', value: el => ready.filter(r => { const x = el.querySelector('[data-r="' + r.id + '"]'); return x && x.checked; }) },
+      { label: 'No robots', secondary: true, value: () => [] }], 0, []);
+    return rs || [];
+  }
+  // T34: Press Tour, a person whose crew and bots are not enough says which robots go (or no): one button per choice
+  async function pressAsk(F, T, a, b, need) {
+    const ready = readyRobots(T).slice().sort((x, y) => power(x) - power(y)), sets = [];
+    const pick = (k, from, cur) => { if (cur.length === need) { sets.push(cur); return; } for (let j = from; j < ready.length; j++) pick(k, j + 1, cur.concat([ready[j]])); };
+    pick(need, 0, []);
+    const html = (F === T ? 'Press Tour' : nm(F) + ' plays Press Tour on you') + ': exhaust 3 robots, crew or Security Bots for <b>+1 fame</b>. ' + (a + b ? 'Your ' + exList(a, b, []) + ' ' + (a + b > 1 ? 'are' : 'is') + ' not enough: ' : 'You have no ready crew or bots: ') +
+      need + ' robot' + (need > 1 ? 's' : '') + ' must go too, and <b>an exhausted robot can\'t fight this round</b> (ready again next Upkeep).';
+    return await askSeat(T.i, '📣 Press Tour', html, sets.map(set => ({ label: 'Exhaust ' + set.map(r => esc(r.name)).join(' and ') + ' (+1 fame)', value: () => set }))
+      .concat([{ label: 'No thanks (no fame)', secondary: true, value: () => null }]), F === T ? 0 : 10000, null);
+  }
   async function resolveScheme(F, id, T) {
     G.fameSrc = 'card:' + (CARDS[id] ? CARDS[id].name : id);
     try { return await resolveScheme0(F, id, T); } finally { G.fameSrc = null; }
@@ -3903,7 +3930,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     switch (n) {
       case 'Overtime Shift': { const g = readyCrew(T); addCr(T, g, 'card'); say('💼 Overtime: ' + nm(T) + ' +' + g + ' Cr.'); break; }
       case 'Smash and Grab': { const g = payCr(T, 3, 'card'); addCr(F, g, 'card'); say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
-      case 'Crunch Week': { const m = readyCrew(F), s = secReady(F); F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; addCr(F, m + s, 'card'); say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + (m + s) + ' crew and bots for +' + (m + s) + ' Cr.'); break; }
+      case 'Crunch Week': {   // T34: "Exhaust any of your robots, crew and Security Bots: 1 credit each": all ready crew and bots, and the robots its player picks
+        const m = readyCrew(F), s = secReady(F), ready = readyRobots(F);
+        let rs = !ready.length ? [] : isHuman(F.i) ? await crunchAsk(F, m, s, ready) : spareRobots(F);
+        rs = (rs || []).filter(r => F.robots.includes(r) && !r.exhausted);
+        F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; rs.forEach(r => exhaustBot(r, 'Crunch Week', F.i));
+        const g = m + s + rs.length; addCr(F, g, 'card'); if (rs.length) { const st = cst(id, F.i); st.robotsEx = (st.robotsEx || 0) + rs.length; }
+        say('💼 Crunch Week: ' + nm(F) + ' exhausts ' + exList(m, s, rs) + ' for +' + g + ' Cr.' + (rs.length ? ' ' + rs.map(r => '<b>' + esc(r.name) + '</b>').join(' and ') + (rs.length > 1 ? ' miss' : ' misses') + ' this round\'s fight; ready next Upkeep.' : '')); break; }
       case 'Scrapyard Salvage': addCr(F, 3, 'card'); say('💼 ' + nm(F) + ' salvages +3 Cr.'); break;
       case 'Headhunter Fee': { const c = loseCrew(F); const g = c ? 2 * CREW[c.kind].value : 0; addCr(F, g, 'card'); say('💼 ' + nm(F) + ' sells its ' + (c ? crewRef(c.kind) : 'crew') + '\'s contract for +' + g + ' Cr.'); break; }
       case 'Consulting Gig': { const g = 2 * readyCrew(T); addCr(T, g, 'card'); say('💼 Consulting: ' + nm(T) + ' +' + g + ' Cr.'); break; }
@@ -3918,7 +3951,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       case 'Team-Building Day': { const p = Math.min(1, Math.floor(readyCrew(T) / 2));   // Kev, 8 Nov: max +1 (was +2)
  T.exMechs = (T.exMechs || 0) + 2 * p; addFame(T, p); say('📣 Team-Building: ' + nm(T) + ' exhausts ' + 2 * p + ' crew, +' + p + ' fame.'); break; }
       case 'Underdog Story': { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); if (s[0].fame < s[1].fame) { addFame(s[0], 2); say('📣 Underdog Story: ' + nm(s[0]) + ' +2 fame.'); } else say('📣 Underdog Story fizzles: the bottom is tied.'); break; }
-      case 'Press Tour': { const m = readyCrew(T), s = secReady(T); if (m + s >= 3) { const a = Math.min(3, m); T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + (3 - a); addFame(T, 1); say('📣 Press Tour: ' + nm(T) + ' +1 fame.'); } else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready crew or bots.'); break; }
+      case 'Press Tour': {   // T34: "Target may exhaust 3 robots, crew or Security Bots for +1 fame": crew first, then Security Bots, then robots (the target picks which, or says no)
+        const m = readyCrew(T), s = secReady(T), a = Math.min(3, m), b = Math.min(3 - a, s), need = 3 - a - b;
+        let rs = null;
+        if (!need) rs = [];
+        else if (readyRobots(T).length >= need) rs = isHuman(T.i) ? await pressAsk(F, T, a, b, need) : spareRobots(T).length >= need ? spareRobots(T).slice(0, need) : null;
+        if (rs) rs = rs.filter(r => T.robots.includes(r) && !r.exhausted);
+        if (rs && rs.length === need) {
+          T.exMechs = (T.exMechs || 0) + a; T.exSec = (T.exSec || 0) + b; rs.forEach(r => exhaustBot(r, 'Press Tour', F.i)); addFame(T, 1);
+          if (rs.length) { const st = cst(id, F.i); st.robotsEx = (st.robotsEx || 0) + rs.length; }
+          say('📣 Press Tour: ' + nm(T) + ' exhausts ' + exList(a, b, rs) + ': +1 fame.' + (rs.length ? ' ' + rs.map(r => '<b>' + esc(r.name) + '</b>').join(' and ') + (rs.length > 1 ? ' miss' : ' misses') + ' this round\'s fight; ready next Upkeep.' : ''));
+        } else if (readyRobots(T).length >= need) say('📣 Press Tour: ' + nm(T) + ' keeps its robots ready (no fame).');
+        else say('📣 Press Tour fizzles: ' + nm(T) + ' needs 3 ready robots, crew or bots.');
+        break; }
       case 'Museum Donation': {   // 14 Nov: a person picks what it donates, a robot or a ready crew member (the card: "discard a robot or crew member"); the AI gives a crew member
         let gift = null;
         if (isHuman(F.i)) {
@@ -4171,7 +4216,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       case 'Scrap Deal': v = 5; break;
       case 'Industry Insider': v = 3; break;
       case 'Headhunter Fee': v = 2; break;
-      case 'Crunch Week': v = (readyCrew(F) + secReady(F)) * 0.6; break;
+      case 'Crunch Week': v = (readyCrew(F) + secReady(F) + spareRobots(F).length) * 0.6; break;   // T34: its spare robots too (never its strongest ready one)
       case 'Joint Venture': v = 2.5; break;
       case 'Smash and Grab': v = Math.min(3, T ? T.credits : 0) * (1 + 0.3 * th); break;
       case 'Tax Audit': v = Math.min(5, T ? T.credits : 0) * th * 0.7; break;
@@ -4226,7 +4271,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (n === 'Public Demo') return F.credits >= 6;
     if (n === 'Launch Party') return F.credits >= 9;
     if (n === 'Team-Building Day') return readyCrew(F) >= 2;
-    if (n === 'Press Tour') return readyCrew(F) + secReady(F) >= 3;
+    if (n === 'Press Tour') return readyCrew(F) + secReady(F) + spareRobots(F).length >= 3;   // T34: spare robots count (it keeps its strongest ready robot)
     if (['Headhunter Fee', 'Museum Donation', 'Inside Leak'].includes(n)) return F.crew.length >= 4;
     if (n === 'Bribe Scandal' || n === 'Paparazzi') return F.credits >= 6;
     if (n === 'Hostile Buyout') return T && T.robots.length >= 2;
@@ -5729,7 +5774,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.sendBot = (S, rid) => {
     const F = G.fight, bot = myBot(S, rid);
     if (G.phase !== 'arena' || !F || !PS(S).choose || !bot) return;
-    if (bot.exhausted) { say(S, '😴 <b>' + esc(bot.name) + '</b> can\'t fight this round: ' + esc(exInfo(bot).line.replace(/^😴 /, '')) + '.', '#b45309'); return; }
+    if (bot.exhausted) { say(S, '😴 <b>' + esc(bot.name) + '</b> can\'t fight this round: ' + esc(exInfo(bot, S).line.replace(/^😴 /, '')) + '.', '#b45309'); return; }
     const e = F.teams.indexOf(S); if (e < 0) return;
     F.robots[e] = bot; PS(S).choose = false;
     notify('🤖 ' + nm(G.teams[S]) + ' sends <b>' + esc(bot.name) + '</b>.', G.teams[S].col);
