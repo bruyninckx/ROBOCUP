@@ -5,6 +5,9 @@
 //   2. Hostile Buyout played by the host on seat 1: Refuse costs seat 1 one fame, Sell it hands over its robot for 4 Cr;
 //   3. Joint Venture played by the host on seat 1: the host answers in its own note; seat 1's question is closed by the host
 //      (a player who left: cancelSeat) and counts as Defect, its default since T20 (a default never costs you credits).
+//   4-7 (T31, 20 Nov): seat 1 leaves a question alone: the host judges the time-out (its default, a ⌛ line to seat 1); a second
+//      question queued behind the first gets its full time; a paused game stops the clock (⏸); seat 1 closes its tab and comes
+//      back: the question comes back with the time it had left.
 //   node tools/mp-scenario/questions-remote.js [seed=7] [screenshotFolder]
 const { setup, hostLog } = require('./lib.js');
 const fs = require('fs'), path = require('path');
@@ -82,6 +85,55 @@ const fs = require('fs'), path = require('path');
     console.log('Joint Venture (host Commit, seat ' + C + ' closed by the host: Defect, T20): ' + JSON.stringify(r) + ' · seat ' + C + '\'s note after: ' + (gone.q ? 'STILL THE QUESTION' : 'back to the game'));
     if (!(r.host === -2 && r.seat === 2)) bad.push('Joint Venture: a closed question did not count as Defect: ' + JSON.stringify(r));
     if (gone.q && gone.bs.length) bad.push('Joint Venture: the closed question stays in seat ' + C + '\'s note'); }
+  // ---- 4-7. T31 (Kev, 20 Nov: "yes, put them all on a timer"): the host judges the time of a joined player's question.
+  //      Short clocks on the host (BAL.askMs 4 s; the host sends the length with the question).
+  await host.evaluate(() => { window.ROBOCUS_DEBUG.BAL.askMs = 4000; });
+  const seatLog = (p, n = 6) => p.evaluate(n => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg' && /^⌛/.test(e.text)).map(e => e.text).slice(-n), n).catch(() => []);   // that screen's own log
+  const hostLate = () => host.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg' && /^⌛/.test(e.text)).map(e => ({ to: e.to, text: e.text })));
+  const askOn = (C, tag, ms) => host.evaluate(([C, tag, ms]) => { const D = window.ROBOCUS_DEBUG; window.__q = window.__q || {}; const t0 = performance.now();
+    D.askSeat(C, '🧪 ' + tag, 'A test question (' + tag + ').', [{ label: 'Yes ' + tag, value: () => 'y' + tag }, { label: 'No', secondary: true, value: () => 'n' + tag }], 0, 'd' + tag, ms ? { ms } : undefined)
+      .then(v => { window.__q[tag] = { v, t: performance.now() - t0, at: performance.now() }; }); }, [C, tag, ms || 0]);
+  const qRes = async (tag, max = 30000) => { for (let t = 0; t < max; t += 200) { const v = await host.evaluate(tag => (window.__q || {})[tag], tag); if (v) return v; await host.waitForTimeout(200); } return null; };
+  // 4. second robot left alone on seat 1: its screen counts down for show; the host closes it (Just one) and logs ⌛ to seat 1
+  { await prep(2); const n0 = (await hostLate()).length; await second(C);
+    const n = await waitQ(seatOf[C], /Second robot/); const t0 = Date.now();
+    await seatOf[C].waitForTimeout(1500); const n2 = await note(seatOf[C]);
+    if (shots) { await seatOf[C].screenshot({ path: path.join(shots, 'joined-t31-second-robot.png') }); await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-t31-second-robot-note.png') }); }
+    const r = await res(); const dt = (Date.now() - t0) / 1000;
+    const L = (await hostLate()).slice(n0); const gone = await note(seatOf[C]);
+    console.log('T31 second robot on seat ' + C + ' left alone: shown with ' + n2.sec + ', host closed it ' + dt.toFixed(1) + ' s after it showed: ' + JSON.stringify(r) + ' · ' + JSON.stringify(L));
+    if (!n || !/^[1-3] s$/.test(n2.sec)) bad.push('T31 joined countdown: ' + n2.sec);
+    if (r.n !== 2 || dt < 4.2) bad.push('T31 joined time-out: ' + JSON.stringify(r) + ' after ' + dt + ' s (want Just one, judged by the host after 4 s + grace)');
+    if (!L.some(x => x.to === C && /just one robot/.test(x.text))) bad.push('T31 joined time-out: no ⌛ line to seat ' + C + ': ' + JSON.stringify(L));
+    if (gone.q && gone.all && !gone.sent) bad.push('T31 joined time-out: the question stays on seat ' + C + '\'s screen');
+    await seatOf[C].waitForTimeout(800); const sl = await seatLog(seatOf[C]); console.log('  seat ' + C + '\'s log: ' + JSON.stringify(sl.slice(-1)));
+    if (!sl.some(x => /just one robot/.test(x))) bad.push('T31 joined time-out: the ⌛ line is not in seat ' + C + '\'s log'); }
+  // 5. two questions at once to seat 1: the second waits behind the first on that screen and gets its full time once it shows
+  { await prep(); await host.evaluate(() => { window.__q = {}; }); await askOn(C, 'A'); await askOn(C, 'B');
+    const n = await waitQ(seatOf[C], /A$/); await seatOf[C].waitForTimeout(2500); await click(seatOf[C], /^Yes A/);
+    const a = await qRes('A'), bq = await qRes('B'); const gap = a && bq ? (bq.at - a.at) / 1000 : -1;
+    console.log('T31 queued on seat ' + C + ': first ' + JSON.stringify(a) + ', second ' + JSON.stringify(bq) + ' (' + gap.toFixed(1) + ' s after the first)');
+    if (!(n && a && a.v === 'yA' && bq && bq.v === 'dB' && gap >= 4)) bad.push('T31 queued question on a joined screen: ' + JSON.stringify({ a, bq, gap })); }
+  // 6. a paused game (a player away) stops the clock on the host and on the joined screen (⏸)
+  { await prep(); await host.evaluate(() => { window.__q = {}; }); await askOn(C, 'P');
+    await waitQ(seatOf[C], /P$/); await seatOf[C].waitForTimeout(1000);
+    await host.evaluate(() => window.ROBOCUS_GAME.setPaused([{ seat: 3, name: 'P3' }]));
+    await seatOf[C].waitForTimeout(5000); const mid = await host.evaluate(() => (window.__q || {}).P); const ns = await note(seatOf[C]);
+    if (shots) await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-t31-paused-note.png') });
+    await host.evaluate(() => window.ROBOCUS_GAME.setPaused([]));
+    const r = await qRes('P');
+    console.log('T31 pause: during the pause ' + JSON.stringify(mid) + ' (seat ' + C + ' shows ' + ns.sec + '), then ' + JSON.stringify(r));
+    if (mid || !/⏸/.test(ns.sec) || !(r && r.v === 'dP' && r.t > 9000)) bad.push('T31 pause on a joined screen: ' + JSON.stringify({ mid, sec: ns.sec, r })); }
+  // 7. seat 1 closes its tab with a question open and comes back: the game pauses while it is away, the question comes back with the time it had left
+  { await prep(); await host.evaluate(() => { window.__q = {}; }); await askOn(C, 'R', 8000);
+    await waitQ(seatOf[C], /R$/); await seatOf[C].waitForTimeout(2000);
+    const url = seatOf[C].url(), ctx = seatOf[C].context(); await seatOf[C].close({ runBeforeUnload: true }); const tOff = Date.now();
+    await host.waitForTimeout(6000); const mid = await host.evaluate(() => (window.__q || {}).R);
+    const np = await ctx.newPage(); np.on('pageerror', e => errs.push('P1 again: ' + e.message)); await np.addInitScript(() => { window.__noBot = true; }); await np.goto(url); seatOf[C] = np;
+    const back = await waitQ(np, /R$/); const tBack = Date.now(); await np.waitForTimeout(600); const nb = await note(np);
+    const r = await qRes('R'); const after = (Date.now() - tBack) / 1000;
+    console.log('T31 rejoin: away ' + ((tBack - tOff) / 1000).toFixed(1) + ' s, open meanwhile: ' + !mid + '; back with ' + nb.sec + ', host closed it ' + after.toFixed(1) + ' s later: ' + JSON.stringify(r));
+    if (mid || !back || !r || r.v !== 'dR' || after < 4 || +nb.sec.replace(/\D/g, '') > 7) bad.push('T31 rejoin: ' + JSON.stringify({ mid, back: !!back, sec: nb.sec, r, after })); }
   console.log(errs.length ? 'PAGE ERRORS:\n' + errs.join('\n') : 'no page errors');
   console.log(bad.length ? 'FAIL\n' + bad.join('\n') : 'OK');
   await b.close();

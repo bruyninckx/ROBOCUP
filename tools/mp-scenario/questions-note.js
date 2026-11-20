@@ -223,8 +223,8 @@ const path = require('path'), fs = require('fs');
       await shot(p, tag + '-t31-' + nm + '.png'); await noteShot(p, tag + '-t31-' + nm + '-note.png');
       console.log(tag + ' ' + nm + ': ' + n2.title + ' · ' + n2.sec + ' · ' + n2.bs.map(x => x.t).join(' | '));
       if (nm === 'threat') {   // the last 5 seconds: red seconds, the bar pulses (q-low)
-        await p.evaluate(() => { const q = window.ROBOCUS_DEBUG.RX.q; q.t0 -= 16500; });
-        await p.waitForTimeout(400); const low = await p.evaluate(() => ({ low: document.getElementById('promptBar').classList.contains('q-low'), sec: (document.querySelector('#promptBar .rx-sec') || {}).textContent, col: getComputedStyle(document.querySelector('#promptBar .rx-sec')).color }));
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, q = D.RX.q; q.t0 = D.clkNow() - (q.ms - 4600); });   // 4.6 s left
+        await p.waitForTimeout(400); const low = await p.evaluate(() => ({ low: document.getElementById('promptBar').classList.contains('q-low'), sec: (document.querySelector('#promptBar .rx-sec') || {}).textContent, col: document.querySelector('#promptBar .rx-sec') ? getComputedStyle(document.querySelector('#promptBar .rx-sec')).color : null }));
         console.log(tag + ' last 5 s: ' + JSON.stringify(low));
         if (!low.low || !/^[1-4] s$/.test(low.sec)) bad.push(tag + ' last 5 s: not marked ' + JSON.stringify(low));
         await shot(p, tag + '-t31-last5.png'); await noteShot(p, tag + '-t31-last5-note.png');
