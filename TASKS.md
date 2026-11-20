@@ -8,8 +8,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
 - **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
-- **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
-  and Security Bots are exhausted. Fix the text or the rule?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
 - **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
@@ -43,6 +41,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K27 (20 Nov): Crunch Week and Press Tour exhaust robots as well.** Kev: "exhaust robots as well". T34 (same worker as
+  T33).
 - **Repair kit (20 Nov): back into the deck.** Kev: "put it back". T33. (The rest of K18 stays open.)
 - **K9 (20 Nov): `play-latest` starts a local server.** Kev: "yes". T32.
 - **K28 (20 Nov): timers.** Kev: "yes, put them all on a timer" (to: should threats, Tag Team offers and backing requests
@@ -91,6 +91,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T34. Crunch Week and Press Tour exhaust robots too.** Kev (20 Nov): "exhaust robots as well" (their card texts say
+  they can exhaust robots, but the code only exhausted crew and Security Bots). Goal: the cards do what their text
+  says; an exhausted robot shows the cause and when it is back (T25's banner). Files: `prototypes/tabletop-2.html` (the
+  two cards, AI use of them), docs. Same worker and branch as T33 (`claude/repair-kit-back`). Done when: scripted plays of
+  both cards exhaust the robots the text names, the AI still plays them sensibly, game length checked on 40+ bot games.
 - **T33. The Repair kit is back in the deck.** Kev (20 Nov): "put it back" (it has been out since 9 Nov,
   `partCopies.repair: 0`; since T5 it repairs under fire and is worth about two thirds of a level). Files:
   `prototypes/tabletop-2.html` (`BAL.partCopies`, card text, `PART_LV`), docs. Worker on branch `claude/repair-kit-back`,
