@@ -203,6 +203,18 @@ Kev: "start repair kit fix".
 - The bookie (`src2/repair.js`) counts every part as 0.42 (about 0.72 of a level), close enough to the kit's +0.64: unchanged. `PART_LV.repair` in tabletop-2 now has the new numbers.
 - The Repair kit is still out of the game's deck (`partCopies.repair: 0`, Kev, 9 Nov), so the change shows in the Lineup Arena and in tests, and in games only if the card comes back.
 
+## Update (20 Nov): the Repair kit is back in the deck (T33)
+
+Kev: "put it back" (asked: "Repair kit back into the deck? It has been out since 9 Nov and is now worth about two thirds of a level").
+
+- `BAL.lots.partCopies` in tabletop-2: the `repair: 0` entry is gone, so the kit has its own copies again (1, from `src2/lineup.js` PARTS), as before 9 Nov. Armour kit and Bodyguard drone stay out (0).
+- Nothing else changed: card text, hover and level badge come from `PART_LV.repair` [0.64, 0.92, 0.74, 0.25] (shows +¾; +1 on level 0-1, +¾ on 2-3, +¼ on 4); `partValue` 3 Cr (module) + rarity; rarity tiers, fit-at-once and the AI's `aiPickRobot` are generic and work for it; no `PART_FIT` entry (Scythe's poor fit was removed 17 Nov); the bookie counts it as any part (0.42).
+- Deck mix: Market part cards 19 → 20 (lot deck 27 → 28 with 4 New Robot and 4 New Crew lots). Protect/heal part cards (Medic, Shield, Hull ×2, Power kit, Repair kit) 5 → 6 of 20 (26 → 30%); with the three legendaries 8 → 9. The 9 Nov reason ("fewer protect/heal cards", so fights end and robots break) is mostly still met: Armour kit and Bodyguard stay out, so the deck has one heal card more than after the cut, not three.
+- **Whole games** (40 AI games each way, same seeds 1-40, start credits 8 (the base before T29), with and without the card; 2 games of the "with" run stalled in round 1 on the overloaded box and were re-run alone, both finished):
+  - The kit was offered 57 times (about 1.4 a game, rarity copies included) and bought 33 times (58%), for 1-5 Cr (median 2), in rounds 4-13 (median 7). A robot carried it in 22 of 40 games.
+  - Game length: 11.07 rounds with vs 11.32 without (paired −0.25 ± 0.62, no clear change). Fights a game −0.25 ± 0.59. Fight length (engine steps a fight): 8,254 vs 8,415 (−161 ± 615, no change).
+  - Market spending a game 107.5 vs 112.0 Cr (−4.5 ± 6.9); part lots sold 17.1 vs 17.6.
+
 Each value in "now" is good to about ±0.15. Level 4 robots gain less from parts, mostly because they already win most fights at their own level. Their per-group number is good only to about ±0.35.
 
 ## The bookie and the tags
