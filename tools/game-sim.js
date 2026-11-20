@@ -38,7 +38,7 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', '')), PLAN
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
+  const X = window.__sim = { favSafe: [], reps: [], ups: [], fights: [], scraps: [], tradeIns: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; if (Z.body && Z.body.lost && Z.body.lost.length) { o.lost = Z.body.lost.length; if (Z.body.lost.some(l => /chip/i.test(l))) o.fried = 1; } return o; };   // 11 Nov: body pieces lost, chip fried
@@ -105,7 +105,7 @@ function installHooks() {
         if (e && e.k === 'fight_start' && g.fight) {
           const F = g.fight;
           e.host = g.host; e.hostFame = g.teams.map(t => t.fame);   // 11 Nov: who hosts, and the fame table at the fight
-          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), s0: R2.strength(null, r.name, r.level, []), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
+          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, wins: r.wins || 0, s: D.str2(r), s0: R2.strength(null, r.name, r.level, []), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
         // access check (Kev, 10 Nov): what the Market offered each round, who won it, and what every team's robots carried
@@ -125,6 +125,8 @@ function installHooks() {
           if (/Host scrapped/.test(e.text) && g.fight && g.fight.loser) X.scraps.push({ r: g.round, team: g.fight.loser.team, robot: g.fight.loser.robot.name, why: 'host', host: g.host });
           else if (/can't pay its upkeep and scraps/.test(e.text)) { const t = g.teams.find(t => e.text.includes(t.name)); X.scraps.push({ r: g.round, team: t ? t.i : -1, why: 'debt' }); }
         }
+        // T35: a losing Fan Favourite the host could not scrap (who, whose host, the fame table: would the AI host have scrapped it?)
+        if (e && e.k === 'msg' && /a Fan Favourite can't be scrapped/.test(e.text || '') && g.fight && g.fight.loser) X.favSafe.push({ r: g.round, team: g.fight.loser.team, robot: g.fight.loser.robot.name, host: g.host, fame: g.teams.map(t => t.fame) });
         if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got });
         if (e && e.k === 'msg' && /has no robots left/.test(e.text || '')) X.scraps.push({ r: g.round, why: 'none-left', team: (g.teams.find(t => e.text.includes(t.name)) || {}).i });
       } catch (err) { X.hookErrs.push('event: ' + err.message); }
@@ -164,7 +166,7 @@ function installHooks() {
       const r = await p.evaluate(() => {
         const D = window.ROBOCUS_DEBUG, G = D.G, ev = D.PT.game.events, C = D.CARDS_ALL();
         const w = G.teams.slice().sort((a, b) => b.fame - a.fame || b.credits - a.credits)[0];
-        const ups = {}; ev.filter(e => e.k === 'phase' && e.ph === 'upkeep').forEach(e => { if (!ups[e.r]) ups[e.r] = { fame: e.teams.map(t => t.fame), cr: e.teams.map(t => t.cr), robots: e.teams.map(t => t.robots.length), hand: e.teams.map(t => t.hand) }; });
+        const ups = {}; ev.filter(e => e.k === 'phase' && e.ph === 'upkeep').forEach(e => { if (!ups[e.r]) ups[e.r] = { fame: e.teams.map(t => t.fame), cr: e.teams.map(t => t.cr), robots: e.teams.map(t => t.robots.length), hand: e.teams.map(t => t.hand), wins: e.teams.map(t => t.robots.map(r => r.wins || 0)) }; });
         const fights = ev.filter(e => e.k === 'fight_start' && !e.fid);
         const fends = ev.filter(e => e.k === 'fight_end' && !e.sandbox && !e.fid);
         const market = ev.filter(e => e.k === 'market').map(e => e.lots.reduce((a, l) => a + (l.winner != null && l.winner >= 0 ? (l.price || 0) : 0), 0));
@@ -182,6 +184,7 @@ function installHooks() {
           const L = D.LOTS;
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
+            favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
