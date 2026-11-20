@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
+  (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
+  same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
+  lots, not in the note: OK? (e) show AI-to-AI trades more clearly than a log line?
 - **K33. Crunch Week, Press Tour, Repair kit** (T33/T34): (a) Crunch Week still takes all your crew and Security Bots by
   itself, only robots are a choice: should crew and bots be a choice too (the text says "any of")? (b) the AI only gives
   spare robots, weakest first: OK? (c) Press Tour played on you: 20 s, no answer is "no": OK? (d) Repair kit at 1 copy?
@@ -116,18 +120,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   options behind `BAL` switches (default off): no change to the game as played until Kev picks. Worker on branch
   `claude/fan-favourite-check`, started 20 Nov. Done when: `docs/robocus-fan-favourite.md` with the numbers, game counts,
   ± and a recommendation.
-- (T26, T27 and T29 below were stopped by a server restart on 17 Nov at about 22:15 and resumed on 20 Nov.)
-- **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
-  everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
-  Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
-  "Start the auction" click; it stays open while everyone places sealed bids on the lots, and ends when everybody has
-  locked their bids; then rebids or the next step. Files: `prototypes/tabletop-2.html` (Market stages, `gather`, deal
-  panel), `rules.html`, `docs/rulebook.md`. Depends on: after T21 (it reuses the Market auction code) and T20. Done when:
-  scripted solo and online runs (trade while bidding, lock, a trade after a lock, all locked → resolves), game-sim and
-  `mp-test` pass.
-  Worker on branch `claude/market-one-step`, started 17 Nov.
 ## Done
 
+- **T26. Open market and sealed bids are one step** (20 Nov): the lots can be bid on from the start of the Market; trades,
+  bank sales and AI offers run while people bid; no "Start the auction". Everyone locked: trading closes, the lots go out.
+  A trade that goes through or a bank sale unlocks you; bids above your credits grey the Lock (Skip or a drop lowers them
+  from the last lot down); an open deal at the last lock holds the step until it is answered or times out (`G.mDeals`).
+  60 solo bot games each way: one click-wait less per round (3.73 → 2.90), rounds −0.28 ± 0.55, Market spend unchanged,
+  trades with the person 3.52 → 2.92. New tests `market-step.js`, `market-step-online.js`, `tools/market-step-measure.js`.
+  Branch `claude/market-one-step`, commit `62cb06b`; build `2026-11-20f`, files stamp `352be701`. Orchestrator's checks
+  on the merge: game-sim 2/2, 0 page errors; market-step, market-step-online 7 (0 desyncs), questions-note,
+  exhaust-cards OK; mp-test OK (0 desyncs, 8 fights); click-game 5 3 OK.
 - **T33. Repair kit back in the deck; T34. Crunch Week and Press Tour exhaust robots** (20 Nov): `BAL.lots.partCopies`
   no longer has `repair: 0` (1 card; part cards 19 → 20). Crunch Week: crew and Security Bots as before, plus the robots
   you tick (+1 Cr each). Press Tour: crew, then bots, then robots the target picks, or "No thanks". The AI only gives
