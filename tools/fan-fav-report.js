@@ -77,15 +77,15 @@ function partA(R) {
   // matched: team with its first FF at Upkeep k vs teams without one at the same round and the same fame (all games)
   const H = 3, pool = {};
   g.forEach(r => Object.keys(r.ups).map(Number).forEach(k => [0, 1, 2, 3].forEach(t => { const w = (r.ups[k].wins || [])[t] || []; if (w.some(x => x >= r.favW[t])) return; const key = k + ':' + r.ups[k].fame[t]; (pool[key] = pool[key] || []).push({ r, t, k }); })));
-  const out = x => { const r = x.r, u = r.ups, k = x.k, e = u[k + H] || null; return { win: r.winner === x.t ? 1 : 0, dCr: e ? e.cr[x.t] - u[k].cr[x.t] + 0 : null, earn: crBy(r, x.t, c => c[0] >= k && c[0] < k + H && c[2] > 0), dFame: e ? e.fame[x.t] - u[k].fame[x.t] : null }; };
+  const out = x => { const r = x.r, u = r.ups, k = x.k, e = u[k + H] || null; return { win: r.winner === x.t ? 1 : 0, dCr: e ? e.cr[x.t] - u[k].cr[x.t] + 0 : null, earn: crBy(r, x.t, c => c[0] >= k && c[0] < k + H && c[2] > 0), dFame: (e ? e.fame[x.t] : r.fame[x.t]) - u[k].fame[x.t] }; };
   const A = [], B = []; firsts.forEach(x => { const key = x.k + ':' + x.r.ups[x.k].fame[x.t], c = (pool[key] || []).filter(y => y.r !== x.r); if (!c.length) return; A.push(out(x)); const o = c.map(out); B.push({ win: mean(o.map(z => z.win)), earn: mean(o.map(z => z.earn)), dFame: mean(o.filter(z => z.dFame != null).map(z => z.dFame)) }); });
   const d = (k) => A.map((a, i) => a[k] - B[i][k]).filter(x => !isNaN(x));
   console.log('\nMatched (same round, same fame, other games; ' + A.length + ' Fan Favourite teams):');
   console.log('| | with its first Fan Favourite | same round + fame, none | paired difference |\n|---|---|---|---|');
   console.log('| Game won | ' + pc(mean(A.map(a => a.win))) + ' | ' + pc(mean(B.map(b => b.win))) + ' | ' + (mean(d('win')) >= 0 ? '+' : '') + Math.round(100 * mean(d('win'))) + ' ±' + Math.round(100 * ci(d('win'))) + ' pts |');
   console.log('| Credits earned in the next ' + H + ' rounds | ' + f1(mean(A.map(a => a.earn))) + ' | ' + f1(mean(B.map(b => b.earn))) + ' | ' + mci(d('earn')) + ' |');
-  const AF = A.filter(a => a.dFame != null);
-  console.log('| Fame gained in the next ' + H + ' rounds | ' + f1(mean(AF.map(a => a.dFame))) + ' | ' + f1(mean(B.filter((b, i) => A[i].dFame != null).map(b => b.dFame))) + ' | ' + mci(A.map((a, i) => a.dFame - B[i].dFame).filter(x => !isNaN(x))) + ' |');
+  const ok = A.map((a, i) => i).filter(i => A[i].dFame != null && !isNaN(B[i].dFame));
+  console.log('| Fame gained in the next ' + H + ' rounds (or to the end) | ' + f1(mean(ok.map(i => A[i].dFame))) + ' | ' + f1(mean(ok.map(i => B[i].dFame))) + ' | ' + mci(ok.map(i => A[i].dFame - B[i].dFame)) + ' (' + ok.length + ') |');
   // fate: losing Fan Favourites the host could not scrap; how often a non-FF loser in the same spot is scrapped
   const lean = (fm, L, Hh) => fm[L] >= fm[Hh] - 2 || fm[L] === Math.max(...fm);
   const nonFF = { lean: [0, 0], none: [0, 0] };
