@@ -55,7 +55,7 @@ A round has 7 steps (the bar at the top of the screen). A game runs about 8–12
 
 1. **Upkeep:** robots and crew ready again, the ledger pays out, everyone draws 3 Intrigue cards, repairs and tunes robots.
 2. **Intrigue:** one turn each, last round's host first, then clockwise.
-3. **Market:** open market (trades), then sealed bids on 4 lots, then the separate host bid.
+3. **Market:** sealed bids on 4 lots with the open market (trades, bank sales) at the same time, then the separate host bid.
 4. **Host:** Arena cards that change the fight, then the host invites the fighters.
 5. **Bets:** the bookie sets the odds; everyone bets in public and bids in secret on 2 fight cards.
 6. **Fight:** the robots auto-battle; live combat cards can be played.
@@ -102,22 +102,26 @@ Starting with last round's host and going clockwise (round 1: the first team), e
 
 ## 6. Market phase
 
-Three steps. Robots, crew and Security Bots change hands only here.
+Two steps (T26, Kev 17 Nov: the open market runs during the bidding). Robots, crew and Security Bots change hands only here.
 
-**1. Open market.** No turn order. With the deal panel you trade credits, Stash parts, robots (with their fitted parts; Chief Engineers stay home), crew cards and installed Security Bots with any team; the other side accepts or refuses, nothing moves until then. A team always keeps at least one robot and has 3 bays. You can also sell Stash parts to the bank at half value. AI teams make offers too. The step ends when every person has pressed **Start the auction**.
+**1. Trade and bid.** One step, everyone at the same time: you bid on the lots in secret (below) and the open market is open at once. No turn order. With the deal panel you trade credits, Stash parts, robots (with their fitted parts; Chief Engineers stay home), crew cards and installed Security Bots with any team; the other side accepts or refuses, nothing moves until then, and then both sides move at once. A team always keeps at least one robot and has 3 bays. You can also sell Stash parts to the bank at half value. AI teams make offers too (not to a person who has locked). The step ends when every person has locked their bids; trading ends with it.
+- **A trade or a sale unlocks you.** A trade that goes through takes the lock off both teams (if they had locked); a bank sale takes yours off. Check your bids and lock again.
+- **Your bids can never add up to more than your credits.** If a trade leaves them higher, you cannot lock until you lower them.
+- **An open deal holds the step.** While a deal panel is open or an offer waits for its answer, the last lock waits for it; when it closes (yes or no), the lots go out at once. A trade or bid sent after that is refused ("Too late").
+- Host Skip (or a person who leaves) locks the bids as they are, lowered to the credits if needed.
 
 **Stash.** Up to 4 spare parts per team, open for everyone to see: lots no robot could take, parts kept aside, swapped-out modules and armour. Fit a Stash part in Upkeep or the Market, trade it, or sell it to the bank (half value, minimum 1: drones and weapon upgrades are worth 3, legendaries 5, other parts 2). A full Stash sells the next part to the bank.
 
-**2. Auction: 4 lots.** Four lots are laid out. A New Robot lot is a real robot, face up (stats, weapon, quirk, the bookie's band). In rounds 1–5 at least one lot is a robot. From round 2, every other round announces a legendary for the next round, where it takes the last lot.
+**The lots.** Four lots are laid out, face up from the start of the step. A New Robot lot is a real robot, face up (stats, weapon, quirk, the bookie's band). In rounds 1–5 at least one lot is a robot. From round 2, every other round announces a legendary for the next round, where it takes the last lot.
 
-1. Every team bids on all 4 lots at once, in secret, with at most the credits it has, and locks its bids. Until every team has locked, a team that already locked may still change its bids; that takes its lock off and it locks again (the same for the host bid, a tie rebid, and bets and fight-card bids in the Bets step). When everyone has locked, the bids are final.
+1. Every team bids on all 4 lots at once, in secret, with at most the credits it has, and locks its bids. Until every team has locked, a team that already locked may still change its bids (or trade, or sell); that takes its lock off and it locks again (the same for the host bid, a tie rebid, and bets and fight-card bids in the Bets step). When everyone has locked, the bids are final.
 2. Lots are resolved in order: the highest bid pays the bank and takes the lot; everyone else keeps their credits.
 3. **Tie:** only the tied teams rebid in secret, adding to their first bid (only with credits not already bid on later lots). **Sovereign Foundry** wins any lot tie it is in, without a rebid (not the host bid). If a rebid ties again with nobody adding, the team with less fame wins.
 4. No bids: the lot goes back (an unsold robot to its deck, a legendary comes back later).
 5. **Botched Install:** before anything is fitted, a team holding Botched Install may wreck a rival's won part (normal defence applies; it can also demand a payoff instead). A botched part is scrapped; the winner gets half its bid back and the saboteur 1 credit.
 6. **Installs:** each won part goes on one of your robots that can take it (the one it helps most); for a few seconds you can undo that or move it to another robot that can take it, or keep it in your Stash instead. A part no robot can take goes to your Stash. A swapped-out module or armour goes to the Stash. New crew joins your team.
 
-**3. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once, unless it is the sole fame leader (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
+**2. Host bid.** A separate sealed bid with the credits you have left; ties are rebid the same way. The winner pays, becomes host and gains **+1 fame** at once, unless it is the sole fame leader (Apex Media +2 credits). No bids: a random team hosts. With the host bid you also name a **robot count**: 1 or 2 robots per side. Only the winning host's count is used, and only for a normal duel. Calling 2 costs the host 1 credit; each invited team sends up to 2 ready robots; if the fight ends up uneven (2 vs 1) the host loses its +1 host fame.
 
 ## 7. Arena phase
 
@@ -179,7 +183,7 @@ The first team at **12 fame** when the game checks wins. The checks: at the end 
 
 - **Start:** the host clicks 🌐 Online → Host a game and sends the invite link. Players open it, type a name, pick a colour and press Ready. Seats nobody takes are played by the AI. A person's team carries their name.
 - **The host's browser runs the game.** Everyone else sees the same table from their own seat: own hand, own bids, own questions. Hidden from others: hand cards, deck order, sealed bids, face-down cards.
-- **Same time:** Upkeep, open market, bids, host bid, bets, robot picks and the next-round button wait until every person is done ("Waiting for …"). Intrigue turns and the starter draft go one person at a time.
+- **Same time:** Upkeep, the Market's trade-and-bid step, host bid, bets, robot picks and the next-round button wait until every person is done ("Waiting for …"). Intrigue turns and the starter draft go one person at a time.
 - **Timers on questions** (Kev, 20 Nov; solo too): every question to one player that holds up the table (an offer, a threat, a backing request, a Tag Team offer, the second robot, a deal panel, the host picking the fighters or deciding spare or scrap, ...) counts down: 20 s, 30 s for a question in the box (ticks or a list), 45 s for a deal panel. No answer in time: the safe default (refuse, no deal, no swap, just one robot; a forced choice: what the AI or the host's Skip would do), and a ⌛ line in your log says what was decided. The clock starts when the question is on your screen and stops while the game is paused. Steps where everyone acts at once (Upkeep, Market, bids, bets, sponsor bids, the draft, sending a robot) have no timer: if someone keeps the table waiting there, the host gets 🔔 Nudge and ⏭ Skip buttons (Skip takes the default answer for that step). The table of every question: docs/robocus-2.0.1-screen.md (T31).
 - **Drop-outs:** the game pauses until the player is back (same link, same name). The host can let the AI take the seat instead.
 - **Save:** the game saves at the start of every round; the host downloads it from the 🌐 badge (💾 Save game) and can load it in the lobby of a new room (same names get the same seats).

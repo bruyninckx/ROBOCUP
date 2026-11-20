@@ -111,7 +111,7 @@ function installHooks() {
         // access check (Kev, 10 Nov): what the Market offered each round, who won it, and what every team's robots carried
         const teamSnap = () => g.teams.map(t => ({ fame: t.fame, cr: t.credits, robots: t.robots.map(r => ({ n: r.name, lv: r.level, parts: (r.parts || []).slice(), leg: r.leg || null, ex: !!r.exhausted })) }));
         const lotName = id => { const Lx = D.LOTS && D.LOTS[id]; return Lx ? (Lx.part ? 'part:' + Lx.part : Lx.starter ? 'robot:' + Lx.starter : Lx.crew ? 'crew' : id) : id; };
-        if (e && e.k === 'phase' && g.phase === 'market' && g.marketStage === 'open' && !X.snaps.some(q => q.k === 'offer' && q.r === g.round)) X.snaps.push({ k: 'offer', r: g.round, lots: (g.market || []).map(lotName), teams: teamSnap() });
+        if (e && e.k === 'phase' && g.phase === 'market' && (g.marketStage === 'open' || (g.marketStage === 'lots' && !g.marketResolved && !g.marketAuction)) && !X.snaps.some(q => q.k === 'offer' && q.r === g.round)) X.snaps.push({ k: 'offer', r: g.round, lots: (g.market || []).map(lotName), teams: teamSnap() });
         // the conveyor: next round's face-up lots are known one phase event later (dealt at the end of startMarket)
         if (e && e.k === 'phase' && g.phase === 'market') { const q = X.snaps.filter(q => q.k === 'offer' && q.r === g.round).pop(); if (q && !q.next && g.nextMarket && g.nextRound === g.round + 1) q.next = g.nextMarket.slice(0, 3).map(lotName); }
         if (e && e.k === 'market') X.snaps.push({ k: 'sold', r: g.round, lots: (e.lots || []).map(q => ({ id: lotName(q.id), winner: q.winner, price: q.price })) });
