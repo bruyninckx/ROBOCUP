@@ -12,7 +12,7 @@ Kev: "we need to avoid things like this, I need to orchestrate via fable and set
 - **You** talk to one session only: the orchestrator.
 - **The orchestrator** (Fable) owns GitHub `main`. It writes the tasks, starts Opus workers, checks their work, merges, pushes and reports to you.
 - **Opus workers** each do one task in their own copy of the repo and never touch `main`.
-- **You** play with `play-latest.cmd` and check the stamp.
+- **You** play with `play-latest.cmd` (it starts a small game server on your PC; leave its window open) and check the stamp.
 
 The rules every assistant follows are in `AGENTS.md`; the roles and the worker brief are in `CLAUDE.md`; the work and your open questions are in `TASKS.md`.
 
@@ -45,12 +45,42 @@ The rules every assistant follows are in `AGENTS.md`; the roles and the worker b
    - the **files stamp** (for example `files e63a7588`);
    - your open questions.
 3. **Play it.** Double-click `play-latest.cmd`.
-   - It updates your folder to `main` and opens the game.
-   - `play-latest online` opens the GitHub Pages copy your friends use.
+   - It updates your folder to `main` and opens the game (more below: "What play-latest does").
 4. **Check the stamp.**
    - Bottom left of the game shows `files <code> · <date> · <n> robots`. It should match the report.
    - A red bar at the top means the browser mixed old and new files: press Ctrl+F5.
 5. **Answer the "Waiting for Kev" questions** when you like. Workers never stop to wait for you: they pick the safest option and note the question.
+
+## What play-latest does (20 Nov)
+
+1. It gets the newest `main` from GitHub, as before.
+2. It starts a small **game server** on your PC and opens the game at `http://127.0.0.1:8765/prototypes/tabletop-2.html`.
+   - The black window that stays open **is** the server. Its title says "ROBOCUS game server". **Leave this window open while you play. Close it when you are done.** Closing it stops the server; nothing keeps running.
+   - Why: a game opened as a file can't run the bookie's test fights beside the game. From the server it can, on all your cores but two. So fights with three or four robots get real test fights too (from a file they got 9-11 and fell back to the formula), and the screen no longer stands still while the bookie watches. The odds overview on Market lots fills much faster too.
+   - Double-click `play-latest` again while the server runs: it does not start a second one, it just opens the game in a new tab.
+   - It needs Node.js (you very likely have it: the test tools in your folder were installed with it). Without Node it tries Python; without either it opens the game as a file, as before, and says so in one line (fix: install Node.js, the LTS button, from nodejs.org).
+   - **Windows Firewall should not ask anything:** the server only listens to your own PC (127.0.0.1), not to your network. If it does ask anyway, you can press Cancel; the game still works on your PC.
+3. The three ways to start it (type in a command window in your ROBOCUS folder, or double-click for the first):
+
+   | Command | What it opens |
+   |---|---|
+   | `play-latest` | the game from your PC's game server (the normal way) |
+   | `play-latest online` | the GitHub Pages copy your friends use |
+   | `play-latest file` | the game as a file, the old way (for when the server does not work) |
+
+**What changes for you with the new address** (the browser keeps what it remembers per address, and `127.0.0.1:8765` is a new one):
+- Settings start fresh once: sound on/off, hand pinned and its side, the log folded or open, your online name. Set them again once.
+- The playtest log: the last 10 games stored in the browser stay with the old file address. If you want them, open the game once with `play-latest file`, click 📝 and "All saved games" to download them. If you had picked a log folder (📝, "Save to a folder"), pick `ROBOCUS/playtests` again once on the new address.
+- Saved games (💾 Save game in the online lobby) are files on your disk: nothing changes.
+- The port stays 8765 so this happens only once. If 8765 is taken by another program, the window says it used the next one (8766...), and the browser then starts fresh for that one too.
+
+**Hosting online from your PC:** the invite link in the lobby now points at the public copy (`https://bruyninckx.github.io/ROBOCUP/...?room=CODE`), not at your PC (a link to your PC or to a file never worked for friends). The lobby says so. Your copy and the public copy must be the same version: right after the orchestrator pushes, GitHub Pages takes a few minutes. If they differ, a friend who joins is told "different version" and can't join yet; wait a few minutes and they refresh. To be sure you all run the same, host from `play-latest online`.
+
+### If play-latest does not work
+
+1. Run `play-latest file`: it opens the game the old way.
+2. Send the orchestrator what the black window says (a photo is fine).
+3. Tell it what you see in the browser (nothing, an error page, the game without the stamp bottom left).
 
 ## Things not to do any more
 
@@ -65,4 +95,6 @@ The rules every assistant follows are in `AGENTS.md`; the roles and the worker b
 | Red bar "Old game files are loaded" | browser cache | Ctrl+F5, or close and reopen |
 | Stamp differs from the orchestrator's report | your folder or tab is old | run `play-latest.cmd` |
 | `play-latest` says "unsaved changes" or "local commits" | something was edited in your play folder | tell the orchestrator; don't delete anything |
+| The browser says "This site can't be reached" at 127.0.0.1 | the server window was closed | double-click `play-latest` again |
+| Your sound setting or online name is gone | the game now runs from a new address (once) | set it again |
 | A robot or rule you thought was gone | old files (see stamp), or a real bug | send a screenshot with the stamp |

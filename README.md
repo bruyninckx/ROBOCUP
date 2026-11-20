@@ -20,7 +20,7 @@ GitHub: https://github.com/bruyninckx/ROBOCUP
 | `docs/archive/` | Older or rejected directions, kept for reference. |
 | `AGENTS.md`, `CLAUDE.md` | Rules for AI assistants: one orchestrator (Fable) owns `main`, Opus workers do one task each. Kev's guide: `docs/orchestration.md`. |
 | `TASKS.md` | The task board and the questions waiting for Kev. |
-| `play-latest.cmd` | Double-click: update this folder to `main` and open the 2.0 game (`play-latest online`: the GitHub Pages copy). |
+| `play-latest.cmd` | Double-click: update this folder to `main`, start a small game server on this PC (`tools/serve.js`, or `tools/serve.py` without Node; 127.0.0.1:8765 only; leave its window open) and open the 2.0 game from it. `play-latest online`: the GitHub Pages copy; `play-latest file`: open the file directly (old way). See docs/orchestration.md. |
 | `PROGRESS.md` | Who works on what, plus a log of changes. Update it after every work session. |
 
 ## How to run

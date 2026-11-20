@@ -156,7 +156,13 @@
     b.innerHTML = text; b.onclick = onclick || null; try { b.title = 'Game version ' + version(); } catch (e) {}
   }
   const TEAMS = () => (GAME() ? GAME().TEAMS : [{ name: 'Steel', col: '#3F78A8' }, { name: 'Rust', col: '#C8642B' }, { name: 'Moss', col: '#5E8A3A' }, { name: 'Plum', col: '#86528F' }]);
-  const linkFor = (room, local) => location.href.split('?')[0] + '?room=' + room + (local ? '&net=local' : '');
+  /* Invite links (Kev, 20 Nov, T32): play-latest serves the game from this PC (http://127.0.0.1:8765/...), and before that it
+   * opened it as a file; a link to either is no use to friends. From such an address the invite link points at the public
+   * copy (GitHub Pages) with the same room code, and the lobby says so. A local test room (&net=local) keeps this address. */
+  const PUBLIC_DIR = 'https://bruyninckx.github.io/ROBOCUP/prototypes/';
+  const onThisPc = () => location.protocol === 'file:' || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/i.test(location.hostname);
+  const linkFor = (room, local) => (local || !onThisPc() ? location.href.split('?')[0] : PUBLIC_DIR + (location.pathname.split('/').pop() || 'tabletop-2.html')) + '?room=' + room + (local ? '&net=local' : '');
+  const publicNote = () => onThisPc() ? ' The link opens the public copy of the game (GitHub Pages), because this one runs from your PC. If your copy and the public one differ (a few minutes after an update), your friends are told to refresh and can join once both match.' : '';
 
   /* ================================ HOST ================================ */
   function startHosting(room, mode) {
@@ -315,7 +321,7 @@
       el.innerHTML = '<div class="nl-box"><h3>🌐 Host a game</h3>' +
         '<div class="nl-row">Room <span class="nl-code">' + room + '</span><button class="sec" id="nlCopy">📋 Copy invite link</button></div>' +
         '<div class="nl-row"><input type="text" readonly id="nlLink" value="' + esc(linkFor(room, mode === 'local')) + '" style="width:100%"></div>' +
-        '<div class="nl-note">' + (mode === 'local' ? 'Local test room: open the link in other tabs of this browser.' : 'Send the link to your friends (Discord). They type a name and press Ready. Keep this tab open: your browser runs the game.') + '</div>' +
+        '<div class="nl-note">' + (mode === 'local' ? 'Local test room: open the link in other tabs of this browser.' : 'Send the link to your friends (Discord). They type a name and press Ready. Keep this tab open: your browser runs the game.' + publicNote()) + '</div>' +
         '<div class="nl-row">Your name <input type="text" id="nlName" value="' + esc(H.me.name) + '" maxlength="20"></div>' +
         '<div class="nl-note">Click a colour to sit there. Empty seats are played by the AI.</div>' +
         '<div class="nl-seats">' + st.seats.map((x, s) => '<div class="nl-seat' + (s === H.me.seat ? ' mine' : '') + '" data-seat="' + s + '" style="border-color:' + TEAMS()[s].col + '"><div class="nm" style="color:' + TEAMS()[s].col + '">' + esc(TEAMS()[s].name) + '</div>' +
