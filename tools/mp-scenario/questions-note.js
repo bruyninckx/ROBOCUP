@@ -65,7 +65,7 @@ const path = require('path'), fs = require('fs');
     if (!o.pop) {
       if (!n2.move || !n2.flash) bad.push(tag + ' ' + name + ': the note is not a flashing YOUR MOVE (' + JSON.stringify({ move: n2.move, flash: n2.flash }) + ')');
       if (n2.box) bad.push(tag + ' ' + name + ': the box over the pit is open too');
-      if (o.timed ? !(n2.bar && /^\d+ s$/.test(n2.sec)) : n2.sec) bad.push(tag + ' ' + name + ': countdown ' + JSON.stringify({ bar: n2.bar, sec: n2.sec }) + (o.timed ? ', want one' : ', want none'));
+      if (!(n2.bar && /^\d+ s$/.test(n2.sec))) bad.push(tag + ' ' + name + ': countdown ' + JSON.stringify({ bar: n2.bar, sec: n2.sec }) + ', want one (T31: every question is timed)');
       if (n2.bs.some(x => x.cut)) bad.push(tag + ' ' + name + ': buttons cut off: ' + n2.bs.filter(x => x.cut).map(x => x.t).join(' | '));
     }
     if (/NOBODY HAS TO CLICK/i.test(n2.head) || !n2.wait) bad.push(tag + ' ' + name + ': the waiting list does not wait for you: ' + n2.head.replace(/\s+/g, ' ').slice(0, 120));
@@ -74,7 +74,7 @@ const path = require('path'), fs = require('fs');
     else if (ans === 'wait') { /* T20: let the countdown run out */ }
     else if (o.pop) { await p.waitForTimeout(900); await p.evaluate(src => { const bt = [...document.querySelectorAll('#ivModal button[data-k]')].find(x => typeof src === 'number' ? +x.dataset.k === src : new RegExp(src).test(x.textContent)); if (bt) bt.click(); }, typeof ans === 'number' ? ans : ans.source); }
     else { const c = await click(p, ans); if (!c) bad.push(tag + ' ' + name + ': no button ' + ans); else if (c !== 'tick') bad.push(tag + ' ' + name + ': no ✓ on the clicked button'); }   // ✓ checked right after the click, in the same moment
-    const res = await waitRes(p, ans === 'wait' ? 26000 : 8000);
+    const res = await waitRes(p, ans === 'wait' ? 36000 : 8000);
     console.log(tag + ' ' + name + ' → ' + (ans === 'cancel' ? '(closed)' : ans === 'wait' ? '(no answer, time up)' : typeof ans === 'number' ? 'answer #' + ans : ans.source) + ': ' + JSON.stringify(res) + (n2 ? ' · note ' + n2.h + ' px' + (n2.tight ? ' tight' : '') + ', buttons ' + n2.bs.map(x => x.t).join(' | ') : ''));
     return { n: n2, after, res };
   }
@@ -162,7 +162,7 @@ const path = require('path'), fs = require('fs');
     // ---- 9. layout: 6 answers and a long text (the most the note takes): every button inside the note, the text scrolls;
     //      each answer gives that button's value, closing it gives the default
     const long = 'The host called a 2v2. ' + 'Your robot may go left or right, or stay, or call for help from the crowd. '.repeat(3);
-    const six = () => { const D = window.ROBOCUS_DEBUG; D.askBox('🧪 Six answers', window.__long, ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Not now'].map((l, i) => ({ label: l, secondary: i === 5, value: () => 'v' + i })), 0, 'dflt').then(v => { window.__res = v; }); };
+    const six = () => { const D = window.ROBOCUS_DEBUG; D.askBox('🧪 Six answers', window.__long, ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Not now'].map((l, i) => ({ label: l, secondary: i === 5, value: () => 'v' + i })), 20000, 'dflt').then(v => { window.__res = v; }); };   // T31: 20 s as askSeat gives it
     for (const [ans, want] of [[/^Echo$/, 'v4'], [/^Not now$/, 'v5'], ['cancel', 'dflt']]) {
       await prep(p); await p.evaluate(t => { window.__long = t; }, long);
       const r = await ask(p, tag, 'six answers', six, ans, { shot: ans === 'cancel' ? null : /Echo/.test(ans.source) ? 'six-answers' : null });
@@ -204,6 +204,121 @@ const path = require('path'), fs = require('fs');
         console.log(tag + ' robot offer → Accept after the pointer moved: ' + JSON.stringify(res));
         if (!got) bad.push(tag + ' robot offer: Accept did not buy the robot: ' + JSON.stringify(res));
       } }
+    // ---- 11. T31 (Kev, 20 Nov: "yes, put them all on a timer"): every question counts down and, left alone, takes its safe
+    //      default with a ⌛ line in your log. Short clocks here (BAL.askMs 3 s, askBoxMs 4 s, askDealMs 4 s) so the cases run fast;
+    //      the screenshots use the real 20 / 30 / 45 s.
+    const lastLog = () => p.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-6).map(e => e.text));
+    const lateLine = async (name, re) => { const L = await lastLog(), l = L.find(x => /^⌛ No answer in time/.test(x));
+      if (!l || (re && !re.test(l))) bad.push(tag + ' ' + name + ': no ⌛ line saying what was decided (' + JSON.stringify(L.slice(-3)) + ')'); else console.log(tag + ' ' + name + ' log: ' + l); };
+    const short = (a = 3000, bx = 4000, dl = 4000) => p.evaluate(([a, bx, dl]) => { const B = window.ROBOCUS_DEBUG.BAL; B.askMs = a; B.askBoxMs = bx; B.askDealMs = dl; }, [a, bx, dl]);
+    // real lengths, for the screenshots: a threat, a Tag Team offer, a backing request counting down in the note; the last 5 s; a box and a deal panel with the note pointing at them
+    await short(20000, 30000, 45000);
+    for (const [nm, start] of [['threat', () => { const D = window.ROBOCUS_DEBUG, G = D.G; D.dealAsk('💰 A threat', '<b>Rust Rivets</b> says it will wreck your Tow cable (Botched Install) unless you give <b>2 Cr</b>.', 0).then(v => { window.__res = v; }); }],
+        ['backing-request', () => { const D = window.ROBOCUS_DEBUG; D.dealAsk('🤝 Backing request', '<b>Rust Rivets</b> asks you to back a scheme against <b>Plum Ohms</b> and offers <b>2 Cr</b>.<br>Your 8 fame would count for that one card. They don\'t have to tell you what it is.', 0).then(v => { window.__res = v; }); }],
+        ['tag-team-offer', tto]]) {
+      await prep(p); await clearAll(p); await p.evaluate(start); const n = await waitQ(p);
+      if (!n) { bad.push(tag + ' ' + nm + ': no question'); continue; }
+      await p.waitForTimeout(1200); const n2 = await note(p);
+      if (!(n2.bar && /^\d+ s$/.test(n2.sec) && +n2.sec.split(' ')[0] >= 17)) bad.push(tag + ' ' + nm + ': no 20 s countdown in the note (' + n2.sec + ')');
+      await shot(p, tag + '-t31-' + nm + '.png'); await noteShot(p, tag + '-t31-' + nm + '-note.png');
+      console.log(tag + ' ' + nm + ': ' + n2.title + ' · ' + n2.sec + ' · ' + n2.bs.map(x => x.t).join(' | '));
+      if (nm === 'threat') {   // the last 5 seconds: red seconds, the bar pulses (q-low)
+        await p.evaluate(() => { const q = window.ROBOCUS_DEBUG.RX.q; q.t0 -= 16500; });
+        await p.waitForTimeout(400); const low = await p.evaluate(() => ({ low: document.getElementById('promptBar').classList.contains('q-low'), sec: (document.querySelector('#promptBar .rx-sec') || {}).textContent, col: getComputedStyle(document.querySelector('#promptBar .rx-sec')).color }));
+        console.log(tag + ' last 5 s: ' + JSON.stringify(low));
+        if (!low.low || !/^[1-4] s$/.test(low.sec)) bad.push(tag + ' last 5 s: not marked ' + JSON.stringify(low));
+        await shot(p, tag + '-t31-last5.png'); await noteShot(p, tag + '-t31-last5-note.png');
+        const r = await waitRes(p, 8000); if (r !== false) bad.push(tag + ' threat left alone: ' + JSON.stringify(r) + ', want false (not paid)'); else await lateLine('threat', /you did not pay/);
+      }
+    }
+    await clearAll(p);
+    { await prep(p, 6); await p.evaluate(debt); const n = await waitQ(p, true); await p.waitForTimeout(1200);   // a box (7 robots) with its countdown; the note shows the same seconds
+      const bx = await p.evaluate(() => ({ box: (document.querySelector('#ivModal .iv-clock .rx-sec') || {}).textContent, note: (document.querySelector('#promptBar.qpop .rx-sec') || {}).textContent }));
+      console.log(tag + ' box countdown: ' + JSON.stringify(bx));
+      if (!n || !/^2\d s$/.test(bx.box || '') || bx.box !== bx.note) bad.push(tag + ' box countdown: ' + JSON.stringify(bx) + ', want 30 s counting in the box and the same in the note');
+      await shot(p, tag + '-t31-box.png'); await clearAll(p); }
+    { await prep(p); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; D.dealPanel({ title: '🤝 Rust Rivets hesitates', intro: 'Rust Rivets would rather not team up. Make it worth their while?', from: G.teams[1], lock: 'Lock in offer' }, 0).then(v => { window.__res = v; }); });
+      await p.waitForTimeout(1500); const dl = await p.evaluate(() => ({ box: (document.querySelector('#dealModal .iv-clock .rx-sec') || {}).textContent, note: (document.querySelector('#promptBar.qpop .rx-sec') || {}).textContent }));
+      console.log(tag + ' deal panel countdown: ' + JSON.stringify(dl));
+      if (!/^4\d s$/.test(dl.box || '') || dl.box !== dl.note) bad.push(tag + ' deal panel countdown: ' + JSON.stringify(dl) + ', want 45 s in the panel and the same in the note');
+      await shot(p, tag + '-t31-deal.png'); await clearAll(p); }
+    if (w === 1600) {
+      await short();
+      const snapAll = () => p.evaluate(() => JSON.stringify(window.ROBOCUS_DEBUG.G.teams.map(t => [t.credits, t.fame, t.robots.map(r => r.id + ':' + JSON.stringify(r.parts || [])), t.stash, t.crew.length, t.hand])));
+      // left alone, one by one: the default, the state as it was where the default is "no"
+      for (const [nm, mine, start, ok, re] of [
+        ['second robot', 3, second, r => r.n === 2, /just one robot/],
+        ['Tag Team offer', 0, tto, r => r.fame === 0 && r.tag === '1+0', /you team up/],
+        ['Tag Team Licence', 0, ttl, r => /^0\+[12]$/.test(r.tag || ''), /is asked/],
+        ['Stash fit', 1, fit, r => r.on === null && r.stash === 1, /stays in your Stash/],
+        ['upkeep debt', 1, debt, r => r.gone.length === 1, /weakest robot/],
+        ['Bookie\'s Friend', 0, (() => { window.__rows = 1; return bf; })(), r => r.hand === 0, /closed by itself/]]) {
+        await prep(p, mine, nm === 'Tag Team Licence' ? { fame: [8, 8, 8, 9] } : {}); if (nm === 'Bookie\'s Friend') await p.evaluate(() => { window.__rows = 1; });
+        const before = await snapAll(), t0 = Date.now();
+        const r = await ask(p, tag, 'T31 ' + nm, start, 'wait', { timed: true });
+        const after = await snapAll(), dt = (Date.now() - t0) / 1000;
+        console.log('  ' + nm + ' left alone: ' + dt.toFixed(1) + ' s, state ' + (before === after ? 'unchanged' : 'changed'));
+        if (!ok(r.res)) bad.push(tag + ' T31 ' + nm + ' left alone: ' + JSON.stringify(r.res));
+        if (/second robot|Stash fit|Bookie/.test(nm) && before !== after) bad.push(tag + ' T31 ' + nm + ' left alone changed the game');
+        if (dt < 2.5) bad.push(tag + ' T31 ' + nm + ': closed after ' + dt + ' s, before its time');
+        await lateLine(nm, re);
+      }
+      // the robot offer left alone: refused, nothing changes
+      { await prep(p); await p.mouse.move(5, 5); const r = await ask(p, tag, 'T31 robot offer', offer, 'wait', { timed: true });
+        if (JSON.stringify(r.res.before) !== JSON.stringify(r.res.after)) bad.push(tag + ' T31 robot offer left alone changed the game: ' + JSON.stringify(r.res)); await lateLine('robot offer', /refused/); }
+      // Museum Donation (you play it; 2 crew + 1 robot): the AI's choice, a crew member
+      { await prep(p); const r = await ask(p, tag, 'T31 Museum Donation', () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.hand = ['museum_donation']; const c0 = me.crew.length, r0 = me.robots.length, f0 = me.fame;
+          D.playScheme(me, 'museum_donation', me).then(() => { window.__res = { crew: me.crew.length - c0, robots: me.robots.length - r0, fame: me.fame - f0 }; }); }, 'wait', { timed: true });
+        if (!(r.res.crew === -1 && r.res.robots === 0)) bad.push(tag + ' T31 Museum Donation left alone: ' + JSON.stringify(r.res) + ', want a crew member donated'); await lateLine('Museum Donation', /crew member/); }
+      // hand limit (a box with ticks): the pre-ticked (cheapest) cards are cashed in
+      { await prep(p); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, me = D.G.teams[0]; me.fame = 1; me.hand = Object.keys(D.CARDS).filter(k => !D.CARDS[k].auction).slice(0, 9); const h0 = me.hand.length;
+          D.humanHandLimit(me).then(v => { window.__res = { v, cashed: h0 - me.hand.length }; }); });
+        const t0 = Date.now(); const r = await waitRes(p, 12000); const dt = (Date.now() - t0) / 1000;
+        console.log(tag + ' T31 hand limit left alone (' + dt.toFixed(1) + ' s): ' + JSON.stringify(r));
+        if (!(r.v === true && r.cashed > 0) || dt < 3.5) bad.push(tag + ' T31 hand limit left alone: ' + JSON.stringify(r) + ' after ' + dt + ' s'); await lateLine('hand limit', /cashed in/); }
+      // a deal panel left alone: No deal, nothing moves
+      { await prep(p); const before = await snapAll(); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; D.dealPanel({ title: '💰 Payoff from Rust Rivets', intro: 'test', from: G.teams[1], give: false, want: true, lock: 'Lock in demand' }, 0).then(v => { window.__res = v; }); });
+        const r = await waitRes(p, 10000); if (r !== null || before !== await snapAll()) bad.push(tag + ' T31 deal panel left alone: ' + JSON.stringify(r)); else console.log(tag + ' T31 deal panel left alone: no deal'); await lateLine('deal panel', /no deal/); }
+      // the host's own steps (you host): picking the fighters (4 s here) → the two teams with the most fame; spare or scrap (3 s) → spare
+      { await prep(p, 0, { fame: [8, 9, 7, 10] }); await clearAll(p);
+        const t0 = Date.now(); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.phase = 'arena'; G.host = 0; G.fight = null; G.hostStep = null; G.chooseMyBot = false; G.inviteOffers = []; G.pickTeams = []; D.updateHud(); });
+        await p.waitForTimeout(1200); const st = await p.evaluate(() => (document.querySelector('#promptBar .st-clock .rx-sec') || {}).textContent || '');
+        if (!/^\d s$/.test(st)) bad.push(tag + ' T31 host picks the fighters: no countdown in the note (' + st + ')');
+        let r = null; for (let t = 0; t < 10000 && !r; t += 200) { r = await p.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; return G.pickTeams == null ? { fight: G.fight ? G.fight.teams.slice().sort() : null } : null; }); if (!r) await p.waitForTimeout(200); }
+        const dt = (Date.now() - t0) / 1000; console.log(tag + ' T31 host picks the fighters left alone (' + dt.toFixed(1) + ' s, note showed ' + st + '): ' + JSON.stringify(r));
+        if (!(r && r.fight && r.fight.join() === '1,3') || dt < 3.5) bad.push(tag + ' T31 host picks the fighters: ' + JSON.stringify(r) + ' after ' + dt + ' s, want teams 1 and 3 (most fame)');
+        await lateLine('host picks the fighters', /invites/);
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; (G.ps || []).forEach(x => { if (x) x.choose = false; }); G.chooseMyBot = false; G.fight = null; G.phase = 'upkeep'; D.updateHud(); }); await clearAll(p); }
+      { await prep(p); await clearAll(p);
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, L = G.teams[1]; G.phase = 'after'; G.host = 0; G.fight = { teams: [0, 1], robots: [G.teams[0].robots[0], L.robots[0]], sides: [0, 1], loser: { team: 1, robot: L.robots[0] }, fateI: 1, fateN: 1, fateOffers: { spare: [], scrap: [] }, crateQueue: [] };
+          G.fateBusy = false; G.awaitingJudgment = true; window.__n1 = L.robots.length; D.updateHud(); });
+        const t0 = Date.now(); let r = null; for (let t = 0; t < 10000 && !r; t += 200) { r = await p.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; return G.awaitingJudgment ? null : { robots: G.teams[1].robots.length - window.__n1 }; }); if (!r) await p.waitForTimeout(200); }
+        const dt = (Date.now() - t0) / 1000; console.log(tag + ' T31 spare or scrap left alone (' + dt.toFixed(1) + ' s): ' + JSON.stringify(r));
+        if (!(r && r.robots === 0) || dt < 2.5) bad.push(tag + ' T31 spare or scrap: ' + JSON.stringify(r) + ', want spared after 3 s');
+        await lateLine('spare or scrap', /is spared/);
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.fight = null; G.phase = 'upkeep'; D.updateHud(); }); await clearAll(p); }
+      // a second question waits behind the first: its clock starts when it shows (it gets its full 3 s)
+      { await prep(p); await clearAll(p);
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, bs = t => [{ label: 'Yes ' + t, value: () => 'y' + t }, { label: 'No', secondary: true, value: () => 'n' + t }]; window.__q = {};
+          D.askSeat(0, '🧪 First', 'one', bs(1), 0, 'd1').then(v => { window.__q.a = [v, performance.now()]; });
+          D.askSeat(0, '🧪 Second', 'two', bs(2), 0, 'd2').then(v => { window.__q.b = [v, performance.now()]; }); });
+        await p.waitForTimeout(2200); await click(p, /^Yes 1/);
+        let q = null; for (let t = 0; t < 10000; t += 200) { q = await p.evaluate(() => window.__q); if (q.b) break; await p.waitForTimeout(200); }
+        const gap = q.a && q.b ? (q.b[1] - q.a[1]) / 1000 : -1;
+        console.log(tag + ' T31 queued question: first ' + JSON.stringify(q.a && q.a[0]) + ', second ' + JSON.stringify(q.b && q.b[0]) + ' ' + gap.toFixed(1) + ' s after the first');
+        if (!(q.a && q.a[0] === 'y1' && q.b && q.b[0] === 'd2' && gap >= 2.7)) bad.push(tag + ' T31 queued question did not get its full time: ' + JSON.stringify(q) + ' gap ' + gap); }
+      // a paused game stops the clock (online: a player away; here the host's pause call), seconds show ⏸
+      { await prep(p); await clearAll(p);
+        await p.evaluate(() => { const D = window.ROBOCUS_DEBUG; window.__t0 = performance.now(); D.askSeat(0, '🧪 Paused', 'wait', [{ label: 'Yes', value: () => 'y' }, { label: 'No', secondary: true, value: () => 'n' }], 0, 'dflt').then(v => { window.__res = [v, performance.now() - window.__t0]; }); });
+        await p.waitForTimeout(1000); await p.evaluate(() => window.ROBOCUS_GAME.setPaused([{ seat: 1, name: 'Test' }]));
+        await p.waitForTimeout(4000); const mid = await p.evaluate(() => ({ res: window.__res, sec: (document.querySelector('#promptBar .rx-sec') || {}).textContent }));
+        if (shots) await noteShot(p, tag + '-t31-paused-note.png');
+        await p.evaluate(() => window.ROBOCUS_GAME.setPaused([]));
+        const r = await waitRes(p, 8000);
+        console.log(tag + ' T31 paused: during the pause ' + JSON.stringify(mid) + ', then ' + JSON.stringify(r));
+        if (mid.res !== undefined || !/⏸/.test(mid.sec || '') || !(r[0] === 'dflt' && r[1] > 6500)) bad.push(tag + ' T31 pause: ' + JSON.stringify(mid) + ' then ' + JSON.stringify(r)); }
+      await short(20000, 30000, 45000);
+    }
     await p.close();
   }
   console.log(errs.length ? 'PAGE ERRORS:\n' + errs.join('\n') : 'no page errors');
