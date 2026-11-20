@@ -7,6 +7,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K32. Timers** (T31): (a) are 20 s (note), 30 s (box, host picking fighters) and 45 s (deal panel) right? (b) where
+  every answer costs something, time up now picks: Hostile Buyout → Refuse (−1 fame); Tag Team offer → Team up; a threat
+  → Refuse (the card may land); can't pay upkeep → weakest robot scrapped; Museum Donation → a crew member; hand limit →
+  cheapest cards cashed in; you host spare or scrap → spare. Right? (c) a timer on "send a robot" too (default: strongest
+  ready robot)? (d) a timer on your own trade panel in the Market?
 - **K30. Start credits** (T29): 10 Cr makes the first Market a bit richer than before sponsors cost money (9.6 Cr spent,
   was 8.2). Keep 10, or try 9 (not measured)?
 - **K31. Local server** (T32): how many logical processors does Kev's PC have (under about 6, four-robot fights may still
@@ -117,12 +122,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `partCopies.repair: 0`; since T5 it repairs under fire and is worth about two thirds of a level). Files:
   `prototypes/tabletop-2.html` (`BAL.partCopies`, card text, `PART_LV`), docs. Worker on branch `claude/repair-kit-back`,
   started 20 Nov. Done when: the card comes up in bot games and is bought and fitted, game-sim and `mp-test` pass.
-- **T31. Every question that holds up the table gets a timer.** Kev (20 Nov): "yes, put them all on a timer". Goal:
-  threats, Tag Team offers, backing requests and every other question that makes the table wait for one player count
-  down in the note (20 s, as Joint Venture), with the safe answer when time runs out (never a yes that costs credits or
-  changes the garage). Files: `prototypes/tabletop-2.html` (`askSeat` time limits and defaults). Worker on branch
-  `claude/timers-everywhere`, started 20 Nov. Done when: a table of every question with its time and default, scripted
-  time-outs solo and from a joined client, `questions-note.js`, game-sim and `mp-test` pass.
 - (T26, T27 and T29 below were stopped by a server restart on 17 Nov at about 22:15 and resumed on 20 Nov.)
 - **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
   everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
@@ -135,6 +134,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Worker on branch `claude/market-one-step`, started 17 Nov.
 ## Done
 
+- **T31. Every question to one player has a timer** (20 Nov): 20 s in the note, 30 s in the box and for the host picking
+  the fighters, 45 s for a deal panel (`BAL.askMs`, `askBoxMs`, `askDealMs`); time up takes the default and logs a ⌛ line.
+  One game clock that stops while paused; a queued question gets its full time; online the host judges every time-out
+  (new `shown` message and `cancelQ` in `src2/net.js`), a rejoining player gets the time left. Table of every question
+  in `docs/robocus-2.0.1-screen.md`. Fixes on the way: Tag Team Licence crash on a closed question; hand limit that could
+  not end; upkeep debt cleared without a scrap. Branch `claude/timers-everywhere`, commit `6f649ea`; build `2026-11-20d`,
+  files stamp `352be701`. Orchestrator's checks: game-sim 2/2, 0 page errors; questions-note, questions-remote 7,
+  reaction 7, waiting 7 OK; mp-test OK, 0 desyncs, 8 fights. Known limit: a reaction window over a question does not stop its clock.
 - **T32. `play-latest` serves the game from this PC** (20 Nov): `tools/serve.js` (Node; `tools/serve.py` for Python), on
   127.0.0.1:8765 only, read-only, repo files only; `play-latest` starts it and opens the game there, reuses a running
   one; `play-latest file` is the old way, `play-latest online` unchanged. From a local address the invite link points to
