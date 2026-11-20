@@ -109,6 +109,47 @@ Blocks for schemes aimed at you. They cash in for the most, so holding them cost
 | **Overreach** | Reaction | ▲ | 2 | 2 | Block a scheme played by a team with less fame than you. | You Have Overreached |
 
 
+### Who is offered a reaction (T27, 17-20 Nov)
+
+Kev's playtest (17 Nov 18:08): he played Inside Leak on Moss Gears, Moss's Security Bot blocked it, Rust Rivets (AI) played
+Override (good for Kev), and the window then offered Kev his own Firewall. He clicked it and kept his own scheme blocked
+("wondering now, moss gear did not get -1 fame").
+
+**The rule** (people and AI alike): a reaction is offered to a team only when playing it can be in that team's interest,
+judged by who the thing being answered helps and who it hurts.
+- A block (or Not My Robot) of a scheme: never the player of the scheme; never a team the scheme **only gives something to**
+  (the target of Overtime Shift, Consulting Gig, Industry Insider, Fan Meet, Roadshow, Public Demo, Launch Party, Celebrity
+  Endorsement, Hype Reel, Prime-Time Interview, Viral Moment, Co-Branding Deal; Co-Branding's second team; Underdog Story's
+  bottom team). Team-Building Day and Press Tour cost the target crew or bots, so the target may still stop them.
+- An Override of a block: never the target (the card's rule), never the team that made the block.
+- A Firewall on an Override (the block stands): never the player of the scheme, never a team the scheme only gives something to.
+- Everything else stays offered: stopping a scheme on someone else (an ally in a 2v2 event), denying a rival a gain, piling on.
+
+Secrecy is as before: in a game with several people everyone (but the player, and for Override the target) gets the window;
+a seat with nothing it may play sees the same text, "You have no card to play here" and the quiet OK, whatever its hand.
+The waiting list says CAN ANSWER for everyone. In a solo game only a person with something to play gets a window.
+
+**Every reaction moment** (who is asked; "before" = until 17 Nov, "after" = T27):
+
+| Moment | Asked (people) | Could be against their interest before? | After T27 |
+|---|---|---|---|
+| Scheme played (block window): Security Bot roll | the target, only for a harmful scheme | no | same; button "🤖 Roll a Security Bot (… blocks on 4–6)" |
+| Block window: Paid Off, Fall Guy, Firewall, PR Spin, Sponsor's Lawyers, Under the Radar, Overreach | every team but the player | **yes**: the target of a gift (Fan Meet on you) was offered a block of its own +1 fame; the AI target blocked it 6 in 10 times when the player led | not offered to a team the scheme only gives something to; AI the same. Buttons: "🛡️ PR Spin: block it (Steel's Inside Leak fails)", "Paid Off: block it (you pay another team 3 Cr)", "Fall Guy: block it (you lose a ready crew member)" |
+| Block window: Not My Robot | the target | **yes**, on a gift (send your own +1 fame to someone else) | not offered on a gift. "🙅 Not My Robot: send it to another team (if it still lands, Steel loses 1 fame)" |
+| After Not My Robot (the new target defends) | every team but the player; the new target gets its bots | no | same rule as the block window |
+| Robot Rights Protest | every team but the player; only Firewall | no (it hits them) | same; text "It hits every team but …" |
+| Override window (after any block) | every team but the target | **yes**: a bystander who made the block (PR Spin on a scheme against someone else) was offered Override against its own block | not the blocker. "⛓️ Override the block (Steel's Inside Leak goes through)"; the player sees "your … goes through" / "Let it happen (your … stays blocked)" |
+| Firewall on an Override | every team but the one that overrode | **yes**: the player of the scheme (Kev's case), and the target of a gift, were offered Firewall to keep the block on their own scheme / gift | not the player, not a gift's target. "🛡️ Firewall: keep the block (Steel's Inside Leak fails)"; "Let it happen (the Inside Leak hits you)" for the target |
+| Pile-On (after a team loses fame) | every team but the one that lost fame (card: only a team with more fame) | no (it only hurts the other team) | same; "🗞️ Pile on (Moss loses 1 more fame)" |
+| Botched Install (after the Market) | every person; offers only rivals' parts | no (never your own part) | same (labels already said "Botch Moss's Saw" / "Payoff for …") |
+| Botched Install played on a part | the part's winner defends (bots, block window) | no | same rule as the block window |
+| Board Seat, Blaze of Glory | not a window (Board Seat is a tick in Ask for backing; Blaze of Glory plays itself) | no | unchanged |
+
+The AI: `aiWantsBlock` now returns no for a team the scheme only helps (it used to block a Fan Meet on itself when the player
+led); `canFw` and the Override `can` use the same rule, so the AI never Firewalls its own scheme or Overrides its own block.
+Check: `node tools/mp-scenario/reaction-own.js 7 [shots]`.
+
+
 ## Auction deck (7 cards, 16 copies; Kev, 7 Nov)
 
 Not dealt to hands. In every fight's **Bets step** 2 cards are turned up and auctioned while everyone bets:
