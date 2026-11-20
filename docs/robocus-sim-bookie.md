@@ -66,6 +66,24 @@ Log `robocus2-playtest-2026-11-16T19-10-46.json`, build 2026-11-16a, 6 fights, g
 - Workers never ran, because a page opened from a file can't start them. Through a web address (GitHub Pages, or a local server) the PC would use its cores minus 2.
 - `BAL.bookie` is unchanged; the options are question K9 in `TASKS.md`.
 
+## From a local address (20 Nov, T32)
+
+Kev (K9): "yes" to a local server for `play-latest`. Now `play-latest.cmd` starts `tools/serve.js` (Node; `tools/serve.py` if there is only Python) and opens the game at `http://127.0.0.1:8765/prototypes/tabletop-2.html`. From there the page can start its helpers, so the fight bookie and the odds overview run their test fights in workers (`how: "N workers"` in the `bookie` event). `play-latest file` still opens the file (page only). Kev's guide: docs/orchestration.md, "What play-latest does".
+
+Measured in the cloud test box (`node tools/serve-check.js`: one AI game, seed 3, then `simOdds` on its first duel and its first 4-robot fight, a 2v2 in round 9). The box has 2 slow cores, so the bookie makes 1 worker (cores minus 2, at least 1), and it was shared with five other jobs (load 20-35 on 2 cores): the counts swing a lot from run to run and say nothing about Kev's PC. What they do show: where the fights run, and how long the screen stands still.
+
+| Budget | Address | Duel: test fights | 4-robot fight: test fights | Longest screen freeze (4-robot) |
+|---|---|---|---|---|
+| 4 s | file | 14-40, `how: page` | 1 (one fight took 13-18 s, past the budget) | 12.5-18 s |
+| 4 s | http://127.0.0.1 | 4-14, `how: 1 workers` | 0 (none finished in time) | 0.9-1.6 s |
+| 12 s | file | 33, `how: page` | 1 (17 s) | 17 s |
+| 12 s | http://127.0.0.1 | 139, `how: 1 workers` | 0 | 1.6 s |
+
+- A worker runs the same fight in the same number of steps as the page (checked: 6 duels, steps identical), at about the same speed once warm; its first fights are slower (a fresh worker's engine is not warmed up yet: 15 s against 7 s for the first duel here, 4.2 s against 4.9 s by the sixth). The pool lives as long as the page, so this costs only the first fight of a game.
+- With one worker there is no speed gain, only no freezes. The gain is the number of workers: `cores minus 2, 8 at most`. On Kev's PC the page did 16-20 duels and about 2.5 four-robot fights a second. Per worker that should be about the same, so with 6 workers (an 8-core PC) roughly 60 four-robot fights in 4 s (over `min` = 40: used) and the 200 duels well inside 4 s; with 4 cores (2 workers) about 20 four-robot fights, still under 40. His next log's `bookie` events say how many workers ran (`how`) and how many fights fitted.
+- When no worker result arrives in time (here: the 4-robot fight), `how` says `page` with n 0: the page loop does not start either, because the budget is used up. Only the label is off.
+- Files stamp and red bar: same from both addresses (no red bar). Planck: the page falls back to `vendor/` when the CDN is blocked, and the workers try the same addresses in the same order.
+
 ## Odds overview on a Market lot (16 Nov, T7)
 
 Kev: "the overlay when checking odds on parts/robot should give an overview of effect of all the robots vs all the other robots, also from the opponents and how these changes affect you"; on a quick formula or test fights: "lets refine a bit".
@@ -83,7 +101,7 @@ Refinement with test fights:
 - Order: your changed duels first (after, then before), then the other changed duels, then your other duels, then the rest. Only the tab on screen is worked on.
 - Seeds come from the two robot names and the fight number, so the same pair state always gives the same numbers, whatever order the fights finish in, and a pair before and after the lot fights with the same dice (less noise in the change). Results are cached per pair state (3,000 at most), so reopening or switching back is free; a pair that shows up in another lot's grid is reused too.
 - It stops when the overlay closes, when the Market moves on or the lot is gone, and it waits whenever the fight bookie (`simOdds`) holds the pool.
-- A page opened from a file (what `play-latest.cmd` does) can't start the helpers: the fights then run on the page itself in slices of 5 ms (`sliceMs`; up to 10 ms when the browser is idle), so the game never freezes, but it is very slow (in the cloud test box about 100 engine steps a second, so a single duel takes about 25 s and the grid stays on the formula). From the web (`play-latest online`, GitHub Pages) the helpers run. The note under the grid says how the fights run and how many matchups are checked.
+- A page opened from a file (`play-latest file`; until 20 Nov also plain `play-latest`) can't start the helpers: the fights then run on the page itself in slices of 5 ms (`sliceMs`; up to 10 ms when the browser is idle), so the game never freezes, but it is very slow (in the cloud test box about 100 engine steps a second, so a single duel takes about 25 s and the grid stays on the formula). From a web address (`play-latest`, which since 20 Nov serves the game from the PC, or `play-latest online`) the helpers run. The note under the grid says how the fights run and how many matchups are checked.
 - Switches: `BAL.overview = { per, mine, prior, sliceMs }`; `window.__noOddsFights = true` keeps the grid on the formula.
 
 Display only: these numbers never feed game state, the AI, the fight odds, bets, payouts or anything sent between players (each PC works out its own). Nothing in it uses the game's dice. No change under `src2/`, so the files stamp stays the same.

@@ -109,7 +109,8 @@ function openBrowser(url) {
   if (process.env.ROBOCUS_NO_BROWSER) { console.log('(not opening a browser: ROBOCUS_NO_BROWSER is set) ' + url); return; }
   try {
     let c;
-    if (process.platform === 'win32') c = cp.spawn('cmd.exe', ['/d', '/s', '/c', 'start "" "' + url.replace(/&/g, '^&') + '"'], { windowsVerbatimArguments: true, stdio: 'ignore', detached: true });
+    // Windows: cmd /d /s /c "start "" "<url>"" (the same quoting Node uses for shell commands; start returns at once)
+    if (process.platform === 'win32') c = cp.spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', '"start "" "' + url + '""'], { windowsVerbatimArguments: true, windowsHide: true, stdio: 'ignore' });
     else if (process.platform === 'darwin') c = cp.spawn('open', [url], { stdio: 'ignore', detached: true });
     else c = cp.spawn('xdg-open', [url], { stdio: 'ignore', detached: true });
     c.on('error', () => console.log('Could not open the browser by itself. Open this address: ' + url));
