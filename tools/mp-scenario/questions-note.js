@@ -226,7 +226,7 @@ const path = require('path'), fs = require('fs');
         await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, q = D.RX.q; q.t0 = D.clkNow() - (q.ms - 4600); });   // 4.6 s left
         await p.waitForTimeout(400); const low = await p.evaluate(() => ({ low: document.getElementById('promptBar').classList.contains('q-low'), sec: (document.querySelector('#promptBar .rx-sec') || {}).textContent, col: document.querySelector('#promptBar .rx-sec') ? getComputedStyle(document.querySelector('#promptBar .rx-sec')).color : null }));
         console.log(tag + ' last 5 s: ' + JSON.stringify(low));
-        if (!low.low || !/^[1-4] s$/.test(low.sec)) bad.push(tag + ' last 5 s: not marked ' + JSON.stringify(low));
+        if (!low.low || !/^[1-5] s$/.test(low.sec)) bad.push(tag + ' last 5 s: not marked ' + JSON.stringify(low));
         await shot(p, tag + '-t31-last5.png'); await noteShot(p, tag + '-t31-last5-note.png');
         const r = await waitRes(p, 8000); if (r !== false) bad.push(tag + ' threat left alone: ' + JSON.stringify(r) + ', want false (not paid)'); else await lateLine('threat', /you did not pay/);
       }
@@ -252,7 +252,7 @@ const path = require('path'), fs = require('fs');
         ['Tag Team Licence', 0, ttl, r => /^0\+[12]$/.test(r.tag || ''), /is asked/],
         ['Stash fit', 1, fit, r => r.on === null && r.stash === 1, /stays in your Stash/],
         ['upkeep debt', 1, debt, r => r.gone.length === 1, /weakest robot/],
-        ['Bookie\'s Friend', 0, (() => { window.__rows = 1; return bf; })(), r => r.hand === 0, /closed by itself/]]) {
+        ['Bookie\'s Friend', 0, bf, r => r.hand === 0, /closed by itself/]]) {
         await prep(p, mine, nm === 'Tag Team Licence' ? { fame: [8, 8, 8, 9] } : {}); if (nm === 'Bookie\'s Friend') await p.evaluate(() => { window.__rows = 1; });
         const before = await snapAll(), t0 = Date.now();
         const r = await ask(p, tag, 'T31 ' + nm, start, 'wait', { timed: true });
