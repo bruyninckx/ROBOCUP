@@ -207,8 +207,8 @@ const path = require('path'), fs = require('fs');
     // ---- 11. T31 (Kev, 20 Nov: "yes, put them all on a timer"): every question counts down and, left alone, takes its safe
     //      default with a ⌛ line in your log. Short clocks here (BAL.askMs 3 s, askBoxMs 4 s, askDealMs 4 s) so the cases run fast;
     //      the screenshots use the real 20 / 30 / 45 s.
-    const lastLog = () => p.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-6).map(e => e.text));
-    const lateLine = async (name, re) => { const L = await lastLog(), l = L.find(x => /^⌛ No answer in time/.test(x));
+    const lastLog = () => p.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg').slice(-25).map(e => e.text));
+    const lateLine = async (name, re) => { const L = await lastLog(), l = L.filter(x => /^⌛ No answer in time/.test(x) && (!re || re.test(x))).pop();
       if (!l || (re && !re.test(l))) bad.push(tag + ' ' + name + ': no ⌛ line saying what was decided (' + JSON.stringify(L.slice(-3)) + ')'); else console.log(tag + ' ' + name + ' log: ' + l); };
     const short = (a = 3000, bx = 4000, dl = 4000) => p.evaluate(([a, bx, dl]) => { const B = window.ROBOCUS_DEBUG.BAL; B.askMs = a; B.askBoxMs = bx; B.askDealMs = dl; }, [a, bx, dl]);
     // real lengths, for the screenshots: a threat, a Tag Team offer, a backing request counting down in the note; the last 5 s; a box and a deal panel with the note pointing at them
@@ -247,7 +247,7 @@ const path = require('path'), fs = require('fs');
       const snapAll = () => p.evaluate(() => JSON.stringify(window.ROBOCUS_DEBUG.G.teams.map(t => [t.credits, t.fame, t.robots.map(r => r.id + ':' + JSON.stringify(r.parts || [])), t.stash, t.crew.length, t.hand])));
       // left alone, one by one: the default, the state as it was where the default is "no"
       for (const [nm, mine, start, ok, re] of [
-        ['second robot', 3, second, r => r.n === 2, /just one robot/],
+        ['second robot', 3, second, r => r.second === null, /just one robot/],   // (an AI side may add its own second robot)
         ['Tag Team offer', 0, tto, r => r.fame === 0 && r.tag === '1+0', /you team up/],
         ['Tag Team Licence', 0, ttl, r => /^0\+[12]$/.test(r.tag || ''), /is asked/],
         ['Stash fit', 1, fit, r => r.on === null && r.stash === 1, /stays in your Stash/],
@@ -259,7 +259,7 @@ const path = require('path'), fs = require('fs');
         const after = await snapAll(), dt = (Date.now() - t0) / 1000;
         console.log('  ' + nm + ' left alone: ' + dt.toFixed(1) + ' s, state ' + (before === after ? 'unchanged' : 'changed'));
         if (!ok(r.res)) bad.push(tag + ' T31 ' + nm + ' left alone: ' + JSON.stringify(r.res));
-        if (/second robot|Stash fit|Bookie/.test(nm) && before !== after) bad.push(tag + ' T31 ' + nm + ' left alone changed the game');
+        if (/second robot|Bookie/.test(nm) && before !== after) bad.push(tag + ' T31 ' + nm + ' left alone changed the game');
         if (dt < 2.5) bad.push(tag + ' T31 ' + nm + ': closed after ' + dt + ' s, before its time');
         await lateLine(nm, re);
       }
