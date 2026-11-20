@@ -108,7 +108,7 @@ popup where his pointer was, right after End turn, and his next click landed on 
 - `noteFits`: 1 to 6 answers (4+ two per row), no ticks or text fields, fewer than 3 lines of list (`<br>`) and at most 320 letters. Otherwise it
   stays in the box over the pit, and the note says `YOUR MOVE · IN THE MIDDLE ←` "This question is open in the box in the middle of the
   screen: answer it there." (and flashes). A deal panel gets the same pointer ("A deal panel is open in the middle of the screen").
-- Countdown: only the questions that had a time limit in the code (it was never shown or used since Kev's 6 Nov "no countdown bars"):
+- (T31, 20 Nov: every question is timed now, see "Every question is timed" below.) Countdown: only the questions that had a time limit in the code (it was never shown or used since Kev's 6 Nov "no countdown bars"):
   Joint Venture, Hostile Buyout, the Host step's Arena card. They count down **20 s** in the note (bar and seconds, as the reaction
   window), then take their default: Joint Venture **Defect** (it was Commit: Commit loses your 2 Cr if the other side defects, and a
   "yes" that can cost you is never the default), Hostile Buyout Refuse (−1 fame, the card's own price for saying no), Host step No.
@@ -170,6 +170,80 @@ popup where his pointer was, right after End turn, and his next click landed on 
   tools/mp-scenario/questions-remote.js (a joined player: second robot both ways, Hostile Buyout both ways, Joint Venture countdown and
   closed by the host = Defect, its own waiting list says YOUR MOVE). Screenshots in /home/claude/t20-shots (not in the repo).
 
+## Every question is timed (T31, 20 Nov)
+
+Kev, 20 Nov: "yes, put them all on a timer" (his answer to "Should threats, Tag Team offers and backing requests get a timer too?";
+his friends found the game slow, "too much waiting").
+
+- Every question the game asks **one** player while the table waits now counts down and then takes a safe default. Lengths are three
+  constants in `BAL` (tunable with `?bal=`): `askMs` **20 s** (a question in the note: one click), `askBoxMs` **30 s** (a question that
+  stays in the box: ticks to set or a list to read; and the host picking the fighters: robots and arenas to look at), `askDealMs`
+  **45 s** (a deal panel: credits and parts to drag onto the table). `askSeat` picks 20 or 30 s from the same `noteFits` test that puts
+  it in the note or the box. Never less than the reaction window's 10 s (unchanged).
+- Looks: as T20's Joint Venture: seconds and bar in the note; in the box and on a deal panel the seconds and bar sit over its buttons,
+  and the note that points at the box shows the same seconds. The last 5 seconds: red seconds and a pulsing bar (`q-low`; with reduced
+  motion no pulse, a thicker bar). The 0.8 s click guard and the red flash when it lands are unchanged.
+- Time up: one line in that player's log, e.g. `⌛ No answer in time (🤝 Offer from Rust Rivets): the offer was refused, nothing changes.`
+- Defaults: the answer that commits you to nothing you did not choose (decline, refuse, no swap, just one robot, the part stays in the
+  Stash, no deal). Forced choices take what the game already does for the AI or on the host's Skip. Where every answer costs something
+  (marked ★) the safest one is taken and it is a question for Kev (below).
+- Clocks: one game clock (`clkNow`) that **stops while the game is paused** (online: a player is away), on the host and on every joined
+  screen (⏸ before the seconds). A question's clock starts **when it is shown**, so a second question waiting behind another one gets its
+  full time. Online the **host judges** every time-out: the joined screen tells the host when it shows a question (`shown`, src2/net.js),
+  the host's clock starts then, and the host closes it 1 s after the screen's own count reached 0 (`cancelQ`: the default answer; the
+  screen's count is for show and never answers by itself). A player who drops and rejoins gets the open question again with the time
+  it had left (the game was paused meanwhile). (T20 had two holes here: the host's fallback could close a queued question before the
+  player saw all 20 s, and the timer kept running while the game was paused. Both fixed.)
+- The host's own steps for a person host (picking the fighters; spare or scrap) count down in the note too (`G.qclk`, so a joined host
+  sees it); the clock waits while that player has a question or deal panel of its own open.
+
+| Question | Seconds | Time up | Note or box |
+|---|---|---|---|
+| 🤖🤖 Second robot? (double duel) | 20 | Just one | note |
+| 🤝 Joint Venture | 20 | Defect (your 2 Cr are never at risk) | note |
+| 🏢 Hostile Buyout | 20 | ★ Refuse (−1 fame; Sell gives the robot away) | note |
+| 🤝 Tag Team Licence (pick your ally; the card is played) | 20 | the AI's pick: the strongest ready robot outside the leader | note |
+| 🤝 Tag Team offer (Team up / Refuse −1 fame) | 20 | ★ Team up (by the card only Refuse costs, 1 fame) | note |
+| 🤝 … hesitates (sweeten the Tag Team) | 45 | No deal (the AI ally refuses, as without an offer) | deal panel |
+| 🔩 Fit … On which robot? (Stash) | 20 | Cancel: the part stays in the Stash | note |
+| 🧾 You can't pay your upkeep | 20 (30 with 7+ robots) | ★ the weakest robot is scrapped (the AI's pick) | note / box |
+| 🤝 Ask for backing (ticks) | 30 | Cancel: nobody is asked, the card stays in your hand | box |
+| 🤝 Ask … for backing (offer) | 45 | No deal: that team is not asked | deal panel |
+| 🤝 Backing request (Accept / Refuse) | 20 | Refuse | note |
+| 🤝 Offer from … (AI: part, robot, buy your Stash part) | 20 | Refuse: nothing changes | note |
+| 🤝 Trade offer from … (a person) | 20 | Refuse: nothing changes | note |
+| 🤝 Trade with … (your own trade panel) | none | you opened it yourself during the Market (a step for everyone at once) | deal panel |
+| 💰 Paid Off (who gets your 3 Cr; the card is played) | 20 | the team with the least fame (the AI's pick) | note |
+| 🙅 Not My Robot (who is hit instead) | 20 | the team with the most fame (the AI's pick) | note |
+| 🏛️ Museum Donation (you played it) | 20 (30 with 7+ choices) | ★ a crew member (as the AI does); your first robot if you have no ready crew | note / box |
+| 💰 Over your hand limit (ticks) | 30 | ★ the pre-ticked (cheapest) cards are cashed in, so the turn can end | box |
+| 🔧 Botch it now? | 20 | Let it go (the card stays in your hand) | note |
+| 💰 A threat (Pay / Offer something else / Refuse; or Accept / Refuse a demand) | 20 | ★ Refuse (never spends credits; the card can still be played, and you can still block it) | note |
+| 💰 Payoff from … / 🤝 Buy off … (deal) | 45 | No deal | deal panel |
+| 👑 Host … picks the fighters (Invite me / Leave me out / No deal) | 20 | No deal | note |
+| ✋ Ask to be invited / 🙈 left out (offer) | 45 | No deal | deal panel |
+| 🏟️ Host step (play an Arena card?) | 20 (30 with 3+ cards) | No (the card stays in your hand) | note / box |
+| 💻 Hacker, ✦ Scope (OK) | 20 | closes | note |
+| 🔍 Bookie's Friend (OK) | 20 (30 with 3+ hidden cards) | closes | note / box |
+| 🔀 Swap the Entry? | 20 (30 with 6+ swaps) | No (the card stays in your hand) | note / box |
+| 🔀 Swap or payoff? (you picked a swap) | 20 | Swap now (what you picked, without the wait for a deal) | note |
+| 💰 A threat (Swap the Entry: pay 2 Cr) | 20 | ★ Refuse (your robot is swapped; the bets stand) | note |
+| 👑 Spare or scrap? (offer to the host) | 20 | Stay out | note |
+| 👍 Plead to spare / 👎 Push to scrap (offer) | 45 | No deal | deal panel |
+| ✦ Treacherous (not asked in 2.0) | 20 | Stay | note |
+| 👑 You host: pick the fighters | 30 | your picks, filled up with the most fame (what the host's Skip does) | note (the host step) |
+| 👑 You host: spare or scrap | 20 | ★ Spare (what the host's Skip does) | note (the host step) |
+| Reaction window | 10 (T2, unchanged) | Let it happen | note |
+| Not in scope: Upkeep, open market and bids, host bid, bets, sponsor bids, the starter draft, sending a robot, fitting a bought part, trade-in, Stash trim | — | everyone acts at the same time: their own rules (auto-advance, host Nudge / Skip) | — |
+
+- Not changed: what each answer does, the order, who is asked, the AI and the test bot (they answer in code, at once), the reaction
+  window, the Market steps. Report a problem / Add a note / Playtest log are not game questions: no timer.
+- Tests: tools/mp-scenario/questions-note.js (solo, both sizes: every question shows a countdown; left alone at 1600x900 with short
+  clocks: second robot, Tag Team offer, Tag Team Licence, Stash fit, upkeep debt, Bookie's Friend, robot offer, Museum Donation, hand
+  limit, deal panel, the host's fighters and spare or scrap; a queued question gets its full time; a paused game stops the clock);
+  tools/mp-scenario/questions-remote.js (a joined player: the host judges the time-out and logs ⌛ to that player, a queued second
+  question, pause, closing the tab and coming back). Screenshots in /home/claude/t31-shots (not in the repo).
+
 ## Tested
 
 All 9 fixed checks pass on 3a606e0's file except that the last small addition (button in the waiting list) was re-checked with waiting.js, reaction.js and a click on the new button only; 8 mouse-driven games without findings over the two steps.
@@ -177,6 +251,7 @@ All 9 fixed checks pass on 3a606e0's file except that the last small addition (b
 ## Open
 
 - Questions from T20 (17 Nov): Joint Venture without an answer counts as Defect now (was Commit): right? 20 s for Joint Venture, Hostile Buyout and the Host step: right length, and should other questions that hold up the table (threats, Tag Team offer, backing requests) get one too? Should the reaction window's buttons also wait 0.8 s / for the pointer to leave? The wording "YOUR MOVE · IN THE MIDDLE ←" for a question that stays in the box? Bookie's Friend: a box from 3 hidden cards on, or always the note?
+- Questions from T31 (20 Nov): 20 s (note), 30 s (box, and the host picking the fighters), 45 s (deal panels): right lengths? Where every answer costs something, the game picks for you on time-out: Hostile Buyout Refuse (−1 fame); Tag Team offer Team up (only Refuse costs, by the card); a threat Refuse (no credits, but the card may land); can't pay upkeep: your weakest robot; Museum Donation: a crew member; hand limit: the cheapest cards; you host, spare or scrap: spare. Right? Should "send a robot" (an invited player picks its fighter while the table waits) get a timer too (default: the strongest ready robot, as the host's Skip does)? Should your own trade panel in the Market get one?
 - Questions from T22 (17 Nov): the order of the repair buttons (broken first, then worst damage)? Broken zones red like the card, credits in pink? Done at the top right of the note (beside the text) or at the bottom? The wording "exhausts 2 Mechanics" / "can't pay: 4 Cr (you have 1)"?
 - Questions from T9 (16 Nov): bets and lot bids in the note too? Colours of the choice buttons (green send, dark others)?
 - Questions from T2 (17 Nov): wording "YOUR MOVE · ANSWER?" / "REACTION WINDOW" / "ANSWER SENT" and "Pass" (or "Let it happen")? Should a player with no card have to click at all (today: an OK that ends the window early once everyone has clicked, as before T2)?

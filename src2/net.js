@@ -221,6 +221,8 @@
       if (d.t === 'pt') { if (GAME().ptScreen) GAME().ptScreen(p.seat, d.d); return; }   // a batch of this screen's playtest log
       if (d.t === 'diag') { if (GAME().netDiag) GAME().netDiag(p.seat, String(d.k || ''), d.d); return; }
       if (d.t === 'act') { if (GAME().SEATS && GAME().SEATS[p.seat] === 'remote') GAME().runAct(p.seat, d.name, d.args || []); return; }
+      // T31: the joined screen shows a question or deal panel now (a queued one waits behind another): the host starts its clock
+      if (d.t === 'shown') { const q = H.pending[d.q]; if (q && q.seat === p.seat && q.hk && q.hk.shown) q.hk.shown(); return; }
       if (d.t === 'ans' || d.t === 'dealans') {
         const q = H.pending[d.q]; if (!q || q.seat !== p.seat) return;
         delete H.pending[d.q]; q.resolve(d.t === 'ans' ? { k: d.k, inputs: d.inputs } : d.st || null); return;
@@ -230,8 +232,11 @@
 
     // the game calls these (window.ROBOCUS_NET on the host)
     window.ROBOCUS_NET = {
-      ask(seat, payload) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'ask', payload }; send(pBySeat(seat), { t: 'ask', q, ...payload }); }); },
-      deal(seat, opts) { return new Promise(resolve => { const q = ++H.qid; H.pending[q] = { seat, resolve, kind: 'deal', payload: opts }; send(pBySeat(seat), { t: 'deal', q, opts }); }); },
+      // hk (T31, optional): { shown() } is called when that screen shows it; hk.q gets the question's number (for cancelQ)
+      ask(seat, payload, hk) { return new Promise(resolve => { const q = ++H.qid; if (hk) hk.q = q; H.pending[q] = { seat, resolve, kind: 'ask', payload, hk }; send(pBySeat(seat), { t: 'ask', q, ...payload }); }); },
+      deal(seat, opts, hk) { return new Promise(resolve => { const q = ++H.qid; if (hk) hk.q = q; H.pending[q] = { seat, resolve, kind: 'deal', payload: opts, hk }; send(pBySeat(seat), { t: 'deal', q, opts }); }); },
+      // T31: close one question or deal panel (its time is up: the host judges): it gets its default answer, the screen closes it
+      cancelQ(q) { const x = H.pending[q]; if (!x) return false; delete H.pending[q]; send(pBySeat(x.seat), { t: 'cancel', q: +q }); x.resolve(x.kind === 'ask' ? { k: -1 } : null); return true; },
       cancelSeat(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve(x.kind === 'ask' ? { k: -1 } : null); } },
       mark(o) { H.players.forEach(p => send(p, { t: 'mark', o })); },   // a problem was reported: every screen notes what it shows right now
       // close a seat's small reaction window (the time is up, or somebody else reacted first): it gets its default answer
@@ -355,7 +360,7 @@
     window.ROBOCUS_NET = {
       sendAct(name, args) { send({ t: 'act', name, args }); },
       sendDiag(k, d) { try { send({ t: 'diag', k, d }); } catch (e) {} },   // this screen's trouble, for the host's log
-      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, mark() {}, fx() {}, rematch() {}
+      ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, cancelQ() { return false; }, mark() {}, fx() {}, rematch() {}
     };
     T.onmsg = (from, d) => {
       if (from !== 'host' || !d) return;
@@ -372,8 +377,9 @@
         case 'fx': GAME().showFx(d.o); return;
         case 'mark': if (GAME().ptMark) GAME().ptMark(d.o); sendLog(); return;
         case 'tick': GAME().setTick(d); return;
-        case 'ask': C.asks.push(d); pump(); return;
-        case 'deal': C.deals.push(d); pump(); return;
+        // T31: sent again after a lost link (resync): the open one only takes the host's time left, a queued one is not doubled
+        case 'ask': if (C.curAsk && C.curAsk.q === d.q) { if (GAME().askLeft) GAME().askLeft(d.left); send({ t: 'shown', q: d.q }); return; } if (C.asks.some(x => x.q === d.q)) return; C.asks.push(d); pump(); return;
+        case 'deal': if (C.curDeal && C.curDeal.q === d.q) { if (GAME().askLeft) GAME().askLeft(d.opts && d.opts.left, true); send({ t: 'shown', q: d.q }); return; } if (C.deals.some(x => x.q === d.q)) return; C.deals.push(d); pump(); return;
         case 'cancel':
           C.asks = C.asks.filter(x => x.q !== d.q); C.deals = C.deals.filter(x => x.q !== d.q);
           if ((C.curAsk && C.curAsk.q === d.q) || (C.curDeal && C.curDeal.q === d.q)) { if (C.curAsk && C.curAsk.q === d.q) C.curAsk.cancelled = true; if (C.curDeal && C.curDeal.q === d.q) C.curDeal.cancelled = true; GAME().closeModals(); }
@@ -384,11 +390,11 @@
     function pump() {   // one question at a time, then one deal panel at a time
       if (!C.curAsk && C.asks.length) {
         const q = C.curAsk = C.asks.shift();
-        GAME().showAsk(q).then(a => { if (!q.cancelled) send({ t: 'ans', q: q.q, k: a ? a.k : -1, inputs: a ? a.inputs : null }); C.curAsk = null; pump(); });
+        GAME().showAsk(q, () => send({ t: 'shown', q: q.q })).then(a => { if (!q.cancelled) send({ t: 'ans', q: q.q, k: a ? a.k : -1, inputs: a ? a.inputs : null }); C.curAsk = null; pump(); });
       }
       if (!C.curDeal && C.deals.length) {
         const q = C.curDeal = C.deals.shift();
-        GAME().showDeal(q.opts).then(st => { if (!q.cancelled) send({ t: 'dealans', q: q.q, st: st || null }); C.curDeal = null; pump(); });
+        GAME().showDeal(q.opts, () => send({ t: 'shown', q: q.q })).then(st => { if (!q.cancelled) send({ t: 'dealans', q: q.q, st: st || null }); C.curDeal = null; pump(); });
       }
     }
     let lost = false;
