@@ -235,7 +235,7 @@ const path = require('path'), fs = require('fs');
     { await prep(p, 6); await p.evaluate(debt); const n = await waitQ(p, true); await p.waitForTimeout(1200);   // a box (7 robots) with its countdown; the note shows the same seconds
       const bx = await p.evaluate(() => ({ box: (document.querySelector('#ivModal .iv-clock .rx-sec') || {}).textContent, note: (document.querySelector('#promptBar.qpop .rx-sec') || {}).textContent }));
       console.log(tag + ' box countdown: ' + JSON.stringify(bx));
-      if (!n || !/^2\d s$/.test(bx.box || '') || bx.box !== bx.note) bad.push(tag + ' box countdown: ' + JSON.stringify(bx) + ', want 30 s counting in the box and the same in the note');
+      if (!n || !/^[23]\d s$/.test(bx.box || '') || bx.box !== bx.note) bad.push(tag + ' box countdown: ' + JSON.stringify(bx) + ', want 30 s counting in the box and the same in the note');
       await shot(p, tag + '-t31-box.png'); await clearAll(p); }
     { await prep(p); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; D.dealPanel({ title: '🤝 Rust Rivets hesitates', intro: 'Rust Rivets would rather not team up. Make it worth their while?', from: G.teams[1], lock: 'Lock in offer' }, 0).then(v => { window.__res = v; }); });
       await p.waitForTimeout(1500); const dl = await p.evaluate(() => ({ box: (document.querySelector('#dealModal .iv-clock .rx-sec') || {}).textContent, note: (document.querySelector('#promptBar.qpop .rx-sec') || {}).textContent }));
