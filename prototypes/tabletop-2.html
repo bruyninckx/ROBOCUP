@@ -3620,7 +3620,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    *   - an Override of a block: never the target (the card's rule), never the team that made the block;
    *   - a Firewall on an Override (the block stands): never the player of the scheme, never a team the scheme only gives something to.
    * Everything else stays offered (stopping a scheme on an ally, denying a rival a gain), and every button says what it does. */
-  const GIFT_T = new Set(ANY_T.filter(n => !['Team-Building Day', 'Press Tour'].includes(n)));   // those two cost the target crew or bots: it may want to stop them
+  const GIFT_T = new Set(ANY_T.filter(n => !['Team-Building Day', 'Press Tour'].includes(n)));   // those two cost the target crew or bots (T34: or robots): it may want to stop them
   function giftedBy(F, c, T) {   // the teams a scheme only gives something to (fame, credits, cards): stopping it can only hurt them
     const out = [];
     if (T && T !== F && !c.harmful && GIFT_T.has(c.name)) out.push(T);
