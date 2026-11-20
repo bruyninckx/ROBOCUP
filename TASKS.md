@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K33. Crunch Week, Press Tour, Repair kit** (T33/T34): (a) Crunch Week still takes all your crew and Security Bots by
+  itself, only robots are a choice: should crew and bots be a choice too (the text says "any of")? (b) the AI only gives
+  spare robots, weakest first: OK? (c) Press Tour played on you: 20 s, no answer is "no": OK? (d) Repair kit at 1 copy?
 - **K32. Timers** (T31): (a) are 20 s (note), 30 s (box, host picking fighters) and 45 s (deal panel) right? (b) where
   every answer costs something, time up now picks: Hostile Buyout → Refuse (−1 fame); Tag Team offer → Team up; a threat
   → Refuse (the card may land); can't pay upkeep → weakest robot scrapped; Museum Donation → a crew member; hand limit →
@@ -113,15 +116,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   options behind `BAL` switches (default off): no change to the game as played until Kev picks. Worker on branch
   `claude/fan-favourite-check`, started 20 Nov. Done when: `docs/robocus-fan-favourite.md` with the numbers, game counts,
   ± and a recommendation.
-- **T34. Crunch Week and Press Tour exhaust robots too.** Kev (20 Nov): "exhaust robots as well" (their card texts say
-  they can exhaust robots, but the code only exhausted crew and Security Bots). Goal: the cards do what their text
-  says; an exhausted robot shows the cause and when it is back (T25's banner). Files: `prototypes/tabletop-2.html` (the
-  two cards, AI use of them), docs. Same worker and branch as T33 (`claude/repair-kit-back`). Done when: scripted plays of
-  both cards exhaust the robots the text names, the AI still plays them sensibly, game length checked on 40+ bot games.
-- **T33. The Repair kit is back in the deck.** Kev (20 Nov): "put it back" (it has been out since 9 Nov,
-  `partCopies.repair: 0`; since T5 it repairs under fire and is worth about two thirds of a level). Files:
-  `prototypes/tabletop-2.html` (`BAL.partCopies`, card text, `PART_LV`), docs. Worker on branch `claude/repair-kit-back`,
-  started 20 Nov. Done when: the card comes up in bot games and is bought and fitted, game-sim and `mp-test` pass.
 - (T26, T27 and T29 below were stopped by a server restart on 17 Nov at about 22:15 and resumed on 20 Nov.)
 - **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
   everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
@@ -134,6 +128,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Worker on branch `claude/market-one-step`, started 17 Nov.
 ## Done
 
+- **T33. Repair kit back in the deck; T34. Crunch Week and Press Tour exhaust robots** (20 Nov): `BAL.lots.partCopies`
+  no longer has `repair: 0` (1 card; part cards 19 → 20). Crunch Week: crew and Security Bots as before, plus the robots
+  you tick (+1 Cr each). Press Tour: crew, then bots, then robots the target picks, or "No thanks". The AI only gives
+  spare robots, never its strongest ready one. Banner "RESTING · Crunch Week (you) · ready next Upkeep". 40 bot games
+  each way (start credits 8): kit bought 58% of offers, median 2 Cr; game length −0.25 ± 0.62 rounds (kit), +0.23 ± 0.35
+  (cards). New test `tools/mp-scenario/exhaust-cards.js`. Branch `claude/repair-kit-back`, commit `fdd76db`; build
+  `2026-11-20e`, files stamp `352be701` (unchanged by this task). Orchestrator's checks on the merge: game-sim 2/2, 0 page
+  errors; exhaust-cards, resting, questions-note OK; mp-test OK, 0 desyncs.
 - **T31. Every question to one player has a timer** (20 Nov): 20 s in the note, 30 s in the box and for the host picking
   the fighters, 45 s for a deal panel (`BAL.askMs`, `askBoxMs`, `askDealMs`); time up takes the default and logs a ⌛ line.
   One game clock that stops while paused; a queued question gets its full time; online the host judges every time-out
