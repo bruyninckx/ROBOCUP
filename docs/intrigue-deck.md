@@ -172,6 +172,16 @@ Not dealt to hands. In every fight's **Bets step** 2 cards are turned up and auc
 | **Oil Canister** | Reaction | 0 | 1 | 2 | Live, any player: splash oil on the floor; robots slide and spin. | tabletop |
 | **EMP Grenade** | Reaction | 2 | 1 | 2 | Live, any player: lob an EMP (100 px): 0.9 s stun and 5 damage to every robot it catches. | tabletop |
 
+## Crunch Week and Press Tour exhaust robots too (20 Nov, T34)
+
+Kev: "exhaust robots as well" (the texts said robots; the game only took crew and Security Bots). Texts unchanged; the cards now do what they say:
+
+- **Crunch Week** ("Exhaust any of your robots, crew and Security Bots: 1 credit each"): all ready crew and Security Bots (as before), plus the robots its player picks: +1 Cr each. A person gets a question with a tick per ready robot (none ticked, "No robots" or no answer: no robot). The AI exhausts its spare robots, weakest first, and always keeps its strongest ready robot.
+- **Press Tour** ("Target may exhaust 3 robots, crew or Security Bots for +1 fame"): crew first, then Security Bots, then robots. Enough crew and bots: as before, no robot and no question. Otherwise the target picks which robots go (one button per choice) or says "No thanks" (no fame); a rival's Press Tour on you counts down 20 s, no answer is no. An AI target only gives spare robots (never its strongest ready one), else it says no.
+- A robot exhausted this way can't fight this round and is ready next Upkeep. Its banner: "😴 RESTING · Crunch Week (you) · ready next Upkeep" for the player who played it, the team name for the others ("Press Tour (Rust Rivets)"). The log names the robots.
+- The AI values the spare robots like crew (Crunch Week 0.6 Cr each; Press Tour wanted when crew + bots + spare robots reach 3; it keeps fewer crew out of the workshop for Press Tour when spare robots make up the 3).
+- Whole games (40 AI games each way, same seeds 1-40, start credits 8, Repair kit in both): Crunch Week played 24 times (was 23), exhausted 23 robots, 3.73 Cr a game from it (was 3.02; paired +0.70 ± 0.97). Press Tour played 77 times, landed 60 (was 54), exhausted 15 robots, fame from it 1.50 a game (was 1.35; +0.15 ± 0.21). Game length 11.30 rounds (was 11.07; +0.23 ± 0.35), fights 10.90 (was 10.78), fight length unchanged (−36 ± 303 engine steps).
+
 ## Cut (0 copies; still in the code so old saves read)
 
 8 Nov (card pass, `docs/card-play.md`): Bookie's Friend; Skeleton Crew, Leaked Footage and Bankrupt! became Kick When Down; Press Tour and Celebrity Endorsement 3→2; Team-Building Day max +1; Security Override and Asset Strip can't be blocked by Security Bots; gates: House Robot 9→5, Rival Sponsor 14→9, Smear Campaign 16→10.
