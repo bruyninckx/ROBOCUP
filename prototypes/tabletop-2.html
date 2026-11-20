@@ -1077,7 +1077,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const EX_CARD = new Set(['Crunch Week', 'Press Tour']);   // T34: cards that exhaust a team's own robots (for credits or fame)
   function exInfo(r, v = HS) {   // v: the seat that reads it (T34: the card's player is "you" there)
     const back = exBack(r), why = r.exWhy || null, by = why && r.exBy != null && G.teams[r.exBy] ? G.teams[r.exBy] : null;
-    const out = EX_OUT.has(why), r0 = r.exRound || G.round, byW = by ? (by.i === v ? 'you' : by.name) : null;
+    const out = EX_OUT.has(why), r0 = r.exRound || G.round, byW = by ? (by.i === v && EX_CARD.has(why) ? 'you' : by.name) : null;   // T34: "you" for Crunch Week / Press Tour (the other causes keep the team name, as in T25)
     const cause = why === 'fight' ? 'fought this round' : why === 'Hostile Buyout' ? 'just bought (Hostile Buyout)' : why ? why + (byW ? ' (' + byW + ')' : '') : 'used up this round';
     const ret = !out && back === G.round + 1 ? 'ready next Upkeep' : 'back in round ' + back;
     let help;
