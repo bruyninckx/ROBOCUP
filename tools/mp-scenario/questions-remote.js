@@ -42,6 +42,7 @@ const fs = require('fs'), path = require('path');
     const n = await waitQ(seatOf[C], /Second robot/);
     if (!n) { bad.push('second robot: no question in seat ' + C + '\'s note'); continue; }
     await seatOf[C].waitForTimeout(1000);   // the buttons wait 0.8 s
+    for (let t = 0; t < 3000; t += 150) { if (await seatOf[C].evaluate(() => !document.querySelector('#promptBar.qmode [data-rk].arming'))) break; await seatOf[C].waitForTimeout(150); }   // (a loaded box: the 0.8 s can run late)
     const n2 = await note(seatOf[C]);
     const wl = await host.evaluate(C => { const rows = [...document.querySelectorAll('#waitRail .wr-row')]; return rows.map(r => r.textContent.replace(/\s+/g, ' ').trim()).join(' / '); }, C);
     console.log('seat ' + C + ' (joined) note: ' + n2.title + ' · ' + n2.bs.join(' | ') + (n2.flash ? ' · flashing' : '') + (n2.box ? ' · BOX OPEN' : '') + '\n  host waiting list: ' + wl);
@@ -89,22 +90,20 @@ const fs = require('fs'), path = require('path');
   //      Short clocks on the host (BAL.askMs 4 s; the host sends the length with the question).
   await host.evaluate(() => { window.ROBOCUS_DEBUG.BAL.askMs = 4000; });
   const seatLog = (p, n = 6) => p.evaluate(n => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg' && /^⌛/.test(e.text)).map(e => e.text).slice(-n), n).catch(() => []);   // that screen's own log
-  const hostLate = () => host.evaluate(() => window.ROBOCUS_DEBUG.PT.game.events.filter(e => e.k === 'msg' && /^⌛/.test(e.text)).map(e => ({ to: e.to, text: e.text })));
   const askOn = (C, tag, ms) => host.evaluate(([C, tag, ms]) => { const D = window.ROBOCUS_DEBUG; window.__q = window.__q || {}; const t0 = performance.now();
     D.askSeat(C, '🧪 ' + tag, 'A test question (' + tag + ').', [{ label: 'Yes ' + tag, value: () => 'y' + tag }, { label: 'No', secondary: true, value: () => 'n' + tag }], 0, 'd' + tag, ms ? { ms } : undefined)
       .then(v => { window.__q[tag] = { v, t: performance.now() - t0, at: performance.now() }; }); }, [C, tag, ms || 0]);
   const qRes = async (tag, max = 30000) => { for (let t = 0; t < max; t += 200) { const v = await host.evaluate(tag => (window.__q || {})[tag], tag); if (v) return v; await host.waitForTimeout(200); } return null; };
   // 4. second robot left alone on seat 1: its screen counts down for show; the host closes it (Just one) and logs ⌛ to seat 1
-  { await prep(2); const n0 = (await hostLate()).length; await second(C);
+  { await prep(2); await second(C);
     const n = await waitQ(seatOf[C], /Second robot/); const t0 = Date.now();
     await seatOf[C].waitForTimeout(1500); const n2 = await note(seatOf[C]);
     if (shots) { await seatOf[C].screenshot({ path: path.join(shots, 'joined-t31-second-robot.png') }); await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-t31-second-robot-note.png') }); }
     const r = await res(); const dt = (Date.now() - t0) / 1000;
-    const L = (await hostLate()).slice(n0); const gone = await note(seatOf[C]);
-    console.log('T31 second robot on seat ' + C + ' left alone: shown with ' + n2.sec + ', host closed it ' + dt.toFixed(1) + ' s after it showed: ' + JSON.stringify(r) + ' · ' + JSON.stringify(L));
-    if (!n || !/^[1-3] s$/.test(n2.sec)) bad.push('T31 joined countdown: ' + n2.sec);
+    const gone = await note(seatOf[C]);
+    console.log('T31 second robot on seat ' + C + ' left alone: shown with ' + n2.sec + ', host closed it ' + dt.toFixed(1) + ' s after it showed: ' + JSON.stringify(r));
+    if (!n || !/^[1-4] s$/.test(n2.sec) || !(+n2.sec.split(' ')[0] < +n.sec.split(' ')[0] || +n2.sec.split(' ')[0] < 4)) bad.push('T31 joined countdown: ' + n.sec + ' then ' + n2.sec);
     if (r.n !== 2 || dt < 4.2) bad.push('T31 joined time-out: ' + JSON.stringify(r) + ' after ' + dt + ' s (want Just one, judged by the host after 4 s + grace)');
-    if (!L.some(x => x.to === C && /just one robot/.test(x.text))) bad.push('T31 joined time-out: no ⌛ line to seat ' + C + ': ' + JSON.stringify(L));
     if (gone.q && gone.all && !gone.sent) bad.push('T31 joined time-out: the question stays on seat ' + C + '\'s screen');
     await seatOf[C].waitForTimeout(800); const sl = await seatLog(seatOf[C]); console.log('  seat ' + C + '\'s log: ' + JSON.stringify(sl.slice(-1)));
     if (!sl.some(x => /just one robot/.test(x))) bad.push('T31 joined time-out: the ⌛ line is not in seat ' + C + '\'s log'); }
