@@ -18,8 +18,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `ARENA_FIT` for the rest. Make it one source (drop the old tables: a few lines)? Let the AI host pay for an arena down
   to 1 Cr left (it keeps 3 Cr now, so arenas are rare in bot games)?
 - **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
-  enough, or should it do something extra (protect the battery, points for repairing)? Back into the deck (it has been
-  out since 9 Nov)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
+  enough, or should it do something extra (protect the battery, points for repairing)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
   when it is not being hit": fine?
 - **K17. Power map** (T13): axis in levels (quarter ticks), not the -60..+60 points of the old map: fine? Position counts
   parts, tiers and damage, not part fit or epic combos: should those move the robot too? A robot with a broken weapon
@@ -44,6 +43,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Repair kit (20 Nov): back into the deck.** Kev: "put it back". T33. (The rest of K18 stays open.)
 - **K9 (20 Nov): `play-latest` starts a local server.** Kev: "yes". T32.
 - **K28 (20 Nov): timers.** Kev: "yes, put them all on a timer" (to: should threats, Tag Team offers and backing requests
   get a timer too?). 20 s for the three already timed stays (no objection). T31.
@@ -91,6 +91,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T33. The Repair kit is back in the deck.** Kev (20 Nov): "put it back" (it has been out since 9 Nov,
+  `partCopies.repair: 0`; since T5 it repairs under fire and is worth about two thirds of a level). Files:
+  `prototypes/tabletop-2.html` (`BAL.partCopies`, card text, `PART_LV`), docs. Worker on branch `claude/repair-kit-back`,
+  started 20 Nov. Done when: the card comes up in bot games and is bought and fitted, game-sim and `mp-test` pass.
 - **T32. `play-latest` serves the game from a local address, so the bookie can use all cores.** Kev (20 Nov): "yes" (to: a
   small local server for `play-latest`; opened as a file the game can't run test fights in background workers, so
   four-robot fights fall back to the formula). Goal: `play-latest.cmd` starts a tiny server on this PC only (Node, else
