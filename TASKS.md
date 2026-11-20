@@ -7,6 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K29. Reaction offers** (T27): a team that made a block can no longer Override its own block: fine? Robot Rights
+  Protest: any team but its player may still Override a block of it, though that team then loses 1 fame too: keep?
 - **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
 - **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
   right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
@@ -115,16 +117,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   `claude/timers-everywhere`, started 20 Nov. Done when: a table of every question with its time and default, scripted
   time-outs solo and from a joined client, `questions-note.js`, game-sim and `mp-test` pass.
 - (T26, T27 and T29 below were stopped by a server restart on 17 Nov at about 22:15 and resumed on 20 Nov.)
-- **T27. Don't offer a reaction that works against your own scheme.** From Kev's playtest log of 17 Nov 18:08 (report:
-  "wondering now, moss gear did not get -1 fame"): he played Inside Leak on Moss Gears; Moss's Security Bot blocked it;
-  Rust Rivets played Override, which cancelled the block (good for Kev); the reaction window then offered Kev his own
-  Firewall "ANSWER?", he clicked it, the Override was stopped and his own scheme stayed blocked. Goal: a reaction window
-  only offers a card to a player it can help; where it is offered, each button says what it does to whom ("Firewall:
-  stop the Override, the block on Inside Leak stands"). Files: `prototypes/tabletop-2.html` (`reactionWindow`, the
-  override step). Depends on: after T20 (same code). Done when: the scenario is scripted (own scheme, block, rival's
-  Override: no Firewall offer to the scheme's player; a rival who is hurt still gets it), `reaction.js`, game-sim and
-  `mp-test` pass.
-  Worker on branch `claude/reaction-own-scheme`, started 17 Nov.
 - **T26. Open market and sealed bids in one step.** Kev (17 Nov): "lets do the open auction during the betting, and when
   everybody locks bids, the open auction is done and we can move on to rebids or next". Reading: the
   Market's open market (trades with other teams, selling Stash parts to the bank) no longer has its own step with a
@@ -139,6 +131,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   when: round-1 Market spend and game length measured against 8 Cr on the same seeds, game-sim and `mp-test` pass.
 ## Done
 
+- **T27. Reactions are only offered where they can help you; buttons say what they do** (20 Nov): the scheme's player is
+  no longer offered Firewall against an Override that pushes its own scheme through (Kev's case); a team is not offered a
+  block of a scheme that only gives it something, nor Override against its own block; the AI follows the same rule;
+  every button and the window text say what happens to whom. Table in `docs/intrigue-deck.md`. Branch
+  `claude/reaction-own-scheme`, commit `61f38c8`. BUILD `2026-11-20a`, files stamp `d318237d`; game-sim 2/2;
+  `reaction-own.js`, `reaction.js`, `questions-note.js` OK (the last one failed once on a timing check with the box at
+  load 18, passed on re-run); online test: the worker's run 0 desyncs (6 fights); the orchestrator's run timed out at
+  round 5 on the overloaded box with no desync.
 - **T20. Questions and offers in the note; timers; no accidental yes** (17 Nov): the reaction button reads "Let it
   happen"; second robot, Joint Venture, Hostile Buyout, Tag Team, Stash fit, backing requests, AI and player trade offers,
   threats, spare-or-scrap and more are asked in the note with the red flash; offers say what you give and get; answer
