@@ -667,7 +667,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     crewDeck: ['mechanic', 'mechanic', 'mechanic', 'mechanic'],
     lots: {                       // the Market lot deck (4 lots a round stays fixed)
       robot: 4, crew: 4,          // New Robot / New Crew lots (crew 4: Kev, 9 Nov, round 7; was 7)
-      partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1, repair: 0, armourkit: 0, bodyguard: 0 },   // Kev, 9 Nov: fewer protect/heal cards: Repair kit, Armour kit, Bodyguard out; Tow cable, Sensor scrambler, Overdrive in   // copies per part id (src2/lineup.js PARTS key); others: its own copies
+      partCopies: { medic: 1, laser: 0, waller: 0, blocker: 0, spotter: 0, shield: 1, armourkit: 0, bodyguard: 0 },   // Kev, 9 Nov: fewer protect/heal cards: Repair kit, Armour kit, Bodyguard out; Tow cable, Sensor scrambler, Overdrive in. Kev, 20 Nov (T33): "put it back": the Repair kit is back with its own 1 copy (it repairs under fire since 16 Nov, about +0.64 of a level); Armour kit and Bodyguard stay out   // copies per part id (src2/lineup.js PARTS key); others: its own copies
       kindCopies: {},             // copies per part kind (drone / module / stat) for every part of that kind; partCopies wins
     },
     // tuning chips (Kev, 9 Nov sims): slot true = a chip gets its own slot (it does not use one of the 2 part slots);
