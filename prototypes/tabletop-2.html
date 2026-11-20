@@ -202,6 +202,19 @@ html, body {
 .prompt-bar.rxmode.qpop::before { content: 'YOUR MOVE · IN THE MIDDLE ←'; }
 .prompt-bar .q-t { display: block; font-weight: 700; margin-bottom: 1px; }
 .prompt-bar.tight .q-t { display: inline; margin-right: 5px; }
+/* T31 (Kev, 20 Nov: "yes, put them all on a timer"): every question counts down, in the note, in the box over the pit, on a deal
+   panel and on the host's own steps (fighters, spare or scrap); the last 5 seconds turn red and the bar pulses (no pulse with
+   reduced motion: a thicker red bar instead). ⏸ before the seconds: the game is paused, the clock waits */
+.iv-clock, .prompt-bar .st-clock { display: flex; align-items: center; gap: 8px; }
+.iv-clock { margin: 8px 0 0; }
+.prompt-bar .st-clock { flex: 1 1 100%; margin: -2px 0 2px; }
+.iv-clock .rx-sec, .st-clock .rx-sec { font: 700 13px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 34px; }
+.iv-clock .rx-bar, .prompt-bar .st-clock .rx-bar { flex: 1; height: 5px; margin: 0; background: rgba(26,22,18,.15); border-radius: 3px; overflow: hidden; }
+.iv-clock .rx-bar i, .st-clock .rx-bar i { display: block; height: 100%; width: 100%; background: #D93A2B; transform-origin: left; }
+.q-low .rx-sec { color: #D93A2B; }
+.prompt-bar.q-low .rx-bar, .q-low .iv-clock .rx-bar, .iv-clock.q-low .rx-bar, .st-clock.q-low .rx-bar { animation: qLow .5s ease-in-out infinite alternate; }
+@keyframes qLow { from { box-shadow: 0 0 0 0 rgba(217,58,43,0); } to { box-shadow: 0 0 0 3px rgba(217,58,43,.55); } }
+@media (prefers-reduced-motion: reduce) { .prompt-bar.q-low .rx-bar, .q-low .iv-clock .rx-bar, .st-clock.q-low .rx-bar { animation: none; height: 8px; } }
 .prompt-bar.qmode .rx-btns .act.pick.go { background: var(--ink); color: var(--hazard); }
 .prompt-bar.qpop .rx-txt { font-weight: 600; }
 /* T20: a question's answers are inactive for a moment after it appears, and one that opened under the pointer until the pointer
@@ -725,6 +738,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // reacts in that order, and round 1's Intrigue starts at a random seat. fairTies: false = the old seat-index order
     seats: { fairTies: true },
     auction: { perFight: 2, minBid: 1 },   // fight cards (Bets step): cards offered per fight; lowest bid that counts (Cr)
+    // T31 (Kev, 20 Nov: "yes, put them all on a timer"): every question to one player that holds up the table counts down, then
+    // takes its safe default. askMs: a question in the note (one click); askBoxMs: one that stays in the box (ticks to set, a list
+    // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
+    askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
   function balMerge(a, b) {
@@ -1924,7 +1941,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     renderWinWatch();
     renderPromptBar();
     const noteBusy = $('#promptBar').classList.contains('rxmode');   // T2/T20: a reaction window or a question has the note
-    if (!noteBusy) renderFitUndo();
+    if (!noteBusy) { renderFitUndo(); stepClkDraw($('#promptBar')); }   // T31: the host's own step counts down in the note
     if (!isNetGame()) { try { setWaiting([]); } catch (e) {} }   // one screen: this page works the list out itself
     if (G.autoLeft != null && !G.over && !noteBusy) { const sp = document.createElement('span'); sp.className = 'sc-note'; sp.id = 'autoNote'; sp.textContent = '⏱ Goes on by itself in ' + G.autoLeft + ' s.'; $('#promptBar').appendChild(sp); }
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
@@ -2002,7 +2019,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function renderPromptBar() {
     const pb = $('#promptBar');
     const t = me();
-    pb.classList.remove('rxmode', 'rx-sent', 'repmode', 'qmode', 'qpop'); pb._rx = null;
+    pb.classList.remove('rxmode', 'rx-sent', 'repmode', 'qmode', 'qpop', 'q-low'); pb._rx = null;
     if (rxNote(pb)) return;   // T2: a reaction window is open on this screen: it has the note
     if (G.over) {
       // the winner checkWin picked (most fame, tie: most credits); a Grand Final can put both winners on the target at once
@@ -2823,7 +2840,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const t of G.teams) {
       while (t.debt > 0 && t.robots.length) {
         let r;
-        if (isHuman(t.i)) r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })));
+        // T31: no answer in time: the robot the AI would scrap (the weakest); every answer costs a robot here (a question for Kev)
+        if (isHuman(t.i)) { const weak = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
+          r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })), 0, weak, { late: 'your weakest robot <b>' + esc(weak.name) + '</b> is scrapped (as the AI would pick)' }); }
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
         robotLeaves(t, r, null, 'debt'); t.debt--; returnStarter(r.name);
@@ -2909,29 +2928,35 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* small modal: buttons [{label, value(el), secondary}], optional timeout (ms) and default value */
   // one modal at a time: a second question waits until the first is answered (multiplayer: questions can overlap)
   let modalChain = Promise.resolve(), dealChain = Promise.resolve();
-  function ivModal(title, html, buttons, timeout, def, game) {   // game: a game question (T20: the note points at it)
-    const p = modalChain.then(() => ivModal0(title, html, buttons, timeout, def, game));
+  function ivModal(title, html, buttons, timeout, def, game, o) {   // game: a game question (T20: the note points at it); T31: timeout counts down (o: see noteAsk)
+    const p = modalChain.then(() => ivModal0(title, html, buttons, timeout, def, game, o || {}));
     modalChain = p.catch(() => null);
     return p;
   }
-  function ivModal0(title, html, buttons, timeout, def, game) {
+  function ivModal0(title, html, buttons, timeout, def, game, o = {}) {
     return new Promise(res => {
       let el = document.getElementById('ivModal');
       if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
-      el.innerHTML = '<div class="iv-box"><h3>' + title + '</h3><div class="iv-body">' + html + '</div><div class="iv-btns">' +
+      // T31: a game question in the box counts down too (seconds and bar over its buttons; the note shows the same seconds)
+      const ms = game && timeout > 0 ? timeout : 0, left0 = o.left > 0 && o.left < ms ? o.left : ms, ck = ms ? { ms, t0: clkNow() - (ms - left0) } : null;
+      el._clk = ck;
+      el.innerHTML = '<div class="iv-box"><h3>' + title + '</h3><div class="iv-body">' + html + '</div>' + (ck ? '<div class="iv-clock"><span class="rx-sec">' + clkSec(ck) + '</span>' + clkBar(ck) + '</div>' : '') + '<div class="iv-btns">' +
         buttons.map((b, k) => '<button class="' + (b.secondary ? 'secondary' : 'primary') + '" data-k="' + k + '">' + b.label + '</button>').join('') +
         '</div></div>';
       el.hidden = false;
       if (game) { el.dataset.game = String(++RX.n); if (G) updateHud(); } else delete el.dataset.game;
-      let done = false, tm = null;
-      let finish = v => { if (done) return; done = true; clearTimeout(tm); el.hidden = true; el.innerHTML = ''; if (el.dataset.game) { delete el.dataset.game; if (G) updateHud(); } res(v); };
+      let done = false, qc = null;
+      let finish = v => { if (done) return; done = true; if (qc) QT.delete(qc); el._clk = null; el.hidden = true; el.innerHTML = ''; el.classList.remove('q-low'); if (el.dataset.game) { delete el.dataset.game; if (G) updateHud(); } res(v); };
+      if (ck) { qc = { left: () => clkLeft(ck), until: o.judged ? -Infinity : 0, tick: () => { if (done) return; qTick(el, ck); const pb = document.getElementById('promptBar'); if (pb && pb.classList.contains('qpop')) qTick(pb, ck); },
+          end: () => { if (done) return; if (o.onLate) o.onLate(); finish(def); } }; QT.add(qc); }
+      if (o.onShow) o.onShow();
       el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
       el._finish = () => finish(def);   // closed from outside (the host cancelled the question)
       if (game) { const st = {}, again = () => { if (done) return; const list = [...el.querySelectorAll('button[data-k]')].map(b => ({ el: b, k: +b.dataset.k }));
           list.forEach(x => { x.el.disabled = false; }); armBtns(st, list, again); };
         again(); const fin0 = finish; finish = v => { armDone(st); fin0(v); }; }   // T20: no answer by a click already on its way
       if (BOT) setTimeout(() => { const bs = [...el.querySelectorAll('button[data-k]')]; if (!done && bs.length && !window.__noBot) finish(buttons[+bs[Math.floor(Math.random() * bs.length)].dataset.k].value(el)); }, 60 + Math.random() * 120);
-      // Kev, 6 Nov: no countdown bars, they put too much pressure on; every window waits for your answer
+      // Kev, 6 Nov: no countdown bars, they put too much pressure on; T31 (Kev, 20 Nov): "yes, put them all on a timer"
     });
   }
   // inputs (checkboxes, text) of a modal, in document order, so a remote answer can be replayed on the host
@@ -2941,20 +2966,23 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // title/html/labels, gets back {k: button index, inputs}, and runs that button's value() on a hidden copy of the modal.
   function askSeat(seat, title, html, buttons, timeout, def, opt) {   // opt.small: the small reaction window with a countdown (timeout ms) instead of the big question
     const N = window.ROBOCUS_NET, small = !!(opt && opt.small);
-    const qms = small ? timeout : timeout > 0 ? Q_MS : 0;   // T20: a question that had a time limit counts down in the note (Q_MS)
+    // T31 (Kev, 20 Nov: "yes, put them all on a timer"): every question counts down (askMsFor: 20 s in the note, 30 s in the box,
+    // or opt.ms) and takes `def` when the time is up, with a ⌛ line in that player's log (opt.late says what was decided)
+    const qms = small ? timeout : askMsFor(html, buttons, opt);
+    const late = small ? null : () => say(seat, '⌛ <b>No answer in time</b> (' + title + '): ' + lateTxt(html, buttons, def, opt) + '.', '#6E6457');
     if (isRemote(seat) && N) {
-      let tm = null;
-      const p = N.ask(seat, { title, html, small, ms: qms, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }).then(a => {
-        clearTimeout(tm);
+      // T31: the host judges the time: its clock starts when the joined screen shows the question (a question waiting behind
+      // another one there gets its full time), stops while the game is paused, and closes it QT_GRACE after the screen's own
+      // count reached 0 (the screen counts down for show only). payload.left keeps the time left for a screen that rejoins.
+      const payload = { title, html, small, ms: qms, left: qms, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }, hk = {};
+      const stop = !small && qms > 0 ? hostJudge(qms, payload, hk, late) : () => {};
+      return asking(seat, N.ask(seat, payload, hk)).then(a => {
+        stop();
         const el = document.createElement('div'); el.innerHTML = html; applyInputs(el, a && a.inputs);
         const b = a && buttons[a.k]; return b ? b.value(el) : def;
       });
-      // T20: the joined screen counts down itself and sends "no answer" when the time is up; if that never arrives (a slow or
-      // lost link), the host closes the question a little later: its default answer, as for a player who left
-      if (!small && qms > 0 && N.cancelSeat) tm = setTimeout(() => N.cancelSeat(seat), qms + 4000);
-      return p;
     }
-    return small ? smallAsk(title, html, buttons, timeout, def) : askBox(title, html, buttons, qms, def);
+    return small ? smallAsk(title, html, buttons, timeout, def) : asking(seat, askBox(title, html, buttons, qms, def, { onLate: late }));
   }
   /* T20 (Kev, 17 Nov: "move into note yes"): a question to one player (the second robot of a double duel, Joint Venture, Hostile
    * Buyout, Tag Team, a threat, an offer, ...) is asked in the yellow note, not in the box over the pit: its title and text, one
@@ -2964,32 +2992,131 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Q_MAX answers, or a long list to read (3+ lines of list, or more than Q_TXT letters: Bookie's Friend with many hidden cards,
    * a Host step with several Arena cards); then the note says a question is open in the middle and flashes. The host and a joined
    * screen decide this from the same html, so both show it in the same place.
-   * Countdown (Kev, 17 Nov: "this joint venture should also be in the yellow box with a timer"): the questions that were given a
-   * time limit in the code (Joint Venture, Hostile Buyout, the Host step's Arena card; the box never showed or used it, Kev 6 Nov
-   * "no countdown bars") count down Q_MS in the note, bar and seconds as the reaction window, and take their default answer when
-   * the time is up. Every other question waits for its answer, as before. */
-  const Q_MAX = 6, Q_TXT = 320, Q_MS = 20000;
+   * Countdown (T20 for Joint Venture, Hostile Buyout and the Host step; T31, Kev 20 Nov: "yes, put them all on a timer"): every
+   * question counts down, bar and seconds as the reaction window (in the box too, and the note shows the same seconds), the last
+   * 5 seconds in red; then it takes its default answer (docs/robocus-2.0.1-screen.md, T31 table). */
+  const Q_MAX = 6, Q_TXT = 320;
   const noteFits = (html, buttons) => { html = html || '';
     if (!(buttons.length >= 1 && buttons.length <= Q_MAX) || /<(input|textarea|select)\b/i.test(html)) return false;
     return (html.match(/<br\s*\/?>/gi) || []).length < 3 && html.replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').length <= Q_TXT; };
-  function askBox(title, html, buttons, ms, def) {
-    return noteFits(html, buttons) ? noteAsk(title, html, buttons, def, ms) : ivModal(title, html, buttons, ms, def, true);
+  /* T31: the question clock. One game clock for every countdown; it stops while the game is paused (online: a player is away),
+   * on the host and on every joined screen (they know it from the host's snapshot). A clock: { ms, t0 } on clkNow(). */
+  const QCLK = { off: 0, from: null }, QT_GRACE = 1000, QT_LOW = 5000;
+  function clkPause(on) { const now = performance.now(); if (on && QCLK.from == null) QCLK.from = now; else if (!on && QCLK.from != null) { QCLK.off += now - QCLK.from; QCLK.from = null; } }
+  const clkNow = () => (QCLK.from != null ? QCLK.from : performance.now()) - QCLK.off, clkPaused = () => QCLK.from != null;
+  const clkLeft = c => c && c.ms > 0 ? Math.max(0, c.ms - (clkNow() - c.t0)) : 0;
+  const ASK_MS = () => BAL.askMs > 0 ? BAL.askMs : 20000, ASK_BOX_MS = () => BAL.askBoxMs > 0 ? BAL.askBoxMs : 30000, ASK_DEAL_MS = () => BAL.askDealMs > 0 ? BAL.askDealMs : 45000;
+  const askMsFor = (html, buttons, opt) => opt && opt.ms != null ? opt.ms : noteFits(html, buttons) ? ASK_MS() : ASK_BOX_MS();
+  // what the game decided for you, for the ⌛ line: opt.late, else the answer whose value is the default
+  function lateTxt(html, buttons, def, opt) {
+    if (opt && opt.late) return typeof opt.late === 'function' ? opt.late() : opt.late;
+    if (buttons.length === 1) return 'it closed by itself';   // information with one OK (Hacker, Scope, Bookie's Friend)
+    const el = document.createElement('div'); el.innerHTML = html || '';
+    const b = buttons.find(x => { try { return x.value(el) === def; } catch (e) { return false; } });
+    return b ? '“' + ptPlain(b.label) + '”' : 'it was closed';
   }
-  function noteAsk(title, html, buttons, def, ms = 0) {
+  // running clocks, checked 4× a second: { left(), tick(left), until, end() }; end() when left() <= until
+  const QT = new Set();
+  setInterval(() => { for (const c of [...QT]) { try { const l = c.left(); if (c.tick) c.tick(l); if (l <= (c.until || 0)) { QT.delete(c); c.end(); } } catch (e) { QT.delete(c); console.warn('ROBOCUS clock', e); } } }, 250);
+  // host: a question or deal panel on a joined screen. hk.shown (src2/net.js 'shown') starts the clock; at QT_GRACE past 0 the host
+  // closes it (N.cancelQ: the default answer) and logs the ⌛ line. Returns stop() for an answer in time.
+  function hostJudge(ms, payload, hk, late) {
+    let c = null;
+    hk.shown = () => { if (c) return; const k = { ms, t0: clkNow() - (ms - (payload.left > 0 ? payload.left : ms)) };
+      c = { left: () => k.ms - (clkNow() - k.t0), until: -QT_GRACE, tick: l => { payload.left = Math.max(0, Math.round(l)); },
+        end: () => { const N = window.ROBOCUS_NET; if (N && N.cancelQ && hk.q != null && N.cancelQ(hk.q) && late) late(); } };
+      QT.add(c); };
+    return () => { if (c) QT.delete(c); hk.shown = () => {}; };
+  }
+  // the countdown as drawn (note, box, deal panel): seconds and bar; qTick keeps them right between redraws
+  const clkSec = c => (clkPaused() ? '⏸ ' : '') + Math.ceil(clkLeft(c) / 1000) + ' s';
+  const clkBar = c => '<div class="rx-bar"><i style="animation: rwRun ' + c.ms + 'ms linear ' + (-Math.round(c.ms - clkLeft(c))) + 'ms forwards' + (clkPaused() ? '; animation-play-state: paused' : '') + '"></i></div>';
+  function qTick(root, c) {
+    if (!root || !c) return;
+    const l = clkLeft(c), low = l <= QT_LOW && !clkPaused();
+    root.querySelectorAll('.rx-sec').forEach(x => { x.textContent = clkSec(c); });
+    root.querySelectorAll('.rx-bar i').forEach(x => { x.style.animationPlayState = clkPaused() ? 'paused' : 'running'; });
+    root.classList.toggle('q-low', low);
+  }
+  /* T31: the host's own steps that hold up the table, for a person host: picking the fighters (askBoxMs: robots and arenas to
+   * look at) and spare or scrap (askMs). The host page keeps the clock (STEPC) and puts { key, seat, ms, left, n } in G.qclk, so
+   * every screen shows the same count (a joined host counts down from `left`; a new n = start again from that left: after a pause
+   * or after a question of its own). Time up: the game does what the host's Skip does (fighters: the most fame, keeping the ones you
+   * picked; fate: spare). The clock waits while that player has a question or deal panel of its own open (ASKING). */
+  let STEPC = null, CSTEP = null;
+  const ASKING = [0, 0, 0, 0];   // host: open questions and deal panels per seat
+  const asking = (seat, p) => { if (ASKING[seat] == null) return p; ASKING[seat]++; const end = () => { ASKING[seat] = Math.max(0, ASKING[seat] - 1); }; p.then(end, end); return p; };
+  function hostStepNow() {
+    if (!G || G.over || !G.teams || !isHuman(G.host)) return null;
+    if (G.phase === 'arena' && G.pickTeams && !G.fight && !G.hostStep && !G.chooseMyBot) return { k: 'invites', seat: G.host, ms: ASK_BOX_MS() };
+    if (G.phase === 'after' && G.awaitingJudgment && !G.fateBusy && G.fight && G.fight.loser) return { k: 'fate' + (G.fight.fateI || 1), seat: G.host, ms: ASK_MS() };
+    return null;
+  }
+  function stepClkTick() {
+    if (!G || isClient()) return;
+    const s = hostStepNow(), key = s ? s.k + '|' + G.round : null;
+    if (!s) { if (G.qclk) { G.qclk = null; STEPC = null; updateHud(); } return; }
+    if (!STEPC || STEPC.key !== key) { const left = G.qclk && G.qclk.key === key && G.qclk.left > 0 ? Math.min(G.qclk.left, s.ms) : s.ms;
+      STEPC = { key, ms: s.ms, t0: clkNow() - (s.ms - left), at: clkNow(), held: false }; G.qclk = { key, seat: s.seat, ms: s.ms, left, n: (G.qclk && G.qclk.n || 0) + 1 }; updateHud(); }
+    const now = clkNow(), held = ASKING[s.seat] > 0;
+    if (held) STEPC.t0 += now - STEPC.at;   // the player is answering something else: this clock waits
+    STEPC.at = now;
+    if (held !== STEPC.held) { STEPC.held = held; if (!held) stepClkPause(); }
+    if (held) return;
+    if (s.seat === HS) qTick(document.querySelector('#promptBar .st-clock'), STEPC);
+    if (clkLeft(STEPC) <= 0) stepTimeout(s);
+  }
+  function stepClkPause() { if (STEPC && G && G.qclk && G.qclk.key === STEPC.key) { G.qclk = Object.assign({}, G.qclk, { left: Math.round(clkLeft(STEPC)), n: G.qclk.n + 1 }); } }
+  function stepTimeout(s) {
+    const seat = s.seat; STEPC = null; G.qclk = null;
+    if (s.k === 'invites') {
+      const pk = (G.pickTeams || []).slice();
+      G.teams.filter(t => readyRobots(t).length).sort((a, b) => b.fame - a.fame).forEach(t => { if (pk.length < 2 && !pk.includes(t.i)) pk.push(t.i); });
+      say(seat, '⌛ <b>No answer in time</b> (👑 picking the fighters): the game invites ' + pk.map(i => nm(G.teams[i])).join(' and ') + (G.pickTeams && G.pickTeams.length ? ' (your pick, then the most fame)' : ' (the most fame, as the host\'s Skip does)') + '.', '#6E6457');
+      G.pickTeams = pk; if (pk.length === 2) runAct(seat, 'invite', []);
+    } else {
+      say(seat, '⌛ <b>No answer in time</b> (👑 spare or scrap): <b>' + esc(G.fight.loser.robot.name) + '</b> is spared.', '#6E6457');
+      runAct(seat, 'fate', [false]);
+    }
+    updateHud();
+  }
+  setInterval(() => { try { stepClkTick(); } catch (e) { console.warn('ROBOCUS step clock', e); } }, 250);
+  // the step's countdown in your note (you are the host): seconds and bar on top of the note's own text and buttons
+  function stepClkMine() {
+    const q = G && G.qclk; if (!q || q.seat !== HS) { CSTEP = null; return null; }
+    if (!isClient()) return STEPC && STEPC.key === q.key ? STEPC : null;
+    if (!CSTEP || CSTEP.n !== q.n || CSTEP.key !== q.key) CSTEP = { key: q.key, n: q.n, ms: q.ms, t0: clkNow() - (q.ms - Math.min(q.left, q.ms)) };
+    return CSTEP;
+  }
+  function stepClkDraw(pb) {
+    const c = stepClkMine(); if (!c || !pb) return;
+    const d = document.createElement('div'); d.className = 'st-clock'; d.innerHTML = '<span class="rx-sec">' + clkSec(c) + '</span>' + clkBar(c);
+    pb.insertBefore(d, pb.firstChild); qTick(d, c);
+    if (isClient() && !stepClkDraw.iv) stepClkDraw.iv = setInterval(() => { const c2 = stepClkMine(); if (c2) qTick(document.querySelector('#promptBar .st-clock'), c2); }, 250);
+  }
+  function askBox(title, html, buttons, ms, def, o) {
+    return noteFits(html, buttons) ? noteAsk(title, html, buttons, def, ms, o) : ivModal(title, html, buttons, ms, def, true, o);
+  }
+  // o (T31): { onLate() before the default on a time-out, judged: a joined screen (the host closes it; this clock is for show),
+  //   left: ms left when it opens (a screen that rejoins), onShow() when it is on screen }
+  function noteAsk(title, html, buttons, def, ms = 0, o = {}) {
     const p = modalChain.then(() => new Promise(res => {
       const box = document.createElement('div'); box.innerHTML = html;   // value(el) gets the question's html, as the box gave it
-      const q = RX.q = { id: ++RX.n, q: true, title, html, ms: ms > 0 ? ms : 0, t0: performance.now(), buttons, box, done: null, over: false };
-      let tick = null, tm = null;
-      if (q.ms) {   // the countdown: seconds in the note, the default answer when the time is up
-        tick = setInterval(() => { if (RX.q !== q || q.over) return; const sc = document.querySelector('#promptBar .rx-sec'); if (sc) sc.textContent = Math.ceil(rxLeft(q) / 1000) + ' s'; }, 250);
-        tm = setTimeout(() => { if (!q.done) q.finish(def); }, q.ms);
+      const left0 = o.left > 0 && o.left < ms ? o.left : ms;
+      const q = RX.q = { id: ++RX.n, q: true, clk: true, title, html, ms: ms > 0 ? ms : 0, t0: clkNow() - (ms - left0), buttons, box, done: null, over: false };
+      let qc = null;
+      if (q.ms) {   // the countdown: seconds in the note, the default answer when the time is up (T31: on the game clock)
+        qc = { left: () => clkLeft(q), until: o.judged ? -Infinity : 0, tick: () => { if (RX.q === q && !q.over && !q.done) qTick(document.getElementById('promptBar'), q); },
+          end: () => { if (!q.done && !q.over) { if (o.onLate) o.onLate(); q.finish(def); } } };
+        QT.add(qc);
       }
-      q.finish = v => { if (q.over) return; q.over = true; armDone(q.arm); clearInterval(tick); clearTimeout(tm);
+      q.finish = v => { if (q.over) return; q.over = true; armDone(q.arm); if (qc) QT.delete(qc);
         if (!q.done) { if (RX.q === q) RX.q = null; }
         else { setTimeout(() => { if (G) updateHud(); }, Q_HOLD + 50); setTimeout(() => { if (G) updateHud(); }, 4050); }   // the ✓ stays a moment (see qOn)
         if (G) { updateHud(); renderWaiting(); } res(v); };
       q.cancel = () => q.finish(def);   // closed from outside (the host cancelled the question, or a person left)
       if (G) { updateHud(); renderWaiting(); }
+      if (o.onShow) o.onShow();
       if (BOT) setTimeout(() => { if (!q.done && !q.over && !window.__noBot && RX.q === q) rxPick(Math.floor(Math.random() * buttons.length), q); }, 60 + Math.random() * 120);
     }));
     modalChain = p.catch(() => null);
@@ -3005,8 +3132,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // a game question or deal panel open in the box over the pit on this screen (T20: the note points at it): { id, title } or null
   function popOpen() {
     const iv = document.getElementById('ivModal'), dm = document.getElementById('dealModal');
-    if (iv && !iv.hidden && iv.dataset.game) { const h = iv.querySelector('h3'); return { id: 'q' + iv.dataset.game, title: h ? h.innerHTML : 'A question', deal: false }; }
-    if (dm && !dm.hidden && dm.innerHTML) { const h = dm.querySelector('h3') || dm.querySelector('.rw-head span'); return { id: 'd' + (dm.dataset.pq || (dm.dataset.pq = String(++RX.n))), title: h ? h.innerHTML : 'A deal', deal: true }; }
+    if (iv && !iv.hidden && iv.dataset.game) { const h = iv.querySelector('h3'); return { id: 'q' + iv.dataset.game, title: h ? h.innerHTML : 'A question', deal: false, clk: iv._clk }; }
+    if (dm && !dm.hidden && dm.innerHTML) { const h = dm.querySelector('h3') || dm.querySelector('.rw-head span'); return { id: 'd' + (dm.dataset.pq || (dm.dataset.pq = String(++RX.n))), title: h ? h.innerHTML : 'A deal', deal: true, clk: dm._clk }; }
     return null;
   }
   /* The reaction window (Kev, 14 Nov: a countdown, not a screen-filling question). T2 (17 Nov): it lives in the yellow note
@@ -3043,7 +3170,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   document.addEventListener('pointermove', armMove, { passive: true, capture: true });
   document.addEventListener('pointerdown', armMove, { passive: true, capture: true });
-  const rxLeft = r => r.ms > 0 ? Math.max(0, r.ms - (performance.now() - r.t0)) : 0;
+  const rxLeft = r => r.ms > 0 ? Math.max(0, r.ms - ((r.clk ? clkNow() : performance.now()) - r.t0)) : 0;   // r.clk (T31): a question, on the game clock
   const rxOn = () => { const r = RX.cur; if (!r) return null;
     if (r.done && (rxLeft(r) <= 0 || (G && !G.reacting && performance.now() - r.doneAt > 400) || performance.now() - r.doneAt > 15000)) { rxClear(); return null; }
     return r; };
@@ -3054,8 +3181,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const r = rxOn() || qOn();
     if (!r) {   // T20: a question that stays in the box over the pit (ticks to set, many answers) or a deal panel: the note points at it
       const pop = popOpen(); if (!pop) return false;
-      pb.innerHTML = '<div class="rx-txt"><b class="q-t">' + pop.title + '</b>' + (pop.deal ? 'A deal panel is open in the middle of the screen: make your offer there, or say no.' : 'This question is open in the box in the middle of the screen: answer it there.') + fateExtra() + '</div>';
+      pb.innerHTML = (pop.clk ? '<div class="rx-head"><b></b><span class="rx-sec">' + clkSec(pop.clk) + '</span></div>' + clkBar(pop.clk) : '') +   // T31: the box's seconds, here too
+        '<div class="rx-txt"><b class="q-t">' + pop.title + '</b>' + (pop.deal ? 'A deal panel is open in the middle of the screen: make your offer there, or say no.' : 'This question is open in the box in the middle of the screen: answer it there.') + fateExtra() + '</div>';
       pb.classList.add('rxmode', 'qmode', 'qpop'); pb._rx = { pop: pop.id };
+      if (pop.clk) qTick(pb, pop.clk); else pb.classList.remove('q-low');
       return true;
     }
     const btns = r.buttons.map((b, k) => ({ b, k })), cards = btns.filter(x => !x.b.secondary), pass = btns.filter(x => x.b.secondary);
@@ -3063,11 +3192,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const btn = (x, cls) => { const dn = r.done && r.done.k === x.k, [nm0, hint] = lab(x.b.label);
       return '<button class="act pick ' + cls + (dn ? ' done' : '') + '" data-rk="' + x.k + '"' + (r.done ? ' disabled' : '') + ' title="' + esc(ptPlain(x.b.label)) + '"><b>' + (dn ? '✓ ' : '') + nm0 + '</b>' + (hint && !dn ? '<small>' + hint + '</small>' : '') + '</button>'; };
     const sec = Math.ceil(rxLeft(r) / 1000), el = r.ms > 0 ? r.ms - rxLeft(r) : 0;
-    pb.innerHTML = (r.q ? (r.ms > 0 && !r.done ? '<div class="rx-head"><b></b><span class="rx-sec">' + sec + ' s</span></div>' : '') : '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>') +
-      (r.ms > 0 && !(r.q && r.done) ? '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>' : '') +
+    pb.innerHTML = (r.q ? (r.ms > 0 && !r.done ? '<div class="rx-head"><b></b><span class="rx-sec">' + clkSec(r) + '</span></div>' : '') : '<div class="rx-head"><b>' + r.title + '</b><span class="rx-sec">' + (r.ms > 0 ? sec + ' s' : '') + '</span></div>') +
+      (r.ms > 0 && !(r.q && r.done) ? (r.q ? clkBar(r) : '<div class="rx-bar"><i style="animation: rwRun ' + r.ms + 'ms linear ' + (-Math.round(el)) + 'ms forwards"></i></div>') : '') +
       '<div class="rx-txt">' + (r.q ? '<b class="q-t">' + r.title + '</b>' : '') + r.html + (r.q ? fateExtra() : '') + '</div>' +
       (btns.length ? '<div class="rx-btns' + (cards.length + pass.length > 3 ? ' two' : '') + (cards.length + pass.length > 5 && !r.q ? ' lots' : '') + '">' + cards.map(x => btn(x, 'go')).join('') + pass.map(x => btn(x, 'pass secondary')).join('') + '</div>' : '');
     pb.classList.add('rxmode'); pb.classList.toggle('qmode', !!r.q); pb.classList.toggle('rx-sent', !!r.done); pb._rx = r;
+    pb.classList.toggle('q-low', !!(r.q && r.ms > 0 && !r.done && rxLeft(r) <= QT_LOW && !clkPaused()));   // T31: the last 5 seconds
     pb.querySelectorAll('[data-rk]').forEach(bt => { bt.onclick = () => rxPick(+bt.dataset.rk, r); });
     if (r.q && !r.done && !r.over) armBtns(r.arm || (r.arm = {}), [...pb.querySelectorAll('[data-rk]')].map(el => ({ el, k: +el.dataset.rk })), () => { if (G && RX.q === r && !r.over) updateHud(); });   // T20: no answer by a click already on its way
     return true;
@@ -3428,19 +3558,26 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * their credits / Stash parts, for trades), lock: label }. Resolves to { give: {cr, items}, want: {cr, items} } or null. */
   function dealPanel(opts, seat = HS) {
     const N = window.ROBOCUS_NET;
+    // T31: a deal panel counts down too (askDealMs; not your own trade in the Market, which you opened yourself) and closes as No deal
+    const ms = opts.ms != null ? opts.ms : opts.assets ? 0 : ASK_DEAL_MS();
+    const late = () => say(seat, '⌛ <b>No answer in time</b> (' + opts.title + '): no deal.', '#6E6457');
     if (isRemote(seat) && N && !isClient()) {   // host: the panel opens on that player's screen; the host gets back what they locked in (a client shows its own panel: its seat is 'remote' in SEATS too)
-      const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null });
-      return N.deal(seat, o).then(st => st && st.give ? st : null);
+      const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null, ms, left: ms }), hk = {};
+      const stop = ms > 0 ? hostJudge(ms, o, hk, late) : () => {};   // T31: the host judges the time, as for a question
+      return asking(seat, N.deal(seat, o, hk)).then(st => { stop(); return st && st.give ? st : null; });
     }
     // T20: while the panel is open the note says so and points at it (popOpen)
-    const p = dealChain.then(() => { const pr = dealPanel0(opts, seat); if (G) updateHud();
+    const p = dealChain.then(() => { const pr = dealPanel0(opts, seat, { ms, left: opts.left, judged: !!opts._judged, onShow: opts._onShow, onLate: opts._judged ? null : late }); if (G) updateHud();
       const end = () => { const dm = document.getElementById('dealModal'); if (dm) delete dm.dataset.pq; if (G) updateHud(); };
       return pr.then(v => { end(); return v; }, e => { end(); throw e; }); });
     dealChain = p.catch(() => null);
-    return p;
+    return isClient() ? p : asking(seat, p);
   }
-  function dealPanel0(opts, seat) {
-    return new Promise(res => {
+  function dealPanel0(opts, seat, k = {}) {
+    return new Promise(res0 => {
+      // T31: the countdown (k.ms; k as noteAsk's o): seconds and bar over the buttons, No deal when the time is up
+      const ck = k.ms > 0 ? { ms: k.ms, t0: clkNow() - (k.ms - (k.left > 0 && k.left < k.ms ? k.left : k.ms)) } : null; let qc = null;
+      const res = v => { if (qc) QT.delete(qc); const d = document.getElementById('dealModal'); if (d) { d._clk = null; d.classList.remove('q-low'); } res0(v); };
       const me_ = G.teams[seat] || me(), O = opts.from;
       const st = { give: { cr: 0, sec: 0, items: [] }, want: { cr: 0, sec: 0, items: [] } };
       let el = document.getElementById('dealModal');
@@ -3468,6 +3605,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           (opts.give !== false ? col(opts.want ? 'You give' : 'Your offer', 'give', 'Your', myLeft, st.give.items, st.give.cr, me_.credits) : '') +
           (opts.want && O ? col('You get from ' + esc(O.name), 'want', esc(O.name.split(' ')[0]) + '\'s', theirLeft, st.want.items, st.want.cr, O.credits) : '') +
           '</div><div class="sc-note dl-flash" hidden style="color:#b45309;font-weight:700"></div><div class="sc-note" style="margin-top:6px">Nothing moves until you lock it in' + (O && O.i !== HS ? '; ' + esc(O.name) + ' then accepts or refuses' : '') + '.</div>' +
+          (ck ? '<div class="iv-clock"><span class="rx-sec">' + clkSec(ck) + '</span>' + clkBar(ck) + '</div>' : '') +
           '<div class="iv-btns"><button class="primary" data-k="lock">🔒 ' + (opts.lock || 'Lock in offer') + '</button><button class="secondary" data-k="no">No deal</button></div></div>';
         el.hidden = false;
         el.querySelectorAll('[data-cr]').forEach(b => { b.onclick = () => { const S = b.dataset.cr, max = S === 'give' ? me_.credits : O.credits; st[S].cr = Math.max(0, Math.min(max, st[S].cr + +b.dataset.d)); draw(); }; });
@@ -3499,14 +3637,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         el.querySelector('[data-k="lock"]').onclick = () => { el.hidden = true; el.innerHTML = ''; tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, give: st.give, want: st.want, locked: true }); res(st); };
         el.querySelector('[data-k="no"]').onclick = () => { el.hidden = true; el.innerHTML = ''; tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, locked: false }); res(null); };
       };
+      el._clk = ck;
       draw();
       el._finish = () => { el.hidden = true; el.innerHTML = ''; res(null); };
+      if (ck) { qc = { left: () => clkLeft(ck), until: k.judged ? -Infinity : 0, tick: () => { qTick(el, ck); const pb = document.getElementById('promptBar'); if (pb && pb.classList.contains('qpop')) qTick(pb, ck); },
+          end: () => { if (el.hidden) return; if (k.onLate) k.onLate(); tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, locked: false, late: true }); el._finish(); } }; QT.add(qc); }
+      if (k.onShow) k.onShow();
       if (BOT) setTimeout(() => { const b = el.querySelector('[data-k="no"]'); if (b && !window.__noBot) b.click(); }, 80);
     });
   }
-  // an AI offer to the human: accept or refuse (no timer)
+  // an AI offer to the human, a trade offer, a backing request or a threat: accept or refuse. T31: no answer in time = Refuse
   function dealAsk(title, html, seat = HS) {
-    return askSeat(seat, title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+    const late = /threat/i.test(title) ? 'you did not pay' : /backing/i.test(title) ? 'you did not back it' : 'the offer was refused, nothing changes';
+    return askSeat(seat, title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late });
   }
 
   /* ---------- the Stash card in the left column ---------- */
@@ -3527,7 +3670,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => act('sellStash', +b.dataset.sell); });
     el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
-      const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]));   // T20: in the note
+      const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]), ASK_MS(), null,
+        { onLate: () => say(HS, '⌛ <b>No answer in time</b> (🔩 Fit ' + esc(LOTS[id].name) + '): the part stays in your Stash.', '#6E6457') });   // T20: in the note; T31: 20 s, then Cancel
       if (!r || stashOf(t)[k] !== id) return;
       act('fitStash', k, id, r.id);
     }; });
@@ -3555,7 +3699,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       (seat ? '<label><input type="checkbox" id="ivSeat"> Use <b>Board Seat</b>: the first ticked team must back you</label>' : '');
     const res = await askSeat(S, '🤝 Ask for backing', html, [
       { label: 'Ask', value: el => ({ ask: others.filter(o => el.querySelector('[data-o="' + o.i + '"]').checked), seat: !!(el.querySelector('#ivSeat') && el.querySelector('#ivSeat').checked) }) },
-      { label: 'Cancel', secondary: true, value: () => null }]);
+      { label: 'Cancel', secondary: true, value: () => null }], 0, null, { late: 'nobody was asked; the card stays in your hand' });   // T31
     if (!res) return false;
     let got = 0, forced = false; const owed = [], backers = [];   // Kev, 6 Nov: backers are only paid if the card really gets played
     for (const o of res.ask) {
@@ -3677,13 +3821,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     removeFromHand(o, id); discardCard(id);
     if (b.name === 'Paid Off') {   // 14 Nov: a person picks who gets the 3 Cr (the card says "pay another team"); the AI pays the team with the least fame
       let p = lowestOther([o.i, F.i]); const cands = G.teams.filter(x => x !== o && x !== F);
-      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '💰 Paid Off', 'Which team gets your 3 credits?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame, ' + x.credits + ' Cr)', value: () => x })), 0, p); if (ch && cands.includes(ch)) p = ch; }
+      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '💰 Paid Off', 'Which team gets your 3 credits?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame, ' + x.credits + ' Cr)', value: () => x })), 0, p, { late: 'your 3 Cr go to ' + nm(p) + ' (the least fame, as the AI picks)' }); if (ch && cands.includes(ch)) p = ch; }
       addCr(p, payCr(o, 3, 'card'), 'card'); }
     if (b.name === 'Fall Guy') loseCrew(o, 'Fall Guy');
     if (b.name === "Sponsor's Lawyers") { const k = G.discard.indexOf('security_bot'); if (k >= 0) { G.discard.splice(k, 1); o.hand.push('security_bot'); } }
     if (b.name === 'Not My Robot') {
       const cands = G.teams.filter(x => x !== o && x !== F).sort((a, z) => z.fame - a.fame); let nt = cands[0];   // 14 Nov: a person picks the new target (the card says "pick a new target"); the AI points at the team with the most fame
-      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '🙅 Not My Robot', 'Who does ' + nm(F) + '\'s scheme hit instead of you?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame)', value: () => x })), 0, nt); if (ch && cands.includes(ch)) nt = ch; }
+      if (isHuman(o.i) && cands.length > 1) { const ch = await askSeat(o.i, '🙅 Not My Robot', 'Who does ' + nm(F) + '\'s scheme hit instead of you?', cands.map(x => ({ label: esc(x.name) + ' (' + x.fame + ' fame)', value: () => x })), 0, nt, { late: 'it hits ' + nm(nt) + ' (the most fame, as the AI picks)' }); if (ch && cands.includes(ch)) nt = ch; }
       notify('🙅 ' + nm(o) + ': "Not my robot!" The scheme now targets ' + nm(nt) + '; if it lands, ' + nm(F) + ' loses 1 fame.', o.col);
       F.ivNmr = true;
       return { blocked: false, T: nt };
@@ -3856,7 +4000,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // T20 (17 Nov): no answer (the 20 s ran out, or a player left) counts as Defect, which never costs you credits (it was Commit,
     // which loses your 2 Cr if the other side defects: a "yes" that costs credits is never the default)
     const ask = async X => isHuman(X.i)
-      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 10000, false)
+      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 0, false, { late: 'you defect (your 2 Cr are never at risk)' })
       : rnd() < 0.65;
     const a = await ask(F), b = await ask(T);
     if (a && b) { addCr(F, 5, 'card'); addCr(T, 5, 'card'); notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
@@ -3866,7 +4010,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function hostileBuyout(F, T) {
     const r = T.robots.slice().sort((a, b) => power(a) - power(b))[0];
     const sell = isHuman(T.i)
-      ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 10000, false)
+      ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, false, { late: 'you refuse and keep the robot (−1 fame)' })
       : T.robots.length >= 3 || T.fame <= 2;
     if (sell) { exhaustBot(r, 'Hostile Buyout', F.i); robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
@@ -3876,12 +4020,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const others = G.teams.filter(o => o !== F && readyRobots(o).length);
     if (!others.length) { notify('🤝 Tag Team: nobody has a ready robot to team up with.', F.col); return; }
     let ally;
-    if (isHuman(F.i)) ally = await askSeat(F.i, '🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0);
-    else ally = others.filter(o => o !== leaderOf()).sort((a, b) => Math.max(...readyRobots(b).map(power)) - Math.max(...readyRobots(a).map(power)))[0] || others[0];
+    const aiAlly = () => others.filter(o => o !== leaderOf()).sort((a, b) => Math.max(...readyRobots(b).map(power)) - Math.max(...readyRobots(a).map(power)))[0] || others[0];
+    if (isHuman(F.i)) { const d0 = aiAlly();   // T31: no answer in time: the ally the AI would pick (the card is played already)
+      ally = await askSeat(F.i, '🤝 Tag Team Licence', 'Pick your ally for this round\'s 2v2. Refusing costs them 1 fame.', others.map(o => ({ label: esc(o.name) + ' (' + o.fame + ' fame)', value: () => o })), 0, d0, { late: nm(d0) + ' is asked (the strongest ready robot outside the leader, as the AI picks)' });
+      if (!others.includes(ally)) ally = d0; }
+    else ally = aiAlly();
     let yes;
     if (isHuman(ally.i)) {
       const B = aiBundle(F, ally, 1);
-      yes = await askSeat(ally.i, '🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }]);
+      yes = await askSeat(ally.i, '🤝 Tag Team offer', nm(F) + ' wants you as its ally in a 2v2 this round' + (!bundleEmpty(B) ? ' and offers <b>' + bundleText(B) + '</b>' : '') + '. Refuse and lose 1 fame.', [{ label: 'Team up', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, true, { late: 'you team up (refusing would cost 1 fame)' });   // T31: by the card only Refuse costs (1 fame), so no answer = Team up (a question for Kev)
       if (yes) transfer(F, ally, B, 'deal');
     } else {
       yes = !(ally === leaderOf() && rnd() < 0.5);
@@ -3924,7 +4071,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (isHuman(F.i)) {
           const R = repState(F), crew = readyCrew(F) > 0 ? F.crew.filter(x => R.used[x.uid] == null) : [];
           const opts = crew.map(x => ({ label: CREW[x.kind].icon + ' ' + esc(CREW[x.kind].name), value: () => ({ crew: x }) })).concat(F.robots.map(r => ({ label: '🤖 ' + esc(r.name) + (r.wins ? ' (' + r.wins + ' Fan token' + (r.wins > 1 ? 's' : '') + ')' : ''), value: () => ({ robot: r }) })));
-          if (opts.length > 1) gift = await askSeat(F.i, '🏛️ Museum Donation', 'Donate a robot or a ready crew member to the museum for +1 fame. Which one?', opts, 0, null);
+          if (opts.length > 1) gift = await askSeat(F.i, '🏛️ Museum Donation', 'Donate a robot or a ready crew member to the museum for +1 fame. Which one?', opts, 0, null, { late: crew.length ? 'a crew member is donated (as the AI does)' : '<b>' + esc(F.robots[0].name) + '</b> is donated' });   // T31: the AI's choice
           if (!gift && !crew.length && F.robots.length) gift = { robot: F.robots[0] };
         }
         if (gift && gift.robot && F.robots.includes(gift.robot)) {
@@ -4046,7 +4193,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       try {
         pick = await askSeat(t.i, '💰 Over your hand limit', html, [
           { label: 'Cash in ticked cards', value: el => [...el.querySelectorAll('input[data-k]')].filter(x => x.checked).map(x => +x.dataset.k) },
-          { label: '← Back to my turn', secondary: true, value: () => null }]);
+          { label: '← Back to my turn', secondary: true, value: () => null }], 0, [...pre], { late: 'the ticked cards are cashed in' });   // T31: no answer in time = the cheapest cards (pre-ticked), so the turn can end
       } finally { G.ivBusy = false; updateHud(); }
       if (!pick) return false;
       if (t.hand.length <= handLimit(t)) return true;
@@ -5478,11 +5625,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
             if (pays) { transfer(W, o, ask, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
             notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
           }
-          yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }]);
+          yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }], 0, false, { late: 'you let it go (the card stays in your hand)' });
           if (!yes) continue;
         } else if (!isHuman(oi)) {
           if (isHuman(W.i)) {
-            const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }]);
+            const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }], 0, null, { late: 'you refuse to pay (the card may still be played on the part; you can still block it)' });   // T31: Refuse never spends credits
             if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + '.', W.col); break; }
             if (pay === 'deal') {
               const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' }, W.i);   // 14 Nov: on the threatened player's own screen
@@ -5579,7 +5726,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // person with a ready robot may now offer the host something to be invited or to be left out, each on its own screen,
       // all at the same time. As with the AI offers, it is paid only if the host does what was asked (ACT.invite).
       await Promise.all(humanSeats().filter(h => h !== H && readyRobots(G.teams[h]).length).map(async h => {
-        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null);
+        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
         if (!pick) return;
         const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(G.teams[H]) + ' something for it. You pay only if the host does it.', from: G.teams[H], lock: 'Lock in offer' }, h);
         if (d && !bundleEmpty(d.give) && G.phase === 'arena' && G.host === H) G.inviteOffers.push({ team: h, want: pick, B: d.give });
@@ -5597,7 +5744,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
       const Me = G.teams[h];
       if (!readyRobots(Me).length) continue;
-      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }]);
+      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
       if (!pick || (pick === 'in' && forceIn >= 0)) continue;
       const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' }, h);
       if (d && !bundleEmpty(d.give)) {
@@ -5653,7 +5800,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (isHuman(ti)) {
           id = await askSeat(ti, '🏟️ Host step', 'This round\'s fight is ' + fmtNow() + (G.houseRobot ? ' with the House Robot' : '') + '. ' + (ti === H ? 'You are the host. ' : '') + 'Play an Arena card?' +
             opts.map(o => '<br>' + cardRef(o) + ': ' + esc(CARDS[o].text)).join(''),
-            opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(CARDS[o].name), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 12000, null);
+            opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(CARDS[o].name), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no Arena card is played (it stays in your hand)' });
         } else {
           const want = { grand_melee: ti === H ? 0.7 : 0.2, mirror: 0.45, unleash_the_house_robot: opts.includes('unleash_the_house_robot') && aiCardValue(t, CARDS.unleash_the_house_robot) >= 2.5 ? 0.8 : 0.25 };   // the House Robot: mostly when its own robots are the weaker ones
           id = opts.find(o => rnd() < want[o]) || null;
@@ -5983,7 +6130,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const cands = readyRobots(T).filter(r => r !== first);
       if (!cands.length) continue;
       let r2;
-      if (isHuman(T.i)) r2 = await askSeat(T.i, '🤖🤖 Second robot?', 'The host called <b>2 robots per side</b>. Send a second robot with ' + esc(first.name) + '?', cands.map(r => ({ label: '🤖 ' + esc(r.name) + ' (' + esc(zoneTxt(r)) + ')', value: () => r })).concat([{ label: 'Just one', secondary: true, value: () => null }]));
+      if (isHuman(T.i)) r2 = await askSeat(T.i, '🤖🤖 Second robot?', 'The host called <b>2 robots per side</b>. Send a second robot with ' + esc(first.name) + '?', cands.map(r => ({ label: '🤖 ' + esc(r.name) + ' (' + esc(zoneTxt(r)) + ')', value: () => r })).concat([{ label: 'Just one', secondary: true, value: () => null }]), 0, null, { late: 'just one robot' });
       else r2 = cands.sort((a, b) => power(b) - power(a))[0];
       if (r2) { F.teams.push(T.i); F.robots.push(r2); F.sides.push(F.sides[e]); }
     }
@@ -6000,7 +6147,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (F.sides.filter(x => x === F.sides[e]).length < 2) continue;   // switching would leave its side empty (a 2v2 where a team sat out)
       const mine = F.sides[e], pw = sd => F.robots.reduce((a, x, k) => a + (k !== e && F.sides[k] === sd ? Math.exp(power(x)) : 0), 0);
       let go;
-      if (isHuman(T.i)) go = await askSeat(T.i, '✦ Treacherous', esc(r.name) + ' may switch to the other side of this 2v2 (3 against 1). Your team gets fame if its new side wins.', [{ label: 'Switch sides', value: () => true }, { label: 'Stay', secondary: true, value: () => false }]);
+      if (isHuman(T.i)) go = await askSeat(T.i, '✦ Treacherous', esc(r.name) + ' may switch to the other side of this 2v2 (3 against 1). Your team gets fame if its new side wins.', [{ label: 'Switch sides', value: () => true }, { label: 'Stay', secondary: true, value: () => false }], 0, false, { late: 'it stays on its side' });
       else go = pw(1 - mine) > pw(mine) * 1.15;
       if (go) { F.sides[e] = 1 - mine; notify('✦ Treacherous: ' + esc(r.name) + ' (' + nm(T) + ') switches sides!', T.col); }
     }
@@ -6262,9 +6409,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const opts = swaps(); if (!opts.length) continue;
       let pick = null;
       if (isHuman(ti)) {
-        pick = await askSeat(ti, '🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]));
+        pick = await askSeat(ti, '🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no swap (the card stays in your hand)' });
         if (pick && pick.ti !== ti) {
-          const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }]);
+          const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }], 0, 'swap', { late: 'the swap you picked goes ahead' });   // T31: what you picked, without the wait for a deal
           if (how === 'pay') {
             const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' }, ti);   // 14 Nov: on the screen of the player who demands it
             const pays = d && !bundleEmpty(d.want) && (isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' will swap your robot in this fight (' + cardRef('swap_the_entry') + ') unless you give <b>' + bundleText(d.want) + '</b>.', W.i) : bundleWorth(W, d.want) <= 3);
@@ -6279,7 +6426,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
       if (!pick) continue;
       if (!isHuman(ti) && isHuman(pick.ti)) {   // the AI threatens you first
-        const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }]);
+        const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late: 'you refuse to pay (your robot is swapped; the bets stand)' });
         { const P = G.teams[pick.ti]; if (pay && P.credits >= 2) { transfer(P, o, { cr: 2, items: [] }, 'deal'); notify('💰 ' + nm(P) + ' pays ' + nm(o) + ' 2 Cr to keep its line-up.', P.col); continue; } }
       }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
@@ -6702,7 +6849,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (h === H.i || !canScrap) continue;
       const mine = L.i === h;
       const pick = mine ? 'spare' : await askSeat(h, '👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
-        [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }]);
+        [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }], 0, null, { late: 'you stay out' });
       if (pick) {
         const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' }, h);
         if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: h, B: d.give });
@@ -6818,7 +6965,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function applySnap(m) {
     const old = G, g = JSON.parse(m.g);
     RX.snapAt = performance.now();   // T20: an answered question's ✓ stays until the host's next picture of the game (qOn)
-    SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null; netWaiting = m.waiting || null; renderWaiting();
+    SEATS = m.seats; HS = viewerSeat = m.seat; netNames = m.names || netNames; netPaused = m.paused || null; clkPause(!!netPaused); netWaiting = m.waiting || null; renderWaiting();
     if (m.bal) { balMerge(BAL, m.bal); applyBal(false); }
     if (m.win) WIN_FAME = m.win; if (m.hostFame != null) HOST_FAME = m.hostFame;
     Object.assign(LOTS, m.lotsDyn || {});
@@ -7222,7 +7369,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused, waiting: netWaiting }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman, netDiag,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
-    setPaused(list) { netPaused = list && list.length ? list : null; updateHud(); },
+    setPaused(list) { netPaused = list && list.length ? list : null; clkPause(!!netPaused); stepClkPause(); updateHud(); },   // T31: a paused game stops the question clocks
     setWaiting, ptSlice, ptScreen, ptMark, ptId: () => PT.game ? PT.game.id : null,
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
@@ -7241,11 +7388,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       netTick = { fid: t.fid, tick: t.tick, at: now, rate };
       if (VW.V && t.sp > 0) VW.V.speed = t.sp;   // only the host sets the speed
     },
-    showAsk(q) {   // a question from the host, on this screen: resolves to { k, inputs }
+    showAsk(q, onShow) {   // a question from the host, on this screen: resolves to { k, inputs }
       const bs = q.buttons.map((b, k) => ({ label: b.label, secondary: b.secondary, value: el => ({ k, inputs: modalInputs(el) }) }));
-      return q.small ? smallAsk(q.title, q.html, bs, q.ms) : askBox(q.title, q.html, bs, q.ms);   // T20: in the note when it fits, as on the host, with its countdown
+      // T20: in the note when it fits, as on the host, with its countdown. T31: the host judges the time (judged); onShow tells it
+      // when this screen shows it (a question queued behind another one gets its full time); left: what was left (a rejoin)
+      return q.small ? smallAsk(q.title, q.html, bs, q.ms) : askBox(q.title, q.html, bs, q.ms, undefined, { judged: true, left: q.left, onShow });
     },
-    showDeal(o) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null })); },
+    showDeal(o, onShow) { return dealPanel(Object.assign({}, o, { from: o.from != null && G ? G.teams[o.from] : null, _judged: true, _onShow: onShow })); },
+    askLeft(left, deal) {   // T31: the host sent an open question again (after a lost link): take its time left
+      if (!(left >= 0)) return;
+      const set = c => { if (c && c.ms > 0) c.t0 = clkNow() - (c.ms - Math.min(left, c.ms)); };
+      if (deal) { const dm = document.getElementById('dealModal'); set(dm && dm._clk); }
+      else if (qOpen()) set(RX.q); else { const iv = document.getElementById('ivModal'); set(iv && !iv.hidden && iv._clk); }
+      updateHud();
+    },
     closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } if (RX.cur && !RX.cur.over) RX.cur.cancel(); if (qOpen()) RX.q.cancel(); },
     notify, get desyncs() { return desyncs; }, get resims() { return resims; }
   };
