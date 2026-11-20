@@ -7,11 +7,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K9. The bookie on your PC: play through a local address so it uses all cores?** (T6.) Opened as a file
-  (`play-latest.cmd`), the game can't use background workers: test fights run on the page, 62-81 a duel in 4 s, but only
-  9-11 for a 2v2 or mirror fight, which is under the minimum of 40, so those fights fall back to the formula. Options:
-  (a) `play-latest` starts a small local server (needs Node or Python on the PC) so workers run; (b) more time for fights
-  with 3+ robots (8 s); (c) a lower minimum (20 fights); (d) leave it.
 - **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
 - **K27. Card texts that don't match the code**: Crunch Week and Press Tour say they can exhaust robots, but only crew
   and Security Bots are exhausted. Fix the text or the rule?
@@ -49,6 +44,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **K9 (20 Nov): `play-latest` starts a local server.** Kev: "yes". T32.
 - **K28 (20 Nov): timers.** Kev: "yes, put them all on a timer" (to: should threats, Tag Team offers and backing requests
   get a timer too?). 20 s for the three already timed stays (no objection). T31.
 - **K26 (17 Nov): sponsors.** Kev: "10, fine, ok": teams start with 10 Cr (was 8), T29; the AI bidding at most 3 Cr for a
@@ -95,6 +91,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T32. `play-latest` serves the game from a local address, so the bookie can use all cores.** Kev (20 Nov): "yes" (to: a
+  small local server for `play-latest`; opened as a file the game can't run test fights in background workers, so
+  four-robot fights fall back to the formula). Goal: `play-latest.cmd` starts a tiny server on this PC only (Node, else
+  Python, else it opens the file as today and says so) and opens the game there; closing is clean; `play-latest online`
+  is unchanged. Files: `play-latest.cmd`, `tools/` (a small server script), `docs/orchestration.md`. Worker on branch
+  `claude/play-local-server`, started 20 Nov. Done when: served from the local address the bookie log says `how:
+  workers`, the files stamp and the stale-file warning still work, and hosting an online game from it gives friends a
+  link they can open.
 - **T31. Every question that holds up the table gets a timer.** Kev (20 Nov): "yes, put them all on a timer". Goal:
   threats, Tag Team offers, backing requests and every other question that makes the table wait for one player count
   down in the note (20 s, as Joint Venture), with the safe answer when time runs out (never a yes that costs credits or
