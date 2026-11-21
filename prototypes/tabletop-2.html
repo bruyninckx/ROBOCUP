@@ -975,6 +975,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     p_powerkit: { name: '1600 W Power Supply', line: 'Dims the lights in the whole street.' },
     p_overdrive: { name: 'Paperclip Maximizer', line: 'It was told to hit harder. It never stopped.' },
     p_medic: { name: 'Healing Crystal', line: 'Works better than it should. Do not ask how.' },
+    p_matador: { name: 'Antikythera Core', line: 'Two thousand years old, bronze gears. Still faster than your robot.' },   // T42 (Kev: "decide yourself"): the Matador chip
     scrap_deal: { name: 'Bitcoin Pizza', line: '2010: 10,000 bitcoin for two pizzas. A fair price at the time.' },
     hype_reel: { name: 'AGI Next Year', line: 'It has been next year for a while now.' },
     viral_moment: { name: 'The Demo Went Viral', line: 'Nobody checked if it works. +1 fame.' },
@@ -3323,7 +3324,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21g themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21h Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -7850,6 +7851,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       fP(c, 'M50 112h100', null, 4); fP(c, 'M66 112l6 -8h14l4 8M112 112l6 -8 12 2 2 6', FA.light, 3);
       fP(c, 'M152 82h8v-8h8v8h8v8h-8v8h-8v-8h-8z', FA.paper, 3); fP(c, 'M28 52h6v-6h6v6h6v6h-6v6h-6v-6h-6z', FA.paper, 2.5);
     },
+    p_matador(c) {   // a corroded bronze gear mechanism in an open wooden case, front view
+      fB(c, 30, 14, 140, 104, FA.wood, 4); fB(c, 40, 24, 120, 84, '#5A4A3A', 2, 3);
+      const gear = (x, y, r, n, fill) => { let d = ''; for (let i = 0; i < n; i++) { const a0 = i * 2 * Math.PI / n, a1 = a0 + Math.PI / n * 0.5, a2 = a0 + Math.PI / n, a3 = a0 + Math.PI / n * 1.5;
+          const P = (a, rr) => (x + Math.cos(a) * rr).toFixed(1) + ' ' + (y + Math.sin(a) * rr).toFixed(1);
+          d += (i ? 'L' : 'M') + P(a0, r) + 'L' + P(a1, r) + 'L' + P(a2, r - 5) + 'L' + P(a3, r - 5); }
+        fP(c, d + 'Z', fill, 3); fC(c, x, y, r * 0.45, '#7A8F6A', 2.5); fC(c, x, y, 3, INK, 0); };
+      gear(78, 62, 30, 14, '#B0803A'); gear(126, 50, 20, 10, '#9C6B2E'); gear(124, 88, 14, 8, '#B0803A');
+      fP(c, 'M64 52l8 6M86 74l6 -4M120 44l6 4', null, 2.5, '#5F8A6E');   // green corrosion
+      fP(c, 'M48 104h22M140 32h12', null, 3, FA.cream); fC(c, 36, 66, 3, FA.steel, 2); fC(c, 164, 66, 3, FA.steel, 2);
+    },
     scrap_deal(c) {   // a pizza from above and a stack of plain gold coins
       fC(c, 70, 66, 50, FA.card); fC(c, 70, 66, 41, '#E7C66A', 2.5); fC(c, 70, 66, 41, null, 0);
       fP(c, 'M70 25v82M29 66h82M41 37l58 58M99 37l-58 58', null, 2.5);
@@ -8731,7 +8742,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.textAlign = 'left';
     { const tgW = drawBookieTags(ctx, r, bx + bw - 10, by + 36, 14, 9, tw * 0.62); ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name) + ' · 🎖 ' + r.wins, tx, by + 47, tw - tgW - 4, '600', 11); }
     const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
-    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => partNm(k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
+    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => partNm(k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + partNm(chp[0]) + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? partNm(r.leg) + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
     help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partQ(k)) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + (flavPart(k) ? flavLine('p_' + k) + ' ' : '') + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const rk = partsOf(r).filter(rarCan).sort((p, q) => rarOn(r)(q) - rarOn(r)(p)); if (rk.length) hitRegions.push({ kind: 'rarity', robot: r, part: rk[0], rar: rarOn(r)(rk[0]), x: tx, y: by + 52, w: tw, h: 28 }); }   // the rarity ladder
@@ -9894,6 +9905,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with every build that changes what players see. */
   const CHANGES = [
     ['2.0.1, themed cards', '21 Nov 2026', [
+      'One more themed card: the Matador chip is now Antikythera Core ("Two thousand years old, bronze gears. Still faster than your robot."), with its own drawing. It works as before.',
       'Eighteen cards have a themed name and their own drawing (Kev\'s picks): the new name big, the game\'s name small under it, and a short line in italics in the hover. Parts: IBM 5100 (Quantum shield), Riemann, Compiled (Prototype core), RTX 5090 (Weapon overhaul), 1600 W Power Supply (Power kit), Paperclip Maximizer (Overdrive), Healing Crystal (Medic drone). Intrigue: Bitcoin Pizza, AGI Next Year, The Demo Went Viral, Jailbreak, Game Six, Compute Deal, Token Bill, 175,187 Modules, Monty Hall, Banach-Tarski, Scalper Bot, Reincarnation.',
       'Only the looks change: what each card does, its numbers and its place in the deck are as before. The log keeps the game\'s names; a question that names one of these cards says both, like "Compute Deal (Joint Venture)".' ]],
     ['2.0.1, trade and bid in one step', '20 Nov 2026', [

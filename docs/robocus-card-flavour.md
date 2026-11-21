@@ -1,4 +1,4 @@
-# Card flavour: themed names and drawings (T39)
+# Card flavour: themed names and drawings (T39, T42: 19 cards)
 
 Kev, 21 Nov 2026: "I want a nice thematic change on some of the cards but I am more picky on what to include, I liked the
 IBM idea". He voted Yes on the names below, chose "new name big, the game's name small under it", and art direction A,
@@ -17,6 +17,7 @@ log, `rules.html` and the docs keep the game's names. Everything keys on the car
 | `p_powerkit` | Power kit (part) | 1600 W Power Supply | Dims the lights in the whole street. |
 | `p_overdrive` | Overdrive (part) | Paperclip Maximizer | It was told to hit harder. It never stopped. |
 | `p_medic` | Medic drone (part) | Healing Crystal | Works better than it should. Do not ask how. |
+| `p_matador` | Matador chip (tuning chip) | Antikythera Core | Two thousand years old, bronze gears. Still faster than your robot. |
 | `scrap_deal` | Scrap Deal | Bitcoin Pizza | 2010: 10,000 bitcoin for two pizzas. A fair price at the time. |
 | `hype_reel` | Hype Reel | AGI Next Year | It has been next year for a while now. |
 | `viral_moment` | Viral Moment | The Demo Went Viral | Nobody checked if it works. +1 fame. |
@@ -30,9 +31,9 @@ log, `rules.html` and the docs keep the game's names. Everything keys on the car
 | `hostile_buyout` | Hostile Buyout | Scalper Bot | Bought every unit at launch. Selling to you at double. |
 | `supply` | Supply Drop (live fight card, Auction deck) | Reincarnation | It comes back. Not always as the same thing. |
 
-All 18 cards are in the 2.0 game; none was skipped. The numbers in the lines match the cards today: Viral Moment +1 fame,
+All 19 cards are in the 2.0 game; none was skipped. The numbers in the lines match the cards today: Viral Moment +1 fame,
 Tax Audit 5 credits, Industry Insider draws 2, Mirror fights as 2 copies (the card text says "2–3 copies", the game makes 2).
-Held back (Kev decides): Antikythera Core (it also wanted Prototype core).
+Antikythera Core (T42, 21 Nov): Kev said "decide yourself"; the orchestrator put it on the Matador chip (an ancient computer as a processor chip). Its drawing: a corroded bronze gear mechanism in a wooden case. Chips have no rarity copies.
 
 A rarity copy of a part (`p_weapon~2`) uses its base: "Race-spec RTX 5090".
 
@@ -53,7 +54,7 @@ A rarity copy of a part (`p_weapon~2`) uses its base: "Race-spec RTX 5090".
 A question or note to a player that names a themed card says **"Flavour name (Game name)"**: "🤝 Compute Deal (Joint
 Venture)", "🏢 Scalper Bot (Hostile Buyout)", "🔀 Monty Hall (Swap the Entry)?", the reaction window ("Moss plays
 Token Bill (Tax Audit) on you"), Override and block buttons, the Host step's Arena-card offer, the install / fit / move /
-Botched Install questions, the hand-limit list, the Stash-full and garage-full buttons. Fight formats keep the game's name
+Botched Install questions, the hand-limit list, the Stash-full and garage-full buttons. Fight formats keep the game's name (Kev, 21 Nov: keep it so)
 where they name the fight rather than the card ("Mirror duel", "GRAND FINAL: DOUBLE FAME" on the bookie's header).
 Test scripts that look for "Joint Venture" or "Hostile Buyout" keep passing because the game's name is still in the text.
 
