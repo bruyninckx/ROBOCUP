@@ -29,7 +29,7 @@ if (section === 'parts') { const K = +(process.env.K || 4); const parts = Object
     const r = duel(spec(n, k ? [k] : []), spec(o), 21000 + f, f % 2 === 1); res.push({ n, k, o, win: r.aw }); tick(); } } }
 if (section === 'confirm') { const C = JSON.parse(fs.readFileSync(process.env.CAND)); const K = +(process.env.K || 8); // fresh seeds, all robots a level up (L4: own level)
   for (const c of C) { const l = Math.min(4, lv[c.n] + 1), opp = names.filter(m => lv[m] === l && m !== c.n); for (const o of opp) for (let f = 0; f < K; f++) { if (!mine()) continue;
-    const a = duel(spec(c.n, c.parts), spec(o), 23000 + f, f % 2 === 1), b = duel(spec(c.n), spec(o), 23000 + f, f % 2 === 1); res.push({ id: c.id, n: c.n, parts: c.parts, o, with: a.aw, without: b.aw }); tick(); } } }
+    const s0 = +(process.env.CSEED || 23000), a = duel(spec(c.n, c.parts), spec(o), s0 + f, f % 2 === 1), b = duel(spec(c.n), spec(o), s0 + f, f % 2 === 1); res.push({ id: c.id, n: c.n, parts: c.parts, o, with: a.aw, without: b.aw }); tick(); } } }
 if (section === 'slayer') { const C = JSON.parse(fs.readFileSync(process.env.CAND)); const K = +(process.env.K || 3); // kitted level 0-2 robots against every level 3 and 4 robot
   for (const c of C) for (const o of names.filter(m => lv[m] >= 3)) for (let f = 0; f < K; f++) { if (!mine()) continue;
     const a = duel(spec(c.n, c.parts), spec(o), 25000 + f, f % 2 === 1), b = duel(spec(c.n), spec(o), 25000 + f, f % 2 === 1); res.push({ n: c.n, parts: c.parts, o, with: a.aw, without: b.aw }); tick(); }
