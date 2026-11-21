@@ -183,6 +183,15 @@ Kev: "exhaust robots as well" (the texts said robots; the game only took crew an
 - The AI values the spare robots like crew (Crunch Week 0.6 Cr each; Press Tour wanted when crew + bots + spare robots reach 3; it keeps fewer crew out of the workshop for Press Tour when spare robots make up the 3).
 - Whole games (40 AI games each way, same seeds 1-40, start credits 8, Repair kit in both): Crunch Week played 24 times (was 23), exhausted 23 robots, 3.73 Cr a game from it (was 3.02; paired +0.70 ± 0.97). Press Tour played 77 times, landed 60 (was 54), exhausted 15 robots, fame from it 1.50 a game (was 1.35; +0.15 ± 0.21). Game length 11.30 rounds (was 11.07; +0.23 ± 0.35), fights 10.90 (was 10.78), fight length unchanged (−36 ± 303 engine steps).
 
+## Crunch Week: you tick everything (21 Nov, T47)
+
+Kev (voting page, 21 Nov): "I tick everything myself: crew, bots and robots" (before: all ready crew and Security Bots went by themselves and you ticked only the robots).
+
+- A person who plays Crunch Week gets one question (in the box, 30 s) with a tick per ready crew member, per ready Security Bot and per ready robot. Crew and bots start ticked, robots not. "Exhaust the ticked" pays +1 Cr for each ticked one; "Exhaust nothing" pays nothing. No answer in time: the ticks as they opened (all ready crew and bots, no robots, what happened before T47), with a ⌛ line.
+- Crew exhaustion is still a count (the crew are interchangeable for every card), so which crew card you untick only sets how many go.
+- AI unchanged (all ready crew and bots, plus its spare robots). Balance: a person can now keep crew ready (for Press Tour, Team-Building Day, Overtime Shift on a later turn), so at most a small gain in choice; nothing changes for the AI, so AI-only games are not affected.
+- Test: tools/mp-scenario/vote-rules.js (1), exhaust-cards.js.
+
 ## Cut (0 copies; still in the code so old saves read)
 
 8 Nov (card pass, `docs/card-play.md`): Bookie's Friend; Skeleton Crew, Leaked Footage and Bankrupt! became Kick When Down; Press Tour and Celebrity Endorsement 3→2; Team-Building Day max +1; Security Override and Asset Strip can't be blocked by Security Bots; gates: House Robot 9→5, Rival Sponsor 14→9, Smear Campaign 16→10.
