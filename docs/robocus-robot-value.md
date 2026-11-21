@@ -62,7 +62,16 @@ rarity overlay): sales were then 1.3 ± 0.4 Cr under the value overall and 4-8 C
 miss 2.7). Counting each part at its bank price brings the bias to +0.3 and the typical miss to 1.6. Fan tokens and damage at −1 an
 action fit as they are (counting damage at −2, or leaving Fan tokens out, made the fit worse or no better).
 
-A confirmation run with the final formula: see "Confirmation" at the end.
+**Confirmation with the final formula** (24 more games, seeds 101-124, recorded with parts at their bank price, no recount; 23
+finished, 1 stalled late, 0 page errors; `node tools/robot-value-report.js t44f`):
+
+| What | Robots | Value | Paid | Paid − value | Typical miss |
+|---|---|---|---|---|---|
+| AI-to-AI robot sales | 55 | 4.2 | 4.6 ± 0.4 | +0.4 ± 0.3 | 1.9 |
+| Market robot lots | 214 | 6.5 | 7.5 ± 0.1 | +1.0 ± 0.2 | 2.1 |
+| · level 1 / 2 / 3 / 4 | 43 / 48 / 44 / 79 | 3 / 5 / 7 / 9 | 6.5 / 7.2 / 7.1 / 8.6 | +3.5 / +2.2 / +0.1 / −0.4 | |
+| Trade-in (without parts) | 30 | 3.7 | 2.2 ± 0.3 | −1.5 ± 0.4 | 1.6 |
+| Hostile Buyout | 2 | 6 (1 and 11) | 4 | | |
 
 **Reading it.** In trades, the number on the chip is what the AI teams pay, give or take 1-2 Cr. A new robot in the Market sells
 above it early in the game: in rounds 1-4 every team still needs robots and has spare credits, so a level 1 robot goes for about
