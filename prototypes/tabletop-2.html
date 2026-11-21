@@ -2260,7 +2260,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
           const bf = myInst[0].ask ? bestFit(t, myInst[0].lot) : null;   // T47: asked first (2+ robots can take it): say what no answer does
-          pb.innerHTML = (bf ? '<span>🔩 <b>You won ' + esc(lotQ(myInst[0].lot)) + ':</b> which robot gets it? No answer: ' + esc(bf.name) + ' (best odds).</span>'
+          pb.innerHTML = (bf ? '<span>🔩 <b>Which robot gets ' + esc(lotQ(myInst[0].lot)) + '?</b> No answer: ' + esc(bf.name) + ' (best odds).</span>'
             : '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lotQ(myInst[0].lot)) + '</b> (here or on its card), or keep it in your Stash.</span>') +
             // T9: one button per robot, the same click as the FIT … button on its card (no room: shown, greyed)
             t.robots.map(r => { const ok = canFit(r, lot), pv = lotPreview(r, lot); return pickBtn('fit', r.id, (ok ? '🔩 ' : '') + r.name, ok ? 'odds ' + pv.replace(/ vs the field.*$/, '') : 'no room', { off: !ok, tip: (ok ? 'Fit ' + lot.name + ' on ' + r.name + ': ' : 'No room: ') + pv }); }).join('') +
