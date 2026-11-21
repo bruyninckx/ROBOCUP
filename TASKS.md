@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K48. Smarter AI hosts** (T46): (a) next to a team that hoards and hosts, AI teams spend about 10% less in the
+  Market (they keep credits for the host seat): fine, or should they save less? (b) the host seat costs about 0.7 Cr a
+  round more and hosts take about 10 Cr a game more in deals: fine? (c) the AI still can't outbid a 40+ Cr pile; only
+  a cap or a credit sink would, and Kev chose neither: leave it?
 - **K46. From the 21 Nov playtest** (T51): (a) as host you ran out of time picking the fighters (30 s) and on spare or
   scrap (20 s): longer for the host (60 s / 30 s)? (b) six AI trade offers timed out while you were bidding: fewer
   offers, longer, or keep them out of the way until you open them? (c) 9 of 15 fights were 90%+ for one side: is that
@@ -154,14 +158,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
   come back whole. Then measure: scrap matters less, parts pile onto the best robot,
   fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
-- **T46. AI hosts invite like people; the AI saves for the host seat.** Kev (21 Nov): "improving AI is always good";
-  on hoarding ("Teach the AI to save for host bids, add something to spend credits on, or cap host bids?"): "yes"
-  (read: teach the AI). From T35: an AI host that stays out invites the fame leader on purpose (80%), never avoids a
-  rival's Fan Favourite, ends every round with 6-8 Cr and never bids more than the richest rival + 1 for the host
-  seat, so a saving person buys the seat at will. Goal: AI hosts weigh what an invitation gives the invited team
-  (appearance money, a likely win and its fame) and the AI bids for the host seat against a saver. AI only, no rule
-  change. Worker on branch `claude/ai-host`, started 21 Nov. Done when: T35's "Kev line" test AI and its hoard-and-host
-  variant measured before and after (60+ games, paired), all-AI games still 11-12 rounds, game-sim and mp-test pass.
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
