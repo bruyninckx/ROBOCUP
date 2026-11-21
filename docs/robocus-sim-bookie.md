@@ -145,8 +145,8 @@ helpers about 4 fights are lost at the cut: the true rate is about (n + 4) / 4 s
 | `cap` (most helpers) | 8 | **14** (cores minus 2) | his PC has 16 logical processors |
 | `msBig` (budget for 3+ robots: copies and the House Robot count) | 4 s | **8 s** | the fights that fell short |
 | `ms` (duels) | 4 s | 4 s | duels were fine |
-| `stopN` / `stopMiss` | none | **60 / 1** | stop early once 60 are in and the other sides together won at most 1: the odds sit at the 95% cap whatever comes next (his rounds 8, 12, 13, 15 would have started 1-3 s sooner) |
-| `min`, `prior`, `n` | 40, 8, 200 | unchanged | see the Brier check below |
+| `stopN` / `stopMiss` | none | **60 / 1** | stop early once 60 are in and the other sides together won at most 1: the odds sit at the 95% cap whatever comes next (his rounds 12, 13 and 15 would have started 1-2 s sooner) |
+| `min`, `prior`, `n` | 40, 8, 200 | unchanged | see "Fewer test fights?" below |
 
 A page without helpers (opened from a file) keeps 4 s also for big fights: there each test fight blocks the screen.
 
@@ -165,6 +165,25 @@ A page without helpers (opened from a file) keeps 4 s also for big fights: there
 - Memory: the browser grows by 33 MB with 1 helper, 62 MB with 8, 124 MB with 14 (each loads planck and the engine): **about 8-10 MB a helper**, so 14 helpers about 125 MB. The pool starts 5 s after the page loads and lives as long as the page (no start-up cost per fight).
 - Speed per helper (box loaded): the round-7 duel 12.8 fights a second with 1 helper (8.5 each with 2, the box has 2 cores), the round-5 double duel (4 robots) 0.27 with 1 helper: a 4-robot fight costs 30-50 duels here.
 SPEEDNUMBERS
+
+### Fewer test fights for big fights? (not changed)
+
+`node tools/bookie-brier.js` (AI games, T41 wear build; at every real fight with 3+ robots, 30 test fights of that fight on the
+page, open information only; the game goes on with the formula; score against who really won, face-down and live cards in).
+Only **15 fights from 3 games** finished before the box restarted, so this is a direction, not a result:
+
+| 15 fights with 3-4 robots | Brier (coin 0.25) | change vs formula (paired, ± 1 s.e.) |
+|---|---|---|
+| formula alone | 0.210 | |
+| 25 test fights + formula as 8 fights | 0.152 | -0.058 ± 0.056 |
+| 30 + 8 | 0.161 | -0.049 ± 0.057 |
+| 30 + 16 | 0.161 | -0.049 ± 0.049 |
+| 10 + 8 | 0.153 | -0.057 ± 0.049 |
+
+Same direction as the 15 Nov measurement (90 fights with 3+ robots: 24 test fights 0.125 against the formula's 0.155): even a short
+run of test fights plus the formula as a prior predicts big fights better than the formula. Lowering `min` to about 25 for 3+ robots
+looks safe, but 15 fights can't show it, so `min` stays 40 and the longer budget does the work (question for Kev in the hand-back;
+`BAL.bookie.min` is the switch). A longer run: `node tools/bookie-brier.js --games=30 --n=30` (about 5 min a game on a free 2-core box).
 
 ### Game state stays the same for everyone
 

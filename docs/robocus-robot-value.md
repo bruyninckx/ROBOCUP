@@ -89,6 +89,10 @@ above it early in the game: in rounds 1-4 every team still needs robots and has 
   more to the AI on a shelf than on a robot.
 - **Trade-in.** Scrap money is 1 + level (half the level part of `robotWorth`); `robotWant` counts the scrapped robot at half its
   strength value.
+  **T52 (21-22 Nov):** with `AI_PARAMS.tiV2` (on) the AI values the new robot and the one it would scrap the same way (`tiVal`, the
+  `robotWant` formula), plus Fan tokens, Fan Favourite fame and a just-bought robot (`tiKeep`), and bids at most the gain:
+  docs/ai-v2.md, "Trade-ins". Since T38 the scrapped robot's parts come back to the Stash (broken from a broken zone), which the
+  AI already counted: it values the old robot without its parts.
 - **AI sells a spare robot** at `max(2, min(worth to the buyer, worth to the seller + 1))`: a buyer down to one robot gets the
   +2 "only robot" bonus, so it pays a little above the seller's own worth.
 - **Hostile Buyout** was a flat 4 Cr; **Fire Sale** sold the weakest robot to the bank for a flat 2 Cr, while the card text said

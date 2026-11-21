@@ -190,3 +190,47 @@ Buzzkill with a broken Body three times (robot pick by matchup odds; T51 / K46 o
 Not run: the seat-0 normal AI against `aiDeals` off alone beyond the 37-game run above; the counters one at a time; the
 `favCards` part alone (it is on by default as part of the package; its effect is not separated). Stalled games (1-3 per run)
 are left out, not re-run (the server restarted twice during the runs).
+
+## Trade-ins: one valuation, keep the Fan Favourite (T52, 21-22 Nov 2026)
+
+### Why Plum churned in Kev's game of 21 Nov
+
+Plum Ohms (AI, Aegis Heavy) bought 9 robot lots (71 Cr of its 111 Cr in the Market) and traded in 6 robots in rounds 6, 9, 10,
+12, 13 and 14: Scythe, Angler, Vertigo (its Fan Favourite: -1 fame), Gaucho, Grandmaster (bought in round 9) and Tarantula
+(bought in round 13, traded in round 14). It led on fame in rounds 5-8 (6-7) and ended on 9, tied third. `node
+tools/tradein-replay.js --log=<log> --team=3` rebuilds its robots and its rivals' at each of those Markets (as new: the log
+does not carry the damage) and asks the AI again; the old rule picks the same six robots to scrap. What went wrong:
+
+1. **The old robot counted at half its worth.** `robotWant` with a full garage was `value(new) - 0.5 x value(old) + scrap money
+   (1 + level)`. So swapping a robot for one of the same level looked like half a robot plus 4 Cr: about 7-8 Cr for Tarantula
+   (L3) against Grandmaster (L3, 0 wins) in round 13, the same for Grandmaster against Angler (L2) in round 9.
+2. **Surplus spending on top.** Plum held 17-24 Cr at every Market, so its bids got the surplus extra (up to 1.4x), and nobody
+   else wanted those lots (rival bids 0-1, Kev 0): sealed first-price bids of 9-11 Cr where 1-2 would have won.
+3. **The Fan Favourite rule priced only its fame.** The scrap pick was the weakest robot by strength without parts; a Fan
+   Favourite was spared only when another robot was within 0.62 strength. Vertigo (L1, 4 wins, broken in round 9) against two
+   L3s was "clearly weakest", and the 6 Cr its fame was worth did not stop a level 4 lot. Its Fan tokens (2 Cr appearance money
+   each, 6 as Fan Favourite) and the fact that a Fan Favourite can't be host-scrapped were not counted.
+4. **No memory of buying.** A robot bought last round was scrapped as easily as an old one.
+
+### What the AI does now (`AI_PARAMS.tiV2`, on; 0 = as before)
+
+- **One valuation** (`tiVal`) for the lot and for the robot it would scrap: the `robotWant` formula (value by strength, how the
+  bookie rates it against this team's rivals, how it compares with the team's best of the other two). The old robot is counted
+  without its parts (they go back to the Stash; since T38 a part from a broken zone comes back broken) and with its damage, but
+  never below its repaired value minus the repair credits (a wrecked Fan Favourite is not worthless).
+- **What the old robot carries** (`tiKeep`): +1.5 Cr per Fan token (`tiTokK`), a Fan Favourite +its fame (1 x the AI's fame price,
+  6 Cr) +4 (`tiFavK`), one win short of Fan Favourite +0.5 fame (`tiNearK`), bought in the last 2 rounds +3 Cr (`tiRecent`,
+  `tiRecentK`; robots now remember the round they joined, `joinR`).
+- **The scrap pick** is the robot that costs least to lose (`tiKeep - scrap money`), so a Fan Favourite goes only for a very big gain.
+- **The bid**: gain = value(new) - tiKeep(old) + scrap money. It bids only when the new robot itself is worth at least 1 Cr more
+  than the old (`tiUp`: no sideways swap for the scrap money) and the gain is at least 2 Cr (`tiMin`); never more than the gain:
+  no surplus extra on a trade-in lot, in the sealed bid or the rebid. Parts, the host seat (the T46 guard keeps its credits) and
+  empty-bay robots get the surplus as before.
+- **No more robot lots than empty bays**: with one empty bay it bids on one robot lot (the second would trade in the first).
+- The `trade_in` event in the playtest log now says `wins`, `fav`, `held` (rounds since it joined) and `cost` (what losing each
+  of its robots cost the AI), so the next log shows why it picked.
+
+Replaying Plum's game with the new rule: it would not have bought Grandmaster (round 9), Tarantula (13) or Jukebox (14), and in
+round 10 it would have scrapped Gaucho or Grandmaster for Lodestone (L4), not its Fan Favourite Vertigo.
+
+NUMBERS
