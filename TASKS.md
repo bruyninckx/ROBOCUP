@@ -7,8 +7,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K38. Wear, still open** (T41): the four bump effects from the Contact Lab (slides and spin-outs, getting under,
-  crushes, hits to the insides): measure them for the game too?
 - **K36. Two card texts don't match the game** (found by T39): Mirror's text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
@@ -64,6 +62,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Bump effects (21 Nov): stay out.** Kev: "no, I didnt like the visual aspect of the bump effects". The four
+  Contact Lab bump switches (slide, under, crush, gut) stay off and are not measured for the game.
 - **Card names (21 Nov):** fight formats keep the game's names ("keep games name"). Antikythera Core: "decide
   yourself" → on the Matador chip (T42). Wear drawing in the game's fight view: "port them then" (cracks, fold lines,
   saw grooves; part of T41).
@@ -135,9 +135,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T42. Antikythera Core on the Matador chip** (follow-up of T39; Kev: "decide yourself"). Same worker and branch
-  (`claude/card-flavour`), started 21 Nov. Done when: the card shows the name, line and a drawing; game-sim,
-  questions-note, market-step pass.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
@@ -161,6 +158,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ± and a recommendation.
 ## Done
 
+- **T42. Antikythera Core on the Matador chip** (21 Nov; Kev: "decide yourself"): 19 themed cards now. Branch
+  `claude/card-flavour`, commit `c938616`; build `2026-11-21h`, files stamp `352be701` (unchanged). Orchestrator's
+  checks on the merge: game-sim 2/2, 0 page errors; market-step and questions-note OK.
 - **T37. Bending and wear measured for the game** (21 Nov): nothing switched on. 5,928 fights (every pair at most one
   level apart, 8 fights, three variants on the same seeds). Level steps hold on average (65% → 65% bend only / 67% all
   four) but 9-10 robots move outside their range (Thwacker −23/−26, Popcorn +18/+18, Whaler +17/+9, Gaucho −12/−15);
