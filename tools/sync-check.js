@@ -33,6 +33,8 @@
     out.push({ kind: 'house', list: [[N[3], []], [N[12], []], [N[20], []]], house: true, seed: 501 });
     const cards = ['spikes', 'emp', 'hammer', 'magnet', 'oil', 'field_eng'];
     for (let i = 0; i < 3; i++) out.push({ kind: 'live cards', a: [N[(i * 3 + 9) % N.length], []], b: [N[(i * 3 + 10) % N.length], []], seed: 601 + i, cards: [cards[i * 2], cards[i * 2 + 1]] });
+    // T41: wear marks carried into the next fight (bends, cracks, grooves, warps from a first fight, through JSON as a save would)
+    for (let i = 0; i < 2; i++) out.push({ kind: 'carry', a: [N[(i * 5 + 4) % N.length], []], b: [N[(i * 5 + 13) % N.length], []], seed: 701 + i, carry: 751 + i });
     return out;
   }
   function runOne(DL, LU, F) {
@@ -42,6 +44,10 @@
       const list = F.list.map((r, k) => Object.assign(sp(r), { team: F.kind === '2v2' ? k % 2 : k }));
       if (F.house) list.push(Object.assign(LU.build('Big Mallet'), { name: 'Big Mallet', level: 0, teamName: 'House', team: 9 }));
       S = DL.create({ mode: F.kind === '2v2' ? '2v2' : 'ffa', robots: list, seed: F.seed });
+    } else if (F.carry) {
+      const S0 = DL.create({ a: sp(F.a), b: sp(F.b), seed: F.carry }); while (!S0.over && S0.t < 200) DL.step(S0);
+      const w = S0.robots.map(R => JSON.parse(JSON.stringify(DL.wearOf(R))));
+      S = DL.create({ a: Object.assign(sp(F.a), { wear: w[0] }), b: Object.assign(sp(F.b), { wear: w[1] }), seed: F.seed });
     } else S = DL.create({ a: sp(F.a), b: sp(F.b), seed: F.seed });
     const H = hasher();
     while (!S.over && S.t < 200) {

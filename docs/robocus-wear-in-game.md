@@ -19,7 +19,12 @@ Branch `claude/bending-on`.
   grooves, warp, snapped pieces; numbers only), `applyWear` puts them back. `node tools/damage-lab/wear-carry.js` checks it.
   `src2/repair.js`: repairing a zone clears its marks; a zone with a mark the engine calls out (bent 10°+, warped, a plate in a
   wheel, sawn open, a tip broken off, a crack 10 cm+) counts as damaged (repair button even at full health); `markCost` prices marks.
-- [ ] Step 2, retune.
+- [ ] Step 2, retune (running). Round 1 (`WEAR.hpExp` 0.5: a tougher robot's metal bends, cracks and saws less for the same blow,
+  as weapons already resisted kinks by the square root of their health; 1,976 fights, T37's seeds, paired with T37's "off" fights):
+  Gaucho -15 → -5, Buzzkill +14 → +2, Thumper -14 → -7, Tarantula +12 → +7, Grandmaster +11 → +7; still out: Thwacker -24,
+  Popcorn +20, Orbiter +15, Whaler +14, Hydra -13, level 1 → 2 at 76%. Thwacker diagnosed (144 fights per variant): bending alone
+  -10, cracks -7, no single cause (not the tail kink: -21 without it; wheel rub -15 without it): it fights long and wears down.
+  Round 2: power dials for the robots still outside (`tools/t41` notes below).
 - [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie).
 - [ ] Step 4, checks.
 
