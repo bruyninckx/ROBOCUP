@@ -2344,7 +2344,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock bets & bids →</button>';
-      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + '</span>';
+      // T47 (Kev, 21 Nov voting page: "Keep them playable after locking"): Bookie's Friend and Hedge Bet stay in the locked note.
+      // Playing one keeps your lock (it changes no bet); a bet you then change unlocks you, as any change does.
+      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + '</span>' +
+        (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text) + '<br>Playing it keeps your lock.') + '>🔍 Bookie\'s Friend</button>' : '') +
+        (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text) + '<br>Playing it keeps your lock; changing your bet afterwards unlocks you.') + '>🎲 Hedge Bet</button>' : '');
       if ($('#pAct1')) $('#pAct1').onclick = () => act('lockBets');
       if ($('#pBF')) $('#pBF').onclick = () => act('bookiesFriend');
       if ($('#pHB')) $('#pHB').onclick = () => act('hedgeBet');
@@ -6681,8 +6685,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     });
   }
   // Bets-step arena cards for the human (buttons in the prompt)
-  ACT.bookiesFriend = S => { if (G.phase === 'bets' && !G.betsLocked) humanBookiesFriend(S); };
-  ACT.hedgeBet = S => { if (G.phase === 'bets' && !G.betsLocked) humanHedgeBet(S); };
+  // T47: also after your own lock (it stays on: these cards change no bet); refused with a line once the bets went through
+  ACT.bookiesFriend = S => { if (G.phase === 'bets' && !G.betsLocked) humanBookiesFriend(S); else if (G.teams[S] && G.teams[S].hand.includes('bookie_s_friend')) say(S, '⌛ Too late: the bets already went through, so Bookie\'s Friend was not played (it stays in your hand).', '#b45309'); };
+  ACT.hedgeBet = S => { if (G.phase === 'bets' && !G.betsLocked) humanHedgeBet(S); else if (G.teams[S] && G.teams[S].hand.includes('hedge_bet')) say(S, '⌛ Too late: the bets already went through, so Hedge Bet was not played (it stays in your hand).', '#b45309'); };
   ACT.bet = (S, side, amt) => {   // amt (2.0.1): the amount in one click (the same amount again takes the bet back); without it the old +1
     if (G.phase !== 'bets' || G.betsLocked) { tooLate(S, 'the bets'); return; }
     const P = PS(S), t = G.teams[S];
