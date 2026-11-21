@@ -811,7 +811,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
      * person who hosts to be invited or left out by what the invitation is worth to it. invNoise: score noise; invRand: share of
      * random pairs (people are not perfect); invCrK: threat per 10 Cr a rival holds more than the host.
      * guard: one AI team (the richest AI rival) keeps credits back to contest the host seat against a dangerous rival that piles up
-     * credits (guardRich Cr more than the others' average, or it hosted 2 of the last 3 rounds) and could outbid it (a Fan Favourite
+     * credits (guardRich Cr more than the others' average, or it hosted 2 of the last 3 rounds and holds as much as the guard) and could outbid it (a Fan Favourite
      * it would invite itself with, or within guardNear fame of the win); it keeps and bids up to
      * guardK x what that rival's hosting would give it (+ its own host value), at most guardCap.
      * favCards: harmful cards aim a little harder (+favCardsK threat) at the team whose Fan Favourite earns for it, when that team
@@ -5076,7 +5076,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const top = Math.max(...G.teams.map(o => o.fame)), fw = fameCr(t); let best = null;
     for (const R of G.teams) {
       if (R === t || R.fame < top - 1 || !R.robots.length) continue;
-      const others = G.teams.filter(o => o !== R), saver = R.credits >= others.reduce((a, o) => a + o.credits, 0) / others.length + (P.guardRich != null ? P.guardRich : 3) || (G.hostHist || []).slice(-3).filter(h => h === R.i).length >= 2;
+      const others = G.teams.filter(o => o !== R), saver = R.credits >= others.reduce((a, o) => a + o.credits, 0) / others.length + (P.guardRich != null ? P.guardRich : 3) || ((G.hostHist || []).slice(-3).filter(h => h === R.i).length >= 2 && R.credits >= t.credits);
       if (!saver) continue;   // only a team that piles up credits (or keeps taking the host seat) can outbid it
       const fav = R.robots.some(r => r.wins >= favWins(R) && !wrecked(r)), near = R.fame >= WIN_FAME - (P.guardNear || 3);
       if (!fav && !near) continue;
