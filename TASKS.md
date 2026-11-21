@@ -7,6 +7,15 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K46. From the 21 Nov playtest** (T51): (a) as host you ran out of time picking the fighters (30 s) and on spare or
+  scrap (20 s): longer for the host (60 s / 30 s)? (b) six AI trade offers timed out while you were bidding: fewer
+  offers, longer, or keep them out of the way until you open them? (c) 9 of 15 fights were 90%+ for one side: is that
+  the game you want (the host's power), or should something pull fights closer?
+- **K45. Fire Sale and Hostile Buyout** (T45): (a) a person can win a cheap level 3-4 robot in the Market and Fire-Sell
+  it the same round for +1 to +7 Cr: stop that (a robot gained this round sells without the +1, or can't be
+  fire-sold that round)? (b) the AI now almost never plays Hostile Buyout and an AI target never refuses: fine, or
+  should the AI use it to cost a target fame? (c) Fire Sale pays crew by a card value shown nowhere: show a value on
+  crew, or leave crew out? (d) Fire Sale with no answer in time sells nothing and the card is spent: right?
 - **K44. A won part: "Always ask me first which robot"** (voting page, 21 Nov): read as: when two or more of your robots
   can take it, the game asks before fitting; with one robot it still goes on at once with Undo. Right, or ask even then?
 - **K43. Wear, after the merge** (T41): (a) level steps 0→1 (74%) and 1→2 (70%) are above the 63-68% band, and Hornet
@@ -84,6 +93,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T51. From Kev's playtest of 21 Nov (build 2026-11-21k, 15 rounds, 64 min, he won 13-10-9-9; log in
+  /home/claude/t-play/kev-log.json).** Findings: (1) he hosted 9 of 15 rounds for 76 Cr and took 6 fame from hosting;
+  AI host bids were 1-9 (T46 is on this); (2) the bookie ran 8 workers: duels got 77-200 test fights, but the three
+  4-robot fights got 26-37, under the 40 needed, so they fell back to the formula: raise the worker cap (8 → cores
+  minus 2) or the time for 4-robot fights; (3) 10 timeouts: 6 AI trade offers in the Market (20 s, while he was
+  bidding), 2 backing requests, and twice as host: picking the fighters (30 s, round 7) and spare or scrap (round 11);
+  (4) Plum (AI) traded in 6 robots, one of them its Fan Favourite (−1 fame), and spent 111 Cr in the Market: the AI
+  trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
+  mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
+  Not started: (2) and (4) are worker tasks; (3) and (5) need Kev (K46).
 - **T48. Look from the voting page (after T41 is merged: it rewrites the fight view).** (1) rarity: every tier
   distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
   robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
@@ -140,11 +159,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ready robot; (6) a won part asks which robot first when several can take it (K44); (7) a log line for everyone when
   someone unlocks; (8) a trade between two other teams (AI or people) shows as a short banner, not only a log line.
   Worker on branch `claude/vote-rules`, started 21 Nov. Done when: scripted plays for each, questions-note, market-step, game-sim, mp-test.
-- **T45. Hostile Buyout costs the robot's value (at least 4 Cr); Fire Sale pays value + 1.** Kev (21 Nov): "ok, it
-  should cost something to take a big robot"; "pay value +1". Uses `robotValue` (T44). Goal: both cards pay by the
-  shown value; card texts, questions, play conditions and AI use follow; measured in bot games (how often played, what
-  paid, game length, no new money pump). Worker on branch `claude/value-prices`, started 21 Nov. Done when: numbers
-  from 40+ games each way, scripted plays, game-sim and mp-test pass.
 - **T46. AI hosts invite like people; the AI saves for the host seat.** Kev (21 Nov): "improving AI is always good";
   on hoarding ("Teach the AI to save for host bids, add something to spend credits on, or cap host bids?"): "yes"
   (read: teach the AI). From T35: an AI host that stays out invites the fame leader on purpose (80%), never avoids a
