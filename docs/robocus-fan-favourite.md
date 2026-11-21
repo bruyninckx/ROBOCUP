@@ -54,6 +54,8 @@ How a Fan Favourite gets into a fight:
 - Report: `node tools/fan-fav-report.js [--deep] <baseTag> <tag2> ...` (header of the file says what it reads).
 - Same seeds, same results: seeds 1-10 with all defaults on main 27604e5 and on this branch: **10 of 10 games identical**
   (rounds, winner, fame, credits, fights, every credit change, host scraps).
+- After the rebase on main db61456: `game-sim --tag=check --games=2 --par=2` 2 of 2 finished, 0 page errors, and both seeds give
+  exactly the same games as on db61456 itself (and as on 27604e5).
 - A game that stalled was re-run alone (game-sim stalls now and then on a slow start); every number below is from finished games.
 
 ## 2. Part A: what a Fan Favourite is worth in normal AI games (100 games)
