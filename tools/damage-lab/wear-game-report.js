@@ -3,8 +3,10 @@
 const fs = require('fs'), path = require('path');
 const LU = require('./lineup.js'), all = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), lv = n => all[n][0];
 const args = process.argv.slice(2), bwI = args.indexOf('--bw'), bwFile = bwI >= 0 ? args.splice(bwI, 2)[1] : null;
+// Windows cmd does not expand wildcards: do it here
+const glob = f => { if (!f.includes('*')) return [f]; const d = path.dirname(f), re = new RegExp('^' + path.basename(f).replace(/[.]/g, '\\.').replace(/\*/g, '.*') + '$'); return fs.readdirSync(d).filter(n => re.test(n)).sort().map(n => path.join(d, n)); };
 const read = f => fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
-const recs = args.flatMap(read), V = recs[0].r.map(x => x.v), VAR = V.filter(v => v !== 'off');
+const recs = args.flatMap(glob).flatMap(read), V = recs[0].r.map(x => x.v), VAR = V.filter(v => v !== 'off');
 const NAMEV = { bend: 'A: bend only', all: 'B: all four' };
 const pc = x => (100 * x).toFixed(0), sg = x => (x >= 0 ? '+' : '') + (100 * x).toFixed(0);
 const ms = a => { const n = a.length, m = a.reduce((s, x) => s + x, 0) / n, sd = Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / Math.max(1, n - 1)); return { n, m, h: 1.96 * sd / Math.sqrt(n) }; };
