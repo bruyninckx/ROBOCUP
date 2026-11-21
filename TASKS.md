@@ -7,9 +7,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K39. Hostile Buyout** (T43): the game only ever buys the target's weakest robot, for a flat 4 Cr, never a crew
-  member (the old text said "a robot or crew member at 2x its value"). The text now says what the game does. Keep the
-  game that way, or should the buyer pick the robot, or crew be possible?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -62,6 +59,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Hostile Buyout and robot value (21 Nov):** Kev: "I would like it to only taget robots. But then we should have a
+  clear visual on robot value as well, that was a problem last time". Asked: Hostile Buyout stays as now (weakest
+  robot, flat 4 Cr); robot value = a price in credits on the robot card. T44.
 - **Kev's PC (21 Nov):** AMD Ryzen 7 9800X3D, 8 cores / 16 logical processors, 31 GB RAM. Enough for the bookie's
   test fights through workers (K31's processor question is answered). He offers it for big runs: "let me know if you
   want a big one to run on my pc, which is pretty fast".
@@ -138,6 +138,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T44. A robot's value in credits, shown on its card.** Kev (21 Nov): "we should have a clear visual on robot value
+  as well, that was a problem last time"; he chose "A price in credits: one number per robot, from its level, parts
+  and damage: what it is worth in a trade, an offer or a buyout". Goal: one `robotValue(robot)` in credits that the
+  game shows on every robot card (own, rivals, Market robot lots) and in every question or panel where a robot changes
+  hands (AI offers, trade panel, Hostile Buyout, Museum Donation, trade-in, upkeep scrap), and that agrees with what
+  the AI teams pay and ask. Display only: no price or rule changes (Hostile Buyout stays weakest robot, 4 Cr). Worker
+  on branch `claude/robot-value`, started 21 Nov. Done when: a table of value against what bot games actually paid for
+  robots (auction and trades), screenshots at both sizes, game-sim and mp-test pass.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
