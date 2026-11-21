@@ -11,11 +11,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   about the other effects; the carry-over question got no answer. Assumed: bending only (cracks, fragments, saw grooves
   stay off), and a blade is straight again next fight. Ask: (a) the other three effects too, later? (b) should a bend
   stay until a Weapon repair straightens it (needs save and online changes)?
-- **K36. Card names, follow-ups** (T39): (a) fight formats ("Mirror duel", "GRAND FINAL" on the bookie header) keep the
-  game's names: also use the new ones? (b) found on the way: Mirror's card text says "2-3 copies" but the game makes 2;
+- **K36. Two card texts don't match the game** (found by T39): Mirror's text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
-- **K35. Card names** (T39): Antikythera Core and Riemann, Compiled were both voted onto Prototype core. Riemann has it
-  for now; which card should Antikythera Core go on (or drop it)? Reincarnation is on Supply Drop for now.
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -69,6 +66,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Card names (21 Nov):** fight formats keep the game's names ("keep games name"). Antikythera Core: "decide
+  yourself" → on the Matador chip (T42). Wear drawing in the game's fight view: "port them then" (cracks, fold lines,
+  saw grooves; part of T41).
 - **K27 (20 Nov): Crunch Week and Press Tour exhaust robots as well.** Kev: "exhaust robots as well". T34 (same worker as
   T33).
 - **Repair kit (20 Nov): back into the deck.** Kev: "put it back". T33. (The rest of K18 stays open.)
@@ -137,12 +137,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T42. Antikythera Core on the Matador chip** (follow-up of T39; Kev: "decide yourself"). Same worker and branch
+  (`claude/card-flavour`), started 21 Nov. Done when: the card shows the name, line and a drawing; game-sim,
+  questions-note, market-step pass.
 - **T41. Bending on in the game, for every part that can bend.** Kev (21 Nov), asked "keep it off, bending only, all
   four effects, or bending on spinner bars only?": "bend as much as possible". Reading: `ARC.cx.bend` on in game fights
   for all weapons and plates (T37's variant A), not spinner bars only. Assumed until Kev says otherwise (K38): the
   other three wear effects stay off; a bend does not carry to the next fight. Steps, one worker, one branch
   (`claude/bending-on`), merged only when all are done: (1) the game and the tools turn bending on through one switch;
-  the fight view draws fold lines and the bent-bar spin marks (port from `tools/damage-lab/ui.js`); (2) retune the
+  the fight view draws fold lines and the bent-bar spin marks (port the whole wear layer from `tools/damage-lab/ui.js`, cracks and
+  grooves too: Kev, "port them then"); (2) retune the
   robots T37 found outside their range so every level step is back at 63-68% and no robot is more than about 10 points
   from where it was; (3) re-measure the matchup table, arena tables and counter tags the bookie and the cards use;
   (4) checks: new stock-fight fingerprint and files stamp (the task changes them), sync-check, game-sim, mp-test.
