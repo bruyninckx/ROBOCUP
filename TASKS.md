@@ -7,17 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K41. Fan Favourite and hoarding** (T35): (a) no change by the numbers; want a brake for tables of people anyway
-  ("a Fan Favourite that loses drops a Fan token", or 4 Cr instead of 6)? (b) AI hosts invite a rival's Fan Favourite
-  and the fame leader on purpose: should they stop, as people would (AI change, not a rule)? (c) the AI always ends a
-  round with 6-8 Cr and never bids more than the richest rival + 1 for the host seat, so a saving person buys the host
-  seat at will: a credit sink, an AI that saves for host bids, or a cap on host bids? (d) AI teams pay a person in
-  deals and backing but never each other: fine?
-- **K40. Robot value, follow-ups** (T44): (a) Hostile Buyout is a flat 4 Cr, so it can take an 11 Cr robot for 4:
-  should the price follow the value (for example the value, at least 4)? (b) Fire Sale's text says "at value +1 each"
-  but the game pays a flat 2 Cr: pay value + 1 now, or fix the text? (c) new robots sell 2-3.5 Cr above their value
-  in rounds 1-4: fine, or show a Market estimate on early lots? (d) one value for everyone (now), or "worth to you"?
-  (e) the AI prices a part on a robot at 1.5 Cr but the same part in a Stash at full value: make them agree?
+- **K42. Left over from T35 and T44**: (a) new robots sell 2-3.5 Cr above their shown value in rounds 1-4: fine, or
+  show a Market estimate on early lots? (b) the AI prices a part on a robot at 1.5 Cr but the same part in a Stash at
+  full value: make them agree? (c) AI teams pay a person in deals and backing but never each other: fine?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -70,6 +62,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Fan Favourite, AI, prices (21 Nov):** no Fan Favourite brake ("lets not do that"); AI hosts should stop inviting
+  a rival's Fan Favourite and the fame leader ("improving AI is always good"); hoarding: "yes" (read as: teach the AI
+  to save for host bids, the first of the three options; no new sink or cap); Hostile Buyout's price follows the value,
+  at least 4 ("ok, it should cost something to take a big robot"); Fire Sale: "pay value +1". T45, T46.
 - **Hostile Buyout and robot value (21 Nov):** Kev: "I would like it to only taget robots. But then we should have a
   clear visual on robot value as well, that was a problem last time". Asked: Hostile Buyout stays as now (weakest
   robot, flat 4 Cr); robot value = a price in credits on the robot card. T44.
@@ -156,6 +152,19 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T45. Hostile Buyout costs the robot's value (at least 4 Cr); Fire Sale pays value + 1.** Kev (21 Nov): "ok, it
+  should cost something to take a big robot"; "pay value +1". Uses `robotValue` (T44). Goal: both cards pay by the
+  shown value; card texts, questions, play conditions and AI use follow; measured in bot games (how often played, what
+  paid, game length, no new money pump). Worker on branch `claude/value-prices`, started 21 Nov. Done when: numbers
+  from 40+ games each way, scripted plays, game-sim and mp-test pass.
+- **T46. AI hosts invite like people; the AI saves for the host seat.** Kev (21 Nov): "improving AI is always good";
+  on hoarding ("Teach the AI to save for host bids, add something to spend credits on, or cap host bids?"): "yes"
+  (read: teach the AI). From T35: an AI host that stays out invites the fame leader on purpose (80%), never avoids a
+  rival's Fan Favourite, ends every round with 6-8 Cr and never bids more than the richest rival + 1 for the host
+  seat, so a saving person buys the seat at will. Goal: AI hosts weigh what an invitation gives the invited team
+  (appearance money, a likely win and its fame) and the AI bids for the host seat against a saver. AI only, no rule
+  change. Worker on branch `claude/ai-host`, started 21 Nov. Done when: T35's "Kev line" test AI and its hoard-and-host
+  variant measured before and after (60+ games, paired), all-AI games still 11-12 rounds, game-sim and mp-test pass.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
