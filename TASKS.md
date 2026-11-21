@@ -7,9 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K38. Wear, still open** (T41): (a) should a bend or crack stay for the next fight until a Weapon or Body repair
-  fixes it (needs save and online changes)? Assumed no. (b) the four bump effects from the Contact Lab (slides and
-  spin-outs, getting under, crushes, hits to the insides): measure them for the game too?
+- **K38. Wear, still open** (T41): the four bump effects from the Contact Lab (slides and spin-outs, getting under,
+  crushes, hits to the insides): measure them for the game too?
 - **K36. Two card texts don't match the game** (found by T39): Mirror's text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
@@ -142,8 +141,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
-  game fights (T37's variant B). The four bump switches stay off (not measured, not asked). Assumed: wear marks do not
-  carry to the next fight (K38). Steps, one worker, one branch (`claude/bending-on`), merged only when all are done:
+  game fights (T37's variant B). The four bump switches stay off (not measured, not asked). Wear marks stay on the robot until the
+  zone is repaired (Kev: "keep bend until repair"): `wearOf` / `spec.wear` keep bends, warps, cracks and grooves; the
+  bookie sees them; old saves load without marks. Steps, one worker, one branch (`claude/bending-on`), merged only when all are done:
   (1) one switch turns all four on for the game and the tools; the fight view draws the whole wear layer (port from
   `tools/damage-lab/ui.js`); (2) retune so every level step is back at 63-68% and no robot is more than about 10 points
   from where it was; (3) re-measure the matchup table, arena tables and counter tags; (4) checks: new stock-fight
