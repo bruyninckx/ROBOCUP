@@ -143,6 +143,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T52. Bookie on all cores for 4-robot fights; AI trade-in stops churning** (from Kev's 21 Nov playtest, T51 (2) and
+  (4)). (a) On his 16-processor PC the bookie ran 8 workers and 4-robot fights got 26-37 test fights, under the 40
+  needed: raise the cap and/or the time so they are used. (b) Plum (AI) traded in 6 robots in one game, one its Fan
+  Favourite (−1 fame), and spent 111 Cr in the Market while winning the most fights and losing the game. Worker on
+  branch `claude/bookie-tradein`, started 21 Nov. Done when: a measured table of test fights by fight size and worker
+  count; trade-ins per AI team per game and Fan Favourite trade-ins before/after in 60 paired bot games; checks pass.
 - **T38. (started 21 Nov, worker on branch `claude/garage`) NEXT BIG TASK (Kev, 21 Nov: "wait for some agents to finnish before implemnting this but this should be the
   next big task in line"). Garage: swap parts between robots in Upkeep.** Kev's idea: "modify the upkeep phase to also
   allow swapping of parts onto other robots for a small fee. To make this work, when a robot get scrapped it should
