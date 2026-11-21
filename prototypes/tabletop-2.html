@@ -998,6 +998,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const lotQ = id => { const f = flavOf(id), L = LOTS[id]; return f && L && L.part ? lotNm(id) + ' (' + L.name + ')' : L ? L.name : String(id); };
   const partQ = k => { const f = flavPart(k), P = window.Lineup.PARTS[k]; return f && P ? f.name + ' (' + P.name + ')' : P ? P.name : String(k); };
   const flavLine = id => { const f = flavOf(id); return f ? '<i>' + esc(f.line) + '</i>' : ''; };   // the flavour line for a hover (html)
+  // the same for a hover link inside a question's text (cardRef, lotRef): it rides on the hover's title after a '¦' (updateHelp
+  // shows it in italics under the title), plain text with no tag and no <br>, so noteFits (which counts <br> and the text after
+  // the first '>') measures a question exactly as before: whether it goes in the note or the box does not change
+  const flavTitle = id => { const f = flavOf(id); return f ? '¦' + esc(f.line) : ''; };
   function rollRar(id) {
     const L = LOTS[id], C = BAL.rarity || {};
     if (!L || !L.part || L.rar || L.base || L.kind === 'chip' || C.on === false) return id;
@@ -1379,10 +1383,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const c = CARDS[id];
     if (!c) return ['', ''];
     const gate = c.gate === '▲' ? 'only vs a team with more fame' : c.gate === '▼' ? 'only vs a team with less fame' : c.need ? 'needs ' + c.need + ' fame' : 'no fame gate';
-    return [c.icon + ' ' + esc(cardQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];   // T39: the hover names the flavour
+    return [c.icon + ' ' + esc(cardQ(id)) + flavTitle(id), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];   // T39: the hover names the flavour
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
-  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)) + flavTitle(id), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
   // T39: in a question or a note to a player a themed card reads "Flavour name (Game name)" (the log keeps cardRef / lotRef)
   const cardRefQ = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(cardQ(id)) + '</span>'; };
   const lotRefQ = id => { const L = LOTS[id]; return L ? lotRef(id).replace(/>[^<>]*<\/span>$/, '>' + esc(lotQ(id)) + '</span>') : esc(id); };
@@ -1478,8 +1482,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     return coins.length ? coins.length * (2 * R + gap) : 0;
   }
-  const partShort = k => LU.PARTS[k] ? LU.PARTS[k].name.replace(/ drone$/, '').replace(/^Reinforced /, '').replace(/^Prototype /, '') : k;
-  const partsTxt = r => partsOf(r).length ? partsOf(r).map(k => LU.PARTS[k] ? LU.PARTS[k].name : k).join(', ') : 'no parts';
+  const partShort = k => flavPart(k) ? flavPart(k).name : LU.PARTS[k] ? LU.PARTS[k].name.replace(/ drone$/, '').replace(/^Reinforced /, '').replace(/^Prototype /, '') : k;
+  const partsTxt = r => partsOf(r).length ? partsOf(r).map(k => LU.PARTS[k] ? partQ(k) : k).join(', ') : 'no parts';   // T39: a themed part reads "Flavour (Game name)"
   const wepName = r => wepLabel(r.name);
   const buildText = r => wepLabel(r.name) + (partsOf(r).length ? ' · ' + partsOf(r).map(partShort).join(', ') : '');
   // a team colour as an engine palette (the fight view and the portraits use it)
@@ -1869,7 +1873,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (key !== hov.key) { hov.key = key; hov.since = now; hov.shown = false; tip.hidden = true; return; }
     if (!key || now - hov.since < HELP_DELAY) return;
     if (!hov.shown) {
-      tip.innerHTML = (cand.title ? '<div class="ht">' + cand.title + '</div>' : '') + (cand.body ? '<div>' + cand.body + '</div>' : '');
+      const tt = String(cand.title || '').split('¦');   // T39: 'title¦flavour line'
+      tip.innerHTML = (tt[0] ? '<div class="ht">' + tt[0] + '</div>' : '') + (tt[1] ? '<div><i>' + tt[1] + '</i></div>' : '') + (cand.body ? '<div>' + cand.body + '</div>' : '');
       tip.hidden = false; hov.shown = true;
     }
     const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
