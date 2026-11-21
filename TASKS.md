@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K50. Look batch** (T48): (a) dents gone after 5 s (2.5 s steady, 2.5 s fade): longer or shorter? (b) robot-on-robot
+  flash from power 100: about 3 a fight, up to 12 in a long spinner duel: stricter? (c) show an epic combo or fit on
+  the power map token itself, not only in the detail? (d) the glow also on rival tickets and the odds overview (they
+  are small)? (e) bigger corner spark on the Masterwork tag?
 - **K49. Garage** (T38): (a) AI teams never move a part between robots at 2 / 4 Cr (the gain is worth about 0.6 Cr to
   them): keep the fees, or 1 Cr for a whole move? (b) with parts but nothing touched, Upkeep goes on after 8 s (was
   0.6 s): right? (c) a part taken off a robot whose zone is broken comes off broken: keep? (d) most parts from a
@@ -146,9 +150,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T48. Look from the voting page.** Worker on branch `claude/vote-look`, started 21 Nov. (1) rarity: every tier
-  distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
-  robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
 - **T52. Bookie on all cores for 4-robot fights; AI trade-in stops churning** (from Kev's 21 Nov playtest, T51 (2) and
   (4)). (a) On his 16-processor PC the bookie ran 8 workers and 4-robot fights got 26-37 test fights, under the 40
   needed: raise the cap and/or the time so they are used. (b) Plum (AI) traded in 6 robots in one game, one its Fan
