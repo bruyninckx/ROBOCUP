@@ -7,10 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K38. Bending, what is assumed** (T41): Kev said "bend as much as possible" and typed "straighten" when asked
-  about the other effects; the carry-over question got no answer. Assumed: bending only (cracks, fragments, saw grooves
-  stay off), and a blade is straight again next fight. Ask: (a) the other three effects too, later? (b) should a bend
-  stay until a Weapon repair straightens it (needs save and online changes)?
+- **K38. Wear, still open** (T41): (a) should a bend or crack stay for the next fight until a Weapon or Body repair
+  fixes it (needs save and online changes)? Assumed no. (b) the four bump effects from the Contact Lab (slides and
+  spin-outs, getting under, crushes, hits to the insides): measure them for the game too?
 - **K36. Two card texts don't match the game** (found by T39): Mirror's text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
@@ -140,18 +139,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T42. Antikythera Core on the Matador chip** (follow-up of T39; Kev: "decide yourself"). Same worker and branch
   (`claude/card-flavour`), started 21 Nov. Done when: the card shows the name, line and a drawing; game-sim,
   questions-note, market-step pass.
-- **T41. Bending on in the game, for every part that can bend.** Kev (21 Nov), asked "keep it off, bending only, all
-  four effects, or bending on spinner bars only?": "bend as much as possible". Reading: `ARC.cx.bend` on in game fights
-  for all weapons and plates (T37's variant A), not spinner bars only. Assumed until Kev says otherwise (K38): the
-  other three wear effects stay off; a bend does not carry to the next fight. Steps, one worker, one branch
-  (`claude/bending-on`), merged only when all are done: (1) the game and the tools turn bending on through one switch;
-  the fight view draws fold lines and the bent-bar spin marks (port the whole wear layer from `tools/damage-lab/ui.js`, cracks and
-  grooves too: Kev, "port them then"); (2) retune the
-  robots T37 found outside their range so every level step is back at 63-68% and no robot is more than about 10 points
-  from where it was; (3) re-measure the matchup table, arena tables and counter tags the bookie and the cards use;
-  (4) checks: new stock-fight fingerprint and files stamp (the task changes them), sync-check, game-sim, mp-test.
-  Done when: `docs/robocus-wear-in-game.md` has the after-numbers with fight counts and ±, and the bookie's Brier with
-  bending on is back within noise of today's 0.182. Started 21 Nov.
+- **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
+  much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
+  all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
+  game fights (T37's variant B). The four bump switches stay off (not measured, not asked). Assumed: wear marks do not
+  carry to the next fight (K38). Steps, one worker, one branch (`claude/bending-on`), merged only when all are done:
+  (1) one switch turns all four on for the game and the tools; the fight view draws the whole wear layer (port from
+  `tools/damage-lab/ui.js`); (2) retune so every level step is back at 63-68% and no robot is more than about 10 points
+  from where it was; (3) re-measure the matchup table, arena tables and counter tags; (4) checks: new stock-fight
+  fingerprint and files stamp, sync-check, game-sim, mp-test. Done when: `docs/robocus-wear-in-game.md` has the
+  after-numbers with fight counts and ±, and the bookie's Brier is back within noise of today's 0.182. Started 21 Nov.
 - **T35. Is a Fan Favourite a money runaway? Measure, then propose.** Kev (20 Nov, after a solo game he led with 45 Cr
   against 6-7): "I can runaway in money by making a robot fan favourite and after that getting into battles by whatever
   means, they cannot scrap it and I get payed a lot. Can you check by doing AI battles if this can be countered or should
