@@ -118,6 +118,51 @@ Brier change, matchup table, B: all four: +0.019 ± 0.012 (paired).
 With the old table the bookie is off by as much as in T37 (0.201 vs 0.182). The table must be measured again with wear on:
 that is the big run on Kev's PC. Until then the game uses the old table (the test-fight bookie already sees wear).
 
+### Buzzkill vs Whirlwind (Kev's fight), wear on as in the game now
+
+24 fights (12 seeds, both sides): Buzzkill's bar bent 10°+ in 23 of 24 fights, Whirlwind's in 24 of 24; the most bent arm 25° /
+27° on average (34° at most), 15° / 20° still bent at the end; a bar snapped in 7 / 5 fights. Buzzkill wins 38% (Whirlwind is
+an old 2.0 robot at its own strength). Still clearly visible: the hpExp change does not touch weapon kinks.
+
+### Marks that stay until repaired (Kev: "keep bend until repair")
+
+- What stays (`wearOf` → `spec.wear.marks`, keyed by part label, numbers only): each part's outline if a kink, warp, split or snapped
+  tip changed it; its straight shape; kinks; plate bends (and so the wheel it drags on); cracks; saw grooves (a chassis sawn open keeps
+  its smoking wound); warps; Thumper's bent handle; a bent beak. `node tools/damage-lab/wear-carry.js 24`: every mark comes back
+  exactly in the next fight, through JSON, and two fights built from the same options play the same.
+- A repair of the zone a part belongs to (Weapon, Drive, Body: the game's own `zoneOfPart`) clears its marks with its health. The free
+  Upkeep Body heal (to half) does not straighten anything.
+- A zone with a mark the engine would call out (bent 10°+, warped, a plate in a wheel, sawn open, a tip broken off, cracks 10 cm+)
+  counts as damaged: the repair button is there even at full health (decided: the cheapest honest way; no new costs or buttons). The
+  card and the zone tooltip say what: "⚔ WEAPON · BENT 23°", "Body: 85%, a plate bent into a wheel, cracked", with a line that the
+  marks stay until the zone is repaired.
+- The bookie: test fights see the marks (they are in spec.wear). The formula prices them (`src2/repair.js` `markCost`), measured with
+  `tools/damage-lab/markcost.js`: 66 damaged states out of real fights, each in 16 fights with and without its marks (1,056 fights
+  each way): with marks the robot won 11.2%, without 11.6% (0.4 points, ± 2.6). Next to the health damage that comes with them, the
+  marks cost little. Fitted and rounded (never below 0): a plate in a wheel 0.25 logits a wheel, a fully warped disc 0.25, a tip broken
+  off 0.15, sawn open 0.2, cracks 0.08 a metre, a bend nothing measurable. Mean of the priced marks 0.08 logits against a measured
+  0.03 ± 0.3: right on average, and per state no worse than pricing nothing (root mean square error 0.63 vs 0.65).
+- Saves and online: the marks are part of `r.wear`, which is already in the game state. Old saves load (their robots have no marks).
+  A robot's wear after a fight: 503 bytes without marks, 1,002 with (2,282 at most; 32 robots). The whole game state at the end of a
+  game: 45.3 / 49.6 / 27.5 KB with marks, 41.3 / 44.0 / 27.2 KB without (3 games): about 10% more.
+- `BAL.wearMarks = false` (test switch): marks are dropped after the fight, as before.
+
+### Whole games with carry-over (40 AI games each way, same seeds 1-40, AI v2, this branch)
+
+| | Marks stay until repaired | Marks dropped after a fight (`wearMarks: false`) |
+|---|---|---|
+| Games finished, page errors | 40 / 40, 0 | 40 / 40, 0 |
+| Rounds a game | 11.5 | 11.9 |
+| Repairs per team per round | 4.7 | 4.4 |
+| Repairs by zone (drive / weapon / body) | 27 / 28 / 45% | 28 / 25 / 47% |
+| Credits spent on repairs a game (all teams) | 39.5 | 41.1 |
+| Credits held per team at Upkeep; at the end | 7.5; 9.2 | 7.6; 9.2 |
+| Fighters sent with Drive / Weapon / Body damage | 7 / 8 / 27% | 7 / 6 / 29% |
+| Bookie favourite wins; Brier | 74%; 0.177 | 72%; 0.179 |
+
+Keeping the marks changes little in whole games: a few more Weapon repairs (28% of repairs instead of 25%) and slightly more robots
+sent with a damaged weapon (8% vs 6%); credits and game length within noise (40 games: about ± 0.6 rounds, ± 2 points).
+
 ## The big run on Kev's PC (T41)
 
 Kev: "let me know if you want a big one to run on my pc". **Double-click `tools\wear-tables.cmd`.** It does not touch the ROBOCUS
