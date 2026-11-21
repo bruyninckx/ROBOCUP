@@ -4646,7 +4646,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (n === 'Grand Final') { const top = G.teams.slice().sort((a, b) => b.fame - a.fame).slice(0, 2); return top.includes(F) && readyRobots(F).length > 0; }
     if (n === 'Tag Team Licence') return readyRobots(F).length > 0 && rnd() < 0.6;
     if (n === 'Robot Rights Protest' || n === 'Backup Restore') return false;
-    if (n === 'Fire Sale') return aiFirePicks(F).length >= 2 || (F.credits <= 3 && aiFirePicks(F).length >= 1);   // T45: only to sell spare things
+    if (n === 'Fire Sale') return !aiP(F).noFire && (aiFirePicks(F).length >= 2 || (F.credits <= 3 && aiFirePicks(F).length >= 1));   // T45: only to sell spare things (aip noFire: test only, it cashes the card)
     if (c.fam === 'Smear' && T && T.fame < F.fame - 1) return false;
     if (n === 'Underdog Story') { const s = G.teams.slice().sort((a, b) => a.fame - b.fame); return s[0] === F && s[1].fame > F.fame; }
     if (n === 'Fan Meet') return readyRobots(F).length >= 2;
