@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K39. Hostile Buyout** (T43): the game only ever buys the target's weakest robot, for a flat 4 Cr, never a crew
+  member (the old text said "a robot or crew member at 2x its value"). The text now says what the game does. Keep the
+  game that way, or should the buyer pick the robot, or crew be possible?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -135,11 +138,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T43. Two card texts say what the game does.** Kev (21 Nov), asked "Fix the texts, or the game?": "fix text".
-  Mirror: the text says "2-3 copies", the game makes 2. Hostile Buyout: the text says "2x its value", the game pays a
-  flat 4 Cr. Texts in `prototypes/tabletop-2.html`, `rules.html`, `docs/intrigue-deck.md`, and the Scalper Bot line if
-  it no longer fits. Same worker and branch as T39 (`claude/card-flavour`), started 21 Nov. Done when: the worker
-  shows the code line each text now matches; game-sim passes.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
@@ -163,6 +161,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ± and a recommendation.
 ## Done
 
+- **T43. Mirror and Hostile Buyout texts say what the game does** (21 Nov; Kev: "fix text"): Mirror "fights as 2
+  copies"; Hostile Buyout "Target sells you its weakest robot for 4 credits, or loses 1 fame" (the game never takes
+  crew and always the weakest robot). Scalper Bot line: "Four credits each, no refunds." No rule changes. Branch
+  `claude/card-flavour`, commit `bffe510`; build `2026-11-21i`, files stamp `352be701`. Orchestrator's checks on the
+  merge: game-sim 2/2, 0 page errors; questions-note OK.
 - **T42. Antikythera Core on the Matador chip** (21 Nov; Kev: "decide yourself"): 19 themed cards now. Branch
   `claude/card-flavour`, commit `c938616`; build `2026-11-21h`, files stamp `352be701` (unchanged). Orchestrator's
   checks on the merge: game-sim 2/2, 0 page errors; market-step and questions-note OK.
