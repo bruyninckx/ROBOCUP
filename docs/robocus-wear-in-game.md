@@ -1,4 +1,31 @@
-# ROBOCUS: bending and wear in real fights, measured (T37, 21 Nov 2026)
+# ROBOCUS: wear on in the game (T41, 21 Nov 2026)
+
+## Status (T41, kept up to date while the work goes on)
+
+Kev (21 Nov): "bend as much as possible", then "no include all and do a rebalance", "keep bend until repair", "port them then".
+Branch `claude/bending-on`.
+
+- [x] Step 1, one switch: `ARC.cx` crack / frag / bend / grindout default **on** in `tools/damage-lab/engine.js` (the one place). A fight
+  reads them once at `create()` into `S.wx`; its options can say `wear: false` (all off), `true`, or per effect. The game puts
+  `wear: BAL.wear !== false` into every fight's options (`buildFight`, the odds overview), so the host, every joined screen (they build
+  the fight from `F.bb`) and the bookie's workers (they get `bb`) agree. `BAL.wear = false` turns all four off. The bump switches
+  (slide, under, crush, gut) stay off. Lab pages: the four wear boxes start ticked (were unticked). With all four off, the stock-fight
+  fingerprint is bit-identical to `origin/main` (checked).
+- [x] Step 1, drawing: the lab's wear layer is in `src2/view.js` (fold lines on bent plates and weapons, cracks incl. chassis cracks
+  through the top plate, saw grooves glowing while the saw is in, the bent bar's two reach streaks and off-centre disc, warped
+  buzzsaws / orbit discs / grinders / Grandmaster's saw, the shell out of round, Thumper's bent handle); records (Jukebox) now
+  draw their warp too (new, in both `ui.js` and `view.js`).
+- [x] Carry-over (Kev: "keep bend until repair"): `wearOf` keeps `marks` (per part label: shape, kinks, plate bends, cracks,
+  grooves, warp, snapped pieces; numbers only), `applyWear` puts them back. `node tools/damage-lab/wear-carry.js` checks it.
+  `src2/repair.js`: repairing a zone clears its marks; a zone with a mark the engine calls out (bent 10°+, warped, a plate in a
+  wheel, sawn open, a tip broken off, a crack 10 cm+) counts as damaged (repair button even at full health); `markCost` prices marks.
+- [ ] Step 2, retune.
+- [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie).
+- [ ] Step 4, checks.
+
+---
+
+# Before: bending and wear in real fights, measured (T37, 21 Nov 2026)
 
 Kev (21 Nov): "I saw a fight between buzzkil and whirlwind and his blades didn't even really bend at any point. Did we forget to include this? at one point we had this". Then, to "measure first": "yes do this first step".
 

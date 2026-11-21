@@ -688,10 +688,17 @@
     if (lifted) { ctx.fillStyle = 'rgba(20,14,8,0.2)'; ctx.beginPath(); ctx.arc(0.1, 0.1, r, 0, 6.29); ctx.fill(); ctx.scale(1.12, 1.12); }
     if (fly && w > 0.15) { ctx.strokeStyle = `rgba(255,90,200,${0.25 + 0.4 * w})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, r + 0.04, 0, 6.29); ctx.stroke(); const v = b.getLinearVelocity(); ctx.strokeStyle = `rgba(255,240,250,${0.25 * w})`; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-v.x * 0.04, -v.y * 0.04); ctx.lineTo(0, 0); ctx.stroke(); ctx.lineCap = 'butt'; }
     ctx.rotate(a);
-    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    const wp = q.warp ? q.warp / 0.45 : 0, fa = q.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp; // a warped record (T41): the half that folded looks shorter from above
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; };
+    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath();
+    if (wp > 0.02) { for (let k = 0; k < 32; k++) { const t = k / 32 * 6.283, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); } else ctx.arc(0, 0, r, 0, 6.29);
+    ctx.fill(); ctx.stroke();
     ctx.strokeStyle = 'rgba(200,200,190,0.22)'; ctx.lineWidth = PX; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (0.5 + k * 0.12), 0, 6.29); ctx.stroke(); }
     ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.8; for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(t) * r * 0.93, Math.sin(t) * r * 0.93); ctx.lineTo(Math.cos(t + 0.12) * r, Math.sin(t + 0.12) * r); ctx.stroke(); } // the saw teeth on the rim
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.45 * w})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * 0.78, k * 2.1, k * 2.1 + 0.9); ctx.stroke(); } }
+    if (wp > 0.05) { ctx.fillStyle = `rgba(120,110,100,${0.25 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * r * 0.95, Math.sin(t) * r * 0.95); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half catches the light
+      ctx.strokeStyle = `rgba(255,248,235,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * r, fx * r); ctx.lineTo(fy * r, -fx * r); ctx.stroke(); // the fold
+      if (w > 0.3 && wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, r * (1 - 0.21 * wp), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.fillStyle = q.col || '#E8C547'; ctx.beginPath(); ctx.arc(0, 0, r * 0.34, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-r * 0.2, -r * 0.05, r * 0.4, r * 0.03); ctx.fillStyle = '#E4E1DA'; ctx.beginPath(); ctx.arc(0, 0, 0.012, 0, 6.29); ctx.fill();
     ctx.restore();
@@ -1432,8 +1439,9 @@
   document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); togglePause(); } });
   document.querySelectorAll('[data-speed]').forEach(bn => bn.onclick = () => { st.speed = +bn.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === bn))); });
   $('drama').onchange = e => { st.drama = e.target.checked; };
-  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on
-  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
+  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on.
+  // The four wear boxes (cracks, fragments, bending, saw grooves) start ticked, as in the game (T41); a fight reads them at its start (S.wx)
+  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; if (S && S.wx && k in S.wx) S.wx[k] = e.target.checked; }; }
   $('arenaSel').innerHTML = Object.entries(L.ARENAS).map(([k, v]) => `<option value="${k}"${k === st.arena ? ' selected' : ''}>${v.label}</option>`).join('');
   $('arenaSel').onchange = e => { st.arena = e.target.value; start(); };
 

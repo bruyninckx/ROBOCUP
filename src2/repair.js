@@ -32,14 +32,48 @@
     for (const q of R.internals) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (q.key === 'module') z.mods.push(q.label); if (q.hp <= 0) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
     const B = Z.body; B.labels.push('Top plate'); if (!R.lid.attached) { B.broken = true; B.f = 0; B.lost.push('Top plate'); } else B.f = Math.min(B.f, f(R.lid));
     (w.drones || []).forEach((d, i) => { if (d <= 0) { B.broken = true; B.f = 0; B.lost.push('drone ' + (i + 1)); } else B.f = Math.min(B.f, d); });
-    for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD;
+    if (w.marks) marksIn(R, Z);
+    for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD || z.marked;
     return Z;
+  }
+  /* T41 (Kev, 21 Nov: "keep bend until repair"): wear marks (bends, warps, cracks, saw grooves; engine wearOf marks) stay until
+   * the zone they are in is repaired. Per zone: mk = how bad, in plain numbers (most bent weapon arm in degrees, warp 0..1 of the
+   * most a disc warps, wheels a bent plate drags on, crack length in metres, saw cut depth in metres, a snapped tip), marks = the
+   * words for the card ("bent 23°"). A mark the engine would call out in a fight (BENT! WARPED! WHEEL RUB! SAWN OPEN!, a snapped
+   * tip, a crack 10 cm or longer) makes the zone count as damaged, so the repair button is there even at full health. */
+  const MARK = { bendDeg: 10, warp: 0.27, crack: 0.1 };
+  function marksIn(R, Z) {
+    const DEG = 180 / Math.PI;
+    for (const z of Object.values(Z)) z.mk = { bend: 0, warp: 0, rub: 0, crack: 0, cut: 0, snap: 0, open: 0 };
+    for (const q of R.parts) {
+      if (!q.attached) continue; const m = Z[zoneOfPart(q)].mk;
+      if (q.kinks) for (const k of q.kinks) m.bend = Math.max(m.bend, Math.abs(k.th) * DEG);
+      if (q.warp) m.warp = Math.max(m.warp, q.warp / 0.45);
+      if (q.cracks) m.crack += q.cracks.reduce((a, c) => a + c.len, 0);
+      if (q.grooves) for (const g of q.grooves) { m.cut = Math.max(m.cut, g.depth); if (g.open) m.open = 1; }
+      if (q.v0 && q.m0 && q.mass < q.m0 * 0.995 && q.kind === 'weapon') m.snap = 1;   // a piece broke off the weapon (snapped or sawn off)
+    }
+    for (const sl of R.slots || []) if (sl.rub && sl.rubBy) Z[zoneOfPart(sl.rubBy)].mk.rub++;
+    if (R.arm && R.armBend) Z.weapon.mk.bend = Math.max(Z.weapon.mk.bend, Math.abs(R.armBend) * DEG);
+    if (R.beakRam && R.beakBend) Z.weapon.mk.bend = Math.max(Z.weapon.mk.bend, Math.abs(R.beakBend) * DEG);
+    for (const z of Object.values(Z)) {
+      const m = z.mk, t = [];
+      if (m.snap) t.push(z.key === 'weapon' ? 'tip broken off' : 'piece broken off');
+      if (m.bend >= 3) t.push('bent ' + Math.round(m.bend) + '°');
+      if (m.warp >= 0.1) t.push('warped');
+      if (m.rub) t.push(m.rub > 1 ? 'plates bent into ' + m.rub + ' wheels' : 'a plate bent into a wheel');
+      if (m.open) t.push('sawn open'); else if (m.cut >= 0.01) t.push('saw cuts');
+      if (m.crack >= 0.04) t.push('cracked');
+      z.marks = t;
+      z.marked = !!(m.snap || m.bend >= MARK.bendDeg || m.warp >= MARK.warp || m.rub || m.open || m.crack >= MARK.crack);
+    }
   }
   // a crew action: the whole zone back to new (dents on its parts go too)
   function repairZone(spec, key) {
     const w = spec.wear; if (!w) return;
     const Z = zones(spec), labels = new Set(Z[key].labels);
-    for (const m of ['parts', 'ints', 'dents']) if (w[m]) for (const k of Object.keys(w[m])) if (labels.has(k)) delete w[m][k];
+    for (const m of ['parts', 'ints', 'dents', 'marks']) if (w[m]) for (const k of Object.keys(w[m])) if (labels.has(k)) delete w[m][k];   // marks: T41, a repair straightens what it mends
+    if (w.marks && !Object.keys(w.marks).length) delete w.marks;
     if (w.lost) w.lost = w.lost.filter(k => !labels.has(k));
     if (key === 'body') { delete w.lid; if (w.drones) w.drones = w.drones.map(() => 1); }
   }
@@ -93,10 +127,18 @@
     if (b.broken) { const chip = b.lost.some(l => /chip/i.test(l)), dr = b.lost.filter(l => /^drone /.test(l)).length, mod = b.lost.filter(l => b.mods.includes(l)).length, arm = b.lost.length - (chip ? 1 : 0) - dr - mod;
       c += ARM_K * bc[0] * Math.min(4, arm) / 4 + (chip ? bc[1] + CHIP_ADD : 0) + dr * DRONE_COST + mod * MODULE_COST; }
     else c += 0.4 * Math.max(0, 1 - b.f);
+    return c + markCost(Z);
+  }
+  // T41: what the wear marks a robot carries cost it (logits), per zone (zones().mk); measured with tools/damage-lab/markcost.js
+  const MARK_COST = { bend: 0.02, warp: 0.6, snap: 0.5, rub: 0.4, crack: 1.0, open: 0.3 };
+  function markCost(Z) {
+    let c = 0;
+    for (const z of Object.values(Z)) { const m = z.mk; if (!m || z.broken && z.key !== 'body') continue;
+      c += MARK_COST.bend * Math.min(34, m.bend) + MARK_COST.warp * m.warp + MARK_COST.snap * m.snap + MARK_COST.rub * Math.min(2, m.rub) + MARK_COST.crack * Math.min(1, m.crack) + MARK_COST.open * m.open; }
     return c;
   }
   const chipDead = spec => !!(spec && spec.wear && zones(spec).body.lost.some(l => /chip/i.test(l)));
   const winP = (sa, sb) => 1 / (1 + Math.exp(-(sa - sb)));
-  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST, BODY_COST, wearCost, chipDead, bodyCostOf };
+  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST, BODY_COST, wearCost, chipDead, bodyCostOf, markCost, MARK_COST, MARK };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Repair2 = API;
 })(typeof window !== 'undefined' ? window : globalThis);

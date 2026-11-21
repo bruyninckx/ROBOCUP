@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="352be701">
+<meta charset="utf-8"><meta name="robocus-files" content="a29de2c3">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -647,17 +647,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=352be701"></script>
-<script src="../src2/dmath.js?b=352be701"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=a29de2c3"></script>
+<script src="../src2/dmath.js?b=a29de2c3"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=352be701"></script>
-<script src="../src2/lineup.js?b=352be701"></script>
-<script src="../src2/matrix.js?b=352be701"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=352be701"></script>
-<script src="../src2/sound.js?b=352be701"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=352be701"></script>
+<script src="../src2/engine.js?b=a29de2c3"></script>
+<script src="../src2/lineup.js?b=a29de2c3"></script>
+<script src="../src2/matrix.js?b=a29de2c3"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=a29de2c3"></script>
+<script src="../src2/sound.js?b=a29de2c3"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=a29de2c3"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -764,6 +764,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
     showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
+    wear: true,                   // T41 (Kev, 21 Nov: "bend as much as possible", "include all"): cracks, fragments, bends and saw grooves in every fight (engine ARC.cx; each fight carries it in F.bb.wear, so every screen and the bookie's workers agree); false = all four off
     flavor: true,                 // T39 (Kev, 21 Nov): themed names and drawings on 18 cards (FLAVOR); display only, false = the game's names
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
@@ -1569,7 +1570,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return ZN.get(k);
   }
   const ZONE = {}; for (const z of R2.ZONES) ZONE[z.key] = z;
-  const zoneState = q => q.broken ? 'broken' : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
+  // T41 (Kev, 21 Nov: "keep bend until repair"): a zone also shows the wear marks it carries (Repair2.zones marks: "bent 23°", "warped"...)
+  const zoneMarks = q => q && q.marks && q.marks.length ? q.marks.join(', ') : '';
+  const zonePct = q => q.f < 0.995 || !zoneMarks(q) ? Math.round(q.f * 100) + '%' : '';
+  const zoneState = q => q.broken ? 'broken' : q.damaged ? [zonePct(q), zoneMarks(q)].filter(Boolean).join(', ') : zoneMarks(q) || 'ok';
+  const zoneShort = q => q.broken ? 'broken' : q.damaged ? zonePct(q) || (q.marks[0] || 'dmg').replace(/^a plate bent into a wheel$/, 'plate rub').replace(/^plates bent into \d+ wheels$/, 'plate rub') : 'ok';
   const wrecked = r => { const Z = zonesOf(r); return Z.weapon.broken || Z.drive.broken; };
   const hurt = r => Math.max(0, baseStr(r) - str2(r));   // strength its damage costs
   // Kev, 11 Nov: a dead processor chip carries over inside "Body broken" and all but loses the next fight (the robot wanders on backup control): say so
@@ -1638,8 +1643,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const n = repairCost(r, z.key), p = repairPlan(t, n);
       const hint = !p.ok ? 'can\'t pay: ' + p.cr + ' Cr (you have ' + t.credits + ')'
         : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
-      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
-      jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: q.broken ? 'broken' : Math.round(q.f * 100) + '%', p, hint, tip });
+      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + zoneState(q) + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
+      jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: zoneShort(q), p, hint, tip });
     } });
     return jobs.sort((a, b) => (b.broken - a.broken) || (a.f - b.f) || (ZO[a.zk] - ZO[b.zk]) || (a.ri - b.ri));
   }
@@ -1940,8 +1945,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
-    return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + Math.round(q.f * 100) + '%)' : 'fine'),
-      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
+    return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + zoneState(q) + ')' : zoneMarks(q) ? zoneMarks(q) : 'fine'),
+      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight until this zone is repaired.' : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
   }
   function helpName(t, r) {
     const bits = [];
@@ -5452,7 +5457,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else if (X.a && Y.a) add(mine ? 2 : 3, X.a, Y.a, C.per); }
     OVR.jobs = tier.flat(); OVR.tStart = performance.now(); OVR.tFull = OVR.jobs.every(j => j.c.done) ? 0.001 : 0;
   }
-  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open' });
+  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open', wear: BAL.wear !== false });
   function ovrCount(c, i, r) {
     c.fly.delete(i);
     if (!r || r.err || c.got.has(i)) return;
@@ -6287,7 +6292,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
     let arena = F.arena && DL.ARENAS[F.arena] ? F.arena : 'open';
     if (arena === 'cage' && list.length > 2) arena = 'open';   // no room in the Cage for 4 robots or the House Robot (decided before the fight: see afterChoose)
-    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena };
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena, wear: BAL.wear !== false } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena, wear: BAL.wear !== false };
     return { S: DL.create(clone(bb)), botEnt, bb };
   }
   // online (2.0): a client builds the same fight from F.bb (the engine's create options, as the host built them)
@@ -8254,7 +8259,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.fillStyle = fill; rrect(ctx, bx, y, bw, h, 3); ctx.fill();
       ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
       ctx.fillStyle = clickable && st === 'dmg' && repairCrFor(G.teams[HS], zoneActs(q)) ? '#B23A2B' : fg; ctx.textAlign = 'center';
-      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
+      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : 'ok';
       if (small) fitText(ctx, z.icon + stTxt, bx + bw / 2, y + h / 2 + 3.5, bw - 2, '700', 8.5, F_MONO);
       else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
       const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
@@ -10201,7 +10206,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=352be701"></script>
+<script src="../src2/net.js?b=a29de2c3"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';

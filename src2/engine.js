@@ -14,7 +14,7 @@
   const TUNE = { buzzsaw: 1, sawrocket: 1, rocket: 1, harpoon: 1, dmg: 0.68, spinner: 1.15, drum: 0.62, flipper: 1.6, hammer: 0.75, crusher: 1.5, medium: 0.8, flame: 0.72, glove: 0.85, spear: 0.9, flail: 1.25 };
   const NOKNOB = { squeeze: 1, strain: 1, wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
   // arcade knobs: knock = extra knockback from weapon hits, fly = how far torn-off parts fly
-  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, crack: false, frag: false, bend: false, grindout: false, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
+  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, crack: true, frag: true, bend: true, grindout: true, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
   const DT = 1 / 120, G = 9.8, HALF = 4; // arena is 8 x 8 m, centred on 0,0
   const TAU = Math.PI * 2;
   // Contact experiments (Kev, 11 Nov): what a bump does depends on where and how it lands. Four switches in ARC.cx, all off by default:
@@ -286,6 +286,12 @@
       (a.front * 2.5 + a.rear * 2.5 + a.side * 2 * 3.5) * BUMPERS[s.bumper].massK + a.top * 4 + 2 + (design(s).dm || 0));
   }
 
+  // ---------- wear switches (T41, Kev 21 Nov: "bend as much as possible", "include all") ----------
+  // The four wear effects (cracks, fragments, bends, saw grooves) are ON in every fight by default: ARC.cx is the one place.
+  // A fight can say otherwise in its options: wear: false (all off), true (all on) or { bend: true, crack: false, ... };
+  // unset keys come from ARC.cx. Read once at create(), so a fight is the same on every screen that builds it from the same options.
+  const WEAR4 = ['crack', 'frag', 'bend', 'grindout'];
+  function wearSwitches(w) { const o = {}; for (const k of WEAR4) o[k] = w === false ? false : w === true ? true : w && typeof w === 'object' && w[k] != null ? !!w[k] : !!ARC.cx[k]; return o; }
   // ---------- world ----------
   function create(opts) {
     const S = {
@@ -294,6 +300,7 @@
       fx: [], log: [], over: false, result: null, timeLimit: opts.timeLimit || 120, countdown: opts.countdown == null ? 0 : opts.countdown,
       sawState: [], slowmo: 0, oils: [], mines: [], smokes: [], snags: [], rng2: mkRng(((opts.seed || 1) * 7919 + 13) >>> 0),
     };
+    S.wx = wearSwitches(opts.wear); // T41: the wear switches this fight runs with (fixed at the start, travels with the fight's options)
     const world = S.world;
     // walls
     // four walls on kinematic bodies so arena events can move them in (they crush whatever is in the way)
@@ -493,7 +500,7 @@
     const addPart = (key, label, kind, verts, o) => {
       const ar = area(verts), mass = o.mass;
       const fx = (o.body || body).createFixture({ shape: pl.Polygon(verts.map(p => V(p[0], p[1]))), density: mass / ar, friction: o.friction == null ? 0.45 : o.friction, restitution: o.rest == null ? 0.15 : o.rest, filterGroupIndex: group });
-      const part = { key, label, kind, verts, home: verts.map(q => q.slice()), outline: subdivide(verts), dents: [], scratches: [], fx, body: o.body || body, robot: R, attached: true, hp: o.hp * hpK, maxHp: o.hp * hpK, heat: 0, thr: o.thr || 0, sharp: o.sharp == null ? 0.35 : o.sharp, tough: o.tough || 1, mass, state: '', jam: 0, z: o.z || 0 };
+      const part = { key, label, kind, verts, home: verts.map(q => q.slice()), outline: subdivide(verts), dents: [], scratches: [], fx, body: o.body || body, robot: R, attached: true, hp: o.hp * hpK, maxHp: o.hp * hpK, heat: 0, thr: o.thr || 0, sharp: o.sharp == null ? 0.35 : o.sharp, tough: o.tough || 1, mass, state: '', jam: 0, z: o.z || 0, v0: verts, m0: mass };   // v0 / m0: the shape and mass it was built with (wear marks, T41)
       fx.setUserData({ part }); parts.push(part); return part;
     };
     const addInt = (key, label, lp, hp, o = {}) => { hp *= hpK; const p = Object.assign({ key, label, kind: 'internal', lp, hp, maxHp: hp, heat: 0, robot: R, attached: true, state: '', jam: 0, stuck: 0, stuckDir: 1 }, o); R.internals.push(p); return p; };
@@ -696,7 +703,54 @@
     }
     if (R.lid.attached && R.lid.dents.length) w.dents['Top plate'] = R.lid.dents.map(d => [r3(d.x), r3(d.y), Math.round(d.a)]);
     for (const q of R.internals) if (q.hp < q.maxHp) w.ints[q.label] = r3(Math.max(0, q.hp) / q.maxHp);
+    const mk = marksOf(R); if (mk) w.marks = mk;
     return w;
+  }
+  /* T41 (Kev, 21 Nov: "keep bend until repair"): the wear marks a fight leaves stay on the robot until the zone is repaired.
+   * marks[label] = what is left on that part, numbers only (shapes in the part's own frame, 4 decimals):
+   *   v: its outline now (if a kink, warp, split or snap changed it), vb: the straight shape kinks and warps are worked from,
+   *   mk: mass now / mass when built (a piece broke off), k: kinks [[at, root, side, angle, weak 0/1]], b: plate bends [[at, depth]],
+   *   c: cracks [[ox, oy, len, [[base, cur, done 0/1, x1, y1, x2, y2...], ...]]], g: saw grooves [[x, y, depth, open 0/1]],
+   *   w: [warp, fold angle], ab: an axe handle bent (Thumper), bb: a beak bent (its strike lands off to the side).
+   * A robot starts its next fight with them: same shape, same handling, same weak spots. Lost parts stay lost (w.lost). */
+  const r4 = x => Math.round(x * 10000) / 10000, pt4 = v => [r4(v[0]), r4(v[1])], pt3 = v => [r3(v[0]), r3(v[1])];
+  const sameVs = (a, b) => a && b && a.length === b.length && a.every((v, i) => Math.abs(v[0] - b[i][0]) < 5e-5 && Math.abs(v[1] - b[i][1]) < 5e-5);
+  function marksOf(R) {
+    const out = {}; let n = 0;
+    const put = (lb, m) => { if (Object.keys(m).length) { out[lb] = Object.assign(out[lb] || {}, m); n++; } };
+    for (const q of R.parts) {
+      if (!q.attached || q.kind === 'wheel') continue;
+      const m = {};
+      if (q.v0 && !sameVs(q.verts, q.v0)) m.v = q.verts.map(pt4);
+      if (q.vBase && !sameVs(q.vBase, q.v0)) m.vb = q.vBase.map(pt4);
+      if (q.m0 && Math.abs(q.mass / q.m0 - 1) > 1e-4) m.mk = r4(q.mass / q.m0);
+      if (q.kinks && q.kinks.some(k => Math.abs(k.th) >= 0.002)) m.k = q.kinks.map(k => [r4(k.s), r4(k.r), k.side, r4(k.th), k.why ? 1 : 0]);
+      if (q.bends && q.bends.some(b => b.depth >= 0.001)) m.b = q.bends.map(b => [r4(b.s), r4(b.depth)]);
+      if (q.cracks && q.cracks.length) m.c = q.cracks.map(c => [r4(c.o[0]), r4(c.o[1]), r4(c.len), c.tips.map(t => [r4(t.base), r4(t.cur), t.done ? 1 : 0].concat(...t.pts.map(pt3)))]);
+      if (q.grooves && q.grooves.some(g => g.depth >= 0.001)) m.g = q.grooves.map(g => [r4(g.x), r4(g.y), r4(g.depth), g.open ? 1 : 0]);
+      if (q.warp) m.w = [r4(q.warp), r4(q.foldA || 0)];
+      put(q.label, m);
+    }
+    if (R.arm && R.armBend) put(R.arm.label, { ab: r4(R.armBend) });
+    if (R.beakRam && R.beakBend) put(R.beakRam.label, { bb: r4(R.beakBend) });
+    return n ? out : null;
+  }
+  function applyMarks(S, R, marks) {
+    for (const q of R.parts) {
+      const m = marks[q.label]; if (!m || !q.attached) continue;
+      if (m.mk) { q.mass *= m.mk; q.thr *= m.mk; }
+      if (m.v || m.mk) wRefit(R, q, (m.v || q.verts).map(v => v.slice()));
+      if (m.k || m.w) { q.vBase = (m.vb || q.v0).map(v => v.slice()); }
+      if (m.k) { q.kAx = wAxis({ verts: q.vBase }); q.kinks = m.k.map(([s, r, side, th, why]) => ({ s, r, side, th, why: why ? 'weak' : '' })); q.kinkSum = q.kinks.reduce((a, k) => a + Math.abs(k.th), 0); }
+      if (m.w) { q.warp = m.w[0]; q.foldA = m.w[1]; }
+      if (m.b) { q.bAx = wAxis(q); q.bends = m.b.map(([s, depth]) => ({ s, depth })); if (q.key === 'wedge' && q.bends.some(b => b.depth >= 0.03)) q.bentUp = true; }
+      if (m.c) q.cracks = m.c.map(([ox, oy, len, tips]) => ({ o: [ox, oy], len, born: -9, hitInt: {}, tips: tips.map(t => { const pts = []; for (let i = 3; i + 1 < t.length; i += 2) pts.push([t[i], t[i + 1]]); return { base: t[0], cur: t[1], done: !!t[2], pts }; }) }));
+      if (m.g) { q.grooves = m.g.map(([x, y, depth, open]) => ({ x, y, depth, drawn: depth, hot: -9, open: !!open })); if (q.kind === 'chassis') for (const g of q.grooves) if (g.open) (R.wounds = R.wounds || []).length < 6 && R.wounds.push([g.x, g.y]); }
+      wRebuild(q);
+      if (m.b) wheelRub(S, R, q, null, true);
+    }
+    if (R.arm && marks[R.arm.label] && marks[R.arm.label].ab) R.armBend = marks[R.arm.label].ab;
+    if (R.beakRam && marks[R.beakRam.label] && marks[R.beakRam.label].bb) R.beakBend = marks[R.beakRam.label].bb;
   }
   function applyWear(S, R, w) {
     if (!w) return;
@@ -716,6 +770,7 @@
       if (w.parts && w.parts[q.label] != null) q.hp = Math.max(1, w.parts[q.label] * q.maxHp);
       if (w.dents && w.dents[q.label] && q.body === R.body) for (const [x, y, a] of w.dents[q.label]) addDent(q, [x, y], a);
     }
+    if (w.marks) applyMarks(S, R, w.marks);   // T41: bends, cracks, grooves, warps from the last fight
     if (R.flailArm && R.ball && !R.ball.attached) { /* the arm still swings, harmless */ }
     for (const q of R.internals) {
       if (!w.ints || w.ints[q.label] == null) continue;
@@ -841,7 +896,7 @@
       }
     }
     if (part.kind === 'chassis') d *= 0.5;
-    if (ARC.cx.crack || ARC.cx.grindout) d = wearPre(S, R, part, h, d);
+    if (S.wx.crack || S.wx.grindout) d = wearPre(S, R, part, h, d);
     const before = part.hp;
     part.hp -= d;
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
@@ -875,7 +930,7 @@
       else if (r < 0.28 && R.radio.hp > 0) { R.glitch = 1 + S.rng() * 1.5; say(S, `${R.name}: radio glitch`, R.id); }
     }
     if (part.key === 'chip' && part.hp > 0 && d > 1.5 && !(R.chipCd > 0) && R.alive) chipFx(S, R, d);
-    if ((ARC.cx.crack || ARC.cx.bend || ARC.cx.grindout) && part.hp > 0) wearPost(S, R, part, h, d, atk);
+    if ((S.wx.crack || S.wx.bend || S.wx.grindout) && part.hp > 0) wearPost(S, R, part, h, d, atk);
     // state labels
     const f = part.hp / part.maxHp;
     if (part.hp <= 0 && before > 0) destroyPart(S, part, h, -part.hp);
@@ -940,7 +995,7 @@
       const c0 = centroid(part.home); for (let i = 0; i < 3; i++) spawnLoose(S, R, 'Fibreglass shard', [[-0.05, -0.02], [0.05, -0.03], [0.01, 0.04]], c0, 0.2, [(S.rng() - 0.5) * 8, (S.rng() - 0.5) * 8]);
       const wpS = R.body.getWorldPoint(V(c0[0], c0[1])); S.fx.push({ type: 'shatter', x: wpS.x, y: wpS.y });
     }
-    if (ARC.cx.frag && part.bumper !== 'fibre' && part.body === R.body && !part.sep && (part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'spear' || part.key === 'wedge' || part.key === 'flipper' || part.key === 'jaws')))) fragment(S, R, part, h);
+    if (S.wx.frag && part.bumper !== 'fibre' && part.body === R.body && !part.sep && (part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'spear' || part.key === 'wedge' || part.key === 'flipper' || part.key === 'jaws')))) fragment(S, R, part, h);
     detach(S, part, kick);
     { const wpC = part.body.getPosition(); callout(S, part.kind === 'wheel' ? (part.leg ? 'LEG OFF!' : 'WHEEL GONE!') : part.key === 'blade' || part.key === 'ball' || part.key === 'glove' || part.key === 'buzz' ? 'WEAPON GONE!' : part.kind === 'armour' ? 'ARMOUR OFF!' : 'RIPPED OFF!', wpC.x, wpC.y, false); }
     const verb = part.kind === 'wheel' ? 'torn off' : part.kind === 'armour' ? 'ripped off' : part.key === 'blade' ? 'snapped off and flies away' : 'broken off';
@@ -954,7 +1009,7 @@
     if (L0.hp > 0) { if (L0.hp / L0.maxHp < 0.4 && L0.state !== 'loose') { L0.state = 'loose'; say(S, `${R.name}: top plate rattling loose`, R.id); } return; }
     L0.attached = false; L0.hp = 0; R.topArmour = 0; R.chipExposed = true;
     let lidV = L0.verts.map(q => [q[0] * 0.9, q[1] * 0.9]), lidM = 2 + R.spec.armour.top * 2;
-    if (ARC.cx.frag && R.chassis.cracks && R.chassis.cracks.length) { // a cracked shell: the top plate breaks in two along the worst crack
+    if (S.wx.frag && R.chassis.cracks && R.chassis.cracks.length) { // a cracked shell: the top plate breaks in two along the worst crack
       const c = R.chassis.cracks.reduce((a, b) => a.len > b.len ? a : b), P = c.tips.flatMap(t => t.pts), a0 = P[0], a1 = P[P.length - 1]; let tx = a1[0] - a0[0], ty = a1[1] - a0[1]; const tl = Math.hypot(tx, ty) || 1;
       const pr = c.len > 0.05 ? splitPoly(lidV, a0[0], a0[1], -ty / tl, tx / tl) : null;
       if (pr) { const [A, B] = pr, cb2 = centroid(B), ka = Math.abs(area(A)) / Math.abs(area(lidV)); lidV = A; const pc = spawnLoose(S, R, 'Top plate piece', B.map(q => [q[0] - cb2[0], q[1] - cb2[1]]), cb2, lidM * (1 - ka), [(S.rng() - 0.5) * 9, (S.rng() - 0.5) * 9]); if (pc) { pc.lid = true; pc.col = 'lid'; } lidM *= ka; cxCount(S, R, 'frag'); }
@@ -1127,9 +1182,9 @@
     let d = Math.max(0, Jd - 7) * 0.2 * sharp * px.tough;
     if (uy.spike && px.attached) d *= hzK(px.robot);   // arena spikes take the same share of a level 3 robot as of a level 0 one (17 Nov, T4)
     if (!px.attached && cause !== 'spinner' && cause !== 'flail' && cause !== 'shell' && cause !== 'sweeper') return; // debris barely matters
-    if (ARC.cx.bend && px.attached && px.hp > 0 && WARP[px.key] && J > 25) { const lq = px.body.getLocalPoint(V(c.x, c.y)); warpHit(S, px.robot, px, { lp: [lq.x, lq.y], J, cause }, src); }
-    if (ARC.cx.bend && px.attached && px.hp > 0 && BOWS[px.key] && px.body === px.robot.body && J > 45) { const lq = px.body.getLocalPoint(V(c.x, c.y)); bendHit(S, px.robot, px, { lp: [lq.x, lq.y], cause }, (J - 7) * 0.1, src); }
-    if (ARC.cx.bend && px.attached && px.kind === 'weapon' && BARS[px.key] && J > 20 && px.hp > 0) {
+    if (S.wx.bend && px.attached && px.hp > 0 && WARP[px.key] && J > 25) { const lq = px.body.getLocalPoint(V(c.x, c.y)); warpHit(S, px.robot, px, { lp: [lq.x, lq.y], J, cause }, src); }
+    if (S.wx.bend && px.attached && px.hp > 0 && BOWS[px.key] && px.body === px.robot.body && J > 45) { const lq = px.body.getLocalPoint(V(c.x, c.y)); bendHit(S, px.robot, px, { lp: [lq.x, lq.y], cause }, (J - 7) * 0.1, src); }
+    if (S.wx.bend && px.attached && px.kind === 'weapon' && BARS[px.key] && J > 20 && px.hp > 0) {
       const lq = px.body.getLocalPoint(V(c.x, c.y)), va = px.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)), vo = uy.part && uy.part.body ? uy.part.body.getLinearVelocityFromWorldPoint(V(c.x, c.y)) : V(0, 0);
       let rx = vo.x - va.x, ry = vo.y - va.y; const rl = Math.hypot(rx, ry); // pushed the way the other thing moves relative to it: a spinner's arm is knocked back against its spin
       kinkHit(S, px.robot, px, { lp: [lq.x, lq.y], dir: rl > 0.3 ? [rx / rl, ry / rl] : [c.nx, c.ny], J, cause }, 0, src);
@@ -1151,7 +1206,7 @@
       const close = (vs.x - vt.x) * ux + (vs.y - vt.y) * uy2;
       if (close > 1.6) { src.ramCd = 1.8; d += Math.min(22, 5 + close * 4); knock(px.robot, ux * 55, uy2 * 55); px.robot.stun = Math.max(px.robot.stun, 0.25); S.fx.push({ type: 'punch', x: c.x, y: c.y, power: 20 }); callout(S, 'RAMMED!', c.x, c.y, close > 3); }
     }
-    hit(S, px, d, { cxc: ARC.cx.bend ? 1 : undefined, src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' || cause === 'tail' ? 1.3 : cause === 'batram' ? 1.2 : 0.8, ignoreThr: cause === 'spear' });
+    hit(S, px, d, { cxc: S.wx.bend ? 1 : undefined, src, cause, lp: [lp.x, lp.y], blp, x: c.x, y: c.y, dir, pen: cause === 'spinner' ? 1.2 : cause === 'spear' ? 1.7 : cause === 'flail' || cause === 'shell' ? 1.1 : cause === 'sweeper' || cause === 'tail' ? 1.3 : cause === 'batram' ? 1.2 : 0.8, ignoreThr: cause === 'spear' });
   }
 
   // ---------- contact experiments (ARC.cx) ----------
@@ -1252,7 +1307,7 @@
     }
   }
 
-  // ---------- wear experiments (Kev, 11 Nov): cracks, fragments, bends, saw grooves (ARC.cx.crack / frag / bend / grindout) ----------
+  // ---------- wear experiments (Kev, 11 Nov): cracks, fragments, bends, saw grooves (S.wx.crack / frag / bend / grindout) ----------
   // Everything lives in the part's own frame (the robot's frame while it is attached), so it moves with the robot and can be drawn.
   const WEAR = { crackMin: 5, crackK: 0.0055, vib: 0.0022, seg: 0.022, splitAt: 0.62, bendMin: 7, bendK: 0.0034, bendMax: 0.075, bendR: 0.17, rubMin: 0.006, grooveK: 0.0012, cutK: 0.85, chOpen: 0.05, weakMax: 2.2 };
   const PIERCE = { spear: 1, harpoon: 1, fang: 0.9, crusher: 0.7, spikeplate: 0.7, sweeper: 0.6, hammer: 0.55, auger: 0.5, spikes: 0.5, shrapnel: 0.5, flail: 0.4, spinner: 0.4, tail: 0.35, slam: 0.3 };
@@ -1322,18 +1377,18 @@
   // after a hit lands on a part that survived it
   function wearPost(S, R, part, h, d, atk) {
     if (!part.attached || part.hp <= 0 || !h.lp || h.inner) return;
-    if (part.body !== R.body) { if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key] && kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); return; } // weapons on their own body (spinner bar, axe arm...) can only bend
+    if (part.body !== R.body) { if (S.wx.bend && part.kind === 'weapon' && BARS[part.key] && kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); return; } // weapons on their own body (spinner bar, axe arm...) can only bend
     const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'wedge' || BARS[part.key]));
     if (!ok) return;
     const soft = part.bumper === 'rubber' || part.bumper === 'spring';
-    if (ARC.cx.crack && !soft) {
+    if (S.wx.crack && !soft) {
       const pk = PIERCE[h.cause] || (d >= 22 ? 0.3 : 0);
       if (pk && d >= WEAR.crackMin && S.rng() < Math.min(1, pk * d / 10)) crackHit(S, R, part, h, d * pk, atk);
       else if (part.cracks && part.cracks.length && d >= 8 && !GRINDY[h.cause]) { const c = part.cracks.reduce((a, b) => a.len > b.len ? a : b); crackGrow(S, R, part, c, d * WEAR.vib, h, atk); } // shaken: the worst crack creeps on
     }
-    if (ARC.cx.bend && part.kind === 'weapon' && BARS[part.key]) { if (kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); }
-    else if (ARC.cx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
-    if (ARC.cx.grindout && GRINDY[h.cause] && part.attached) grooveHit(S, R, part, h, d, atk);
+    if (S.wx.bend && part.kind === 'weapon' && BARS[part.key]) { if (kinkCause(h.cause) && !h.cxc) kinkHit(S, R, part, h, d, atk); }
+    else if (S.wx.bend && BLUNT[h.cause] && d >= WEAR.bendMin && part.bumper !== 'rubber' && part.bumper !== 'fibre' && part.attached) bendHit(S, R, part, h, d, atk);
+    if (S.wx.grindout && GRINDY[h.cause] && part.attached) grooveHit(S, R, part, h, d, atk);
   }
   function crackHit(S, R, part, h, amt, atk) {
     const [x, y] = h.lp; part.cracks = part.cracks || [];
@@ -1400,14 +1455,18 @@
     wRebuild(part);
     if (was < 0.02 && b.depth >= 0.02) { cxCount(S, R, 'bend'); const wp = R.body.getWorldPoint(V(A.ax === 0 ? b.s : centroid(part.verts)[0], A.ax === 0 ? centroid(part.verts)[1] : b.s)); callout(S, 'BENT!', wp.x, wp.y, false); }
     if (part.key === 'wedge' && b.depth >= 0.03 && !part.bentUp) { part.bentUp = true; say(S, `${R.name}: wedge lip bent up, it can't get under any more`, atk ? atk.id : R.id, true); }
-    // a side plate pushed in far enough drags on the wheels behind it
-    if (part.kind === 'armour' && A.ax === 0) {
+    wheelRub(S, R, part, atk, false);
+  }
+  // a side plate pushed in far enough drags on the wheels behind it (quiet: a robot that starts a fight with the plate already bent, T41)
+  function wheelRub(S, R, part, atk, quiet) {
+    const A = part.bAx;
+    if (part.kind === 'armour' && A && A.ax === 0 && part.bends) {
       const sd = Math.sign(centroid(part.verts)[1]), plIn = Math.min(...part.verts.map(q => Math.abs(q[1])));
       for (const sl of R.slots) { if (Math.sign(sl.lp[1]) !== sd || !alivePart(sl.wheel)) continue;
         const [wx0, , wx1] = wbb(sl.wheel.verts), wOut = Math.max(...sl.wheel.verts.map(q => Math.abs(q[1]))), gap = Math.max(0.004, plIn - wOut);
         let push = 0; for (const q of part.bends) { const dx = q.s < wx0 ? wx0 - q.s : q.s > wx1 ? q.s - wx1 : 0; push = Math.max(push, q.depth * Math.max(0, 1 - dx / WEAR.bendR)); }
         if (push > gap + WEAR.rubMin) { const r0 = sl.rub || 0; sl.rub = clamp((push - gap) / 0.025, 0.25, 1); sl.rubBy = part;
-          if (!r0) { cxCount(S, R, 'rub'); const wp = R.body.getWorldPoint(V(sl.lp[0], sl.lp[1])); callout(S, 'WHEEL RUB!', wp.x, wp.y, false); say(S, `${R.name}: ${part.label.toLowerCase()} bent into the ${sl.wheel.label.toLowerCase()}, it drags`, atk ? atk.id : R.id, true); } } }
+          if (!r0 && !quiet) { cxCount(S, R, 'rub'); const wp = R.body.getWorldPoint(V(sl.lp[0], sl.lp[1])); callout(S, 'WHEEL RUB!', wp.x, wp.y, false); say(S, `${R.name}: ${part.label.toLowerCase()} bent into the ${sl.wheel.label.toLowerCase()}, it drags`, atk ? atk.id : R.id, true); } } }
     }
   }
   // ---- bending weapons (Kev, 11 Nov: realistically) ----
@@ -2261,7 +2320,7 @@
             const lp = target.body.getLocalPoint(q);
             hit(S, target, 34 * Math.min(1, pw), { src: R, cause: 'hammer', top: true, lp: [lp.x, lp.y], blp: target.body === target.robot.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, pen: 1.4 });
             target.robot.lifted = 0.3;
-            if (ARC.cx.bend && R.arm.hp > 0 && (target.kind === 'chassis' || target.kind === 'armour')) { // a blow that lands off-centre on hard metal wrenches the handle sideways
+            if (S.wx.bend && R.arm.hp > 0 && (target.kind === 'chassis' || target.kind === 'armour')) { // a blow that lands off-centre on hard metal wrenches the handle sideways
               const was = R.armBend || 0, dir = was ? Math.sign(was) : (S.rng() < 0.5 ? -1 : 1), add = (0.012 + S.rng() * 0.03) * Math.min(1, pw) * (target.kind === 'armour' && target.bumper === 'rubber' ? 0.3 : 1);
               R.armBend = clamp(was + dir * add, -0.45, 0.45);
               if (Math.abs(was) < 0.12 && Math.abs(R.armBend) >= 0.12) { cxCount(S, R, 'wbend'); callout(S, 'BENT!', q.x, q.y, false); say(S, `${R.name}: axe handle bent, it lands off to the side now`, R.id, true); }
@@ -3475,7 +3534,7 @@
         const T = tp.robot, lp = tp.body.getLocalPoint(q);
         hit(S, tp, RW.beakDmg * P, { src: R, cause: 'beak', top: true, lp: [lp.x, lp.y], blp: tp.body === T.body ? [lp.x, lp.y] : null, x: q.x, y: q.y, pen: 2.0, ignoreThr: true });
         S.fx.push({ type: 'spark', x: q.x, y: q.y, power: 45 }); S.fx.push({ type: 'punch', x: q.x, y: q.y, power: 22 });
-        if (ARC.cx.bend && (tp.kind === 'chassis' || tp.kind === 'armour') && tp.bumper !== 'rubber' && Math.abs(lp.y) > 0.08) { // off-centre on hard metal: the beak is wrenched sideways
+        if (S.wx.bend && (tp.kind === 'chassis' || tp.kind === 'armour') && tp.bumper !== 'rubber' && Math.abs(lp.y) > 0.08) { // off-centre on hard metal: the beak is wrenched sideways
           const was = R.beakBend; R.beakBend = clamp(was + Math.sign(lp.y) * (0.01 + S.rng() * 0.025) * P, -0.4, 0.4);
           if (Math.abs(was) < 0.12 && Math.abs(R.beakBend) >= 0.12) { cxCount(S, R, 'wbend'); callout(S, 'BENT!', q.x, q.y, false); say(S, `${R.name}: beak bent, it strikes off to the side now`, R.id, true); }
         }
@@ -4378,7 +4437,7 @@
     if (S.pylons) pylonCalls(S);
     processContacts(S); processBegins(S); snags(S);
     if (ARC.cx.slide || ARC.cx.under || ARC.cx.crush) cxStep(S);
-    if (ARC.cx.bend) warpStep(S);
+    if (S.wx.bend) warpStep(S);
     projectiles(S);
     heatAndHazards(S);
     if (S.spikes) spikes(S);
