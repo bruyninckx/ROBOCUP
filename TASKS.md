@@ -7,64 +7,30 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K43. Wear** (T41): (a) a mark that stays (bent 10 degrees or more, warped, cracked, sawn open) makes the zone
-  count as damaged, so the repair button shows even at full health and the AI may repair it: right, or show it only?
-  (b) level steps 0→1 and 1→2 are at 69% with wear on (target 63-68%): nudge after the big run if it confirms that?
-- **K42. Left over from T35 and T44**: (a) new robots sell 2-3.5 Cr above their shown value in rounds 1-4: fine, or
-  show a Market estimate on early lots? (b) the AI prices a part on a robot at 1.5 Cr but the same part in a Stash at
-  full value: make them agree? (c) AI teams pay a person in deals and backing but never each other: fine?
-- **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
-  (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
-  same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
-  lots, not in the note: OK? (e) show AI-to-AI trades more clearly than a log line?
-- **K33. Crunch Week, Press Tour, Repair kit** (T33/T34): (a) Crunch Week still takes all your crew and Security Bots by
-  itself, only robots are a choice: should crew and bots be a choice too (the text says "any of")? (b) the AI only gives
-  spare robots, weakest first: OK? (c) Press Tour played on you: 20 s, no answer is "no": OK? (d) Repair kit at 1 copy?
-- **K32. Timers** (T31): (a) are 20 s (note), 30 s (box, host picking fighters) and 45 s (deal panel) right? (b) where
-  every answer costs something, time up now picks: Hostile Buyout → Refuse (−1 fame); Tag Team offer → Team up; a threat
-  → Refuse (the card may land); can't pay upkeep → weakest robot scrapped; Museum Donation → a crew member; hand limit →
-  cheapest cards cashed in; you host spare or scrap → spare. Right? (c) a timer on "send a robot" too (default: strongest
-  ready robot)? (d) a timer on your own trade panel in the Market?
-- **K30. Start credits** (T29): 10 Cr makes the first Market a bit richer than before sponsors cost money (9.6 Cr spent,
-  was 8.2). Keep 10, or try 9 (not measured)?
-- **K31. Local server** (T32): hosting from the local copy works only when it matches GitHub Pages (a few minutes after
-  an update): fine, or host through `play-latest online`?
-- **K29. Reaction offers** (T27): a team that made a block can no longer Override its own block: fine? Robot Rights
-  Protest: any team but its player may still Override a block of it, though that team then loses 1 fame too: keep?
-- **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
-- **K24. Power map arrows** (T23): counters from 30 points off (about 4 arrows a robot, up to 14 for Hydra and Gyro):
-  right amount, or 35 (fewer)? Smooth widths, or 3 fixed sizes?
-- **K22. Repairs in the note** (T22): order broken first, then worst damage: fine? Done at the top right of the note, or
-  at the bottom? Stash parts that fit also get a button in Upkeep: keep?
-- **K21. Arenas in whole games** (T19): the bookie's formula uses old per-arena tables for same-level duels and the new
-  `ARENA_FIT` for the rest. Make it one source (drop the old tables: a few lines)? Let the AI host pay for an arena down
-  to 1 Cr left (it keeps 3 Cr now, so arenas are rare in bot games)?
-- **K18. Repair kit** (T5): it is now worth about two thirds of a level and won't go higher by healing faster. Good
-  enough, or should it do something extra (protect the battery, points for repairing)? Should Mauler's built-in repair also work under fire? Card text "Repairs the robot all the time, fast
-  when it is not being hit": fine?
-- **K17. Power map** (T13): axis in levels (quarter ticks), not the -60..+60 points of the old map: fine? Position counts
-  parts, tiers and damage, not part fit or epic combos: should those move the robot too? A robot with a broken weapon
-  lands far left tagged "< ★0": fine? Light paper look, not dark: fine? Next round's robot lots shown as NEXT: fine?
-- **K15. Bid lock** (T16): a change takes your lock off and you lock again (taken), or stay locked while changing? Should
-  others see a log line when someone unlocks? Bookie's Friend / Hedge Bet playable after locking bets?
-- **K16. Send feedback** (T15): wording "✓ Mauler sent" and the bookie line: fine? In a double duel, pick the second robot
-  in the note too, instead of the question box?
-- **K14. Part goes on at once** (T12): "best robot" = the one whose odds gain most: right? Undo puts the part back to
-  "pick a robot or keep it in the Stash": fine? A Move starts the 5 s again: fine? No red flash when the part went on your
-  only robot (nothing you must do): fine? The Stash panel's own Fit still asks "On which robot?" in a popup: move that to
-  the note too?
-- **K13. Odds overview** (T7): a click on a lot's odds strip now opens the overview instead of adding 1 Cr: fine? 12 test
-  fights a pair (24 for your changed duels): enough? A rival is assumed to fit the part where the AI would: fine?
-- **K10. Rarity overlay** (T11): glow and shine on Works and Masterwork only, or Race-spec too? A click on a part card's
-  header now opens the ladder instead of bidding +1: fine, or a small "?" button? On rivals' small tickets too?
-- **K11. Tow cable and wall slams** (T10): yellow-and-black cable or plain steel? Comic impact star or a plain flash? Wall
-  dents stay all fight (newest 18): fine, or fade? The same impact when a robot is slammed into another robot? The lab
-  pages still draw the old thin line: port it?
-- **K12. Choices in the note** (T9): should repairs, bets or lot bids also get buttons in the note, even if it gets
-  crowded? Send buttons are green, other choices dark: fine?
+- **K44. A won part: "Always ask me first which robot"** (voting page, 21 Nov): read as: when two or more of your robots
+  can take it, the game asks before fitting; with one robot it still goes on at once with Undo. Right, or ask even then?
+- **K43. Wear** (T41): level steps 0→1 and 1→2 were at 69% with wear on (target 63-68%): nudge if Kev's big run
+  confirms that?
 
 ### Answered
 
+- **Voting page "ROBOCUS open questions" (21 Nov, saved 17:35 UTC, https://claude.ai/artifact/XCgvAo3mtoDkWjSzU5uiZi):**
+  39 questions, all of K10-K42 closed. Changes Kev chose: a wear mark is shown only, repair optional, AI ignores it
+  (T41); Fire Sale back with 2 copies (T45); AI teams make the same deals with each other (T46); Crunch Week: "I tick
+  everything myself: crew, bots and robots"; Repair kit 2 copies and "give it something extra, for example protecting
+  the battery"; Bookie's Friend and Hedge Bet playable after locking; an open trade is cancelled when the last player
+  locks; trades between other teams shown more clearly ("this would also be relevant when 2 players trade in a real
+  life game which you are not involved in right"); "send a robot" gets 30 s, then the strongest ready robot; a won
+  part: "Always ask me first which robot"; a log line for everyone when someone unlocks; rarity: "make them all
+  distinctive with bigger glow for rarer items"; power map: great fits and epic combos move the robot; power map look:
+  "draw me up some ideas to see if we can improve, can be fancy, try to be creative for some attempts"; wall slam: a
+  plain flash and dents that fade; the impact also robot against robot. Kept as built: hoarding = teach the AI only;
+  10 start credits; early robot prices; arenas rare with AI hosts ("we have to explore different arenas in the future
+  that add real decisions"); Press Tour no answer = no; Mauler's repair; no Override of your own block; any trade
+  unlocks; no AI offers after locking; timers 20/30/45 and their defaults; no timer on your own trade panel; no click
+  delay on the reaction window; next lots on the strip; Done top right; Stash fit button; odds strip and rarity header
+  clicks; bets on the cards only; power map arrows from 30 points, smooth; yellow-and-black cable. Left to the
+  orchestrator (not asked): bookie arena tables one source, AI part pricing on a robot vs in a Stash, lab pages.
 - **Fan Favourite, AI, prices (21 Nov):** no Fan Favourite brake ("lets not do that"); AI hosts should stop inviting
   a rival's Fan Favourite and the fame leader ("improving AI is always good"); hoarding: "yes" (read as: teach the AI
   to save for host bids, the first of the three options; no new sink or cap); Hostile Buyout's price follows the value,
@@ -116,6 +82,21 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T47. Rules and clicks from the voting page (one worker, `prototypes/tabletop-2.html`).** Kev's choices (21 Nov,
+  quoted under Answered): (1) Crunch Week: tick crew, Security Bots and robots yourself; (2) Repair kit 2 copies;
+  (3) Bookie's Friend and Hedge Bet stay playable after you lock bets; (4) a trade still open when the last player
+  locks is cancelled (both sides told why) instead of holding the step; (5) "send a robot": 30 s, then the strongest
+  ready robot; (6) a won part asks which robot first when several can take it (K44); (7) a log line for everyone when
+  someone unlocks; (8) a trade between two other teams (AI or people) shows as a short banner, not only a log line.
+  Start when a worker slot is free. Done when: scripted plays for each, questions-note, market-step, game-sim, mp-test.
+- **T48. Look from the voting page (after T41 is merged: it rewrites the fight view).** (1) rarity: every tier
+  distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
+  robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
+- **T49. Repair kit: something extra** (after T41). Kev: "Give it something extra, for example protecting the
+  battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
+- **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
+  to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
+- **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
 - **T40. Lineup Arena and Contact Lab pages throw a script error when they open** (found by T37, 21 Nov): the fourth
   robot card defaults to Juggernaut, which is no longer in the lineup (`tools/damage-lab/ui.js` `st.spec`). Fix there,
   rebuild with `build.py`. Done when: both pages open with 0 page errors, stock-fight fingerprint unchanged.
