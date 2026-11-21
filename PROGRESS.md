@@ -558,3 +558,22 @@ Kev chose on the voting page (21 Nov); all in prototypes/tabletop-2.html (BUILD 
 Balance (game-sim, 40 + 40 all-AI games, seeds 1-40, --par=2; only change 2 reaches all-AI games: 1, 3-8 are about people): rounds 11.53 → 11.65 (paired +0.13 ± 0.77), Market spend 117.9 → 122.4 Cr a game (paired +4.5 ± 9.1), fights 11.18 → 11.35 (+0.17 ± 0.72): no change we can see at this size. Expected for people: 4 removes a wait (the step can no longer hang on an open trade); 5 and 6 add at most 30 s / 20 s waits where the table used to wait without limit, and 6 adds one click per part when 2+ robots can take it (Kev's choice); a time-out gives the same result as before (strongest robot, best-odds fit). The test bot answers at once, so bot games do not show these.
 
 Checks: tools/mp-scenario/vote-rules.js (new; solo at 1600x900 and 1280x720, online host + 3 joined) OK; exhaust-cards.js (updated for the ticks) OK; market-step.js OK; market-step-online.js 7 (step 3 updated: the last lock calls off A's open panel) OK (one earlier run failed a "lower them" line check under load; passed on rerun, and on origin/main); questions-note.js OK; questions-remote.js 7 OK (one run under load missed the queued-question timing by 0.2 s, rerun OK); robot-value.js OK; game-sim --tag=check 2/2 finished, 0 page errors; mp-test.js OK, desyncs 0 on all 3 clients. After the rebase on origin/main (c1b5914, with T45's buyout prices) all of these ran again: OK.
+
+## 21 Nov 2026: T38 the garage (swap parts in Upkeep on a bill; scrapped robots give their parts back; no Stash limit)
+
+- Kev (21 Nov): "modify the upkeep phase to also allow swapping of parts onto other robots for a small fee ... a sort of garage bill
+  will be displayed which they can lock in"; fees 1 off + 1 on, legendary 2 + 2 ("4 in total"); "stash limit gone"; scrapped parts
+  back, broken from a broken zone; a won part still free, a Stash part pays 1 to go on. Branch `claude/garage`, BUILD 2026-11-21o.
+  Doc: docs/robocus-garage.md (rules, look, choices, AI, numbers, questions); docs/robocus-2.0.1-screen.md (T38 section); rules.html,
+  docs/rulebook.md (Upkeep, Stash, Fate).
+- Upkeep: the pit is your garage (robots side by side, sockets, parts rack, bill on a clipboard, small fame race on top); click a part,
+  then a slot or the rack; the draft is local; Lock in / Done (locks first) sends one `garageLock` that the host checks and applies all
+  or nothing. Broken parts are lot ids `<id>~b`; 1 repair action fixes one (`repairPart`). `BAL.garage` switches.
+- 60 + 60 all-AI games (seeds 101-160): AI 0.7 moves per team per game, all Stash → robot, robot → robot 0 (odds gain ≤ ~0.6 Cr vs
+  a 2 Cr fee); top robot 1.42 vs 1.34 parts; Market part spend unchanged; a host scrap costs the victim 1.27 vs 1.62 Cr; rounds 11.9 vs
+  11.5 (± 0.45); bookie unchanged. 0 page errors.
+- Checks: tools/mp-scenario/garage.js OK (both sizes), garage-online.js OK, vote-rules.js OK after the rebase on T46/T47; repair-note-online,
+  questions-note (Stash question now tested with the garage off: in Upkeep the Fit goes on the bill), market-step, robot-value,
+  exhaust-cards, resting OK; repair-note: only its known failure "9 repairs: 8 buttons" (T28; the cause is the test: it damages
+  Thumper's weapon through `wear.parts['Axe arm']`, which the axe arm does not read, so the zone stays at 100%; the game is fine).
+- mp-test OK (3 clients, desyncs 0, 8.1 min; the test bot locks a random garage move in half its Upkeeps); game-sim check 2/2 finished, 0 page errors.

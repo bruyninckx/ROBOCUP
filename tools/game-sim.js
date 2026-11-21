@@ -43,7 +43,7 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', '')), PLAN
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { favSafe: [], reps: [], ups: [], fights: [], scraps: [], tradeIns: [], rv: [], rvNow: {}, rvTrade: {}, buyouts: [], fires: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
+  const X = window.__sim = { garage: [], partsBack: [], leaves: [], favSafe: [], reps: [], ups: [], fights: [], scraps: [], tradeIns: [], rv: [], rvNow: {}, rvTrade: {}, buyouts: [], fires: [], snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; if (Z.body && Z.body.lost && Z.body.lost.length) { o.lost = Z.body.lost.length; if (Z.body.lost.some(l => /chip/i.test(l))) o.fried = 1; } return o; };   // 11 Nov: body pieces lost, chip fried
@@ -146,6 +146,10 @@ function installHooks() {
         if (e && e.k === 'fire_sale') { X.fires.push({ r: g.round, team: e.team, kind: e.kind, name: e.name, v: e.value, price: e.price, paid: e.paid }); if (e.kind === 'robot') X.firePrice = e.price; }
         // T35: a losing Fan Favourite the host could not scrap (who, whose host, the fame table: would the AI host have scrapped it?)
         if (e && e.k === 'msg' && /a Fan Favourite can't be scrapped/.test(e.text || '') && g.fight && g.fight.loser) X.favSafe.push({ r: g.round, team: g.fight.loser.team, robot: g.fight.loser.robot.name, host: g.host, fame: g.teams.map(t => t.fame) });
+        // T38: garage bills, parts back from scrapped robots, and every robot that leaves (value and parts when it left)
+        if (e && e.k === 'garage') X.garage.push({ r: g.round, team: e.team, cost: e.cost, moves: e.moves });
+        if (e && e.k === 'parts_back') X.partsBack.push({ r: g.round, team: e.team, why: e.why, n: e.n, broken: e.broken, worth: e.worth });
+        if (e && e.k === 'scrap') { const o = X.rvNow[e.robot] || {}; X.leaves.push({ r: g.round, team: e.team, reason: e.reason, to: e.to, v: e.value != null ? e.value : o.v, parts: e.parts != null ? e.parts : o.parts, lv: e.level != null ? e.level : o.lv, host: g.host }); }
         if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got });
         if (e && e.k === 'msg' && /has no robots left/.test(e.text || '')) X.scraps.push({ r: g.round, why: 'none-left', team: (g.teams.find(t => e.text.includes(t.name)) || {}).i });
       } catch (err) { X.hookErrs.push('event: ' + err.message); }
@@ -209,6 +213,7 @@ function installHooks() {
           out.v2 = {
             inv: D.ailog ? D.ailog.slice() : null,   // T46: every AI host's pick (mode, pair, the leader, ready Fan Favourites)
             favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
+            garage: X.garage, partsBack: X.partsBack, leaves: X.leaves, stashEnd: G.teams.map(t => (t.stash || []).length),
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, rv: X.rv, buyouts: X.buyouts, fires: X.fires, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),

@@ -145,6 +145,11 @@ html, body {
 .prompt-bar .rep-head { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; }
 .prompt-bar .rep-head > span { flex: 1 1 auto; min-width: 0; }
 .prompt-bar .rep-head > .act { flex: 0 0 auto; white-space: nowrap; }
+.prompt-bar .g-bill { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; font-size: 12.5px; background: #FFFDF8; border: 1.5px dashed #8A6A3A; border-radius: 5px; padding: 2px 6px; margin: 3px 0; }
+.prompt-bar .g-bill .act { padding: 2px 8px; font-size: 12px; }
+.prompt-bar .g-bill > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.prompt-bar .g-short { color: #B23A2B; }
+.prompt-bar .g-auto { color: #6E6457; font-style: italic; }
 .prompt-bar .rep-btns .act.pick { font: 700 12px var(--sans); letter-spacing: 0; padding: 3px 8px; }
 .prompt-bar .rep-btns .act.pick b { font-weight: 700; flex-shrink: 0; max-width: 72%; }
 .prompt-bar .rep-btns .act.pick:disabled:not(.done) { opacity: 1; background: rgba(26,22,18,.1); color: #5A4C24; box-shadow: inset 0 0 0 1px rgba(26,22,18,.35); }
@@ -261,10 +266,12 @@ html, body {
 @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ---------- 5 · the Stash, in your rail under the robots ---------- */
-.stashcard { position: fixed; z-index: 11; left: 0; top: 0; width: 400px; background: var(--panel); border: 2px dashed var(--dash); border-radius: 6px; font-size: 12px; overflow: hidden; }
+.stashcard { position: fixed; z-index: 11; left: 0; top: 0; width: 400px; background: var(--panel); border: 2px dashed var(--dash); border-radius: 6px; font-size: 12px; overflow: hidden; display: flex; flex-direction: column; }
 .stashcard .lp-head { border-bottom: 0; padding: 2px 8px; }
 .stashcard .lp-head > span:first-child { font: 600 10.5px var(--mono); letter-spacing: 1px; color: var(--muted); }
-.st-list { padding: 0 8px 5px; display: flex; flex-direction: column; gap: 3px; }
+.st-list { padding: 0 8px 5px; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; min-height: 0; flex: 1 1 auto; scrollbar-width: thin; }
+.st-row.brk .lcard { color: #B23A2B; }
+.st-row button.fix { border-color: #B23A2B; color: #B23A2B; }
 .st-row { display: flex; align-items: center; gap: 5px; }
 .st-row .lcard { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-row button { border: 2px solid var(--ink); border-radius: 4px; background: var(--paper); font: 600 10.5px var(--mono); padding: 0 6px; cursor: pointer; color: var(--ink); }
@@ -742,6 +749,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // Kev, 8 Nov: a robot lot won with a full garage (3 bays) = trade-in: scrap one of your robots for base + perLevel × its level Cr,
     // its parts go to your Stash. off = the old rule (the robot goes back, you get 2 Cr)
     tradeIn: { on: true, base: 1, perLevel: 1 },
+    // T38 (Kev, 21 Nov): the garage. In Upkeep a team moves parts between its robots and its Stash on a draft bill and locks it in:
+    // taking a part off costs feeOff (a legendary legOff), putting one on feeOn (legOn); a move robot → robot pays both. stashLimit 0:
+    // no Stash limit (was 4). partsBack: a scrapped robot's parts go to its owner's Stash (a part of a broken zone comes back broken).
+    // idleMs: a player with parts to move but nothing to repair goes on by itself after this long unless they touch the garage.
+    // on: false = no garage (Stash fits free, as before T38). docs/robocus-garage.md
+    garage: { on: true, feeOff: 1, feeOn: 1, legOff: 2, legOn: 2, stashLimit: 0, partsBack: true, idleMs: 8000 },
     // Kev, 11 Nov (test options, both off): noRepeat = last round's host cannot bid for the host seat; streakTax = a host's bid counts this many Cr less per round it has hosted in a row
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
@@ -1013,6 +1026,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const RAR_MARK = ['', ' ◆◇◇◇', ' ◆◆◇◇', ' ◆◆◆◇', ' ◆◆◆◆'];   // filled and hollow diamonds (Kev, 16 Nov)
   for (const k of Object.keys(window.Lineup.PARTS)) { if (window.Lineup.PARTS[k].kind === 'chip') continue;
     for (let t = 1; t < RAR.length; t++) LOTS['p_' + k + '~' + t] = Object.assign({}, LOTS['p_' + k], { name: RAR[t].n + ' ' + LOTS['p_' + k].name, rar: t, base: 'p_' + k }); }
+  // T38: a broken copy of every part (<lot id>~b): it comes off a scrapped robot's broken zone, sits in a Stash and can't be fitted until
+  // it is repaired (1 repair action). Same part, same tier; its own lot id, so it is synced and saved as a plain Stash entry.
+  for (const id of Object.keys(LOTS)) if (/^p_/.test(id) && LOTS[id].part) LOTS[id + '~b'] = Object.assign({}, LOTS[id], { name: LOTS[id].name + ' (broken)', broken: true, whole: id, base: LOTS[id].base || id });
   const rarOf = id => (LOTS[id] && LOTS[id].rar) || 0, baseLot = id => (LOTS[id] && LOTS[id].base) || id;
   const rarOn = r => k => (r && r.rar && r.rar[k]) || 0;
   const rarKey = r => r && r.rar ? Object.keys(r.rar).sort().map(k => k + r.rar[k]).join('') : '';
@@ -2211,19 +2227,32 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else {
         // T22 (Kev, 17 Nov: "also add repair options in red box"): one button per repair you can make, the same act() as the zone on the card
         { const w = pickWaiting('rep'); if (w && isClient()) { const [rid, zk] = w.v.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk] || !zonesOf(r)[zk].damaged) pickWait = null; } }   // a joined screen: the host's answer came
-        const jobs = upkeepJobs(t), fits = upkeepFits(t);
+        // T38: with the garage the Stash buttons put a part on the draft bill (+1 Cr) and the bill is mirrored here (Lock / Reset; Done locks it first)
+        const gP = garageOn() ? gdPlan() : null, gOn = !!gP && gdMine(), gLines = gP ? gP.lines : [], gShort = !!gP && gP.cost > t.credits, gBad = gLines.length && (gShort || !!gP.err);
+        const jobs = upkeepJobs(t), fits = gP ? (gOn ? gP.toks.filter(x => x.at === 'S' && x.home === 'S' && !x.brk).flatMap(x => t.robots.filter(r => canFit(gP.bots.get(String(r.id)), LOTS[x.id])).map(r => ({ k: +x.tok.slice(2), tok: x.tok, id: x.id, r, pv: lotPreview(gP.bots.get(String(r.id)), LOTS[x.id]) }))) : []) : upkeepFits(t);
+        const pjobs = gP ? stashOf(t).map((id, k) => ({ k, id })).filter(x => isBroken(x.id)).map(x => Object.assign(x, { p: repairPlan(t, 1) })) : [];
+        const gBill = gLines.length ? '<div class="g-bill"><span>🧾 <b>Bill ' + gP.cost + ' Cr</b> (' + gLines.length + ' move' + (gLines.length > 1 ? 's' : '') + ')' + (gShort ? ' · <b class="g-short">you have ' + t.credits + ' Cr</b>' : ' · after: ' + (t.credits - gP.cost) + ' Cr') + '</span>' +
+          '<button class="act secondary" id="gReset">↺ Reset</button><button class="act" id="gLock"' + (gBad ? ' disabled' : '') + '>🔒 Lock in</button></div>' : '';
+        const gIdle = gOn && GD.left != null ? ' <span class="g-auto">Goes on by itself in ' + GD.left + ' s (click a part to stay).</span>' : '';
+        const doneLbl = gLines.length ? '🔒 Pay ' + gP.cost + ' Cr, Done →' : 'Done → Intrigue', doneOff = G.debtBusy || gBad || (gP && GD.sending);
         const lr = repDone && repDone.round === G.round && G.phase === 'upkeep' ? myBot(HS, repDone.rid) : null;
         const doneTxt = lr && ZONE[repDone.zk] && !zonesOf(lr)[repDone.zk].damaged ? ' <b class="rep-ok">✓ ' + esc(lr.name) + ' ' + ZONE[repDone.zk].icon + ' ' + ZONE[repDone.zk].label + ' repaired.</b>' : '';
-        if (!jobs.length && !fits.length) {
+        if (!jobs.length && !fits.length && !pjobs.length && !gLines.length && gP && garageWork(t)) {   // T38: nothing to repair, parts you could move
+          pb.innerHTML = '<span>🔧 <b>Upkeep: your garage.</b> Nothing to repair. To move a part: click it, then a socket on another robot or the rack (off ' + GB().feeOff + ' Cr, on ' + GB().feeOn + ' Cr; legendary ' + GB().legOff + ' + ' + GB().legOn + '). Nothing is paid until you lock the bill in.' + doneTxt + gIdle + '</span>' +
+            '<button class="act" id="pAct1"' + (doneOff ? ' disabled' : '') + '>' + doneLbl + '</button>';
+        } else if (!jobs.length && !fits.length && !pjobs.length && !gLines.length) {
           pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.' + doneTxt + '</span>' +
             '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
         } else {
           const n = repairActs(t);
           pb.classList.add('repmode');
-          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep: repairs.</b> ' + (jobs.length ? actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
-            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button></div>' +
+          const pHint = p => !p.ok ? 'can\'t pay: ' + p.cr + ' Cr (you have ' + t.credits + ')' : p.cr ? p.cr + ' Cr' : p.acts === p.free ? '1 free action' : '1 action' + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
+          pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep: ' + (gP && (garageWork(t) || gLines.length) ? 'repairs and garage.' : 'repairs.') + '</b> ' + (jobs.length || pjobs.length ? actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Nothing to repair.') + (fits.length && !gP ? ' 🔩 A Stash part fits.' : '') + doneTxt + gIdle + '</span>' +
+            '<button class="act" id="pAct1"' + (doneOff ? ' disabled' : '') + '>' + doneLbl + '</button></div>' + gBill +
             '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
-            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + lotQ(f.id) + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + lotQ(f.id) + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
+            pjobs.map(j => pickBtn('prep', j.k, '🔧 ' + lotNm(wholeLot(j.id)) + ' (broken, Stash)', pHint(j.p), { cls: 'brk' + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: 'Repair ' + lotQ(j.id) + ' in your Stash: 1 repair action. Then it can be fitted.' })).join('') +
+            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + lotQ(f.id) + ' → ' + f.r.name, (gP ? '+' + feeOnOf(f.id) + ' Cr · ' : '') + 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: (gP ? 'Put ' + lotQ(f.id) + ' on ' + f.r.name + ' on the garage bill (' + feeOnOf(f.id) + ' Cr when you lock it in): ' : 'Fit ' + lotQ(f.id) + ' from your Stash on ' + f.r.name + ': ') + f.pv })).join('') + '</div>';
+          pb.querySelectorAll('[data-prep]').forEach(b => { b.onclick = () => { const k = +b.dataset.prep, id = stashOf(t)[k]; if (!id) return; pickNow('prep', b.dataset.prep, lotNm(wholeLot(id)) + ' repaired', () => act('repairPart', k, id)); }; });
           pb.querySelectorAll('[data-rep]').forEach(b => { b.onclick = () => {
             const [rid, zk] = b.dataset.rep.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk]) return;
             const h = hitRegions.find(x => x.kind === 'zone_fix' && String(x.robot.id) === rid && x.zone === zk);
@@ -2232,10 +2261,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           }; });
           pb.querySelectorAll('[data-sfit]').forEach(b => { b.onclick = () => {
             const [k, rid] = b.dataset.sfit.split(':'), id = stashOf(t)[+k], r = myBot(HS, rid); if (!id || !r) return;
+            if (gP) { GD.touched = true; gdMove('s:' + k, rid); updateHud(); return; }   // T38: onto the draft bill
             pickNow('sfit', b.dataset.sfit, LOTS[id].name + ' fitted', () => act('fitStash', +k, id, r.id));   // the Stash card's Fit
           }; });
         }
-        $('#pAct1').onclick = () => act('upkeepDone');
+        $('#pAct1').onclick = () => { const P2 = garageOn() ? gdPlan() : null; if (P2 && P2.lines.length) gdLock(true); else act('upkeepDone'); };   // T38: Done locks the bill in first
+        if ($('#gReset')) $('#gReset').onclick = () => { gdReset(); updateHud(); };
+        if ($('#gLock')) $('#gLock').onclick = () => gdLock(false);
       }
     } else if (G.phase === 'intrigue') {
       if (G.intrigueTurn === HS) {
@@ -2276,8 +2308,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
             t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (valOn() ? ' (' + valLbl(r).replace('◉ ', '◉ worth ') + ')' : '') + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(lotQ(id))).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
           pb.querySelectorAll('[data-ti]').forEach(b => { b.onclick = () => act('tradeIn', b.dataset.ti); });
         } else if (PS().stashTrim) {
-          const t = me(), n = stashOf(t).length - STASH_MAX;
-          pb.innerHTML = '<span>📦 <b>Stash full</b> (' + STASH_MAX + ' max): sell ' + n + ' to the bank.</span>' +
+          const t = me(), n = stashOf(t).length - stashMax();
+          pb.innerHTML = '<span>📦 <b>Stash full</b> (' + stashMax() + ' max): sell ' + n + ' to the bank.</span>' +
             stashOf(t).map((id, k) => '<button class="act secondary" data-trim="' + k + '">🏦 ' + esc(lotQ(id)) + ' (' + bankHalf(id) + ' Cr)</button>').join('');
           pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
         } else if (myInst.length) {
@@ -2852,7 +2884,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (t.sponsor === 'blackwire') t.hand.push(draw1());
       for (const r of t.robots) if (quirkOf(r) === 'Cunning' && G.round > 1 && (r.lastFight || 0) < G.round - 1) { t.hand.push(draw1()); notify('✦ Cunning: ' + esc(r.name) + ' sat out last round, so ' + nm(t) + ' draws 1 extra Intrigue card.', t.col); }
 
-      if (!isHuman(t.i)) aiRepairs(t);
+      if (!isHuman(t.i)) { aiRepairs(t); aiGarage(t); }   // T38: then its garage
     }
     notify('<b>Round ' + G.round + ' Upkeep:</b> Mechanics earned credits, body parts healed to ' + healWord() + '. Repair the zones that matter (⚙ Drive, ⚔ Weapon, ⛨ Body).', '#111');
     for (const h of humanSeats()) { const T = G.teams[h], R = repState(T); if (R.free) say(h, '🔧 You have ' + R.free + ' free repair action' + (R.free > 1 ? 's' : '') + ' this Upkeep' + (T.sponsor === 'aegis' ? ' (Aegis Heavy' + (R.free > 1 ? ' and last round\'s loss' : '') + ')' : ' (your robot lost last round)') + '.', T.col); }
@@ -2971,9 +3003,168 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const t = G.teams[S], r = myBot(S, rid);
     const canFitNow = G.phase === 'upkeep' || (G.phase === 'market' && !G.marketAuction);
     if (!r || !canFitNow || stashOf(t)[k] !== id || !canFit(r, LOTS[id])) return;
+    const fee = garageOn() ? feeOnOf(id) : 0;   // T38: a Stash part pays its install fee (a part you just won goes on free)
+    if (fee > t.credits) { say(S, '🔩 Fitting ' + lotRef(id) + ' costs ' + fee + ' Cr: you have ' + t.credits + '.', '#b45309'); return; }
     t.stash.splice(k, 1); applyLot(S, id, r, twinKey);
-    notify('🔩 ' + nm(t) + ' fits ' + lotRef(id) + ' from its Stash on ' + esc(r.name) + '.', t.col);
+    if (fee) payCr(t, fee, 'garage');
+    if (fee) tlog('garage', { team: S, round: G.round, cost: fee, moves: [{ id, from: 'S', to: r.name, fee }] });
+    notify('🔩 ' + nm(t) + ' fits ' + lotRef(id) + ' from its Stash on ' + esc(r.name) + (fee ? ' (' + fee + ' Cr)' : '') + '.', t.col);
   };
+
+  /* ============================================================================
+   * T38 THE GARAGE (Kev, 21 Nov: "modify the upkeep phase to also allow swapping of parts onto other robots for a small fee ...
+   * People can play around with swapping items and a sort of garage bill will be displayed which they can lock in").
+   * In Upkeep each player's pit is their own garage. Parts move between robots and the Stash on a DRAFT that lives on that
+   * screen only (GD); the bill shows each move and its fee (off 1 Cr, on 1 Cr; a legendary 2 + 2: BAL.garage), the total and
+   * the credits after. Lock in (or Done, which locks the bill first) sends ONE action with the whole bill; the host checks every
+   * line again (garagePlan) and applies all of it or nothing (garageApply). A part taken off a robot whose zone for that part
+   * is broken comes off broken (as from a scrapped robot); a broken part can only go to the Stash, where 1 repair action
+   * fixes it (ACT.repairPart). docs/robocus-garage.md
+   * ============================================================================ */
+  const GB = () => BAL.garage || {};
+  const garageOn = () => !!GB().on;
+  const isBroken = id => !!(LOTS[id] && LOTS[id].broken);
+  const wholeLot = id => (LOTS[id] && LOTS[id].whole) || id;
+  const brokenLot = id => LOTS[wholeLot(id) + '~b'] ? wholeLot(id) + '~b' : id;
+  const legLot = id => !!(LOTS[id] && LOTS[id].legend);
+  const feeOffOf = id => (legLot(id) ? GB().legOff : GB().feeOff) || 0;
+  const feeOnOf = id => (legLot(id) ? GB().legOn : GB().feeOn) || 0;
+  // the repair zone a part card belongs to: weapon upgrades → Weapon, the Power kit (hot-wound motors) → Drive; drones, modules,
+  // tuning chips, hull and armour and the legendaries → Body (Repair2.ZONES: the Body covers chassis, armour, chip, module, drones)
+  const PART_ZONE = { overdrive: 'weapon', weapon: 'weapon', powerkit: 'drive' };
+  const partZone = k => PART_ZONE[k] || 'body';
+  const partOffBroken = (r, k) => !!(r && r.wear && zonesOf(r)[partZone(k)].broken);
+  const placeNm = (t, p) => p === 'S' ? 'the Stash' : (t.robots.find(r => String(r.id) === String(p)) || { name: '?' }).name;
+  // the things that can move: every part on every robot of team t and every Stash part (tok: 'r:<robot id>:<n>' / 's:<n>')
+  function garageToks(t) {
+    const out = [];
+    for (const r of t.robots) partsOf(r).forEach((k, i) => { if (LU.PARTS[k]) out.push({ tok: 'r:' + r.id + ':' + i, k, id: rarLot(k, rarOn(r)(k)), home: String(r.id), brk: partOffBroken(r, k) }); });
+    stashOf(t).forEach((id, i) => { if (LOTS[id] && LOTS[id].part) out.push({ tok: 's:' + i, k: LOTS[id].part, id, home: 'S', brk: isBroken(id) }); });
+    return out;
+  }
+  // what the bill was drafted on (a sale, a deal or a new part changes it: the draft goes; repairs don't)
+  const garageSig = t => JSON.stringify([t.robots.map(r => [String(r.id), partsOf(r), rarKey(r)]), stashOf(t).map(wholeLot)]);
+  // place: { tok: robot id | 'S' } for the parts that move (in the order they were moved). Every robot is built again from empty
+  // with the parts that stay, then the ones that come in, with the game's own fit rule (canFit: 2 part slots, 1 legendary slot,
+  // 3 drones, 1 tuning chip). → { toks, bots: Map(robot id → the robot as drafted), lines, cost, err }
+  function garagePlan(t, place) {
+    place = place || {};
+    const toks = garageToks(t), byTok = new Map(toks.map(x => [x.tok, x])), bots = new Map(), lines = [];
+    let err = null, cost = 0;
+    for (const x of toks) { const p = place[x.tok]; x.at = p == null ? x.home : String(p); }
+    for (const tk of Object.keys(place)) if (!byTok.has(tk)) err = err || 'a part on the bill is not there any more';
+    const order = Object.keys(place);
+    for (const r of t.robots) {
+      const rid = String(r.id), v = Object.assign({}, r, { parts: [], rar: {} }); delete v.leg;
+      const put = x => { if (LU.PARTS[x.k].kind === 'legendary') v.leg = x.k; else v.parts.push(x.k); const tr = rarOf(x.id); if (tr) v.rar[x.k] = tr; };
+      for (const x of toks) if (x.home === rid && x.at === rid) put(x);
+      for (const tk of order) { const x = byTok.get(tk); if (!x || x.at !== rid || x.home === rid) continue;
+        if (x.brk) { err = err || (x.home === 'S' ? lotNm(x.id) + ' is broken: repair it first (1 repair action)' : partNm(x.k) + ' comes off ' + placeNm(t, x.home) + '\'s broken ' + ZONE[partZone(x.k)].label + ' broken: it can only go to the Stash'); continue; }
+        if (!canFit(v, LOTS[wholeLot(x.id)])) { err = err || r.name + ' has no room for ' + partNm(x.k) + ' (' + lotPreview(v, LOTS[wholeLot(x.id)]) + ')'; continue; }
+        put(x); }
+      if (!v.parts.length && !(r.parts || []).length) { if (r.parts === undefined) delete v.parts; }
+      if (!Object.keys(v.rar).length && r.rar === undefined) delete v.rar;
+      bots.set(rid, v);
+    }
+    for (const tk of order) { const x = byTok.get(tk); if (!x || x.at === x.home) continue;
+      if (x.at !== 'S' && !bots.has(x.at)) { err = err || 'that robot is not in your garage'; continue; }
+      const fee = (x.home !== 'S' ? feeOffOf(x.id) : 0) + (x.at !== 'S' ? feeOnOf(x.id) : 0);
+      lines.push({ tok: tk, id: x.id, k: x.k, from: x.home, to: x.at, fee, brk: x.brk && x.home !== 'S' }); cost += fee; }
+    return { toks, bots, lines, cost, err };
+  }
+  const billLineTxt = (t, l) => partNm(l.k) + (rarOf(l.id) ? RAR_MARK[rarOf(l.id)] : '') + ': ' + (l.from === 'S' ? 'Stash → ' + placeNm(t, l.to) : l.to === 'S' ? placeNm(t, l.from) + ' → Stash' + (l.brk ? ' (broken)' : '') : placeNm(t, l.from) + ' → ' + placeNm(t, l.to));
+  // the host applies a checked bill: all lines or none
+  function garageApply(t, place) {
+    const P = garagePlan(t, place);
+    if (P.err || !P.lines.length || P.cost > t.credits) return P;
+    const moved = new Set(P.lines.flatMap(l => [l.from, l.to]));
+    for (const r of t.robots) { const rid = String(r.id); if (!moved.has(rid)) continue;
+      const v = P.bots.get(rid);
+      if (v.parts !== undefined) r.parts = v.parts.slice(); else delete r.parts;
+      if (v.leg) r.leg = v.leg; else delete r.leg;
+      if (v.rar && Object.keys(v.rar).length) r.rar = Object.assign({}, v.rar); else delete r.rar; }
+    const keep = P.toks.filter(x => x.home === 'S' && x.at === 'S').map(x => x.id), inn = P.lines.filter(l => l.to === 'S').map(l => l.brk ? brokenLot(l.id) : l.id);
+    t.stash = keep.concat(inn);
+    if (P.cost) payCr(t, P.cost, 'garage');
+    tlog('garage', { team: t.i, round: G.round, cost: P.cost, moves: P.lines.map(l => ({ id: l.id, from: l.from === 'S' ? 'S' : placeNm(t, l.from), to: l.to === 'S' ? 'S' : placeNm(t, l.to), fee: l.fee, brk: l.brk || undefined })) });
+    if (G.stats) { G.stats.garage = G.stats.garage || [0, 0, 0, 0]; G.stats.garage[t.i] += P.lines.length; }
+    for (const l of P.lines) notify('🔧 ' + nm(t) + (l.from === 'S' ? ' fits ' + lotRef(l.id) + ' from its Stash on ' + esc(placeNm(t, l.to)) : l.to === 'S' ? ' takes ' + lotRef(l.id) + ' off ' + esc(placeNm(t, l.from)) + ' into its Stash' + (l.brk ? ' (broken: its zone is broken)' : '') : ' moves ' + lotRef(l.id) + ' from ' + esc(placeNm(t, l.from)) + ' to ' + esc(placeNm(t, l.to))) + ' (' + l.fee + ' Cr).', t.col);
+    return Object.assign(P, { done: true });
+  }
+  const upkeepDoneFor = S => !!(G.gather && G.gather.key === 'upkeep:' + G.round && G.gather.done[S]);
+  // T38: the bill, locked in. bill = { sig, moves: [[tok, to], ...] }; refused as a whole with a line in that player's log
+  ACT.garageLock = (S, bill) => {
+    const t = G.teams[S];
+    if (!garageOn() || !bill) return;
+    const no = why => say(S, '🔧 <b>Garage bill refused:</b> ' + why + ' Nothing was paid and no part moved.', '#b45309');
+    if (G.phase !== 'upkeep' || upkeepDoneFor(S)) return no('⌛ too late, Upkeep is over for you.');
+    if (bill.sig !== garageSig(t)) return no('your garage changed before the bill arrived (a sale, a deal or a new part). Check it and lock again.');
+    const place = {}; for (const [tk, to] of bill.moves || []) place[tk] = String(to);
+    const P = garagePlan(t, place);
+    if (P.err) return no(esc(P.err) + '.');
+    if (!P.lines.length) return;
+    if (P.cost > t.credits) return no('the bill is ' + P.cost + ' Cr and you have ' + t.credits + ' Cr.');
+    garageApply(t, place);
+  };
+  // T38: a broken Stash part is repaired with 1 repair action (free actions, crew, then 2 Cr: as a zone)
+  ACT.repairPart = (S, k, id) => {
+    const t = G.teams[S];
+    if (G.phase !== 'upkeep' || upkeepDoneFor(S) || stashOf(t)[k] !== id || !isBroken(id)) return;
+    const how = spendActs(t, 1);
+    if (!how) { say(S, '🔧 No repair actions left and less than ' + repairCr() + ' Cr: ' + lotRef(id) + ' stays broken.', '#b45309'); return; }
+    t.stash[k] = wholeLot(id);
+    tlog('repair', { team: t.i, robot: 'Stash', zone: 'part', by: how === 'free action' ? 'free' : /Cr$/.test(how) ? 'credits' : 'crew' });
+    notify('🔧 ' + nm(t) + ' repairs ' + lotRef(t.stash[k]) + ' in its Stash (' + esc(how) + ').', t.col);
+  };
+  /* T38: the AI in its garage (host, Upkeep, after its repairs; no dice). It values a change in odds at 15 Cr per 1.0 (as
+   * partWorth does) on the robot it expects to send (its strongest ready robot), and half that on its other robots; a Stash part
+   * put to use is worth its Market value over its bank price (what it pays for a part in the Market) on top. It
+   * repairs a broken Stash part a robot could use, makes the best move while that value beats the fee (at most 3 bills, each
+   * keeping 2 Cr), and keeps its Stash at 4 parts by selling the least useful ones to the bank (as the old Stash limit did). */
+  function aiGarage(t) {
+    if (!garageOn() || !t.robots.length) return;
+    const V = 15, odds = r => { try { const p = fieldOdds(t.i, r).p; return p == null ? 0.5 : p; } catch (e) { return 0.5; } };
+    // 1. repair broken Stash parts a robot could take (free or crew actions; credits only with 5+ Cr to spare)
+    stashOf(t).forEach((id, k) => {
+      if (!isBroken(id)) return; const w = LOTS[wholeLot(id)];
+      if (!t.robots.some(r => canFit(r, w) && odds(withPart(r, w.part)) - odds(r) > 0.04)) return;
+      const how = spendActs(t, 1, 0, t.credits >= repairCr() + 5);
+      if (how) { t.stash[k] = wholeLot(id); tlog('repair', { team: t.i, robot: 'Stash', zone: 'part', by: how === 'free action' ? 'free' : /Cr$/.test(how) ? 'credits' : 'crew' }); notify('🔧 ' + nm(t) + ' repairs ' + lotRef(t.stash[k]) + ' in its Stash (' + esc(how) + ').', t.col); }
+    });
+    // 2. moves: one bill at a time, the best value − fee, while it is worth it
+    for (let n = 0; n < 3; n++) {
+      const send = bestReady(t), base = garagePlan(t, {}), cands = [];
+      if (!send) break;
+      const sid = String(send.id), o0 = new Map(t.robots.map(r => [String(r.id), odds(r)]));
+      // a part that leaves the Stash for a robot is put to use: + its Market value over its bank price (what the AI pays for a part it fits); back to the Stash: − that
+      const use = id => Math.max(0, partValue(id) - bankHalf(id));
+      const val = P => { let v = 0; for (const r of t.robots) { const rid = String(r.id), d = odds(P.bots.get(rid)) - o0.get(rid); v += V * d * (rid === sid ? 1 : 0.5); }
+        for (const l of P.lines) v += l.from === 'S' ? use(l.id) : l.to === 'S' ? -use(l.id) : 0; return v; };
+      const allC = [], tryPlace = place => { const P = garagePlan(t, place); if (P.err || !P.lines.length || P.cost > t.credits - 2) return; const v = val(P); allC.push({ place, v, c: P.cost }); if (v > P.cost) cands.push({ place, v, c: P.cost }); };
+      for (const x of base.toks) {
+        if (x.home === 'S' && !x.brk) for (const r of t.robots) tryPlace({ [x.tok]: String(r.id) });                 // Stash → a robot
+        if (x.home !== 'S' && x.home !== sid && !x.brk) tryPlace({ [x.tok]: sid });                                     // another robot → the one it sends
+        if (x.home === sid) for (const y of base.toks) if (y.home !== sid && !y.brk) tryPlace({ [x.tok]: y.home === 'S' ? 'S' : y.home, [y.tok]: sid });   // swap onto the one it sends
+      }
+      if (window.__garTrace) window.__garTrace.push({ r: G.round, team: t.i, n: cands.length, best: allC.sort((a, b) => (b.v - b.c) - (a.v - a.c)).slice(0, 3).map(c => [+c.v.toFixed(2), c.c, Object.keys(c.place).map(k => k[0] + '>' + (c.place[k] === 'S' ? 'S' : c.place[k] === sid ? 'send' : 'other')).join(',')]) });
+      if (!cands.length) break;
+      cands.sort((a, b) => (b.v - b.c) - (a.v - a.c));
+      if (!garageApply(t, cands[0].place).done) break;
+    }
+    // 3. no Stash limit any more: the AI still keeps 4 at most (the least useful go to the bank, as the old limit did)
+    while (stashOf(t).length > 4) { let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } }); sellStash(t, k); }
+  }
+  // T38: the parts of a robot that leaves by scrap go to its owner's Stash; a part of a zone that is broken at that moment comes back broken
+  function scrapPartsOut(r) { return partLots(r).map(id => GB().partsBack !== false && garageOn() && partOffBroken(r, LOTS[id].part) ? brokenLot(id) : id); }
+  function scrapParts(T, r, why) {
+    if (!garageOn() || GB().partsBack === false) return [];
+    const ids = scrapPartsOut(r); if (!ids.length) return ids;
+    tlog('parts_back', { team: T.i, robot: r.name, why, n: ids.length, broken: ids.filter(isBroken).length, worth: ids.reduce((a, id) => a + bankHalf(id), 0), round: G.round });
+    delete r.parts; delete r.leg; delete r.rar;
+    stashParts(T, ids, true);
+    notify('📦 ' + esc(r.name) + '\'s parts go to ' + nm(T) + '\'s Stash: ' + ids.map(lotRef).join(', ') + '.', T.col);
+    return ids;
+  }
 
   // Can't pay (rulebook 4): scrap one robot of your choice for each credit you can't pay
   async function settleDebts() {
@@ -2986,7 +3177,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name) + (valOn() ? ' (' + valLbl(x) + ')' : ''), value: () => x })), 0, weak, { late: 'your weakest robot <b>' + esc(weak.name) + '</b> is scrapped (as the AI would pick)' }); }
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
-        robotLeaves(t, r, null, 'debt'); t.debt--; returnStarter(r.name);
+        robotLeaves(t, r, null, 'debt'); scrapParts(t, r, 'debt'); t.debt--; returnStarter(r.name);
         for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
         notify('🧾 <b>' + esc(t.name) + '</b> can\'t pay its upkeep and scraps <b>' + esc(r.name) + '</b>.', '#d62828');
         if (!t.robots.length) noRobotsLeft(t);   // 2.0 (Kev, 8 Nov): no free Scrapbot
@@ -3017,7 +3208,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   let CR_SRC = 'other';
   // Kev, 9 Nov: every money move shows in the log. The moves of one action are gathered and written as one 🪙 line after
   // it (team, amount, what for), on the host / in solo; clients get the line with the rest of the log.
-  const CR_WORD = { mechanics: 'Mechanics', upkeep: 'robot upkeep', repair: 'repair', sale: 'sold', sponsor: 'sponsor', card: 'card', cashin: 'card cashed in', catchup: 'underdog purse', lot: 'market lot', market: 'market bid', host: 'host bid', wager: 'robot-count wager', arena: 'arena', appearance: 'appearance money', fightcard: 'fight card', bet: 'bet', quirk: 'quirk', backing: 'backing', deal: 'deal', trade: 'trade' };
+  const CR_WORD = { mechanics: 'Mechanics', upkeep: 'robot upkeep', repair: 'repair', sale: 'sold', sponsor: 'sponsor', card: 'card', cashin: 'card cashed in', catchup: 'underdog purse', lot: 'market lot', market: 'market bid', host: 'host bid', wager: 'robot-count wager', arena: 'arena', appearance: 'appearance money', fightcard: 'fight card', bet: 'bet', quirk: 'quirk', backing: 'backing', deal: 'deal', trade: 'trade', garage: 'garage bill' };
   let crQ = null;
   function crQueue(t, amt, src) {
     if (!G || G.fast || isClient() || headless()) return;
@@ -3054,7 +3245,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const k = T.robots.indexOf(r); if (k < 0) return false;
     T.robots.splice(k, 1);
     if (to) to.robots.push(r);
-    tlog('scrap', { team: T.i, robot: r.name, reason, to: to ? to.i : null, wins: r.wins });
+    tlog('scrap', { team: T.i, robot: r.name, reason, to: to ? to.i : null, wins: r.wins, value: robotValueOf(r, T).v, parts: partsOf(r).length, level: r.level || 0 });   // T38: value and parts when it leaves
     const ff = BAL.fame.fanFav;
     if (ff && r.wins >= favWins(T) && T.fame > 0) { G.fameSrc = 'fav'; T.fame = Math.max(0, T.fame - ff); G.fameSrc = null; notify('🎖 ' + nm(T) + ' loses its Fan Favourite ' + esc(r.name) + ': −' + ff + ' fame.', T.col); }
     if (ff && to && r.wins >= favWins(to)) { G.fameSrc = 'fav'; to.fame += ff; G.fameSrc = null; notify('🎖 ' + esc(r.name) + ' is a Fan Favourite for ' + nm(to) + ' now: +' + ff + ' fame.', to.col); }
@@ -3463,7 +3654,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21n AI hosts invite like people and guard the host seat, crunch week ticks, 2 repair kits, market closes over open deals, send timer, ask which robot for a part, unlock and trade lines for everyone, Hostile Buyout costs the robot\'s value, Fire Sale back (2 copies) and pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21o garage: swap parts in Upkeep on a bill, scrapped robots give their parts back, no Stash limit, AI hosts invite like people and guard the host seat, crunch week ticks, 2 repair kits, market closes over open deals, send timer, ask which robot for a part, unlock and trade lines for everyone, Hostile Buyout costs the robot\'s value, Fire Sale back (2 copies) and pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3669,18 +3860,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
   /* ============================================================================
    * STASH & DEALS (Kev, 6 Nov)
-   * Stash: every team keeps up to STASH_MAX spare parts (won lots no robot can take, or parts kept aside). Fit one
+   * Stash: every team keeps spare parts (T38: no limit; BAL.garage.stashLimit) (won lots no robot can take, or parts kept aside). Fit one
    * when a robot can take it (Upkeep or Market), trade it, or sell it to the bank at half value. Open information.
    * Deals: one offer panel for every moment where someone decides (backing, invites, spare/scrap, card threats,
    * open-market trades). You move credits and Stash parts onto the table and press Lock in; no timers.
    * AI teams value a bundle as credits + what each part is worth to them (the bookie's band jump on their robots).
    * ============================================================================ */
-  const STASH_MAX = 4;
-  const partValue = id => { const L = LOTS[id]; if (!L) return 0; return (L.legend ? 5 : L.kind === 'drone' || L.kind === 'module' ? 3 : 2) + [0, 1, 2, 3, 6][L.rar || 0]; };   // a better copy is worth more
-  const bankHalf = id => Math.max(1, Math.floor(partValue(id) / 2));
+  // T38 (Kev, 21 Nov: "stash limit gone"): BAL.garage.stashLimit 0 = no limit; 4 brings back the old limit (and its trim prompt) for comparison
+  const stashMax = () => BAL.garage && BAL.garage.stashLimit > 0 ? BAL.garage.stashLimit : Infinity;
+  const partValue = id => { const L = LOTS[id]; if (!L) return 0; if (L.broken) return Math.max(1, Math.floor(partValue(L.whole) / 2)); return (L.legend ? 5 : L.kind === 'drone' || L.kind === 'module' ? 3 : 2) + [0, 1, 2, 3, 6][L.rar || 0]; };   // a better copy is worth more; T38: a broken one half
+  const bankHalf = id => Math.max(1, Math.floor(partValue(id) / 2));   // T38: a broken part sells for half its bank price (at least 1)
   const stashOf = t => (t.stash = t.stash || []);
   function toStash(t, id, quiet) {
-    if (stashOf(t).length >= STASH_MAX) {
+    if (stashOf(t).length >= stashMax()) {
       const g = bankHalf(id); addCr(t, g, 'sale');
       notify('📦 ' + nm(t) + '\'s Stash is full: ' + lotRef(id) + ' goes to the bank for ' + g + ' Cr.', t.col);
       return false;
@@ -3915,16 +4107,24 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const key = JSON.stringify([S, G.phase, !!G.marketAuction, t.robots.map(r => partsOf(r).join(',') + (r.wear ? 'w' : ''))]);
     if (el.dataset.key === key) return;
     el.dataset.key = key;
-    el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
+    const lim = stashMax(), gar = garageOn(), upk = G.phase === 'upkeep' && gar;
+    el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, parts you kept aside' + (gar ? ', parts taken off in the garage and the parts of a scrapped robot (a part of a broken zone comes back broken: 1 repair action fixes it)' : '') + '. Fit one when a robot can take it (' + (gar ? 'Upkeep garage: ' + GB().feeOn + ' Cr, legendary ' + GB().legOn + '; Market: the same fee' : 'Upkeep or Market') + '), trade it in a deal, or sell it to the bank at half value' + (gar ? ' (a broken part: half of that)' : '') + '. ' + (lim < Infinity ? 'Up to ' + lim + ' parts; ' : 'No limit; ') + 'everyone can see it.') + '>📦 Stash (' + S.length + (lim < Infinity ? '/' + lim : '') + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
-        const fits = t.robots.filter(r => canFit(r, LOTS[id]));
-        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
-          (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
+        const fits = t.robots.filter(r => canFit(r, LOTS[id])), brk = isBroken(id);
+        return '<div class="st-row' + (brk ? ' brk' : '') + '"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (brk ? '<b style="color:#B23A2B">Broken</b>: it can\'t be fitted until it is repaired (1 repair action in Upkeep).<br>' : '') + (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
+          (brk && G.phase === 'upkeep' ? '<button class="fix" data-fix="' + k + '"' + helpAttr('🔧 Repair', '1 repair action (' + esc(repairTxt(t)) + ').') + '>🔧 Fix</button>' : '') +
+          (fits.length && canFitNow ? '<button data-fit="' + k + '"' + (gar ? helpAttr('🔩 Fit', upk ? 'Puts it on the garage bill (' + feeOnOf(id) + ' Cr when you lock it in).' : 'Costs ' + feeOnOf(id) + ' Cr (a part from the Stash pays its install fee).') : '') + '>Fit' + (gar && !upk ? ' ' + feeOnOf(id) + ' Cr' : '') + '</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
     el.classList.toggle('empty', !S.length);
     el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => act('sellStash', +b.dataset.sell); });
+    el.querySelectorAll('[data-fix]').forEach(b => { b.onclick = () => { const k = +b.dataset.fix; if (S[k]) act('repairPart', k, S[k]); }; });
     el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
+      if (G.phase === 'upkeep' && garageOn()) {   // T38: onto the garage bill; with several robots the part is picked up: click a socket in the garage
+        GD.touched = true;
+        if (fits.length === 1) gdMove('s:' + k, fits[0].id); else { gdSync(); GD.sel = 's:' + k; GD.msg = 'Picked ' + partNm(LOTS[id].part) + ': click a socket on the robot it goes on.'; }
+        updateHud(); return;
+      }
       const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(lotQ(id)), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]), ASK_MS(), null,
         { onLate: () => say(HS, '⌛ <b>No answer in time</b> (🔩 Fit ' + esc(LOTS[id].name) + '): the part stays in your Stash.', '#6E6457') });   // T20: in the note; T31: 20 s, then Cancel
       if (!r || stashOf(t)[k] !== id) return;
@@ -4466,7 +4666,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           if (!gift && !crew.length && F.robots.length) gift = { robot: F.robots[0] };
         }
         if (gift && gift.robot && F.robots.includes(gift.robot)) {
-          const r = gift.robot; robotLeaves(F, r, null, 'museum'); returnStarter(r.name); addFame(F, 1);
+          const r = gift.robot; robotLeaves(F, r, null, 'museum'); scrapParts(F, r, 'museum'); returnStarter(r.name); addFame(F, 1);
           say('📣 ' + nm(F) + ' donates <b>' + esc(r.name) + '</b> to the museum: +1 fame.'); if (!F.robots.length) noRobotsLeft(F);
         } else {
           let c = null;
@@ -5193,7 +5393,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const x of left) if (G.marketResults && G.marketResults[x.idx]) G.marketResults[x.idx].target = '📦 Kept in the Stash';
     stashParts(t, left.map(x => x.lot), true);
     if (force && P.stashTrim) {   // leaving the Market: no prompt any more, the least useful parts go to the bank
-      while (t.stash.length > STASH_MAX) { let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } }); sellStash(t, k); }
+      while (t.stash.length > stashMax()) { let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } }); sellStash(t, k); }
       P.stashTrim = false;
     }
   }
@@ -5314,7 +5514,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // Kev, 10 Nov: the AI knows the bookie's combo tags. Its own epic combo or great fit is worth more; a rival's epic part is worth
     // a denial bid (it goes to the Stash) even when none of its robots can use it
     const own = L.part ? Math.max(0, ...t.robots.filter(r => canFit(r, L)).map(r => epicOf(r.name, L.part, null) ? 3.5 : PART_FIT[r.name] && PART_FIT[r.name][L.part] ? 1.2 * PART_FIT[r.name][L.part][0] : 0)) : 0;
-    const deny = L.part && stashOf(t).length < STASH_MAX && epicTargets(L.part).concat(tripleTargets(L.part)).some(q => q.T !== t) ? 2.5 : 0;
+    const deny = L.part && stashOf(t).length < stashMax() && epicTargets(L.part).concat(tripleTargets(L.part)).some(q => q.T !== t) ? 2.5 : 0;
     if (!canTake(t, id)) return deny;
     const bin = G.bargainK != null && G.market[G.bargainK] === id ? BARGAIN_OFF : 0;
     return Math.max(deny, partWorth(t, id) * aiP(t).partK + own + bin);
@@ -5550,6 +5750,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function canFit(r, L) {
     if (!r || !L) return false;
+    if (L.broken) return false;   // T38: a broken part is repaired first
     if (L.part) {
       const P = LU.PARTS[L.part];
       if (!P) return false;
@@ -5572,6 +5773,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // what a lot does to this robot, in the bookie's numbers ("62% → 70% vs the field")
   function lotPreview(r, L) {
     if (!L || !L.part) return L ? L.text : '';
+    if (L.broken) return 'broken: repair it first (1 repair action)';
     if (!canFit(r, L)) return LU.PARTS[L.part].kind === 'legendary' ? 'legendary slot taken' : LU.PARTS[L.part].kind === 'chip' && partsOf(r).some(isChip) ? 'it already has a tuning chip' : slotParts(r).length >= 2 ? 'both part slots taken' : LU.PARTS[L.part].kind === 'chip' ? 'it already has a tuning chip' : 'no room for another drone';
     const ti = ownerOf(r) ? ownerOf(r).i : viewerSeat, a = fieldOdds(ti, r).p, b = fieldOdds(ti, withPart(r, L.part)).p;
     return shiftTxt(a, b) + ' vs the field' + (swapOut(r, L) ? ' (replaces its ' + swapOut(r, L) + ')' : '') + fitNote(r.name, L.part);
@@ -5831,7 +6033,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function doTradeIn(t, old, nr) {
     if (!old || !t.robots.includes(old)) { t.robots.push(nr); return `New Bot: ${nr.name}`; }
-    const cr = scrapMoney(old), parts = partLots(old);
+    const cr = scrapMoney(old), parts = garageOn() && GB().partsBack !== false ? scrapPartsOut(old) : partLots(old);   // T38: a part of a broken zone comes back broken
     robotLeaves(t, old, null, 'trade-in'); returnStarter(old.name);
     addCr(t, cr, 'sale');
     for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');   // Vulture Salvage: +2 Cr whenever a bot is scrapped
@@ -5845,9 +6047,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function stashParts(t, ids, quiet) {
     if (!ids.length) return;
     stashOf(t).push(...ids);
-    if (t.stash.length <= STASH_MAX) { if (!quiet) notify('📦 ' + ids.map(lotRef).join(', ') + ' go' + (ids.length === 1 ? 'es' : '') + ' into ' + nm(t) + '\'s Stash.', t.col); return; }
+    if (t.stash.length <= stashMax()) { if (!quiet) notify('📦 ' + ids.map(lotRef).join(', ') + ' go' + (ids.length === 1 ? 'es' : '') + ' into ' + nm(t) + '\'s Stash.', t.col); return; }
     if (isHuman(t.i)) { PS(t.i).stashTrim = true; return; }
-    while (t.stash.length > STASH_MAX) {
+    while (t.stash.length > stashMax()) {
       let k = 0, lo = Infinity; t.stash.forEach((id, j) => { const w = partWorth(t, id); if (w < lo) { lo = w; k = j; } });
       sellStash(t, k);
     }
@@ -5863,8 +6065,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.trimStash = (S, k) => {
     const t = G.teams[S], P = PS(S);
     if (!P.stashTrim) return;
-    if (stashOf(t).length > STASH_MAX) sellStash(t, k);
-    if (stashOf(t).length <= STASH_MAX) P.stashTrim = false;
+    if (stashOf(t).length > stashMax()) sellStash(t, k);
+    if (stashOf(t).length <= stashMax()) P.stashTrim = false;
   };
 
   function applyLot(ti, lot, r) {
@@ -7556,7 +7758,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     { const H = G.teams[G.host], offs = (G.fight.fateOffers || {})[scrap ? 'scrap' : 'spare'] || [];   // the host takes the offers of the side it picked
       offs.forEach(o => { transfer(G.teams[o.team], H, o.B, 'hostdeal'); notify('🤝 ' + nm(G.teams[o.team]) + ' pays the host ' + bundleText(o.B) + ' (' + (scrap ? 'scrap' : 'spare') + ').', G.teams[o.team].col); }); }
     if (scrap) {
-      robotLeaves(T, robot, null, 'host scrap'); if (G.stats) G.stats.scrapped[T.i]++; returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
+      robotLeaves(T, robot, null, 'host scrap'); scrapParts(T, robot, 'host scrap'); if (G.stats) G.stats.scrapped[T.i]++; returnStarter(robot.name);   // (a Fan Favourite can't be scrapped by the host; if it ever is, its owner loses the fame)
       for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');
       notify('👎 Host scrapped <b>' + esc(robot.name) + '</b>!', '#d62828');
       relAdd(T.i, G.host, -3);   // a scrapped robot is not forgotten
@@ -7830,7 +8032,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const AUTO_MS = () => BAL.autoMs != null ? BAL.autoMs : 6000;
   const AUTO_STEPS = { mres: 1, mres2: 1, next: 1 };
   const AUTO = { key: null, t0: 0 }; let autoPend = 0;
-  const upkeepIdle = s => { try { const t = G.teams[s]; return !t.robots.some(r => r.wear && R2.ZONES.some(z => zonesOf(r)[z.key].damaged)) && !stashOf(t).some(id => t.robots.some(r => canFit(r, LOTS[id]))); } catch (e) { return false; } };
+  const upkeepIdle0 = s => { try { const t = G.teams[s]; return !t.robots.some(r => r.wear && R2.ZONES.some(z => zonesOf(r)[z.key].damaged)) && !stashOf(t).some(id => t.robots.some(r => canFit(r, LOTS[id]))); } catch (e) { return false; } };
+  // T38: a player with something to do in the garage (a Stash part, or parts on one of 2+ robots) is not "idle": their own
+  // screen counts BAL.garage.idleMs instead and goes on unless they touch the garage (garageIdleTick). Nothing to move: 0.6 s as before.
+  const garageWork = t => garageOn() && (stashOf(t).length > 0 || (t.robots.length > 1 && t.robots.some(r => partsOf(r).length)));
+  const upkeepIdle = s => upkeepIdle0(s) && !garageWork(G.teams[s]);
   function autoStep() {
     if (!G || G.over || isClient() || window.__noAuto) return;
     const step = gatherStep(), hs = humanSeats();
@@ -7988,7 +8194,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- test bots (?bot=1): a seat that plays itself with simple rules, through the same actions ---------- */
-  let botBusy = false, botRepRound = null, botDid = null;
+  let botBusy = false, botRepRound = null, botGarRound = null, botDid = null;
   function botStep() {
     if (!G || G.over || botBusy || HS < 0 || window.__noBot) return;
     if (/[?&]room=/.test(location.search) && !NETROLE) return;   // a test bot in a room waits for the room (no solo game first)
@@ -8018,6 +8224,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'install') { const it = P.install[0], r = (it.ask && bestFit(t, it.lot)) || t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }   // T47: asked first: the bot takes the robot T12's auto-fit took
     // repairs once per round (kept on this screen: on a joined screen every snapshot replaced P.botRep, and a repair that needs more
     // actions than are left was tried again and again, so a joined bot could stay in Upkeep for good), then Done
+    // T38: once per round the bot may lock one random garage move it can pay for (exercises the online bill), then repairs, then Done
+    if (busy === 'upkeep' && botGarRound !== G.gid + ':' + G.round && G.phase === 'upkeep' && garageOn()) { botGarRound = G.gid + ':' + G.round;
+      if (R() < 0.5) { const P0 = garagePlan(t, {}), opts = [];
+        for (const x of P0.toks) for (const to of ['S'].concat(t.robots.map(r => String(r.id)))) if (to !== x.home) { const P = garagePlan(t, { [x.tok]: to }); if (!P.err && P.cost <= t.credits) opts.push([x.tok, to]); }
+        if (opts.length) { const o = opts[Math.floor(R() * opts.length)]; return act('garageLock', { sig: garageSig(t), moves: [o] }); } } }
     if (busy === 'upkeep' && botRepRound !== G.gid + ':' + G.round && G.phase === 'upkeep') { botRepRound = G.gid + ':' + G.round; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) >= repairCost(r, z.key)) act('repairZone', r.id, z.key); return; }
     if (busy === 'robot pick') { const r = readyRobots(t)[0]; return r ? act('sendBot', r.id) : act('decline'); }
     if (busy === 'spare/scrap') return act('fate', R() < 0.4);
@@ -8088,7 +8299,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
@@ -9018,6 +9229,209 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
 
   /* ---------- Compact Pre-Fight Central Stage Overview ---------- */
+  /* ---------- T38 the garage on screen: the draft (this screen only), the pit as your garage, the clicks ---------- */
+  const GD = { key: null, sig: null, place: {}, sel: null, msg: '', touched: false, t0: 0, sending: null, page: 0, autoSent: false, left: null };
+  function gdSync() {   // the draft belongs to this screen, this round and this garage
+    if (!G || G.phase !== 'upkeep' || !garageOn() || HS == null || HS < 0 || !G.teams[HS]) { if (GD.key) Object.assign(GD, { key: null, place: {}, sel: null, msg: '', sending: null, touched: false, autoSent: false, left: null }); return null; }
+    const t = G.teams[HS], k = G.gid + ':' + G.round + ':' + HS, sig = garageSig(t);
+    if (GD.key !== k) Object.assign(GD, { key: k, sig, place: {}, sel: null, msg: '', touched: false, t0: Date.now(), sending: null, page: 0, autoSent: false, left: null });
+    else if (GD.sig !== sig) {
+      const had = Object.keys(GD.place).length && !GD.sending;
+      Object.assign(GD, { sig, place: {}, sel: null, sending: null });
+      if (had) GD.msg = 'Your garage changed (a sale, a deal or a new part): the draft bill was cleared.';
+    } else if (GD.sending && Date.now() - GD.sending > 5000) GD.sending = null;   // refused (the log says why): the draft is still there
+    if (GD.sel && !garageToks(t).some(x => x.tok === GD.sel)) GD.sel = null;
+    return t;
+  }
+  const gdMine = () => G && G.phase === 'upkeep' && garageOn() && !iWait('upkeep') && !upkeepDoneFor(HS) && !G.debtBusy && !GD.sending && isHuman(HS);
+  const gdPlan = () => { const t = gdSync(); return t ? garagePlan(t, GD.place) : null; };
+  function gdTry(place) {   // a new draft: kept when the plan has no error
+    const t = gdSync(); if (!t) return false;
+    const P = garagePlan(t, place);
+    if (P.err) { GD.msg = P.err + '.'; return false; }
+    GD.place = place; GD.msg = ''; GD.touched = true; GD.sel = null; return true;
+  }
+  function gdPut(place, x, to) { delete place[x.tok]; if (String(to) !== x.home) place[x.tok] = String(to); }
+  function gdMove(tok, to) { const t = gdSync(); if (!t) return false; const x = garagePlan(t, GD.place).toks.find(q => q.tok === tok); if (!x) return false; const pl = Object.assign({}, GD.place); gdPut(pl, x, to); return gdTry(pl); }
+  function gdSwap(a, b) {   // a goes where b is, b where a was
+    const t = gdSync(); if (!t) return false; const T = garagePlan(t, GD.place).toks, A = T.find(q => q.tok === a), B = T.find(q => q.tok === b); if (!A || !B) return false;
+    const pl = Object.assign({}, GD.place), aAt = A.at; gdPut(pl, A, B.at); gdPut(pl, B, aAt); return gdTry(pl);
+  }
+  function gdUndo(tok) {
+    const pl = Object.assign({}, GD.place); delete pl[tok];
+    if (!gdTry(pl)) GD.msg = 'Can\'t undo that line alone: ' + GD.msg.replace(/\.$/, '') + '. Undo the move that took its place first (or Reset).';
+  }
+  function gdReset() { GD.place = {}; GD.sel = null; GD.msg = ''; GD.touched = true; }
+  function gdLock(thenDone) {   // one action with the whole bill (the host checks it again); Done = lock, then done
+    const t = gdSync(); if (!t) { if (thenDone) act('upkeepDone'); return; }
+    const P = garagePlan(t, GD.place);
+    if (P.lines.length) {
+      if (P.err || P.cost > t.credits) { GD.msg = P.err ? P.err + '.' : 'Not enough credits: the bill is ' + P.cost + ' Cr, you have ' + t.credits + ' Cr. Undo a line or Reset.'; updateHud(); return; }
+      GD.sending = Date.now(); GD.sel = null;
+      act('garageLock', { sig: garageSig(t), moves: Object.entries(GD.place) });
+    }
+    if (thenDone) act('upkeepDone');
+    updateHud();
+  }
+  function gdClick(h) {
+    if (!gdMine()) { if (h.kind !== 'gx_page') GD.msg = upkeepDoneFor(HS) || iWait('upkeep') ? 'You are done with Upkeep: the garage is closed.' : ''; return; }
+    GD.touched = true;
+    const t = me(), P = garagePlan(t, GD.place), sel = GD.sel && P.toks.find(x => x.tok === GD.sel);
+    if (h.kind === 'gx_page') { GD.page = Math.max(0, GD.page + h.d); return; }
+    if (h.kind === 'gx_undo') return gdUndo(h.tok);
+    if (h.kind === 'gx_reset') return gdReset();
+    if (h.kind === 'gx_lock') return gdLock(false);
+    if (h.kind === 'gx_fixpart') { act('repairPart', h.k, h.id); return; }
+    if (h.kind === 'gx_tok') {
+      if (!sel) { GD.sel = h.tok; GD.msg = ''; return; }
+      if (sel.tok === h.tok) { GD.sel = null; return; }
+      const x = P.toks.find(q => q.tok === h.tok);
+      if (x && x.at !== 'S') return gdSwap(sel.tok, h.tok);   // a part on a robot: swap the two
+      if (sel.at !== 'S') return gdMove(sel.tok, 'S');         // a part in the rack while a robot's part is picked: that one goes to the rack
+      GD.sel = h.tok; return;
+    }
+    if (h.kind === 'gx_sock') { if (!sel) { GD.msg = 'Click a part first (on a robot or in the rack), then this socket.'; return; } return gdMove(sel.tok, h.rid); }
+    if (h.kind === 'gx_rack') { if (sel && sel.at !== 'S') return gdMove(sel.tok, 'S'); if (!sel) GD.msg = 'Click a part on a robot first, then the rack: it goes to the Stash.'; return; }
+  }
+  // the owner's screen: nothing to repair, parts it could move but did not touch the garage → Done after idleMs (no click)
+  function garageIdleTick() {
+    if (!G || G.over || G.phase !== 'upkeep' || !garageOn() || window.__noAuto || BOT) { if (GD.left != null) { GD.left = null; } return; }
+    const t = gdSync(); if (!t || !gdMine()) { GD.left = null; return; }
+    const on = upkeepIdle0(HS) && garageWork(t) && !GD.touched && !Object.keys(GD.place).length && !qOpen();
+    let left = null;
+    if (on) { const ms = GB().idleMs != null ? GB().idleMs : 8000; left = Math.max(0, Math.ceil((ms - (Date.now() - GD.t0)) / 1000)); if (left <= 0 && !GD.autoSent) { GD.autoSent = true; act('upkeepDone'); } }
+    if (left !== GD.left) { GD.left = left; updateHud(); }
+  }
+  setInterval(() => { try { garageIdleTick(); } catch (e) { console.warn('garage idle', e); } }, 250);
+
+  // a part in a socket or on the rack: its drawing (T39 flavour art) or icon, name, rarity, broken; picked: a yellow ring
+  function drawPartTile(ctx, x, y, w, h, tk, o = {}) {
+    const id = tk.at !== 'S' || tk.home === 'S' ? tk.id : tk.brk ? brokenLot(tk.id) : tk.id, L = LOTS[id] || LOTS[wholeLot(id)], brk = isBroken(id) || (tk.brk && tk.at === 'S'), tr = rarOf(id);
+    const moved = tk.at !== tk.home, sel = GD.sel === tk.tok;
+    ctx.fillStyle = brk ? '#F6D9D3' : L.legend ? '#FFF3C9' : PAPER2; rrect(ctx, x, y, w, h, 4); ctx.fill();
+    const aw = Math.min(h - 6, w * 0.34);
+    if (!(hasFlavArt(id) && drawFlavArt(ctx, id, x + 3, y + 3, aw * 1.4 > w * 0.45 ? aw : aw * 1.4, h - 6, { edgeW: 1 }))) { ctx.textAlign = 'center'; ctx.font = Math.round(h * 0.42) + 'px ' + F_SANS; ctx.fillStyle = INK; ctx.fillText(L.icon || '🔩', x + 3 + aw / 2, y + h / 2 + h * 0.15); }
+    const tx = x + 6 + (hasFlavArt(id) ? (aw * 1.4 > w * 0.45 ? aw : aw * 1.4) : aw);
+    ctx.textAlign = 'left'; ctx.fillStyle = brk ? '#B23A2B' : INK; fitText(ctx, partNm(L.part), tx, y + h / 2 - 1, x + w - tx - 3, '700', Math.min(11, h * 0.32));
+    ctx.fillStyle = brk ? '#B23A2B' : tr ? RAR[tr].col : MUTED; fitText(ctx, brk ? '⚠ BROKEN' : (tr ? rarDm(tr) + ' ' + RAR[tr].n : L.legend ? 'legendary' : L.kind), tx, y + h / 2 + Math.min(10, h * 0.3), x + w - tx - 3, '700', Math.min(9, h * 0.26), F_MONO);
+    ctx.save(); if (moved) ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = sel ? '#E8A21C' : moved ? '#2F6DB5' : brk ? '#B23A2B' : L.legend ? '#9A6A08' : INK; ctx.lineWidth = sel ? 3.5 : moved ? 2 : 1.5; rrect(ctx, x, y, w, h, 4); ctx.stroke(); ctx.restore();
+    if (moved && !o.noTag) { ctx.fillStyle = '#2F6DB5'; rrect(ctx, x + w - 26, y - 6, 26, 11, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, 'NEW', x + w - 13, y + 3, 24, '700', 8, F_MONO); }
+    help(x, y, w, h, (L.icon || '🔩') + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(L.desc || L.text || '') + (brk ? '<br><b style="color:#B23A2B">Broken</b>: it can\'t be fitted until it is repaired (1 repair action, in the Stash).' : '') + '<br><i>' + (GD.sel === tk.tok ? 'Picked: now click a socket on a robot, or the rack.' : 'Click to pick it up, then click where it goes.') + '</i>');
+  }
+  // the pit in Upkeep: your garage (robots side by side, their sockets, the parts rack, the bill on a clipboard) and a small fame race
+  function drawGarage(ctx, L, now) {
+    const t = gdSync() || me(), aw = L.aw, ah = L.ah, P = garagePlan(t, GD.place), mine = gdMine(), work = garageWork(t) || P.lines.length > 0;
+    pitHead('1 · UPKEEP · YOUR GARAGE', mine ? (work ? 'CLICK A PART, THEN WHERE IT GOES' : 'REPAIRS AND PAY') : 'FIRST TO ' + WIN_FAME + ' FAME WINS');
+    // the fame race, small, across the top
+    { const n = G.teams.length, gw = (aw - 16 - (n - 1) * 6) / n;
+      G.teams.forEach((tm, k) => { const x = 8 + k * (gw + 6), y = 4;
+        ctx.fillStyle = 'rgba(255,253,248,0.92)'; rrect(ctx, x, y, gw, 24, 4); ctx.fill(); ctx.strokeStyle = tm.col; ctx.lineWidth = 1.5; rrect(ctx, x, y, gw, 24, 4); ctx.stroke();
+        ctx.fillStyle = tm.col; ctx.textAlign = 'left'; fitText(ctx, tm.name + (k === HS ? ' (you)' : ''), x + 5, y + 10, gw * 0.62, '400', 10.5, F_STEN);
+        ctx.fillStyle = INK; ctx.textAlign = 'right'; fitText(ctx, tm.fame + '/' + WIN_FAME + ' · ' + tm.credits + ' Cr', x + gw - 5, y + 10, gw * 0.4, '600', 9, F_MONO);
+        drawBar(ctx, x + 5, y + 15, gw - 10, 5, tm.fame / WIN_FAME, tm.col, LINE, 0); });
+      help(8, 4, aw - 16, 24, 'The fame race', 'Fame and credits of every team. ' + WIN_CHECKS); }
+    const cw = work ? Math.min(176, aw * 0.27) : 0, mx = 8, mw = aw - 16 - (cw ? cw + 8 : 0);
+    const nStash = P.toks.filter(x => x.at === 'S').length, rackH = work || nStash ? 64 : 0;
+    const top = 34, botY = ah - 6 - rackH - (rackH ? 6 : 0), msgH = GD.msg ? 14 : 0, bayH = botY - top - msgH;
+    // the workshop floor
+    ctx.fillStyle = '#BDB4A3'; rrect(ctx, mx, top, mw, bayH, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(80,70,55,0.18)'; ctx.lineWidth = 1; for (let gx = mx + 24; gx < mx + mw; gx += 24) { ctx.beginPath(); ctx.moveTo(gx, top); ctx.lineTo(gx, top + bayH); ctx.stroke(); }
+    const n = t.robots.length;
+    if (!n) { ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'NO ROBOTS IN YOUR GARAGE', mx + mw / 2, top + bayH / 2 - 6, mw - 20, '400', 18, F_STEN); ctx.fillStyle = MUTED; fitText(ctx, 'Win a New Robot lot in the Market.', mx + mw / 2, top + bayH / 2 + 14, mw - 20, '600', 11); }
+    const gap = 8, bw = n ? (mw - 12 - gap * (n - 1)) / n : 0;
+    t.robots.forEach((r, i) => {
+      const v = P.bots.get(String(r.id)) || r, bx = mx + 6 + i * (bw + gap), by = top + 6, bh = bayH - 12, rid = String(r.id);
+      // bay: hazard-striped edge, team colour on top
+      ctx.fillStyle = '#D9D2C4'; rrect(ctx, bx, by, bw, bh, 5); ctx.fill();
+      ctx.fillStyle = t.col; rrect(ctx, bx, by, bw, 5, [5, 5, 0, 0]); ctx.fill();
+      ctx.save(); ctx.setLineDash([8, 6]); ctx.strokeStyle = HAZ; ctx.lineWidth = 2; rrect(ctx, bx + 3, by + 8, bw - 6, bh - 11, 4); ctx.stroke(); ctx.restore();
+      ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, bx, by, bw, bh, 5); ctx.stroke();
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, r.name + (r.wins >= favWins(t) ? ' ★' : '') + (r.exhausted ? ' 😴' : ''), bx + 8, by + 22, bw * 0.6, '400', 15, F_STEN);
+      ctx.fillStyle = '#B07A10'; ctx.textAlign = 'right'; fitText(ctx, r.level ? '★'.repeat(r.level) + ' L' + r.level : 'STARTER', bx + bw - 8, by + 20, bw * 0.38, '600', 9.5, F_MONO);
+      const sockH = Math.max(26, Math.min(36, bh * 0.16)), zoneY = by + bh - sockH * 2 - 30, chipY = zoneY - 18;
+      // the robot, top-down, as drafted (drones come and go with the parts)
+      const ps = Math.max(30, Math.min(bw - 24, chipY - (by + 30) - 4));
+      drawPortrait(ctx, v, t, bx + (bw - ps) / 2, by + 28, ps, ps);
+      { const hl = helpLook(v); help(bx + (bw - ps) / 2, by + 28, ps, ps, hl[0], hl[1]); }
+      // odds vs the field (now → drafted) and value
+      { const a = fieldOdds(t.i, r).p, changed = P.lines.some(l => l.from === rid || l.to === rid), b = changed ? fieldOdds(t.i, v).p : a;
+        const vw = drawValueChip(ctx, v, bx + bw - 6, chipY, 15, 9.5), cw2 = Math.max(40, bw - 12 - (vw ? vw + 4 : 0));
+        drawOddsChip(ctx, b, bx + 6, chipY, cw2, 15, 9.5, true, v);
+        if (changed && a != null && b != null) { help(bx + 6, chipY, cw2, 15, '🎩 Odds as drafted', esc(r.name) + ' vs the field: ' + shiftTxt(a, b) + ' with the parts on the bill.'); ctx.fillStyle = b > a ? '#2F7D4A' : b < a ? '#B23A2B' : MUTED; ctx.textAlign = 'left'; fitText(ctx, (b > a ? '▲ ' : b < a ? '▼ ' : '') + shiftTxt(a, b), bx + 6, chipY - 3, bw - 12, '700', 9, F_MONO); }
+        else { const hb = helpBand(t.i, r, a); help(bx + 6, chipY, cw2, 15, hb[0], hb[1]); } }
+      drawZoneButtons(ctx, r, bx + 6, zoneY, bw - 12, 18, mine || (G.phase === 'upkeep' && !iWait('upkeep') && isHuman(HS)), true);
+      // the sockets: 2 part slots (more if a chip has its own slot) and the legendary slot
+      const here = P.toks.filter(x => x.at === rid), parts = here.filter(x => LU.PARTS[x.k].kind !== 'legendary'), leg = here.find(x => LU.PARTS[x.k].kind === 'legendary');
+      const nS = Math.max(2, parts.length), sy = zoneY + 22, sw = (bw - 12 - 4 * (nS - 1)) / nS;
+      for (let s2 = 0; s2 < nS; s2++) { const x = bx + 6 + s2 * (sw + 4), tk = parts[s2];
+        if (mine) hitRegions.push({ kind: 'gx_sock', rid, x, y: sy, w: sw, h: sockH });
+        if (tk) { drawPartTile(ctx, x, sy, sw, sockH, tk); if (mine) hitRegions.push({ kind: 'gx_tok', tok: tk.tok, x, y: sy, w: sw, h: sockH }); }
+        else { ctx.fillStyle = 'rgba(255,253,248,0.5)'; rrect(ctx, x, sy, sw, sockH, 4); ctx.fill(); ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = GD.sel ? '#2F7D4A' : DASH; ctx.lineWidth = GD.sel ? 2 : 1.2; rrect(ctx, x, sy, sw, sockH, 4); ctx.stroke(); ctx.restore();
+          ctx.fillStyle = GD.sel ? '#2F7D4A' : MUTED; ctx.textAlign = 'center'; fitText(ctx, GD.sel ? '▼ PUT IT HERE' : '⚙ PART SLOT', x + sw / 2, sy + sockH / 2 + 3, sw - 6, '700', 8.5, F_MONO);
+          help(x, sy, sw, sockH, '⚙ Part slot', 'An empty part slot (2 per robot). ' + (GD.sel ? 'Click to put the picked part here.' : 'Click a part (another robot, or the rack), then this slot.') + ' Fee: ' + GB().feeOn + ' Cr to put a part on' + (GB().feeOff ? ', ' + GB().feeOff + ' Cr to take one off' : '') + '.'); } }
+      { const x = bx + 6, y = sy + sockH + 4, w = bw - 12;
+        if (mine) hitRegions.push({ kind: 'gx_sock', rid, leg: true, x, y, w, h: sockH });
+        if (leg) { drawPartTile(ctx, x, y, w, sockH, leg); if (mine) hitRegions.push({ kind: 'gx_tok', tok: leg.tok, x, y, w, h: sockH }); }
+        else { ctx.fillStyle = 'rgba(255,243,201,0.45)'; rrect(ctx, x, y, w, sockH, 4); ctx.fill(); ctx.save(); ctx.setLineDash([4, 3]); ctx.strokeStyle = '#B07A10'; ctx.lineWidth = 1.2; rrect(ctx, x, y, w, sockH, 4); ctx.stroke(); ctx.restore();
+          ctx.fillStyle = '#9A6A08'; ctx.textAlign = 'center'; fitText(ctx, '🌟 LEGENDARY SLOT', x + w / 2, y + sockH / 2 + 3, w - 6, '700', 8.5, F_MONO);
+          help(x, y, w, sockH, '🌟 Legendary slot', 'One per robot. A legendary costs ' + GB().legOn + ' Cr to put on and ' + GB().legOff + ' Cr to take off.'); } }
+      drawExhaustedOverlay(ctx, r, bx, by + 30, bw, ps, true, 0);
+    });
+    if (GD.msg) { ctx.fillStyle = '#B23A2B'; ctx.textAlign = 'left'; fitText(ctx, '⚠ ' + GD.msg, mx + 4, top + bayH + 10, mw - 8, '700', 10); }
+    // the parts rack (your Stash)
+    if (rackH) {
+      const ry = botY + 6, rx = mx, rw = mw;
+      ctx.fillStyle = '#6B5A45'; rrect(ctx, rx, ry, rw, rackH, 5); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, rx, ry, rw, rackH, 5); ctx.stroke();
+      ctx.strokeStyle = '#9C8A70'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(rx + 6, ry + 18); ctx.lineTo(rx + rw - 6, ry + 18); ctx.stroke();
+      const inS = P.toks.filter(x => x.at === 'S'), sel = GD.sel && P.toks.find(x => x.tok === GD.sel);
+      ctx.fillStyle = '#F6F2EA'; ctx.textAlign = 'left'; fitText(ctx, '📦 PARTS RACK · YOUR STASH (' + inS.length + ')' + (sel && sel.at !== 'S' ? '  ▼ CLICK HERE TO PUT IT ON THE RACK' : ''), rx + 8, ry + 13, rw - 16, '700', 9.5, F_MONO);
+      if (mine) hitRegions.push({ kind: 'gx_rack', x: rx, y: ry, w: rw, h: rackH });
+      help(rx, ry, rw, 18, '📦 Parts rack (your Stash)', 'Spare parts. No limit (since T38). Taking a part off a robot costs ' + GB().feeOff + ' Cr (legendary ' + GB().legOff + '); putting one on ' + GB().feeOn + ' Cr (legendary ' + GB().legOn + '). A broken part (from a scrapped robot\'s broken zone) needs 1 repair action before it can go on. Sell parts to the bank on the Stash card (left).');
+      const tw = 112, th = rackH - 26, per = Math.max(1, Math.floor((rw - 16 + 6) / (tw + 6))), pages = Math.max(1, Math.ceil(inS.length / per));
+      GD.page = Math.min(GD.page, pages - 1);
+      const show = inS.slice(GD.page * per, GD.page * per + per);
+      if (!inS.length) { ctx.fillStyle = '#E9E1D3'; fitText(ctx, 'Empty. Click a part on a robot, then here, to take it off (' + GB().feeOff + ' Cr).', rx + 10, ry + 40, rw - 20, '600', 10.5); }
+      show.forEach((tk, j) => { const x = rx + 8 + j * (tw + 6), y = ry + 22;
+        drawPartTile(ctx, x, y, tw, th, tk);
+        if (mine) hitRegions.push({ kind: 'gx_tok', tok: tk.tok, x, y, w: tw, h: th });
+        if (mine && tk.home === 'S' && tk.brk) { const k = +tk.tok.slice(2), fx = x + tw - 30, fy = y + th - 13; ctx.fillStyle = '#B23A2B'; rrect(ctx, fx, fy, 28, 12, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🔧FIX', fx + 14, fy + 9, 26, '700', 8, F_MONO);
+          help(fx, fy, 28, 12, '🔧 Repair ' + esc(lotQ(tk.id)), 'One repair action (' + esc(repairTxt(t)) + ').'); hitRegions.push({ kind: 'gx_fixpart', k, id: tk.id, x: fx, y: fy, w: 28, h: 12 }); } });
+      if (pages > 1) { const px = rx + rw - 52, py = ry + 4; ctx.fillStyle = '#F6F2EA'; ctx.textAlign = 'center'; fitText(ctx, '◀ ' + (GD.page + 1) + '/' + pages + ' ▶', px + 22, py + 9, 48, '700', 9.5, F_MONO);
+        hitRegions.push({ kind: 'gx_page', d: -1, x: px, y: py, w: 18, h: 14 }); hitRegions.push({ kind: 'gx_page', d: 1, x: px + 28, y: py, w: 18, h: 14 }); }
+    }
+    // the bill on a clipboard
+    if (cw) {
+      const x = aw - 8 - cw, y = top - 2, h = ah - 6 - y;
+      ctx.fillStyle = '#8A6A3A'; rrect(ctx, x, y, cw, h, 6); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5; rrect(ctx, x, y, cw, h, 6); ctx.stroke();
+      ctx.fillStyle = PAPER2; ctx.fillRect(x + 7, y + 12, cw - 14, h - 19);
+      ctx.fillStyle = '#9AA0A6'; rrect(ctx, x + cw / 2 - 26, y + 2, 52, 16, 3); ctx.fill(); ctx.strokeStyle = '#555'; ctx.lineWidth = 1; rrect(ctx, x + cw / 2 - 26, y + 2, 52, 16, 3); ctx.stroke();
+      const lx = x + 13, lw = cw - 26; let ly = y + 34;
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, 'GARAGE BILL', lx, ly, lw, '400', 14, F_STEN); ly += 6;
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + lw, ly); ctx.stroke(); ly += 13;
+      help(x, y, cw, 40, '🧾 The garage bill', 'Your changes are a draft: nothing is paid or moved until you lock the bill in (🔒 Lock in, or Done, which locks it first). Take a part off: ' + GB().feeOff + ' Cr; put a part on: ' + GB().feeOn + ' Cr; a legendary ' + GB().legOff + ' + ' + GB().legOn + ' Cr. A move from robot to robot pays both. The other players see your changes only after you lock them in.');
+      if (!P.lines.length) { ctx.fillStyle = MUTED; wrapLines(ctx, mine ? 'Nothing on the bill. Click a part, then a socket on another robot or the rack.' : 'The garage is closed.', lw, 6).forEach((s3, k) => fitText(ctx, s3, lx, ly + k * 13, lw, '500', 10)); }
+      const maxL = Math.max(1, Math.floor((y + h - 78 - ly) / 26));
+      P.lines.slice(0, maxL).forEach((l, k) => { const yy = ly + k * 26;
+        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, partNm(l.k) + (rarOf(l.id) ? ' ' + rarDm(rarOf(l.id)) : ''), lx, yy, lw - 40, '700', 10);
+        ctx.fillStyle = MUTED; fitText(ctx, (l.from === 'S' ? 'Stash' : placeNm(t, l.from)) + ' → ' + (l.to === 'S' ? 'Stash' : placeNm(t, l.to)) + (l.brk ? ' (broken)' : ''), lx, yy + 11, lw - 30, '600', 9);
+        ctx.fillStyle = INK; ctx.textAlign = 'right'; fitText(ctx, l.fee + ' Cr', lx + lw - 16, yy + 5, 36, '700', 10, F_MONO);
+        if (mine) { ctx.fillStyle = '#B23A2B'; ctx.textAlign = 'center'; fitText(ctx, '✕', lx + lw - 5, yy + 5, 12, '700', 11); hitRegions.push({ kind: 'gx_undo', tok: l.tok, x: lx + lw - 12, y: yy - 8, w: 14, h: 16 }); help(lx + lw - 12, yy - 8, 14, 16, '✕ Undo this line', 'The part goes back where it was (if there is room).'); } });
+      if (P.lines.length > maxL) { ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, '+ ' + (P.lines.length - maxL) + ' more line' + (P.lines.length - maxL > 1 ? 's' : ''), lx, ly + maxL * 26, lw, '600', 9.5); }
+      const fy = y + h - 70, short = P.cost > t.credits;
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(lx, fy); ctx.lineTo(lx + lw, fy); ctx.stroke();
+      ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, 'TOTAL', lx, fy + 13, lw / 2, '700', 10, F_MONO); ctx.textAlign = 'right'; fitText(ctx, P.cost + ' Cr', lx + lw, fy + 13, lw / 2, '700', 11, F_MONO);
+      ctx.fillStyle = short ? '#B23A2B' : MUTED; ctx.textAlign = 'left'; fitText(ctx, short ? 'NOT ENOUGH CREDITS (' + t.credits + ')' : 'Credits after: ' + (t.credits - P.cost) + ' Cr', lx, fy + 26, lw, '700', 9.5, F_MONO);
+      if (mine) {
+        const by2 = fy + 33, bw2 = (lw - 6) / 2, can = P.lines.length && !short && !P.err;
+        ctx.fillStyle = P.lines.length ? '#6E6457' : DASH; rrect(ctx, lx, by2, bw2, 22, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '↺ RESET', lx + bw2 / 2, by2 + 15, bw2 - 6, '700', 9.5, F_MONO);
+        ctx.fillStyle = can ? '#2F7D4A' : DASH; rrect(ctx, lx + bw2 + 6, by2, bw2, 22, 4); ctx.fill(); ctx.fillStyle = '#fff'; fitText(ctx, '🔒 LOCK IN', lx + bw2 + 6 + bw2 / 2, by2 + 15, bw2 - 6, '700', 9.5, F_MONO);
+        if (P.lines.length) hitRegions.push({ kind: 'gx_reset', x: lx, y: by2, w: bw2, h: 22 });
+        if (can) hitRegions.push({ kind: 'gx_lock', x: lx + bw2 + 6, y: by2, w: bw2, h: 22 });
+        help(lx + bw2 + 6, by2, bw2, 22, '🔒 Lock in the bill', 'Pay ' + P.cost + ' Cr and move the parts. Done (in the note) also locks the bill in first.');
+      } else if (GD.sending) { ctx.fillStyle = '#2F7D4A'; ctx.textAlign = 'center'; fitText(ctx, '✓ SENT · WAITING FOR THE HOST', lx + lw / 2, fy + 48, lw, '700', 9.5, F_MONO); }
+    }
+  }
   function drawStandbyStage(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
     const pw = Math.min(L.aw - 48, 640), px0 = cx - pw / 2;   // the paper panels: centred, at most 640 wide
@@ -9050,6 +9464,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, px0, by, pw, 54, INK, 2, PAPER2);
       ctx.fillStyle = INK; fitText(ctx, G.intrigueTurn === HS ? 'YOUR TURN: DRAG A CARD ONTO A TEAM' : G.teams[G.intrigueTurn] ? G.teams[G.intrigueTurn].name.toUpperCase() + ' IS SCHEMING' : 'HOST FIRST, THEN CLOCKWISE', cx, by + 24, pw - 30, '400', 18, F_STEN);
       ctx.fillStyle = MUTED; fitText(ctx, 'Teams take turns from the host. Rivals can back you, block you, or roll Security Bots.', cx, by + 43, pw - 30, '500', 11.5);
+    } else if (G.phase === 'upkeep' && garageOn() && !narrowScreen()) {
+      drawGarage(ctx, L, now);   // T38: the pit is your garage in Upkeep (the fame race sits small on top)
     } else {
       // Upkeep (and between steps): the fame race
       if (G.phase === 'arena') pitHead('4 · HOST', G.host >= 0 ? (G.teams[G.host].name.toUpperCase() + ' HOSTS · PICKING THE FIGHTERS') : 'HOST: DECIDED IN THE MARKET', G.host >= 0 ? G.teams[G.host].col : HAZ);
@@ -9995,6 +10411,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         return;
       }
 
+      if (/^gx_/.test(r.kind)) { if (G.phase === 'upkeep') { gdClick(r); updateHud(); } return; }   // T38: the garage
       if (r.kind === 'zone_fix') { repDone = { rid: String(r.robot.id), zk: r.zone, round: G.round }; spawnWeldSparks(r.x + r.w / 2, r.y + r.h / 2); act('repairZone', r.robot.id, r.zone); return; }
 
       if (r.kind === 'bay_action' || (r.kind === 'bay' && r.team === HS)) {
@@ -10410,6 +10827,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, the garage', '21 Nov 2026', [
+      'Upkeep: the pit is your garage. Your robots stand side by side with their part slots; the parts rack under them is your Stash. Click a part, then a slot on another robot (or the rack): it goes on a garage bill. Taking a part off costs 1 credit, putting one on 1 credit (a legendary 2 + 2), so a move from robot to robot costs 2 (legendary 4). Nothing is paid until you lock the bill in (🔒 Lock in, or Done, which locks it first). ✕ undoes a line, Reset clears the bill. Not enough credits: the bill says so and can\'t be locked.',
+      'A part you just won in the Market still goes on for free. A part from the Stash pays the 1 credit to go on (also in the Market).',
+      'A scrapped robot gives its parts back to your Stash (host scrap, can\'t pay upkeep, trade-in, Museum Donation). A part from a zone that was broken comes back broken: 1 repair action in Upkeep fixes it. A broken part can\'t be fitted, sells for half its bank price and can be traded. The same holds for a part you take off a robot whose zone for it is broken. A robot sold, traded or bought keeps its parts.',
+      'No Stash limit any more (was 4): nothing is sold or trimmed because the Stash is full; the Stash card scrolls.',
+      'Nothing to move (no parts, empty Stash): Upkeep goes on by itself as before. Parts you could move but nothing to repair: it goes on by itself after 8 seconds unless you click in the garage.',
+      'Other players see your changes only after you lock them in (their tickets update, and a log line says what moved and what it cost). AI teams use the garage too: they move a part when the odds gain is worth the fee, repair broken parts they can use, and keep their Stash at 4 parts.' ]],
     ['2.0.1, AI hosts', '21 Nov 2026', [
       'AI hosts no longer hand a leader free appearance money: a host that stays out weighs what an invitation gives each team (2 Cr, more for Fan tokens, 6 for a Fan Favourite, the chance of a win) against what it risks (damage, a scrap), and invites the pair that helps its rivals least. A leader with a Fan Favourite is mostly left out now. People are not perfect, and neither are the AI hosts: now and then they pick any pair.',
       'Paying an AI host to be invited or left out: it now asks what the deal is worth to it, at least 2 Cr (the deal screen says how much). AI teams ask a person who hosts to be invited when an invitation is worth something to them, and to be left out when it would cost them.',

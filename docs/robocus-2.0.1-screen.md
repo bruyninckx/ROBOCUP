@@ -308,3 +308,28 @@ Multiplayer: all on the host's action path; the clocks are host-judged like T31'
 
 Questions for Kev (T47): 6, the reading "ask only when two or more robots can take it, one robot still goes on at once with Undo": right? 20 s for that question and 30 s for sending a robot: right? The banner shows for 4 s over the top of the pit: long enough, in the right place? Should a Hostile Buyout that goes through show the banner too? Bookie's Friend and Hedge Bet are out of the deck: bring them back?
 
+
+## The garage in Upkeep (T38, 21 Nov)
+
+Kev, 21 Nov: "a nice visual about the upkeep with a garage and your robots in the arena area"; "should be seemless for people with no parts".
+
+- Upkeep (not on a phone): the pit is YOUR garage (`drawGarage`): a small fame race across the top (one chip per team: fame bar, fame, credits),
+  your robots side by side on a workshop floor (the game's own top-down portrait, drawn as drafted: a drone moved away leaves the picture),
+  name, level, odds vs the field (as drafted, with "a → b" when the bill changes it), the gold value chip, the three repair zones (small,
+  clickable as on the card) and the sockets: 2 part slots and the legendary slot. Under them the parts rack (your Stash, broken parts red
+  with a 🔧FIX button, pages ◀ ▶ when it is long). On the right, when you have something to move, the bill on a clipboard: one line per
+  move (part, from → to, fee, ✕ to undo), total, credits after, ↺ Reset and 🔒 Lock in.
+- Click a part (socket or rack: yellow ring), then an empty slot of another robot, an occupied slot (the two swap) or the rack. A move that
+  breaks a fit rule is refused with a red line under the robots and nothing changes. Moved parts get a dashed blue edge and NEW.
+- The note (T22's repair note) keeps its role: text, Done, the repair buttons, plus a 🔧 button per broken Stash part and the Stash part
+  → robot shortcuts (now "+1 Cr", they put the part on the bill). With a bill it shows one line "🧾 Bill N Cr (k moves) · after: M Cr"
+  with ↺ Reset and 🔒 Lock in, and Done reads "🔒 Pay N Cr, Done →" (it locks the bill first). Not enough credits: Done and Lock are
+  disabled and the line says how much you have.
+- Nothing to repair and nothing to move (no parts on 2+ robots, empty Stash): exactly as before (one-line note, ready after 0.6 s).
+  Parts you could move but nothing to repair: the note says "Goes on by itself in N s (click a part to stay)": after `BAL.garage.idleMs`
+  (8 s) your own screen presses Done unless you clicked in the garage.
+- The draft lives on your screen only (`GD`); the other screens see your garage as it is until you lock (then their tickets update and
+  the log says "🔧 Rust Rivets moves Tow cable from Snapjaw to Mincer (2 Cr)."). After Done the garage is closed (no clicks).
+- The Stash card (left) has no "/4" any more, scrolls inside when long (9 parts fit at 1600x900 and 1280x720), shows broken parts in red
+  with 🔧 Fix; its Fit in Upkeep puts the part on the bill.
+- Tests: tools/mp-scenario/garage.js (solo, both sizes), tools/mp-scenario/garage-online.js (host and 3 joined). docs/robocus-garage.md.

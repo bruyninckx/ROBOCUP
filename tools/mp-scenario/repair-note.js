@@ -119,6 +119,8 @@ const path = require('path'), fs = require('fs');
     console.log(tag + ' stash part ' + lot + ': ' + n.bs.map(x => x.t).join(' | '));
     if (!lot || !n.bs.some(x => /^🔩/.test(x.t))) bad.push(tag + ': no Stash fit button');
     else { await p.evaluate(() => { const bt = document.querySelector('#promptBar [data-sfit]'); if (bt) bt.click(); }); await p.waitForTimeout(500);
+      // T38 (garage): the button puts the part on the garage bill (+1 Cr); Lock in fits it
+      await p.evaluate(() => { const bt = document.getElementById('gLock'); if (bt) bt.click(); }); await p.waitForTimeout(500);
       const st = await p.evaluate(() => ({ stash: window.ROBOCUS_DEBUG.G.teams[0].stash.length, btn: !!document.querySelector('#promptBar [data-sfit]') }));
       console.log(tag + ' after fit: ' + JSON.stringify(st)); if (st.stash !== 0 || st.btn) bad.push(tag + ': the Stash fit from the note did not fit it'); }
     // 6. nothing to repair
