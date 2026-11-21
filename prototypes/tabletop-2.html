@@ -1756,15 +1756,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
+  const PART_FIT = {"Angler":{"quantum":[1,56]},"Vertigo":{"powerkit":[1,30],"overdrive":[-1,-15]},"Gaucho":{"overdrive":[1,46]},"Rotisserie":{"pester":[-1,-17],"overdrive":[-1,-7]},"Yoyo":{"blocker":[-1,-14]},"Thwacker":{"mines":[1,44],"pester":[1,36],"tow":[1,48]},"Wrecker":{"pester":[1,40],"jammer":[1,28]},"Snapjaw":{"bait":[1,28]},"Popcorn":{"quantum":[1,40]},"Corkscrew":{"pester":[-1,-15]},"Slingshot":{"bait":[-1,-16]},"Hornet":{"booster":[-1,-25]},"Forklift":{"pester":[-1,-5]}};   // Kev, 21 Nov (T41): wear on, retuned robots: every part on every robot vs a level up (big run, 14,784 fights) and the candidates re-tested once or twice with and without the part (40-78 fights); docs/robocus-wear-in-game.md
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {   // Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
-    'Thwacker|tow': ['Whiplash', 25, 65],
-    'Angler|quantum': ['Phantom Hook', 14, 67],
-    'Vertigo|powerkit': ['Overclock', 43, 77],
-    'Popcorn|jam': ['Haywire', 17, 48],
-    'Gaucho|overdrive': ['Iron Bolas', 32, 62],
+  const EPIC = {   // Kev, 21 Nov (T41): re-tested with wear on (30-48 fights each, fresh seeds): Haywire (Popcorn + Sensor scrambler) gone (17 -> 33%), the other four hold. Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
+    'Thwacker|tow': ['Whiplash', 30, 78],
+    'Angler|quantum': ['Phantom Hook', 28, 83],
+    'Vertigo|powerkit': ['Overclock', 50, 80],
+    'Gaucho|overdrive': ['Iron Bolas', 12, 58],
   };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
