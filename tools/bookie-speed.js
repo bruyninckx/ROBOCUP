@@ -10,7 +10,11 @@ const { chromium } = require('playwright'); const fs = require('fs'), path = req
 const ROOT = path.join(__dirname, '..');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const SEED = +arg('seed', 3), CORES = +arg('cores', 16), USE = arg('use', '1,2').split(',').map(Number), MS = +arg('ms', 30000), FROM = +arg('from', 5), PORT = +arg('port', 8875), OUT = arg('out', '');
-const rss = () => { try { return cp.execSync("ps -eo rss,comm | grep -i chrome | awk '{s+=$1} END {print s}'").toString().trim() * 1024; } catch (e) { return 0; } };
+// memory of this browser only (its process and everything under it), in bytes
+let ROOTPID = null;
+const rss = () => { try { const rows = cp.execSync('ps -eo pid=,ppid=,rss=').toString().trim().split('\n').map(l => l.trim().split(/\s+/).map(Number));
+  const keep = new Set([ROOTPID]); let grew = true; while (grew) { grew = false; for (const [pid, pp] of rows) if (keep.has(pp) && !keep.has(pid)) { keep.add(pid); grew = true; } }
+  return rows.filter(r => keep.has(r[0])).reduce((a, r) => a + r[2], 0) * 1024; } catch (e) { return 0; } };
 function startServer() {
   return new Promise((res, rej) => {
     const s = cp.spawn(process.execPath, [path.join(__dirname, 'serve.js'), '--port=' + PORT], { env: Object.assign({}, process.env, { ROBOCUS_NO_BROWSER: '1' }) });
@@ -21,7 +25,7 @@ function startServer() {
 (async () => {
   const vend = path.join(ROOT, 'vendor/planck-1.4.3.min.js'), nm = path.join(ROOT, 'node_modules/planck/dist/planck.min.js');
   if (!fs.existsSync(vend) && fs.existsSync(nm)) { fs.mkdirSync(path.dirname(vend), { recursive: true }); fs.copyFileSync(nm, vend); }
-  const srv = await startServer(), b = await chromium.launch(), res = { seed: SEED, cores: CORES, at: new Date().toISOString(), load: require('os').loadavg(), fights: [] };
+  const srv = await startServer(); process.on("exit", () => { try { srv.s.kill(); } catch (e) {} }); const b = await chromium.launch({ args: ['--bookie-speed-mark=' + process.pid] }); ROOTPID = +cp.execSync('ps -eo pid=,args=').toString().split('\n').find(l => l.includes('--bookie-speed-mark=' + process.pid) && !l.includes('--type=')).trim().split(/\s+/)[0]; const res = { seed: SEED, cores: CORES, at: new Date().toISOString(), load: require('os').loadavg(), fights: [] };
   try {
     const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
     await ctx.route(/cdn\.jsdelivr\.net|unpkg\.com/, r => r.abort());
@@ -30,6 +34,7 @@ function startServer() {
     await p.goto(srv.base + 'prototypes/tabletop-2.html?seed=' + SEED); await p.waitForTimeout(1500);
     const m0 = rss(); await p.waitForTimeout(9000);
     const pool = await p.evaluate(() => { const B = window.ROBOCUS_DEBUG.BOOKIE; return B.pool ? { n: B.pool.length, ready: B.pool.filter(o => o.ready).length } : null; });
+    if (arg('memOnly', '')) { console.log('helpers', JSON.stringify(pool), 'browser RSS', (m0 / 1048576).toFixed(0), '->', (rss() / 1048576).toFixed(0), 'MB'); await b.close(); srv.s.kill(); process.exit(0); }
     const m1 = rss(); res.mem = { before: m0, after: m1, workers: pool, perWorkerMB: pool && pool.n ? +((m1 - m0) / pool.n / 1048576).toFixed(1) : null };
     console.log('helpers', JSON.stringify(pool), 'browser RSS', (m0 / 1048576).toFixed(0), '->', (m1 / 1048576).toFixed(0), 'MB: about', res.mem.perWorkerMB, 'MB a helper');
     await p.click('#pAct2'); await p.evaluate(() => { window.__noBookie = true; window.ROBOCUS_DEBUG.autopilot(true); window.__F = {}; });
@@ -47,7 +52,7 @@ function startServer() {
       const x = await p.evaluate(async ([k, u, ms]) => { const c = window.__F[k]; if (!c) return null; const B = window.ROBOCUS_DEBUG.BOOKIE, live = B.pool.filter(o => o.ready);
         live.forEach((o, i) => { o.dead = i >= u; });
         const s = await window.ROBOCUS_DEBUG.simOdds(c.F, { ms, n: 100000, stopN: 0 }); live.forEach(o => { o.dead = false; });
-        return s && { kind: k, bots: c.bots, fmt: c.fmt, round: c.round, use: u, n: s.n, ms: s.ms, how: s.how, perWorker: +(s.n / (s.ms / 1000) / u).toFixed(2) }; }, [k, u, MS]);
+        return s && { kind: k, bots: c.bots, fmt: c.fmt, round: c.round, use: u, n: s.n, ms: s.ms, how: s.how, perWorker: +(s.n / (s.ms / 1000) / u).toFixed(2), secPerFight: s.n ? +(s.ms / 1000 * u / s.n).toFixed(2) : null }; }, [k, u, MS]);
       if (x) { res.fights.push(x); console.log(JSON.stringify(x)); } else console.log(k + ': no such fight');
       await p.waitForTimeout(3000);   // let the cut-off fights of the last run finish
     }
