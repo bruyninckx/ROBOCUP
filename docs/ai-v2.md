@@ -127,7 +127,7 @@ The "Kev line" test AI in seat 0 (`--aip0='{"rw":1,"spendK":0,"rwTips":1}'`, T35
 | It hosts per game | 4.2 | 3.8 | -0.3 ±0.5 |
 | What it pays for host seats per game | 32.0 | 32.6 | +0.6 ±4.6 |
 | ... per host seat won | 7.7 | 8.5 | |
-| An AI host that stays out invites it, when it leads | 98% (41) | 37% (30) | |
+| An AI host that stays out invites the sole fame leader | 98% (41 picks) | 37% (30) | |
 | Game length | 11.4 | 11.9 | +0.5 ±0.5 |
 | Host bids paid per game (all teams) | 82 | 94 | +12 ±6 |
 | Market Cr per game (all teams) | 105 | 97 | -7 ±6 |
@@ -137,4 +137,23 @@ at 7-10 (T35); it fires about 3 times a game against it (bid 7 -> 10 Cr). Agains
 back and makes that person pay up to 15 for the seat; it can't outbid 45 Cr (moneyCap: nobody bids more than the richest
 rival + 1 could; no cap on what people bid).
 
-HOARDHOST_PLACEHOLDER
+The hoard-and-host variant (`--aip0='{"rw":1,"rwOff":["apex","self","deal","back"],"spendK":0}'`: no Market but a 2nd robot
+and Mechanics, no surplus spending, +4 Cr on the host value; seeds 1-40):
+
+| Hoard-and-host in seat 0 | before (39) | after (40) | paired change (39) |
+|---|---|---|---|
+| Seat 0 wins | 31% ±15 | 33% ±15 | +3 ±18 pts |
+| Its appearance money per game | 31.3 Cr | 23.0 Cr | **-8 ±4 Cr** |
+| It hosts per game | 5.1 | 4.8 | -0.3 ±0.6 |
+| What it pays for host seats per game | 39.6 | 41.2 | +1.6 ±4.8 (7.8 -> 8.5 a seat) |
+| Game length | 12.3 | 11.7 | -0.6 ±0.8 |
+| Host bids paid per game (all teams) | 91 | 96 | +5 ±7 |
+| Market Cr per game (all teams) | 112 | 100 | -12 ±8 |
+
+Watch: next to a team that hoards and hosts, the Market gets 10% less (-12 ±8 Cr a game; -7 ±6 next to the Kev line, +1 ±8
+in normal games): the guard keeps credits back and the host deals move credits to the host. Not a collapse, but the place to
+look if AI robots feel plainer against a saver. `guardK` / `guardCap` turn it down.
+
+Not run: the seat-0 normal AI against `aiDeals` off alone beyond the 37-game run above; the counters one at a time; the
+`favCards` part alone (it is on by default as part of the package; its effect is not separated). Stalled games (1-3 per run)
+are left out, not re-run (the server restarted twice during the runs).
