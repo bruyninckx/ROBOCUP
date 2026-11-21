@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="31ff00ca">
+<meta charset="utf-8"><meta name="robocus-files" content="3e38ef63">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -554,15 +554,29 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 .rx-name { font: 400 21px/1.05 var(--stencil); }
 .rx-sub { font-size: 12px; color: #4A4136; margin-top: 3px; }
 .rx-sub b { color: var(--c); }
-.rx-t1 .rx-tag, .rx-t2 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c); }
-.rx-t3 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 18px 2px var(--c); animation: rxGlow 1.9s ease-in-out infinite; }
-.rx-t4 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 22px 4px var(--hazard); animation: rxGlow 1.6s ease-in-out infinite; background: #FBF4DF; }
+/* T48 (Kev, 21 Nov): one ladder, the rarer the bigger: Tuned an edge, Race-spec + a soft glow, Works + a breathing glow and a
+   shine, Masterwork + the biggest gold glow, a foil shine and sparks (the canvas cards use rarBack / rarFront, the same steps) */
+.rx-t1 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c); }
+.rx-t2 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 12px 1px var(--c); }
+.rx-t3 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 18px 3px var(--c); animation: rxGlow 1.9s ease-in-out infinite; }
+.rx-t4 .rx-tag { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 28px 7px var(--hazard), 0 0 12px 2px var(--c); animation: rxGlow4 1.6s ease-in-out infinite; background: #FBF4DF; overflow: visible; }
+.rx-t4 .rx-tag::before { content: '✦'; position: absolute; top: -13px; right: -11px; font-size: 20px; line-height: 1; color: #FFF6C8; text-shadow: 0 0 2px #B07A10, 0 0 6px var(--hazard); z-index: 1; animation: rgSpark 1.3s ease-in-out infinite; pointer-events: none; }
+.rx-t4 .rx-band { border-radius: 4px 4px 0 0; }
 .rx-t4 .rx-band { background: repeating-linear-gradient(-45deg, var(--c) 0 10px, #9A6A08 10px 20px); }
-.rx-t3 .rx-tag::after, .rx-t4 .rx-tag::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.65) 50%, transparent 60%); background-size: 300% 100%; animation: rxShine 3.2s ease-in-out infinite; }
-.rx-t4 .rx-tag::after { animation-duration: 2.4s; }
+.rx-t3 .rx-tag::after, .rx-t4 .rx-tag::after { content: ''; position: absolute; inset: 0; border-radius: 4px; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.65) 50%, transparent 60%); background-size: 300% 100%; animation: rxShine 3.2s ease-in-out infinite; }
+.rx-t4 .rx-tag::after { animation-duration: 2.4s; background-image: linear-gradient(105deg, transparent 34%, rgba(255,236,170,.5) 44%, rgba(255,255,255,.75) 50%, rgba(190,225,255,.45) 56%, transparent 66%); }
+@keyframes rxGlow4 { 50% { filter: brightness(1.06); box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 16px 3px var(--hazard), 0 0 8px 1px var(--c); } }
+@keyframes rgSpark { 0%, 100% { opacity: .25; transform: scale(.6) rotate(0deg); } 50% { opacity: 1; transform: scale(1.1) rotate(45deg); } }
+/* small DOM part names (Stash, log, ladder chips): the same steps, small */
+.rg1 { box-shadow: inset 0 -2px 0 var(--c); }
+.rg2 { box-shadow: inset 0 -2px 0 var(--c), 0 0 6px var(--c); border-radius: 3px; }
+.rg3 { box-shadow: inset 0 -2px 0 var(--c), 0 0 9px 1px var(--c); border-radius: 3px; position: relative; overflow: hidden; }
+.rg4 { box-shadow: inset 0 -2px 0 var(--c), 0 0 12px 3px var(--hazard), 0 0 5px 1px var(--c); border-radius: 3px; position: relative; overflow: hidden; }
+.rg3::after, .rg4::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.6) 50%, transparent 60%); background-size: 300% 100%; animation: rxShine 3.2s ease-in-out infinite; }
+.rg4::after { animation-duration: 2.4s; }
 @keyframes rxShine { 0% { background-position: 120% 0; } 60%, 100% { background-position: -20% 0; } }
 @keyframes rxGlow { 50% { filter: brightness(1.08); box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--c), 0 0 8px 1px var(--c); } }
-@media (prefers-reduced-motion: reduce) { .rx-tag, .rx-tag::after { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .rx-tag, .rx-tag::after, .rx-tag::before, .rg3::after, .rg4::after { animation: none !important; } .rx-tag::after, .rg3::after, .rg4::after { background-position: 60% 0; } }
 .rx-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 0; }
 .rx-tabs button { font: 600 11.5px var(--sans); padding: 2px 8px; border: 2px solid var(--line); border-radius: 4px; background: var(--paper); cursor: pointer; color: var(--ink); }
 .rx-tabs button i { font-style: normal; color: var(--c); letter-spacing: 1px; }
@@ -579,7 +593,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 .rx-row.on { border-color: var(--ink); background: #FFF6D6; }
 .rx-dm { color: var(--c); letter-spacing: 1px; font-size: 12px; }
 .rx-chip { justify-self: start; background: var(--c); color: #fff; font: 700 10.5px var(--mono); padding: 1px 7px; border-radius: 2px; white-space: nowrap; }
-.rx-r4 .rx-chip { box-shadow: 0 0 0 2px var(--hazard); }
+.rx-r1 .rx-chip { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--c); }
+.rx-r2 .rx-chip { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--c), 0 0 7px 1px var(--c); }
+.rx-r3 .rx-chip { box-shadow: 0 0 0 1.5px var(--paper), 0 0 0 2.5px var(--c), 0 0 10px 2px var(--c); position: relative; overflow: hidden; }
+.rx-r4 .rx-chip { box-shadow: 0 0 0 2px var(--hazard), 0 0 14px 4px var(--hazard); position: relative; overflow: hidden; }
+.rx-r3 .rx-chip::after, .rx-r4 .rx-chip::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.6) 50%, transparent 60%); background-size: 300% 100%; animation: rxShine 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rx-r3 .rx-chip::after, .rx-r4 .rx-chip::after { animation: none; background-position: 60% 0; } }
 .rx-odds { display: flex; align-items: center; gap: 6px; font: 600 11px var(--mono); white-space: nowrap; }
 .rx-bar { flex: 1; min-width: 30px; height: 8px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--panel); overflow: hidden; }
 .rx-bar i { display: block; height: 100%; background: var(--c); }
@@ -660,17 +679,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=31ff00ca"></script>
-<script src="../src2/dmath.js?b=31ff00ca"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=3e38ef63"></script>
+<script src="../src2/dmath.js?b=3e38ef63"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=31ff00ca"></script>
-<script src="../src2/lineup.js?b=31ff00ca"></script>
-<script src="../src2/matrix.js?b=31ff00ca"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=31ff00ca"></script>
-<script src="../src2/sound.js?b=31ff00ca"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=31ff00ca"></script>
+<script src="../src2/engine.js?b=3e38ef63"></script>
+<script src="../src2/lineup.js?b=3e38ef63"></script>
+<script src="../src2/matrix.js?b=3e38ef63"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=3e38ef63"></script>
+<script src="../src2/sound.js?b=3e38ef63"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=3e38ef63"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -1467,7 +1486,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return [c.icon + ' ' + esc(cardQ(id)) + flavTitle(id), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];   // T39: the hover names the flavour
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
-  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)) + flavTitle(id), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
+  const rgAttr = id => { const t = rarOf(id); return t ? ' rg' + t + '" style="--c:' + RAR[t].col : ''; };   // T48: the rarity ladder on a part name (inside class="...")
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard' + rgAttr(id) + '"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)) + flavTitle(id), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
   // T39: in a question or a note to a player a themed card reads "Flavour name (Game name)" (the log keeps cardRef / lotRef)
   const cardRefQ = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(cardQ(id)) + '</span>'; };
   const lotRefQ = id => { const L = LOTS[id]; return L ? lotRef(id).replace(/>[^<>]*<\/span>$/, '>' + esc(lotQ(id)) + '</span>') : esc(id); };
@@ -3654,7 +3674,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21o garage: swap parts in Upkeep on a bill, scrapped robots give their parts back, no Stash limit, AI hosts invite like people and guard the host seat, crunch week ticks, 2 repair kits, market closes over open deals, send timer, ask which robot for a part, unlock and trade lines for everyone, Hostile Buyout costs the robot\'s value, Fire Sale back (2 copies) and pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-22a look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4111,7 +4131,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, parts you kept aside' + (gar ? ', parts taken off in the garage and the parts of a scrapped robot (a part of a broken zone comes back broken: 1 repair action fixes it)' : '') + '. Fit one when a robot can take it (' + (gar ? 'Upkeep garage: ' + GB().feeOn + ' Cr, legendary ' + GB().legOn + '; Market: the same fee' : 'Upkeep or Market') + '), trade it in a deal, or sell it to the bank at half value' + (gar ? ' (a broken part: half of that)' : '') + '. ' + (lim < Infinity ? 'Up to ' + lim + ' parts; ' : 'No limit; ') + 'everyone can see it.') + '>📦 Stash (' + S.length + (lim < Infinity ? '/' + lim : '') + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
         const fits = t.robots.filter(r => canFit(r, LOTS[id])), brk = isBroken(id);
-        return '<div class="st-row' + (brk ? ' brk' : '') + '"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (brk ? '<b style="color:#B23A2B">Broken</b>: it can\'t be fitted until it is repaired (1 repair action in Upkeep).<br>' : '') + (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
+        return '<div class="st-row' + (brk ? ' brk' : '') + '"><span class="lcard' + (brk ? '' : rgAttr(id)) + '"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (brk ? '<b style="color:#B23A2B">Broken</b>: it can\'t be fitted until it is repaired (1 repair action in Upkeep).<br>' : '') + (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
           (brk && G.phase === 'upkeep' ? '<button class="fix" data-fix="' + k + '"' + helpAttr('🔧 Repair', '1 repair action (' + esc(repairTxt(t)) + ').') + '>🔧 Fix</button>' : '') +
           (fits.length && canFitNow ? '<button data-fit="' + k + '"' + (gar ? helpAttr('🔩 Fit', upk ? 'Puts it on the garage bill (' + feeOnOf(id) + ' Cr when you lock it in).' : 'Costs ' + feeOnOf(id) + ' Cr (a part from the Stash pays its install fee).') : '') + '>Fit' + (gar && !upk ? ' ' + feeOnOf(id) + ' Cr' : '') + '</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
@@ -9308,7 +9328,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawPartTile(ctx, x, y, w, h, tk, o = {}) {
     const id = tk.at !== 'S' || tk.home === 'S' ? tk.id : tk.brk ? brokenLot(tk.id) : tk.id, L = LOTS[id] || LOTS[wholeLot(id)], brk = isBroken(id) || (tk.brk && tk.at === 'S'), tr = rarOf(id);
     const moved = tk.at !== tk.home, sel = GD.sel === tk.tok;
+    const rs = Math.max(0.6, Math.min(1, h / 80));   // T48: the rarity ladder, scaled to the tile
+    if (tr && !brk) rarBack(ctx, x, y, w, h, tr, 4, rs);
     ctx.fillStyle = brk ? '#F6D9D3' : L.legend ? '#FFF3C9' : PAPER2; rrect(ctx, x, y, w, h, 4); ctx.fill();
+    if (tr && !brk) rarFront(ctx, x, y, w, h, tr, 4, rs);
     const aw = Math.min(h - 6, w * 0.34);
     if (!(hasFlavArt(id) && drawFlavArt(ctx, id, x + 3, y + 3, aw * 1.4 > w * 0.45 ? aw : aw * 1.4, h - 6, { edgeW: 1 }))) { ctx.textAlign = 'center'; ctx.font = Math.round(h * 0.42) + 'px ' + F_SANS; ctx.fillStyle = INK; ctx.fillText(L.icon || '🔩', x + 3 + aw / 2, y + h / 2 + h * 0.15); }
     const tx = x + 6 + (hasFlavArt(id) ? (aw * 1.4 > w * 0.45 ? aw : aw * 1.4) : aw);
@@ -9786,8 +9809,51 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return { k: 'lot', col: INK, fg: '#fff', label: 'LOT', when: '' };
   }
   // the lot's frame and type band (stage space); the content goes below y + 18
+  /* T48 (Kev, 21 Nov, voting page): "Race-spec too ... make them all distinctive with bigger glow for rarer items". One ladder
+   * for every part card and tile (Market lots, auction / results cards, garage sockets and rack): the rarer, the bigger and richer.
+   *   Tuned      : a thin inner edge in the tier colour
+   *   Race-spec  : + a soft, steady glow
+   *   Works      : + a bigger glow that breathes + a light shine sweeping across the card
+   *   Masterwork : + the biggest gold glow, a wider foil shine and four twinkling sparks on the corners
+   * rarBack draws the glow (before the card, so the card covers its middle); rarFront the edge, shine and sparks (after the
+   * frame, before the text, so the name, drawing and bid buttons stay on top). Reduced motion: no breathing, a still shine, still sparks.
+   * s: size factor (1 = a Market card; garage tiles are smaller). Display only. */
+  const RAR_RM = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { return { matches: false }; } })();
+  const RAR_FX = [null, { blur: 0 }, { blur: 12, a: 0.55 }, { blur: 18, a: 0.75, breathe: 0.3, shine: 3.0, sw: 0.16 }, { blur: 28, a: 0.95, breathe: 0.35, shine: 2.4, sw: 0.26, foil: true, sparks: true, glow: '#E8C547' }];
+  function rarBack(ctx, x, y, w, h, t, rad, s = 1) {
+    const F = RAR_FX[t]; if (!F || !F.blur) return;
+    const now = performance.now(), br = F.breathe && !RAR_RM.matches ? 1 - F.breathe * (0.5 + 0.5 * Math.sin(now / 420)) : 1;
+    ctx.save(); ctx.shadowColor = F.glow || RAR[t].col; ctx.shadowBlur = F.blur * s * br; ctx.globalAlpha = F.a;
+    ctx.fillStyle = F.glow || RAR[t].col; rrect(ctx, x - 1, y - 1, w + 2, h + 2, rad); ctx.fill();
+    if (t === 4) { ctx.shadowColor = RAR[t].col; ctx.shadowBlur = F.blur * 0.5 * s * br; ctx.fill(); }   // a second, deeper ring of light
+    ctx.restore();
+  }
+  function rarFront(ctx, x, y, w, h, t, rad, s = 1) {
+    const F = RAR_FX[t]; if (!F) return;
+    const now = performance.now(), ins = Math.max(2, 3.5 * s);
+    ctx.save(); ctx.strokeStyle = RAR[t].col; ctx.lineWidth = t >= 3 ? 1.6 : 1.2; ctx.globalAlpha = 0.9;
+    rrect(ctx, x + ins, y + ins, w - 2 * ins, h - 2 * ins, Math.max(2, (typeof rad === 'number' ? rad : 8) - ins)); ctx.stroke(); ctx.restore();
+    if (F.shine) {   // a soft diagonal band of light: one pass every F.shine s (still: parked a third of the way across)
+      const ph = RAR_RM.matches ? 0.35 : ((now / 1000) % F.shine) / F.shine * 1.6 - 0.3;
+      if (ph > -0.3 && ph < 1.3) {
+        ctx.save(); rrect(ctx, x, y, w, h, rad); ctx.clip();
+        const cx = x + ph * (w + h) - h, bw = F.sw * (w + h), g = ctx.createLinearGradient(cx, y, cx + bw, y + h * 0.35);
+        if (F.foil) { g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.3, 'rgba(255,236,170,0.32)'); g.addColorStop(0.5, 'rgba(255,255,255,0.45)'); g.addColorStop(0.7, 'rgba(190,225,255,0.28)'); g.addColorStop(1, 'rgba(255,255,255,0)'); }
+        else { g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.34)'); g.addColorStop(1, 'rgba(255,255,255,0)'); }
+        ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cx, y - 2); ctx.lineTo(cx + bw, y - 2); ctx.lineTo(cx + bw - h * 0.45, y + h + 2); ctx.lineTo(cx - h * 0.45, y + h + 2); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+    }
+    if (F.sparks) {   // four little four-point stars on the corners, twinkling one after another
+      ctx.save(); ctx.fillStyle = '#FFF6C8'; ctx.strokeStyle = '#B07A10'; ctx.lineWidth = 1;
+      [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].forEach(([px, py], i) => {
+        const tw = RAR_RM.matches ? 0.8 : Math.max(0, Math.sin(now / 260 + i * 1.7)), r = (3 + 4.5 * tw) * Math.max(0.6, s); if (r < 3.2) return;
+        ctx.beginPath(); for (let k = 0; k < 8; k++) { const an = k * Math.PI / 4, rr = k % 2 ? r * 0.3 : r; ctx.lineTo(px + Math.cos(an) * rr, py + Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); });
+      ctx.restore();
+    }
+  }
   function drawLotFrame(ctx, K, x, y, w, h, opt = {}) {
     const R = K.k === 'crew' ? [8, 8, 26, 26] : 8;
+    if (K.rar && !opt.dim) rarBack(ctx, x, y, w, h, K.rar, R);
     ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
     ctx.fillStyle = K.k === 'legend' ? '#FBF4DF' : opt.dim ? '#E6E0D5' : PAPER; rrect(ctx, x, y, w, h, R); ctx.fill(); ctx.restore();
     if (K.k === 'chip') {   // circuit grid
@@ -9799,6 +9865,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.save(); rrect(ctx, x, y, w, h, R); ctx.clip(); ctx.fillStyle = K.col; ctx.fillRect(x, y, w, 18); ctx.restore();
     if (K.k === 'legend') { ctx.strokeStyle = '#F2D27A'; ctx.lineWidth = 3; rrect(ctx, x - 4, y - 4, w + 8, h + 8, R + 3); ctx.stroke(); ctx.strokeStyle = K.col; ctx.lineWidth = 1.5; rrect(ctx, x - 6.5, y - 6.5, w + 13, h + 13, R + 5); ctx.stroke(); }
     ctx.strokeStyle = opt.edge || K.col; ctx.lineWidth = opt.lw || 3; rrect(ctx, x, y, w, h, R); ctx.stroke();
+    if (K.rar) rarFront(ctx, x, y, w, h, K.rar, R);
     ctx.textAlign = 'left'; ctx.fillStyle = K.fg; ctx.font = '700 9px ' + F_MONO; const lw = Math.min(w * 0.55, ctx.measureText(K.label).width + 2);
     fitText(ctx, K.label, x + 7, y + 12.5, w * 0.55, '700', 9, F_MONO);
     // Kev, 16 Nov: four diamonds as a second sign of the tier: filled for every step above a standard copy, hollow for the rest
@@ -9953,7 +10020,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       drawLotFrame(ctx, K, x, y, w, h, { dim: noFit, edge: bid > 0 ? INK : null, lw: bid > 0 ? 4 : 3, padR: bid > 0 ? 42 : 0 });   // padR: the BID tag sits on the right of the header
       if (k === G.bargainK && G.marketStage !== 'host') { ctx.fillStyle = '#2F6DB5'; rrect(ctx, x + 6, y + h + 2, w - 12, 16, 4); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '🏷️ BARGAIN BIN · ' + BARGAIN_OFF + ' CR OFF', x + w / 2, y + h + 14, w - 20, '700', 9.5, F_MONO);
         help(x + 6, y + h + 2, w - 12, 16, '🏷️ Bargain bin', 'Nobody bought this part last round. Whoever wins it now pays ' + BARGAIN_OFF + ' Cr less than their bid (a bid of ' + BARGAIN_OFF + ' gets it free). Unsold again, it goes back into the deck.'); }
-      if (rarOf(it.id) >= 3) { const pu = 0.55 + 0.45 * Math.sin(performance.now() / 300); ctx.save(); ctx.globalAlpha = pu; ctx.strokeStyle = RAR[rarOf(it.id)].col; ctx.lineWidth = rarOf(it.id) === 4 ? 6 : 4; rrect(ctx, x - 4, y - 4, w + 8, h + 8, 8); ctx.stroke(); ctx.restore(); }   // a Works or Masterwork copy glows
+      // T48: the rarity glow is drawn by drawLotFrame (rarBack / rarFront), the same ladder on every part card
       { const tt = it.part && k < NLOTS ? tripleTargets(it.part) : [];
         const ep = (it.part && k < NLOTS ? epicTargets(it.part) : []).concat(tt.map(q => ({ T: q.T, r: q.r, e: ['Giant-slayer ' + q.r.name, q.t[1], q.t[2]], tri: true })));   // Kev, 10 Nov: an epic combo on the table: the bookie flags the lot
         if (ep.length) { const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 260);
@@ -10517,10 +10584,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // (the strength model, as the bookie counts it), in levels. Band = its level + the shift rounded; x = its as-new place in its
   // own band + the rest of the shift. So "fights like ★2.6" sits in the Level 3 band, a little left of the level average.
   const pmDmgLv = r => BAL.oddsDamage && r.wear ? Math.max(0, baseStr(r) - str2(r)) / R2.LEVEL : 0;
+  // T48 (Kev, 21 Nov, voting page: a great fit or an epic combo "should move the robot too"): what the bookie adds for them
+  // (fitAdj: +-0.3 logit a great / poor fit, 0.7 an epic combo, 0.6 a giant-slayer build), in levels (/ Repair2.LEVEL), open floor.
+  // The wear marks the bookie prices (Repair2.markCost) are already inside the damage (str2); pmMarkLv picks them out for the text.
+  function pmFits(r) {
+    const out = [], ps = partsOf(r), fit = k => PART_FIT[r.name] && PART_FIT[r.name][k];
+    for (const k of ps) { const e = epicOf(r.name, k, null), f = fit(k);
+      if (e) out.push({ txt: 'Epic combo ' + e[0], lv: (f ? 0.7 * f[0] : 0.7) / R2.LEVEL });
+      else if (f) out.push({ txt: (f[0] > 0 ? 'Great fit ' : 'Poor fit ') + partNm(k), lv: 0.3 * f[0] / R2.LEVEL }); }
+    if (tripleOf(r)) out.push({ txt: 'Giant-slayer build', lv: 0.6 / R2.LEVEL });
+    return out;
+  }
+  const pmMarkLv = r => BAL.oddsDamage && r.wear && R2.markCost ? Math.min(pmDmgLv(r), R2.markCost(zonesOf(r)) / R2.LEVEL) : 0;
   function pmPlace(r) {
-    const B = pmBase().R[r.name] || { lv: Math.max(0, Math.min(4, r.level || 0)), dev: 0 }, up = upLv(r), dmg = pmDmgLv(r), sh = up - dmg;
+    const B = pmBase().R[r.name] || { lv: Math.max(0, Math.min(4, r.level || 0)), dev: 0 }, up = upLv(r), fits = pmFits(r), fit = fits.reduce((a, x) => a + x.lv, 0), dmg = pmDmgLv(r), mk = pmMarkLv(r), sh = up + fit - dmg;
     const band = Math.max(0, Math.min(4, B.lv + Math.round(sh)));
-    return { band, x: B.dev + sh - (band - B.lv), lv: B.lv, dev: B.dev, up, dmg, sh, eff: B.lv + sh };
+    return { band, x: B.dev + sh - (band - B.lv), lv: B.lv, dev: B.dev, up, fit, fits, dmg, mk, sh, eff: B.lv + sh };
   }
   const pmLike = v => v < -0.05 ? '< ★0' : '★' + (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
   // what is on the map: this game's robots (teams, the Market's robot lots, next round's lots that are shown), then one token per
@@ -10707,8 +10786,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function pmFights(it) {
     const p = it.pl;
     if (!pmInGame(it)) return 'As it comes: ' + (Math.abs(p.dev) < 0.125 ? 'right at its level' : qTxt(p.dev) + ' level for a ' + starsOf(p.lv) + ' robot');
-    const bits = []; if (p.up) bits.push('parts ' + qTxt(p.up)); if (p.dmg >= 0.05) bits.push('damage −' + qTxt(p.dmg).slice(1));
-    return (p.eff < -0.05 ? 'Fights <b>below a starter</b>' : 'Fights like <b>' + pmLike(p.eff) + '</b>') + (bits.length ? ' (' + bits.join(', ') + ' level)' : ' (as it comes)');
+    const lv1 = v => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(1);   // T48: fits, epics and marks in tenths ("+1.1 levels"), parts in quarters as before
+    const bits = []; if (p.up) bits.push('parts ' + qTxt(p.up));
+    for (const f of p.fits || []) bits.push(esc(f.txt) + ' ' + lv1(f.lv));
+    if (p.dmg - p.mk >= 0.05) bits.push('damage −' + qTxt(p.dmg - p.mk).slice(1)); if (p.mk >= 0.05) bits.push('wear marks ' + lv1(-p.mk));
+    return (p.eff < -0.05 ? 'Fights <b>below a starter</b>' : 'Fights like <b>' + pmLike(p.eff) + '</b>') + (bits.length ? ' (' + bits.join(', ') + ' level' + (bits.length > 1 || Math.abs(p.sh) > 1.05 ? 's' : '') + ')' : ' (as it comes)');
   }
   function pmTipHtml(it) {
     const r = it.r;
@@ -10720,7 +10802,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const it = PM.sel;
     if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
       '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
-      '<p>A robot with parts or damage stands where it <b>fights now</b>, with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
+      '<p>A robot with parts or damage stands where it <b>fights now</b> (a great or poor fit and an epic combo count too, as the bookie counts them), with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
       '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. For a robot in this game you also get the bookie\'s band against each rival.</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
     const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
     // a row per counter, strongest first: a bar as thick as its arrow and as long as how far it is off the level odds
@@ -10821,12 +10903,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   });
   { const pb = document.getElementById('pmapBtn'); if (pb) pb.onclick = () => { if (PM.open) closePowerMap(); else openPowerMap(); }; }
   if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { exInfo, exBack, exhaustBot, startRound, resolveScheme, fateIntro, fateStep, fateStatus });   // T25 checks
-  if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { openPowerMap, closePowerMap, get PM() { return PM; } });
+  if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { rarBack, rarFront, pmFits, openPowerMap, closePowerMap, get PM() { return PM; } });
 
   /* ---------- Top Pill & Hand Controls ---------- */
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, a look from the voting page', '22 Nov 2026', [
+      'Rare parts stand out more, the rarer the more: Tuned has a thin coloured edge, Race-spec a soft glow, Works a bigger glow with a light sweeping across, Masterwork the biggest gold glow, a foil shine and twinkling sparks. The same on Market cards, garage slots and the parts rack, Stash names and the rarity ladder (still, if your computer asks for less motion).',
+      'Fights: a robot slammed into a wall now gives a short plain flash instead of the comic star, and the dent in the wall fades away after a few seconds. A robot slammed or thrown hard into another robot gets the same flash (only the big hits).',
+      'Power map: a great fit, a poor fit or an epic combo now moves the robot by what the bookie counts for it (great fit +½ level, poor fit −½, epic combo +1.1), and its details say why, e.g. "Epic combo Whiplash +1.1". Wear marks are named on their own.',
+    ]],
     ['2.0.1, the garage', '21 Nov 2026', [
       'Upkeep: the pit is your garage. Your robots stand side by side with their part slots; the parts rack under them is your Stash. Click a part, then a slot on another robot (or the rack): it goes on a garage bill. Taking a part off costs 1 credit, putting one on 1 credit (a legendary 2 + 2), so a move from robot to robot costs 2 (legendary 4). Nothing is paid until you lock the bill in (🔒 Lock in, or Done, which locks it first). ✕ undoes a line, Reset clears the bill. Not enough credits: the bill says so and can\'t be locked.',
       'A part you just won in the Market still goes on for free. A part from the Stash pays the 1 credit to go on (also in the Market).',
@@ -11036,7 +11123,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=31ff00ca"></script>
+<script src="../src2/net.js?b=3e38ef63"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
