@@ -119,10 +119,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   swapping all the time because money is important"; parts from a scrapped robot: "perhaps depends on what was
   damaged?"; "stash limit gone"; "should be seemless for people with no parts indeed"; and "I'm also thinking about a
   nice visual about the upkeep with a garage and your robots in the arena area". Starts after T41 (wear decides how
-  damage sits on a part), T35 (what a scrap is worth) and T44 (robot value on the bill). Before the brief, settle with
-  Kev: is fitting a newly won part still free, and does a Stash part pay the 1 Cr install; legendaries 2 for each of
-  removal and install, or 2 in total; "depends on what was damaged": a part of a broken zone comes back broken and
-  needs a repair action, the rest comes back whole? Then measure: scrap matters less, parts pile onto the best robot,
+  damage sits on a part), T35 (what a scrap is worth) and T44 (robot value on the bill). Settled with Kev (21 Nov, "1 yes / 2 4 in total / 3 right"): fitting a
+  part you just won stays free; a part from the Stash pays the 1 Cr install; a legendary costs 2 to remove and 2 to
+  install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
+  come back whole. Then measure: scrap matters less, parts pile onto the best robot,
   fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
 - **T36. `play-latest.cmd` must survive updating itself; port 8765 busy on Kev's PC.** Kev's first run (21 Nov) worked
   (server on 8766, game opened) but printed "'folder' is not recognized as an internal or external command": the update
