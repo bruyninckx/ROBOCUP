@@ -96,6 +96,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T36. `play-latest.cmd` must survive updating itself; port 8765 busy on Kev's PC.** Kev's first run (21 Nov) worked
+  (server on 8766, game opened) but printed "'folder' is not recognized as an internal or external command": the update
+  replaced the batch file while cmd was reading it, so cmd went on in the middle of a line of the new file. Goal: the
+  batch reads itself whole before updating (one parenthesised block, or re-start itself from a temp copy), so a changed
+  `play-latest.cmd` can never run half a line. Also: say in the window what holds port 8765 when it is busy and not ours
+  (Kev got 8766; settings are per port). Done when: a scripted update that changes the batch mid-run runs clean (needs
+  a Windows run by Kev or careful reading), `tools/serve-check.js` passes.
 - **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
 - **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
