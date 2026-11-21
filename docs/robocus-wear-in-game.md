@@ -35,8 +35,10 @@ Branch `claude/bending-on`.
   Files stamp 352be701 → dbad9aea (changes again at the rebase/merge). Sync check: new reference 89a95280 (was 408e7f67): the engine
   changed and it now plays 25 fights (two with carried wear marks); node and Chromium give the same code. game-sim 2/2 finished,
   0 page errors. mp-test (2.0 page, 3 clients): OK, desyncs 0 on every client, 9 fights checked (marks carried online between them),
-  3.4 min. mp-scenario: fight-panels OK, repair-note-online OK; repair-note FAIL "9 repairs: 8 buttons" (Thumper's Weapon at 50% gets
-  no button) — the same failure on origin/main (checked on a clean copy), so not from this branch. Whole games: 40 + 40 (below).
+  3.4 min; after the rebase on origin/main (T35, T44, BUILD 2026-11-21k): game-sim 2/2, 0 page errors; mp-test OK, desyncs 0 on every
+  client, 10 fights checked, 10.2 min. mp-scenario: fight-panels OK, repair-note-online OK; repair-note FAIL "9 repairs: 8 buttons" (Thumper's Weapon at 50% gets
+  no button) — the same failure on origin/main (checked on a clean copy), so not from this branch. click-game.js 5 12: first run 2
+  stuck steps (a joined seat's Intrigue turn with only ✕ to click: the known T30 flake), the re-run OK. Whole games: 40 + 40 (below).
   Screenshots (game fight view, 1600x900, plus 2x zooms): /home/claude/t41-shots/ (not in the repo).
 
 
