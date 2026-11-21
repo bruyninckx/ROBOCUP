@@ -6093,7 +6093,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');   // Vulture Salvage: +2 Cr whenever a bot is scrapped
     t.robots.push(nr);
     stashParts(t, parts);
-    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round });
+    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round, wins: old.wins || 0, fav: (old.wins || 0) >= favWins(t), held: old.joinR != null ? G.round - old.joinR : null, ai: !isHuman(t.i) });   // T52: its wins, a Fan Favourite, rounds since it joined
     notify('♻️ ' + nm(t) + ' trades in <b>' + esc(old.name) + '</b> for ' + cr + ' Cr' + (parts.length ? ' (its parts go to the Stash)' : '') + ' and takes <b>' + esc(nr.name) + '</b>.', t.col);
     return `New Bot: ${nr.name} (traded in ${old.name}, +${cr} Cr)`;
   }
