@@ -4809,7 +4809,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (buyer.credits < price) continue;
       if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
       let yes;
-      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ')' + worthTxt(spare) + ' for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
+      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + (valOn() ? ', worth <span class="valword"' + valAttr(spare) + '>' + robotValue(spare) + ' Cr</span>' : '') + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
       if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: ['R:' + spare.id] }) || A.robots.length < 2 || buyer.robots.length >= 3) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
@@ -8698,10 +8698,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const tx = bx + ps + 5, tw = bx + bw - tx;
     ctx.textAlign = 'left'; ctx.fillStyle = INK; fitText(ctx, r.name, tx, by + 12, tw, '700', 11.5);
     { const hn = helpName(t, r); help(tx, by + 1, tw, 14, hn[0], hn[1]); }
-    const vwm = drawValueChip(ctx, r, bx + bw, by + 16, 12, 9);   // T44: its value in credits
-    ctx.textAlign = 'left'; ctx.fillStyle = '#B07A10'; fitText(ctx, r.level ? '★'.repeat(r.level) : 'starter', tx, by + 25, tw - (vwm ? vwm + 3 : 0), '700', 10, r.level ? F_SANS : F_MONO);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#B07A10'; fitText(ctx, r.level ? '★'.repeat(r.level) : 'starter', tx, by + 25, tw, '700', 10, r.level ? F_SANS : F_MONO);
     ctx.fillStyle = '#7C4D9E'; fitText(ctx, '🎖' + r.wins + (r.wins >= favWins(t) ? ' FAV' : ''), tx, by + 38, tw, '700', 9.5, F_MONO);
-    help(tx, by + 16 + (vwm ? 12 : 0), tw, 26 - (vwm ? 12 : 0), '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win; ' + favWins(t) + ' make a Fan Favourite.');
+    help(tx, by + 16, tw, 26, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win; ' + favWins(t) + ' make a Fan Favourite.');
     // Kev, 9 Nov: bought parts vanished from a rival's ticket when a bookie tag took their line; they now share the weapon line
     // and a count badge sits on the picture
     const pts = partsOf(r), ptxt = pts.map(k => (LU.PARTS[k] && LU.PARTS[k].kind === 'legendary' ? '🌟' : '') + partShort(k)).join(', ');
@@ -8715,8 +8714,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '+' + pts.length, bx2 + bw2 / 2, by2 + 10, bw2 - 2, '700', 9, F_MONO); ctx.textAlign = 'left';
       help(bx2, by2, bw2, 13, pts.length + ' part' + (pts.length === 1 ? '' : 's') + ' fitted', esc(ptxt) + '.'); }
     drawZoneButtons(ctx, r, bx, by + 73, bw, 12, false, true);
-    { const fo = fieldOdds(ti, r), cy = by + bh - 17; drawOddsChip(ctx, fo.p, bx, cy, bw, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: bw, h: 16 });
-      const hb = helpBand(ti, r, fo.p); help(bx, cy, bw, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
+    { const fo = fieldOdds(ti, r), cy = by + bh - 17, vw = drawValueChip(ctx, r, bx + bw, cy, 16, 9), ow = bw - (vw ? vw + 3 : 0);   // T44: its value in credits beside the odds
+      drawOddsChip(ctx, fo.p, bx, cy, ow, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: ow, h: 16 });
+      const hb = helpBand(ti, r, fo.p); help(bx, cy, ow, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
     drawExhaustedOverlay(ctx, r, bx - 2, by - 2, bw + 4, bh + 4, true);
     pickGlow(ctx, r, ti, bx - 3, by - 3, bw + 6, bh + 6);
   }
