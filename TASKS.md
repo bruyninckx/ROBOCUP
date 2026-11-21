@@ -96,6 +96,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T38 (parked by Kev, 21 Nov: "maybe lets hold off on it until we have some other things fixed"). Garage: swap parts
+  between robots in Upkeep.** Kev: "modify the upkeep phase to also allow swapping of parts onto other robots for a small
+  fee. To make this work, when a robot get scrapped it should also still give the parts back (perhaps damaged as well?)
+  into the stash (stash limit should perhaps be removed). People can play around with swapping items and a sort of
+  garage bill will be displayed which they can lock in". Not started. Before a worker: Kev's answers on the fee, whether
+  legendaries move, how parts come back from a scrapped robot, the Stash limit; then measure (scrap matters less, parts
+  pile onto the best robot, fewer Market parts bought, AI must learn to swap). Read T35's Fan Favourite numbers first:
+  both change what a scrap is worth.
 - **T36. `play-latest.cmd` must survive updating itself; port 8765 busy on Kev's PC.** Kev's first run (21 Nov) worked
   (server on 8766, game opened) but printed "'folder' is not recognized as an internal or external command": the update
   replaced the batch file while cmd was reading it, so cmd went on in the middle of a line of the new file. Goal: the
