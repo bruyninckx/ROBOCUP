@@ -28,11 +28,11 @@ log, `rules.html` and the docs keep the game's names. Everything keys on the car
 | `industry_insider` | Industry Insider | 175,187 Modules | It took seven hours to check. Draw two cards while you wait. |
 | `swap_the_entry` | Swap the Entry (Auction deck) | Monty Hall | You should switch. You should always switch. |
 | `mirror` | Mirror (Arena card) | Banach-Tarski | Cut one robot into five pieces. Put it back together as two. |
-| `hostile_buyout` | Hostile Buyout | Scalper Bot | Bought every unit at launch. Selling to you at double. |
+| `hostile_buyout` | Hostile Buyout | Scalper Bot | Bought every unit at launch. Four credits each, no refunds. |
 | `supply` | Supply Drop (live fight card, Auction deck) | Reincarnation | It comes back. Not always as the same thing. |
 
 All 19 cards are in the 2.0 game; none was skipped. The numbers in the lines match the cards today: Viral Moment +1 fame,
-Tax Audit 5 credits, Industry Insider draws 2, Mirror fights as 2 copies (the card text says "2–3 copies", the game makes 2).
+Tax Audit 5 credits, Industry Insider draws 2, Mirror fights as 2 copies, Hostile Buyout pays 4 credits (T43, Kev: "fix text": both card texts now say so; Scalper Bot's line was "Selling to you at double.").
 Antikythera Core (T42, 21 Nov): Kev said "decide yourself"; the orchestrator put it on the Matador chip (an ancient computer as a processor chip). Its drawing: a corroded bronze gear mechanism in a wooden case. Chips have no rarity copies.
 
 A rarity copy of a part (`p_weapon~2`) uses its base: "Race-spec RTX 5090".
