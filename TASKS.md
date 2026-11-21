@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K36. Card names, follow-ups** (T39): (a) fight formats ("Mirror duel", "GRAND FINAL" on the bookie header) keep the
+  game's names: also use the new ones? (b) found on the way: Mirror's card text says "2-3 copies" but the game makes 2;
+  Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
 - **K35. Card names** (T39): Antikythera Core and Riemann, Compiled were both voted onto Prototype core. Riemann has it
   for now; which card should Antikythera Core go on (or drop it)? Reincarnation is on Supply Drop for now.
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
@@ -127,14 +130,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T39. Themed names and art on 18 cards (display only).** Kev (21 Nov): "I want a nice thematic change on some of the
-  cards but I am more picky on what to include"; he voted Yes on 19 names on the voting page
-  (https://claude.ai/artifact/Lvqx4oRamR3vByY1NtCAe1), chose "New name big, the game's name small under it", and art
-  direction A, Scrapyard ink (https://claude.ai/artifact/Qr79G7ZxfcvSi9EbpCmCMT). Goal: a `FLAVOR` table keyed by the
-  existing card ids; new name big, game name small, flavour line; one drawing per themed card in the game's own drawing
-  style; log, rules, bookie, AI and network keep the ids and game names. Antikythera Core waits for Kev (it and Riemann,
-  Compiled both wanted Prototype core). Worker on branch `claude/card-flavour`, started 21 Nov. Done when: screenshots
-  of every themed card at 1600x900 and 1280x720, game-sim and mp-test pass, stock-fight fingerprint unchanged.
 - **T37. Bending and wear in real fights: measure first.** Kev (21 Nov): "I saw a fight between buzzkil and whirlwind
   and his blades didn't even really bend at any point. Did we forget to include this? at one point we had this"; then
   "yes do this first step". The 11 Nov wear effects (`ARC.cx.crack`, `frag`, `bend`, `grindout`) are off in the game;
@@ -156,6 +151,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ± and a recommendation.
 ## Done
 
+- **T39. Themed names and drawings on 18 cards** (21 Nov): `FLAVOR` table keyed by card ids (6 parts, 12 cards), 18
+  drawings in the scrapyard style (`FLAV_ART`), new name big with the game's name small under it, the line in the hover;
+  `BAL.flavor` (true) turns it off. The log, rules and docs keep the game's names; a question that names a themed card
+  says "Flavour name (Game name)". Display only. Antikythera Core held back (K35). Branch `claude/card-flavour`, commit
+  `574317a`; build `2026-11-21g`, files stamp `352be701` (unchanged). Orchestrator's checks on the merge: game-sim
+  2/2, 0 page errors; market-step, exhaust-cards, reaction 7 OK; questions-note OK on 2 of 3 runs (one 1-second
+  countdown mismatch on a loaded box); mp-test OK, 0 desyncs, 9 fights. Doc: `docs/robocus-card-flavour.md`.
 - **T26. Open market and sealed bids are one step** (20 Nov): the lots can be bid on from the start of the Market; trades,
   bank sales and AI offers run while people bid; no "Start the auction". Everyone locked: trading closes, the lots go out.
   A trade that goes through or a bank sale unlocks you; bids above your credits grey the Lock (Skip or a drop lowers them
