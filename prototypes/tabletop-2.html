@@ -4585,7 +4585,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       case 'Asset Strip': v = Math.min(3, secReady(T)) * 1.2 * (0.5 + th); break;
       case 'Hostile Buyout': { const r = T && buyBot(T); if (!r) { v = 0; break; }   // T45: the price is its value (at least 4); worth it if it sells cheap or the refusal hurts
         const price = buyPrice(T), ps = isHuman(T.i) ? 0.5 : aiSellsBuyout(T, r, price) ? 1 : 0;
-        v = ps * (robotWorth(F, r) - price) + (1 - ps) * foeFame(1); break; }
+        v = P.hbFlat != null ? P.hbFlat : ps * (robotWorth(F, r) - price) + (1 - ps) * foeFame(1); break; }   // aip hbFlat: test only (the old flat value, to see more buyouts)
       case 'Fire Sale': v = aiFirePicks(F).reduce((a, x) => a + 1, 0); break;   // +1 a thing over its value
       case 'Shill Bidder': v = 1.5; break;
       case 'Secret Upgrade': case 'Overclock': v = aiRobotCardValue(F, c, F, fc); break;
