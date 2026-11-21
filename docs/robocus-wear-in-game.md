@@ -18,7 +18,7 @@ Branch `claude/bending-on`.
 - [x] Carry-over (Kev: "keep bend until repair"): `wearOf` keeps `marks` (per part label: shape, kinks, plate bends, cracks,
   grooves, warp, snapped pieces; numbers only), `applyWear` puts them back. `node tools/damage-lab/wear-carry.js` checks it.
   `src2/repair.js`: repairing a zone clears its marks; a zone with a mark the engine calls out (bent 10°+, warped, a plate in a
-  wheel, sawn open, a tip broken off, a crack 10 cm+) counts as damaged (repair button even at full health); `markCost` prices marks.
+  wheel, sawn open, a tip broken off, a crack 10 cm+) was first counted as damaged; Kev then chose "only shown" (below); `markCost` prices marks.
 - [x] Step 2, retune. Round 1 (`WEAR.hpExp` 0.5: a tougher robot's metal bends, cracks and saws less for the same blow, as weapons
   already resisted kinks by the square root of their health): Gaucho -15 → -5, Buzzkill +14 → +2, Thumper -14 → -7, Tarantula
   +12 → +7, Grandmaster +11 → +7; still out: Thwacker -24, Popcorn +20, Orbiter +15, Whaler +14, Hydra -13. Thwacker diagnosed
@@ -26,9 +26,12 @@ Branch `claude/bending-on`.
   it fights long and wears down. Round 2: power dials for the 11 robots still off (`tools/damage-lab/lineup.js`, comment above
   ROBOTS). Result on 1,976 fights (T37's seeds, paired with the same fights without wear): **no robot outside its 95% range**,
   spread of the changes 5 points (= noise). Details in section "After" below.
-- [x] Kev's PC run ready: `tools\wear-tables.cmd` (see "The big run on Kev's PC" below). Waiting for its result file.
-- [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie): on Kev's PC (below); meanwhile the game keeps the
-  15 Nov tables (measured without wear).
+- [x] Kev's PC run done (21 Nov): `tools\wear-tables.cmd` (see "The big run on Kev's PC" below). Waiting for its result file.
+- [x] Step 3, tables: from Kev's big run (section "Step 3"): matchup table (`src2/matrix.js`), style tags, hard hitters, arena fits,
+  FFA / 2v2 tags, great / poor fits and epics (plus a second round here, 462 x 2 fights). Bookie Brier 0.201 → **0.179** with the new table.
+- [x] Kev (21 Nov, voting page): a mark alone is **not damage**: shown on the card ("BODY · CRACKED · fix?", grey), repairing it is
+  optional (1 action, click the zone), it does not hold up Upkeep, the AI never repairs for it, robot value and repair costs see health
+  only. The bookie still prices marks (they change the fight). Replaces the "big mark = damaged" choice above.
 - [x] Step 4, checks (21 Nov, on this branch): build.py; stock-fight fingerprint (`l4-regress.js`) changes as it must:
   md5 of its output 0b8a0a7a… (origin/main) → 470f6923… (first line "Juggernaut v Brawler: 56.442 Juggernaut wins by KO" →
   "44.517 Juggernaut wins by KO"); with the four wear switches off it is bit-identical to origin/main (checked on the step-1 engine).
@@ -142,10 +145,11 @@ an old 2.0 robot at its own strength). Still clearly visible: the hpExp change d
   exactly in the next fight, through JSON, and two fights built from the same options play the same.
 - A repair of the zone a part belongs to (Weapon, Drive, Body: the game's own `zoneOfPart`) clears its marks with its health. The free
   Upkeep Body heal (to half) does not straighten anything.
-- A zone with a mark the engine would call out (bent 10°+, warped, a plate in a wheel, sawn open, a tip broken off, cracks 10 cm+)
-  counts as damaged: the repair button is there even at full health (decided: the cheapest honest way; no new costs or buttons). The
-  card and the zone tooltip say what: "⚔ WEAPON · BENT 23°", "Body: 85%, a plate bent into a wheel, cracked", with a line that the
-  marks stay until the zone is repaired.
+- A zone with a mark the engine would call out (bent 10°+, warped, a plate in a wheel, sawn open, a tip broken off, cracks 10 cm+) is
+  `marked`. Kev (21 Nov): "Only shown on the card: repairing it is optional and the AI ignores it". So `damaged` sees health only
+  (repair costs, the repair note, the AI's repairs, the robot's value); the card shows the mark in grey ("⛨ BODY · CRACKED · fix?"),
+  a click repairs that zone for 1 action, and the tooltip says it is optional and still changes the fight. A first version counted
+  big marks as damage; the whole-game numbers below were measured with that version (marks then cost a repair action, now they don't).
 - The bookie: test fights see the marks (they are in spec.wear). The formula prices them (`src2/repair.js` `markCost`), measured with
   `tools/damage-lab/markcost.js`: 66 damaged states out of real fights, each in 16 fights with and without its marks (1,056 fights
   each way): with marks the robot won 11.2%, without 11.6% (0.4 points, ± 2.6). Next to the health damage that comes with them, the
@@ -249,6 +253,36 @@ Question for Kev: nudge Hornet up and Buzzkill down (about 6-8% power each) toge
 
 Paired against the old table on the no-wear fights: −0.008 ± 0.013. **The bookie is back** (within noise of 0.182). Whole games:
 see the table below.
+
+### Whole games with the new table (AI v2, same seeds 1-40 as the carry-over check)
+
+| | 15 Nov table (40 games here) | new table (37 + 3 games here) | Kev's 120 games (15 Nov table, his PC) |
+|---|---|---|---|
+| Bookie favourite wins | 74% | 77% | 75% |
+| Bookie Brier (coin 0.25) | 0.177 | **0.164** | 0.170 |
+| Rounds a game | 11.5 | 11.7 | 11.6 |
+
+Three of the 40 games here stalled in round 1 with the box overloaded (load 12-16); run alone, all three finished (the same thing was
+seen on 15 Nov). Kev's run: 119 of 120 finished (1 stall), 0 page errors.
+
+### What moved for players (bookie tags and odds)
+
+| Tag | Gone | New | Stays |
+|---|---|---|---|
+| 🎯 Counter pick / Bad matchup (from the table, 40+ points off the level gap) | 11 (e.g. Mincer vs Mauler, Popcorn vs Blacksmith, Snapjaw and Blacksmith vs Thwacker, Hydra vs Tarantula) | 18 (e.g. Buzzkill vs Hornet, Wrecker vs Hornet and Popcorn, Blacksmith vs Mauler and Tarantula, Gyro vs Slingshot and Railgun, Thwacker vs Pincher) | 32 (43 → 50 in all) |
+| ⚡ Epic combo | Haywire (Popcorn + Sensor scrambler: 17 → 33%, not even a great fit now) | - | Whiplash 30 → 78%, Phantom Hook 28 → 83%, Overclock 50 → 80%, Iron Bolas 12 → 58% |
+| 🧩 Great fit | Corkscrew + Field hospital (just under the cut), Popcorn + Sensor scrambler | Thwacker + Pester chip (27-30 → 57-70%, both rounds), Snapjaw + Wall Bait chip, Popcorn + Quantum shield, Wrecker + Jammer drone | Thwacker + Mine layer / Tow cable, Wrecker + Pester chip, Angler + Quantum, Vertigo + Power kit, Gaucho + Overdrive |
+| 🧩 Poor fit | Forklift + Laser drone | Vertigo + Overdrive, Rotisserie + Overdrive, Corkscrew + Pester, Slingshot + Wall Bait, Hornet + Booster drone, Forklift + Pester | Rotisserie + Pester, Yoyo + Blocker drone |
+| 🌀 Brawl master / Lost in a melee (750 FFAs, cut 14) | Rotisserie, Pogo, Trebuchet, Slingshot, Corkscrew | Angler +18, Railgun +23, Mincer −16, Pincher −16 | Jukebox +20, Orbiter +24, Gyro +14; Thwacker flips +14 → −18 |
+| 🤝 Lone wolf / Team player (750 2v2) | - | - | none (Snapjaw −12, Angler +12 under the cut) |
+| Style (Giant killer / Coin-flip / Quick / Grinder) | Lodestone coin-flip | Tarantula giant killer, Corkscrew, Angler, Trebuchet coin-flip, Yoyo grinder | 19 others (now from the 10,560 matchup fights, was 6,336 tag fights) |
+| 🔨 Hard hitter | - | Jukebox, Orbiter | Gaucho, Buzzkill |
+| Arena tags (fit 0.4+) | Thwacker hates ice (−1.23 → −0.22), Popcorn saw specialist, Corkscrew cage fighter and ice skater, Mauler and Vertigo ice, Whaler hates the Cage, Vertigo hates saws, Thwacker saws, Mincer hates ice, Yoyo hates saws, Pincher, Slingshot (cage, saws), Lodestone saws | Hornet hates the Cage, Mincer, Angler, Grandmaster hate saws, Wrecker saw specialist, Jukebox cage fighter | the rest; ice and killbox fits are smaller now (their noise shrink fits at 0.4 and 0.35, was 0.75 and 0.45) |
+
+Not re-measured: the 👑 Giant-slayer builds (no slayer section in the run) and the part levels `PART_LV`. The big run's parts
+section built robots the way the 15 Nov tag tool did (no level growth for drones and modules), so its levels for drones and modules
+are not comparable; for stat parts and legendaries they stay within about ±0.3 of a level except **Overdrive: 0.80 → 1.28 levels**
+(wear makes extra weapon damage worth more). PART_LV is unchanged; a `parttest.js` run would settle Overdrive (question for Kev).
 
 ## The big run on Kev's PC (T41)
 
