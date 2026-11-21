@@ -32,6 +32,12 @@ Branch `claude/bending-on`.
 - [x] Kev (21 Nov, voting page): a mark alone is **not damage**: shown on the card ("BODY · CRACKED · fix?", grey), repairing it is
   optional (1 action, click the zone), it does not hold up Upkeep, the AI never repairs for it, robot value and repair costs see health
   only. The bookie still prices marks (they change the fight). Replaces the "big mark = damaged" choice above.
+- [x] Final checks (21 Nov evening, rebased on origin/main 587508e, BUILD 2026-11-21k, files stamp **31ff00ca**): build.py; sync check
+  89a95280 (unchanged); stock-fight fingerprint 470f6923 (unchanged since step 2: the tables do not change fights); game-sim 2/2, 0
+  page errors; mp-test OK, desyncs 0 on every client, 12 fights checked, 12.3 min; fight-panels OK; robot-value OK (a marked zone
+  at full health no longer lowers the value: Popcorn with a cracked Body is worth 1 Cr, as without the mark); questions-note OK (the
+  first run under load 10-15 failed "last 5 s: not marked" on a countdown colour, the re-run alone passed); repair-note FAIL "9
+  repairs: 8 buttons", the known failure that main has too. **Ready to merge.**
 - [x] Step 4, checks (21 Nov, on this branch): build.py; stock-fight fingerprint (`l4-regress.js`) changes as it must:
   md5 of its output 0b8a0a7a… (origin/main) → 470f6923… (first line "Juggernaut v Brawler: 56.442 Juggernaut wins by KO" →
   "44.517 Juggernaut wins by KO"); with the four wear switches off it is bit-identical to origin/main (checked on the step-1 engine).
