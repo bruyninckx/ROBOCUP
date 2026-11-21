@@ -596,6 +596,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   .prompt-bar { transform: none; font-size: 12.5px; padding: 22px 10px 8px; }
   .prompt-bar::before { top: 6px; left: 10px; }
 }
+/* T47: a trade between other teams, a short banner over the pit (not over the note, never a question) */
+#tradeBan { position: fixed; z-index: 40; top: 58px; transform: translateX(-50%); pointer-events: none; background: #FFF8E6; border: 2px solid #C9A54A;
+  border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.18); padding: 8px 14px; font: 600 13.5px/1.35 system-ui, sans-serif; color: #3A3226;
+  opacity: 0; transition: opacity .35s; text-align: center; }
+#tradeBan.on { opacity: 1; }
+#tradeBan small { display: block; font-weight: 500; color: #6E6457; font-size: 11.5px; }
 </style>
 </head>
 <body>
@@ -2034,6 +2040,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over;
   }
   function updateHud() {
+    try { tradeBanShow(); } catch (e) { console.warn('trade banner', e); }
     // 15 Nov (overnight click test, a 1366 x 768 screen): a hand kept open lay over the third robot bay, so a player whose only
     // ready robot sat there could not send it. While you must click one of your own bays (send a robot, fit a part, repair),
     // a pinned hand steps down; it comes back by itself afterwards.
@@ -4990,6 +4997,36 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const mktShutTxt = (A, B) => '🤝 <b>The Market closed</b> (everyone had locked): the open deal between ' + nm(A) + ' and ' + nm(B) + ' was called off. No deal, nothing moved.';
   const mktShutSay = (A, B) => { for (const T of [A, B]) if (T && isHuman(T.i)) say(T.i, mktShutTxt(A, B), '#6E6457'); };
+  /* T47 (Kev, 21 Nov voting page: "Show it more clearly, for example a short banner"; "this would also be relevant when 2 players
+   * trade in a real life game which you are not involved in"): every completed trade (AI-AI, AI-person, person-person; the
+   * Market's part sales, robot sales and trade panels) shows a short banner to every team NOT in it: who traded with whom and
+   * what moved. About 4 s, over the pit (never over the note), not a question; several in a row wait their turn. The log line
+   * stays. The host keeps the last few in G.tradeBan (so every screen gets them); each screen shows the ones it has not shown. */
+  function tradeDone(A, B, html, col) {
+    notify(html, col);
+    const L = G.tradeBan = (G.tradeBan || []).slice(-5);
+    L.push({ id: (L.length ? L[L.length - 1].id : 0) + 1, teams: [A.i, B.i], html: html.replace(/^🤝 /, '') });
+  }
+  const TBAN = { gid: null, seen: 0, q: [], tm: null };
+  function tradeBanShow() {
+    if (!G || !G.teams) return;
+    const L = G.tradeBan || [], top = L.length ? L[L.length - 1].id : 0;
+    if (TBAN.gid !== G.gid) { TBAN.gid = G.gid; TBAN.seen = top; TBAN.q = []; return; }   // a new game or a screen that just joined: nothing old
+    if (top < TBAN.seen) TBAN.seen = 0;
+    for (const x of L) if (x.id > TBAN.seen) { TBAN.seen = x.id; if (!x.teams.includes(HS) && !window.__noBan) TBAN.q.push(x); }
+    if (!TBAN.tm && TBAN.q.length) tradeBanNext();
+  }
+  function tradeBanNext() {
+    const x = TBAN.q.shift(); let el = document.getElementById('tradeBan');
+    if (!x) { if (el) el.classList.remove('on'); TBAN.tm = null; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'tradeBan'; document.body.appendChild(el); }
+    const pb = document.getElementById('promptBar'), right = pb ? pb.getBoundingClientRect().left : innerWidth;
+    el.style.left = Math.round(right / 2) + 'px'; el.style.maxWidth = Math.max(260, right - 40) + 'px';
+    const a = G.teams[x.teams[0]], b = G.teams[x.teams[1]];
+    el.innerHTML = '🤝 <b style="color:' + a.col + '">' + esc(a.name) + '</b> traded with <b style="color:' + b.col + '">' + esc(b.name) + '</b><small>' + x.html + '</small>';
+    el.classList.add('on');
+    TBAN.tm = setTimeout(() => { el.classList.remove('on'); TBAN.tm = setTimeout(() => { TBAN.tm = null; tradeBanNext(); }, 400); }, 4000);
+  }
   // a trade or a bank sale went through: a person who had locked is unlocked; bids above the credits now must come down first
   function tradeUnlock(T, what) {
     if (!T || !isHuman(T.i) || !mktOpen()) return;
@@ -5035,7 +5072,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (!yes) continue;
         if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: [id] })) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: [id] });
-        notify('🤝 ' + nm(buyer) + ' buys ' + lotRef(id) + ' from ' + nm(A) + ' for ' + price + ' Cr.', buyer.col);
+        tradeDone(buyer, A, '🤝 ' + nm(buyer) + ' buys ' + lotRef(id) + ' from ' + nm(A) + ' for ' + price + ' Cr.', buyer.col);
         tradeUnlock(buyer, 'Your trade with ' + esc(A.name));
         updateHud();
       }
@@ -5057,7 +5094,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (!yes) continue;
       if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: ['R:' + spare.id] }) || A.robots.length < 2 || buyer.robots.length >= 3) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
       transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
-      notify('🤝 ' + nm(A) + ' sells its robot <b>' + esc(spare.name) + '</b> to ' + nm(buyer) + ' for ' + price + ' Cr.', A.col);
+      tradeDone(A, buyer, '🤝 ' + nm(A) + ' sells its robot <b>' + esc(spare.name) + '</b> to ' + nm(buyer) + ' for ' + price + ' Cr.', A.col);
       tradeUnlock(buyer, 'Your trade with ' + esc(A.name));
       updateHud();
     }
@@ -5074,7 +5111,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (yes) {
         if (!mktOpen() || !bundleHeld(A, { cr: price }) || !bundleHeld(P, { items: [id] })) { say(P.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(A, P, { cr: price, items: [] }, 'trade'); transfer(P, A, { cr: 0, items: [id] });
-        notify('🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
+        tradeDone(P, A, '🤝 ' + nm(P) + ' sells ' + lotRef(id) + ' to ' + nm(A) + ' for ' + price + ' Cr.', P.col);
         tradeUnlock(P, 'Your trade with ' + esc(A.name));
       }
     }
@@ -5102,7 +5139,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
       if (yes) {
         transfer(Me, O, d.give, 'trade'); transfer(O, Me, d.want, 'trade');
-        notify('🤝 Trade: ' + nm(Me) + ' gives ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', Me.col);
+        tradeDone(Me, O, '🤝 Trade: ' + nm(Me) + ' gives ' + bundleText(d.give) + ', ' + nm(O) + ' gives ' + bundleText(d.want) + '.', Me.col);
         tradeUnlock(Me, 'Your trade with ' + esc(O.name)); tradeUnlock(O, 'Your trade with ' + esc(Me.name));
       } else notify('✋ ' + nm(O) + ' turns down ' + nm(Me) + '\'s trade (' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
     } finally { Me.trading = false; dealIn(Me, -1); updateHud(); }
@@ -7937,6 +7974,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
   // T31 test hooks: the question clocks (tools/mp-scenario/questions-note.js, questions-remote.js)
   Object.assign(window.ROBOCUS_DEBUG, { askSeat, dealAsk, dealPanel, humanHandLimit, hostStepNow, clkNow, get QCLK() { return QCLK; }, get ASKING() { return ASKING.slice(); } });
+  // T47 test hooks (tools/mp-scenario/vote-rules.js)
+  Object.assign(window.ROBOCUS_DEBUG, { lotDeck, seatStepNow, bestFit, tradeDone, get MKTD() { return MKTD.size; }, get SEATC() { return SEATC; }, resolveScheme });
 
   /* ---------- end-of-game awards (Kev, 9 Nov): a tally kept by the host during the game (G.stats), turned into awards when
    * the game is won (G.awards: plain data, so every screen shows the same). Ties go to the team with more fame. ---------- */
