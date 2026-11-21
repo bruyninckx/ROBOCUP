@@ -163,8 +163,13 @@ A page without helpers (opened from a file) keeps 4 s also for big fights: there
 `node tools/bookie-speed.js` (served page, pretends 16 processors, AI game seed 3, a duel and a 4-robot fight from round 5 on):
 
 - Memory: the browser grows by 33 MB with 1 helper, 62 MB with 8, 124 MB with 14 (each loads planck and the engine): **about 8-10 MB a helper**, so 14 helpers about 125 MB. The pool starts 5 s after the page loads and lives as long as the page (no start-up cost per fight).
-- Speed per helper (box loaded): the round-7 duel 12.8 fights a second with 1 helper (8.5 each with 2, the box has 2 cores), the round-5 double duel (4 robots) 0.27 with 1 helper: a 4-robot fight costs 30-50 duels here.
-SPEEDNUMBERS
+- Speed per helper, quiet box (load 3): the round-7 duel 39.9 fights a second with 1 helper (27.6 each with 2: 2 cores, and the page
+  needs some), the round-5 double duel (4 robots) 0.65 with 1 helper (0.47 each with 2), i.e. 1.5-2.1 s a fight. Loaded box (load 11):
+  12.8 and 0.27. This 4-robot fight costs about 60 of this (short) duel; on Kev's PC his 4-robot fights cost 2-14 of his duels.
+- The game's own settings on the served page with 14 helpers (on 2 cores, so each helper gets a seventh of a core): the duel
+  stopped early at 60 of 60 in 3.7 s (`early: true`, `budget: 4000`); the 4-robot fight got `budget: 8000` and only 1 fight in it
+  here. That shows the paths work; the counts belong to this box, not to his PC.
+- Measured with `tools/bookie-speed.js` (it also stores the fights in `--out`); `node tools/serve-check.js` below for the served page.
 
 ### Fewer test fights for big fights? (not changed)
 
