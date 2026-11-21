@@ -1,8 +1,8 @@
 # Intrigue deck (v1 + 5 Nov additions + 7 Nov trim)
 
-57 different cards, 130 copies (7 Nov trim and 8 Nov card pass, Kev: was 75 cards / 188 copies), in 7 families: schemes and blockers only. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. The live fight cards and Swap the Entry are in the **Auction deck** (below), not in the Intrigue deck. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
+58 different cards, 132 copies (21 Nov: Fire Sale back with 2; 7 Nov trim and 8 Nov card pass, Kev: was 75 cards / 188 copies), in 7 families: schemes and blockers only. Gate = fame needed (▲ more fame than the target, ▼ less); cash-in = credits when discarded for money. The live fight cards and Swap the Entry are in the **Auction deck** (below), not in the Intrigue deck. Event cards make a fight bigger (target: about 1 fight in 4). Full rules: `docs/rulebook.md`.
 
-## Contracts (9 cards, 23 copies)
+## Contracts (10 cards, 25 copies)
 
 Cheap, low-gate cards that turn crew and robots into credits.
 
@@ -17,6 +17,7 @@ Cheap, low-gate cards that turn crew and robots into credits.
 | **Industry Insider** | Scheme | 6 | 2 | 2 | Target team draws 2 Intrigue cards. | Inside Information |
 | **Scrap Deal** | Scheme | 7 | 1 | 3 | Gain 5 credits. | Black Market Profits |
 | **Joint Venture** | Scheme | 12 | 2 | 1 | You and a target team secretly commit credits. Both commit: each gains 7. One defects: it takes both stakes. | Joint Venture |
+| **Fire Sale** | Reaction | 1 | 1 | 2 | Any time: sell your robots, crew or parts to the bank at value +1 each. (Back 21 Nov, Kev: "Back with 2 copies". Played on your Intrigue turn. A robot pays its ◉ value + 1, a Stash part its 🏦 bank price + 1, a crew member `CREW[k].value` + 1; you keep at least one robot.) | Fire Sale |
 
 ## Publicity (14 cards, 25 copies)
 
@@ -186,8 +187,8 @@ Kev: "exhaust robots as well" (the texts said robots; the game only took crew an
 
 8 Nov (card pass, `docs/card-play.md`): Bookie's Friend; Skeleton Crew, Leaked Footage and Bankrupt! became Kick When Down; Press Tour and Celebrity Endorsement 3→2; Team-Building Day max +1; Security Override and Asset Strip can't be blocked by Security Bots; gates: House Robot 9→5, Rival Sponsor 14→9, Smear Campaign 16→10.
 
-7 Nov: Fire Sale, Blaze of Glory, Robot Rights Protest, Rigged Ratings, Pile-On, Backup Restore, Board Seat, Hedge Bet. Also fewer copies: Security Bot 28→18, Leaked Footage / Bankrupt! / Skeleton Crew 2→1, Crunch Week 4→2, Underdog Story 3→1, Roadshow, Launch Party, Joint Venture, Hostile Buyout and Mirror 2→1, Botched Install 3→2. Later, maybe (after a human playtest): the 3-copy staples to 2 each (about 120).
+7 Nov: Fire Sale (back with 2 copies on 21 Nov, T45), Blaze of Glory, Robot Rights Protest, Rigged Ratings, Pile-On, Backup Restore, Board Seat, Hedge Bet. Also fewer copies: Security Bot 28→18, Leaked Footage / Bankrupt! / Skeleton Crew 2→1, Crunch Week 4→2, Underdog Story 3→1, Roadshow, Launch Party, Joint Venture, Hostile Buyout and Mirror 2→1, Botched Install 3→2. Later, maybe (after a human playtest): the 3-copy staples to 2 each (about 120).
 
-Fire Sale (still 0 copies) since T45, 21 Nov: "Any time: sell your robots, crew or parts to the bank at value +1 each." now does that: you tick any of your robots (never your last one), crew and Stash parts; each pays its value + 1 (a robot its ◉ value, a Stash part its 🏦 bank price = half its Market value, a crew member `CREW[k].value`, the number Headhunter Fee doubles). No answer in time: nothing is sold. The AI plays it only for spare things (every Stash part, a third robot it rates under the price, a second copy of a crew card). Before T45 it sold the weakest robot for a flat 2 Cr.
+Fire Sale since T45, 21 Nov (2 copies again, Kev: "Back with 2 copies"): "Any time: sell your robots, crew or parts to the bank at value +1 each." now does that. With up to 5 things to sell the question is in the note: one button a thing ("🤖 Snapjaw +8 Cr"), each click sells it at once, then "Done"; with more, a box with ticks. Each pays its value + 1 (a robot its ◉ value, a Stash part its 🏦 bank price = half its Market value, a crew member `CREW[k].value`, the number Headhunter Fee doubles). You keep at least one robot. No answer in time: nothing more is sold. The AI never sells its strongest robot or one in this round's fight; it sells another robot when it rates it under the price and keeps 2, or when it is damaged; short of credits (3 or less) its weakest spare robot; every Stash part; a second copy of a crew card (not Mechanic or Chief). Before T45 it sold the weakest robot for a flat 2 Cr.
 
 **Prototype-only, not in the deck:** Stripped Gears, Cut Corners (drop or add later).
