@@ -16,8 +16,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   fire-sold that round)? (b) the AI now almost never plays Hostile Buyout and an AI target never refuses: fine, or
   should the AI use it to cost a target fame? (c) Fire Sale pays crew by a card value shown nowhere: show a value on
   crew, or leave crew out? (d) Fire Sale with no answer in time sells nothing and the card is spent: right?
-- **K44. A won part: "Always ask me first which robot"** (voting page, 21 Nov): read as: when two or more of your robots
-  can take it, the game asks before fitting; with one robot it still goes on at once with Undo. Right, or ask even then?
+- **K47. From the rules batch** (T47): (a) a won part asks only when two or more robots can take it (with one it goes
+  on at once, with Undo): right? (b) 20 s for which robot, 30 s for sending a robot: right? (c) the trade banner: 4 s
+  over the top of the pit; also for a Hostile Buyout? (d) Bookie's Friend and Hedge Bet are out of the deck (0
+  copies): bring them back? (e) Crunch Week: keep the second button "Exhaust nothing"?
 - **K43. Wear, after the merge** (T41): (a) level steps 0→1 (74%) and 1→2 (70%) are above the 63-68% band, and Hornet
   (-16) and Buzzkill (+13) moved: nudge them now (about 6-8% power each)? (b) Overdrive now measures about half a
   level stronger: run a parts test on Kev's PC (about 23,000 fights)? (c) three combos held at epic level in both
@@ -152,13 +154,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
   come back whole. Then measure: scrap matters less, parts pile onto the best robot,
   fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
-- **T47. Rules and clicks from the voting page (one worker, `prototypes/tabletop-2.html`).** Kev's choices (21 Nov,
-  quoted under Answered): (1) Crunch Week: tick crew, Security Bots and robots yourself; (2) Repair kit 2 copies;
-  (3) Bookie's Friend and Hedge Bet stay playable after you lock bets; (4) a trade still open when the last player
-  locks is cancelled (both sides told why) instead of holding the step; (5) "send a robot": 30 s, then the strongest
-  ready robot; (6) a won part asks which robot first when several can take it (K44); (7) a log line for everyone when
-  someone unlocks; (8) a trade between two other teams (AI or people) shows as a short banner, not only a log line.
-  Worker on branch `claude/vote-rules`, started 21 Nov. Done when: scripted plays for each, questions-note, market-step, game-sim, mp-test.
 - **T46. AI hosts invite like people; the AI saves for the host seat.** Kev (21 Nov): "improving AI is always good";
   on hoarding ("Teach the AI to save for host bids, add something to spend credits on, or cap host bids?"): "yes"
   (read: teach the AI). From T35: an AI host that stays out invites the fame leader on purpose (80%), never avoids a
