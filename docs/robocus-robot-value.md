@@ -5,7 +5,7 @@ well, that was a problem last time". Asked what the value should show: "A price 
 parts and damage: what it is worth in a trade, an offer or a buyout". Background: in a playtest he got Snapjaw through an AI offer he
 did not understand, and his friends could not tell what a robot was worth.
 
-Display only. No price, rule, AI choice or network message changed. Every screen works the number out from the game state it
+Display only in T44. No price, rule, AI choice or network message changed (since T45 Hostile Buyout and Fire Sale use it as a price: see the end). Every screen works the number out from the game state it
 already has, so every player sees the same number for the same robot. Switch: `BAL.showValue` (default true; false hides it all).
 
 ## The formula (`robotValue(robot)` in prototypes/tabletop-2.html)
@@ -91,8 +91,8 @@ above it early in the game: in rounds 1-4 every team still needs robots and has 
   strength value.
 - **AI sells a spare robot** at `max(2, min(worth to the buyer, worth to the seller + 1))`: a buyer down to one robot gets the
   +2 "only robot" bonus, so it pays a little above the seller's own worth.
-- **Hostile Buyout** is a flat 4 Cr; **Fire Sale** sells the weakest robot to the bank for a flat 2 Cr, while the card text says
-  "at value +1 each".
+- **Hostile Buyout** was a flat 4 Cr; **Fire Sale** sold the weakest robot to the bank for a flat 2 Cr, while the card text said
+  "at value +1 each". Both read the value since T45 (below).
 - **Spare or scrap:** an AI that pleads to spare its robot offers up to `1 + 2 × Fan tokens` Cr, capped by its own `robotWorth`.
 
 ## Where it is shown
@@ -124,12 +124,106 @@ above it early in the game: in rounds 1-4 every team still needs robots and has 
 
 ## Open questions for Kev
 
-1. Should Hostile Buyout's price follow the value later (for example the value, at least 4)? Today it is a flat 4 Cr: a buyer
+1. (Answered 21 Nov, T45: "ok, it should cost something to take a big robot": the value, at least 4.) Should Hostile Buyout's price follow the value later (for example the value, at least 4)? Today it is a flat 4 Cr: a buyer
    gets a 6 Cr robot for 4, and a damaged starter costs more than it is worth.
 2. Is the value the same for every viewer (now), or should it be "worth to you" (your odds against your rivals, whether you need a
    robot)? The AI's own prices are per team; one shared number is easier to read at the table.
 3. New robots sell 2-3.5 Cr above the value in rounds 1-4. Keep the value as the trade price (now), or show a separate Market
    estimate on lots early in the game?
-4. Fire Sale's card says "at value +1 each" but the game pays a flat 2 Cr for the weakest robot. Should Fire Sale pay the value + 1
+4. (Answered 21 Nov, T45: "pay value +1".) Fire Sale's card says "at value +1 each" but the game pays a flat 2 Cr for the weakest robot. Should Fire Sale pay the value + 1
    now that there is one?
 5. Should the AI price parts on a robot the same way as in a Stash? (Not changed: it would change AI trades.)
+
+## T45 (21 Nov 2026): Hostile Buyout and Fire Sale use the value as a price
+
+Kev, asked whether Hostile Buyout's price should follow the value with 4 as the minimum: "ok, it should cost something to take a
+big robot". Asked whether Fire Sale should pay value + 1 or the text be fixed: "pay value +1". Branch `claude/value-prices`.
+
+**Hostile Buyout.** "Target sells you its weakest robot for its value (at least 4 credits), or loses 1 fame." (was "for 4
+credits"). The price is `buyPrice(T) = max(BAL.buyout.min (4), robotValue(weakest robot))`, worked out when the card resolves.
+Still the target's weakest robot (the buyer does not choose), refusing still costs 1 fame, no answer in 20 s still = Refuse.
+- Play condition: a free bay, a target with 2+ robots, and the price in hand. Short: "Hostile Buyout costs 9 Cr here: Rust
+  Rivets's weakest robot, Popcorn, is worth 9 Cr (the price is its value, at least 4). You have 3 Cr."
+- The question: "… wants to buy your Popcorn (worth 9 Cr) for 9 Cr." or "(worth 1 Cr) for 4 Cr (the 4 Cr minimum)"; the button
+  "Sell it (+9 Cr)". The log: "buys Popcorn from Steel Bolts for 9 Cr (its value)" / "refuses the buyout (Popcorn for 6 Cr) and
+  loses 1 fame". The reaction window adds "Now: Popcorn for 9 Cr." The card in your hand: its hover lists the price at each rival
+  with 2+ robots. If the buyer can no longer pay when it resolves, it fizzles (nothing happens).
+- Scalper Bot: line "Bought every unit at launch. Full price, no refunds." (was "Four credits each, no refunds."); the price tag
+  in its drawing says "4+ Cr".
+- AI target (`aiSellsBuyout`): sells when price + 1 fame (its own fame price, ×1.6 near the win; 0 if its fame is at the floor)
+  ≥ `robotWorth` (what the robot is worth to it). Before: sold when it had 3 robots or 2 fame or less.
+- AI buyer (`aiCardValue`): chance the target sells (1 or 0 for an AI target by the rule above, ½ for a person) × (the robot's
+  worth to the buyer − the price) + chance it refuses × the fame hit. Before: a flat 2.
+- `BAL.buyout = { min: 4, value: true }` (`value: false`: the flat 4 again). Test only: `--aip='{"hbFlat":2}'` gives the AI the
+  old flat card value, to see many buyouts.
+
+**Fire Sale** (back in the deck with 2 copies, Kev 21 Nov: "Back with 2 copies"). "Any time: sell your robots, crew or parts to
+the bank at value +1 each." now does that, on your Intrigue turn. Up to 5 things to sell: the question is in the note (T31 timer,
+20 s), one button a thing ("🤖 Snapjaw +8 Cr"), each click sells it at once and the question comes back with "Sold: …" and "Done";
+6 or more: a box with ticks (30 s). Each pays its value + 1: a robot its ◉ value, a Stash part its bank price (the 🏦 button, half
+its Market value), a crew member its card value `CREW[k].value` (1 or 2; not shown anywhere on screen; Headhunter Fee doubles the
+same number). You keep at least one robot. No answer in time: nothing more is sold. The AI (`aiFirePicks`) never sells its
+strongest robot (so never its only one) or a robot in this round's fight; it sells another robot when it rates it (robotWorth:
+level, parts, odds, damage) under the price and still keeps 2, or when it is damaged; short of credits (3 or less) its weakest
+spare robot; every Stash part; a second copy of a crew card (not Mechanic or Chief). Before: the weakest robot for a flat 2.
+
+**Money pump?** Not a loop: every sale needs a Fire Sale card, one card for one batch, 2 copies in the deck. But a robot can be bought and sold for more: over 1,479 Market robot lots in this task's 160 bot games, value + 1 at
+the moment of the sale beat the price paid for 35% of them (L1 6 of 313, L2 28 of 328, L3 168 of 311, L4 322 of 527), by 2.1 Cr on
+average where it did, at most 7 (a level 3 robot won cheap); over all lots −0.4 Cr. Parts pay 1 more than the Stash's own 🏦 button.
+So one Fire Sale late in the game is worth a few credits more than its sale value; it cannot run away.
+
+### Measured (bot games, `tools/game-sim.js`, seeds 1-40, `--par=2`, paired by seed; `node tools/buyout-report.js <tag>`)
+
+Stalled games were re-run alone (base seed 39, new seeds 11 and 40, new 6-copy seed 38: all stalled in round 1 under load; all
+finished alone). ± is one standard error; "diff" is new − old on the same seed.
+
+| Run (40 games each) | Rounds | Fame / round (4 teams) | End credits / team | Hostile Buyout played / game |
+|---|---|---|---|---|
+| Normal deck, old (flat 4) | 11.80 ± 0.21 | 3.16 ± 0.06 | 9.74 ± 0.41 | 0.25 ± 0.07 |
+| Normal deck, new | 12.05 ± 0.25 | 3.13 ± 0.06 | 9.63 ± 0.43 | 0.00 |
+| · diff | +0.25 ± 0.19 | −0.03 ± 0.04 | −0.11 ± 0.14 | −0.25 ± 0.07 |
+| 6 copies, old | 11.75 ± 0.27 | 3.31 ± 0.06 | 9.09 ± 0.38 | 0.80 ± 0.20 |
+| 6 copies, new | 11.63 ± 0.24 | 3.31 ± 0.06 | 9.15 ± 0.36 | 0.07 ± 0.04 |
+| · diff | −0.13 ± 0.23 | 0.00 ± 0.04 | +0.06 ± 0.32 | −0.72 ± 0.20 |
+| 6 copies, new, AI with the old flat card value (test) | 11.60 ± 0.24 | 3.35 ± 0.06 | 9.21 ± 0.41 | 0.57 ± 0.15 |
+
+Buyouts that resolved (sold / refused, price against value at that moment):
+
+| Run | Resolved | Sold | Refused | Price paid | Value | Price − value |
+|---|---|---|---|---|---|---|
+| Normal deck, old | 5 | 3 | 2 | 4 | 5.7 | −1.7 |
+| 6 copies, old | 23 | 14 (61%) | 9 | 4 | 4.3 ± 1.0 | −0.3 ± 1.0 |
+| 6 copies, new | 2 | 2 | 0 | 4 and 6 | 3 and 6 | |
+| 6 copies, new, flat AI value (test) | 17 | 17 (100%) | 0 | 4.8 ± 0.4 (4 ×12, 5 ×2, 6, 8, 9) | 3.1 ± 0.7 | +1.6 ± 0.4 |
+
+**Reading it.** Game length, fame per round and credits do not move (all diffs inside their ±). What changes is the card: the AI
+almost never plays Hostile Buyout now (0 in 40 normal games, was 1 in 4 games). An AI target sells whenever the price plus 1 fame
+covers the robot (its own price for 1 fame is high, about 6 Cr), so an AI buyer only gains when it rates the robot above its value,
+which is rare; and a refusal (the fame hit) almost never happens. When the AI is made to play it anyway, every buyout sells, 10 of 17
+at the 4 Cr minimum (damaged or bare starters worth 1-3), the rest at the value (up to 9). Against a person the card still works as
+before: they choose between the price and 1 fame. Fire Sale with 2 copies (20 games, test only): played 0.10 a game, 5 things
+sold (3 parts, 2 robots), each paid value + 1, 11.5 Cr per play; game length 11.5 ± 0.4 rounds, no page errors.
+
+### Fire Sale back with 2 copies (bot games, 40 each way, seeds 1-40, base 9fdd0dd + the Fire Sale AI, before the T41 wear merge)
+
+`node tools/buyout-report.js t45-fsc0 t45-fsc2-all t45-fsc2-nf`. 2 copies: 3 games stalled in round 1 under load and finished when
+re-run alone; the cash-only run lost seed 16 (stalled in round 1; compared on the other 39).
+
+| Run | Rounds | Fame / round | End credits / team | Scraps / game | Trade-ins / game | Fire Sale played / game |
+|---|---|---|---|---|---|---|
+| 0 copies | 12.05 ± 0.25 | 3.13 ± 0.06 | 9.63 ± 0.43 | 2.90 ± 0.23 | 1.13 ± 0.14 | 0 |
+| 2 copies | 11.28 ± 0.28 | 3.30 ± 0.05 | 8.72 ± 0.46 | 2.88 ± 0.24 | 0.68 ± 0.12 | 0.25 ± 0.07 |
+| 2 copies, AI only cashes it (test, `--aip='{"noFire":1}'`) | 11.46 ± 0.31 | 3.28 ± 0.06 | 8.53 ± 0.42 | 2.87 ± 0.25 | | 0 |
+
+- Played vs only cashed (the same deck, so the same shuffles): rounds −0.13 ± 0.12, fame/round +0.01 ± 0.02, credits +0.23 ± 0.26,
+  scraps +0.03 ± 0.12. Playing the card changes nothing you can measure. The shorter games with 2 copies (−0.78 ± 0.37 rounds
+  against 0 copies) come with the deck itself: 2 more cards shift every shuffle after them, so the "paired" seeds are no longer the
+  same games, and the cash-only run shows the same drop (−0.59 ± 0.41). Read it as noise around "no change" unless a bigger run says
+  otherwise.
+- What sold (10 plays, 0.25 a game): 25 things, 14 robots and 11 Stash parts, no crew; each paid exactly value + 1; 11.6 Cr a play.
+- **Pump check:** of the 14 robots sold, 9 had been won in the Market by the seller, none in the same round (held 2-9 rounds and
+  fought). Bank − price paid: −0.9 ± 1.7 Cr (from −8 to +9: a Thwacker won for 6 in round 2 sold for 15 in round 10 with parts on
+  it). Over all 1,479 Market robot lots of the earlier runs, value + 1 at once would have beaten the price paid for 35% (mostly level
+  3-4; L1 6 of 313, L2 28 of 328, L3 168 of 311, L4 322 of 527), by 2.1 Cr where it did, at most 7. So no buy-and-flip happened, but
+  it is possible for a person: win a level 3-4 robot cheap and Fire-Sale it the same round for +1 to +7. Smallest fix if Kev wants
+  it: a robot gained this round sells at its value (no +1), or cannot be fire-sold this round. Not changed.

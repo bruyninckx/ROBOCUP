@@ -100,10 +100,12 @@ const path = require('path'), fs = require('fs');
       if (!ok.includes(r.res.me)) bad.push(tag + ' Joint Venture (' + ans + '): your credits moved ' + r.res.me + ', want one of ' + ok.join(' / '));
     }
     // ---- 3. Hostile Buyout: team 1 plays it on you (you have 2 robots)
+    // T45: the price is the weakest robot's value, at least 4 (D.buyPrice); a sale pays that
     const hb = () => { const D = window.ROBOCUS_DEBUG, G = D.G; G.teams[1].hand = ['hostile_buyout']; const me = G.teams[0], c0 = me.credits, f0 = me.fame, n0 = me.robots.length;
       D.playScheme(G.teams[1], 'hostile_buyout', me).then(() => { window.__res = { cr: me.credits - c0, fame: me.fame - f0, robots: me.robots.length - n0 }; }); };
-    for (const [ans, want] of [[/^Sell it/, { cr: 4, fame: 0, robots: -1 }], [/^Refuse/, { cr: 0, fame: -1, robots: 0 }], ['cancel', { cr: 0, fame: -1, robots: 0 }]]) {
+    for (const [ans, want0] of [[/^Sell it/, { cr: 'price', fame: 0, robots: -1 }], [/^Refuse/, { cr: 0, fame: -1, robots: 0 }], ['cancel', { cr: 0, fame: -1, robots: 0 }]]) {
       await prep(p, 1);
+      const price = await p.evaluate(() => window.ROBOCUS_DEBUG.buyPrice(window.ROBOCUS_DEBUG.G.teams[0])), want = Object.assign({}, want0, want0.cr === 'price' ? { cr: price } : {});
       const r = await ask(p, tag, 'Hostile Buyout', hb, ans, { timed: true, shot: ans === 'cancel' ? null : /Sell/.test(ans.source) ? 'hostile-buyout' : null });
       if (JSON.stringify(r.res) !== JSON.stringify(want)) bad.push(tag + ' Hostile Buyout (' + ans + '): ' + JSON.stringify(r.res) + ', want ' + JSON.stringify(want));
     }
