@@ -4279,14 +4279,24 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   // T34: "2 crew, 1 Security Bot and Wrecker"
   const exList = (m, s, rs) => [m ? m + ' crew' : '', s ? s + ' Security Bot' + (s > 1 ? 's' : '') : ''].concat(rs.map(r => '<b>' + esc(r.name) + '</b>')).filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1') || 'nothing';
-  // T34: Crunch Week, a person picks which robots go too (none ticked = none; no answer = none)
+  // T34: Crunch Week, a person picks which robots go too. T47 (Kev, 21 Nov voting page: "I tick everything myself: crew, bots and
+  // robots"): one question with a tick per ready crew member, Security Bot and robot (crew and bots ticked to start with, robots
+  // not). No answer in time (T31, 30 s in the box) = the ticks it opened with: all ready crew and bots, no robots (as before T47).
+  // Crew exhaustion stays a count (t.exMechs), so which crew card is ticked only sets how many go.
   async function crunchAsk(F, m, s, ready) {
-    const html = (m + s ? 'Your ' + exList(m, s, []) + ' ' + (m + s > 1 ? 'are' : 'is') + ' exhausted: +' + (m + s) + ' Cr. ' : '') + 'You may also exhaust robots: <b>+1 Cr each, but an exhausted robot can\'t fight this round</b> (ready again next Upkeep). Tick the robots to exhaust:' +
-      ready.map(r => '<label><input type="checkbox" data-r="' + r.id + '"> 🤖 ' + esc(r.name) + ' (' + starsOf(r.level) + ')</label>').join('');
-    const rs = await askSeat(F.i, '💼 Crunch Week', html, [
-      { label: 'Exhaust the ticked robots', value: el => ready.filter(r => { const x = el.querySelector('[data-r="' + r.id + '"]'); return x && x.checked; }) },
-      { label: 'No robots', secondary: true, value: () => [] }], 0, []);
-    return rs || [];
+    const R = repState(F), crew = F.crew.filter(c => R.used[c.uid] == null).concat(F.crew.filter(c => R.used[c.uid] != null)).slice(0, m);
+    const box = (attr, on, txt) => '<label><input type="checkbox" ' + attr + (on ? ' checked' : '') + '> ' + txt + '</label>';
+    const html = 'Exhaust any of your ready crew, Security Bots and robots: <b>+1 Cr each</b>. An exhausted robot <b>can\'t fight this round</b>; everything is ready again next Upkeep. Tick what goes:' +
+      crew.map((c, k) => box('data-c="' + k + '"', true, CREW[c.kind].icon + ' ' + esc(CREW[c.kind].name) + ' (crew)')).join('') +
+      Array.from({ length: s }, (_, k) => box('data-s="' + k + '"', true, '🤖 Security Bot')).join('') +
+      ready.map(r => box('data-r="' + r.id + '"', false, '🦾 ' + esc(r.name) + ' (' + starsOf(r.level) + ', robot)')).join('');
+    const n = (el, a) => el.querySelectorAll('[' + a + ']:checked').length;
+    const def = { m: crew.length, s, rs: [] };
+    const out = await askSeat(F.i, '💼 Crunch Week', html, [
+      { label: 'Exhaust the ticked', value: el => ({ m: n(el, 'data-c'), s: n(el, 'data-s'), rs: ready.filter(r => { const x = el.querySelector('[data-r="' + r.id + '"]'); return x && x.checked; }) }) },
+      { label: 'Exhaust nothing', secondary: true, value: () => ({ m: 0, s: 0, rs: [] }) }], 0, def,
+      { late: def.m + def.s ? 'your ' + exList(def.m, def.s, []) + ' went (the ticks it opened with), no robots' : 'nothing was exhausted' });
+    return out || def;
   }
   // T34: Press Tour, a person whose crew and bots are not enough says which robots go (or no): one button per choice
   async function pressAsk(F, T, a, b, need) {
@@ -4308,8 +4318,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       case 'Overtime Shift': { const g = readyCrew(T); addCr(T, g, 'card'); say('💼 Overtime: ' + nm(T) + ' +' + g + ' Cr.'); break; }
       case 'Smash and Grab': { const g = payCr(T, 3, 'card'); addCr(F, g, 'card'); say('💼 ' + nm(F) + ' grabs ' + g + ' Cr from ' + nm(T) + '.'); break; }
       case 'Crunch Week': {   // T34: "Exhaust any of your robots, crew and Security Bots: 1 credit each": all ready crew and bots, and the robots its player picks
-        const m = readyCrew(F), s = secReady(F), ready = readyRobots(F);
-        let rs = !ready.length ? [] : isHuman(F.i) ? await crunchAsk(F, m, s, ready) : spareRobots(F);
+        let m = readyCrew(F), s = secReady(F), rs;
+        const ready = readyRobots(F);
+        if (isHuman(F.i) && m + s + ready.length) { const a = await crunchAsk(F, m, s, ready); m = Math.min(a.m, readyCrew(F)); s = Math.min(a.s, secReady(F)); rs = a.rs; }   // T47: the person ticks crew, bots and robots
+        else rs = ready.length ? spareRobots(F) : [];   // AI (unchanged): all ready crew and bots, and its spare robots
         rs = (rs || []).filter(r => F.robots.includes(r) && !r.exhausted);
         F.exMechs = (F.exMechs || 0) + m; F.exSec = (F.exSec || 0) + s; rs.forEach(r => exhaustBot(r, 'Crunch Week', F.i));
         const g = m + s + rs.length; addCr(F, g, 'card'); if (rs.length) { const st = cst(id); st.robotsEx = (st.robotsEx || 0) + rs.length; }

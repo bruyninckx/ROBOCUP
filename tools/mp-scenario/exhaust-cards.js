@@ -1,8 +1,9 @@
 // T34 (Kev, 20 Nov: "exhaust robots as well"): Crunch Week and Press Tour exhaust robots too, as their texts say. Solo, one screen:
 //   1. Crunch Week, AI: all ready crew and Security Bots + its spare robots (never its strongest ready one), +1 Cr each;
 //      an AI with one robot keeps it;
-//   2. Crunch Week, you: a question with a tick per ready robot; the ticked robot is exhausted (+1 Cr), its banner says
-//      "RESTING · Crunch Week (you) · ready next Upkeep"; "No robots": none;
+//   2. Crunch Week, you: a question with a tick per ready crew member, Security Bot and robot (T47: crew and bots ticked to start
+//      with); the ticked robot is exhausted (+1 Cr), its banner says "RESTING · Crunch Week (you) · ready next Upkeep";
+//      the ticks as they opened: the crew, no robot; "Exhaust nothing": nothing;
 //   3. Press Tour, AI target: enough crew: no robot; 1 crew + 3 robots: its 2 weakest robots, +1 fame; 1 crew + 2 robots: says no;
 //   4. Press Tour played by a rival on you (1 crew, 1 bot, 2 robots): one button per robot and "No thanks"; the robot you pick
 //      rests ("Press Tour (Rust Rivets)"), +1 fame;
@@ -69,8 +70,13 @@ const path = require('path'), fs = require('fs');
   await shot('t34-2-crunch-banner.png');
   // "No robots"
   await setTeam(0, [['Wrecker', 0], ['Angler', 2]], 1, 0); await play(0, 'Crunch Week', 0); await p.waitForTimeout(1200);
-  await click(/^No robots/); await done(); s = await state(0); console.log('2b no robots: ' + JSON.stringify(s.robots.map(r => [r.name, r.ex])) + ' cr ' + s.cr);
-  ok(s.cr === 4 && !s.robots.some(r => r.ex), '2b: No robots ' + JSON.stringify(s));
+  // T47: crew and bots are ticks too (ticked to start with): the ticks as they open = the crew member, no robots
+  q = await question(); ok(q && /Mechanic/.test(q.text), '2b: the crew member has no tick');
+  await click(/Exhaust the ticked/); await done(); s = await state(0); console.log('2b as opened (crew ticked, no robots): ' + JSON.stringify(s.robots.map(r => [r.name, r.ex])) + ' cr ' + s.cr + ' crew ' + s.exMechs);
+  ok(s.cr === 4 && s.exMechs === 1 && !s.robots.some(r => r.ex), '2b: as opened ' + JSON.stringify(s));
+  await setTeam(0, [['Wrecker', 0], ['Angler', 2]], 1, 0); await play(0, 'Crunch Week', 0); await p.waitForTimeout(1200);
+  await click(/^Exhaust nothing/); await done(); s = await state(0); console.log('2c exhaust nothing: cr ' + s.cr + ' crew ' + s.exMechs);
+  ok(s.cr === 3 && !s.exMechs && !s.robots.some(r => r.ex), '2c: Exhaust nothing ' + JSON.stringify(s));
 
   // 3. Press Tour on an AI target (Moss Gears)
   await setTeam(2, [['Rumbler', 0], ['Pincher', 2]], 3, 0); await play(2, 'Press Tour', 2); await done(); s = await state(2);
