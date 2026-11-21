@@ -51,7 +51,7 @@ The rules every assistant follows are in `AGENTS.md`; the roles and the worker b
    - A red bar at the top means the browser mixed old and new files: press Ctrl+F5.
 5. **Answer the "Waiting for Kev" questions** when you like. Workers never stop to wait for you: they pick the safest option and note the question.
 
-## What play-latest does (20 Nov)
+## What play-latest does (20 Nov; 22 Nov: runs from a copy, says what holds the port)
 
 1. It gets the newest `main` from GitHub, as before.
 2. It starts a small **game server** on your PC and opens the game at `http://127.0.0.1:8765/prototypes/tabletop-2.html`.
@@ -72,7 +72,11 @@ The rules every assistant follows are in `AGENTS.md`; the roles and the worker b
 - Settings start fresh once: sound on/off, hand pinned and its side, the log folded or open, your online name. Set them again once.
 - The playtest log: the last 10 games stored in the browser stay with the old file address. If you want them, open the game once with `play-latest file`, click 📝 and "All saved games" to download them. If you had picked a log folder (📝, "Save to a folder"), pick `ROBOCUS/playtests` again once on the new address.
 - Saved games (💾 Save game in the online lobby) are files on your disk: nothing changes.
-- The port stays 8765 so this happens only once. If 8765 is taken by another program, the window says it used the next one (8766...), and the browser then starts fresh for that one too.
+- The port stays 8765 so this happens only once. If 8765 is taken by another program, the window says **which program holds it** (for example `Port 8765 is used by node.exe (process 15872).`, or `... by another ROBOCUS game server, for the folder C:\...`), that it used the next one (8766...), and that the browser keeps settings and playtest logs per address, so they start fresh on that one. Close that program (an old game server window, or end it in Task Manager, Details tab) and the next double-click gets 8765 back with your settings.
+
+**It runs from a copy of itself (22 Nov, T53).** On 21 Nov the window said `'folder' is not recognized as an internal or external command`: the update replaced `play-latest.cmd` while Windows was still reading it, and Windows went on reading in the middle of a line of the new file. Now play-latest first copies itself to your Temp folder (`robocus-play-latest-<number>.cmd`) and runs that copy, so the update can change the real file safely. The copy deletes itself at the end; copies left by a window you closed are deleted the next day. A changed play-latest takes effect from the next double-click.
+
+**Your next double-click after this change** (the 20 Nov play-latest updates itself to this one): the window shows `Checking GitHub...`, the update lines, then **again** `Checking GitHub...` and `Up to date: main <commit>` (the old file hands over to the new one, which checks once more: that is expected), then the game server lines as before. There should be **no** "is not recognized" line. From then on it is `Checking GitHub...` once. If you see "is not recognized", "The batch file cannot be found", or `(Could not copy play-latest to ...)`, send a photo of the whole window, and what `echo %TEMP%` prints in a command window.
 
 **Hosting online from your PC:** the invite link in the lobby now points at the public copy (`https://bruyninckx.github.io/ROBOCUP/...?room=CODE`), not at your PC (a link to your PC or to a file never worked for friends). The lobby says so. Your copy and the public copy must be the same version: right after the orchestrator pushes, GitHub Pages takes a few minutes. If they differ, a friend who joins is told "different version" and can't join yet; wait a few minutes and they refresh. To be sure you all run the same, host from `play-latest online`.
 
