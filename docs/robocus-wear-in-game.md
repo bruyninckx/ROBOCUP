@@ -173,6 +173,83 @@ an old 2.0 robot at its own strength). Still clearly visible: the hpExp change d
 Keeping the marks changes little in whole games: a few more Weapon repairs (28% of repairs instead of 25%) and slightly more robots
 sent with a damaged weapon (8% vs 6%); credits and game length within noise (40 games: about ± 0.6 rounds, ± 2 points).
 
+## Step 3: the tables from the big run on Kev's PC (21 Nov)
+
+Kev ran `tools\wear-tables.cmd` (16 logical processors, 15 workers; result file made 15:22 UTC, no failed jobs). It ran revision
+ef3b8e3 of this branch: since then nothing that plays a fight changed (`engine.js`, `lineup.js`, `dmath.js`, `matrix.js`,
+`arenafit.js`, `tag-sim2.js`, `src2/repair.js` are identical; its `lineup.json` matches today's dials exactly; `WEAR.hpExp` 0.5). Only
+the whole games ran on the page as it was then (before T35 / T44 came in from main; both are off by default or display only).
+So the tables are current: no re-run needed. Raw data stays outside the repo; kept: `tools/damage-lab/wear-game/t41_bigrun_*`.
+
+### Level steps from the big run (open floor, every pair, 20 fights a pair, seeds 7700+; "before" = the 15 Nov table, same seeds, no wear)
+
+| step | fights | before (no wear) | now (wear, retuned) |
+|---|---|---|---|
+| 0 -> 1 | 900 | 69% ± 3 | 74% ± 3 |
+| 1 -> 2 | 500 | 65% ± 4 | 70% ± 4 |
+| 2 -> 3 | 600 | 70% ± 4 | 69% ± 4 |
+| 3 -> 4 | 960 | 59% ± 3 | 63% ± 3 |
+| 0 -> 2 | 900 | 86% ± 2 | 83% ± 2 |
+| 1 -> 3 | 600 | 84% ± 3 | 75% ± 3 |
+| 2 -> 4 | 800 | 85% ± 2 | 83% ± 3 |
+
+Kev's question (0 → 1 and 1 → 2 were 69% on 1,976 fights): the big run **confirms they are steep**, and more clearly: 0 → 1 is
+74% ± 3 (it was 69% ± 3 on this table before wear) and 1 → 2 70% ± 4 (65% before). 2 → 3 69% ± 4 and 3 → 4 63% ± 3 are at or just
+outside the band. Not nudged (as asked); a nudge would be: level 0 robots up about 4-5% power, or level 1 down 3% and level 2 down 2%.
+
+### Per robot (open floor, all fights against robots at most a level away; ± is 95%, unpaired: different fights)
+
+| robot | lv | vs own level before → now (fights) | vs a level up before → now (fights) | change ± (fights) |
+|---|---|---|---|---|
+| Buzzkill | 0 | 50 -> 66 (160) | 29 -> 39 (100) | +13 ± 9 (260) **(outside)** |
+| Forklift | 0 | 54 -> 57 (160) | 20 -> 22 (100) | +3 ± 8 (260) |
+| Hornet | 0 | 43 -> 28 (160) | 45 -> 28 (100) | -16 ± 8 (260) **(outside)** |
+| Mincer | 0 | 46 -> 43 (160) | 31 -> 20 (100) | -6 ± 8 (260) |
+| Popcorn | 0 | 53 -> 43 (160) | 29 -> 23 (100) | -8 ± 8 (260) **(outside)** |
+| Scythe | 0 | 53 -> 53 (160) | 31 -> 30 (100) | +0 ± 9 (260) |
+| Snapjaw | 0 | 51 -> 49 (160) | 36 -> 27 (100) | -5 ± 8 (260) |
+| Thumper | 0 | 41 -> 50 (160) | 40 -> 28 (100) | +1 ± 8 (260) |
+| Wrecker | 0 | 61 -> 63 (160) | 20 -> 19 (100) | +1 ± 9 (260) |
+| Blacksmith | 1 | 51 -> 48 (80) | 52 -> 49 (100) | +2 ± 7 (360) |
+| Corkscrew | 1 | 43 -> 40 (80) | 28 -> 11 (100) | -4 ± 7 (360) |
+| Mauler | 1 | 45 -> 48 (80) | 25 -> 14 (100) | +1 ± 7 (360) |
+| Thwacker | 1 | 58 -> 55 (80) | 26 -> 37 (100) | +9 ± 7 (360) **(outside)** |
+| Vertigo | 1 | 54 -> 60 (80) | 43 -> 39 (100) | -2 ± 7 (360) |
+| Angler | 2 | 59 -> 70 (80) | 14 -> 22 (120) | +10 ± 8 (300) **(outside)** |
+| Gyro | 2 | 9 -> 23 (80) | 56 -> 64 (120) | +7 ± 8 (300) |
+| Pincher | 2 | 41 -> 39 (80) | 28 -> 25 (120) | -6 ± 8 (300) |
+| Whaler | 2 | 75 -> 70 (80) | 28 -> 26 (120) | +8 ± 8 (300) |
+| Yoyo | 2 | 66 -> 49 (80) | 24 -> 18 (120) | -8 ± 8 (300) **(outside)** |
+| Gaucho | 3 | 48 -> 36 (100) | 32 -> 26 (160) | -8 ± 7 (360) **(outside)** |
+| Grandmaster | 3 | 46 -> 40 (100) | 29 -> 27 (160) | +1 ± 7 (360) |
+| Hydra | 3 | 66 -> 64 (100) | 55 -> 47 (160) | -9 ± 7 (360) **(outside)** |
+| Scavenger | 3 | 21 -> 29 (100) | 42 -> 34 (160) | +1 ± 7 (360) |
+| Slingshot | 3 | 62 -> 68 (100) | 51 -> 46 (160) | -2 ± 7 (360) |
+| Tarantula | 3 | 57 -> 63 (100) | 34 -> 42 (160) | +5 ± 7 (360) |
+| Bricklayer | 4 | 66 -> 59 (140) | - | -2 ± 8 (260) |
+| Jukebox | 4 | 44 -> 53 (140) | - | +10 ± 9 (260) **(outside)** |
+| Lodestone | 4 | 37 -> 30 (140) | - | -1 ± 8 (260) |
+| Orbiter | 4 | 54 -> 52 (140) | - | +2 ± 8 (260) |
+| Pogo | 4 | 64 -> 63 (140) | - | -2 ± 8 (260) |
+| Railgun | 4 | 49 -> 62 (140) | - | +9 ± 9 (260) **(outside)** |
+| Rotisserie | 4 | 49 -> 44 (140) | - | -7 ± 9 (260) |
+| Trebuchet | 4 | 37 -> 37 (140) | - | +4 ± 9 (260) |
+
+11 of 33 robots are outside their range (about 2 by luck), but only two are more than about 10 points off: **Hornet −16 ± 8** and
+**Buzzkill +13 ± 9** (both level 0; the 1,976-fight run had them at +0 and +5). Then Angler +10, Jukebox +10, Thwacker +9, Railgun +9.
+Question for Kev: nudge Hornet up and Buzzkill down (about 6-8% power each) together with the level 0 → 1 step?
+
+### The bookie
+
+| Odds | Results | Brier | favourite wins |
+|---|---|---|---|
+| 15 Nov table (no wear) | the same 1,976 fights without wear | 0.182 | 75% |
+| 15 Nov table (no wear) | the retuned fights with wear (t41_round2_all) | 0.201 | 70% |
+| **new table (big run, wear)** | **the retuned fights with wear** | **0.179** | **75%** |
+
+Paired against the old table on the no-wear fights: −0.008 ± 0.013. **The bookie is back** (within noise of 0.182). Whole games:
+see the table below.
+
 ## The big run on Kev's PC (T41)
 
 Kev: "let me know if you want a big one to run on my pc". **Double-click `tools\wear-tables.cmd`.** It does not touch the ROBOCUS
