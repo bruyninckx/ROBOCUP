@@ -157,15 +157,17 @@ Still the target's weakest robot (the buyer does not choose), refusing still cos
 - `BAL.buyout = { min: 4, value: true }` (`value: false`: the flat 4 again). Test only: `--aip='{"hbFlat":2}'` gives the AI the
   old flat card value, to see many buyouts.
 
-**Fire Sale** (0 copies: not in the deck, players do not see it). "Any time: sell your robots, crew or parts to the bank at
-value +1 each." now does that. You tick (a box with checkboxes) any of your robots, crew members and Stash parts; each pays its
-value + 1: a robot its ◉ value, a Stash part its bank price (the 🏦 button, half its Market value), a crew member its card value
-`CREW[k].value` (1 or 2; not shown anywhere on screen; Headhunter Fee doubles the same number). You keep at least one robot (if
-you tick them all, the strongest stays). No answer in time: nothing sold. The AI plays it only for spare things: every Stash part,
-a third robot it rates under the price, a second copy of a crew card (not Mechanic or Chief). Before: the weakest robot for a flat 2.
+**Fire Sale** (back in the deck with 2 copies, Kev 21 Nov: "Back with 2 copies"). "Any time: sell your robots, crew or parts to
+the bank at value +1 each." now does that, on your Intrigue turn. Up to 5 things to sell: the question is in the note (T31 timer,
+20 s), one button a thing ("🤖 Snapjaw +8 Cr"), each click sells it at once and the question comes back with "Sold: …" and "Done";
+6 or more: a box with ticks (30 s). Each pays its value + 1: a robot its ◉ value, a Stash part its bank price (the 🏦 button, half
+its Market value), a crew member its card value `CREW[k].value` (1 or 2; not shown anywhere on screen; Headhunter Fee doubles the
+same number). You keep at least one robot. No answer in time: nothing more is sold. The AI (`aiFirePicks`) never sells its
+strongest robot (so never its only one) or a robot in this round's fight; it sells another robot when it rates it (robotWorth:
+level, parts, odds, damage) under the price and still keeps 2, or when it is damaged; short of credits (3 or less) its weakest
+spare robot; every Stash part; a second copy of a crew card (not Mechanic or Chief). Before: the weakest robot for a flat 2.
 
-**Money pump?** Not a loop: every sale needs a Fire Sale card, it is one card for one batch, and the deck has 0 copies (1-2 if it
-comes back). But a robot can be bought and sold for more: over 1,479 Market robot lots in this task's 160 bot games, value + 1 at
+**Money pump?** Not a loop: every sale needs a Fire Sale card, one card for one batch, 2 copies in the deck. But a robot can be bought and sold for more: over 1,479 Market robot lots in this task's 160 bot games, value + 1 at
 the moment of the sale beat the price paid for 35% of them (L1 6 of 313, L2 28 of 328, L3 168 of 311, L4 322 of 527), by 2.1 Cr on
 average where it did, at most 7 (a level 3 robot won cheap); over all lots −0.4 Cr. Parts pay 1 more than the Stash's own 🏦 button.
 So one Fire Sale late in the game is worth a few credits more than its sale value; it cannot run away.
@@ -201,3 +203,27 @@ which is rare; and a refusal (the fame hit) almost never happens. When the AI is
 at the 4 Cr minimum (damaged or bare starters worth 1-3), the rest at the value (up to 9). Against a person the card still works as
 before: they choose between the price and 1 fame. Fire Sale with 2 copies (20 games, test only): played 0.10 a game, 5 things
 sold (3 parts, 2 robots), each paid value + 1, 11.5 Cr per play; game length 11.5 ± 0.4 rounds, no page errors.
+
+### Fire Sale back with 2 copies (bot games, 40 each way, seeds 1-40, base 9fdd0dd + the Fire Sale AI, before the T41 wear merge)
+
+`node tools/buyout-report.js t45-fsc0 t45-fsc2-all t45-fsc2-nf`. 2 copies: 3 games stalled in round 1 under load and finished when
+re-run alone; the cash-only run lost seed 16 (stalled in round 1; compared on the other 39).
+
+| Run | Rounds | Fame / round | End credits / team | Scraps / game | Trade-ins / game | Fire Sale played / game |
+|---|---|---|---|---|---|---|
+| 0 copies | 12.05 ± 0.25 | 3.13 ± 0.06 | 9.63 ± 0.43 | 2.90 ± 0.23 | 1.13 ± 0.14 | 0 |
+| 2 copies | 11.28 ± 0.28 | 3.30 ± 0.05 | 8.72 ± 0.46 | 2.88 ± 0.24 | 0.68 ± 0.12 | 0.25 ± 0.07 |
+| 2 copies, AI only cashes it (test, `--aip='{"noFire":1}'`) | 11.46 ± 0.31 | 3.28 ± 0.06 | 8.53 ± 0.42 | 2.87 ± 0.25 | | 0 |
+
+- Played vs only cashed (the same deck, so the same shuffles): rounds −0.13 ± 0.12, fame/round +0.01 ± 0.02, credits +0.23 ± 0.26,
+  scraps +0.03 ± 0.12. Playing the card changes nothing you can measure. The shorter games with 2 copies (−0.78 ± 0.37 rounds
+  against 0 copies) come with the deck itself: 2 more cards shift every shuffle after them, so the "paired" seeds are no longer the
+  same games, and the cash-only run shows the same drop (−0.59 ± 0.41). Read it as noise around "no change" unless a bigger run says
+  otherwise.
+- What sold (10 plays, 0.25 a game): 25 things, 14 robots and 11 Stash parts, no crew; each paid exactly value + 1; 11.6 Cr a play.
+- **Pump check:** of the 14 robots sold, 9 had been won in the Market by the seller, none in the same round (held 2-9 rounds and
+  fought). Bank − price paid: −0.9 ± 1.7 Cr (from −8 to +9: a Thwacker won for 6 in round 2 sold for 15 in round 10 with parts on
+  it). Over all 1,479 Market robot lots of the earlier runs, value + 1 at once would have beaten the price paid for 35% (mostly level
+  3-4; L1 6 of 313, L2 28 of 328, L3 168 of 311, L4 322 of 527), by 2.1 Cr where it did, at most 7. So no buy-and-flip happened, but
+  it is possible for a person: win a level 3-4 robot cheap and Fire-Sale it the same round for +1 to +7. Smallest fix if Kev wants
+  it: a robot gained this round sells at its value (no +1), or cannot be fire-sold this round. Not changed.
