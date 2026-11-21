@@ -3587,7 +3587,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * "A price in credits: one number per robot, from its level, parts and damage: what it is worth in a trade, an offer or a buyout".
    * DISPLAY ONLY: no AI, price or rule reads it; it is worked out on each screen from synced state (the same number for every
    * viewer). Level: 1 + 2 × level (as a New Robot lot's own value, LOTS[id].value, and the level part of robotWorth);
-   * each fitted part at its Market value (partValue, the number the Stash shows, rarity included); Fan tokens +1 each,
+   * each fitted part at its bank price (bankHalf: half its Market value, rarity included; the number on the Stash's 🏦 button:
+   * 48 AI games, 94 robot trades: the AI pays about 1 Cr a part, so full Market value put robots with 2-3 parts 4-8 Cr too high); Fan tokens +1 each,
    * a Fan Favourite +2 more (its fame goes with it); −1 per repair action its damage needs (a damaged zone 1, a broken one 2);
    * −1 per extra round a rival's card keeps it out. At least 1 Cr. forTeam: whose Fan Favourite rule counts (default: its owner).
    * Switch: BAL.showValue (false hides the chip and the "worth" words). docs/robocus-robot-value.md */
@@ -3596,7 +3597,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!r) return out;
     const lv = r.level || 0, add = (t, v) => { out.lines.push([t, v]); out.v += v; };
     add(lv ? 'Level ' + lv + ' (' + starsOf(lv) + ')' : 'Starter (level 0)', 1 + 2 * lv);
-    for (const id of partLots(r)) { const L = LOTS[id]; add((L.legend ? '🌟 ' : '🔩 ') + (L.rar ? RAR[L.rar].n + ' ' : '') + partNm(L.part), partValue(id)); }
+    for (const id of partLots(r)) { const L = LOTS[id]; add((L.legend ? '🌟 ' : '🔩 ') + (L.rar ? RAR[L.rar].n + ' ' : '') + partNm(L.part), bankHalf(id)); }
     const T = forTeam || ownerOf(r), fw = T ? favWins(T) : BAL.fame.favTokens, tok = Math.min(r.wins || 0, fw);
     if (tok) add('🎖 ' + tok + ' Fan token' + (tok > 1 ? 's' : ''), tok);
     if ((r.wins || 0) >= fw) add('★ Fan Favourite (its fame goes with it)', 2);
@@ -3608,7 +3609,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const robotValue = (r, forTeam) => robotValueOf(r, forTeam).v;
   const valOn = () => BAL.showValue !== false;
-  const VAL_HELP = 'A robot\'s value in credits: a guide to what it is worth in a trade, an offer or a buyout. Level: 1 + 2 per level; each part at its Market value (as the Stash shows it); +1 per Fan token, +2 for a Fan Favourite; −1 per repair action its damage needs (a broken zone 2). It is a guide: the AI teams also look at the odds and what they need.';
+  const VAL_HELP = 'A robot\'s value in credits: a guide to what it is worth in a trade, an offer or a buyout. Level: 1 + 2 per level; each part at its bank price (half its Market value, as the Stash\'s 🏦 button shows it); +1 per Fan token, +2 for a Fan Favourite; −1 per repair action its damage needs (a broken zone 2). It is a guide: the AI teams also look at the odds and what they need.';
   function valueHelp(r) {   // [title, body] for the hover: the breakdown, line by line
     const o = robotValueOf(r);
     const rows = o.lines.map(([t, v]) => v == null ? '<i>(' + t + ' 1 Cr)</i>' : esc(t) + ' <b>' + (v >= 0 && t !== o.lines[0][0] ? '+' : '') + (v < 0 ? '−' + (-v) : v) + '</b>').join('<br>');
@@ -3781,7 +3782,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
         const fits = t.robots.filter(r => canFit(r, LOTS[id]));
-        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Value ' + partValue(id) + ' Cr: what it adds to a robot\'s ◉ value once fitted. The bank pays half (' + bankHalf(id) + ' Cr).' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
+        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
           (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
     el.classList.toggle('empty', !S.length);
@@ -9960,7 +9961,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with every build that changes what players see. */
   const CHANGES = [
     ['2.0.1, robot value', '21 Nov 2026', [
-      'Every robot shows its value in credits: a gold coin chip "◉ 6 Cr" on your robots (next to the odds), on the rivals\' tickets and on a robot for sale in the Market. Hover it for the sum: level (1 + 2 per level), each fitted part at its Market value, +1 per Fan token and +2 for a Fan Favourite, −1 per repair action its damage needs.',
+      'Every robot shows its value in credits: a gold coin chip "◉ 6 Cr" on your robots (next to the odds), on the rivals\' tickets and on a robot for sale in the Market. Hover it for the sum: level (1 + 2 per level), each fitted part at its bank price (what the Stash\'s 🏦 button pays), +1 per Fan token and +2 for a Fan Favourite, −1 per repair action its damage needs.',
       'Wherever a robot changes hands you see it too: an AI offer says "Snapjaw (…, worth 5 Cr) for 2 Cr", Hostile Buyout says what your robot is worth beside the 4 Cr, and the trade panel, Museum Donation, trade-in, can\'t-pay-upkeep and spare-or-scrap show each robot\'s value. A Stash part\'s hover says what it adds to a robot.',
       'It is a guide only: no price, rule or AI choice changed. The AI teams still look at the odds and what they need, so a robot can sell for a bit more or less (new robots early in the game sell for about 2-3 Cr more).' ]],
     ['2.0.1, themed cards', '21 Nov 2026', [
