@@ -1052,7 +1052,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       '<div class="rx-h">This copy</div><table class="rx-cmp">' + (t ? '<tr><th></th><th>standard copy</th><th>this ' + R.n + ' copy</th></tr>' : '') +
         lvRows.map(([lab, lv]) => row(lab + ', in levels', qTxt(partLv(k, lv)), qTxt(partLv(k, lv) + R.lv))).join('') +
         row(esc(pw.what), pw.base, pw.v) + row('Card value · the bank pays', v0, v1) + '</table>' +
-        (t < best ? '<div class="rx-note">The 1-in-100 dream: a <b style="color:' + RAR[best].col + '">' + RAR[best].n + '</b> ' + esc(P.name) + ', ' + qTxt(RAR[best].lv) + ' level on top, ' + pb.v + ' ' + esc(rarWhat(pb.what)) + '.</div>' : '<div class="rx-note">The best copy there is. Most games never see one.</div>') +
+        (t < best ? '<div class="rx-note">The 1-in-100 dream: a <b style="color:' + RAR[best].col + '">' + RAR[best].n + '</b> ' + esc(partNm(k)) + ', ' + qTxt(RAR[best].lv) + ' level on top, ' + pb.v + ' ' + esc(rarWhat(pb.what)) + '.</div>' : '<div class="rx-note">The best copy there is. Most games never see one.</div>') +
       '<div class="rx-h">The rarity ladder</div><div class="rx-lad">' + RAR.map((x, i) => i).reverse().map(i => '<div class="rx-row rx-r' + i + (i === t ? ' on' : '') + '" style="--c:' + RAR[i].col + '">' +
         '<span class="rx-dm">' + rarDm(i) + '</span><span class="rx-chip">' + RAR[i].n + '</span>' +
         '<span class="rx-odds"><span class="rx-bar"><i style="width:' + Math.max(3, 100 * odds[i] / pmax).toFixed(1) + '%"></i></span>' + rarChance(i) + '</span>' +
