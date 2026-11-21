@@ -43,7 +43,7 @@ The in-game overlay below is new and works from the game's own data.
   average of its level, divided by `Repair2.LEVEL` (0.62, the model's step for one level). Done on first open, cached.
 - Shift (levels) = what its parts add, the game's own "fights like" (`upLv`: `PART_LV` for its level + the rarity tier's
   `RAR[t].lv`) − what its damage costs (`(baseStr − str2) / Repair2.LEVEL`, the strength model as the bookie counts it,
-  `BAL.oddsDamage`). Part fit / epic combos are not in the shift (the bookie's odds do count them).
+  `BAL.oddsDamage`) + what its part fits are worth (T48, below).
 - Band = its level + the shift rounded, kept within Starters..Level 4. Place in the band = `dev` + what is left of the shift.
   So a ★2 robot that fights like ★2.6 stands in the Level 3 band, about ½ level left of the average, with its dotted line
   going down to its ★2 copy. Past the edge of the axis it stands at the edge with « or »; below starters it reads `< ★0`.
@@ -51,6 +51,25 @@ The in-game overlay below is new and works from the game's own data.
   possible (5 rows at most, sideways as needed).
 - Counters on the map (`pmCounters`): the matchup is 30 points (`PM_MIN`) or more off what the level gap gives (`MX_EXP`,
   open floor), on the robots as they come. The arrows go to this game's copies of a robot when it has some.
+
+## Fits and epic combos move the robot (T48, 22 Nov 2026)
+
+Kev (voting page, 21 Nov): a great fit or an epic combo "should move the robot too".
+
+- The shift now adds what the bookie adds for them (`fitAdj` in `prototypes/tabletop-2.html`, used by `pairP`), in levels
+  (logits / `Repair2.LEVEL` 0.62), open floor (`pmFits`):
+  - great fit (`PART_FIT` +1): +0.3 logit = **+0.5 level**; poor fit (`PART_FIT` −1): **−0.5 level**;
+  - epic combo (`EPIC`: Whiplash, Phantom Hook, Overclock, Iron Bolas): +0.7 logit = **+1.1 levels** (instead of the
+    great fit it also is, not on top of it);
+  - a complete giant-slayer build (`TRIPLE`): +0.6 logit = **+1.0 level**.
+  These are the numbers the bookie's formula already used; their source is the fit tests in `docs/robocus-tuned-lineup-tags.md`
+  and the T41 re-test (`docs/robocus-wear-in-game.md`).
+- The hover card and the side panel say why, e.g. "Fights like ★2.9 (parts +¾, Epic combo Whiplash +1.1 levels)" for a ★1
+  Thwacker with a Tow cable (before: ★1.75 in the Level 2 band; now the Level 3 band). A ★0 Forklift with a Pester chip:
+  "parts +¾, Poor fit Pester chip −0.5" (★0.75 → ★0.27, back to the Starters band).
+- Wear marks: the bookie's `Repair2.markCost` (T41) was already inside the damage (`str2` → `wearCost` → `markCost`). The text
+  now splits it out: "damage −¼, wear marks −0.2" (`pmMarkLv`). No change to where a marked robot stands.
+- Parts stay in quarters ("+¾", as on the cards); fits, epics and marks are shown in tenths.
 
 ## Counter arrows (T23, 17 Nov 2026)
 
