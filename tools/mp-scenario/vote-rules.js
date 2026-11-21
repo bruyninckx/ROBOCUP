@@ -95,7 +95,7 @@ async function solo(b, w, h) {
     const A = { wins: [{ team: 0, lot: 'p_shield', idx: 0, price: 3 }], results: [{ lot: 'p_shield', id: 'p_shield', icon: '🔩', name: 'Energy shield', text: '', bids: [3, 0, 0, 0], winner: 0, price: 3 }] }; G.marketResults = A.results; D.applyMarketWins(A); D.updateHud(); });
   await win(); await p.waitForTimeout(600);
   let n = await noteTxt(p); console.log(tag + ' 6 which robot: ' + n);
-  ok(/which robot gets it/.test(n) && /\d+ s/.test(n) && /Keep in Stash/.test(n) && /Wrecker/.test(n) && /Angler/.test(n), tag + ' 6: the note does not ask first: ' + n);
+  ok(/which robot gets it/.test(n) && /No answer/.test(n) && /\d+ s/.test(n) && /Keep in Stash/.test(n) && /Wrecker/.test(n) && /Angler/.test(n), tag + ' 6: the note does not ask first: ' + n);
   ok(!(await noteCut(p)).length, tag + ' 6: buttons cut off: ' + (await noteCut(p)));
   await shot('6-which-robot.png');
   await clickIn('#promptBar [data-fit]', /Wrecker/); await p.waitForTimeout(800);

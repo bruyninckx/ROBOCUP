@@ -597,7 +597,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   .prompt-bar::before { top: 6px; left: 10px; }
 }
 /* T47: a trade between other teams, a short banner over the pit (not over the note, never a question) */
-#tradeBan { position: fixed; z-index: 40; top: 58px; transform: translateX(-50%); pointer-events: none; background: #FFF8E6; border: 2px solid #C9A54A;
+#tradeBan { position: fixed; z-index: 40; top: 210px; transform: translateX(-50%); pointer-events: none; background: #FFF8E6; border: 2px solid #C9A54A;
   border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.18); padding: 8px 14px; font: 600 13.5px/1.35 system-ui, sans-serif; color: #3A3226;
   opacity: 0; transition: opacity .35s; text-align: center; }
 #tradeBan.on { opacity: 1; }
@@ -2267,7 +2267,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
           const bf = myInst[0].ask ? bestFit(t, myInst[0].lot) : null;   // T47: asked first (2+ robots can take it): say what no answer does
-          pb.innerHTML = (bf ? '<span>🔩 <b>You won ' + esc(lotQ(myInst[0].lot)) + ':</b> which robot gets it? (here or on its card) Or keep it in your Stash. No answer: ' + esc(bf.name) + ' (best odds), then you can still undo or move it.</span>'
+          pb.innerHTML = (bf ? '<span>🔩 <b>You won ' + esc(lotQ(myInst[0].lot)) + ':</b> which robot gets it? No answer: ' + esc(bf.name) + ' (best odds).</span>'
             : '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lotQ(myInst[0].lot)) + '</b> (here or on its card), or keep it in your Stash.</span>') +
             // T9: one button per robot, the same click as the FIT … button on its card (no room: shown, greyed)
             t.robots.map(r => { const ok = canFit(r, lot), pv = lotPreview(r, lot); return pickBtn('fit', r.id, (ok ? '🔩 ' : '') + r.name, ok ? 'odds ' + pv.replace(/ vs the field.*$/, '') : 'no room', { off: !ok, tip: (ok ? 'Fit ' + lot.name + ' on ' + r.name + ': ' : 'No room: ') + pv }); }).join('') +
@@ -3447,7 +3447,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21l Hostile Buyout costs the robot\'s value, Fire Sale back (2 copies) and pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21m crunch week ticks, 2 repair kits, market closes over open deals, send timer, ask which robot for a part, unlock and trade lines for everyone, Hostile Buyout costs the robot\'s value, Fire Sale back (2 copies) and pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5020,8 +5020,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const x = TBAN.q.shift(); let el = document.getElementById('tradeBan');
     if (!x) { if (el) el.classList.remove('on'); TBAN.tm = null; return; }
     if (!el) { el = document.createElement('div'); el.id = 'tradeBan'; document.body.appendChild(el); }
-    const pb = document.getElementById('promptBar'), right = pb ? pb.getBoundingClientRect().left : innerWidth;
-    el.style.left = Math.round(right / 2) + 'px'; el.style.maxWidth = Math.max(260, right - 40) + 'px';
+    // over the top of the pit: the pit sits between the left column and the note (its centre about 0.68 of the note's left edge)
+    const pr = document.getElementById('promptBar') ? document.getElementById('promptBar').getBoundingClientRect() : { left: innerWidth, top: 170 };
+    el.style.left = Math.round(pr.left * 0.684) + 'px'; el.style.top = Math.round(pr.top + 42) + 'px'; el.style.maxWidth = Math.max(260, Math.round(pr.left * 0.6)) + 'px';
     const a = G.teams[x.teams[0]], b = G.teams[x.teams[1]];
     el.innerHTML = '🤝 <b style="color:' + a.col + '">' + esc(a.name) + '</b> traded with <b style="color:' + b.col + '">' + esc(b.name) + '</b><small>' + x.html + '</small>';
     el.classList.add('on');
@@ -10290,6 +10291,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, your votes of 21 Nov', '21 Nov 2026', [
+      'Crunch Week: you tick everything yourself: each ready crew member, Security Bot and robot (crew and bots are ticked to start with, robots not); +1 Cr for each ticked one. No answer in 30 s: your crew and bots go, no robots.',
+      'The Market deck has 2 Repair kits now (was 1).',
+      'Bookie\'s Friend and Hedge Bet can still be played after you locked your bets; playing one keeps your lock.',
+      'Market: when the last player locks, a trade or offer still waiting for an answer is called off (no deal, nothing moves; both sides get a line), and the lots go out at once. The game no longer waits for it.',
+      'Invited to fight: you have 30 seconds to pick your robot; no answer and your strongest ready robot goes.',
+      'A part you win that two or more of your robots can take: the note asks which robot first (or keep it in your Stash). No answer in 20 s: the robot whose odds gain most, and you can still undo or move it. One robot that can take it: it goes on at once, with Undo, as before.',
+      'When someone who had locked changes a bid or bet, everyone\'s log says so ("Rust Rivets changed a bid and is deciding again."), without amounts.',
+      'A trade between two other teams (also two people at the table) shows a short banner over the pit for 4 seconds: who traded with whom and what moved. The log line stays.' ]],
     ['2.0.1, buyout prices', '21 Nov 2026', [
       'Hostile Buyout now costs the robot\'s value (the gold chip), at least 4 credits: taking a big robot costs something. The buyer still gets the target\'s weakest robot and does not choose; refusing still costs the target 1 fame. The question says the price ("for 9 Cr", or "for 4 Cr (the 4 Cr minimum)"), the card\'s hover lists the price at each rival, and if you are short the game tells you how much it costs. Scalper Bot: "Full price, no refunds."',
       'AI teams sell to a buyout when the price plus the fame they keep covers what the robot is worth to them, and play the card when the robot is a bargain for them or a refusal hurts the target.',
