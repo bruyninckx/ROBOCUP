@@ -6998,10 +6998,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         BOOKIE.onready = feed; BOOKIE.onres = d => { if (d.gen === gen) count(d.r); feed(); };
         setTimeout(done, budget); feed(); });
       BOOKIE.onres = null; BOOKIE.onready = null;
-      if (n) how = pool.filter(o => o.ready).length + ' workers';
+      if (n) how = pool.filter(o => o.ready && !o.dead).length + ' workers';
     }
-    if (!n) while (n < C.n && !stop && performance.now() - t0 < budget) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
-    return { n, wins, ms: Math.round(performance.now() - t0), how, budget, bots, stop, workers: pool ? pool.filter(o => o.ready).length : 0 };
+    const pageMs = Math.min(budget, opt && opt.ms ? opt.ms : C.ms);   // T52: on the page itself (no helpers) a fight blocks the screen: no longer budget there
+    if (!n) while (n < C.n && !stop && performance.now() - t0 < pageMs) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
+    return { n, wins, ms: Math.round(performance.now() - t0), how, budget: how === 'page' ? pageMs : budget, bots, stop };
   }
 
   // T35: appearance money held back until the result (BAL.fan.loserShare < 1): winners get it all, losers (and a draw) that share
