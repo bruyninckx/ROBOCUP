@@ -33,14 +33,16 @@
     const B = Z.body; B.labels.push('Top plate'); if (!R.lid.attached) { B.broken = true; B.f = 0; B.lost.push('Top plate'); } else B.f = Math.min(B.f, f(R.lid));
     (w.drones || []).forEach((d, i) => { if (d <= 0) { B.broken = true; B.f = 0; B.lost.push('drone ' + (i + 1)); } else B.f = Math.min(B.f, d); });
     if (w.marks) marksIn(R, Z);
-    for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD || z.marked;
+    for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD;   // Kev, 21 Nov (T41): a mark alone does not count as damage (shown, optional to repair)
     return Z;
   }
   /* T41 (Kev, 21 Nov: "keep bend until repair"): wear marks (bends, warps, cracks, saw grooves; engine wearOf marks) stay until
    * the zone they are in is repaired. Per zone: mk = how bad, in plain numbers (most bent weapon arm in degrees, warp 0..1 of the
    * most a disc warps, wheels a bent plate drags on, crack length in metres, saw cut depth in metres, a snapped tip), marks = the
-   * words for the card ("bent 23°"). A mark the engine would call out in a fight (BENT! WARPED! WHEEL RUB! SAWN OPEN!, a snapped
-   * tip, a crack 10 cm or longer) makes the zone count as damaged, so the repair button is there even at full health. */
+   * words for the card ("bent 23°"). marked: a mark the engine would call out in a fight (BENT! WARPED! WHEEL RUB! SAWN OPEN!, a
+   * snapped tip, a crack 10 cm or longer). Kev, 21 Nov: "Only shown on the card: repairing it is optional and the AI ignores it": a
+   * mark does not make a zone damaged (repair costs, robot value and the AI see health only); a person may still repair a marked zone
+   * (1 action) to straighten it. The bookie prices marks (markCost): they change the fight. */
   const MARK = { bendDeg: 10, warp: 0.27, crack: 0.1 };
   function marksIn(R, Z) {
     const DEG = 180 / Math.PI;

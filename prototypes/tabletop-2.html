@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="1ee514da">
+<meta charset="utf-8"><meta name="robocus-files" content="31ff00ca">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -647,17 +647,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=1ee514da"></script>
-<script src="../src2/dmath.js?b=1ee514da"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=31ff00ca"></script>
+<script src="../src2/dmath.js?b=31ff00ca"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=1ee514da"></script>
-<script src="../src2/lineup.js?b=1ee514da"></script>
-<script src="../src2/matrix.js?b=1ee514da"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=1ee514da"></script>
-<script src="../src2/sound.js?b=1ee514da"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=1ee514da"></script>
+<script src="../src2/engine.js?b=31ff00ca"></script>
+<script src="../src2/lineup.js?b=31ff00ca"></script>
+<script src="../src2/matrix.js?b=31ff00ca"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=31ff00ca"></script>
+<script src="../src2/sound.js?b=31ff00ca"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=31ff00ca"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -1947,7 +1947,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
     return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + zoneState(q) + ')' : zoneMarks(q) ? zoneMarks(q) : 'fine'),
-      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight until this zone is repaired.' : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
+      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight and still change how it fights, until this zone is repaired.' + (q.marked && !q.damaged ? ' It does not count as damage: repairing it is optional (' + actsWord(zoneActs(q)) + ' straightens it; the AI teams never spend a repair on marks alone).' : '') : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
   }
   function helpName(t, r) {
     const bits = [];
@@ -2823,7 +2823,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.repairZone = (S, rid, zk) => {
     const t = G.teams[S], r = myBot(S, rid);
     if (!r || G.phase !== 'upkeep' || !r.wear || !ZONE[zk]) return;
-    if (!zonesOf(r)[zk].damaged) return;
+    if (!zonesOf(r)[zk].damaged && !zonesOf(r)[zk].marked) return;   // T41: a marked zone may be repaired too (optional: it straightens the bends, cracks and cuts)
     const n = repairCost(r, zk), how = spendActs(t, n);
     if (!how) { say(S, '🔧 ' + (n > 1 ? 'This zone needs ' + actsWord(n) + ': not enough actions or credits (' + repairCr() + ' Cr each).' : 'No repair actions left and less than ' + repairCr() + ' Cr.'), '#b45309'); return; }
     doRepair(r, zk); logRepair(t, r, zk, how);
@@ -8258,15 +8258,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawZoneButtons(ctx, r, x, y, w, h, clickable, small) {
     const Z = zonesOf(r), gap = small ? 3 : 5, bw = (w - gap * 2) / 3;
     R2.ZONES.forEach((z, k) => {
-      const q = Z[z.key], bx = x + k * (bw + gap), st = q.broken ? 'broken' : q.damaged ? 'dmg' : 'ok';
-      const fill = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#FBF1D2' : PAPER2, edge = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#C99A1E' : '#4C8A3F', fg = st === 'broken' ? '#fff' : st === 'dmg' ? '#8A6A10' : '#4C8A3F';
+      const q = Z[z.key], bx = x + k * (bw + gap), st = q.broken ? 'broken' : q.damaged ? 'dmg' : q.marked ? 'mark' : 'ok';   // mark (T41): health fine, a bend / crack / cut shown; repairing it is optional
+      const fill = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#FBF1D2' : PAPER2, edge = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#C99A1E' : st === 'mark' ? '#8A8578' : '#4C8A3F', fg = st === 'broken' ? '#fff' : st === 'dmg' ? '#8A6A10' : st === 'mark' ? '#5A554C' : '#4C8A3F';
       ctx.fillStyle = fill; rrect(ctx, bx, y, bw, h, 3); ctx.fill();
-      ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
+      ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' && st !== 'mark' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
       ctx.fillStyle = clickable && st === 'dmg' && repairCrFor(G.teams[HS], zoneActs(q)) ? '#B23A2B' : fg; ctx.textAlign = 'center';
-      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : 'ok';
+      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : st === 'mark' ? (small ? 'WEAR' : String(q.marks[0] || 'wear').replace(/^a plate bent into a wheel$|^plates bent into \d+ wheels$/, 'plate rub').toUpperCase()) : 'ok';
       if (small) fitText(ctx, z.icon + stTxt, bx + bw / 2, y + h / 2 + 3.5, bw - 2, '700', 8.5, F_MONO);
-      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
-      const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
+      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st === 'mark' ? ' · fix?' : clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
+      const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' && st !== 'mark' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
       help(bx, y, bw, h, hz[0] + (crN ? ' · <span style="color:#B23A2B">costs ' + crN + ' Cr</span>' : ''), (crN ? '<div style="background:#B23A2B;color:#fff;font-weight:700;padding:5px 8px;border-radius:4px;margin:2px 0 6px">🪙 This repair costs ' + crN + ' Cr: you have ' + actsWord(repairActs(G.teams[HS])) + ' left, extra actions are ' + repairCr() + ' Cr each.</div>' : '') + hz[1] + (clickable && st !== 'ok' ? '<br><i>Click: spend ' + actsWord(zoneActs(q)) + ' on it' + (crN ? ' (' + crN + ' Cr)' : '') + '.</i>' : ''));
       if (clickable && st !== 'ok') hitRegions.push({ kind: 'zone_fix', robot: r, zone: z.key, x: bx, y, w: bw, h });
     });
@@ -10033,7 +10033,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const CHANGES = [
     ['2.0.1, bends, cracks and saw cuts', '21 Nov 2026', [
       'Every fight now wears robots down the way the Damage Lab showed it: spinner bars, spears, tails and forks bend; plates fold in and can drag on a wheel (WHEEL RUB!); discs and saws warp; piercing hits crack metal; saws cut grooves; broken plates shatter into pieces. The fight screen draws it all: fold lines, cracks (also through the top plate), glowing saw cuts, a bent bar spinning out of true, a warped disc.',
-      'Bends, cracks and saw cuts stay on the robot from fight to fight until you repair the zone they are in (Drive, Weapon, Body). The robot card says so, for example "Weapon: bent 23°". A big mark (bent 10° or more, warped, a plate in a wheel, sawn open, a tip broken off) counts as damage, so the repair button is there even at full health. The bookie sees the marks too.',
+      'Bends, cracks and saw cuts stay on the robot from fight to fight until you repair the zone they are in (Drive, Weapon, Body). The robot card says so, for example "Weapon: bent 23°". A mark alone does not count as damage: repairing it is optional (click the zone on the card, 1 repair action, to straighten it), and the AI teams never spend a repair on it. The bookie sees the marks: they still change the fight.',
       'Rebalanced for it: tougher robots bend and crack less, and 11 robots changed strength a little (Thwacker, Hydra, Corkscrew, Jukebox, Scavenger and Thumper up; Popcorn, Orbiter, Whaler, Gyro and Wrecker down). Everyone must play on the new files stamp; a game saved before this loads fine, its robots simply have no marks yet.' ]],
     ['2.0.1, robot value', '21 Nov 2026', [
       'Every robot shows its value in credits: a gold coin chip "◉ 6 Cr" on your robots (next to the odds), on the rivals\' tickets and on a robot for sale in the Market. Hover it for the sum: level (1 + 2 per level), each fitted part at its bank price (what the Stash\'s 🏦 button pays), +1 per Fan token and +2 for a Fan Favourite, −1 per repair action its damage needs.',
@@ -10214,7 +10214,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=1ee514da"></script>
+<script src="../src2/net.js?b=31ff00ca"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
