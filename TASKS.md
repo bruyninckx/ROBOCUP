@@ -84,13 +84,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
-- **T47. Rules and clicks from the voting page (one worker, `prototypes/tabletop-2.html`).** Kev's choices (21 Nov,
-  quoted under Answered): (1) Crunch Week: tick crew, Security Bots and robots yourself; (2) Repair kit 2 copies;
-  (3) Bookie's Friend and Hedge Bet stay playable after you lock bets; (4) a trade still open when the last player
-  locks is cancelled (both sides told why) instead of holding the step; (5) "send a robot": 30 s, then the strongest
-  ready robot; (6) a won part asks which robot first when several can take it (K44); (7) a log line for everyone when
-  someone unlocks; (8) a trade between two other teams (AI or people) shows as a short banner, not only a log line.
-  Start when a worker slot is free. Done when: scripted plays for each, questions-note, market-step, game-sim, mp-test.
 - **T48. Look from the voting page (after T41 is merged: it rewrites the fight view).** (1) rarity: every tier
   distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
   robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
@@ -140,6 +133,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T47. Rules and clicks from the voting page (one worker, `prototypes/tabletop-2.html`).** Kev's choices (21 Nov,
+  quoted under Answered): (1) Crunch Week: tick crew, Security Bots and robots yourself; (2) Repair kit 2 copies;
+  (3) Bookie's Friend and Hedge Bet stay playable after you lock bets; (4) a trade still open when the last player
+  locks is cancelled (both sides told why) instead of holding the step; (5) "send a robot": 30 s, then the strongest
+  ready robot; (6) a won part asks which robot first when several can take it (K44); (7) a log line for everyone when
+  someone unlocks; (8) a trade between two other teams (AI or people) shows as a short banner, not only a log line.
+  Worker on branch `claude/vote-rules`, started 21 Nov. Done when: scripted plays for each, questions-note, market-step, game-sim, mp-test.
 - **T45. Hostile Buyout costs the robot's value (at least 4 Cr); Fire Sale pays value + 1.** Kev (21 Nov): "ok, it
   should cost something to take a big robot"; "pay value +1". Uses `robotValue` (T44). Goal: both cards pay by the
   shown value; card texts, questions, play conditions and AI use follow; measured in bot games (how often played, what
