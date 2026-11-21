@@ -815,7 +815,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* T35 (20 Nov, test AIs only; never on in a real game: docs/robocus-fan-favourite.md). rw: 1 = the "runaway" line Kev found
    * (Apex Media, host and invite itself with its Fan Favourite, pay AI hosts to be invited, hoard credits, back schemes for pay);
    * rwOff: parts switched off ('apex', 'host', 'self', 'deal', 'hoard', 'back'). ctr: the counters other teams use against a
-   * rival's Fan Favourite ('noInvite', 'cards', 'host', 'smear'). Unset (every real game): the AI as before. */
+   * rival's Fan Favourite ('noInvite', 'cards', 'host', 'smear'). rwTips: 1 = when it hosts, the other AI teams offer it the
+   * invite deals they offer a person who hosts (AI hosts get none otherwise). Unset (every real game): the AI as before. */
   const rwOn = (t, f) => !!aiP(t).rw && !(aiP(t).rwOff || []).includes(f);
   const ctrOn = (t, f) => (aiP(t).ctr || []).includes(f);
   const favReady = T => readyRobots(T).filter(r => r.wins >= favWins(T) && !wrecked(r)).sort((a, b) => power(b) - power(a))[0] || null;
@@ -5990,6 +5991,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     } else {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = (s[1] || { i: H }).i;
+    }
+    if (aiP(host).rwTips) for (const T of G.teams) {   // T35 test AI (rwTips): the other AI teams offer it the deals they offer a person who hosts; paid when its pick agrees
+      if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
+      if (host.fame > T.fame && (G.hostHist || []).slice(-3).filter(h => h === H).length >= 2) continue;
+      const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p, want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
+      if (want && rnd() < 0.55) { const B = aiBundle(T, host, 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B) && (want === 'in') === (a === T.i || b === T.i)) { transfer(T, host, B, 'hostdeal'); notify('🤝 ' + nm(T) + ' pays the host ' + bundleText(B) + ' (' + (want === 'in' ? 'invited' : 'left out') + ').', T.col); } }
     }
     G.arenaPick = aiPickArena(H, a, b);
     notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : fmt === 'double' ? ' (up to 2 robots each)' : '') + '!', host.col);
