@@ -195,4 +195,4 @@ looks safe, but 15 fights can't show it, so `min` stays 40 and the longer budget
 Checked: the odds a fight uses are worked out only on the host. `afterChoose` (which runs `simOdds`) is reached only from host
 actions (a client's `act` goes to the host), the helpers are started only when the page is not a client, and the odds (`F.p`,
 bands, payouts) reach the other screens in the synced game state. The helpers use the bookie's own seeds, never the game's dice;
-more helpers or an early stop change only how many test fights the host counts, not any game random number. `node tools/mp-test.js`: MPTEST.
+more helpers or an early stop change only how many test fights the host counts, not any game random number. `node tools/mp-test.js` (3 clients, seed 5): OK, desyncs 0 on every client, 9 fights checked, 3.3 min.
