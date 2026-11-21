@@ -7,8 +7,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K36. Two card texts don't match the game** (found by T39): Mirror's text says "2-3 copies" but the game makes 2;
-  Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -135,6 +133,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T43. Two card texts say what the game does.** Kev (21 Nov), asked "Fix the texts, or the game?": "fix text".
+  Mirror: the text says "2-3 copies", the game makes 2. Hostile Buyout: the text says "2x its value", the game pays a
+  flat 4 Cr. Texts in `prototypes/tabletop-2.html`, `rules.html`, `docs/intrigue-deck.md`, and the Scalper Bot line if
+  it no longer fits. Same worker and branch as T39 (`claude/card-flavour`), started 21 Nov. Done when: the worker
+  shows the code line each text now matches; game-sim passes.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
