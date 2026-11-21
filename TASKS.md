@@ -114,21 +114,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T40. Lineup Arena and Contact Lab pages throw a script error when they open** (found by T37, 21 Nov): the fourth
   robot card defaults to Juggernaut, which is no longer in the lineup (`tools/damage-lab/ui.js` `st.spec`). Fix there,
   rebuild with `build.py`. Done when: both pages open with 0 page errors, stock-fight fingerprint unchanged.
-- **T38. NEXT BIG TASK (Kev, 21 Nov: "wait for some agents to finnish before implemnting this but this should be the
-  next big task in line"). Garage: swap parts between robots in Upkeep.** Kev's idea: "modify the upkeep phase to also
-  allow swapping of parts onto other robots for a small fee. To make this work, when a robot get scrapped it should
-  also still give the parts back (perhaps damaged as well?) into the stash (stash limit should perhaps be removed).
-  People can play around with swapping items and a sort of garage bill will be displayed which they can lock in".
-  His answers (21 Nov): fee "1 coin for removal and 1 coin for install, maybe 2 for legandaries"; on piling onto one
-  robot: "I would make swapping cost money and pay for removing + pay for putting an item on, which should reduce
-  swapping all the time because money is important"; parts from a scrapped robot: "perhaps depends on what was
-  damaged?"; "stash limit gone"; "should be seemless for people with no parts indeed"; and "I'm also thinking about a
-  nice visual about the upkeep with a garage and your robots in the arena area". Starts after T41 (wear decides how
-  damage sits on a part), T35 (what a scrap is worth) and T44 (robot value on the bill). Settled with Kev (21 Nov, "1 yes / 2 4 in total / 3 right"): fitting a
-  part you just won stays free; a part from the Stash pays the 1 Cr install; a legendary costs 2 to remove and 2 to
-  install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
-  come back whole. Then measure: scrap matters less, parts pile onto the best robot,
-  fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
 - **T36. `play-latest.cmd` must survive updating itself; port 8765 busy on Kev's PC.** Kev's first run (21 Nov) worked
   (server on 8766, game opened) but printed "'folder' is not recognized as an internal or external command": the update
   replaced the batch file while cmd was reading it, so cmd went on in the middle of a line of the new file. Goal: the
@@ -152,6 +137,21 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T38. (started 21 Nov, worker on branch `claude/garage`) NEXT BIG TASK (Kev, 21 Nov: "wait for some agents to finnish before implemnting this but this should be the
+  next big task in line"). Garage: swap parts between robots in Upkeep.** Kev's idea: "modify the upkeep phase to also
+  allow swapping of parts onto other robots for a small fee. To make this work, when a robot get scrapped it should
+  also still give the parts back (perhaps damaged as well?) into the stash (stash limit should perhaps be removed).
+  People can play around with swapping items and a sort of garage bill will be displayed which they can lock in".
+  His answers (21 Nov): fee "1 coin for removal and 1 coin for install, maybe 2 for legandaries"; on piling onto one
+  robot: "I would make swapping cost money and pay for removing + pay for putting an item on, which should reduce
+  swapping all the time because money is important"; parts from a scrapped robot: "perhaps depends on what was
+  damaged?"; "stash limit gone"; "should be seemless for people with no parts indeed"; and "I'm also thinking about a
+  nice visual about the upkeep with a garage and your robots in the arena area". Starts after T41 (wear decides how
+  damage sits on a part), T35 (what a scrap is worth) and T44 (robot value on the bill). Settled with Kev (21 Nov, "1 yes / 2 4 in total / 3 right"): fitting a
+  part you just won stays free; a part from the Stash pays the 1 Cr install; a legendary costs 2 to remove and 2 to
+  install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
+  come back whole. Then measure: scrap matters less, parts pile onto the best robot,
+  fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
 - **T47. Rules and clicks from the voting page (one worker, `prototypes/tabletop-2.html`).** Kev's choices (21 Nov,
   quoted under Answered): (1) Crunch Week: tick crew, Security Bots and robots yourself; (2) Repair kit 2 copies;
   (3) Bookie's Friend and Hedge Bet stay playable after you lock bets; (4) a trade still open when the last player
