@@ -78,7 +78,7 @@
 
   // ---------- tow cable and wall slams (Kev, 16 Nov: "the tow cable was barely visible, forklift just slammed in the wall
   // without much visual effect"). View only: reads the sim, never writes it; randomness is Math.random like the rest here.
-  let tows = [], dents = [], jolts = new Map(), vt = 0;   // vt: view clock (stops while paused or in a hit stop)
+  let tows = [], dents = [], jolts = new Map(), vt = 0, flashN = { wall: 0, robot: 0 };   // impact flashes this fight (tests read RobocusView.fx)   // vt: view clock (stops while paused or in a hit stop)
   function towStart(e) {
     const R = S.robots[e.robot]; if (!R) return;
     let E = null, bd = 1e9; for (const Q of S.robots) if (Q !== R) { const q = Q.body.getPosition(), d = Math.hypot(q.x - e.x, q.y - e.y); if (d < bd) { bd = d; E = Q; } }
@@ -103,27 +103,52 @@
     jolts.set(R, { t0: vt, k, nx, ny });
     for (const w of tows) if (w.E === R && w.rel == null) w.rel = vt;   // the cable lets go on the hit
     if (k < 0.05) return;   // a light touch stays quiet (the sparks are enough)
-    spawn({ t: 'star', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.16 + 0.14 * k, max: 0.16 + 0.14 * k, s: 0.24 + 0.4 * k, r: Math.random() * 6 });   // a comic impact star
+    impactFlash(e.x, e.y, k); flashN.wall++;   // Kev, 21 Nov (voting page, T48): "a plain flash" instead of the comic star
     spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3, max: 0.3, s: 0.08, col: k > 0.4 ? '#FFF2C8' : undefined });
     const base = Math.atan2(ny, nx), n = Math.round(6 + 18 * k);
     for (let i = 0; i < n; i++) { const an = base + (Math.random() - 0.5) * 2.8, v = 0.6 + Math.random() * (1 + 2.5 * k); spawn({ t: 'puff', x: e.x, y: e.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v, life: 0.5 + Math.random() * 0.5, max: 1, s: 0.07 + 0.12 * k * Math.random() }); }
     for (let i = 0, m = Math.round(3 + 10 * k); i < m; i++) { const an = base + (Math.random() - 0.5) * 2.4, v = 1.5 + Math.random() * (2 + 3 * k); spawn({ t: 'shard', x: e.x, y: e.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v, life: 0.8 + Math.random(), max: 1.8, s: 0.015 + Math.random() * 0.03, r: Math.random() * 6, col: Math.random() < 0.3 ? HAZ : Math.random() < 0.5 ? '#B8B1A4' : '#7d7a72' }); }
     shake = Math.min(0.4, shake + 0.03 + 0.3 * k);
     if (k > 0.35) { hitStop = Math.max(hitStop, 0.03 + 0.07 * k); flash = Math.max(flash, 0.1 * k); }
-    if (k > 0.12) {   // a dent in the wall: merges with one close by, keeps the newest 18
+    if (k > 0.12) {   // a dent in the wall: merges with one close by (and starts fading again), keeps the newest 18
       const d0 = dents.find(d => Math.hypot(d.x - e.x, d.y - e.y) < 0.18);
-      if (d0) d0.s = Math.min(0.32, Math.max(d0.s, 0.1 + 0.2 * k) + 0.03);
-      else { dents.push({ x: e.x, y: e.y, a: Math.atan2(-ny, -nx), s: 0.1 + 0.2 * k, seed: Math.random() * 6 }); if (dents.length > 18) dents.shift(); }
+      if (d0) { d0.s = Math.min(0.32, Math.max(d0.s, 0.1 + 0.2 * k) + 0.03); d0.t0 = vt; }
+      else { dents.push({ x: e.x, y: e.y, a: Math.atan2(-ny, -nx), s: 0.1 + 0.2 * k, seed: Math.random() * 6, t0: vt }); if (dents.length > 18) dents.shift(); }
     }
+  }
+  // Kev, 21 Nov (T48): "a plain flash" where a robot slams into a wall or into another robot: a short white-hot glow at the
+  // impact point, as big and as long as the hit is hard (k 0..1, the wall slam's scale); no star, no outline.
+  function impactFlash(x, y, k) { const l = 0.1 + 0.12 * k; spawn({ t: 'impact', x, y, vx: 0, vy: 0, life: l, max: l, s: 0.22 + 0.4 * k }); }
+  // Kev, 21 Nov (T48): "also robot against robot". The engine's robot-on-robot contact sparks (metal: part on part), hard ones
+  // only: power x1.4 when one of the two was thrown, at least RR_MIN (about 2.5 a fight in 10 stock fights, 0-10; light bumps
+  // and pushing stay quiet). A weapon blow at the same spot already has its own ring and flash, so it gets none. No dent.
+  const RR_MIN = 100, rrLast = new Map();
+  function robotHit(e, batch) {
+    if (batch.some(h => h.type === 'bigHit' && Math.hypot(h.x - e.x, h.y - e.y) < 0.6)) return;
+    const two = S.robots.map(R => { const q = R.body.getPosition(); return { R, d: Math.hypot(q.x - e.x, q.y - e.y) }; }).sort((a, b) => a.d - b.d).slice(0, 2);
+    if (two.length < 2) return;
+    const slung = two.some(o => o.R.airborne > 0 && o.R.thrownBy), P = e.power * (slung ? 1.4 : 1);
+    if (P < RR_MIN) return;
+    const key = Math.min(two[0].R.id, two[1].R.id) + '-' + Math.max(two[0].R.id, two[1].R.id), t0 = rrLast.get(key);
+    if (t0 != null && vt - t0 < 0.15) return;   // one hit = several contacts: one flash
+    rrLast.set(key, vt); flashN.robot++;
+    const k = Math.max(0, Math.min(1, (P - 25) / 260));
+    impactFlash(e.x, e.y, k);
+    shake = Math.min(0.4, shake + 0.02 + 0.2 * k);
   }
   function joltOf(R) {   // squash and shake of a robot that just hit a wall: [dx, dy, squash, nx, ny]
     const J = jolts.get(R); if (!J) return null; const age = vt - J.t0; if (age > 0.4) { jolts.delete(R); return null; }
     const amp = (0.15 + 0.85 * J.k) * Math.exp(-age * 9);
     return [-J.nx * 0.05 * amp * Math.cos(age * 55), -J.ny * 0.05 * amp * Math.cos(age * 55), 0.22 * amp * Math.max(0, Math.cos(age * 30)), J.nx, J.ny];
   }
+  // Kev, 21 Nov (T48): "dents that fade": a dent stays DENT_HOLD s, then fades out over DENT_FADE s (view clock, so it waits
+  // through pauses and hit stops). Each dent fades on its own clock, so the newest stays longest; a new slam on it restarts it.
+  const DENT_HOLD = 2.5, DENT_FADE = 2.5;
   function drawDents() {   // on the hazard stripe just inside the wall: a dark crater, a bright bent lip, cracks along the wall
+    dents = dents.filter(d => vt - d.t0 < DENT_HOLD + DENT_FADE);
     for (const d of dents) {
-      ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a);   // +x points into the wall, y runs along it
+      const age = vt - d.t0, al = age < DENT_HOLD ? 1 : Math.max(0, 1 - (age - DENT_HOLD) / DENT_FADE);
+      ctx.save(); ctx.globalAlpha = al * al * (3 - 2 * al); ctx.translate(d.x, d.y); ctx.rotate(d.a);   // +x points into the wall, y runs along it
       ctx.fillStyle = 'rgba(20,14,8,0.75)'; ctx.beginPath(); ctx.ellipse(-0.04, 0, d.s * 0.4, d.s, 0, 0, 6.29); ctx.fill();
       ctx.strokeStyle = 'rgba(235,228,212,0.85)'; ctx.lineWidth = PX * 2.5; ctx.beginPath(); ctx.ellipse(-0.04, 0, d.s * 0.4, d.s, 0, 1.9, 4.4); ctx.stroke();
       ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
@@ -202,7 +227,7 @@
         else if (ty === 'smokebomb') SND.play('puff');
         else if (ty === 'ko') SND.play('ko');
       }
-      if (e.type === 'spark') { sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny); if (!e.small && !e.metal && e.nx != null && e.power >= 25) wallHit(e); }
+      if (e.type === 'spark') { sparks(e.x, e.y, e.small ? e.power * 0.5 : e.power * 0.6, e.nx, e.ny); if (!e.small && !e.metal && e.nx != null && e.power >= 25) wallHit(e); else if (e.metal && e.nx != null && e.power * 1.4 >= RR_MIN) robotHit(e, S.fx); }
       else if (e.type === 'bigHit') {
         shake = Math.min(0.2, shake + e.power * 0.005); shards(e.x, e.y, Math.min(12, e.power / 4));
         if (e.power >= 20) { hitStop = Math.max(hitStop, 0.07); flash = Math.max(flash, 0.12); spawn({ t: 'ring', x: e.x, y: e.y, vx: 0, vy: 0, life: 0.3, max: 0.3, s: 0.15 }); }
@@ -1137,7 +1162,7 @@
       else if (p.t === 'shard') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r + p.life * 6); ctx.fillStyle = p.col; ctx.fillRect(-p.s, -p.s * 0.6, p.s * 2, p.s * 1.2); ctx.restore(); }
       else if (p.t === 'dust') { ctx.strokeStyle = `rgba(120,105,85,${0.5 * k})`; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(p.x, p.y, p.s + (1 - k) * 0.3, 0, 6.29); ctx.stroke(); }
       else if (p.t === 'puff') { ctx.fillStyle = `rgba(122,110,94,${0.55 * k})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(214,206,192,${0.5 * k})`; ctx.beginPath(); ctx.arc(p.x - p.s * 0.25, p.y - p.s * 0.25, p.s * 0.55, 0, 6.29); ctx.fill(); }
-      else if (p.t === 'star') { const r0 = p.s * (0.7 + 0.3 * (1 - k)); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.globalAlpha = Math.min(1, k * 2); ctx.beginPath(); for (let i = 0; i < 18; i++) { const rr2 = i % 2 ? r0 * 0.45 : r0 * (i % 4 ? 0.8 : 1); ctx.lineTo(Math.cos(i / 18 * 6.283) * rr2, Math.sin(i / 18 * 6.283) * rr2); } ctx.closePath(); ctx.fillStyle = HAZ; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.5; ctx.stroke(); ctx.scale(0.55, 0.55); ctx.fillStyle = '#FFF8E0'; ctx.fill(); ctx.restore(); }
+      else if (p.t === 'impact') { const r0 = p.s * (0.75 + 0.45 * (1 - k)), g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r0); g.addColorStop(0, `rgba(255,255,255,${k})`); g.addColorStop(0.35, `rgba(255,248,225,${0.85 * k})`); g.addColorStop(1, 'rgba(255,240,200,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, r0, 0, 6.29); ctx.fill(); }
       else if (p.t === 'flash') { ctx.fillStyle = `rgba(255,240,200,${k * 0.8})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1.2 - k * 0.5), 0, 6.29); ctx.fill(); }
     }
   }
@@ -1513,7 +1538,7 @@
   }
   let running = false, last = 0, acc = 0;
   function play(S2, o = {}) {
-    S = S2; opts = o; ended = false; feedN = 0; parts = []; calls = []; tows = []; dents = []; jolts = new Map(); hitStop = 0; flash = 0; shake = 0; slowT = 0; decalReset();
+    S = S2; opts = o; ended = false; feedN = 0; parts = []; calls = []; tows = []; dents = []; jolts = new Map(); flashN = { wall: 0, robot: 0 }; rrLast.clear(); hitStop = 0; flash = 0; shake = 0; slowT = 0; decalReset();
     cam.x = cam.y = cam.tx = cam.ty = 0; cam.z = cam.tz = 1; V.paused = false; V.bars = false;
     root.querySelector('.fv-title').textContent = o.title || 'Fight';
     { const inf = root.querySelector('.fv-info'); inf.innerHTML = o.info || ''; inf.hidden = !o.info; }   // the game's bets / what's next card
@@ -1654,5 +1679,5 @@
         ctx.beginPath(); ctx.moveTo(hover[0] - 0.15, hover[1]); ctx.lineTo(hover[0] + 0.15, hover[1]); ctx.moveTo(hover[0], hover[1] - 0.15); ctx.lineTo(hover[0], hover[1] + 0.15); ctx.stroke(); }
     }
   }
-  window.RobocusView = { mount, play, skip, close, integrity, replace(S2) { S = S2; if (root && !root.hidden) { buildPanels(); updatePanels(); } },   /* a replayed fight has new robot objects: the panels must show those, not the old copy */ portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; } };
+  window.RobocusView = { mount, play, skip, close, integrity, replace(S2) { S = S2; if (root && !root.hidden) { buildPanels(); updatePanels(); } },   /* a replayed fight has new robot objects: the panels must show those, not the old copy */ portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; }, get fx() { return { flashes: flashN.wall + flashN.robot, wall: flashN.wall, robot: flashN.robot, dents: dents.length }; } };
 })();
