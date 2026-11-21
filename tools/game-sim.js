@@ -15,6 +15,8 @@
 // T35 (20 Nov): --aip0='{"rw":1}' plays the Fan Favourite "runaway" test AI in seat 0, --aipR='{"ctr":["noInvite","cards","host","smear"]}'
 // the counters in seats 1-3; --bal='{"fan":{...}}' the Fan Favourite test rules (docs/robocus-fan-favourite.md). The result also
 // records robot wins in res.ups[r].wins, res.v2.favSafe (losing Fan Favourites kept safe), res.v2.hosts; report: tools/fan-fav-report.js.
+// T46 (21 Nov): res.v2.inv (every AI host's pick: stayed out or not, the fame leader, ready Fan Favourites); the file is saved after
+// every game (a stopped run keeps its finished games; re-run a missing seed with --seed0=<seed> --games=1 and merge with '+').
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
@@ -200,6 +202,7 @@ function installHooks() {
           const L = D.LOTS;
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
+            inv: D.ailog ? D.ailog.slice() : null,   // T46: every AI host's pick (mode, pair, the leader, ready Fan Favourites)
             favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, rv: X.rv, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
@@ -220,12 +223,16 @@ function installHooks() {
       r.seed = seed; r.stall = stall; r.pageErrs = errs.slice(0, 5); r.pageErrN = errs.length; r.sec = (Date.now() - g0) / 1000; res.push(r);
     } catch (e) { res.push({ seed, crash: e.message, pageErrs: errs.slice(0, 5), sec: (Date.now() - g0) / 1000 }); }
     await p.close();
+    save();   // T46: after every game (a restart keeps what is done)
     done++; if (done % 5 === 0 || done === N) process.stdout.write('\r' + TAG + ': ' + done + '/' + N + ' games, ' + ((Date.now() - t0) / 60000).toFixed(1) + ' min   ');
   }
+  const file = path.join(OUTD, TAG + '.json'); let balFull = null;
+  function save() {
+    const ok = res.find(r => r.startFame != null); if (ok && ok.bal) balFull = ok.bal; res.forEach(r => { delete r.bal; });   // the page's whole BAL: once per file
+    fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START != null ? START : ok ? ok.startFame : null, bal: BAL, balFile: BALF, balFull, win: WIN, ai: AIV, aip: AIP, aip0: AIP0, aipR: AIPR, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res: res.slice().sort((a, b) => a.seed - b.seed) }));
+  }
   await Promise.all(Array.from({ length: PAR }, async () => { while (next < SEED0 + N) await one(next++); }));
-  const file = path.join(OUTD, TAG + '.json');
-  const ok = res.find(r => r.startFame != null), balFull = ok && ok.bal; res.forEach(r => { delete r.bal; });   // the page's whole BAL: once per file
-  fs.writeFileSync(file, JSON.stringify({ tag: TAG, start: START != null ? START : ok ? ok.startFame : null, bal: BAL, balFile: BALF, balFull, win: WIN, ai: AIV, aip: AIP, page: PAGE, par: PAR, games: N, at: new Date().toISOString(), min: (Date.now() - t0) / 60000, res }));
+  save();
   console.log('\nsaved ' + file + '  (summary: node tools/game-sim-report.js ' + TAG + ')');
   await b.close();
 })();
