@@ -114,9 +114,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   Not started: (2) and (4) are worker tasks; (3) and (5) need Kev (K46).
-- **T48. Look from the voting page (after T41 is merged: it rewrites the fight view).** (1) rarity: every tier
-  distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
-  robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
 - **T49. Repair kit: something extra** (after T41). Kev: "Give it something extra, for example protecting the
   battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
@@ -149,6 +146,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T48. Look from the voting page.** Worker on branch `claude/vote-look`, started 21 Nov. (1) rarity: every tier
+  distinctive, bigger glow for rarer; (2) wall slam: a plain flash, dents fade; (3) the same impact robot against
+  robot; (4) power map: great fits and epic combos move the robot. Done when: screenshots at both sizes, checks pass.
 - **T52. Bookie on all cores for 4-robot fights; AI trade-in stops churning** (from Kev's 21 Nov playtest, T51 (2) and
   (4)). (a) On his 16-processor PC the bookie ran 8 workers and 4-robot fights got 26-37 test fights, under the 40
   needed: raise the cap and/or the time so they are used. (b) Plum (AI) traded in 6 robots in one game, one its Fan
