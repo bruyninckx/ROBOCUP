@@ -856,6 +856,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     };
     const parts = R.parts;
     const hpK = spec.hpK || 1; // power level knob (2.0 tiers): multiplies every part's HP
+    R.hpK0 = hpK;
     const addPart = (key, label, kind, verts, o) => {
       const ar = area(verts), mass = o.mass;
       const fx = (o.body || body).createFixture({ shape: pl.Polygon(verts.map(p => V(p[0], p[1]))), density: mass / ar, friction: o.friction == null ? 0.45 : o.friction, restitution: o.rest == null ? 0.15 : o.rest, filterGroupIndex: group });
@@ -1668,7 +1669,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
 
   // ---------- wear experiments (Kev, 11 Nov): cracks, fragments, bends, saw grooves (S.wx.crack / frag / bend / grindout) ----------
   // Everything lives in the part's own frame (the robot's frame while it is attached), so it moves with the robot and can be drawn.
-  const WEAR = { crackMin: 5, crackK: 0.0055, vib: 0.0022, seg: 0.022, splitAt: 0.62, bendMin: 7, bendK: 0.0034, bendMax: 0.075, bendR: 0.17, rubMin: 0.006, grooveK: 0.0012, cutK: 0.85, chOpen: 0.05, weakMax: 2.2 };
+  const WEAR = { crackMin: 5, crackK: 0.0055, vib: 0.0022, seg: 0.022, splitAt: 0.62, bendMin: 7, bendK: 0.0034, bendMax: 0.075, bendR: 0.17, rubMin: 0.006, grooveK: 0.0012, cutK: 0.85, chOpen: 0.05, weakMax: 2.2, hpExp: 0, rubK: 0.45 };   // T41: hpExp = how much a robot's part strength (spec.hpK) resists bends, cracks and grooves (d / hpK^hpExp; weapons already resist kinks by sqrt(HP)); rubK = how much a plate bent into a wheel slows it
   const PIERCE = { spear: 1, harpoon: 1, fang: 0.9, crusher: 0.7, spikeplate: 0.7, sweeper: 0.6, hammer: 0.55, auger: 0.5, spikes: 0.5, shrapnel: 0.5, flail: 0.4, spinner: 0.4, tail: 0.35, slam: 0.3 };
   const GRINDY = { record: 1, saw: 1, twinsaw: 1, buzzsaw: 1, auger: 1, orbdisc: 1, gmsaw: 1 };
   const BLUNT = { impact: 1, ram: 1, wall: 1, slam: 1, landing: 1, squeeze: 1, hammer: 1, batram: 1, glove: 1, punch: 1, tail: 1, flail: 1, clapper: 1, crusher: 1, drum: 1, lifter: 1, flipper: 1, treb: 1, wedge: 1, spinner: 1, shell: 1, vdisc: 1, debris: 1, spikeplate: 1 };
@@ -1740,6 +1741,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const ok = part.kind === 'chassis' || part.kind === 'armour' || (part.kind === 'weapon' && (part.key === 'wedge' || BARS[part.key]));
     if (!ok) return;
     const soft = part.bumper === 'rubber' || part.bumper === 'spring';
+    if (WEAR.hpExp && R.hpK0 !== 1) d /= Math.pow(R.hpK0, WEAR.hpExp);   // T41: tougher metal bends, cracks and saws less for the same blow
     if (S.wx.crack && !soft) {
       const pk = PIERCE[h.cause] || (d >= 22 ? 0.3 : 0);
       if (pk && d >= WEAR.crackMin && S.rng() < Math.min(1, pk * d / 10)) crackHit(S, R, part, h, d * pk, atk);
@@ -2090,7 +2092,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         if (mo.stuck > 0 && mo.hp > 0) thr = mo.stuckDir;
         if (s.rub && !(s.rubBy && s.rubBy.attached)) s.rub = 0; // the plate it rubbed on is gone
         let mf = mo.hp > 0 ? (mo.hp / mo.maxHp < 0.35 ? 0.55 : 1) : 0;
-        if (s.rub) mf *= 1 - 0.45 * s.rub;
+        if (s.rub) mf *= 1 - WEAR.rubK * s.rub;
         if (mo.heat > 85) mf *= 0.4;
         let F = thr * Fw * mf * pw * clamp(1 - (vf * Math.sign(thr)) / vmax, 0, 1);
         if (bent) F *= 1 + 0.6 * Math.sin(s.spin * 1.0);
@@ -2109,7 +2111,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
           const me = m / n, jl = clamp(-vl * me, -muSide * load * DT, muSide * load * DT);
           b.applyLinearImpulse(V(right.x * jl, right.y * jl), p, true);
           const brake = thr === 0 && mo.hp > 0 && R.alive ? 0.12 : R.freewheel ? 0.004 : 0.012; // freewheel: a Pendulum on its cable (clutch out above top speed)
-          const jr = clamp(-vf * me * (brake + (s.rub ? 0.1 * s.rub : 0)), -mu * load * DT, mu * load * DT);
+          const jr = clamp(-vf * me * (brake + (s.rub ? 0.1 * s.rub * (WEAR.rubK / 0.45) : 0)), -mu * load * DT, mu * load * DT);
           if (s.rub && Math.abs(vf) > 0.4 && S.step % 5 === 0) S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 6 + 8 * s.rub, small: true });
           b.applyLinearImpulse(V(fwd.x * jr, fwd.y * jr), p, true);
         }
@@ -4853,7 +4855,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
   const L4 = Object.keys(PRESETS).filter(k => PRESETS[k].l4);
-  const API = { exoticFloor, WEAR, splitPoly, CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { exoticFloor, WEAR, KINK, KSTIFF, WRP, PIERCE, splitPoly, CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 
