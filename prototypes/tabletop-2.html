@@ -813,10 +813,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
      * guard: one AI team (the richest AI rival) keeps credits back to contest the host seat against a dangerous rival that piles up
      * credits (guardRich Cr more than the others' average, or it hosted 2 of the last 3 rounds and holds as much as the guard) and could outbid it (a Fan Favourite
      * it would invite itself with, or within guardNear fame of the win); it keeps and bids up to
-     * guardK x what that rival's hosting would give it (+ its own host value), at most guardCap.
+     * guardK x what that rival's hosting would give it (+ its own host value), at most guardCap. guardMatch: a rival within this
+     * much fame of the win that could win the game by hosting is outbid with everything the guard has (saver or not).
      * favCards: harmful cards aim a little harder (+favCardsK threat) at the team whose Fan Favourite earns for it, when that team
      * leads or is within 1 fame of the lead. */
-    invite: 1, invNoise: 0.25, invRand: 0.12, invCrK: 0.3, guard: 1, guardRich: 3, guardK: 0.6, guardCap: 14, guardNear: 3, favCards: 1, favCardsK: 0.5,
+    invite: 1, invNoise: 0.25, invRand: 0.12, invCrK: 0.3, guard: 1, guardRich: 3, guardK: 0.6, guardCap: 14, guardNear: 3, guardMatch: 2, favCards: 1, favCardsK: 0.5,
     // aiDeals: AI teams offer an AI host the invite / leave-out deals they offer a person who hosts (Kev, 21 Nov). Backing was already the same for AI backers.
     aiDeals: 1 };
   // AI styles for tests (game-sim --aip0='{"style":"vengeful"}') and for solo games
@@ -5079,17 +5080,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const R of G.teams) {
       if (R === t || R.fame < top - 1 || !R.robots.length) continue;
       const others = G.teams.filter(o => o !== R), saver = R.credits >= others.reduce((a, o) => a + o.credits, 0) / others.length + (P.guardRich != null ? P.guardRich : 3) || ((G.hostHist || []).slice(-3).filter(h => h === R.i).length >= 2 && R.credits >= t.credits);
-      if (!saver) continue;   // only a team that piles up credits (or keeps taking the host seat) can outbid it
+      // Kev's playtest, 21 Nov: he took the last three host seats for 8-12 Cr one fame from the win. Match point: a rival within
+      // guardMatch fame of the win that can win the game by hosting (host fame + the fight it picks) is outbid with everything, saver or not
+      const hf = CATCHUP.leaderhost && soleLeader() === R ? 0 : HOST_FAME, match = P.guardMatch != null && R.fame >= WIN_FAME - P.guardMatch && R.fame + hf + BAL.fame.win >= WIN_FAME;
+      if (!saver && !match) continue;   // only a team that piles up credits (or keeps taking the host seat) can outbid it
       const fav = R.robots.some(r => r.wins >= favWins(R) && !wrecked(r)), near = R.fame >= WIN_FAME - (P.guardNear || 3);
-      if (!fav && !near) continue;
-      const hf = CATCHUP.leaderhost && soleLeader() === R ? 0 : HOST_FAME;
-      const d = hf && R.fame + hf >= WIN_FAME ? 99 : aiThreat(t, R) * (hf * fw + 0.6 * BAL.fame.win * fw + (fav ? BAL.fan.favMoney : 0));
-      if (!best || d > best.d) best = { R, d };
+      if (!fav && !near && !match) continue;
+      const d = match || (hf && R.fame + hf >= WIN_FAME) ? 99 : aiThreat(t, R) * (hf * fw + 0.6 * BAL.fame.win * fw + (fav ? BAL.fan.favMoney : 0));
+      if (!best || d > best.d) best = { R, d, match };
     }
     if (!best) return null;
     const g = G.teams.filter(o => o !== best.R && !isHuman(o.i)).sort((x, y) => y.credits - x.credits || x.i - y.i)[0];
     if (g !== t) return null;
-    const cap = Math.min(P.guardCap || 14, Math.round(aiHostValue(t, true) + (P.guardK || 0) * best.d));
+    const cap = best.match ? t.credits : Math.min(P.guardCap || 14, Math.round(aiHostValue(t, true) + (P.guardK || 0) * best.d));
     return { R: best.R, keep: Math.max(0, Math.min(cap, best.R.credits + 1)), cap };
   }
   // f: one use switched off for the benchmark (params.off: spendLots / spendHost / spendCards / spendRep)
