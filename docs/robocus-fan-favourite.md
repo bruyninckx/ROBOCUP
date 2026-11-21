@@ -244,5 +244,15 @@ Fan Favourite 4 Cr takes 8 Cr a game off the line; a token lost on a loss takes 
    credits, and an AI never bids more than the richest rival + 1 for the host seat. Do you want a credit sink, an AI that saves
    up for host bids, or a cap on host bids? Separate from the Fan Favourite.
 
+## 9. After T46 (21 Nov): AI hosts invite like people
 
+Kev answered questions 2 and 3 of section 8: "improving AI is always good", teach the AI to save for host bids, and "AI teams
+should make the same deals with each other"; no brake on the Fan Favourite (question 1: no). What changed and the numbers:
+`docs/ai-v2.md`, "Hosts invite like people". In short (seeds 1-60, paired, base main 885ea64):
+- An AI host that stays out invites the sole fame leader 40-46% of the time (was 95%), and a leader with a ready Fan
+  Favourite 25-29% (was 95%). A rival's ready Fan Favourite is invited 45-56% (was 89%).
+- The Kev line in seat 0 earns **9 ±5 Cr less appearance money a game** (32 instead of 41) and wins 10% (was 17%, -7 ±10 pts).
+- One AI team guards the host seat against a rival that piles up credits and is dangerous; AI teams now make invite deals
+  with AI hosts too (about 10 Cr a game more to hosts). All-AI games: 11.9 rounds (11.8 paired before), Market spending the
+  same (+1 ±8 Cr), host bids +8 ±6 Cr a game.
 

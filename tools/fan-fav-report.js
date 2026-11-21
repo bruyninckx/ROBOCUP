@@ -55,6 +55,23 @@ row('Appearance Cr per game (all teams)', runs.map(R => mci(S(R).map(r => r.v2.c
 row('Host scraps per game', runs.map(R => mci(S(R).map(r => r.v2.hostScrap))));
 row('Fame per round (all teams)', runs.map(R => f1(mean(S(R).map(r => r.fame.reduce((a, b) => a + b, 0) / r.round)))));
 row('Fights per game', runs.map(R => f1(mean(S(R).map(r => r.fights)))));
+// T46 (21 Nov): the AI host's invitations, the host seat, Market spending (docs/ai-v2.md "Hosts invite like people")
+row('Market Cr per game (all teams)', runs.map(R => mci(S(R).map(r => -r.v2.cr.filter(c => (c[3] === 'market' || c[3] === 'lot') && c[2] < 0).reduce((a, c) => a + c[2], 0)))));
+row('Host changes per game', runs.map(R => mci(S(R).map(r => { const h = (r.v2.hosts || []).map(x => x[1]); return h.filter((x, i) => i > 0 && x !== h[i - 1]).length; }))));
+row('Host price paid per game (all teams)', runs.map(R => mci(S(R).map(r => -r.v2.cr.filter(c => c[3] === 'host' && c[2] < 0).reduce((a, c) => a + c[2], 0)))));
+row('Seat 0 pays per host seat won', runs.map(R => { const a = S(R).flatMap(r => (r.v2.hosts || []).filter(h => h[1] === 0).map(h => h[2] || 0)); return mci(a) + ' (' + a.length + ')'; }));
+row('Close finish: runner-up within 1 / 2 fame', runs.map(R => { const g = S(R).map(r => { const f = r.fame.slice().sort((a, b) => b - a); return f[0] - f[1]; }); return pc(mean(g.map(x => x <= 1 ? 1 : 0))) + ' / ' + pc(mean(g.map(x => x <= 2 ? 1 : 0))); }));
+const inv = R => S(R).flatMap(r => (r.v2.inv || []).filter(x => !x.g).map(x => Object.assign({ seed: r.seed }, x)));
+const grd = R => S(R).flatMap(r => (r.v2.inv || []).filter(x => x.g).map(x => Object.assign({ seed: r.seed, won: (r.v2.hosts || []).some(h => h[0] === x.r && h[1] === x.t), rWon: (r.v2.hosts || []).some(h => h[0] === x.r && h[1] === x.R) }, x)));
+row('Guard host bids per game (raised / won / the rival won)', runs.map(R => { const a = grd(R), n = S(R).length; return f1(a.length / n) + ' (' + f1(a.filter(x => x.bid2 > x.bid).length / n) + ' / ' + f1(a.filter(x => x.won).length / n) + ' / ' + f1(a.filter(x => x.rWon).length / n) + ')'; }));
+row('Guard: bid before / after, kept', runs.map(R => { const a = grd(R); return a.length ? f1(mean(a.map(x => x.bid))) + ' / ' + f1(mean(a.map(x => x.bid2))) + ', ' + f1(mean(a.map(x => x.keep))) : '-'; }));
+const outs = R => inv(R).filter(x => x.stay && (x.mode === 'out' || x.mode === 'rand') && x.able.length >= 3);   // a host that stays out with a choice of 3
+row('AI host stays out (of AI host picks)', runs.map(R => { const a = inv(R); return pci(a.map(x => x.stay ? 1 : 0)) + ' (' + a.length + ')'; }));
+row('... invites the sole fame leader (when there is one)', runs.map(R => { const a = outs(R).filter(x => x.lead >= 0); return pci(a.map(x => x.a === x.lead || x.b === x.lead ? 1 : 0)) + ' (' + a.length + ')'; }));
+row('... invites a rival\'s ready Fan Favourite (when one is there)', runs.map(R => { const a = outs(R).filter(x => x.favs.length); return pci(a.map(x => x.favs.includes(x.a) || x.favs.includes(x.b) ? 1 : 0)) + ' (' + a.length + ')'; }));
+row('... invites the leader when it has a ready Fan Favourite', runs.map(R => { const a = outs(R).filter(x => x.lead >= 0 && x.favs.includes(x.lead)); return pci(a.map(x => x.a === x.lead || x.b === x.lead ? 1 : 0)) + ' (' + a.length + ')'; }));
+row('... invites seat 0 (when it can)', runs.map(R => { const a = outs(R).filter(x => x.able.includes(0)); return pci(a.map(x => x.a === 0 || x.b === 0 ? 1 : 0)) + ' (' + a.length + ')'; }));
+row('Seat 0 deal Cr/game paid to hosts', runs.map(R => f1(mean(S(R).map(r => -crBy(r, 0, c => c[3] === 'hostdeal' && c[2] < 0))))));
 
 if (deep) for (const R of runs) partA(R);
 
