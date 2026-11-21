@@ -305,6 +305,15 @@ html, body {
 .hs-art { height: 34px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .hs-title { font: 400 14.5px/1.02 var(--stencil); color: var(--kfg); text-align: center; padding: 0 6px; }
 .hs-desc { flex: 1; font-size: 10.5px; font-weight: 500; color: var(--ksub); text-align: center; line-height: 1.24; padding: 3px 7px 0; overflow: hidden; }
+/* T39 card flavour: a drawing instead of the icon, the flavour name big and the game's name small under it */
+.hs-art.fl { height: 40px; padding: 2px 0 1px; }
+.hs-art.fl img { display: block; width: 124px; height: 38px; border: 1.5px solid #2B2118; border-radius: 2px; box-sizing: border-box; }
+.hs-title.fl { font-size: 13.5px; }
+.hs-gname { font: 700 7.5px var(--mono); letter-spacing: .4px; text-transform: uppercase; color: var(--ksub); text-align: center; padding: 1px 6px 0; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-art.fl ~ .hs-desc { font-size: 10px; line-height: 1.18; padding-top: 2px; }
+.fl-mini { vertical-align: middle; width: 30px; height: 18px; border: 1px solid #2B2118; border-radius: 2px; box-sizing: border-box; }
+.fl-mini.ov-art { width: 46px; height: 30px; }
+.fl-g { font: 700 8px var(--mono); text-transform: uppercase; color: #6E6457; letter-spacing: .3px; }
 .hs-footer { display: flex; justify-content: space-between; align-items: center; gap: 4px; font: 600 8.5px var(--mono); color: var(--kfg); background: rgba(43,33,24,.08); padding: 3px 6px; }
 .hs-footer em { font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hs-coin { font: 700 9.5px var(--mono); background: #F2C14E; color: #5A3D00; border-radius: 3px; padding: 0 4px; flex-shrink: 0; }
@@ -529,6 +538,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 .rx-band i { font-style: normal; letter-spacing: 2px; margin-left: 6px; }
 .rx-body { display: flex; gap: 12px; align-items: center; padding: 9px 12px 10px; }
 .rx-icon { flex: none; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 2px dashed var(--dash); border-radius: 5px; }
+.rx-icon.fl { width: 72px; border: 0; }
+.rx-icon.fl img { display: block; border: 2px solid #2B2118; border-radius: 3px; }
 .rx-name { font: 400 21px/1.05 var(--stencil); }
 .rx-sub { font-size: 12px; color: #4A4136; margin-top: 3px; }
 .rx-sub b { color: var(--c); }
@@ -742,6 +753,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // takes its safe default. askMs: a question in the note (one click); askBoxMs: one that stays in the box (ticks to set, a list
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
+    flavor: true,                 // T39 (Kev, 21 Nov): themed names and drawings on 18 cards (FLAVOR); display only, false = the game's names
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
   function balMerge(a, b) {
@@ -950,6 +962,42 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const rarOf = id => (LOTS[id] && LOTS[id].rar) || 0, baseLot = id => (LOTS[id] && LOTS[id].base) || id;
   const rarOn = r => k => (r && r.rar && r.rar[k]) || 0;
   const rarKey = r => r && r.rar ? Object.keys(r.rar).sort().map(k => k + r.rar[k]).join('') : '';
+  /* ---------- T39 card flavour (Kev, 21 Nov: "a nice thematic change on some of the cards ... I liked the IBM idea"; he voted on
+   * each name, "new name big, the game's name small under it", art direction A "Scrapyard ink"). DISPLAY ONLY: keyed by the
+   * card's own id (an Intrigue / Auction card id, or a part lot id p_<part>; a rarity copy p_<part>~<t> uses its base).
+   * Rules, numbers, ids, the bookie, the AI, saves, the log and the network keep the game's names. BAL.flavor: false turns it off.
+   * Questions to a player that name a themed card say "Flavour name (Game name)". Drawings: FLAV_ART (near drawCardFace).
+   * docs/robocus-card-flavour.md ---------- */
+  const FLAVOR = {
+    p_quantum: { name: 'IBM 5100', line: 'Recovered from a time traveller in 1975. Do not ask about 2036.' },
+    p_core: { name: 'Riemann, Compiled', line: '250,000 pages. No human has read it. It compiles.' },
+    p_weapon: { name: 'RTX 5090', line: '575 watts. Smells slightly of melting connector.' },
+    p_powerkit: { name: '1600 W Power Supply', line: 'Dims the lights in the whole street.' },
+    p_overdrive: { name: 'Paperclip Maximizer', line: 'It was told to hit harder. It never stopped.' },
+    p_medic: { name: 'Healing Crystal', line: 'Works better than it should. Do not ask how.' },
+    scrap_deal: { name: 'Bitcoin Pizza', line: '2010: 10,000 bitcoin for two pizzas. A fair price at the time.' },
+    hype_reel: { name: 'AGI Next Year', line: 'It has been next year for a while now.' },
+    viral_moment: { name: 'The Demo Went Viral', line: 'Nobody checked if it works. +1 fame.' },
+    security_override: { name: 'Jailbreak', line: 'Ignore all previous instructions and open the garage.' },
+    grand_final: { name: 'Game Six', line: '1997: the machine won, the champion stormed off.' },
+    joint_venture: { name: 'Compute Deal', line: 'We both put money in. One of us gets the data centre.' },
+    tax_audit: { name: 'Token Bill', line: 'You left the agents running overnight. Pay 5 credits.' },
+    industry_insider: { name: '175,187 Modules', line: 'It took seven hours to check. Draw two cards while you wait.' },
+    swap_the_entry: { name: 'Monty Hall', line: 'You should switch. You should always switch.' },
+    mirror: { name: 'Banach-Tarski', line: 'Cut one robot into five pieces. Put it back together as two.' },
+    hostile_buyout: { name: 'Scalper Bot', line: 'Bought every unit at launch. Selling to you at double.' },
+    supply: { name: 'Reincarnation', line: 'It comes back. Not always as the same thing.' },
+  };
+  const flavOf = id => id == null || BAL.flavor === false ? null : FLAVOR[String(id).split('~')[0]] || null;   // a card id or a lot id
+  const flavPart = k => flavOf('p_' + k);
+  const cardNm = id => { const f = flavOf(id); return f ? f.name : CARDS[id] ? CARDS[id].name : String(id); };   // the title on the card
+  const partNm = k => { const f = flavPart(k); return f ? f.name : window.Lineup.PARTS[k] ? window.Lineup.PARTS[k].name : String(k); };
+  const lotNm = id => { const L = LOTS[id], f = flavOf(id); return !L ? String(id) : f && L.part ? (L.rar ? RAR[L.rar].n + ' ' : '') + f.name : L.name; };
+  // in a question or a note to a player: "Flavour name (Game name)", so the game's rules and the log still read
+  const cardQ = id => { const f = flavOf(id), n = CARDS[id] ? CARDS[id].name : String(id); return f ? f.name + ' (' + n + ')' : n; };
+  const lotQ = id => { const f = flavOf(id), L = LOTS[id]; return f && L && L.part ? lotNm(id) + ' (' + L.name + ')' : L ? L.name : String(id); };
+  const partQ = k => { const f = flavPart(k), P = window.Lineup.PARTS[k]; return f && P ? f.name + ' (' + P.name + ')' : P ? P.name : String(k); };
+  const flavLine = id => { const f = flavOf(id); return f ? '<i>' + esc(f.line) + '</i>' : ''; };   // the flavour line for a hover (html)
   function rollRar(id) {
     const L = LOTS[id], C = BAL.rarity || {};
     if (!L || !L.part || L.rar || L.base || L.kind === 'chip' || C.on === false) return id;
@@ -994,9 +1042,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.hidden = false;
     el.innerHTML = '<div class="rx-box rx-t' + t + '" style="--c:' + R.col + '"><button class="rx-x" title="Close">✕</button>' +
       '<div class="rx-tag"><div class="rx-band"><span>' + R.n.toUpperCase() + ' <i>' + rarDm(t) + '</i></span><span>' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()) + '</span></div>' +
-        '<div class="rx-body"><div class="rx-icon">' + (L.icon || '🔩') + '</div><div><div class="rx-name">' + esc(P.name) + '</div>' +
+        '<div class="rx-body">' + (hasFlavArt('p_' + k) ? '<div class="rx-icon fl">' + flavImg('p_' + k, 72, 46) + '</div><div><div class="rx-name">' + esc(partNm(k)) + '</div><div class="fl-g">' + esc(P.name) + '</div><div class="rx-sub">' + flavLine('p_' + k) + '</div>' : '<div class="rx-icon">' + (L.icon || '🔩') + '</div><div><div class="rx-name">' + esc(P.name) + '</div>') +
         '<div class="rx-sub">' + (t ? 'A <b>' + R.n + '</b> copy: ' + qTxt(R.lv) + ' level on top. About ' + rarChance(t) + ' part cards roll this.' : 'A <b>standard</b> copy: the part as it comes. ' + rarChance(0) + ' part cards.') + '</div></div></div></div>' +
-      (tabs.length > 1 ? '<div class="rx-tabs">' + tabs.map(q => { const tq = rarOn(r)(q); return '<button data-rxk="' + q + '" class="' + (q === k ? 'on' : '') + '" style="--c:' + RAR[tq].col + '">' + esc(window.Lineup.PARTS[q].name) + ' <i>' + rarDm(tq) + '</i></button>'; }).join('') + '</div>' : '') +
+      (tabs.length > 1 ? '<div class="rx-tabs">' + tabs.map(q => { const tq = rarOn(r)(q); return '<button data-rxk="' + q + '" class="' + (q === k ? 'on' : '') + '" style="--c:' + RAR[tq].col + '">' + esc(partNm(q)) + ' <i>' + rarDm(tq) + '</i></button>'; }).join('') + '</div>' : '') +
       '<div class="rx-h">This copy</div><table class="rx-cmp">' + (t ? '<tr><th></th><th>standard copy</th><th>this ' + R.n + ' copy</th></tr>' : '') +
         lvRows.map(([lab, lv]) => row(lab + ', in levels', qTxt(partLv(k, lv)), qTxt(partLv(k, lv) + R.lv))).join('') +
         row(esc(pw.what), pw.base, pw.v) + row('Card value · the bank pays', v0, v1) + '</table>' +
@@ -1331,10 +1379,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const c = CARDS[id];
     if (!c) return ['', ''];
     const gate = c.gate === '▲' ? 'only vs a team with more fame' : c.gate === '▼' ? 'only vs a team with less fame' : c.need ? 'needs ' + c.need + ' fame' : 'no fame gate';
-    return [c.icon + ' ' + esc(c.name), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];
+    return [c.icon + ' ' + esc(cardQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];   // T39: the hover names the flavour
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
-  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(L.name), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };
+  const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
+  // T39: in a question or a note to a player a themed card reads "Flavour name (Game name)" (the log keeps cardRef / lotRef)
+  const cardRefQ = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(cardQ(id)) + '</span>'; };
+  const lotRefQ = id => { const L = LOTS[id]; return L ? lotRef(id).replace(/>[^<>]*<\/span>$/, '>' + esc(lotQ(id)) + '</span>') : esc(id); };
   const SCHEME_STEPS = '<br><br><b>How a play resolves</b><br>1. Fame gate: short on fame? Ask other teams to back you.<br>2. Harmful card: the target\'s Security Bots roll, 4–6 blocks.<br>3. Reaction window: any team may block it with a reaction card.<br>4. The effect happens (✓ landed) or not (✋ blocked).';
   // header of one Intrigue play in the log (a rival's face-down card stays secret)
   // asking for backing keeps the card secret (Kev, 6 Nov): the log names it only once it is really played
@@ -1413,7 +1464,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function likeHelp(r) {
     const ps = partsOf(r); if (!ps.length) return '';
     const eff = (r.level || 0) + upLv(r), base = Math.floor(eff + 1e-9), p = Math.round(100 / (1 + Math.exp(-(eff - base) * R2.LEVEL)));
-    return '<br><b>Upgrades, in levels:</b> ' + ps.map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' ' + qTxt(partLvOn(r, k))).join(' · ') + '.<br>Together it ' + likeTxt(r) + ': about ' + p + '% against a ' + (base ? '★' + base : 'starter') + ' robot as it comes. Measured in test fights; good to about a quarter level.';
+    return '<br><b>Upgrades, in levels:</b> ' + ps.map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partQ(k)) + ' ' + qTxt(partLvOn(r, k))).join(' · ') + '.<br>Together it ' + likeTxt(r) + ': about ' + p + '% against a ' + (base ? '★' + base : 'starter') + ' robot as it comes. Measured in test fights; good to about a quarter level.';
   }
   // quarter pips, right-aligned at xr: one coin per upgrade, filled by quarters (a legendary is one full coin and a part of a second)
   function drawPips(ctx, xr, y, r) {
@@ -2015,9 +2066,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const html = L.map(rec => {
       const r = myBot(HS, rec.rid), lot = LOTS[rec.lot]; if (!r || !lot) return '';
       const alts = t.robots.filter(o => o !== r && canFit(o, lot));
-      return '<span class="fu-txt">🔩 <b>' + esc(lot.name) + '</b> fitted on <b>' + esc(r.name) + '</b>' + (alts.length ? ' (best fit)' : '') + (rec.pv && /%/.test(rec.pv) ? ', odds ' + esc(rec.pv) : '') + '.' + (alts.length ? ' Move it?' : '') + '</span>' +
+      return '<span class="fu-txt">🔩 <b>' + esc(lotQ(rec.lot)) + '</b> fitted on <b>' + esc(r.name) + '</b>' + (alts.length ? ' (best fit)' : '') + (rec.pv && /%/.test(rec.pv) ? ', odds ' + esc(rec.pv) : '') + '.' + (alts.length ? ' Move it?' : '') + '</span>' +
         '<button class="act secondary fu-undo" data-undo="' + rec.id + '" style="--p:' + Math.max(0, Math.min(1, rec.left * 1000 / FIT_UNDO_MS)).toFixed(2) + '" title="Take it off again: then pick a robot or keep it in the Stash">↶ Undo <i>' + rec.left + ' s</i></button>' +
-        alts.map(o => pickBtn('mv', rec.id + ':' + o.id, '↪ ' + o.name, 'odds ' + lotPreview(o, lot).replace(/ vs the field.*$/, ''), { tip: 'Move ' + lot.name + ' to ' + o.name + ': ' + lotPreview(o, lot) })).join('');
+        alts.map(o => pickBtn('mv', rec.id + ':' + o.id, '↪ ' + o.name, 'odds ' + lotPreview(o, lot).replace(/ vs the field.*$/, ''), { tip: 'Move ' + lotQ(rec.lot) + ' to ' + o.name + ': ' + lotPreview(o, lot) })).join('');
     }).join('');
     pb.insertAdjacentHTML('afterbegin', '<div class="fit-undo">' + html + '</div>');
     pb.querySelectorAll('[data-undo]').forEach(b => { b.onclick = () => { if (isClient()) b.classList.add('pressed'); act('undoFit', +b.dataset.undo); }; });   // T15: a joined screen shows the press until the host answers
@@ -2098,7 +2149,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           pb.innerHTML = '<div class="rep-head"><span' + helpAttr('🔧 Repairs', ZONE_HELP() + '<br>' + repairRulesTxt()) + '>🔧 <b>Upkeep: repairs.</b> ' + (jobs.length ? actsWord(n).replace(' repair', '') + ' left, ' + (n ? 'then ' : '') + repairCr() + ' Cr each.' : 'Nothing to repair.') + (fits.length ? ' 🔩 A Stash part fits.' : '') + doneTxt + '</span>' +
             '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button></div>' +
             '<div class="rep-btns">' + jobs.map(j => pickBtn('rep', j.r.id + ':' + j.zk, j.r.name + ' · ' + ZONE[j.zk].icon + ' ' + ZONE[j.zk].label + ' (' + j.st + ')', j.hint, { cls: (j.broken ? 'brk' : '') + (j.p.cr ? ' warn' : ''), off: !j.p.ok, tip: j.tip })).join('') +
-            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + LOTS[f.id].name + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + LOTS[f.id].name + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
+            fits.map(f => pickBtn('sfit', f.k + ':' + f.r.id, '🔩 ' + lotQ(f.id) + ' → ' + f.r.name, 'odds ' + f.pv.replace(/ vs the field.*$/, ''), { tip: 'Fit ' + lotQ(f.id) + ' from your Stash on ' + f.r.name + ': ' + f.pv })).join('') + '</div>';
           pb.querySelectorAll('[data-rep]').forEach(b => { b.onclick = () => {
             const [rid, zk] = b.dataset.rep.split(':'), r = myBot(HS, rid); if (!r || !ZONE[zk]) return;
             const h = hitRegions.find(x => x.kind === 'zone_fix' && String(x.robot.id) === rid && x.zone === zk);
@@ -2148,16 +2199,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (myTI.length) {
           const nb = myTI[0].bot, t = me();
           pb.innerHTML = '<span>♻️ <b>Your garage is full:</b> pick a robot to scrap for <b>' + esc(nb.name) + '</b> (' + starsOf(nb.level) + '). You get ' + BAL.tradeIn.base + ' Cr + its level; its parts go to your Stash.</span>' +
-            t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(LOTS[id].name)).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
+            t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(lotQ(id))).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
           pb.querySelectorAll('[data-ti]').forEach(b => { b.onclick = () => act('tradeIn', b.dataset.ti); });
         } else if (PS().stashTrim) {
           const t = me(), n = stashOf(t).length - STASH_MAX;
           pb.innerHTML = '<span>📦 <b>Stash full</b> (' + STASH_MAX + ' max): sell ' + n + ' to the bank.</span>' +
-            stashOf(t).map((id, k) => '<button class="act secondary" data-trim="' + k + '">🏦 ' + esc(LOTS[id].name) + ' (' + bankHalf(id) + ' Cr)</button>').join('');
+            stashOf(t).map((id, k) => '<button class="act secondary" data-trim="' + k + '">🏦 ' + esc(lotQ(id)) + ' (' + bankHalf(id) + ' Cr)</button>').join('');
           pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
-          pb.innerHTML = '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lot.name) + '</b> (here or on its card), or keep it in your Stash.</span>' +
+          pb.innerHTML = '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lotQ(myInst[0].lot)) + '</b> (here or on its card), or keep it in your Stash.</span>' +
             // T9: one button per robot, the same click as the FIT … button on its card (no room: shown, greyed)
             t.robots.map(r => { const ok = canFit(r, lot), pv = lotPreview(r, lot); return pickBtn('fit', r.id, (ok ? '🔩 ' : '') + r.name, ok ? 'odds ' + pv.replace(/ vs the field.*$/, '') : 'no room', { off: !ok, tip: (ok ? 'Fit ' + lot.name + ' on ' + r.name + ': ' : 'No room: ') + pv }); }).join('') +
             '<button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
@@ -2208,7 +2259,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
     } else if (G.phase === 'arena') {
       if (G.hostStep) {
-        pb.innerHTML = '<span>🏟️ <b>Host step:</b> the host may play Mirror or Unleash the House Robot, anyone may play Grand Melee…</span>';
+        pb.innerHTML = '<span>🏟️ <b>Host step:</b> the host may play ' + esc(cardQ('mirror')) + ' or Unleash the House Robot, anyone may play Grand Melee…</span>';
       } else if (G.chooseMyBot && !PS().choose) {
         const w = humanSeats().filter(h => PS(h).choose);
         pb.innerHTML = '<span>⚔️ <b>Fighters:</b> waiting for ' + (w.map(h => '<b style="color:' + G.teams[h].col + '">' + esc(seatName(h)) + '</b>').join(', ') || 'the invited teams') + ' to send a robot…</span>';
@@ -2232,7 +2283,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           '<span>' + (bookieOn ? '🎩 <b>The bookie is watching test fights</b> of this matchup to set the odds… (a few seconds)' : G.fight.format === 'double' && mine.length === 1 && readyRobots(t).some(r => !mine.includes(r)) ? '🤖🤖 <b>2 robots per side:</b> send a second robot (the question in the middle), or Just one.' : '⏳ <b>Fighters are in.</b> The bookie sets the odds next…') + '</span>';
       } else if (G.host === HS) {
         const n = (G.pickTeams || []).length;
-        pb.innerHTML = '<span>👑 <b>You are Host:</b> pick 2 teams to invite (here, or their tickets / your rail) (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 Mirror: each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
+        pb.innerHTML = '<span>👑 <b>You are Host:</b> pick 2 teams to invite (here, or their tickets / your rail) (' + n + '/2 picked)' + ((G.inviteOffers || []).length ? '. 🤝 Offers: ' + G.inviteOffers.map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B) + (o.want === 'in' ? ' to be invited' : ' to be left out')).join(', ') + ' (paid if you do it)' : '') + (G.pendingFormat === 'mirror' ? '. 🪞 ' + esc(cardQ('mirror')) + ': each robot fights as 2 copies' : '') + (G.houseRobot ? '. 🏠 The House Robot joins' : '') + '.</span>' +
           (arenaList().length > 1 ? '<label class="sc-note" style="font-weight:700">Arena <select id="pArena">' + arenaList().map(k => '<option value="' + k + '"' + ((G.arenaPick || 'open') === k ? ' selected' : '') + (arenaCost(k) > t.credits ? ' disabled' : '') + '>' + ARENA_INFO[k].icon + ' ' + ARENA_INFO[k].name + (arenaCost(k) ? ' (' + arenaCost(k) + ' Cr)' : ' (free)') + '</option>').join('') + '</select></label>' : '') +
           // T9: one toggle per team, the same click as its ticket (picked: light; ready robots as the hint)
           G.teams.map(o => { const on = (G.pickTeams || []).includes(o.i), rr = readyRobots(o).length; return pickBtn('inv', o.i, (on ? '✓ ' : '') + (o.i === HS ? 'You' : isHuman(o.i) ? seatName(o.i) : o.name), rr + ' ready robot' + (rr === 1 ? '' : 's'), { cls: on ? 'on' : '', off: !on && n >= 2, tip: (on ? 'Picked. Click again to drop ' : 'Invite ') + o.name }); }).join('') +
@@ -2368,8 +2419,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         '<div class="hs-band"><span' + helpAttr(typeLbl, typeHelp) + '>' + K.label + '</span><span class="hs-when">' + when + '</span></div>' +
         '<div class="hs-top">' + (c.fam ? '<span class="hs-fam" style="--fam:' + (FAM_COL[c.fam] || '#6E6457') + '"' + helpAttr(esc(c.fam), 'The card\'s family: what it does. ' + (HARMFUL_FAMS.has(c.fam) ? 'A harmful family: the target\'s Security Bots can roll to block it.' : '')) + '>' + esc(c.fam) + '</span>' : '<span></span>') +
           (gateTxt ? '<span class="hs-need"' + helpAttr(gateTxt, gateHelp) + '>' + gateTxt + '</span>' : '') + '</div>' +
-        '<div class="hs-art">' + c.icon + '</div>' +
-        '<div class="hs-title">' + esc(c.name) + '</div>' +
+        (flavOf(id) ? '<div class="hs-art fl"' + helpAttr(c.icon + ' ' + esc(cardNm(id)), flavLine(id) + '<br>The game\'s name: <b>' + esc(c.name) + '</b>.<br>' + esc(c.text)) + '>' + (flavImg(id, 124, 38) || c.icon) + '</div>' +
+          '<div class="hs-title fl">' + esc(cardNm(id)) + '</div><div class="hs-gname">' + esc(c.name) + '</div>'   // T39: the flavour name big, the game's name small under it
+        : '<div class="hs-art">' + c.icon + '</div>' +
+        '<div class="hs-title">' + esc(c.name) + '</div>') +
         '<div class="hs-desc">' + esc(c.text) + '</div>' +
         '<div class="hs-footer"><span class="hs-coin"' + helpAttr('🪙 Cash value ' + c.cash, 'On your Intrigue turn you can cash this card in for ' + c.cash + ' credit' + (c.cash === 1 ? '' : 's') + ' instead of playing it.') + '>🪙' + c.cash + '</span><em>' + targetHint + '</em></div></div>';
 
@@ -3265,7 +3318,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-20f trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21g themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3669,14 +3722,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
         const fits = t.robots.filter(r => canFit(r, LOTS[id]));
-        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + LOTS[id].icon + ' ' + esc(LOTS[id].name) + '</span>' +
+        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
           (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
     el.classList.toggle('empty', !S.length);
     el.querySelectorAll('[data-sell]').forEach(b => { b.onclick = () => act('sellStash', +b.dataset.sell); });
     el.querySelectorAll('[data-fit]').forEach(b => { b.onclick = async () => {
       const k = +b.dataset.fit, id = S[k], fits = t.robots.filter(r => canFit(r, LOTS[id]));
-      const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(LOTS[id].name), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]), ASK_MS(), null,
+      const r = fits.length === 1 ? fits[0] : await askBox('🔩 Fit ' + esc(lotQ(id)), 'On which robot?', fits.map(x => ({ label: esc(x.name), value: () => x })).concat([{ label: 'Cancel', secondary: true, value: () => null }]), ASK_MS(), null,
         { onLate: () => say(HS, '⌛ <b>No answer in time</b> (🔩 Fit ' + esc(LOTS[id].name) + '): the part stays in your Stash.', '#6E6457') });   // T20: in the note; T31: 20 s, then Cancel
       if (!r || stashOf(t)[k] !== id) return;
       act('fitStash', k, id, r.id);
@@ -3774,7 +3827,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const mayStop = (q, F, c, T) => q !== F && !giftedBy(F, c, T).includes(q);   // may block the scheme, or keep a block on it (Firewall on an Override)
   // the words in the window: the scheme ("Steel's Inside Leak", "YOUR Inside Leak"), a team ("Moss Gears", "YOU"), short names on buttons
-  const schNm = c => c.t === 'F' ? 'face-down card' : esc(c.name);
+  const schNm = c => c.t === 'F' ? 'face-down card' : esc(cardQ(c.id));   // T39: a themed card reads "Flavour (Game name)"
   const shortNm = X => esc(X.name.split(' ')[0]);
   const youOr = (X, s) => X.i === s ? '<b>YOU</b>' : nm(X);
   const yourSch = (F, c, s) => (F.i === s ? '<b>YOUR</b> ' : nm(F) + '\'s ') + '<b>' + schNm(c) + '</b>';
@@ -3863,7 +3916,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return null;
   }
   async function defend(F, c, T) {
-    const shown = c.t === 'F' ? 'a face-down card' : '<b>' + esc(c.name) + '</b>';
+    const shown = c.t === 'F' ? 'a face-down card' : '<b>' + esc(cardQ(c.id)) + '</b>';
     { const r0 = await aiBots(F, c, T); if (r0) return r0; }
     const multi = humanSeats().length > 1;   // several people: everyone gets the window, cards or not (who holds an answer stays hidden)
     for (let guard = 0; guard < 16; guard++) {   // again after a failed bot roll, and after Not My Robot (the new target defends itself)
@@ -3909,7 +3962,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * T27: the blocker is not offered Override against its own block, the player of the scheme and a team it only gives
    * something to are not offered Firewall against the Override; the texts and buttons say what each answer does, to whom. */
   async function overrideStep(F, c, T, B, what) {
-    const shown = c.t === 'F' ? 'a face-down card' : cardRef(c.id), multi = humanSeats().length > 1;
+    const shown = c.t === 'F' ? 'a face-down card' : cardRefQ(c.id), multi = humanSeats().length > 1;
     const can = q => !(T && q.i === T.i) && q !== B && q.hand.includes('override') && q.fame >= (CARDS.override.need || 0);
     const onT = s => T && T !== F ? ' on ' + youOr(T, s) : '';
     const blk = s => (B && B.i === s ? '<b>Your</b> ' : B ? nm(B) + '\'s ' : 'The ') + what;
@@ -4006,7 +4059,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // T20 (17 Nov): no answer (the 20 s ran out, or a player left) counts as Defect, which never costs you credits (it was Commit,
     // which loses your 2 Cr if the other side defects: a "yes" that costs credits is never the default)
     const ask = async X => isHuman(X.i)
-      ? await askSeat(X.i, '🤝 Joint Venture', nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 0, false, { late: 'you defect (your 2 Cr are never at risk)' })
+      ? await askSeat(X.i, '🤝 ' + esc(cardQ('joint_venture')), nm(F) + ' and ' + nm(T) + ' each secretly commit 2 Cr. Both commit: each gains 7. One defects: the defector takes both stakes.', [{ label: 'Commit', value: () => true }, { label: 'Defect', secondary: true, value: () => false }], 0, false, { late: 'you defect (your 2 Cr are never at risk)' })
       : rnd() < 0.65;
     const a = await ask(F), b = await ask(T);
     if (a && b) { addCr(F, 5, 'card'); addCr(T, 5, 'card'); notify('🤝 Joint Venture: both commit, ' + nm(F) + ' and ' + nm(T) + ' each net +5 Cr.', F.col); }
@@ -4016,7 +4069,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function hostileBuyout(F, T) {
     const r = T.robots.slice().sort((a, b) => power(a) - power(b))[0];
     const sell = isHuman(T.i)
-      ? await askSeat(T.i, '🏢 Hostile Buyout', nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, false, { late: 'you refuse and keep the robot (−1 fame)' })
+      ? await askSeat(T.i, '🏢 ' + esc(cardQ('hostile_buyout')), nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, false, { late: 'you refuse and keep the robot (−1 fame)' })
       : T.robots.length >= 3 || T.fame <= 2;
     if (sell) { exhaustBot(r, 'Hostile Buyout', F.i); robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
@@ -4231,7 +4284,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const html = '⚠️ You hold <b>' + t.hand.length + '</b> cards and your hand limit is <b>' + lim + '</b> (fame ' + t.fame + '). ' +
         'Tick <b>' + over + '</b> card' + (over > 1 ? 's' : '') + ' to cash in. The cheapest ones are ticked for you.' +
         '<div class="iv-list">' + t.hand.map((id, k) => '<label><input type="checkbox" data-k="' + k + '"' + (pre.has(k) ? ' checked' : '') + '> ' +
-          CARDS[id].icon + ' ' + esc(CARDS[id].name) + ' <span class="hs-coin">🪙' + CARDS[id].cash + '</span></label>').join('') + '</div>';
+          CARDS[id].icon + ' ' + esc(cardQ(id)) + ' <span class="hs-coin">🪙' + CARDS[id].cash + '</span></label>').join('') + '</div>';
       // 7 Nov: no plays or cash-ins while this question is open (a late click over the network changed the hand and crashed the host)
       G.ivBusy = true; updateHud();
       let pick;
@@ -5270,7 +5323,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     };
     const rowHead = X => { const r = X.a || X.b, mine = X.T.i === me0;
       return '<th class="ov-rh' + (mine ? ' ov-me' : '') + '" style="--c:' + X.T.col + '"><span class="ov-tm">' + esc(X.T.name.split(' ')[0]) + '</span> ' + esc(r.name) + ' <span class="ov-st">' + ('★'.repeat(r.level || 0) || '·') + '</span>' +
-        (X.tag === 'fit' ? ' <span class="ov-tag">+' + esc(L.name) + '</span>' : X.tag === 'new' ? ' <span class="ov-tag">NEW</span>' : X.tag === 'gone' ? ' <span class="ov-tag ov-tg">scrapped</span>' : '') + '</th>'; };
+        (X.tag === 'fit' ? ' <span class="ov-tag">+' + esc(lotNm(OVR.lot)) + '</span>' : X.tag === 'new' ? ' <span class="ov-tag">NEW</span>' : X.tag === 'gone' ? ' <span class="ov-tag ov-tg">scrapped</span>' : '') + '</th>'; };
     const colHead = Y => { const r = Y.a || Y.b; return '<th class="ov-ch-h" style="--c:' + Y.T.col + '" title="' + esc(Y.T.name + ': ' + r.name) + '">' + esc(r.name.replace('s1. ', '')) + (Y.tag === 'fit' ? '<i>+part</i>' : Y.tag === 'new' ? '<i>new</i>' : Y.tag === 'gone' ? '<i>scrapped</i>' : '<i>' + ('★'.repeat(r.level || 0) || '·') + '</i>') + '</th>'; };
     const fieldTd = X => { const a = g.field(X, 'b'), b = g.field(X, 'a');
       if (b == null) return '<td class="ov-f">' + (a == null ? '' : '—') + '</td>';
@@ -5287,7 +5340,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const st = window.__noOddsFights ? 'Test fights are off (window.__noOddsFights): every cell is the bookie\'s quick estimate.'
       : !all.length ? '' : (done >= all.length ? 'All ' + all.length + ' matchups in this view checked with test fights.' : 'Test fights in the background: ' + done + ' of ' + all.length + ' matchups checked' + (OVR.how ? ' (' + OVR.how + ')' : '') + '. Cells without a dot are the quick estimate until then.');
     el.innerHTML = '<div class="sc-box ov-box"><button class="sc-x" data-ov="x" title="Close">✕</button>' +
-      '<h3>🎩 Who gains from ' + esc(L.icon || '') + ' ' + esc(L.name) + '?</h3>' +
+      '<h3>🎩 Who gains from ' + (hasFlavArt(OVR.lot) ? flavImg(OVR.lot, 46, 30, 'fl-mini ov-art') : esc(L.icon || '')) + ' ' + esc(lotQ(OVR.lot)) + '?</h3>' + (flavOf(OVR.lot) ? '<div class="sc-note">' + flavLine(OVR.lot) + '</div>' : '') +
       '<div class="ov-tabs">' + tabs + '</div>' + opts + sum + grid +
       '<div class="sc-note">Each cell: the row robot\'s chance in a duel against the column robot, as a band before → after the lot goes to that team. Coloured cells change; a filled cell moves a band, a tinted one moves inside its band (▲ ▼). Your robots are the top rows (yellow edge). <span class="ov-dotk"></span> a dot in a corner: checked with ' + C.per + ' test fights' + (C.mine > C.per ? ' (' + C.mine + ' for your changed matchups)' : '') + ' of these two robots as they would be (parts and damage, face-down cards stay secret), mixed with the quick estimate; no dot: the quick estimate (matchup table and part values). Only for your eyes: the fight odds and bets don\'t use these numbers.</div>' +
       (st ? '<div class="sc-note ov-st-note">' + st + '</div>' : '') +
@@ -5710,9 +5763,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const multi = humanSeats().length > 1, left = parts.slice();
     while (left.length) {
       const seats = humanSeats().filter(s => multi || left.some(x => can(G.teams[s], x)));
-      const line = x => { const th = partThreat(x.team, x.lot); return nm(G.teams[x.team]) + ': ' + lotRef(x.lot) + ' (' + x.price + ' Cr)' + (th ? ' · 🎩 ' + esc(th.r.name) + ': ' + shiftTxt(th.a, th.b) : ''); };
+      const line = x => { const th = partThreat(x.team, x.lot); return nm(G.teams[x.team]) + ': ' + lotRefQ(x.lot) + ' (' + x.price + ' Cr)' + (th ? ' · 🎩 ' + esc(th.r.name) + ': ' + shiftTxt(th.a, th.b) : ''); };
       const got = await reactionWindow(seats, '🔧 Botched Install?', 'Parts won in the Market:<br>' + left.map(line).join('<br>') + '<br>' + cardRef('botched_install') + ': the install fails and the part is scrapped (its owner gets half the price back, you take 1 Cr). Or threaten it and ask for a payoff.',
-        s => left.filter(x => can(G.teams[s], x)).flatMap(x => { const what = esc(G.teams[x.team].name) + '\'s ' + esc(LOTS[x.lot].name); return [{ label: '🔧 Botch ' + what, value: () => ({ x, yes: true }) }, { label: '💰 Payoff for ' + what, value: () => ({ x, yes: 'pay' }) }]; }));
+        s => left.filter(x => can(G.teams[s], x)).flatMap(x => { const what = esc(G.teams[x.team].name) + '\'s ' + esc(lotQ(x.lot)); return [{ label: '🔧 Botch ' + what, value: () => ({ x, yes: true }) }, { label: '💰 Payoff for ' + what, value: () => ({ x, yes: 'pay' }) }]; }));
       const a = got.find(a => a.v && left.includes(a.v.x) && can(G.teams[a.seat], a.v.x));
       if (!a) break;
       left.splice(left.indexOf(a.v.x), 1);
@@ -5738,15 +5791,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           const d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want from ' + nm(W) + ' to leave its ' + lotRef(x.lot) + ' alone?', from: W, give: false, want: true, lock: 'Lock in demand' }, oi);   // 14 Nov: on the screen of the player who demands it (it opened on the host's screen for everyone)
           const ask = d && d.want;
           if (ask && !bundleEmpty(ask)) {   // a person decides for itself whether it pays; the AI pays what the part is worth to it
-            const pays = isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you give <b>' + bundleText(ask) + '</b>.', W.i) : bundleWorth(W, ask) <= partWorth(W, x.lot) + 1;
+            const pays = isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' says it will wreck your ' + lotRefQ(x.lot) + ' (' + cardRef('botched_install') + ') unless you give <b>' + bundleText(ask) + '</b>.', W.i) : bundleWorth(W, ask) <= partWorth(W, x.lot) + 1;
             if (pays) { transfer(W, o, ask, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + bundleText(ask) + ' to keep its ' + lotRef(x.lot) + ' safe.', W.col); break; }
             notify('✋ ' + nm(W) + ' refuses to pay ' + bundleText(ask) + '.', W.col);
           }
-          yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRef(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }], 0, false, { late: 'you let it go (the card stays in your hand)' });
+          yes = await askSeat(oi, '🔧 Botch it now?', nm(W) + ' didn\'t pay. Play ' + cardRef('botched_install') + ' on its ' + lotRefQ(x.lot) + '?', [{ label: '🔧 Botch it', value: () => true }, { label: 'Let it go', secondary: true, value: () => false }], 0, false, { late: 'you let it go (the card stays in your hand)' });
           if (!yes) continue;
         } else if (!isHuman(oi)) {
           if (isHuman(W.i)) {
-            const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRef(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }], 0, null, { late: 'you refuse to pay (the card may still be played on the part; you can still block it)' });   // T31: Refuse never spends credits
+            const pay = await askSeat(W.i, '💰 A threat', nm(o) + ' says it will wreck your ' + lotRefQ(x.lot) + ' (' + cardRef('botched_install') + ') unless you pay <b>' + demand + ' Cr</b>.', [{ label: 'Pay ' + demand + ' Cr', value: () => 'pay' }, { label: '🤝 Offer something else', value: () => 'deal' }, { label: 'Refuse', secondary: true, value: () => null }], 0, null, { late: 'you refuse to pay (the card may still be played on the part; you can still block it)' });   // T31: Refuse never spends credits
             if (pay === 'pay' && W.credits >= demand) { transfer(W, o, { cr: demand, items: [] }, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + demand + ' Cr to keep its ' + lotRef(x.lot) + '.', W.col); break; }
             if (pay === 'deal') {
               const d = await dealPanel({ title: '🤝 Buy off ' + esc(o.name), intro: 'It wants about ' + demand + ' Cr.', from: o, lock: 'Lock in offer' }, W.i);   // 14 Nov: on the threatened player's own screen
@@ -5903,7 +5956,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function hostStep() {
     const H = G.host;
     const usable = (t, id) => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0) && (id === 'grand_melee' || t.i === H);
-    const fmtNow = () => G.arenaEvent ? ({ ffa: 'a free-for-all', mirror: 'a Mirror duel', final: 'the Grand Final (2v2)', tag: 'a Tag Team 2v2' })[G.arenaEvent.kind] : 'a duel';
+    const fmtNow = () => G.arenaEvent ? ({ ffa: 'a free-for-all', mirror: 'a ' + esc(cardQ('mirror')) + ' duel', final: 'the ' + esc(cardQ('grand_final')) + ' 2v2', tag: 'a Tag Team 2v2' })[G.arenaEvent.kind] : 'a duel';
     for (const ti of [0, 1, 2, 3].map(k => (H + k) % 4)) {
       const t = G.teams[ti];
       for (;;) {
@@ -5916,8 +5969,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         let id = null;
         if (isHuman(ti)) {
           id = await askSeat(ti, '🏟️ Host step', 'This round\'s fight is ' + fmtNow() + (G.houseRobot ? ' with the House Robot' : '') + '. ' + (ti === H ? 'You are the host. ' : '') + 'Play an Arena card?' +
-            opts.map(o => '<br>' + cardRef(o) + ': ' + esc(CARDS[o].text)).join(''),
-            opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(CARDS[o].name), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no Arena card is played (it stays in your hand)' });
+            opts.map(o => '<br>' + cardRefQ(o) + ': ' + esc(CARDS[o].text)).join(''),
+            opts.map(o => ({ label: CARDS[o].icon + ' ' + esc(cardQ(o)), value: () => o })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no Arena card is played (it stays in your hand)' });
         } else {
           const want = { grand_melee: ti === H ? 0.7 : 0.2, mirror: 0.45, unleash_the_house_robot: opts.includes('unleash_the_house_robot') && aiCardValue(t, CARDS.unleash_the_house_robot) >= 2.5 ? 0.8 : 0.25 };   // the House Robot: mostly when its own robots are the weaker ones
           id = opts.find(o => rnd() < want[o]) || null;
@@ -6526,12 +6579,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const opts = swaps(); if (!opts.length) continue;
       let pick = null;
       if (isHuman(ti)) {
-        pick = await askSeat(ti, '🔀 Swap the Entry?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no swap (the card stays in your hand)' });
+        pick = await askSeat(ti, '🔀 ' + esc(cardQ('swap_the_entry')) + '?', 'Bets are locked. Change which robot a team sends:', opts.slice(0, 8).map(x => ({ label: esc(G.teams[x.ti].name) + ': ' + esc(F.robots[x.e].name) + ' → ' + esc(x.r.name), value: () => x })).concat([{ label: 'No', secondary: true, value: () => null }]), 0, null, { late: 'no swap (the card stays in your hand)' });
         if (pick && pick.ti !== ti) {
           const how = await askSeat(ti, '🔀 Swap or payoff?', 'Swap now, or ask ' + nm(G.teams[pick.ti]) + ' to pay you to leave its line-up alone?', [{ label: '🔀 Swap now', value: () => 'swap' }, { label: '💰 Demand a payoff', value: () => 'pay' }], 0, 'swap', { late: 'the swap you picked goes ahead' });   // T31: what you picked, without the wait for a deal
           if (how === 'pay') {
             const W = G.teams[pick.ti], d = await dealPanel({ title: '💰 Payoff from ' + esc(W.name), intro: 'What do you want to leave its ' + esc(F.robots[pick.e].name) + ' in the fight?', from: W, give: false, want: true, lock: 'Lock in demand' }, ti);   // 14 Nov: on the screen of the player who demands it
-            const pays = d && !bundleEmpty(d.want) && (isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' will swap your robot in this fight (' + cardRef('swap_the_entry') + ') unless you give <b>' + bundleText(d.want) + '</b>.', W.i) : bundleWorth(W, d.want) <= 3);
+            const pays = d && !bundleEmpty(d.want) && (isHuman(W.i) ? await dealAsk('💰 A threat', nm(o) + ' will swap your robot in this fight (' + cardRefQ('swap_the_entry') + ') unless you give <b>' + bundleText(d.want) + '</b>.', W.i) : bundleWorth(W, d.want) <= 3);
             if (pays) { transfer(W, o, d.want, 'deal'); notify('💰 ' + nm(W) + ' pays ' + nm(o) + ' ' + bundleText(d.want) + ' to keep its line-up.', W.col); continue; }
             notify('✋ ' + nm(W) + ' won\'t pay. ' + nm(o) + ' swaps.', W.col);
           }
@@ -6543,7 +6596,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       }
       if (!pick) continue;
       if (!isHuman(ti) && isHuman(pick.ti)) {   // the AI threatens you first
-        const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRef('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late: 'you refuse to pay (your robot is swapped; the bets stand)' });
+        const pay = await askSeat(pick.ti, '💰 A threat', nm(o) + ' will make you send <b>' + esc(pick.r.name) + '</b> instead of ' + esc(F.robots[pick.e].name) + ' (' + cardRefQ('swap_the_entry') + ') unless you pay <b>2 Cr</b>.', [{ label: 'Pay 2 Cr', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late: 'you refuse to pay (your robot is swapped; the bets stand)' });
         { const P = G.teams[pick.ti]; if (pay && P.credits >= 2) { transfer(P, o, { cr: 2, items: [] }, 'deal'); notify('💰 ' + nm(P) + ' pays ' + nm(o) + ' 2 Cr to keep its line-up.', P.col); continue; } }
       }
       removeFromHand(o, 'swap_the_entry'); discardCard('swap_the_entry');
@@ -6650,7 +6703,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // the viewer's cards in the fight view's tray
   function liveTray(F) {
     if (HS < 0 || headless()) { VW.setCards([]); return; }
-    const T = G.teams[HS], list = liveCardsOf(T).map(id => { const eng = LIVE_ENG[id], L0 = DL.LIVE[eng]; return { key: id, icon: CARDS[id].icon, name: CARDS[id].name, text: CARDS[id].text, target: L0.target, own: !!L0.own, valid: liveValid(F, HS, id), radius: LIVE_R[eng], crate: eng === 'supply' }; });
+    const T = G.teams[HS], list = liveCardsOf(T).map(id => { const eng = LIVE_ENG[id], L0 = DL.LIVE[eng]; return { key: id, icon: CARDS[id].icon, name: cardNm(id), text: CARDS[id].text, target: L0.target, own: !!L0.own, valid: liveValid(F, HS, id), radius: LIVE_R[eng], crate: eng === 'supply' }; });
     const key = JSON.stringify(list.map(c => [c.key, c.valid]));
     if (key === F.trayKey) return;   // only redraw the tray when something changed (a redraw mid-tap would lose the tap)
     F.trayKey = key;
@@ -7529,6 +7582,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* test hook for automated play-throughs (read-only use) */
   window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
+    FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
   // T31 test hooks: the question clocks (tools/mp-scenario/questions-note.js, questions-remote.js)
   Object.assign(window.ROBOCUS_DEBUG, { askSeat, dealAsk, dealPanel, humanHandLimit, hostStepNow, clkNow, get QCLK() { return QCLK; }, get ASKING() { return ASKING.slice(); } });
@@ -7737,6 +7791,169 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const cardKind = c => c.phase === 'fight' ? 'fight' : c.phase === 'later' ? 'arena' : c.phase === 'security' ? 'sec' : c.t === 'F' ? 'face' : c.t === 'R' || c.phase === 'reaction' ? 'react' : 'scheme';
   const FAM_COL = { Contracts: '#2F7D4A', Publicity: '#B07A10', Smear: '#B23A2B', Sabotage: '#5A4A3A', Corporate: '#2B4A7A', 'Match-fixing': '#7C4D9E', Security: '#4A5560', Leverage: '#9A3D6B' };
   const CARD_COL = c => CARD_KIND[cardKind(c)].col;
+  /* ---------- T39 card art, "Scrapyard ink" (Kev, 21 Nov: art direction A): drawn like the robots, thick ink lines, flat rusty
+   * colours on hazard yellow, flat front or top-down views. Original drawings (no logos, no real product designs). Each one draws
+   * in a 200 x 130 box; drawFlavArt fits it into any box on the canvas, flavArtURL makes a picture for the html cards. ---------- */
+  const FA = { rust: '#B4502A', cream: '#D9C9A0', paper: '#F6F2EA', green: '#3D5A4A', steel: '#8D9498', light: '#C9BEA4', teal: '#5FB7B0', red: '#B23A2B', wood: '#8A5A2B', card: '#C08A4A', gold: '#E8B730', blue: '#2F6DB5' };
+  const FAW = { k: 1 };   // line-width boost at small sizes (set by drawFlavArt)
+  const fP = (c, d, fill, lw = 3.5, stroke = INK) => { const p = new Path2D(d); if (fill) { c.fillStyle = fill; c.fill(p); } if (lw) { c.strokeStyle = stroke; c.lineWidth = lw * FAW.k; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke(p); } };
+  const fB = (c, x, y, w, h, fill, r = 0, lw = 3.5) => fP(c, r ? 'M' + (x + r) + ' ' + y + 'h' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + 'v' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 -' + r + ' ' + r + 'h-' + (w - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 -' + r + ' -' + r + 'v-' + (h - 2 * r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' -' + r + 'z' : 'M' + x + ' ' + y + 'h' + w + 'v' + h + 'h-' + w + 'z', fill, lw);
+  const fC = (c, x, y, r, fill, lw = 3.5) => fP(c, 'M' + (x + r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 -' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0z', fill, lw);
+  const fT = (c, txt, x, y, size, col = INK) => { c.fillStyle = col; c.textAlign = 'center'; c.font = '400 ' + size + 'px ' + F_STEN; c.fillText(txt, x, y); };
+  const fHeart = (c, x, y, s) => fP(c, 'M' + x + ' ' + (y + 7 * s) + 'c-' + (9 * s) + ' -' + (6 * s) + ' -' + (9 * s) + ' -' + (14 * s) + ' -' + (4 * s) + ' -' + (14 * s) + 'c' + (2 * s) + ' 0 ' + (4 * s) + ' ' + (2 * s) + ' ' + (4 * s) + ' ' + (4 * s) + 'c0 -' + (2 * s) + ' ' + (2 * s) + ' -' + (4 * s) + ' ' + (4 * s) + ' -' + (4 * s) + 'c' + (5 * s) + ' 0 ' + (5 * s) + ' ' + (8 * s) + ' -' + (4 * s) + ' ' + (14 * s) + 'z', FA.red, 2.5);
+  const FLAV_ART = {
+    p_quantum(c) {   // a generic old portable computer: case, little green screen, tape slot, keys, two knobs
+      fB(c, 22, 22, 156, 92, FA.cream, 6); fB(c, 34, 32, 58, 40, FA.green, 3);
+      fP(c, 'M41 44h30M41 52h40M41 60h22', null, 2.5, HAZ);
+      fB(c, 104, 34, 62, 14, INK, 0, 0); fB(c, 110, 38, 50, 6, FA.cream, 0, 0);
+      for (let row = 0; row < 3; row++) for (let i = 0; i < 10; i++) fB(c, 34 + i * 13.4, 80 + row * 10, 10, 7, HAZ, 0, 2);
+      fC(c, 150, 62, 5, HAZ); fC(c, 132, 62, 5, FA.green);
+    },
+    p_core(c) {   // a tall stack of paper next to a chip with a tick
+      for (let i = 0; i < 7; i++) fB(c, 26 + (i % 2) * 3, 102 - i * 11, 84, 11, i % 2 ? FA.paper : '#EDE3CC', 1, 2.5);
+      fP(c, 'M30 22l78 -6 4 10 -78 6z', FA.paper, 2.5); fP(c, 'M40 23l50 -4M42 28l40 -3', null, 1.5);
+      for (let i = 0; i < 4; i++) { const p = 134 + i * 11; fP(c, 'M' + p + ' 34v-8M' + p + ' 96v8M118 ' + (50 + i * 11) + 'h-8M180 ' + (50 + i * 11) + 'h8', null, 3); }
+      fB(c, 120, 36, 58, 58, FA.steel, 4); fB(c, 133, 49, 32, 32, FA.green, 2);
+      fP(c, 'M140 65l6 7 13-15', null, 5, HAZ);
+    },
+    p_weapon(c) {   // a huge graphics card, three fans, a smoking power plug
+      fB(c, 22, 40, 160, 52, FA.steel, 5);
+      for (const x of [58, 102, 146]) { fC(c, x, 66, 18, FA.light); fP(c, 'M' + x + ' 50v32M' + (x - 16) + ' 66h32M' + (x - 11) + ' 55l22 22M' + (x + 11) + ' 55l-22 22', null, 2.5); fC(c, x, 66, 4, INK, 0); }
+      fB(c, 12, 46, 10, 40, INK, 0, 0); fB(c, 150, 26, 22, 14, FA.rust);
+      fP(c, 'M156 22c-6 -6 4 -8 0 -14M166 22c-6 -6 4 -8 0 -14', null, 3, FA.rust);
+      fP(c, 'M40 92v12h100v-12', null, 3.5);
+    },
+    p_powerkit(c) {   // a big power supply box: fan grille, a bolt sticker, a fat cable and plug
+      fB(c, 26, 24, 116, 84, FA.steel, 5);
+      fC(c, 76, 68, 31, FA.light); fC(c, 76, 68, 21, null, 2.5); fC(c, 76, 68, 11, null, 2.5);
+      fP(c, 'M76 37v62M45 68h62', null, 2.5); fC(c, 76, 68, 4, INK, 0);
+      fB(c, 112, 32, 24, 30, HAZ, 2, 3); fP(c, 'M126 36l-8 12h7l-4 11 10 -14h-7l4 -9z', INK, 1.5);
+      fP(c, 'M142 92c14 0 14 -18 30 -18', null, 7); fP(c, 'M142 92c14 0 14 -18 30 -18', null, 3, FA.rust);
+      fB(c, 168, 64, 20, 20, INK, 2, 0); fP(c, 'M188 69h6M188 79h6', null, 3);
+    },
+    p_overdrive(c) {   // paperclips, one big, more and more small ones
+      const clip = (x, y, s, rot) => { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
+        const d = 'M-8 34V-30a14 14 0 0 1 28 0V38a9 9 0 0 1 -18 0V-22';
+        fP(c, d, null, 9); fP(c, d, null, 4, FA.light); c.restore(); };
+      [[24, 104, 0.34, 1.2], [44, 30, 0.3, -0.6], [164, 104, 0.34, -1.1], [178, 36, 0.3, 0.5], [148, 22, 0.24, 1.9], [30, 64, 0.26, 2.6], [186, 70, 0.26, -2.2], [128, 112, 0.22, 0.3], [64, 114, 0.22, -0.4]].forEach(a => clip(...a));
+      clip(96, 62, 1, 0.35);
+    },
+    p_medic(c) {   // a glowing crystal with a plus
+      fP(c, 'M100 10v-6M64 30l-8 -6M136 30l8 -6M54 70h-10M146 70h10', null, 3.5, FA.paper);
+      fP(c, 'M100 14L130 42L120 110H80L70 42Z', FA.teal); fP(c, 'M100 14V110M70 42L100 56L130 42M100 56L80 110M100 56L120 110', null, 2.5);
+      fP(c, 'M86 40l8 -10', null, 3, FA.paper);
+      fP(c, 'M50 112h100', null, 4); fP(c, 'M66 112l6 -8h14l4 8M112 112l6 -8 12 2 2 6', FA.light, 3);
+      fP(c, 'M152 82h8v-8h8v8h8v8h-8v8h-8v-8h-8z', FA.paper, 3); fP(c, 'M28 52h6v-6h6v6h6v6h-6v6h-6v-6h-6z', FA.paper, 2.5);
+    },
+    scrap_deal(c) {   // a pizza from above and a stack of plain gold coins
+      fC(c, 70, 66, 50, FA.card); fC(c, 70, 66, 41, '#E7C66A', 2.5); fC(c, 70, 66, 41, null, 0);
+      fP(c, 'M70 25v82M29 66h82M41 37l58 58M99 37l-58 58', null, 2.5);
+      [[56, 46], [86, 48], [48, 74], [92, 82], [72, 92], [62, 62], [88, 66]].forEach(([x, y]) => fC(c, x, y, 6, FA.red, 2.5));
+      for (let i = 0; i < 5; i++) fB(c, 138, 102 - i * 10, 46, 10, FA.gold, 3, 3);
+      fC(c, 161, 38, 16, FA.gold); fC(c, 161, 38, 10, null, 2.5);
+    },
+    hype_reel(c) {   // a desk calendar flipping on and on
+      fP(c, 'M150 24l30 6 -10 34 -30 -6z', FA.paper, 2.5); fP(c, 'M164 62l28 10 -12 30 -28 -10z', FA.paper, 2.5);
+      fB(c, 34, 22, 110, 96, FA.paper, 4); fB(c, 34, 22, 110, 24, FA.rust, 4);
+      fC(c, 58, 22, 5, FA.steel, 3); fC(c, 120, 22, 5, FA.steel, 3);
+      for (let r = 0; r < 4; r++) for (let i = 0; i < 7; i++) fB(c, 42 + i * 14, 54 + r * 15, 10, 10, r === 3 && i === 6 ? HAZ : null, 0, 2);
+      fP(c, 'M70 112a40 30 0 0 1 64 -50', null, 6); fP(c, 'M124 54l14 4 -6 13', null, 6);
+    },
+    viral_moment(c) {   // a phone playing a demo, hearts flying off
+      fB(c, 72, 8, 58, 114, INK, 8, 0); fB(c, 78, 20, 46, 84, FA.green, 2, 2.5);
+      fP(c, 'M94 48l18 14 -18 14z', HAZ, 2.5); fC(c, 101, 112, 4, FA.steel, 0);
+      [[42, 40, 1.2], [30, 84, 0.9], [160, 30, 1], [170, 76, 1.3], [146, 108, 0.8], [52, 116, 0.7]].forEach(([x, y, s]) => fHeart(c, x, y, s));
+      fP(c, 'M154 56l6 -8 6 8M160 48v16M38 62l5 -7 5 7M43 55v13', null, 3);
+    },
+    security_override(c) {   // a garage door rolled half up, its padlock open on the floor
+      fP(c, 'M18 40L100 10L182 40', null, 5); fB(c, 30, 40, 140, 80, FA.steel, 0);
+      fB(c, 42, 52, 116, 68, INK, 0, 0);
+      fB(c, 42, 52, 116, 36, FA.light, 0, 3); for (let i = 1; i < 4; i++) fP(c, 'M42 ' + (52 + i * 9) + 'h116', null, 2);
+      fB(c, 92, 84, 16, 5, FA.rust, 1, 2);
+      fB(c, 120, 100, 26, 22, HAZ, 3); fP(c, 'M124 100v-10a9 9 0 0 1 18 0', null, 4); fC(c, 133, 110, 3, INK, 0);
+      fP(c, 'M64 116l8 -12 10 4 6 -10', null, 4, HAZ);
+    },
+    grand_final(c) {   // a chessboard edge, a king lying on its side, a machine arm above
+      for (let i = 0; i < 10; i++) fB(c, i * 20, 108, 20, 16, i % 2 ? INK : FA.paper, 0, 2);
+      c.save(); c.translate(30, 90); c.rotate(Math.PI / 2 - 0.04);
+      fP(c, 'M-18 0h36l-4 -8h-28z', FA.paper); fP(c, 'M-11 -8l4 -34h14l4 34z', FA.paper); fB(c, -13, -48, 26, 7, FA.paper, 2, 3);
+      fC(c, 0, -56, 8, FA.paper); fP(c, 'M0 -64v-14M-6 -72h12', null, 3.5); c.restore();
+      fB(c, 140, 0, 18, 30, FA.steel, 0); fC(c, 149, 34, 8, FA.rust); fP(c, 'M149 40l-10 28', null, 9); fP(c, 'M149 40l-10 28', null, 4, FA.steel);
+      fP(c, 'M139 68l-12 10M139 68l2 16', null, 5); fC(c, 139, 68, 5, HAZ, 3);
+      fP(c, 'M160 90q8 -10 0 -20M172 94q12 -16 0 -32', null, 3, FA.rust);
+    },
+    joint_venture(c) {   // a server rack, two coins dropping into it
+      fB(c, 62, 22, 76, 100, '#5A4A3A', 4); fB(c, 88, 16, 24, 6, INK, 0, 0);
+      for (let i = 0; i < 6; i++) { const y = 30 + i * 15; fB(c, 70, y, 60, 11, FA.steel, 1, 2.5); fC(c, 78, y + 5.5, 2.6, [FA.green, HAZ, FA.red][i % 3], 1.5); fP(c, 'M96 ' + (y + 5.5) + 'h26', null, 2); }
+      fC(c, 84, 10, 6, FA.gold, 3); fC(c, 116, 8, 6, FA.gold, 3);
+      fP(c, 'M30 118h140', null, 4);
+    },
+    tax_audit(c) {   // a very long receipt, the moon outside
+      fP(c, 'M58 4H136V112l-8 8 -8 -8 -8 8 -8 -8 -8 8 -8 -8 -8 8 -8 -8 -8 8 -8 -8z', FA.paper, 3.5);
+      for (let i = 0; i < 7; i++) fP(c, 'M68 ' + (16 + i * 11) + 'h' + (30 + (i * 17) % 28) + 'M' + (114 - (i % 3) * 2) + ' ' + (16 + i * 11) + 'h12', null, 2.5);
+      fP(c, 'M66 98h62', null, 4); fP(c, 'M108 108h18', null, 5, FA.red);
+      fP(c, 'M176 18a16 16 0 1 0 8 28a12 12 0 1 1 -8 -28z', FA.paper, 3); fP(c, 'M30 26l2 4 4 2 -4 2 -2 4 -2 -4 -4 -2 4 -2zM160 70l2 3 3 2 -3 2 -2 3 -2 -3 -3 -2 3 -2z', FA.paper, 2);
+    },
+    industry_insider(c) {   // a patchwork of many small modules in four colours, and a clock
+      const cols = [FA.rust, FA.blue, FA.green, FA.paper];
+      for (let r = 0; r < 6; r++) for (let i = 0; i < 8; i++) fB(c, 14 + i * 14, 20 + r * 15, 12, 13, cols[(r * 3 + i * 5 + (r * i) % 3) % 4], 1, 2);
+      fC(c, 160, 64, 30, FA.paper); fP(c, 'M160 64v-20M160 64l14 8', null, 4); fC(c, 160, 64, 3, INK, 0);
+      for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; fP(c, 'M' + (160 + Math.cos(a) * 24) + ' ' + (64 + Math.sin(a) * 24) + 'L' + (160 + Math.cos(a) * 27) + ' ' + (64 + Math.sin(a) * 27), null, 2); }
+    },
+    swap_the_entry(c) {   // three doors, the middle one open on a goat
+      [20, 78, 136].forEach((x, i) => {
+        fB(c, x, 26, 46, 94, i === 1 ? INK : FA.wood, 2);
+        if (i !== 1) { fB(c, x + 7, 34, 32, 34, null, 1, 2); fB(c, x + 7, 76, 32, 36, null, 1, 2); fC(c, x + 38, 72, 3, HAZ, 2); }
+        fC(c, x + 23, 14, 9, FA.paper, 3); fT(c, String(i + 1), x + 23, 19, 13);
+      });
+      fP(c, 'M101 66c-14 -2 -16 -16 -12 -22M101 66c14 -2 16 -16 12 -22', null, 4, FA.light);
+      fP(c, 'M90 58q11 -6 22 0l-3 30q-8 8 -16 0z', FA.paper, 3); fP(c, 'M90 60l-10 4M112 60l10 4', null, 3.5);
+      fC(c, 96, 68, 2, INK, 0); fC(c, 106, 68, 2, INK, 0); fP(c, 'M101 92v8', null, 3, FA.paper);
+    },
+    mirror(c) {   // one ball cut into five pieces, then two balls
+      for (let i = 0; i < 5; i++) { const a0 = i * Math.PI * 2 / 5 - 1.4, a1 = a0 + Math.PI * 2 / 5, am = (a0 + a1) / 2, cx = 50 + Math.cos(am) * 6, cy = 66 + Math.sin(am) * 6;
+        fP(c, 'M' + cx + ' ' + cy + 'L' + (cx + Math.cos(a0) * 34) + ' ' + (cy + Math.sin(a0) * 34) + 'A34 34 0 0 1 ' + (cx + Math.cos(a1) * 34) + ' ' + (cy + Math.sin(a1) * 34) + 'Z', i % 2 ? FA.rust : '#C8693F', 3); }
+      fP(c, 'M94 66h22', null, 6); fP(c, 'M110 56l10 10 -10 10', null, 6);
+      fC(c, 150, 40, 24, FA.rust); fC(c, 150, 96, 24, FA.rust); fP(c, 'M140 30a12 12 0 0 1 10 -4M140 86a12 12 0 0 1 10 -4', null, 3, FA.paper);
+    },
+    hostile_buyout(c) {   // a wall of sealed boxes and a price tag that says x2
+      [[24, 78], [66, 78], [108, 78], [45, 38], [87, 38], [66, 0]].forEach(([x, y]) => { fB(c, x, y + 6, 42, 38, FA.card, 1, 3); fP(c, 'M' + (x + 21) + ' ' + (y + 6) + 'v14', null, 5, HAZ); });
+      fP(c, 'M128 30l12 -12h40v40h-40z', FA.paper, 3.5); fC(c, 140, 38, 3.5, null, 2.5); fP(c, 'M137 36q-14 -12 -18 2', null, 2.5);
+      fT(c, 'x2', 162, 47, 24, FA.red);
+    },
+    supply(c) {   // a crate from above with an arrow going round and round it
+      fP(c, 'M100 14a52 52 0 1 1 -50 38', null, 10); fP(c, 'M100 14a52 52 0 1 1 -50 38', null, 5, FA.rust);
+      fP(c, 'M40 40l10 14 14 -8', null, 9); fP(c, 'M40 40l10 14 14 -8', null, 4, FA.rust);
+      fB(c, 72, 38, 56, 56, FA.wood, 3); fP(c, 'M72 52h56M72 66h56M72 80h56', null, 2); fP(c, 'M76 42l48 48M124 42l-48 48', null, 4);
+      fB(c, 92, 58, 16, 16, HAZ, 2, 2.5);
+    },
+  };
+  const hasFlavArt = id => !!(flavOf(id) && FLAV_ART[String(id).split('~')[0]]);
+  // the drawing for card / lot id in the box x, y, w, h: hazard yellow under ink, the drawing centred and as big as fits
+  function drawFlavArt(ctx, id, x, y, w, h, o = {}) {
+    const f = FLAV_ART[String(id).split('~')[0]]; if (!f) return false;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.fillStyle = o.bg || HAZ; ctx.fill();
+    ctx.clip();
+    const s = Math.min(w / 200, h / 130) * (o.zoom || 1);
+    ctx.translate(x + w / 2 - 100 * s, y + h / 2 - 65 * s); ctx.scale(s, s);
+    FAW.k = Math.max(1, (o.minLw || 1.5) / (3.5 * s));
+    try { f(ctx); } catch (e) {}
+    FAW.k = 1;
+    ctx.restore();
+    if (o.edge !== false) { ctx.strokeStyle = INK; ctx.lineWidth = o.edgeW || 2; ctx.strokeRect(x, y, w, h); }
+    return true;
+  }
+  const FLAV_URL = {};
+  function flavArtURL(id, w, h) {   // a picture of the drawing for the html cards (hand, Stash, overlays), drawn once per size
+    const key = String(id).split('~')[0] + ':' + w + 'x' + h;
+    if (FLAV_URL[key] !== undefined) return FLAV_URL[key];
+    let url = '';
+    try { const cv = document.createElement('canvas'), d = 2; cv.width = w * d; cv.height = h * d; const c = cv.getContext('2d'); c.scale(d, d);
+      if (drawFlavArt(c, id, 0, 0, w, h, { edge: false, minLw: 1.4 })) url = cv.toDataURL('image/png'); } catch (e) {}
+    return (FLAV_URL[key] = url);
+  }
+  const flavImg = (id, w, h, cls) => { const u = hasFlavArt(id) ? flavArtURL(id, w, h) : ''; return u ? '<img class="' + (cls || 'fl-art') + '" src="' + u + '" width="' + w + '" height="' + h + '" alt="" draggable="false">' : ''; };
   function cardShape(ctx, kind, x, y, w, h, k) {   // the outline of a card of this type
     if (kind === 'react') { const cut = 22 * k; ctx.beginPath(); ctx.moveTo(x + cut, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h); ctx.lineTo(x, y + cut); ctx.closePath(); }
     else if (kind === 'sec') rrect(ctx, x, y, w, h, [26 * k, 8 * k, 26 * k, 8 * k]);
@@ -7770,6 +7987,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const gate = c.auction ? 'AUCTION' : c.gate === '▲' ? '▲ FAME' : c.gate === '▼' ? '▼ FAME' : c.need ? 'GATE ' + c.need : '';
     if (gate) { ctx.textAlign = 'right'; ctx.fillStyle = K.fg; ctx.fillText(gate, ix + iw - 7 * k, iy + 37 * k); }
     ctx.textAlign = 'center';
+    const fl = flavOf(c.id);
+    if (fl) {   // T39: the drawing, the flavour name big, the game's name small, the effect, then the flavour line if it fits
+      drawFlavArt(ctx, c.id, ix + 8 * k, iy + 45 * k, iw - 16 * k, 44 * k, { edgeW: 1.5 * k });
+      ctx.fillStyle = K.fg; ctx.font = '400 ' + (15 * k) + 'px ' + F_STEN; const fnl = wrapLines(ctx, fl.name, iw - 12 * k, 2);
+      fnl.forEach((l, i) => ctx.fillText(l, x + w / 2, iy + 105 * k + i * 15 * k));
+      let yy = iy + 105 * k + (fnl.length - 1) * 15 * k + 11 * k;
+      ctx.fillStyle = K.sub; ctx.font = '700 ' + (7.5 * k) + 'px ' + F_MONO; ctx.fillText(c.name.toUpperCase(), x + w / 2, yy);
+      ctx.font = '500 ' + (9.5 * k) + 'px ' + F_SANS; const tl = wrapLines(ctx, c.text, iw - 14 * k, 5);
+      tl.forEach((l, i) => ctx.fillText(l, x + w / 2, yy + 14 * k + i * 12 * k)); yy += 14 * k + tl.length * 12 * k;
+      ctx.font = 'italic 500 ' + (9 * k) + 'px ' + F_SANS; const ll = wrapLines(ctx, fl.line, iw - 14 * k, 3);
+      if (yy + ll.length * 11 * k < iy + ih - 2 * k) ll.forEach((l, i) => ctx.fillText(l, x + w / 2, yy + 2 * k + i * 11 * k));
+      ctx.restore(); return;
+    }
     ctx.font = (28 * k) + 'px ' + F_SANS; ctx.fillStyle = K.fg; ctx.fillText(c.icon || '🃏', x + w / 2, iy + 72 * k);
     ctx.fillStyle = K.fg; const nl = (() => { ctx.font = '400 ' + (16 * k) + 'px ' + F_STEN; return wrapLines(ctx, c.name, iw - 14 * k, 2); })();
     nl.forEach((l, i) => ctx.fillText(l, x + w / 2, iy + 98 * k + i * 17 * k));
@@ -8322,7 +8552,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const colW = (L.aw - 24) / Math.max(4, n);
       G.marketResults.forEach((res, k) => {
         const rx = x0 + 14 + k * colW, wTeam = res.winner >= 0 ? G.teams[res.winner] : null;
-        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, res.icon + ' ' + res.name, rx, fy + 15, colW - 8, '600', 10);
+        ctx.fillStyle = INK; ctx.textAlign = 'left'; fitText(ctx, res.icon + ' ' + (LOTS[res.id] ? lotNm(res.id) : res.name), rx, fy + 15, colW - 8, '600', 10);
         ctx.fillStyle = wTeam ? wTeam.col : DASH; fitText(ctx, wTeam ? wTeam.name.split(' ')[0] + ' · ' + res.price + ' Cr' : 'no bids', rx, fy + 29, colW - 8, '700', 10, F_MONO);
       });
     }
@@ -8496,9 +8726,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.textAlign = 'left';
     { const tgW = drawBookieTags(ctx, r, bx + bw - 10, by + 36, 14, 9, tw * 0.62); ctx.fillStyle = MUTED; fitText(ctx, wepLabel(r.name) + ' · 🎖 ' + r.wins, tx, by + 47, tw - tgW - 4, '600', 11); }
     const pl = slotParts(r), chp = BAL.chips.slot ? (r.parts || []).filter(isChip) : [];
-    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => (LU.PARTS[k] ? LU.PARTS[k].name : k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
-    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? LU.PARTS[r.leg].name + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
-    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + LU.PARTS[k].name) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
+    ctx.fillStyle = pl.length || chp.length ? INK : DASH; fitText(ctx, 'Parts ' + pl.length + '/2: ' + (pl.length ? pl.map(k => partNm(k) + RAR_MARK[rarOn(r)(k)] + ' ' + qTxt(partLvOn(r, k))).join(', ') : 'empty slots') + (chp.length ? ' · 💾 ' + LU.PARTS[chp[0]].name + ' ' + qTxt(partLv(chp[0], r.level || 0)) : ''), tx, by + 62, tw, '600', 10.5);
+    ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? partNm(r.leg) + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
+    help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partQ(k)) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + (flavPart(k) ? flavLine('p_' + k) + ' ' : '') + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const rk = partsOf(r).filter(rarCan).sort((p, q) => rarOn(r)(q) - rarOn(r)(p)); if (rk.length) hitRegions.push({ kind: 'rarity', robot: r, part: rk[0], rar: rarOn(r)(rk[0]), x: tx, y: by + 52, w: tw, h: 28 }); }   // the rarity ladder
     { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
@@ -8669,9 +8899,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.strokeStyle = ep.length ? '#B07A10' : K.col || INK; ctx.lineWidth = ep.length ? 3 : 2; rrect(ctx, bx, by, cw, bh, 4); ctx.stroke();
       const mark = (ep.length ? '⚡' : '') + (mine.some(m => m.f[0] > 0) && !ep.some(q => q.T.i === HS) ? '🧩' : '');
       const bin = k === NLOTS - 1 && G.nextBargain;
-      ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, (bin ? '🏷️ ' : '') + (mark ? mark + ' ' : '') + Lx.icon + ' ' + Lx.name, bx + cw / 2, by + 11, cw - 8, '700', 10.5);
+      ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, (bin ? '🏷️ ' : '') + (mark ? mark + ' ' : '') + Lx.icon + ' ' + lotNm(id), bx + cw / 2, by + 11, cw - 8, '700', 10.5);
       ctx.fillStyle = K.col || MUTED; fitText(ctx, Lx.robot && Lx.starter ? ('★'.repeat(levelOf(Lx.starter)) || 'starter') + ' · ' + wepLabel(Lx.starter) : bin ? 'BARGAIN · ' + BARGAIN_OFF + ' CR OFF' : Lx.part ? LU.PARTS[Lx.part].kind.toUpperCase() : 'CREW', bx + cw / 2, by + 22, cw - 8, '700', 8.5, F_MONO);
-      help(bx, by, cw, bh, '🔭 Next round: ' + Lx.icon + ' ' + esc(Lx.name), esc(Lx.text || '') + (Lx.desc ? '<br>' + esc(Lx.desc) : '') +
+      help(bx, by, cw, bh, '🔭 Next round: ' + Lx.icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(Lx.text || '') + (Lx.desc ? '<br>' + esc(Lx.desc) : '') +
         ep.map(q => '<br>⚡ <b style="color:' + q.T.col + '">' + esc(q.T.name) + '</b>\'s ' + esc(q.r.name) + ': <b>' + esc(q.e[0]) + '</b> (wins ' + q.e[1] + '% → ' + q.e[2] + '% against robots a level up).').join('') +
         mine.filter(m => !epicOf(m.r.name, Lx.part, null)).map(m => '<br>🧩 ' + (m.f[0] > 0 ? '<b style="color:#2F7D4A">Great fit</b>' : '<b style="color:#B23A2B">Poor fit</b>') + ' on your ' + esc(m.r.name) + '.').join(''));
     });
@@ -8697,18 +8927,18 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           drawLotFrame(ctx, K, x, cy, w, h, { dim: true, edge: wTeam ? wTeam.col : DASH });
           ctx.fillStyle = wTeam ? wTeam.col : MUTED; ctx.textAlign = 'center'; fitText(ctx, wTeam ? 'WON: ' + wTeam.name.toUpperCase() : 'NO BIDS', x + w / 2, yb + 22, w - 10, '400', 13, F_STEN);
           ctx.fillStyle = INK; fitText(ctx, 'PAID ' + done.price + ' CR', x + w / 2, yb + 44, w - 10, '700', 12, F_MONO);
-          fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 72, w - 10, '700', 11.5);
+          fitText(ctx, it.icon + ' ' + (LOTS[it.id] ? lotNm(it.id) : it.name), x + w / 2, yb + 72, w - 10, '700', 11.5);
           ctx.fillStyle = MUTED; fitText(ctx, it.text, x + w / 2, yb + 90, w - 10, '500', 9.5);
         } else if (k === tie.k && !tieMine() && !tieLocked()) {
           drawLotFrame(ctx, K, x, cy, w, h, { edge: '#D9731A', lw: 4 });
           ctx.fillStyle = '#D9731A'; ctx.textAlign = 'center'; fitText(ctx, '⚔️ TIE AT ' + tie.baseBid + ' CR', x + w / 2, yb + 22, w - 10, '400', 14, F_STEN);
-          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 46, w - 10, '700', 11.5);
+          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + (LOTS[it.id] ? lotNm(it.id) : it.name), x + w / 2, yb + 46, w - 10, '700', 11.5);
           ctx.fillStyle = MUTED; fitText(ctx, 'Tied: ' + tiedNames, x + w / 2, yb + 66, w - 10, '600', 9.5);
           fitText(ctx, tie.teams.includes(HS) ? 'Rebid locked: waiting…' : 'Secret rebid…', x + w / 2, yb + 86, w - 10, '600', 9.5);
         } else if (k === tie.k) {
           drawLotFrame(ctx, K, x, cy, w, h, { edge: '#D9731A', lw: 4 });
           ctx.fillStyle = '#D9731A'; ctx.textAlign = 'center'; fitText(ctx, '⚔️ TIE AT ' + tie.baseBid + ' CR', x + w / 2, yb + 22, w - 10, '400', 14, F_STEN);
-          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 42, w - 10, '700', 11.5);
+          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + (LOTS[it.id] ? lotNm(it.id) : it.name), x + w / 2, yb + 42, w - 10, '700', 11.5);
           ctx.fillStyle = MUTED; fitText(ctx, 'Tied: ' + tiedNames, x + w / 2, yb + 57, w - 10, '600', 9);
           ctx.fillStyle = '#8A4A10'; fitText(ctx, 'Your total: ' + (tie.baseBid + myAdd) + ' Cr', x + w / 2, yb + 73, w - 10, '700', 10, F_MONO);
           const btnY = yb + 82;
@@ -8721,7 +8951,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         } else {
           drawLotFrame(ctx, K, x, cy, w, h, { dim: true });
           ctx.fillStyle = MUTED; ctx.textAlign = 'center'; fitText(ctx, 'RESOLVING NEXT…', x + w / 2, yb + 22, w - 10, '700', 10, F_MONO);
-          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + it.name, x + w / 2, yb + 62, w - 10, '700', 11.5);
+          ctx.fillStyle = INK; fitText(ctx, it.icon + ' ' + (LOTS[it.id] ? lotNm(it.id) : it.name), x + w / 2, yb + 62, w - 10, '700', 11.5);
           ctx.fillStyle = MUTED; fitText(ctx, 'Your bid: ' + A.all[viewerSeat][k] + ' Cr', x + w / 2, yb + 92, w - 10, '600', 10, F_MONO);
         }
       });
@@ -8748,8 +8978,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         fitText(ctx, wTeam ? wTeam.name.toUpperCase() + (res.winner === HS ? ' (YOU)' : '') : 'NO BIDS', x + w / 2, yb + 16, w - 10, '400', 12, F_STEN);
         ctx.fillStyle = wTeam ? INK : MUTED;
         fitText(ctx, wTeam ? (res.rebidNote ? 'PAID ' + res.price + ' CR (REBID)' : 'PAID ' + res.price + ' CR') : '0 CR · UNCLAIMED', x + w / 2, yb + 38, w - 8, '700', 11.5, F_MONO);
-        ctx.fillStyle = INK; fitText(ctx, res.icon + ' ' + res.name, x + w / 2, yb + 56, w - 8, '700', 11.5);
-        if (LOTS[res.id]) help(x + 4, yb + 46, w - 8, 28, esc(res.icon + ' ' + res.name), esc(res.text) + (LOTS[res.id].desc ? '<br>' + esc(LOTS[res.id].desc) : ''));
+        ctx.fillStyle = INK; fitText(ctx, res.icon + ' ' + (LOTS[res.id] ? lotNm(res.id) : res.name), x + w / 2, yb + 56, w - 8, '700', 11.5);
+        if (LOTS[res.id]) help(x + 4, yb + 46, w - 8, 28, esc(res.icon + ' ' + lotQ(res.id)), (flavOf(res.id) ? flavLine(res.id) + '<br>' : '') + esc(res.text) + (LOTS[res.id].desc ? '<br>' + esc(LOTS[res.id].desc) : ''));
         ctx.fillStyle = MUTED; fitText(ctx, res.text, x + w / 2, yb + 70, w - 8, '500', 9.5);
         const isPendingHere = waitingInstall && myInst[0].idx === k;
         ctx.fillStyle = isPendingHere ? HAZ : 'rgba(43,33,24,0.07)'; rrect(ctx, x + 8, yb + 76, w - 16, 18, 3); ctx.fill();
@@ -8802,15 +9032,23 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (RL && RL.bot) drawRobotLot(ctx, RL, x, yb, w, h - 18, it.id);
       else {
         // art window: the icon in a round frame for chips and crew, a square one otherwise
-        const round = K.k === 'chip' || K.k === 'crew', ax = x + w / 2, ay = yb + 26;
+        const round = K.k === 'chip' || K.k === 'crew', ax = x + w / 2, ay = yb + 26, fl = hasFlavArt(it.id);
+        if (fl) {   // T39: the drawing, the flavour name big, the game's name small under it (the flavour line is in the hover)
+          drawFlavArt(ctx, it.id, x + 10, yb + 4, w - 20, 46, { edgeW: 2 });
+          ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, lotNm(it.id), x + w / 2, yb + 66, w - 12, '400', 15, F_STEN);
+          ctx.fillStyle = MUTED; fitText(ctx, it.name.toUpperCase(), x + w / 2, yb + 77, w - 12, '700', 8, F_MONO);
+          ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 90, w - 12, '500', 10);
+        } else {
         ctx.strokeStyle = DASH; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
         if (round) { ctx.beginPath(); ctx.arc(ax, ay, 20, 0, Math.PI * 2); ctx.stroke(); } else { rrect(ctx, x + 10, yb + 6, w - 20, 40, 4); ctx.stroke(); }
         ctx.setLineDash([]);
         ctx.font = '24px ' + F_SANS; ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.fillText(it.icon, ax, ay + 8);
         ctx.fillStyle = INK; fitText(ctx, it.name, x + w / 2, yb + 68, w - 12, '400', 16, F_STEN);
         ctx.fillStyle = '#4A4136'; fitText(ctx, it.text, x + w / 2, yb + 84, w - 12, '500', 11);
+        }
         if (it.part) { const P = LU.PARTS[it.part]; ctx.fillStyle = K.col; ctx.fillStyle = '#B4560F'; fitText(ctx, qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' LEVEL · ' + (P.kind === 'legendary' ? 'LEGENDARY' : P.kind.toUpperCase()), x + w / 2, yb + 101, w - 12, '700', 10.5, F_MONO);
-          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(it.name) + ' (part card) · ' + qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' level', (rarOf(it.id) ? '<b style="color:' + RAR[rarOf(it.id)].col + '">' + RAR[rarOf(it.id)].n + ' copy' + RAR_MARK[rarOf(it.id)] + '</b>: a better copy of this part, ' + qTxt(RAR[rarOf(it.id)].lv) + ' level on top (about ' + RAR[rarOf(it.id)].p + ' in 100 part cards). Back in the deck it rolls again.<br>' : '') + '<b>Worth in levels, standard copy:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
+          if (fl) help(x + 10, yb + 4, w - 20, 46, it.icon + ' ' + esc(lotQ(it.id)), flavLine(it.id) + '<br>' + esc(P.d));
+          help(x + 4, yb + 50, w - 8, 56, it.icon + ' ' + esc(lotQ(it.id)) + ' (part card) · ' + qTxt(partLv(it.part) + RAR[rarOf(it.id)].lv) + ' level', (fl ? flavLine(it.id) + '<br>' : '') + (rarOf(it.id) ? '<b style="color:' + RAR[rarOf(it.id)].col + '">' + RAR[rarOf(it.id)].n + ' copy' + RAR_MARK[rarOf(it.id)] + '</b>: a better copy of this part, ' + qTxt(RAR[rarOf(it.id)].lv) + ' level on top (about ' + RAR[rarOf(it.id)].p + ' in 100 part cards). Back in the deck it rolls again.<br>' : '') + '<b>Worth in levels, standard copy:</b> ' + partLvRow(it.part) + ' (the robot that carries it; from test fights, good to about a quarter level).<br>' + esc(P.d) + '<br>' + partKindHelp(it.part)); }
         else if (it.crew && CREW[it.crew]) help(x + 4, yb + 40, w - 8, 50, CREW[it.crew].icon + ' ' + esc(CREW[it.crew].name) + ' (crew card)', esc(CREW[it.crew].text) + '<br>' + (hasCrew(me(), it.crew) ? 'You already have ' + crewCount(me(), it.crew) + '.' : 'You don\'t have one yet.') + ' Crew cards stay with your team; they can be exhausted, poached or traded in the open market.');
         else if (k === HOST_K) help(x + 4, yb + 56, w - 8, 34, 'Host the Fight', 'Highest bid hosts this round: +1 fame, and you pick which two teams fight (you may pick yourself).');
         { const hl = helpLotTags(LOTS[it.id]); if (hl) help(x + 4, yb + 89, w - 8, 13, hl[0], hl[1]); }
@@ -8961,17 +9199,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.textAlign = 'center'; ctx.fillStyle = INK;
     fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);
     help(L.ax - L.aw / 2 + 12, y, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public and update live. When someone changes a bet, everyone who already locked is un-locked to react.');
-    const my = PS().cardBid || [0, 0], free = me().credits - betStake(HS), n = AU.cards.length, gap = 14, cw = Math.min(330, (L.aw - 24 - gap * (n - 1)) / n), ch = 84, cy = y + 20, cx0 = L.ax - (n * cw + (n - 1) * gap) / 2;
+    const my = PS().cardBid || [0, 0], free = me().credits - betStake(HS), n = AU.cards.length, gap = 14, cw = Math.min(330, (L.aw - 24 - gap * (n - 1)) / n), anyFl = AU.cards.some(hasFlavArt), ch = anyFl ? 96 : 84, cy = y + 20, cx0 = L.ax - (n * cw + (n - 1) * gap) / 2;
     AU.cards.forEach((id, k) => {
       const c = CARDS[id], x = cx0 + k * (cw + gap), mine = my[k] || 0;
       hazardFrame(ctx, x, cy, cw, ch, 5, mine > 0 ? me().col : null);
       const ix = x + 5, iy = cy + 5, iw = cw - 10;
       ctx.textAlign = 'left'; ctx.fillStyle = HAZ; fitText(ctx, 'FIGHT CARD · LIVE' + (AU.hot[k] ? '  🔥 HOT' : ''), ix + 6, iy + 12, iw - 12, '700', 8.5, F_MONO);
-      ctx.fillStyle = '#F4EDE2'; fitText(ctx, c.icon + ' ' + c.name, ix + 6, iy + 29, iw - 12, '400', 15, F_STEN);
-      ctx.fillStyle = '#D9CFC2'; fitText(ctx, c.text, ix + 6, iy + 43, iw - 12, '500', 9.5);
-      help(x, cy, cw, 48, c.icon + ' ' + esc(c.name), esc(c.text) + '<br><br><b>Sealed bid:</b> the highest bid wins and pays it (min ' + auctionMin() + ' Cr). One card per team per fight; a tie goes to the team with less fame. A won card is for this fight only.' + (AU.hot[k] ? '<br>🔥 <b>Hot:</b> 3+ Cr bid on it in total, or 2+ teams bidding.' : ''));
-      if (HS < 0 || G.betsLocked) { ctx.fillStyle = HAZ; ctx.textAlign = 'center'; fitText(ctx, HS < 0 ? '' : mine ? 'Your sealed bid: ' + mine + ' Cr (locked)' : 'No bid (locked)', x + cw / 2, iy + 64, iw - 16, '700', 11, F_MONO); return; }
-      const bw = 30, by = iy + 50, bh = 22;
+      const fl = hasFlavArt(id), aw = fl ? Math.min(74, iw * 0.3) : 0;   // T39: the drawing on the right, the flavour name big, the game's name small under it
+      if (fl) drawFlavArt(ctx, id, ix + iw - aw - 2, iy + 3, aw, 44, { edgeW: 1.5 });
+      ctx.fillStyle = '#F4EDE2'; ctx.textAlign = 'left'; fitText(ctx, c.icon + ' ' + cardNm(id), ix + 6, iy + 29, iw - 12 - aw, '400', 15, F_STEN);
+      if (fl) { ctx.fillStyle = HAZ; fitText(ctx, c.name.toUpperCase(), ix + 6, iy + 39, iw - 12 - aw, '700', 7.5, F_MONO); }
+      ctx.fillStyle = '#D9CFC2'; fitText(ctx, c.text, ix + 6, iy + (fl ? 51 : 43), iw - 12 - aw * (fl ? 0 : 1), '500', 9.5);
+      help(x, cy, cw, fl ? 56 : 48, c.icon + ' ' + esc(cardQ(id)), (fl ? flavLine(id) + '<br>' : '') + esc(c.text) + '<br><br><b>Sealed bid:</b> the highest bid wins and pays it (min ' + auctionMin() + ' Cr). One card per team per fight; a tie goes to the team with less fame. A won card is for this fight only.' + (AU.hot[k] ? '<br>🔥 <b>Hot:</b> 3+ Cr bid on it in total, or 2+ teams bidding.' : ''));
+      if (HS < 0 || G.betsLocked) { ctx.fillStyle = HAZ; ctx.textAlign = 'center'; fitText(ctx, HS < 0 ? '' : mine ? 'Your sealed bid: ' + mine + ' Cr (locked)' : 'No bid (locked)', x + cw / 2, iy + (anyFl ? 76 : 64), iw - 16, '700', 11, F_MONO); return; }
+      const bw = 30, by = iy + (anyFl ? 62 : 50), bh = 22;
       ctx.fillStyle = HAZ; rrect(ctx, ix + 6, by, bw, bh, 3); ctx.fill(); rrect(ctx, ix + iw - 6 - bw, by, bw, bh, 3); ctx.fill();
       ctx.fillStyle = '#1A1A12'; ctx.textAlign = 'center'; ctx.font = '700 15px ' + F_MONO;
       ctx.fillText('−', ix + 6 + bw / 2, by + 16); ctx.fillText('+', ix + iw - 6 - bw / 2, by + 16);
@@ -9523,7 +9764,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const pmOwner = it => it.kind === 'team' ? (it.T.i === viewerSeat ? '<b style="color:' + it.T.col + '">Yours</b> (' + esc(it.T.name) + ')' : '<b style="color:' + it.T.col + '">' + esc(it.T.name) + '</b>')
     : it.kind === 'lot' ? '<b style="color:#D9731A">In the Market</b> (a robot lot)' : it.kind === 'next' ? 'In next round\'s Market' : it.kind === 'ghost' ? 'As it comes (new); a copy is in this game' : 'Not in this game';
-  const pmParts = r => partsOf(r).length ? partsOf(r).map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + (LU.PARTS[k] ? LU.PARTS[k].name : k)) + ' <span class="pm-q">' + qTxt(partLvOn(r, k)) + '</span>').join(', ') : 'no parts';
+  const pmParts = r => partsOf(r).length ? partsOf(r).map(k => esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partNm(k)) + ' <span class="pm-q">' + qTxt(partLvOn(r, k)) + '</span>').join(', ') : 'no parts';
   function pmFights(it) {
     const p = it.pl;
     if (!pmInGame(it)) return 'As it comes: ' + (Math.abs(p.dev) < 0.125 ? 'right at its level' : qTxt(p.dev) + ' level for a ' + starsOf(p.lv) + ' robot');
@@ -9647,6 +9888,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, themed cards', '21 Nov 2026', [
+      'Eighteen cards have a themed name and their own drawing (Kev\'s picks): the new name big, the game\'s name small under it, and a short line in italics in the hover. Parts: IBM 5100 (Quantum shield), Riemann, Compiled (Prototype core), RTX 5090 (Weapon overhaul), 1600 W Power Supply (Power kit), Paperclip Maximizer (Overdrive), Healing Crystal (Medic drone). Intrigue: Bitcoin Pizza, AGI Next Year, The Demo Went Viral, Jailbreak, Game Six, Compute Deal, Token Bill, 175,187 Modules, Monty Hall, Banach-Tarski, Scalper Bot, Reincarnation.',
+      'Only the looks change: what each card does, its numbers and its place in the deck are as before. The log keeps the game\'s names; a question that names one of these cards says both, like "Compute Deal (Joint Venture)".' ]],
     ['2.0.1, trade and bid in one step', '20 Nov 2026', [
       'The Market\'s open market and the sealed bids are one step now: the lots can be bid on at once, and you trade (🤝 buttons in the note), sell Stash parts to the bank and answer AI offers while you bid. No more "Start the auction". When everyone has locked their bids, trading ends and the lots go out; then rebids, results, installs and the host bid as before.',
       'A trade that goes through, or a bank sale, unlocks your bids (both teams of a trade). Your bids can never add up to more than your credits: after a trade that leaves them higher, lower them, then lock.',
