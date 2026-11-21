@@ -21,9 +21,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ready robot)? (d) a timer on your own trade panel in the Market?
 - **K30. Start credits** (T29): 10 Cr makes the first Market a bit richer than before sponsors cost money (9.6 Cr spent,
   was 8.2). Keep 10, or try 9 (not measured)?
-- **K31. Local server** (T32): how many logical processors does Kev's PC have (under about 6, four-robot fights may still
-  fall back to the formula)? Hosting from the local copy works only when it matches GitHub Pages (a few minutes after an
-  update): fine, or host through `play-latest online`?
+- **K31. Local server** (T32): hosting from the local copy works only when it matches GitHub Pages (a few minutes after
+  an update): fine, or host through `play-latest online`?
 - **K29. Reaction offers** (T27): a team that made a block can no longer Override its own block: fine? Robot Rights
   Protest: any team but its player may still Override a block of it, though that team then loses 1 fame too: keep?
 - **K28. Reaction window buttons** (T20): should they also wait 0.8 s before taking a click, like the other questions?
@@ -60,6 +59,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **Kev's PC (21 Nov):** AMD Ryzen 7 9800X3D, 8 cores / 16 logical processors, 31 GB RAM. Enough for the bookie's
+  test fights through workers (K31's processor question is answered). He offers it for big runs: "let me know if you
+  want a big one to run on my pc, which is pretty fast".
 - **Bump effects (21 Nov): stay out.** Kev: "no, I didnt like the visual aspect of the bump effects". The four
   Contact Lab bump switches (slide, under, crush, gut) stay off and are not measured for the game.
 - **Card names (21 Nov):** fight formats keep the game's names ("keep games name"). Antikythera Core: "decide
