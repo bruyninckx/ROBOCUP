@@ -76,7 +76,7 @@ Market-phase reactions for a leader against teams behind it.
 | Card | Type | Gate | Cash-in | Copies | Effect | Based on |
 |---|---|---|---|---|---|---|
 | **Asset Strip** | Reaction | ▲ | 1 | 2 | Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it. | Conscription |
-| **Hostile Buyout** | Reaction | ▲ | 2 | 1 | Target sells you a robot or crew member at 2× its value, or loses 1 fame. | Leverage |
+| **Hostile Buyout** | Reaction | ▲ | 2 | 1 | Target sells you its weakest robot for 4 credits, or loses 1 fame. | Leverage |
 | **Shill Bidder** | Reaction | ▲ | 1 | 2 | After sealed bids are revealed: the target's bid counts 2 lower. | Submit to Your Betters |
 
 ## Match-fixing (6 cards, 11 copies)
@@ -88,7 +88,7 @@ One-fight boosts and event formats live here; permanent upgrades are Market card
 | **Secret Upgrade** | Scheme (face-down) | 2 | 1 | 3 | On your robot: +1 firepower and +1 armour in its next fight. | new |
 | **Overclock** | Scheme (face-down) | 3 | 1 | 2 | On your robot: +2 speed and +1 fire rate next fight, then 20 lasting damage. | new |
 | **Unleash the House Robot** | Scheme | 5 | 2 | 1 | Host only: a neutral robot joins the fight and attacks whoever is closest. | new |
-| **Mirror** | Reaction | 3 | 2 | 1 | Host only, event: each team picks one robot; it fights as 2–3 copies. | new |
+| **Mirror** | Reaction | 3 | 2 | 1 | Host only, event: each team picks one robot; it fights as 2 copies. | new |
 | **Grand Final** | Scheme | 10 | 2 | 2 | Event: next fight is 2v2, the two fame leaders vs the other two. Double fame. | new |
 | **Tag Team Licence** | Scheme | 4 | 2 | 2 | Event: next fight is 2v2 and you pick your ally. Refusing costs it 1 fame. | new |
 
