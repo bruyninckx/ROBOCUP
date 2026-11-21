@@ -129,8 +129,11 @@
     else c += 0.4 * Math.max(0, 1 - b.f);
     return c + markCost(Z);
   }
-  // T41: what the wear marks a robot carries cost it (logits), per zone (zones().mk); measured with tools/damage-lab/markcost.js
-  const MARK_COST = { bend: 0.02, warp: 0.6, snap: 0.5, rub: 0.4, crack: 1.0, open: 0.3 };
+  // T41: what the wear marks a robot carries cost it (logits), per zone (zones().mk). Measured with tools/damage-lab/markcost.js (21 Nov,
+  // 66 damaged states out of real fights, 1,056 fights each way, the same state with and without its marks): with its marks a robot won
+  // 0.4 points less (± 2.6): next to the health damage the marks cost little. Fitted, rounded, never below 0: a plate in a wheel 0.25 a
+  // wheel, a warped disc 0.25 (fully warped), a tip broken off 0.15, sawn open 0.2, cracks 0.08 a metre, a bend nothing it could see.
+  const MARK_COST = { bend: 0, warp: 0.25, snap: 0.15, rub: 0.25, crack: 0.08, open: 0.2 };
   function markCost(Z) {
     let c = 0;
     for (const z of Object.values(Z)) { const m = z.mk; if (!m || z.broken && z.key !== 'body') continue;
