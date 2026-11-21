@@ -1,11 +1,12 @@
 // Fan Favourite study (T35, 20 Nov 2026; docs/robocus-fan-favourite.md). Reads sims/<tag>.json from tools/game-sim.js (2.0 page).
 //   node tools/fan-fav-report.js <baseTag> [tag2 ...]        summary per run, paired by seed against the first tag (seat 0 = the tested seat)
 //   node tools/fan-fav-report.js --deep <tag>                part A: when Fan Favourites appear, what they earn, matched comparison, fate
+//   --maxSeed=60: only seeds up to 60 (to compare a 100-game run with 60-game runs on the same seeds)
 //   '+' merges runs (a+b); a later run's game replaces a stalled or crashed one of the same seed.
 // Uses: res.ups (Upkeep snapshots incl. robot wins), res.v2.cr (credit ledger [round, team, amt, src]), res.v2.fightsX (x2[].wins),
 // res.v2.favSafe (losing Fan Favourites the host could not scrap), res.v2.scraps, res.sponsors, the run's balFull (favTokens).
 const fs = require('fs'), path = require('path');
-const argv = process.argv.slice(2), deep = argv.includes('--deep'), tags = argv.filter(x => !x.startsWith('--'));
+const argv = process.argv.slice(2), deep = argv.includes('--deep'), maxSeed = +((argv.find(x => x.startsWith('--maxSeed=')) || '=1e9').split('=')[1]), tags = argv.filter(x => !x.startsWith('--'));
 if (!tags.length) { console.log('usage: node tools/fan-fav-report.js [--deep] <baseTag> [tag2 ...]   (files in sims/)'); process.exit(1); }
 const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
 const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / Math.max(1, a.length - 1)); };
@@ -19,7 +20,7 @@ function load(tag) {
   for (const P of parts) for (const r of P.res) { const old = by[r.seed]; if (old && old.over && !old.stall && !old.crash) continue; by[r.seed] = r; }
   const D = Object.assign({}, parts[0], { res: Object.values(by).sort((a, b) => a.seed - b.seed) });
   const fame = (D.balFull && D.balFull.fame) || { favTokens: 3, favTokensApex: 2, fanFav: 1 };
-  const g = D.res.filter(r => r.over && !r.stall && !r.crash && r.v2);
+  const g = D.res.filter(r => r.over && !r.stall && !r.crash && r.v2 && r.seed <= maxSeed);
   g.forEach(r => { r.favW = r.sponsors.map(s => s === 'apex' ? fame.favTokensApex : fame.favTokens); });
   return { tag, D, g, fame, bySeed: Object.fromEntries(g.map(r => [r.seed, r])) };
 }
