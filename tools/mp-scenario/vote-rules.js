@@ -31,7 +31,7 @@ const noteCut = p => p.evaluate(() => { const el = document.getElementById('prom
 
 async function solo(b, w, h) {
   const tag = w + 'x' + h, PLK = require('../planck-local.js'), PL = PLK.find();
-  const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => errs.push(tag + ': ' + e.message));
+  const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => { if (errs.length < 3 || /resolve|lock|Market/i.test(e.stack)) console.log('PAGEERR', e.stack.slice(0, 600)); errs.push(tag + ': ' + e.message); });
   await PLK.route(p, PL);
   await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11'); await p.waitForTimeout(800);
   await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
@@ -91,8 +91,8 @@ async function solo(b, w, h) {
 
   // 6. a won part, two robots that can take it: the note asks first
   await setTeam(0, [['Wrecker', 1], ['Angler', 2]], 1, 0);
-  const win = () => p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.phase = 'market'; G.marketStage = 'lots'; G.marketResolved = true; G.marketAuction = null; G.ps[0].install = []; G.ps[0].fitUndo = [];
-    const A = { wins: [{ team: 0, lot: 'p_shield', idx: 0, price: 3 }], results: [{ lot: 'p_shield', winner: 0, price: 3 }] }; G.marketResults = A.results; D.applyMarketWins(A); D.updateHud(); });
+  const win = () => p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; if (!Array.isArray(G.market) || G.market.length < 4) G.market = ['p_shield', 'p_repair', 'p_shield', 'p_repair']; G.phase = 'market'; G.marketStage = 'lots'; G.marketResolved = true; G.marketAuction = null; G.ps[0].install = []; G.ps[0].fitUndo = [];
+    const A = { wins: [{ team: 0, lot: 'p_shield', idx: 0, price: 3 }], results: [{ lot: 'p_shield', id: 'p_shield', icon: '🔩', name: 'Energy shield', text: '', bids: [3, 0, 0, 0], winner: 0, price: 3 }] }; G.marketResults = A.results; D.applyMarketWins(A); D.updateHud(); });
   await win(); await p.waitForTimeout(600);
   let n = await noteTxt(p); console.log(tag + ' 6 which robot: ' + n);
   ok(/which robot gets it/.test(n) && /\d+ s/.test(n) && /Keep in Stash/.test(n) && /Wrecker/.test(n) && /Angler/.test(n), tag + ' 6: the note does not ask first: ' + n);
@@ -154,7 +154,7 @@ async function solo(b, w, h) {
   // 4. a trade panel open at the last lock: it closes, a line, the lots go out at once
   await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; const v = document.getElementById('fightView'); if (v) v.hidden = true;
     G.fight = null; G.phase = 'market'; G.marketAuction = null; G.marketResolved = false; G.marketResults = null; G.gather = null; G.teams.forEach(t => { t.credits = 10; t.stash = []; });
-    G.ps.forEach(P => { P.bids = [0, 0, 0, 0, 0]; P.install = []; P.fitUndo = []; }); G.marketStage = 'lots'; G.mDeals = {}; D.updateHud(); });
+    G.ps.forEach(P => { P.bids = [0, 0, 0, 0, 0]; P.install = []; P.fitUndo = []; }); if (!Array.isArray(G.market) || G.market.length < 4) G.market = ['p_shield', 'p_repair', 'p_shield', 'p_repair']; G.marketStage = 'lots'; G.mDeals = {}; D.updateHud(); });
   ok(await p.evaluate(() => window.ROBOCUS_DEBUG.mktOpen()), tag + ' 4: the Market is not open');
   await p.evaluate(() => window.ROBOCUS_DEBUG.act('trade', 1));
   ok(await until(p, () => { const d = document.getElementById('dealModal'); return d && !d.hidden; }, 5000), tag + ' 4: no deal panel');
@@ -162,7 +162,7 @@ async function solo(b, w, h) {
   const deals0 = await p.evaluate(() => JSON.stringify(window.ROBOCUS_DEBUG.G.mDeals));
   await p.evaluate(() => window.ROBOCUS_DEBUG.act('lockBids'));
   await until(p, () => !window.ROBOCUS_DEBUG.mktOpen(), 5000); await p.waitForTimeout(600);
-  const st4 = await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, d = document.getElementById('dealModal'); return { open: D.mktOpen(), panel: !!d && !d.hidden, deals: G.mDeals, mktd: D.MKTD, cr: G.teams.map(t => t.credits), resolved: !!(G.marketResolved || G.marketAuction) }; });
+  const st4 = await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, d = document.getElementById('dealModal'); return { open: D.mktOpen(), panel: !!d && !d.hidden, deals: G.mDeals, mktd: D.mktdOpen(), cr: G.teams.map(t => t.credits), resolved: !!(G.marketResolved || G.marketAuction) }; });
   const shut4 = await logHas(p, /The Market closed.*called off\. No deal, nothing moved/);
   console.log(tag + ' 4 lock with the panel open (deals before ' + deals0 + '): ' + JSON.stringify(st4) + ' line ' + shut4);
   ok(!st4.open && !st4.panel && st4.resolved && !st4.mktd && st4.cr[0] === 10 && st4.cr[1] === 10 && shut4, tag + ' 4: ' + JSON.stringify(st4) + ' ' + shut4);
@@ -175,7 +175,7 @@ async function online() {
   const { b, host, errs: e2, seatOf, all } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); });
   const H = seatOf[0], A = seatOf[1], B = seatOf[2], C = seatOf[3];
   const actOn = (p, name, ...args) => p.evaluate(([n, a]) => window.ROBOCUS_DEBUG.act(n, ...a), [name, args]);
-  const hs = () => host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { phase: G.phase, open: D.mktOpen(), cr: G.teams.map(t => t.credits), locked: G.gather && G.gather.key === 'lots:' + G.round ? Object.keys(G.gather.done).map(Number) : [], deals: Object.assign({}, G.mDeals || {}), mktd: D.MKTD }; });
+  const hs = () => host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { phase: G.phase, open: D.mktOpen(), cr: G.teams.map(t => t.credits), locked: G.gather && G.gather.key === 'lots:' + G.round ? Object.keys(G.gather.done).map(Number) : [], deals: Object.assign({}, G.mDeals || {}), mktd: D.mktdOpen() }; });
   const lockOn = async p => { for (let t = 0; t < 4000; t += 200) { if (await p.evaluate(() => { const bt = document.querySelector('#promptBar #pAct1'); if (!bt || bt.disabled || !/Lock Bids/.test(bt.textContent)) return false; bt.click(); return true; })) return true; await p.waitForTimeout(200); } return false; };
   const banOn = p => p.evaluate(() => { const el = document.getElementById('tradeBan'); return el && el.classList.contains('on') ? el.innerText.replace(/\s+/g, ' ') : null; });
   const refuseAll = async () => { for (const p of all) await p.evaluate(() => { const bt = [...document.querySelectorAll('#promptBar.qmode [data-rk]')].find(x => /Refuse|OK|Pass|Let it/.test(x.textContent)); if (bt && !bt.disabled) bt.click(); }); };
@@ -229,9 +229,12 @@ async function online() {
   console.log('online 4 last lock with A\'s question open: before ' + JSON.stringify(before4) + '\n   after ' + JSON.stringify(after4) + ' · A still asked: ' + qA + ' · lines A/B ' + l4);
   ok(!after4.open && !qA && !after4.mktd && l4[0] && l4[1], 'online 4: ' + JSON.stringify(after4) + ' asked ' + qA + ' lines ' + l4);
   // 5. a joined player invited: the count; the host lets it run out
-  for (const p of all) await p.evaluate(() => { window.__noBot = false; });
-  const inv = await until(host, () => { const G = window.ROBOCUS_DEBUG.G; return G.phase === 'arena' && G.chooseMyBot && [1, 2, 3].some(s => G.ps[s] && G.ps[s].choose); }, 240000);
-  for (const p of all) await p.evaluate(() => { window.__noBot = true; });
+  // the bots stay frozen; the host (a person, seat 0) invites A and B, so a joined player has to pick its fighter
+  await until(host, () => !!window.ROBOCUS_DEBUG.G.marketResolved, 15000); await host.waitForTimeout(1500);
+  await host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; G.ps.forEach(P => { P.install = []; P.fitUndo = []; P.tradeIn = []; P.stashTrim = false; });
+    G.phase = 'arena'; G.marketResolved = false; G.marketAuction = null; G.host = 0; G.fight = null; G.hostStep = null; G.chooseMyBot = false; G.pickTeams = [1, 2];
+    G.teams.forEach(t => t.robots.forEach(r => { r.exhausted = false; })); D.runAct(0, 'invite', []); D.updateHud(); });
+  const inv = await until(host, () => { const G = window.ROBOCUS_DEBUG.G; return G.phase === 'arena' && G.chooseMyBot && [1, 2, 3].some(s => G.ps[s] && G.ps[s].choose); }, 10000);
   if (!inv) bad.push('online 5: no joined player was invited');
   else {
     const s5 = await host.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; return [1, 2, 3].find(s => G.ps[s].choose); });
@@ -247,10 +250,8 @@ async function online() {
     console.log('   time up: ⌛ on its screen ' + late5 + ' (ready robots ' + want + ')');
     ok(late5, 'online 5: no ⌛ line on the joined screen');
     // 3. bets: that player locks, the cards stay playable, the lock stays
-    for (const p of all) await p.evaluate(() => { window.__noBot = false; });
-    await host.evaluate(() => { window.__bookieFull = false; });
+    await host.evaluate(() => { const D = window.ROBOCUS_DEBUG; for (const s of [1, 2, 3]) { const c = D.SEATC[s]; if (c) c.t0 -= 29000; } });   // the other invited player: its time runs out too
     const inBets = await until(host, () => window.ROBOCUS_DEBUG.G.phase === 'bets' && !window.ROBOCUS_DEBUG.G.betsLocked, 60000);
-    for (const p of all) await p.evaluate(() => { window.__noBot = true; });
     if (!inBets) bad.push('online 3: never reached the bets');
     else {
       await host.waitForTimeout(1500);
