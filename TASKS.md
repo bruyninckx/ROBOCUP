@@ -7,6 +7,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K40. Robot value, follow-ups** (T44): (a) Hostile Buyout is a flat 4 Cr, so it can take an 11 Cr robot for 4:
+  should the price follow the value (for example the value, at least 4)? (b) Fire Sale's text says "at value +1 each"
+  but the game pays a flat 2 Cr: pay value + 1 now, or fix the text? (c) new robots sell 2-3.5 Cr above their value
+  in rounds 1-4: fine, or show a Market estimate on early lots? (d) one value for everyone (now), or "worth to you"?
+  (e) the AI prices a part on a robot at 1.5 Cr but the same part in a Stash at full value: make them agree?
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -145,14 +150,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T44. A robot's value in credits, shown on its card.** Kev (21 Nov): "we should have a clear visual on robot value
-  as well, that was a problem last time"; he chose "A price in credits: one number per robot, from its level, parts
-  and damage: what it is worth in a trade, an offer or a buyout". Goal: one `robotValue(robot)` in credits that the
-  game shows on every robot card (own, rivals, Market robot lots) and in every question or panel where a robot changes
-  hands (AI offers, trade panel, Hostile Buyout, Museum Donation, trade-in, upkeep scrap), and that agrees with what
-  the AI teams pay and ask. Display only: no price or rule changes (Hostile Buyout stays weakest robot, 4 Cr). Worker
-  on branch `claude/robot-value`, started 21 Nov. Done when: a table of value against what bot games actually paid for
-  robots (auction and trades), screenshots at both sizes, game-sim and mp-test pass.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
@@ -176,6 +173,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ± and a recommendation.
 ## Done
 
+- **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
+  price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
+  needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
+  rival tickets and Market robot lots, and as "worth N Cr" where a robot changes hands. Display only; `BAL.showValue`.
+  72 AI games: AI-to-AI sales paid value +0.3 +/- 0.2 (n=94); Market lots +1.4 (level 1 lots +3.5 in rounds 1-4).
+  Doc `docs/robocus-robot-value.md`, test `tools/mp-scenario/robot-value.js`. Branch `claude/robot-value`, commit
+  `058d62b`; build `2026-11-21j`, files stamp `352be701` (unchanged). Orchestrator's checks on the merge:
+  game-sim 2/2, 0 page errors; robot-value, questions-note, market-step OK; mp-test OK, 0 desyncs, 8 fights.
 - **T43. Mirror and Hostile Buyout texts say what the game does** (21 Nov; Kev: "fix text"): Mirror "fights as 2
   copies"; Hostile Buyout "Target sells you its weakest robot for 4 credits, or loses 1 fame" (the game never takes
   crew and always the weakest robot). Scalper Bot line: "Four credits each, no refunds." No rule changes. Branch
