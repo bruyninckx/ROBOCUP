@@ -9,14 +9,16 @@
   // third pass: Grandmaster x0.94 (strong as a level 3), Lodestone x1.06, Hornet x1.05, Rumbler x1.05
   // Kev, 15 Nov: THE TUNED LINEUP (docs/robocus-tuned-lineup-tags.md). 33 robots picked on looks (casting board), one power dial each:
   // damage x p and every part's HP x p, no per-preset damage knob (TUNED below). Each level beats the level below about 64-66%.
+  // Kev, 21 Nov (T41, wear on in every fight: docs/robocus-wear-in-game.md): power dials moved for the robots wear moved most, measured on
+  // 1,976 fights paired with the same fights without wear: Thwacker 2.898 -> 3.159, Popcorn 0.97 -> 0.897, Orbiter 2.305 -> 2.176, Whaler 1.449 -> 1.373, Hydra 1.501 -> 1.575, Gyro 1.084 -> 1.043, Wrecker 1.146 -> 1.103, Corkscrew 0.753 -> 0.781, Jukebox 1.795 -> 1.856, Scavenger 1.723 -> 1.775, Thumper 0.882 -> 0.905.
   const ROBOTS = {
-    Buzzkill: [0, 0.99], Forklift: [0, 1.041], Hornet: [0, 0.974], Mincer: [0, 1.128], Popcorn: [0, 0.97], Scythe: [0, 0.953], Snapjaw: [0, 0.946], Thumper: [0, 0.882], Wrecker: [0, 1.146],
-    Blacksmith: [1, 0.941], Corkscrew: [1, 0.753], Mauler: [1, 1.115], Thwacker: [1, 2.898], Vertigo: [1, 0.906],
-    Angler: [2, 1.036], Gyro: [2, 1.084], Pincher: [2, 1.749], Whaler: [2, 1.449], Yoyo: [2, 1.34],
-    Gaucho: [3, 1.945], Grandmaster: [3, 1.63], Hydra: [3, 1.501], Scavenger: [3, 1.723], Slingshot: [3, 2.385], Tarantula: [3, 1.371],
+    Buzzkill: [0, 0.99], Forklift: [0, 1.041], Hornet: [0, 0.974], Mincer: [0, 1.128], Popcorn: [0, 0.897], Scythe: [0, 0.953], Snapjaw: [0, 0.946], Thumper: [0, 0.905], Wrecker: [0, 1.103],
+    Blacksmith: [1, 0.941], Corkscrew: [1, 0.781], Mauler: [1, 1.115], Thwacker: [1, 3.159], Vertigo: [1, 0.906],
+    Angler: [2, 1.036], Gyro: [2, 1.043], Pincher: [2, 1.749], Whaler: [2, 1.373], Yoyo: [2, 1.34],
+    Gaucho: [3, 1.945], Grandmaster: [3, 1.63], Hydra: [3, 1.575], Scavenger: [3, 1.775], Slingshot: [3, 2.385], Tarantula: [3, 1.371],
   };
   // level 4 (end game, plan docs/robocus-2.0-level4-plan.md): kept apart so the tabletop's waves and the tier tools don't pick them up; the Lineup Arena merges them in
-  const ROBOTS4 = { Bricklayer: [4, 2.803], Jukebox: [4, 1.795], Lodestone: [4, 1.314], Orbiter: [4, 2.305], Pogo: [4, 1.018], Railgun: [4, 1.377], Rotisserie: [4, 0.99], Trebuchet: [4, 1.657] };
+  const ROBOTS4 = { Bricklayer: [4, 2.803], Jukebox: [4, 1.856], Lodestone: [4, 1.314], Orbiter: [4, 2.176], Pogo: [4, 1.018], Railgun: [4, 1.377], Rotisserie: [4, 0.99], Trebuchet: [4, 1.657] };
   // candidates (Kev, 13 Nov: physics should do the balancing, no knob tweaking; keep adding mechanisms, then select on fun and counterplay):
   // every candidate runs at power grade 1 with no damage knob; the level is what it measured, not what it was tuned to. Not in the game yet.
   const CANDIDATES = { Talon: [2, 1] };   // 15 Nov: the rest joined the tuned lineup
