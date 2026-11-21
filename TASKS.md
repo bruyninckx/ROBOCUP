@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K43. Wear** (T41): (a) a mark that stays (bent 10 degrees or more, warped, cracked, sawn open) makes the zone
+  count as damaged, so the repair button shows even at full health and the AI may repair it: right, or show it only?
+  (b) level steps 0→1 and 1→2 are at 69% with wear on (target 63-68%): nudge after the big run if it confirms that?
 - **K42. Left over from T35 and T44**: (a) new robots sell 2-3.5 Cr above their shown value in rounds 1-4: fine, or
   show a Market estimate on early lots? (b) the AI prices a part on a robot at 1.5 Cr but the same part in a Stash at
   full value: make them agree? (c) AI teams pay a person in deals and backing but never each other: fine?
@@ -140,6 +143,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   a Windows run by Kev or careful reading), `tools/serve-check.js` passes.
 - **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
+- (T41 saw `repair-note.js` fail on a clean main: "9 repairs: 8 buttons", Thumper's Weapon at 50% gets no button: T28.)
 - **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
   weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
@@ -165,6 +169,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   (appearance money, a likely win and its fame) and the AI bids for the host seat against a saver. AI only, no rule
   change. Worker on branch `claude/ai-host`, started 21 Nov. Done when: T35's "Kev line" test AI and its hoard-and-host
   variant measured before and after (60+ games, paired), all-AI games still 11-12 rounds, game-sim and mp-test pass.
+- **T41 status (21 Nov, 17:30): branch `claude/bending-on` at `c2d6619` is NOT merged on purpose: it waits for Kev's
+  run of `tools\wear-tables.cmd` (sent to him as a file), which re-measures the matchup, arena and tag tables with
+  wear on. Done on the branch: one switch (`BAL.wear`), the whole wear drawing in the fight view, marks stay until
+  repaired, retune (`WEAR.hpExp` 0.5 and 11 power dials; no robot outside its range, level steps 69/69/68/64%),
+  checks (fingerprint 0b8a0a7a → 470f6923, sync check 89a95280, mp-test OK). Bookie Brier 0.201 with the old table.
+  When the results file comes back: resume the worker (a08e2f589ae143c24) with it.
 - **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
   much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
   all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
