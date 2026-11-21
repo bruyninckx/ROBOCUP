@@ -763,6 +763,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // takes its safe default. askMs: a question in the note (one click); askBoxMs: one that stays in the box (ticks to set, a list
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
+    sendMs: 30000,                // T47 (Kev, 21 Nov voting page: "30 seconds, then my strongest ready robot goes"): an invited person picking its fighter
+    // T47 (Kev, 21 Nov voting page: "Always ask me first which robot"): a part a person wins with 2+ robots that can take it: 'ask' =
+    // the note asks which robot first (askMs; no answer = the best-odds robot, then Undo / Move as T12); true = T12's fit at once on
+    // the best-odds robot; false = always the plain pick (no timer). One robot with room: on at once with Undo (both 'ask' and true).
+    autoFit: 'ask',
     showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
     wearMarks: true,              // T41 (Kev, 21 Nov: "keep bend until repair"): bends, cracks, saw cuts and warps stay on a robot until its zone is repaired (spec.wear.marks); false = they are gone after the fight
     wear: true,                   // T41 (Kev, 21 Nov: "bend as much as possible", "include all"): cracks, fragments, bends and saw grooves in every fight (engine ARC.cx; each fight carries it in F.bb.wear, so every screen and the bookie's workers agree); false = all four off
@@ -1297,9 +1302,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function unlockSeat(S, step) {
     if (!G.gather || G.gather.key !== step + ':' + G.round || !G.gather.done[S]) return false;
     delete G.gather.done[S];
+    unlockSeen(S, step === 'bets' ? 'a bet' : step === 'hostbid' ? 'its host bid' : 'a bid');
     say(S, '🔓 You changed ' + (step === 'bets' ? 'your bets' : step === 'hostbid' ? 'your host bid' : 'your bids') + ' after locking, so you are not locked any more. Lock again when you are done.', '#b45309');
     return true;
   }
+  // T47 (Kev, 21 Nov voting page: "Also a line in everyone's log"): the others see one short line when a person unlocks by a
+  // change (lots, host bid, bets, sponsor bids, a tie rebid); no amounts, sealed bids stay sealed
+  function unlockSeen(S, what) { const t = G.teams[S]; if (!t) return; for (const o of humanSeats()) if (o !== S) say(o, '🔓 ' + nm(t) + ' changed ' + what + ' and is deciding again.', t.col); }
   const tooLate = (S, what) => say(S, '⌛ Too late: ' + what + ' already went through, your change was not made.', '#b45309');
   const relockTxt = what => '<br><small>You can still change ' + what + ' until everyone has locked. A change unlocks you; then lock again.</small>';
   const gatherWaiting = step => G && G.gather && G.gather.step === step ? humanSeats().filter(s => !G.gather.done[s]) : null;
@@ -2243,7 +2252,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           pb.querySelectorAll('[data-trim]').forEach(b => { b.onclick = () => act('trimStash', +b.dataset.trim); });
         } else if (myInst.length) {
           const lot = LOTS[myInst[0].lot];
-          pb.innerHTML = '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lotQ(myInst[0].lot)) + '</b> (here or on its card), or keep it in your Stash.</span>' +
+          const bf = myInst[0].ask ? bestFit(t, myInst[0].lot) : null;   // T47: asked first (2+ robots can take it): say what no answer does
+          pb.innerHTML = (bf ? '<span>🔩 <b>You won ' + esc(lotQ(myInst[0].lot)) + ':</b> which robot gets it? (here or on its card) Or keep it in your Stash. No answer: ' + esc(bf.name) + ' (best odds), then you can still undo or move it.</span>'
+            : '<span>🔩 <b>Install:</b> pick the robot that gets <b>' + esc(lotQ(myInst[0].lot)) + '</b> (here or on its card), or keep it in your Stash.</span>') +
             // T9: one button per robot, the same click as the FIT … button on its card (no room: shown, greyed)
             t.robots.map(r => { const ok = canFit(r, lot), pv = lotPreview(r, lot); return pickBtn('fit', r.id, (ok ? '🔩 ' : '') + r.name, ok ? 'odds ' + pv.replace(/ vs the field.*$/, '') : 'no room', { off: !ok, tip: (ok ? 'Fit ' + lot.name + ' on ' + r.name + ': ' : 'No room: ') + pv }); }).join('') +
             '<button class="act secondary" id="pAct1">📦 Keep in Stash</button>';
@@ -2874,7 +2885,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function autoFitPart(T, x, r, n) {   // n = how many robots had room
     const L = LOTS[x.lot], pv = lotPreview(r, L), P = PS(T.i);
-    const rec = Object.assign({ id: G.fitSeq = (G.fitSeq || 0) + 1, lot: x.lot, item: Object.assign({}, x), round: G.round, at: Date.now(), left: Math.ceil(FIT_UNDO_MS / 1000), pv: pv.replace(/ vs the field.*$/, '') }, fitSnap(r, L));
+    const item = Object.assign({}, x); delete item.ask;   // T47: an undone part goes back to the plain pick (no clock), as before
+    const rec = Object.assign({ id: G.fitSeq = (G.fitSeq || 0) + 1, lot: x.lot, item, round: G.round, at: Date.now(), left: Math.ceil(FIT_UNDO_MS / 1000), pv: pv.replace(/ vs the field.*$/, '') }, fitSnap(r, L));
     const dest = applyLot(T.i, x.lot, r) || 'Fitted on ' + r.name;
     (P.fitUndo = P.fitUndo || []).push(rec);
     notify('🔩 ' + nm(T) + ' fits <b>' + esc(L.name) + '</b> on ' + esc(r.name) + (n > 1 ? ' (best odds of its ' + n + ' robots with room).' : ' (its only robot with room).'), T.col);
@@ -3182,12 +3194,71 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     updateHud();
   }
   setInterval(() => { try { stepClkTick(); } catch (e) { console.warn('ROBOCUS step clock', e); } }, 250);
+  /* T47: per-person step clocks, on the same game clock (stops while paused) and judged on the host, like T31's: an invited person
+   * picking its fighter (sendMs, Kev: "30 seconds, then my strongest ready robot goes": what the host's Skip does) and a won part
+   * that asks which robot (askMs; time up: the robot T12's auto-fit picks, then Undo / Move). The host keeps SEATC[s] and puts
+   * { key, ms, left, n } in PS(s).sclk, so that player's screen draws the same count in its note (stepClkMine). The clock waits
+   * while that player has a question or deal panel of its own open (ASKING). */
+  const SEATC = {}, SEND_MS = () => BAL.sendMs > 0 ? BAL.sendMs : 30000;
+  function seatStepNow(s) {
+    if (!G || G.over || !isHuman(s)) return null;
+    const P = PS(s);
+    if (G.phase === 'arena' && G.chooseMyBot && G.fight && P.choose) return { k: 'send|' + G.round + '|' + fightSeq, ms: SEND_MS(), end: () => sendTimeout(s) };
+    const it = (P.install || [])[0];
+    if (G.phase === 'market' && G.marketResolved && it && it.ask && !(P.tradeIn || []).length && !P.stashTrim) return { k: 'fit|' + it.ask, ms: ASK_MS(), end: () => fitAskTimeout(s) };
+    return null;
+  }
+  function seatClkTick() {
+    if (!G || isClient() || !G.teams) return;
+    let ch = false;
+    for (let s = 0; s < 4; s++) {
+      const st = seatStepNow(s), P = G.ps && G.ps[s];
+      if (!st) { if (P && P.sclk) { delete P.sclk; ch = true; } delete SEATC[s]; continue; }
+      let c = SEATC[s];
+      if (!c || c.key !== st.k) { const left = P.sclk && P.sclk.key === st.k && P.sclk.left > 0 ? Math.min(P.sclk.left, st.ms) : st.ms;
+        c = SEATC[s] = { key: st.k, ms: st.ms, t0: clkNow() - (st.ms - left), at: clkNow(), held: false }; P.sclk = { key: st.k, ms: st.ms, left, n: (P.sclk && P.sclk.n || 0) + 1 }; ch = true; }
+      const now = clkNow(), held = ASKING[s] > 0;
+      if (held) c.t0 += now - c.at;   // the player is answering something else: this clock waits
+      c.at = now;
+      if (held !== c.held) { c.held = held; if (!held) seatClkSync(s); ch = true; }
+      if (held) continue;
+      if (s === HS) qTick(document.querySelector('#promptBar .st-clock'), c);
+      if (clkLeft(c) <= 0) { delete SEATC[s]; delete P.sclk; st.end(); ch = true; }
+    }
+    if (ch) updateHud();
+  }
+  // a pause (or the end of a question of its own): every screen restarts its count from the host's `left`
+  function seatClkSync(s) { const c = SEATC[s], P = G && G.ps && G.ps[s]; if (c && P && P.sclk && P.sclk.key === c.key) P.sclk = Object.assign({}, P.sclk, { left: Math.round(clkLeft(c)), n: P.sclk.n + 1 }); }
+  const seatClkPause = () => { for (let s = 0; s < 4; s++) seatClkSync(s); };
+  function sendTimeout(s) {
+    const P = PS(s); if (!P.choose) return;
+    const r = readyRobots(G.teams[s]).slice().sort((a, b) => power(b) - power(a))[0];   // what the host's Skip does (skipSeat)
+    say(s, '⌛ <b>No answer in time</b> (⚔️ send a robot): ' + (r ? 'the game sends <b>' + esc(r.name) + '</b>, your strongest ready robot.' : 'you have no ready robot, so you decline.'), '#6E6457');
+    if (r) runAct(s, 'sendBot', [r.id]); else runAct(s, 'decline', []);
+  }
+  function fitAskTimeout(s) {
+    const P = PS(s), x = (P.install || [])[0]; if (!x || !x.ask) return;
+    const T = G.teams[s], fit = T.robots.filter(r => canFit(r, LOTS[x.lot])), r = bestFit(T, x.lot);
+    P.install.shift();
+    if (!r) { const ok = toStash(T, x.lot); if (G.marketResults && G.marketResults[x.idx]) G.marketResults[x.idx].target = ok ? '📦 Kept in the Stash' : '🏦 Stash full: sold'; return; }
+    say(s, '⌛ <b>No answer in time</b> (🔩 which robot gets ' + esc(lotQ(x.lot)) + '): it goes on <b>' + esc(r.name) + '</b> (best odds); you can still undo or move it.', '#6E6457');
+    const dest = autoFitPart(T, x, r, fit.length);
+    if (G.marketResults && G.marketResults[x.idx]) G.marketResults[x.idx].target = dest;
+  }
+  setInterval(() => { try { seatClkTick(); } catch (e) { console.warn('ROBOCUS seat clock', e); } }, 250);
   // the step's countdown in your note (you are the host): seconds and bar on top of the note's own text and buttons
   function stepClkMine() {
-    const q = G && G.qclk; if (!q || q.seat !== HS) { CSTEP = null; return null; }
+    const q = G && G.qclk; if (!q || q.seat !== HS) { CSTEP = null; return seatClkMine(); }
     if (!isClient()) return STEPC && STEPC.key === q.key ? STEPC : null;
     if (!CSTEP || CSTEP.n !== q.n || CSTEP.key !== q.key) CSTEP = { key: q.key, n: q.n, ms: q.ms, t0: clkNow() - (q.ms - Math.min(q.left, q.ms)) };
     return CSTEP;
+  }
+  let CSEAT = null;
+  function seatClkMine() {   // T47: this screen's own step clock (send a robot, which robot for a won part)
+    const q = G && PS().sclk; if (!q) { CSEAT = null; return null; }
+    if (!isClient()) return SEATC[HS] && SEATC[HS].key === q.key ? SEATC[HS] : null;
+    if (!CSEAT || CSEAT.n !== q.n || CSEAT.key !== q.key) CSEAT = { key: q.key, n: q.n, ms: q.ms, t0: clkNow() - (q.ms - Math.min(q.left, q.ms)) };
+    return CSEAT;
   }
   function stepClkDraw(pb) {
     const c = stepClkMine(); if (!c || !pb) return;
@@ -5654,6 +5725,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         // 2.0.1 (Kev, 15 Nov: less clicking): only one robot it fits: it goes on at once. T12 (16 Nov): several: on the best
         // fit at once too; for 5 s the note has Undo (and Move to <robot>), see autoFitPart.
         const fit = T.robots.filter(r => canFit(r, LOTS[x.lot]));
+        // T47 (Kev, 21 Nov: "Always ask me first which robot"): with 2+ robots that can take it, BAL.autoFit 'ask' asks first
+        // (the pick in the note, askMs; no answer: the best-odds robot, then Undo / Move); one robot: on at once, as T12
+        if (fit.length > 1 && BAL.autoFit === 'ask') { PS(x.team).install.push(Object.assign(x, { ask: G.fitSeq = (G.fitSeq || 0) + 1 })); A.results[x.idx].target = '▶ Which robot? (the note, or keep it)'; continue; }
         if (fit.length && BAL.autoFit !== false) {
           A.results[x.idx].target = autoFitPart(T, x, bestFit(T, x.lot), fit.length);
           continue;
@@ -5693,7 +5767,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.rebidAdj = (S, d) => {
     if (!tieMine(S) && !tieLocked(S)) { if ((G.phase === 'market' || G.phase === 'setup') && isHuman(S)) tooLate(S, 'the tie rebid'); return; }
     const T = curTie(), was = T.add[S] || 0; T.add[S] = Math.max(0, Math.min(T.maxAdd[S] || 0, was + d));
-    if (T.add[S] !== was && tieLocked(S)) { T.waiting.push(S); say(S, '🔓 You changed your rebid after locking, so you are not locked any more. Lock again when you are done.', '#b45309'); }
+    if (T.add[S] !== was && tieLocked(S)) { T.waiting.push(S); unlockSeen(S, 'its rebid'); say(S, '🔓 You changed your rebid after locking, so you are not locked any more. Lock again when you are done.', '#b45309'); }
   };
   ACT.rebidLock = S => {
     if (!tieMine(S)) return;
@@ -7689,7 +7763,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'rebid') { if (botDid !== bk) { botDid = bk; if (R() < 0.5) act('rebidAdj', 1); } return act('rebidLock'); }
     if (busy === 'trade-in') return act('tradeIn', aiTradeInPick(t).id);
     if (busy === 'stash') return act('trimStash', 0);
-    if (busy === 'install') { const it = P.install[0], r = t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }
+    if (busy === 'install') { const it = P.install[0], r = (it.ask && bestFit(t, it.lot)) || t.robots.find(x => canFit(x, LOTS[it.lot])); return r ? act('install', r.id) : act('installKeep'); }   // T47: asked first: the bot takes the robot T12's auto-fit took
     // repairs once per round (kept on this screen: on a joined screen every snapshot replaced P.botRep, and a repair that needs more
     // actions than are left was tried again and again, so a joined bot could stay in Upkeep for good), then Done
     if (busy === 'upkeep' && botRepRound !== G.gid + ':' + G.round && G.phase === 'upkeep') { botRepRound = G.gid + ':' + G.round; for (const r of t.robots) for (const z of R2.ZONES) if (zonesOf(r)[z.key].damaged && R() < 0.7 && repairActs(t) >= repairCost(r, z.key)) act('repairZone', r.id, z.key); return; }
@@ -7724,7 +7798,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     snapMeta: s => ({ seat: s, seats: SEATS, names: netNames, lotsDyn: dynLots(), win: WIN_FAME, hostFame: HOST_FAME, bal: BAL, paused: netPaused, waiting: netWaiting }),
     runAct, askSeat, seatBusyWith, skipSeat, seatToAI, isHuman, netDiag,
     fightTick: () => G && G.phase === 'fight' && G.fight && G.fight.S && G.fight.fid ? { fid: G.fight.fid, tick: G.fight.S.over ? 1e9 : G.fight.S.step, sp: VW.V ? VW.V.speed : 1 } : null,   // sp: the host's fight speed, the clients play at it
-    setPaused(list) { netPaused = list && list.length ? list : null; clkPause(!!netPaused); stepClkPause(); updateHud(); },   // T31: a paused game stops the question clocks
+    setPaused(list) { netPaused = list && list.length ? list : null; clkPause(!!netPaused); stepClkPause(); seatClkPause(); updateHud(); },   // T31: a paused game stops the question clocks
     setWaiting, ptSlice, ptScreen, ptMark, ptId: () => PT.game ? PT.game.id : null,
     setName(s, name) { netNames[s] = name; if (G) { G.names = netNames.slice(); if (G.teams[s]) G.teams[s].player = name || undefined; } },
     saveFile, get hasSave() { return !!SAVE; }, saveText: () => SAVE,
