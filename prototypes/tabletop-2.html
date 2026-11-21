@@ -1407,7 +1407,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
   const cardType = c => c.phase === 'fight' ? '⚡ Live combat card' : c.phase === 'later' ? '🏟️ Arena card' : c.phase === 'security' ? '🤖 Security' :
                          c.t === 'F' ? '🂠 Face-down' : c.t === 'R' ? '🛡️ Reaction' : '🕵️ Scheme';
-  // T45: Hostile Buyout's hover says the price at each rival right now (its weakest robot's value, at least 4)
+  // T45: Hostile Buyout's hover (the card in your hand) says the price at each rival right now (its weakest robot's value, at least 4)
   function cardNow(id) {
     if (id !== 'hostile_buyout' || !G || !G.teams) return '';
     const F = me(), L = G.teams.filter(o => o !== F && o.robots.length >= 2).map(o => esc(o.name) + ': ' + esc(buyBot(o).name) + ' for ' + buyPrice(o) + ' Cr');
@@ -1417,7 +1417,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const c = CARDS[id];
     if (!c) return ['', ''];
     const gate = c.gate === '▲' ? 'only vs a team with more fame' : c.gate === '▼' ? 'only vs a team with less fame' : c.need ? 'needs ' + c.need + ' fame' : 'no fame gate';
-    return [c.icon + ' ' + esc(cardQ(id)) + flavTitle(id), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text) + cardNow(id)];   // T39: the hover names the flavour
+    return [c.icon + ' ' + esc(cardQ(id)) + flavTitle(id), '<b>' + cardType(c) + '</b> · ' + esc(c.fam) + ' · ' + gate + ' · 🪙' + c.cash + '<br>' + esc(c.text)];   // T39: the hover names the flavour
   }
   const cardRef = id => { const h = cardHelp(id); return '<span class="lcard"' + helpAttr(h[0], h[1]) + '>' + esc(CARDS[id] ? CARDS[id].name : id) + '</span>'; };
   const lotRef = id => { const L = LOTS[id]; return L ? '<span class="lcard"' + (L.part && rarCan(L.part) ? ' data-rar="' + id + '"' : '') + helpAttr(L.icon + ' ' + esc(lotQ(id)) + flavTitle(id), esc(L.text) + (L.desc ? '<br>' + esc(L.desc) : '')) + '>' + esc(L.name) + '</span>' : esc(id); };   // T39: the text keeps the game's name (the log), the hover names the flavour
@@ -2409,7 +2409,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (countEl) countEl.textContent = `(${n})`;
 
     // Avoid recreating DOM nodes when hand & playability haven't changed (prevents hover transition resets)
-    const sig = `${G.phase}:${viewerSeat}:${G.cashMode ? 1 : 0}:${hand.join(',')}:${hand.map(id => isCardPlayable(id) ? 1 : 0).join('')}:${t.fame}`;
+    const sig = `${G.phase}:${viewerSeat}:${G.cashMode ? 1 : 0}:${hand.join(',')}:${hand.map(id => isCardPlayable(id) ? 1 : 0).join('')}:${t.fame}:${hand.includes('hostile_buyout') ? cardNow('hostile_buyout') : ''}`;   // T45: Hostile Buyout's prices
     if (!force && !dragCard && fan.dataset.sig === sig) return;
     fan.dataset.sig = sig;
     fan.innerHTML = '';
@@ -2465,7 +2465,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
           '<div class="hs-title fl">' + esc(cardNm(id)) + '</div><div class="hs-gname">' + esc(c.name) + '</div>'   // T39: the flavour name big, the game's name small under it
         : '<div class="hs-art">' + c.icon + '</div>' +
         '<div class="hs-title">' + esc(c.name) + '</div>') +
-        '<div class="hs-desc">' + esc(c.text) + '</div>' +
+        '<div class="hs-desc"' + (cardNow(id) ? helpAttr(c.icon + ' ' + esc(cardQ(id)), esc(c.text) + cardNow(id)) : '') + '>' + esc(c.text) + '</div>' +   // T45: the price at each rival
         '<div class="hs-footer"><span class="hs-coin"' + helpAttr('🪙 Cash value ' + c.cash, 'On your Intrigue turn you can cash this card in for ' + c.cash + ' credit' + (c.cash === 1 ? '' : 's') + ' instead of playing it.') + '>🪙' + c.cash + '</span><em>' + targetHint + '</em></div></div>';
 
       slot.addEventListener('pointerenter', () => {
@@ -3361,7 +3361,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21k wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21l Hostile Buyout costs the robot\'s value, Fire Sale pays value + 1, wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3617,8 +3617,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   /* ---------- T44 (Kev, 21 Nov): a robot's value in credits, shown on every robot card and wherever a robot changes hands ----------
    * "A price in credits: one number per robot, from its level, parts and damage: what it is worth in a trade, an offer or a buyout".
-   * DISPLAY ONLY: no AI, price or rule reads it; it is worked out on each screen from synced state (the same number for every
-   * viewer). Level: 1 + 2 × level (as a New Robot lot's own value, LOTS[id].value, and the level part of robotWorth);
+   * Worked out on each screen from synced state (the same number for every viewer). T44 was display only; since T45 two prices
+   * read it: Hostile Buyout (buyPrice: the value, at least 4) and Fire Sale (value + 1). Level: 1 + 2 × level (as a New Robot lot's own value, LOTS[id].value, and the level part of robotWorth);
    * each fitted part at its bank price (bankHalf: half its Market value, rarity included; the number on the Stash's 🏦 button:
    * 48 AI games, 94 robot trades: the AI pays about 1 Cr a part, so full Market value put robots with 2-3 parts 4-8 Cr too high); Fan tokens +1 each,
    * a Fan Favourite +2 more (its fame goes with it); −1 per repair action its damage needs (a damaged zone 1, a broken one 2);
@@ -10102,6 +10102,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, buyout prices', '21 Nov 2026', [
+      'Hostile Buyout now costs the robot\'s value (the gold chip), at least 4 credits: taking a big robot costs something. The buyer still gets the target\'s weakest robot and does not choose; refusing still costs the target 1 fame. The question says the price ("for 9 Cr", or "for 4 Cr (the 4 Cr minimum)"), the card\'s hover lists the price at each rival, and if you are short the game tells you how much it costs. Scalper Bot: "Full price, no refunds."',
+      'AI teams sell to a buyout when the price plus the fame they keep covers what the robot is worth to them, and play the card when the robot is a bargain for them or a refusal hurts the target.',
+      'Fire Sale pays what its text says: each robot (not your last one), crew member and Stash part you tick sells to the bank for its value + 1 (a robot its gold value, a part its 🏦 bank price, a crew member its card value). Fire Sale is not in the deck right now (0 copies), so you will not see it yet.' ]],
     ['2.0.1, bends, cracks and saw cuts', '21 Nov 2026', [
       'Every fight now wears robots down the way the Damage Lab showed it: spinner bars, spears, tails and forks bend; plates fold in and can drag on a wheel (WHEEL RUB!); discs and saws warp; piercing hits crack metal; saws cut grooves; broken plates shatter into pieces. The fight screen draws it all: fold lines, cracks (also through the top plate), glowing saw cuts, a bent bar spinning out of true, a warped disc.',
       'Bends, cracks and saw cuts stay on the robot from fight to fight until you repair the zone they are in (Drive, Weapon, Body). The robot card says so, for example "Weapon: bent 23°". A mark alone does not count as damage: repairing it is optional (click the zone on the card, 1 repair action, to straighten it), and the AI teams never spend a repair on it. The bookie sees the marks: they still change the fight.',

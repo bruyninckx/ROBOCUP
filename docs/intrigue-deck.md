@@ -76,7 +76,7 @@ Market-phase reactions for a leader against teams behind it.
 | Card | Type | Gate | Cash-in | Copies | Effect | Based on |
 |---|---|---|---|---|---|---|
 | **Asset Strip** | Reaction | ▲ | 1 | 2 | Target must sell you up to 3 Security Bot assets at 3 credits each. Security Bots can't block it. | Conscription |
-| **Hostile Buyout** | Reaction | ▲ | 2 | 1 | Target sells you its weakest robot for 4 credits, or loses 1 fame. | Leverage |
+| **Hostile Buyout** | Reaction | ▲ | 2 | 1 | Target sells you its weakest robot for its value (at least 4 credits), or loses 1 fame. (T45, 21 Nov: the price is the robot's ◉ value, `robotValue`, worked out when it resolves; needs the price, a free bay and a target with 2+ robots; AI target sells when price + 1 fame ≥ the robot's worth to it.) | Leverage |
 | **Shill Bidder** | Reaction | ▲ | 1 | 2 | After sealed bids are revealed: the target's bid counts 2 lower. | Submit to Your Betters |
 
 ## Match-fixing (6 cards, 11 copies)
@@ -187,5 +187,7 @@ Kev: "exhaust robots as well" (the texts said robots; the game only took crew an
 8 Nov (card pass, `docs/card-play.md`): Bookie's Friend; Skeleton Crew, Leaked Footage and Bankrupt! became Kick When Down; Press Tour and Celebrity Endorsement 3→2; Team-Building Day max +1; Security Override and Asset Strip can't be blocked by Security Bots; gates: House Robot 9→5, Rival Sponsor 14→9, Smear Campaign 16→10.
 
 7 Nov: Fire Sale, Blaze of Glory, Robot Rights Protest, Rigged Ratings, Pile-On, Backup Restore, Board Seat, Hedge Bet. Also fewer copies: Security Bot 28→18, Leaked Footage / Bankrupt! / Skeleton Crew 2→1, Crunch Week 4→2, Underdog Story 3→1, Roadshow, Launch Party, Joint Venture, Hostile Buyout and Mirror 2→1, Botched Install 3→2. Later, maybe (after a human playtest): the 3-copy staples to 2 each (about 120).
+
+Fire Sale (still 0 copies) since T45, 21 Nov: "Any time: sell your robots, crew or parts to the bank at value +1 each." now does that: you tick any of your robots (never your last one), crew and Stash parts; each pays its value + 1 (a robot its ◉ value, a Stash part its 🏦 bank price = half its Market value, a crew member `CREW[k].value`, the number Headhunter Fee doubles). No answer in time: nothing is sold. The AI plays it only for spare things (every Stash part, a third robot it rates under the price, a second copy of a crew card). Before T45 it sold the weakest robot for a flat 2 Cr.
 
 **Prototype-only, not in the deck:** Stripped Gears, Cut Corners (drop or add later).
