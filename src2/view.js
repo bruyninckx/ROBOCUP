@@ -277,10 +277,50 @@
       ctx.strokeStyle = `rgba(255,250,240,${0.22 + 0.2 * k})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.ellipse(d.x + d.r * 0.08, d.y + d.r * 0.08, d.r * 0.7, d.r * 0.45, d.x * 7 + d.y * 3, 3.6, 5.8); ctx.stroke();
       if (d.a > 12) { ctx.strokeStyle = 'rgba(25,18,10,0.55)'; ctx.lineWidth = PX; ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = (d.x * 31 + d.y * 17 + i * 2.1) % 6.28; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + Math.cos(a) * d.r * 1.3, d.y + Math.sin(a) * d.r * 1.3); } ctx.stroke(); }
     }
+    if (part.bends || part.cracks || part.grooves || part.kinks) drawWear(part);
     if (part.heat > 25) { ctx.fillStyle = `rgba(255,${120 - part.heat * 0.5},20,${Math.min(0.55, (part.heat - 25) / 150)})`; ctx.fillRect(-2, -2, 4, 4); }
     ctx.restore();
     path(part.outline); ctx.lineWidth = PX * 2.2; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
   }
+  // ---------- wear (T41: on in the game): cracks, bends, saw grooves (ported from tools/damage-lab/ui.js; keep the two in step) ----------
+  function crackPath(c, w, col, ox, oy) {
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'miter'; ctx.lineCap = 'round';
+    for (const t of c.tips) { if (t.pts.length < 2) continue; ctx.beginPath(); ctx.moveTo(t.pts[0][0] + ox, t.pts[0][1] + oy); for (let k = 1; k < t.pts.length; k++) ctx.lineTo(t.pts[k][0] + ox, t.pts[k][1] + oy); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+  }
+  function drawCracks(cracks, big) {
+    for (const c of cracks) {
+      const w = PX * Math.min(big ? 3.8 : 3.2, 1.4 + c.len * (big ? 8 : 20));
+      if (big) crackPath(c, w * 3.2, 'rgba(14,9,5,0.16)', 0, 0); // a dirty halo along the crack so it reads at a distance
+      crackPath(c, w + PX * 1.6, 'rgba(255,245,228,0.35)', PX * 0.9, PX * 0.9); // lit lower lip
+      crackPath(c, w, 'rgba(14,9,5,0.92)', 0, 0);
+      if (c.len > 0.04) { ctx.fillStyle = 'rgba(14,9,5,0.85)'; ctx.beginPath(); for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28, r = (k % 2 ? 0.012 : 0.022) * Math.min(1.6, 0.6 + c.len * 6); k ? ctx.lineTo(c.o[0] + Math.cos(a) * r, c.o[1] + Math.sin(a) * r) : ctx.moveTo(c.o[0] + r, c.o[1]); } ctx.closePath(); ctx.fill(); } // the impact point
+    }
+  }
+  function drawWear(part) {
+    if (part.bends && part.bAx) { const A = part.bAx; // folds where the plate is bent
+      for (const b of part.bends) { if (b.depth < 0.006) continue; const k = Math.min(1, b.depth / 0.04);
+        for (const [o, al] of [[0, 0.75], [-WEAR_R * 0.55, 0.35], [WEAR_R * 0.55, 0.35]]) { const sx = b.s + o, sh = A.inn * b.depth * (o ? 0.45 : 1);
+          const P = (t, d) => A.ax === 0 ? [sx + d, t + sh] : [t + sh, sx + d];
+          let q0 = P(A.tlo - 0.02, 0), q1 = P(A.thi + 0.02, 0); ctx.strokeStyle = `rgba(14,9,5,${al * k})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+          q0 = P(A.tlo - 0.02, 0.012); q1 = P(A.thi + 0.02, 0.012); ctx.strokeStyle = `rgba(255,248,235,${al * k * 0.6})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke(); } } }
+    if (part.kinks && part.kAx) { const A = part.kAx; // a bent weapon: a fold across the beam where it gave, scuffed paint either side
+      for (const kk of part.kinks) { const a = Math.abs(kk.th); if (a < 0.03) continue; const k = Math.min(1, a / 0.25);
+        const P = (q, o) => A.ax === 0 ? [kk.s + o, q] : [q, kk.s + o];
+        let q0 = P(A.tlo - 0.03, 0), q1 = P(A.thi + 0.03, 0); ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * k})`; ctx.lineWidth = PX * (1.8 + 2 * k); ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        q0 = P(A.tlo - 0.03, kk.side * 0.012); q1 = P(A.thi + 0.03, kk.side * 0.012); ctx.strokeStyle = `rgba(255,248,235,${0.35 + 0.35 * k})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
+        ctx.fillStyle = `rgba(60,50,40,${0.25 * k})`; const w = 0.03 + 0.05 * k; const r0 = P(A.tlo - 0.03, -w), r1 = P(A.thi + 0.03, w); ctx.fillRect(Math.min(r0[0], r1[0]), Math.min(r0[1], r1[1]), Math.abs(r1[0] - r0[0]), Math.abs(r1[1] - r0[1])); } }
+    if (part.cracks) drawCracks(part.cracks, false);
+    if (part.grooves) drawGrooves(part.grooves, part.attached);
+  }
+  function drawGrooves(grooves, live) { // bright cut metal round the notch, glowing while the saw is in it (T41: also through the top plate)
+    for (const g of grooves) { if (g.depth < 0.004) continue;
+      const hot = S && live ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
+      if (hot > 0) { const gr = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, r * 2.4); gr.addColorStop(0, `rgba(255,190,80,${0.85 * hot})`); gr.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gr; ctx.fillRect(g.x - r * 2.4, g.y - r * 2.4, r * 4.8, r * 4.8); }
+      ctx.strokeStyle = 'rgba(236,236,226,0.9)'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, 6.29); ctx.stroke();
+      ctx.strokeStyle = 'rgba(150,150,140,0.7)'; ctx.lineWidth = PX * 1; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(g.x, g.y, r * (1.25 + k * 0.08), 0, 6.29); ctx.stroke(); } }
+  }
+  const WEAR_R = (L.WEAR && L.WEAR.bendR) || 0.17;
   function wheelTread(part, spin) {
     const [x0, y0, x1, y1] = bbox(part.verts), len = x1 - x0, step = 0.035, off = ((spin * 0.07) % step + step) % step;
     ctx.strokeStyle = '#4E4740'; ctx.lineWidth = PX * 2;
@@ -395,6 +435,8 @@
         if (!dead) { ctx.fillStyle = Math.sin(performance.now() / 90) > 0 ? '#9BE38A' : '#2F8A4A'; ctx.fillRect(cx - 0.02, cy - 0.02, 0.04, 0.04); }
         for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
       }
+      if (R.chassis.cracks && R.chassis.cracks.length) drawCracks(R.chassis.cracks, true); // cracks in the shell show through the top plate
+      if (R.chassis.grooves && R.chassis.grooves.length) drawGrooves(R.chassis.grooves, R.chassis.attached); // T41: so do saw cuts in the shell
       drawTop(R, i); drawLamps(R);
       if (R.module && R.mod !== 'tow') { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     }
@@ -438,10 +480,16 @@
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? Math.abs(R.buzzW || 0) / (R.buzzMax || 110) : 0;
     ctx.save(); ctx.translate(p.x, p.y);
     const bk = R && R.buzzR ? R.buzzR / 0.14 : 1; ctx.scale(bk, bk);
-    if (w > 0.3) { ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(0, 0, 0.17, 0, 6.29); ctx.fill(); }
+    const wp = part.warp ? part.warp / 0.45 : 0, fa = part.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp;
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; }; // the folded half, foreshortened
+    if (w > 0.3) { const o = wp * 0.025; ctx.fillStyle = `rgba(220,222,215,${0.25 * w})`; ctx.beginPath(); ctx.arc(Math.cos(a + fa) * o, Math.sin(a + fa) * o, 0.17, 0, 6.29); ctx.fill();
+      if (wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, 0.15 * (1 - 0.42 * wp * 0.5), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.rotate(a); ctx.fillStyle = '#C9CBC4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
-    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125; k ? ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r) : ctx.moveTo(Math.cos(t) * r, Math.sin(t) * r); }
+    for (let k = 0; k < 24; k++) { const t = k / 24 * 6.283, r = k % 2 ? 0.15 : 0.125, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (wp > 0.05) { ctx.fillStyle = `rgba(20,14,8,${0.18 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * 0.14, Math.sin(t) * 0.14); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half in shade
+      ctx.strokeStyle = `rgba(14,9,5,${0.5 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * 0.15, fx * 0.15); ctx.lineTo(fy * 0.15, -fx * 0.15); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,248,235,${0.3 + 0.3 * wp})`; ctx.lineWidth = PX * 1.3; ctx.beginPath(); ctx.moveTo(-fy * 0.15 - fx * 0.01, fx * 0.15 - fy * 0.01); ctx.lineTo(fy * 0.15 - fx * 0.01, -fx * 0.15 - fy * 0.01); ctx.stroke(); } // the fold
     ctx.fillStyle = '#6F7169'; ctx.beginPath(); ctx.arc(0, 0, 0.04, 0, 6.29); ctx.fill(); ctx.stroke();
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.5 * w})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.09, k * 2.1, k * 2.1 + 1.2); ctx.stroke(); } }
     ctx.restore();
@@ -495,10 +543,11 @@
     }
     if (w === 'hammer' && R.arm.hp > 0) {
       let s = 0; if (R.swing > 0) s = 1 - R.swing / 0.2; else if (R.recover > 0) s = R.recover / 0.6;
-      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s);
-      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(hx, 0); ctx.stroke();
+      const hx = -0.12 + (hl + 0.44) * s, k = 1 + 0.55 * Math.sin(Math.PI * s), ab = R.armBend || 0, kx = -0.25 + (hx + 0.25) * 0.45, ex = kx + (hx - kx) * Math.cos(ab), ey = (hx - kx) * Math.sin(ab); // bent handle: kinked partway along
+      ctx.strokeStyle = INK; ctx.lineWidth = 0.07 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(-0.25, 0); ctx.lineTo(kx, 0); ctx.lineTo(ex, ey); ctx.stroke();
       ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
-      ctx.save(); ctx.translate(hx, 0); ctx.scale(k, k);
+      if (Math.abs(ab) > 0.03) { ctx.strokeStyle = 'rgba(14,9,5,0.8)'; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(kx, -0.035 * k); ctx.lineTo(kx, 0.035 * k); ctx.stroke(); }
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(ab); ctx.scale(k, k);
       ctx.fillStyle = '#B9BBB4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.05, -0.16], [0.06, -0.12], [0.06, 0.12], [-0.05, 0.16], [-0.02, 0]]); ctx.fill(); ctx.stroke();
       ctx.restore(); bolt(-0.25, 0);
     }
@@ -601,10 +650,17 @@
     if (lifted) { ctx.fillStyle = 'rgba(20,14,8,0.2)'; ctx.beginPath(); ctx.arc(0.1, 0.1, r, 0, 6.29); ctx.fill(); ctx.scale(1.12, 1.12); }
     if (fly && w > 0.15) { ctx.strokeStyle = `rgba(255,90,200,${0.25 + 0.4 * w})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, r + 0.04, 0, 6.29); ctx.stroke(); const v = b.getLinearVelocity(); ctx.strokeStyle = `rgba(255,240,250,${0.25 * w})`; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-v.x * 0.04, -v.y * 0.04); ctx.lineTo(0, 0); ctx.stroke(); ctx.lineCap = 'butt'; }
     ctx.rotate(a);
-    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    const wp = q.warp ? q.warp / 0.45 : 0, fa = q.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp; // a warped record (T41): the half that folded looks shorter from above
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; };
+    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath();
+    if (wp > 0.02) { for (let k = 0; k < 32; k++) { const t = k / 32 * 6.283, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); } else ctx.arc(0, 0, r, 0, 6.29);
+    ctx.fill(); ctx.stroke();
     ctx.strokeStyle = 'rgba(200,200,190,0.22)'; ctx.lineWidth = PX; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (0.5 + k * 0.12), 0, 6.29); ctx.stroke(); }
     ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.8; for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(t) * r * 0.93, Math.sin(t) * r * 0.93); ctx.lineTo(Math.cos(t + 0.12) * r, Math.sin(t + 0.12) * r); ctx.stroke(); } // the saw teeth on the rim
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.45 * w})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * 0.78, k * 2.1, k * 2.1 + 0.9); ctx.stroke(); } }
+    if (wp > 0.05) { ctx.fillStyle = `rgba(120,110,100,${0.25 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * r * 0.95, Math.sin(t) * r * 0.95); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half catches the light
+      ctx.strokeStyle = `rgba(255,248,235,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * r, fx * r); ctx.lineTo(fy * r, -fx * r); ctx.stroke(); // the fold
+      if (w > 0.3 && wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, r * (1 - 0.21 * wp), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.fillStyle = q.col || '#E8C547'; ctx.beginPath(); ctx.arc(0, 0, r * 0.34, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-r * 0.2, -r * 0.05, r * 0.4, r * 0.03); ctx.fillStyle = '#E4E1DA'; ctx.beginPath(); ctx.arc(0, 0, 0.012, 0, 6.29); ctx.fill();
     ctx.restore();
@@ -852,6 +908,7 @@
       ctx.fillStyle = '#9A9C94'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
       for (const sg of [1, -1]) { ctx.beginPath(); ctx.moveTo(sg * (rad - 0.04), -sg * 0.05); ctx.lineTo(sg * (rad + 0.07), -sg * 0.025); ctx.lineTo(sg * (rad + 0.07), sg * 0.025); ctx.lineTo(sg * (rad - 0.04), sg * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       drawPart(part, '#B9BBB4', R, decorate(part, R, 0));
+      if (part.warp) { const fa = part.foldA, wp = part.warp / 0.45; ctx.strokeStyle = `rgba(14,9,5,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(-Math.sin(fa) * rad, Math.cos(fa) * rad); ctx.lineTo(Math.sin(fa) * rad, -Math.cos(fa) * rad); ctx.stroke(); }
       ctx.fillStyle = R && R.alive ? col.col : '#4A4540'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.62, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 2; ctx.stroke();
       ctx.fillStyle = R && R.alive ? col.dark : '#3A3530'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.22, 0, 6.29); ctx.fill(); ctx.stroke();
       for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283; bolt(Math.cos(t) * rad * 0.8, Math.sin(t) * rad * 0.8); }
@@ -887,7 +944,16 @@
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
-    if (w > 0.2) { ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(0, 0, 0.53, 0, 6.29); ctx.fill(); ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2; for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.arc(0, 0, 0.5, a + k * Math.PI, a + k * Math.PI + 0.9); ctx.stroke(); } }
+    // each arm's reach and where its tip points (a bent arm is shorter and trails): a bent bar sweeps two circles, not one
+    const arm = sg => { let r = 0, an = sg > 0 ? 0 : Math.PI; for (const q of part.outline) if (q[0] * sg > 0) { const d = Math.hypot(q[0], q[1]); if (d > r) { r = d; an = Math.atan2(q[1], q[0]); } } return [r || 0.5, an]; };
+    const [rA, aA] = arm(1), [rB, aB] = arm(-1), bent = Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08;
+    if (w > 0.2) {
+      const R0 = Math.max(rA, rB) + 0.01, off = bent ? (rA - rB) * 0.5 : 0; // the out-of-balance bar throws its swept disc off centre
+      ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(Math.cos(a) * off, Math.sin(a) * off, R0, 0, 6.29); ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2;
+      for (const [rr, aa] of [[rA, aA], [rB, aB]]) { ctx.beginPath(); ctx.arc(0, 0, rr - 0.02, a + aa, a + aa + 0.9); ctx.stroke(); }
+      if (bent) { const rs = Math.min(rA, rB) - 0.02; ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, rs, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the bent arm's shorter track
+    }
     ctx.rotate(a);
     if (w > 0.4) { ctx.globalAlpha = 0.35; for (const o of [-0.25, -0.12]) { ctx.save(); ctx.rotate(o); path(part.outline); ctx.fillStyle = '#B9BBB4'; ctx.fill(); ctx.restore(); } ctx.globalAlpha = 1; }
     drawPart(part, '#B9BBB4', R, decorate(part, R, 0));

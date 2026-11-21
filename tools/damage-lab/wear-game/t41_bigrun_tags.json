@@ -1,0 +1,759 @@
+{
+ "partLv": {
+  "armourkit": [
+   0.67,
+   0.57,
+   0.76,
+   0.76
+  ],
+  "bait": [
+   0.55,
+   0.57,
+   0.39,
+   0.76
+  ],
+  "blocker": [
+   0.59,
+   0.77,
+   0.47,
+   0.49
+  ],
+  "bodyguard": [
+   0.76,
+   0.8,
+   0.76,
+   0.76
+  ],
+  "booster": [
+   0.55,
+   0.64,
+   0.68,
+   0.27
+  ],
+  "core": [
+   1.59,
+   1.86,
+   1.47,
+   1.34
+  ],
+  "emp": [
+   0.43,
+   0.17,
+   0.84,
+   0.33
+  ],
+  "gunner": [
+   0.51,
+   0.61,
+   0.64,
+   0.22
+  ],
+  "hospital": [
+   1.12,
+   1.33,
+   1.0,
+   0.99
+  ],
+  "hull": [
+   0.69,
+   0.89,
+   0.6,
+   0.49
+  ],
+  "jam": [
+   0.71,
+   0.89,
+   0.84,
+   0.27
+  ],
+  "jammer": [
+   0.83,
+   0.8,
+   1.08,
+   0.6
+  ],
+  "laser": [
+   0.44,
+   0.8,
+   0.26,
+   0.11
+  ],
+  "matador": [
+   0.28,
+   0.61,
+   0.0,
+   0.11
+  ],
+  "medic": [
+   0.32,
+   0.57,
+   0.3,
+   -0.05
+  ],
+  "mines": [
+   0.59,
+   0.61,
+   0.68,
+   0.49
+  ],
+  "overdrive": [
+   1.28,
+   1.24,
+   1.83,
+   0.65
+  ],
+  "pester": [
+   0.74,
+   0.77,
+   0.43,
+   1.16
+  ],
+  "popper": [
+   0.63,
+   0.21,
+   0.8,
+   1.16
+  ],
+  "powerkit": [
+   0.63,
+   0.8,
+   0.55,
+   0.49
+  ],
+  "quantum": [
+   1.43,
+   1.45,
+   1.55,
+   1.28
+  ],
+  "repair": [
+   0.36,
+   0.38,
+   0.51,
+   0.16
+  ],
+  "shield": [
+   0.98,
+   1.17,
+   1.12,
+   0.49
+  ],
+  "spotter": [
+   0.65,
+   0.77,
+   0.3,
+   0.93
+  ],
+  "tow": [
+   0.87,
+   0.89,
+   0.88,
+   0.88
+  ],
+  "waller": [
+   1.04,
+   1.02,
+   1.27,
+   0.82
+  ],
+  "weapon": [
+   0.96,
+   1.24,
+   0.96,
+   0.54
+  ]
+ },
+ "partFights": 14784,
+ "fits": {
+  "Snapjaw": {
+   "bait": [
+    1,
+    28
+   ]
+  },
+  "Popcorn": {
+   "quantum": [
+    1,
+    40
+   ]
+  },
+  "Corkscrew": {
+   "pester": [
+    -1,
+    -15
+   ]
+  },
+  "Wrecker": {
+   "jam": [
+    1,
+    30
+   ],
+   "pester": [
+    1,
+    40
+   ],
+   "waller": [
+    1,
+    38
+   ],
+   "jammer": [
+    1,
+    28
+   ]
+  },
+  "Thwacker": {
+   "mines": [
+    1,
+    42
+   ],
+   "tow": [
+    1,
+    48
+   ],
+   "pester": [
+    1,
+    40
+   ]
+  },
+  "Rotisserie": {
+   "overdrive": [
+    -1,
+    -7
+   ]
+  },
+  "Thumper": {
+   "pester": [
+    1,
+    32
+   ]
+  },
+  "Slingshot": {
+   "bait": [
+    -1,
+    -16
+   ]
+  },
+  "Hornet": {
+   "booster": [
+    -1,
+    -25
+   ]
+  },
+  "Forklift": {
+   "pester": [
+    -1,
+    -5
+   ]
+  },
+  "Vertigo": {
+   "overdrive": [
+    -1,
+    -15
+   ]
+  }
+ },
+ "epic": {
+  "Wrecker|jam": [
+   25,
+   55,
+   40
+  ],
+  "Thwacker|mines": [
+   30,
+   72,
+   40
+  ],
+  "Thwacker|tow": [
+   30,
+   78,
+   40
+  ],
+  "Thwacker|pester": [
+   30,
+   70,
+   40
+  ],
+  "Wrecker|pester": [
+   25,
+   65,
+   40
+  ],
+  "Thumper|pester": [
+   15,
+   48,
+   40
+  ],
+  "Wrecker|waller": [
+   25,
+   62,
+   40
+  ]
+ },
+ "confirm": {
+  "Buzzkill|blocker": [
+   42,
+   38,
+   40,
+   8,
+   7
+  ],
+  "Snapjaw|bait": [
+   18,
+   45,
+   40,
+   8,
+   7
+  ],
+  "Angler|shield": [
+   21,
+   48,
+   48,
+   14,
+   17
+  ],
+  "Popcorn|quantum": [
+   15,
+   55,
+   40,
+   20,
+   9
+  ],
+  "Corkscrew|pester": [
+   22,
+   8,
+   40,
+   10,
+   -23
+  ],
+  "Popcorn|emp": [
+   15,
+   28,
+   40,
+   6,
+   -1
+  ],
+  "Wrecker|jam": [
+   25,
+   55,
+   40,
+   10,
+   4
+  ],
+  "Thwacker|mines": [
+   30,
+   72,
+   40,
+   8,
+   34
+  ],
+  "Thwacker|tow": [
+   30,
+   78,
+   40,
+   12,
+   24
+  ],
+  "Pincher|pester": [
+   17,
+   27,
+   48,
+   10,
+   -24
+  ],
+  "Slingshot|jam": [
+   52,
+   50,
+   64,
+   10,
+   1
+  ],
+  "Thwacker|pester": [
+   30,
+   70,
+   40,
+   10,
+   32
+  ],
+  "Mauler|popper": [
+   18,
+   20,
+   40,
+   9,
+   -4
+  ],
+  "Scythe|powerkit": [
+   30,
+   40,
+   40,
+   9,
+   21
+  ],
+  "Buzzkill|waller": [
+   42,
+   50,
+   40,
+   15,
+   -5
+  ],
+  "Buzzkill|tow": [
+   42,
+   58,
+   40,
+   12,
+   -9
+  ],
+  "Wrecker|pester": [
+   25,
+   65,
+   40,
+   10,
+   28
+  ],
+  "Thwacker|hospital": [
+   30,
+   32,
+   40,
+   16,
+   -30
+  ],
+  "Thumper|popper": [
+   15,
+   52,
+   40,
+   9,
+   -1
+  ],
+  "Rotisserie|overdrive": [
+   41,
+   34,
+   56,
+   18,
+   -32
+  ],
+  "Thumper|pester": [
+   15,
+   48,
+   40,
+   10,
+   4
+  ],
+  "Corkscrew|hospital": [
+   22,
+   52,
+   40,
+   16,
+   16
+  ],
+  "Scythe|overdrive": [
+   30,
+   35,
+   40,
+   18,
+   -1
+  ],
+  "Grandmaster|armourkit": [
+   25,
+   30,
+   64,
+   9,
+   -3
+  ],
+  "Mincer|blocker": [
+   18,
+   35,
+   40,
+   8,
+   16
+  ],
+  "Slingshot|bait": [
+   52,
+   36,
+   64,
+   8,
+   -3
+  ],
+  "Scavenger|pester": [
+   39,
+   58,
+   64,
+   10,
+   -12
+  ],
+  "Railgun|popper": [
+   59,
+   62,
+   56,
+   9,
+   11
+  ],
+  "Thwacker|jammer": [
+   30,
+   42,
+   40,
+   12,
+   -19
+  ],
+  "Angler|mines": [
+   21,
+   29,
+   48,
+   8,
+   4
+  ],
+  "Pincher|powerkit": [
+   17,
+   38,
+   48,
+   9,
+   3
+  ],
+  "Yoyo|core": [
+   21,
+   58,
+   48,
+   22,
+   -4
+  ],
+  "Pogo|waller": [
+   59,
+   70,
+   56,
+   15,
+   -14
+  ],
+  "Gaucho|jam": [
+   20,
+   36,
+   64,
+   10,
+   -14
+  ],
+  "Mauler|jammer": [
+   18,
+   38,
+   40,
+   12,
+   18
+  ],
+  "Jukebox|powerkit": [
+   52,
+   66,
+   56,
+   9,
+   7
+  ],
+  "Blacksmith|hospital": [
+   55,
+   80,
+   40,
+   16,
+   22
+  ],
+  "Thwacker|shield": [
+   30,
+   32,
+   40,
+   14,
+   -22
+  ],
+  "Popcorn|popper": [
+   15,
+   30,
+   40,
+   9,
+   -23
+  ],
+  "Hornet|booster": [
+   50,
+   25,
+   40,
+   8,
+   -9
+  ],
+  "Wrecker|waller": [
+   25,
+   62,
+   40,
+   15,
+   12
+  ],
+  "Popcorn|mines": [
+   15,
+   30,
+   40,
+   8,
+   2
+  ],
+  "Grandmaster|popper": [
+   25,
+   38,
+   64,
+   9,
+   4
+  ],
+  "Blacksmith|gunner": [
+   55,
+   52,
+   40,
+   7,
+   -7
+  ],
+  "Buzzkill|gunner": [
+   42,
+   40,
+   40,
+   7,
+   21
+  ],
+  "Snapjaw|gunner": [
+   18,
+   20,
+   40,
+   7,
+   -11
+  ],
+  "Scythe|core": [
+   30,
+   42,
+   40,
+   22,
+   13
+  ],
+  "Gyro|waller": [
+   69,
+   85,
+   48,
+   15,
+   14
+  ],
+  "Forklift|pester": [
+   18,
+   12,
+   40,
+   10,
+   -18
+  ],
+  "Hydra|bait": [
+   52,
+   50,
+   64,
+   8,
+   -17
+  ],
+  "Mauler|hull": [
+   18,
+   35,
+   40,
+   9,
+   1
+  ],
+  "Pogo|gunner": [
+   59,
+   77,
+   56,
+   7,
+   -6
+  ],
+  "Scythe|jam": [
+   30,
+   30,
+   40,
+   10,
+   -18
+  ],
+  "Mincer|repair": [
+   18,
+   20,
+   40,
+   5,
+   0
+  ],
+  "Vertigo|overdrive": [
+   48,
+   32,
+   40,
+   18,
+   -33
+  ],
+  "Thwacker|bait": [
+   30,
+   48,
+   40,
+   8,
+   16
+  ],
+  "Gyro|bodyguard": [
+   69,
+   71,
+   48,
+   11,
+   5
+  ],
+  "Wrecker|jammer": [
+   25,
+   52,
+   40,
+   12,
+   15
+  ]
+ },
+ "ffaFit": {
+  "Forklift": -12,
+  "Hornet": -13,
+  "Mincer": -16,
+  "Thumper": -12,
+  "Wrecker": 11,
+  "Thwacker": -18,
+  "Angler": 18,
+  "Gyro": 14,
+  "Pincher": -16,
+  "Tarantula": 13,
+  "Jukebox": 20,
+  "Lodestone": 10,
+  "Orbiter": 24,
+  "Railgun": 23,
+  "Rotisserie": 10,
+  "Trebuchet": -13
+ },
+ "ffaFights": 750,
+ "teamFit": {
+  "Snapjaw": -12,
+  "Angler": 12
+ },
+ "tvFights": 750,
+ "elo": {
+  "Buzzkill": -157,
+  "Forklift": -231,
+  "Hornet": -302,
+  "Mincer": -278,
+  "Popcorn": -283,
+  "Scythe": -236,
+  "Snapjaw": -253,
+  "Thumper": -239,
+  "Wrecker": -201,
+  "Blacksmith": -44,
+  "Corkscrew": -130,
+  "Mauler": -115,
+  "Thwacker": -71,
+  "Vertigo": -92,
+  "Angler": 33,
+  "Gyro": 61,
+  "Pincher": -51,
+  "Whaler": 27,
+  "Yoyo": -44,
+  "Gaucho": 77,
+  "Grandmaster": 117,
+  "Hydra": 90,
+  "Scavenger": 136,
+  "Slingshot": 134,
+  "Tarantula": 159,
+  "Bricklayer": 204,
+  "Jukebox": 245,
+  "Lodestone": 207,
+  "Orbiter": 262,
+  "Pogo": 251,
+  "Railgun": 246,
+  "Rotisserie": 226,
+  "Trebuchet": 251
+ }
+}

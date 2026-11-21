@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="352be701">
+<meta charset="utf-8"><meta name="robocus-files" content="31ff00ca">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ROBOCUS sync check</title>
-<!-- ROBOCUS 2.0 sync check (9 Nov): runs 23 fixed fights and shows one code. Same code on two browsers = they play fights
+<!-- ROBOCUS 2.0 sync check (9 Nov): runs 25 fixed fights and shows one code. Same code on two browsers = they play fights
      bit for bit the same, so online play can run fights on every screen from the seed. Code in tools/sync-check.js. -->
 <style>
   :root { --bg: #f4efe6; --ink: #2b2118; --mut: #7a6e60; --card: #fffaf2; --line: #e2d8c8; --ok: #2f7d4a; --bad: #b42318; }
@@ -30,7 +30,7 @@
 <body>
 <div class="wrap">
   <h1>ROBOCUS sync check</h1>
-  <p>Runs 23 test fights (about 20–60 seconds). Open this page on every browser you want to test and compare the code.
+  <p>Runs 25 test fights (about 20–60 seconds). Open this page on every browser you want to test and compare the code.
      Same code everywhere = online fights can run on every screen.</p>
   <div class="card">
     <div class="lab">Your code</div>
@@ -47,18 +47,18 @@
     </details>
   </div>
 </div>
-<script src="../src2/version.js?b=352be701"></script>
-<script src="../src2/dmath.js?b=352be701"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=31ff00ca"></script>
+<script src="../src2/dmath.js?b=31ff00ca"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=352be701"></script>
-<script src="../src2/lineup.js?b=352be701"></script>
+<script src="../src2/engine.js?b=31ff00ca"></script>
+<script src="../src2/lineup.js?b=31ff00ca"></script>
 <script src="../tools/sync-check.js"></script>
 <script>
 (function () {
-  // code from Chrome 153 and node 22 (V8) on 9 Nov, with dmath.js; update when the engine or the test fights change
-  const REF = { total: '408e7f67', math: '2cd6141c' };
+  // code from Chrome and node 22 (V8), with dmath.js; update when the engine or the test fights change
+  const REF = { total: '89a95280', math: '2cd6141c' };   // T41 (21 Nov): wear on in every fight, retuned robots, two fights with carried wear marks (was 408e7f67)
   const $ = id => document.getElementById(id);
   const ua = navigator.userAgent, br = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'browser';
   const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';

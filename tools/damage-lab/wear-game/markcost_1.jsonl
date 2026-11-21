@@ -1,0 +1,32 @@
+{"robot":"Forklift","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.4502,"wcrack":0,"open":0,"cut":0},"pred":0.45,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Forklift","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0.7179161172989215,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0.0573,"open":0,"cut":0},"pred":0,"marks":"drive:  | weapon: bent 7°, cracked | body: "}
+{"robot":"Mincer","lv":0,"n":8,"wMk":0,"wNo":1,"x":{"wbend":0,"wwarp":0.1871111111111111,"wsnap":0,"rub":0,"bcrack":1,"wcrack":0,"open":0,"cut":0},"pred":1,"marks":"drive:  | weapon: warped | body: cracked"}
+{"robot":"Mincer","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.3194,"wcrack":0,"open":0,"cut":0},"pred":0.319,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Scythe","lv":0,"n":8,"wMk":1,"wNo":0,"x":{"wbend":0.320856365273261,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.7794,"wcrack":0,"open":0,"cut":0},"pred":0.844,"marks":"drive:  | weapon: bent 3° | body: cracked"}
+{"robot":"Scythe","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0.19537860813961072,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.039,"marks":"drive:  | weapon:  | body: "}
+{"robot":"Thumper","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":1.1533640415983473,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.5894,"wcrack":0,"open":0,"cut":0},"pred":0.82,"marks":"drive:  | weapon: bent 12° | body: cracked"}
+{"robot":"Thumper","lv":0,"n":8,"wMk":0,"wNo":0,"x":{"wbend":2.5783100780887045,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":1,"cut":0.508},"pred":0.816,"marks":"drive:  | weapon: bent 26° | body: sawn open"}
+{"robot":"Blacksmith","lv":1,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.39},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Blacksmith","lv":1,"n":8,"wMk":0,"wNo":1,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.0634,"wcrack":0,"open":0,"cut":0},"pred":0.063,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Mauler","lv":1,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.17500000000000002},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Mauler","lv":1,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":1,"wcrack":0,"open":0,"cut":0},"pred":1,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Vertigo","lv":1,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.328,"wcrack":0.0257,"open":0,"cut":0},"pred":0.354,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Vertigo","lv":1,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.4719,"wcrack":0,"open":0,"cut":0},"pred":0.472,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Gyro","lv":2,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0.494,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.296,"marks":"drive:  | weapon: warped | body: "}
+{"robot":"Gyro","lv":2,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":1,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.6,"marks":"drive:  | weapon: warped | body: "}
+{"robot":"Whaler","lv":2,"n":8,"wMk":6,"wNo":6,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.233},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Whaler","lv":2,"n":8,"wMk":1,"wNo":3,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":2,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.8,"marks":"drive:  | weapon:  | body: plates bent into 2 wheels"}
+{"robot":"Gaucho","lv":3,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0.10666666666666666,"wsnap":0,"rub":1,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.464,"marks":"drive:  | weapon: warped | body: a plate bent into a wheel"}
+{"robot":"Gaucho","lv":3,"n":8,"wMk":1,"wNo":1,"x":{"wbend":0,"wwarp":0.003111111111111111,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.124},"pred":0.002,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Hydra","lv":3,"n":8,"wMk":3,"wNo":3,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.13899999999999998},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Hydra","lv":3,"n":8,"wMk":0,"wNo":1,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":1,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.4,"marks":"drive:  | weapon:  | body: a plate bent into a wheel"}
+{"robot":"Slingshot","lv":3,"n":8,"wMk":0,"wNo":1,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":1,"bcrack":0.1179,"wcrack":0,"open":0,"cut":0},"pred":0.518,"marks":"drive:  | weapon:  | body: a plate bent into a wheel, cracked"}
+{"robot":"Slingshot","lv":3,"n":8,"wMk":5,"wNo":5,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.21100000000000002},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Bricklayer","lv":4,"n":8,"wMk":1,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":1,"bcrack":0,"wcrack":0,"open":0,"cut":0},"pred":0.4,"marks":"drive:  | weapon:  | body: a plate bent into a wheel"}
+{"robot":"Bricklayer","lv":4,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.273},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Lodestone","lv":4,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":1,"wcrack":0,"open":0,"cut":0},"pred":1,"marks":"drive:  | weapon:  | body: cracked"}
+{"robot":"Lodestone","lv":4,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.013},"pred":0,"marks":"drive:  | weapon:  | body: "}
+{"robot":"Pogo","lv":4,"n":8,"wMk":6,"wNo":4,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.0702,"wcrack":0.0683,"open":0,"cut":0},"pred":0.139,"marks":"drive:  | weapon: cracked | body: cracked"}
+{"robot":"Pogo","lv":4,"n":8,"wMk":3,"wNo":5,"x":{"wbend":0,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.0557,"wcrack":0.0573,"open":0,"cut":0.605},"pred":0.113,"marks":"drive:  | weapon: saw cuts, cracked | body: saw cuts, cracked"}
+{"robot":"Rotisserie","lv":4,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0.018334649444186342,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0,"wcrack":0,"open":0,"cut":0.227},"pred":0,"marks":"drive:  | weapon:  | body: saw cuts"}
+{"robot":"Rotisserie","lv":4,"n":8,"wMk":0,"wNo":0,"x":{"wbend":0.8021409131831525,"wwarp":0,"wsnap":0,"rub":0,"bcrack":0.7336,"wcrack":0,"open":0,"cut":0},"pred":0.894,"marks":"drive:  | weapon: bent 8° | body: cracked"}

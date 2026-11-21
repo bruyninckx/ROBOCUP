@@ -112,3 +112,11 @@ Measured in the cloud test box (2 slow cores, so 1 helper; 4 teams of 3 robots, 
 - Frames stay smooth while it works (helpers: median 16.7 ms, worst 100 ms in 3 s; from a file: median 16.8 ms, worst 50 ms).
 - Kev's PC (section above) runs 16-20 duels a second on the page, about 30 times this box. From the web (helpers, cores minus 2) a full grid should then take well under a minute, your changed duels (about 18 pair states, 430 fights) first. From a file the slices get about a tenth of the page's time at most, so expect 1-2 duels a second there: a few minutes for your changed duels, longer for the whole grid. Not measured on his PC yet.
 - Game state (G) is the same before and after opening the overview and running test fights (checked with a hash).
+
+## 21 Nov (T41): wear on, new matchup table
+
+Wear (bends, cracks, saw cuts) is on in every fight and the robots were retuned. With the 15 Nov table the bookie's Brier on the
+retuned fights went from 0.182 to 0.201; with the table measured again with wear on (Kev's PC, 10,560 fights) it is 0.179 on the
+same 1,976 fights. Whole games (40, same seeds): favourite wins 74% → 77%, Brier 0.177 → 0.164. The test fights see wear marks
+(they are in `spec.wear`); the formula prices them (`src2/repair.js` `markCost`, small: marks cost little next to the health damage).
+Details: `docs/robocus-wear-in-game.md`.

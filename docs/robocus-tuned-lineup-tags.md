@@ -4,6 +4,14 @@ Kev (14 Nov): "lets tune the lineup, but lets go for 66% win rate for next level
 
 Branch `claude/robots-2.0.1`. Lineup: the 33 robots from the casting board (see `robocus-lineup-by-cool.md`, section 6).
 
+
+**21 Nov (T41): wear on in every fight.** The lineup was retuned for it (`WEAR.hpExp` 0.5 and 11 power dials) and every tag the game
+reads was measured again on Kev's PC (77,000 fights: matchup table, arenas, parts, fits, free-for-alls, 2v2). The numbers and the
+tag tables below are the 15 Nov ones; what moved (counter picks 43 → 50, Haywire gone, new great and poor fits, Brawl masters, arena
+tags) is in `docs/robocus-wear-in-game.md`, "What moved for players". The p column below is before the retune: Thwacker 3.159,
+Hydra 1.575, Corkscrew 0.781, Jukebox 1.856, Scavenger 1.775, Thumper 0.905, Popcorn 0.897, Orbiter 2.176, Whaler 1.373, Gyro 1.043,
+Wrecker 1.103 now.
+
 ## 1. The tuning
 
 - **One dial per robot:** a power number `p` that scales its damage and its health together (dmgK = hpK = p). The old per-robot damage multipliers are gone.

@@ -296,8 +296,11 @@
         q0 = P(A.tlo - 0.03, kk.side * 0.012); q1 = P(A.thi + 0.03, kk.side * 0.012); ctx.strokeStyle = `rgba(255,248,235,${0.35 + 0.35 * k})`; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(q0[0], q0[1]); ctx.lineTo(q1[0], q1[1]); ctx.stroke();
         ctx.fillStyle = `rgba(60,50,40,${0.25 * k})`; const w = 0.03 + 0.05 * k; const r0 = P(A.tlo - 0.03, -w), r1 = P(A.thi + 0.03, w); ctx.fillRect(Math.min(r0[0], r1[0]), Math.min(r0[1], r1[1]), Math.abs(r1[0] - r0[0]), Math.abs(r1[1] - r0[1])); } }
     if (part.cracks) drawCracks(part.cracks, false);
-    if (part.grooves) for (const g of part.grooves) { if (g.depth < 0.004) continue; // bright cut metal round the notch, glowing while the saw is in it
-      const hot = S && part.attached ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
+    if (part.grooves) drawGrooves(part.grooves, part.attached);
+  }
+  function drawGrooves(grooves, live) { // bright cut metal round the notch, glowing while the saw is in it (T41: also through the top plate)
+    for (const g of grooves) { if (g.depth < 0.004) continue;
+      const hot = S && live ? Math.max(0, 1 - (S.t - g.hot) / 0.8) : 0, r = 0.018 + Math.min(0.02, g.depth * 0.4);
       if (hot > 0) { const gr = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, r * 2.4); gr.addColorStop(0, `rgba(255,190,80,${0.85 * hot})`); gr.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gr; ctx.fillRect(g.x - r * 2.4, g.y - r * 2.4, r * 4.8, r * 4.8); }
       ctx.strokeStyle = 'rgba(236,236,226,0.9)'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, 6.29); ctx.stroke();
       ctx.strokeStyle = 'rgba(150,150,140,0.7)'; ctx.lineWidth = PX * 1; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(g.x, g.y, r * (1.25 + k * 0.08), 0, 6.29); ctx.stroke(); } }
@@ -476,6 +479,7 @@
         for (const q of R.internals) if (q.key !== 'chip' && q.key !== 'module' && q.key !== 'thruster') { ctx.fillStyle = q.hp > 0 ? (INT_COL[q.key] || '#999') : '#3a3530'; ctx.globalAlpha = 0.85; ctx.fillRect(q.lp[0] - 0.035, q.lp[1] - 0.025, 0.07, 0.05); ctx.globalAlpha = 1; }
       }
       if (R.chassis.cracks && R.chassis.cracks.length) drawCracks(R.chassis.cracks, true); // cracks in the shell show through the top plate
+      if (R.chassis.grooves && R.chassis.grooves.length) drawGrooves(R.chassis.grooves, R.chassis.attached); // T41: so do saw cuts in the shell
       drawTop(R, i); drawLamps(R);
       if (R.module) { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     } else { ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `600 ${0.1}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.fillText('UNDERSIDE', 0, 0.035); }
@@ -688,10 +692,17 @@
     if (lifted) { ctx.fillStyle = 'rgba(20,14,8,0.2)'; ctx.beginPath(); ctx.arc(0.1, 0.1, r, 0, 6.29); ctx.fill(); ctx.scale(1.12, 1.12); }
     if (fly && w > 0.15) { ctx.strokeStyle = `rgba(255,90,200,${0.25 + 0.4 * w})`; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, r + 0.04, 0, 6.29); ctx.stroke(); const v = b.getLinearVelocity(); ctx.strokeStyle = `rgba(255,240,250,${0.25 * w})`; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-v.x * 0.04, -v.y * 0.04); ctx.lineTo(0, 0); ctx.stroke(); ctx.lineCap = 'butt'; }
     ctx.rotate(a);
-    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    const wp = q.warp ? q.warp / 0.45 : 0, fa = q.foldA || 0, fx = Math.cos(fa), fy = Math.sin(fa), sq = 1 - 0.42 * wp; // a warped record (T41): the half that folded looks shorter from above
+    const W = (x, y) => { const d = x * fx + y * fy; return d > 0 ? [x - (1 - sq) * d * fx, y - (1 - sq) * d * fy] : [x, y]; };
+    ctx.fillStyle = q.state === 'broken' || q.hp <= 0 ? '#3A3530' : '#1C1A18'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath();
+    if (wp > 0.02) { for (let k = 0; k < 32; k++) { const t = k / 32 * 6.283, [x, y] = W(Math.cos(t) * r, Math.sin(t) * r); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); } else ctx.arc(0, 0, r, 0, 6.29);
+    ctx.fill(); ctx.stroke();
     ctx.strokeStyle = 'rgba(200,200,190,0.22)'; ctx.lineWidth = PX; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (0.5 + k * 0.12), 0, 6.29); ctx.stroke(); }
     ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.8; for (let k = 0; k < 8; k++) { const t = k / 8 * 6.283; ctx.beginPath(); ctx.moveTo(Math.cos(t) * r * 0.93, Math.sin(t) * r * 0.93); ctx.lineTo(Math.cos(t + 0.12) * r, Math.sin(t + 0.12) * r); ctx.stroke(); } // the saw teeth on the rim
     if (w > 0.3) { ctx.strokeStyle = `rgba(255,255,255,${0.45 * w})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * 0.78, k * 2.1, k * 2.1 + 0.9); ctx.stroke(); } }
+    if (wp > 0.05) { ctx.fillStyle = `rgba(120,110,100,${0.25 * wp})`; ctx.beginPath(); for (let k = 0; k <= 12; k++) { const t = fa - Math.PI / 2 + k / 12 * Math.PI, [x, y] = W(Math.cos(t) * r * 0.95, Math.sin(t) * r * 0.95); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); ctx.fill(); // the tipped half catches the light
+      ctx.strokeStyle = `rgba(255,248,235,${0.45 + 0.4 * wp})`; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(-fy * r, fx * r); ctx.lineTo(fy * r, -fx * r); ctx.stroke(); // the fold
+      if (w > 0.3 && wp > 0.15) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(0, 0, r * (1 - 0.21 * wp), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } } // the wobble track
     ctx.fillStyle = q.col || '#E8C547'; ctx.beginPath(); ctx.arc(0, 0, r * 0.34, 0, 6.29); ctx.fill(); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-r * 0.2, -r * 0.05, r * 0.4, r * 0.03); ctx.fillStyle = '#E4E1DA'; ctx.beginPath(); ctx.arc(0, 0, 0.012, 0, 6.29); ctx.fill();
     ctx.restore();
@@ -1432,8 +1443,9 @@
   document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); togglePause(); } });
   document.querySelectorAll('[data-speed]').forEach(bn => bn.onclick = () => { st.speed = +bn.dataset.speed; document.querySelectorAll('[data-speed]').forEach(x => x.setAttribute('aria-pressed', String(x === bn))); });
   $('drama').onchange = e => { st.drama = e.target.checked; };
-  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on
-  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; }; }
+  // contact experiments (engine ARC.cx): off unless ticked; the Contact Lab page (window.CX_ON) starts with all four on.
+  // The four wear boxes (cracks, fragments, bending, saw grooves) start ticked, as in the game (T41); a fight reads them at its start (S.wx)
+  for (const k of ['slide', 'under', 'crush', 'gut', 'crack', 'frag', 'bend', 'grindout']) { const el = $('cx-' + k); if (!el) continue; if (window.CX_ON) el.checked = true; L.ARC.cx[k] = el.checked; el.onchange = e => { L.ARC.cx[k] = e.target.checked; if (S && S.wx && k in S.wx) S.wx[k] = e.target.checked; }; }
   $('arenaSel').innerHTML = Object.entries(L.ARENAS).map(([k, v]) => `<option value="${k}"${k === st.arena ? ' selected' : ''}>${v.label}</option>`).join('');
   $('arenaSel').onchange = e => { st.arena = e.target.value; start(); };
 

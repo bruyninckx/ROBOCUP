@@ -24,3 +24,7 @@ playtests/remote-runs/
 
 # one-time cleanup is done by tools/retire-side-folders.cmd; side folders for experiments go in .wt/ (ignored)
 .wt/
+
+# T41: the wear-tables run (tools/wear-tables.cmd) writes here
+wear-results/
+wear-results-rev.txt

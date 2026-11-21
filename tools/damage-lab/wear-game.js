@@ -9,10 +9,18 @@
 // Env: K (fights per pair, default 8 = 4 seeds x 2 sides), N (Buzzkill-Whirlwind fights, default 24), VARIANTS (default off,bend,all).
 const fs = require('fs');
 const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
+// T41 knobs: WEARK = JSON merged into engine WEAR (e.g. {"hpExp":0.5}), GRADES = JSON of power dials {Robot: p}, ONLY = robots (comma list)
+// whose pairs are played, SEED0 = seed offset (fresh seeds), wear knobs in KINKK (engine KINK) and KSTIFFK (engine KSTIFF)
+if (process.env.WEARK) Object.assign(L.WEAR, JSON.parse(process.env.WEARK));
+if (process.env.KINKK) Object.assign(L.KINK, JSON.parse(process.env.KINKK));
+if (process.env.KSTIFFK) Object.assign(L.KSTIFF, JSON.parse(process.env.KSTIFFK));
+if (process.env.GRADES) for (const [n, p] of Object.entries(JSON.parse(process.env.GRADES))) { const t = LU.ROBOTS[n] || LU.ROBOTS4[n]; if (t) t[1] = p; }
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null, SEED0 = +(process.env.SEED0 || 0);
 const all = Object.assign({}, LU.ROBOTS, LU.ROBOTS4), names = Object.keys(all), lv = n => all[n][0];
 const VARIANTS = (process.env.VARIANTS || 'off,bend,all').split(',');
 const WEAR4 = ['crack', 'frag', 'bend', 'grindout'];
-function setVariant(v) { for (const k of Object.keys(L.ARC.cx)) L.ARC.cx[k] = false; if (v === 'bend') L.ARC.cx.bend = true; if (v === 'all') for (const k of WEAR4) L.ARC.cx[k] = true; }
+function setVariant(v) { for (const k of Object.keys(L.ARC.cx)) L.ARC.cx[k] = false; if (v === 'bend') L.ARC.cx.bend = true; if (v === 'all') for (const k of WEAR4) L.ARC.cx[k] = true;
+  if (WEAR4.includes(v)) L.ARC.cx[v] = true; if (/^no-/.test(v)) for (const k of WEAR4) L.ARC.cx[k] = k !== v.slice(3); }   // T41 diagnostics: one switch alone, or all but one
 const DEG = 180 / Math.PI;
 // how bent a robot's weapon parts are right now: the biggest kink (degrees), bows and warps (0..1 of their max)
 function bentOf(R) {
@@ -40,8 +48,9 @@ if (cmd === 'duel') {
   const pairs = []; for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) if (Math.abs(lv(names[i]) - lv(names[j])) <= 1) pairs.push([names[i], names[j]]);
   const have = done(out); let job = 0, n = 0; const t0 = Date.now();
   for (let s = 0; s < K; s++) pairs.forEach(([a, b], k) => {
+    if (ONLY && !ONLY.has(a) && !ONLY.has(b)) return;   // seeds stay those of the full run (k is the pair's place in the full list)
     if ((job++ % nsh) !== shard) return; const id = `${a}|${b}|${s}`; if (have.has(id)) return;
-    const seed = 37000 + 31 * k + (s >> 1), side = s % 2;   // seed s>>1 played from both sides
+    const seed = 37000 + SEED0 + 31 * k + (s >> 1), side = s % 2;   // seed s>>1 played from both sides
     const rec = { id, a, b, la: lv(a), lb: lv(b), seed, side, r: VARIANTS.map(v => fight(a, b, seed, side, v)) };
     fs.appendFileSync(out, JSON.stringify(rec) + '\n'); n++;
     if (n % 25 === 0) console.log(`shard ${shard}: ${n} jobs, ${Math.round((Date.now() - t0) / 1000)} s`);

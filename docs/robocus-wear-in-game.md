@@ -1,4 +1,321 @@
-# ROBOCUS: bending and wear in real fights, measured (T37, 21 Nov 2026)
+# ROBOCUS: wear on in the game (T41, 21 Nov 2026)
+
+## Status (T41, kept up to date while the work goes on)
+
+Kev (21 Nov): "bend as much as possible", then "no include all and do a rebalance", "keep bend until repair", "port them then".
+Branch `claude/bending-on`.
+
+- [x] Step 1, one switch: `ARC.cx` crack / frag / bend / grindout default **on** in `tools/damage-lab/engine.js` (the one place). A fight
+  reads them once at `create()` into `S.wx`; its options can say `wear: false` (all off), `true`, or per effect. The game puts
+  `wear: BAL.wear !== false` into every fight's options (`buildFight`, the odds overview), so the host, every joined screen (they build
+  the fight from `F.bb`) and the bookie's workers (they get `bb`) agree. `BAL.wear = false` turns all four off. The bump switches
+  (slide, under, crush, gut) stay off. Lab pages: the four wear boxes start ticked (were unticked). With all four off, the stock-fight
+  fingerprint is bit-identical to `origin/main` (checked).
+- [x] Step 1, drawing: the lab's wear layer is in `src2/view.js` (fold lines on bent plates and weapons, cracks incl. chassis cracks
+  through the top plate, saw grooves glowing while the saw is in, the bent bar's two reach streaks and off-centre disc, warped
+  buzzsaws / orbit discs / grinders / Grandmaster's saw, the shell out of round, Thumper's bent handle); records (Jukebox) now
+  draw their warp too (new, in both `ui.js` and `view.js`).
+- [x] Carry-over (Kev: "keep bend until repair"): `wearOf` keeps `marks` (per part label: shape, kinks, plate bends, cracks,
+  grooves, warp, snapped pieces; numbers only), `applyWear` puts them back. `node tools/damage-lab/wear-carry.js` checks it.
+  `src2/repair.js`: repairing a zone clears its marks; a zone with a mark the engine calls out (bent 10°+, warped, a plate in a
+  wheel, sawn open, a tip broken off, a crack 10 cm+) was first counted as damaged; Kev then chose "only shown" (below); `markCost` prices marks.
+- [x] Step 2, retune. Round 1 (`WEAR.hpExp` 0.5: a tougher robot's metal bends, cracks and saws less for the same blow, as weapons
+  already resisted kinks by the square root of their health): Gaucho -15 → -5, Buzzkill +14 → +2, Thumper -14 → -7, Tarantula
+  +12 → +7, Grandmaster +11 → +7; still out: Thwacker -24, Popcorn +20, Orbiter +15, Whaler +14, Hydra -13. Thwacker diagnosed
+  (144 fights a variant): no single cause (without its tail kinking -21, without wheel rub -15, bending alone -10, cracks about -7):
+  it fights long and wears down. Round 2: power dials for the 11 robots still off (`tools/damage-lab/lineup.js`, comment above
+  ROBOTS). Result on 1,976 fights (T37's seeds, paired with the same fights without wear): **no robot outside its 95% range**,
+  spread of the changes 5 points (= noise). Details in section "After" below.
+- [x] Kev's PC run done (21 Nov): `tools\wear-tables.cmd` (see "The big run on Kev's PC" below). Waiting for its result file.
+- [x] Step 3, tables: from Kev's big run (section "Step 3"): matchup table (`src2/matrix.js`), style tags, hard hitters, arena fits,
+  FFA / 2v2 tags, great / poor fits and epics (plus a second round here, 462 x 2 fights). Bookie Brier 0.201 → **0.179** with the new table.
+- [x] Kev (21 Nov, voting page): a mark alone is **not damage**: shown on the card ("BODY · CRACKED · fix?", grey), repairing it is
+  optional (1 action, click the zone), it does not hold up Upkeep, the AI never repairs for it, robot value and repair costs see health
+  only. The bookie still prices marks (they change the fight). Replaces the "big mark = damaged" choice above.
+- [x] Final checks (21 Nov evening, rebased on origin/main 587508e, BUILD 2026-11-21k, files stamp **31ff00ca**): build.py; sync check
+  89a95280 (unchanged); stock-fight fingerprint 470f6923 (unchanged since step 2: the tables do not change fights); game-sim 2/2, 0
+  page errors; mp-test OK, desyncs 0 on every client, 12 fights checked, 12.3 min; fight-panels OK; robot-value OK (a marked zone
+  at full health no longer lowers the value: Popcorn with a cracked Body is worth 1 Cr, as without the mark); questions-note OK (the
+  first run under load 10-15 failed "last 5 s: not marked" on a countdown colour, the re-run alone passed); repair-note FAIL "9
+  repairs: 8 buttons", the known failure that main has too. **Ready to merge.**
+- [x] Step 4, checks (21 Nov, on this branch): build.py; stock-fight fingerprint (`l4-regress.js`) changes as it must:
+  md5 of its output 0b8a0a7a… (origin/main) → 470f6923… (first line "Juggernaut v Brawler: 56.442 Juggernaut wins by KO" →
+  "44.517 Juggernaut wins by KO"); with the four wear switches off it is bit-identical to origin/main (checked on the step-1 engine).
+  Files stamp 352be701 → dbad9aea (changes again at the rebase/merge). Sync check: new reference 89a95280 (was 408e7f67): the engine
+  changed and it now plays 25 fights (two with carried wear marks); node and Chromium give the same code. game-sim 2/2 finished,
+  0 page errors. mp-test (2.0 page, 3 clients): OK, desyncs 0 on every client, 9 fights checked (marks carried online between them),
+  3.4 min; after the rebase on origin/main (T35, T44, BUILD 2026-11-21k): game-sim 2/2, 0 page errors; mp-test OK, desyncs 0 on every
+  client, 10 fights checked, 10.2 min. mp-scenario: fight-panels OK, repair-note-online OK; repair-note FAIL "9 repairs: 8 buttons" (Thumper's Weapon at 50% gets
+  no button) — the same failure on origin/main (checked on a clean copy), so not from this branch. click-game.js 5 12: first run 2
+  stuck steps (a joined seat's Intrigue turn with only ✕ to click: the known T30 flake), the re-run OK. Whole games: 40 + 40 (below).
+  Screenshots (game fight view, 1600x900, plus 2x zooms): /home/claude/t41-shots/ (not in the repo).
+
+
+## After (T41): wear on, retuned
+
+All fights below: the game's 33 robots built as the game builds them, open floor, every pair at most one level apart, T37's seeds
+(8 fights a pair, 1,976 fights), paired with T37's fights of the same robots, seeds and sides **without** wear. Wear means all four
+switches on, as the game now plays. Raw results: `tools/damage-lab/wear-game/t41_round2_all.jsonl`, report `t41_round2_report.md`.
+
+### Per robot: change in win rate against the same fights without wear (all its fights, 95% range)
+
+| Lv | Robot | vs own level: before → now | vs a level up: before → now | T37 (wear, old rules) | round 1 (hpExp) | **now** | what changed for it |
+|---|---|---|---|---|---|---|---|
+| 0 | Buzzkill | 55 → 55 | 40 → 53 | +14 ± 12 | +2 ± 12 | **+5 ± 13** (104) | hpExp 0.5 |
+| 0 | Forklift | 44 → 50 | 20 → 28 | +5 ± 11 | +0 ± 11 | **+7 ± 12** (104) | hpExp 0.5 |
+| 0 | Hornet | 33 → 34 | 33 → 30 | +3 ± 12 | -2 ± 12 | **+0 ± 12** (104) | hpExp 0.5 |
+| 0 | Mincer | 48 → 42 | 28 → 28 | -5 ± 10 | -4 ± 8 | **-4 ± 9** (104) | hpExp 0.5 |
+| 0 | Popcorn | 41 → 42 | 8 → 15 | +18 ± 11 | +20 ± 11 | **+4 ± 10** (104) | hpExp 0.5; power 0.97 → 0.897 (-8%): its flipper barely bends while its rivals' weapons do |
+| 0 | Scythe | 47 → 64 | 40 → 30 | -3 ± 12 | +3 ± 12 | **+7 ± 12** (104) | hpExp 0.5 |
+| 0 | Snapjaw | 56 → 52 | 25 → 28 | +1 ± 12 | +0 ± 11 | **-2 ± 11** (104) | hpExp 0.5 |
+| 0 | Thumper | 58 → 52 | 45 → 35 | -14 ± 12 | -7 ± 13 | **-8 ± 13** (104) | hpExp 0.5; power 0.882 → 0.905 (+3%): its axe handle wrenches, cracks |
+| 0 | Wrecker | 69 → 59 | 20 → 30 | +4 ± 12 | +10 ± 12 | **-2 ± 12** (104) | hpExp 0.5; power 1.146 → 1.103 (-4%): its flail folds the most plates (6.4 a fight on rivals) |
+| 1 | Blacksmith | 41 → 44 | 57 → 57 | -3 ± 8 | -3 ± 8 | **-3 ± 8** (144) | hpExp 0.5 |
+| 1 | Corkscrew | 41 → 41 | 33 → 13 | -8 ± 9 | -10 ± 7 | **-5 ± 8** (144) | hpExp 0.5; power 0.753 → 0.781 (+4%): its drill kinks |
+| 1 | Mauler | 41 → 47 | 33 → 20 | +6 ± 10 | +6 ± 9 | **+3 ± 9** (144) | hpExp 0.5 |
+| 1 | Thwacker | 63 → 53 | 30 → 33 | -26 ± 10 | -24 ± 9 | **-6 ± 9** (144) | hpExp 0.5; power 2.898 → 3.159 (+9%): no single cause (tail kink, wheel rub, cracks each a part); it fights long and wears down |
+| 1 | Vertigo | 66 → 66 | 30 → 35 | +3 ± 10 | -1 ± 9 | **-1 ± 9** (144) | hpExp 0.5 |
+| 2 | Angler | 75 → 84 | 23 → 21 | +8 ± 9 | +4 ± 10 | **+5 ± 10** (120) | hpExp 0.5 |
+| 2 | Gyro | 9 → 19 | 67 → 73 | +7 ± 9 | +10 ± 9 | **+3 ± 9** (120) | hpExp 0.5; power 1.084 → 1.043 (-4%): its shell knocks rivals' plates in (6.7 bends, 1.9 wheel rubs a fight on rivals) |
+| 2 | Pincher | 50 → 56 | 29 → 23 | -10 ± 11 | +0 ± 10 | **-5 ± 10** (120) | hpExp 0.5 |
+| 2 | Whaler | 72 → 66 | 29 → 25 | +9 ± 9 | +14 ± 10 | **+6 ± 9** (120) | hpExp 0.5; power 1.449 → 1.373 (-5%): it folds rivals' plates into their wheels |
+| 2 | Yoyo | 44 → 25 | 31 → 17 | -8 ± 11 | -6 ± 12 | **-9 ± 12** (120) | hpExp 0.5 |
+| 3 | Gaucho | 57 → 40 | 27 → 28 | -15 ± 10 | -5 ± 10 | **-6 ± 10** (144) | hpExp 0.5 |
+| 3 | Grandmaster | 43 → 40 | 20 → 27 | +11 ± 9 | +7 ± 9 | **+5 ± 8** (144) | hpExp 0.5 |
+| 3 | Hydra | 65 → 57 | 56 → 41 | -13 ± 10 | -13 ± 9 | **-6 ± 9** (144) | hpExp 0.5; power 1.501 → 1.575 (+5%): its arm segments kink and crack |
+| 3 | Scavenger | 38 → 43 | 36 → 39 | -1 ± 9 | -8 ± 9 | **+3 ± 9** (144) | hpExp 0.5; power 1.723 → 1.775 (+3%): slightly down after round 1 |
+| 3 | Slingshot | 63 → 65 | 50 → 38 | +5 ± 9 | -4 ± 9 | **-3 ± 10** (144) | hpExp 0.5 |
+| 3 | Tarantula | 35 → 55 | 42 → 45 | +12 ± 10 | +7 ± 10 | **+8 ± 10** (144) | hpExp 0.5 |
+| 4 | Bricklayer | 57 → 54 | - | -4 ± 12 | +1 ± 10 | **-6 ± 10** (104) | hpExp 0.5 |
+| 4 | Jukebox | 55 → 59 | - | -6 ± 12 | -9 ± 13 | **-2 ± 12** (104) | hpExp 0.5; power 1.795 → 1.856 (+3%): its records warp, a warped saw cuts less |
+| 4 | Lodestone | 41 → 29 | - | +4 ± 11 | +5 ± 11 | **+2 ± 11** (104) | hpExp 0.5 |
+| 4 | Orbiter | 48 → 46 | - | +12 ± 10 | +15 ± 10 | **+3 ± 10** (104) | hpExp 0.5; power 2.305 → 2.176 (-6%): its discs only warp a little; it saws into rivals |
+| 4 | Pogo | 57 → 63 | - | +3 ± 10 | +2 ± 9 | **+3 ± 9** (104) | hpExp 0.5 |
+| 4 | Railgun | 59 → 63 | - | +5 ± 11 | +2 ± 12 | **+7 ± 11** (104) | hpExp 0.5 |
+| 4 | Rotisserie | 48 → 50 | - | -6 ± 11 | -5 ± 10 | **-4 ± 10** (104) | hpExp 0.5 |
+| 4 | Trebuchet | 34 → 38 | - | +4 ± 11 | +7 ± 12 | **+6 ± 12** (104) | hpExp 0.5 |
+
+No robot is outside its 95% range now (with 33 robots, about 2 would be by luck); the changes spread 5 points, which is what
+noise alone gives. Before the retune (T37) 10 robots were outside, spread 9. Per robot the numbers are good to about ±10.
+
+### Level steps (how often the higher level wins; target 63-68%)
+
+
+| Step | Fights | Today | B: all four | change |
+|---|---|---|---|---|
+| level 0 → 1 | 360 | 71% ± 5 | 69% | -2 ± 5 |
+| level 1 → 2 | 200 | 64% ± 7 | 69% | +5 ± 8 |
+| level 2 → 3 | 240 | 64% ± 6 | 68% | +4 ± 7 |
+| level 3 → 4 | 384 | 61% ± 5 | 64% | +2 ± 6 |
+| all steps | 1184 | 65% ± 3 | 67% | +2 ± 3 |
+
+All within noise of the band; 0 → 1 and 1 → 2 are a point above it (± 5-8). The big run on Kev's PC (10,560 fights, every pair) checks this with three times the fights; a last small nudge can follow from it.
+
+### Fight length, knockouts
+
+
+| | Today (off) | B: all four |
+|---|---|---|
+| Fight length, s | 72.9 ± 1.4 | 72.4 ± 1.5 |
+| Knockouts | 84% | 81% |
+| Ends on time (judges) | 16% | 19% |
+| No winner | 0 | 0 |
+| Winner differs from today, B: all four |  | 32% |
+
+### The bookie (matchup table of 15 Nov, measured without wear, against these results)
+
+
+| Odds | Results | Brier | favourite wins | mean odds of the favourite |
+|---|---|---|---|---|
+| matchup table (game odds, robots as they come) | today (1976) | 0.182 | 75% ± 2 | 77% |
+| matchup table (game odds, robots as they come) | B: all four (1976) | 0.201 | 70% ± 2 | 77% |
+| level only (strength model) | today (1976) | 0.236 | 65% ± 3 | 65% |
+| level only (strength model) | B: all four (1976) | 0.233 | 67% ± 3 | 65% |
+
+Brier change, matchup table, B: all four: +0.019 ± 0.012 (paired).
+
+With the old table the bookie is off by as much as in T37 (0.201 vs 0.182). The table must be measured again with wear on:
+that is the big run on Kev's PC. Until then the game uses the old table (the test-fight bookie already sees wear).
+
+### Buzzkill vs Whirlwind (Kev's fight), wear on as in the game now
+
+24 fights (12 seeds, both sides): Buzzkill's bar bent 10°+ in 23 of 24 fights, Whirlwind's in 24 of 24; the most bent arm 25° /
+27° on average (34° at most), 15° / 20° still bent at the end; a bar snapped in 7 / 5 fights. Buzzkill wins 38% (Whirlwind is
+an old 2.0 robot at its own strength). Still clearly visible: the hpExp change does not touch weapon kinks.
+
+### Marks that stay until repaired (Kev: "keep bend until repair")
+
+- What stays (`wearOf` → `spec.wear.marks`, keyed by part label, numbers only): each part's outline if a kink, warp, split or snapped
+  tip changed it; its straight shape; kinks; plate bends (and so the wheel it drags on); cracks; saw grooves (a chassis sawn open keeps
+  its smoking wound); warps; Thumper's bent handle; a bent beak. `node tools/damage-lab/wear-carry.js 24`: every mark comes back
+  exactly in the next fight, through JSON, and two fights built from the same options play the same.
+- A repair of the zone a part belongs to (Weapon, Drive, Body: the game's own `zoneOfPart`) clears its marks with its health. The free
+  Upkeep Body heal (to half) does not straighten anything.
+- A zone with a mark the engine would call out (bent 10°+, warped, a plate in a wheel, sawn open, a tip broken off, cracks 10 cm+) is
+  `marked`. Kev (21 Nov): "Only shown on the card: repairing it is optional and the AI ignores it". So `damaged` sees health only
+  (repair costs, the repair note, the AI's repairs, the robot's value); the card shows the mark in grey ("⛨ BODY · CRACKED · fix?"),
+  a click repairs that zone for 1 action, and the tooltip says it is optional and still changes the fight. A first version counted
+  big marks as damage; the whole-game numbers below were measured with that version (marks then cost a repair action, now they don't).
+- The bookie: test fights see the marks (they are in spec.wear). The formula prices them (`src2/repair.js` `markCost`), measured with
+  `tools/damage-lab/markcost.js`: 66 damaged states out of real fights, each in 16 fights with and without its marks (1,056 fights
+  each way): with marks the robot won 11.2%, without 11.6% (0.4 points, ± 2.6). Next to the health damage that comes with them, the
+  marks cost little. Fitted and rounded (never below 0): a plate in a wheel 0.25 logits a wheel, a fully warped disc 0.25, a tip broken
+  off 0.15, sawn open 0.2, cracks 0.08 a metre, a bend nothing measurable. Mean of the priced marks 0.08 logits against a measured
+  0.03 ± 0.3: right on average, and per state no worse than pricing nothing (root mean square error 0.63 vs 0.65).
+- Saves and online: the marks are part of `r.wear`, which is already in the game state. Old saves load (their robots have no marks).
+  A robot's wear after a fight: 503 bytes without marks, 1,002 with (2,282 at most; 32 robots). The whole game state at the end of a
+  game: 45.3 / 49.6 / 27.5 KB with marks, 41.3 / 44.0 / 27.2 KB without (3 games): about 10% more.
+- `BAL.wearMarks = false` (test switch): marks are dropped after the fight, as before.
+
+### Whole games with carry-over (40 AI games each way, same seeds 1-40, AI v2, this branch)
+
+| | Marks stay until repaired | Marks dropped after a fight (`wearMarks: false`) |
+|---|---|---|
+| Games finished, page errors | 40 / 40, 0 | 40 / 40, 0 |
+| Rounds a game | 11.5 | 11.9 |
+| Repairs per team per round | 4.7 | 4.4 |
+| Repairs by zone (drive / weapon / body) | 27 / 28 / 45% | 28 / 25 / 47% |
+| Credits spent on repairs a game (all teams) | 39.5 | 41.1 |
+| Credits held per team at Upkeep; at the end | 7.5; 9.2 | 7.6; 9.2 |
+| Fighters sent with Drive / Weapon / Body damage | 7 / 8 / 27% | 7 / 6 / 29% |
+| Bookie favourite wins; Brier | 74%; 0.177 | 72%; 0.179 |
+
+Keeping the marks changes little in whole games: a few more Weapon repairs (28% of repairs instead of 25%) and slightly more robots
+sent with a damaged weapon (8% vs 6%); credits and game length within noise (40 games: about ± 0.6 rounds, ± 2 points).
+
+## Step 3: the tables from the big run on Kev's PC (21 Nov)
+
+Kev ran `tools\wear-tables.cmd` (16 logical processors, 15 workers; result file made 15:22 UTC, no failed jobs). It ran revision
+ef3b8e3 of this branch: since then nothing that plays a fight changed (`engine.js`, `lineup.js`, `dmath.js`, `matrix.js`,
+`arenafit.js`, `tag-sim2.js`, `src2/repair.js` are identical; its `lineup.json` matches today's dials exactly; `WEAR.hpExp` 0.5). Only
+the whole games ran on the page as it was then (before T35 / T44 came in from main; both are off by default or display only).
+So the tables are current: no re-run needed. Raw data stays outside the repo; kept: `tools/damage-lab/wear-game/t41_bigrun_*`.
+
+### Level steps from the big run (open floor, every pair, 20 fights a pair, seeds 7700+; "before" = the 15 Nov table, same seeds, no wear)
+
+| step | fights | before (no wear) | now (wear, retuned) |
+|---|---|---|---|
+| 0 -> 1 | 900 | 69% ± 3 | 74% ± 3 |
+| 1 -> 2 | 500 | 65% ± 4 | 70% ± 4 |
+| 2 -> 3 | 600 | 70% ± 4 | 69% ± 4 |
+| 3 -> 4 | 960 | 59% ± 3 | 63% ± 3 |
+| 0 -> 2 | 900 | 86% ± 2 | 83% ± 2 |
+| 1 -> 3 | 600 | 84% ± 3 | 75% ± 3 |
+| 2 -> 4 | 800 | 85% ± 2 | 83% ± 3 |
+
+Kev's question (0 → 1 and 1 → 2 were 69% on 1,976 fights): the big run **confirms they are steep**, and more clearly: 0 → 1 is
+74% ± 3 (it was 69% ± 3 on this table before wear) and 1 → 2 70% ± 4 (65% before). 2 → 3 69% ± 4 and 3 → 4 63% ± 3 are at or just
+outside the band. Not nudged (as asked); a nudge would be: level 0 robots up about 4-5% power, or level 1 down 3% and level 2 down 2%.
+
+### Per robot (open floor, all fights against robots at most a level away; ± is 95%, unpaired: different fights)
+
+| robot | lv | vs own level before → now (fights) | vs a level up before → now (fights) | change ± (fights) |
+|---|---|---|---|---|
+| Buzzkill | 0 | 50 -> 66 (160) | 29 -> 39 (100) | +13 ± 9 (260) **(outside)** |
+| Forklift | 0 | 54 -> 57 (160) | 20 -> 22 (100) | +3 ± 8 (260) |
+| Hornet | 0 | 43 -> 28 (160) | 45 -> 28 (100) | -16 ± 8 (260) **(outside)** |
+| Mincer | 0 | 46 -> 43 (160) | 31 -> 20 (100) | -6 ± 8 (260) |
+| Popcorn | 0 | 53 -> 43 (160) | 29 -> 23 (100) | -8 ± 8 (260) **(outside)** |
+| Scythe | 0 | 53 -> 53 (160) | 31 -> 30 (100) | +0 ± 9 (260) |
+| Snapjaw | 0 | 51 -> 49 (160) | 36 -> 27 (100) | -5 ± 8 (260) |
+| Thumper | 0 | 41 -> 50 (160) | 40 -> 28 (100) | +1 ± 8 (260) |
+| Wrecker | 0 | 61 -> 63 (160) | 20 -> 19 (100) | +1 ± 9 (260) |
+| Blacksmith | 1 | 51 -> 48 (80) | 52 -> 49 (100) | +2 ± 7 (360) |
+| Corkscrew | 1 | 43 -> 40 (80) | 28 -> 11 (100) | -4 ± 7 (360) |
+| Mauler | 1 | 45 -> 48 (80) | 25 -> 14 (100) | +1 ± 7 (360) |
+| Thwacker | 1 | 58 -> 55 (80) | 26 -> 37 (100) | +9 ± 7 (360) **(outside)** |
+| Vertigo | 1 | 54 -> 60 (80) | 43 -> 39 (100) | -2 ± 7 (360) |
+| Angler | 2 | 59 -> 70 (80) | 14 -> 22 (120) | +10 ± 8 (300) **(outside)** |
+| Gyro | 2 | 9 -> 23 (80) | 56 -> 64 (120) | +7 ± 8 (300) |
+| Pincher | 2 | 41 -> 39 (80) | 28 -> 25 (120) | -6 ± 8 (300) |
+| Whaler | 2 | 75 -> 70 (80) | 28 -> 26 (120) | +8 ± 8 (300) |
+| Yoyo | 2 | 66 -> 49 (80) | 24 -> 18 (120) | -8 ± 8 (300) **(outside)** |
+| Gaucho | 3 | 48 -> 36 (100) | 32 -> 26 (160) | -8 ± 7 (360) **(outside)** |
+| Grandmaster | 3 | 46 -> 40 (100) | 29 -> 27 (160) | +1 ± 7 (360) |
+| Hydra | 3 | 66 -> 64 (100) | 55 -> 47 (160) | -9 ± 7 (360) **(outside)** |
+| Scavenger | 3 | 21 -> 29 (100) | 42 -> 34 (160) | +1 ± 7 (360) |
+| Slingshot | 3 | 62 -> 68 (100) | 51 -> 46 (160) | -2 ± 7 (360) |
+| Tarantula | 3 | 57 -> 63 (100) | 34 -> 42 (160) | +5 ± 7 (360) |
+| Bricklayer | 4 | 66 -> 59 (140) | - | -2 ± 8 (260) |
+| Jukebox | 4 | 44 -> 53 (140) | - | +10 ± 9 (260) **(outside)** |
+| Lodestone | 4 | 37 -> 30 (140) | - | -1 ± 8 (260) |
+| Orbiter | 4 | 54 -> 52 (140) | - | +2 ± 8 (260) |
+| Pogo | 4 | 64 -> 63 (140) | - | -2 ± 8 (260) |
+| Railgun | 4 | 49 -> 62 (140) | - | +9 ± 9 (260) **(outside)** |
+| Rotisserie | 4 | 49 -> 44 (140) | - | -7 ± 9 (260) |
+| Trebuchet | 4 | 37 -> 37 (140) | - | +4 ± 9 (260) |
+
+11 of 33 robots are outside their range (about 2 by luck), but only two are more than about 10 points off: **Hornet −16 ± 8** and
+**Buzzkill +13 ± 9** (both level 0; the 1,976-fight run had them at +0 and +5). Then Angler +10, Jukebox +10, Thwacker +9, Railgun +9.
+Question for Kev: nudge Hornet up and Buzzkill down (about 6-8% power each) together with the level 0 → 1 step?
+
+### The bookie
+
+| Odds | Results | Brier | favourite wins |
+|---|---|---|---|
+| 15 Nov table (no wear) | the same 1,976 fights without wear | 0.182 | 75% |
+| 15 Nov table (no wear) | the retuned fights with wear (t41_round2_all) | 0.201 | 70% |
+| **new table (big run, wear)** | **the retuned fights with wear** | **0.179** | **75%** |
+
+Paired against the old table on the no-wear fights: −0.008 ± 0.013. **The bookie is back** (within noise of 0.182). Whole games:
+see the table below.
+
+### Whole games with the new table (AI v2, same seeds 1-40 as the carry-over check)
+
+| | 15 Nov table (40 games here) | new table (37 + 3 games here) | Kev's 120 games (15 Nov table, his PC) |
+|---|---|---|---|
+| Bookie favourite wins | 74% | 77% | 75% |
+| Bookie Brier (coin 0.25) | 0.177 | **0.164** | 0.170 |
+| Rounds a game | 11.5 | 11.7 | 11.6 |
+
+Three of the 40 games here stalled in round 1 with the box overloaded (load 12-16); run alone, all three finished (the same thing was
+seen on 15 Nov). Kev's run: 119 of 120 finished (1 stall), 0 page errors.
+
+### What moved for players (bookie tags and odds)
+
+| Tag | Gone | New | Stays |
+|---|---|---|---|
+| 🎯 Counter pick / Bad matchup (from the table, 40+ points off the level gap) | 11 (e.g. Mincer vs Mauler, Popcorn vs Blacksmith, Snapjaw and Blacksmith vs Thwacker, Hydra vs Tarantula) | 18 (e.g. Buzzkill vs Hornet, Wrecker vs Hornet and Popcorn, Blacksmith vs Mauler and Tarantula, Gyro vs Slingshot and Railgun, Thwacker vs Pincher) | 32 (43 → 50 in all) |
+| ⚡ Epic combo | Haywire (Popcorn + Sensor scrambler: 17 → 33%, not even a great fit now) | - | Whiplash 30 → 78%, Phantom Hook 28 → 83%, Overclock 50 → 80%, Iron Bolas 12 → 58% |
+| 🧩 Great fit | Corkscrew + Field hospital (just under the cut), Popcorn + Sensor scrambler | Thwacker + Pester chip (27-30 → 57-70%, both rounds), Snapjaw + Wall Bait chip, Popcorn + Quantum shield, Wrecker + Jammer drone | Thwacker + Mine layer / Tow cable, Wrecker + Pester chip, Angler + Quantum, Vertigo + Power kit, Gaucho + Overdrive |
+| 🧩 Poor fit | Forklift + Laser drone | Vertigo + Overdrive, Rotisserie + Overdrive, Corkscrew + Pester, Slingshot + Wall Bait, Hornet + Booster drone, Forklift + Pester | Rotisserie + Pester, Yoyo + Blocker drone |
+| 🌀 Brawl master / Lost in a melee (750 FFAs, cut 14) | Rotisserie, Pogo, Trebuchet, Slingshot, Corkscrew | Angler +18, Railgun +23, Mincer −16, Pincher −16 | Jukebox +20, Orbiter +24, Gyro +14; Thwacker flips +14 → −18 |
+| 🤝 Lone wolf / Team player (750 2v2) | - | - | none (Snapjaw −12, Angler +12 under the cut) |
+| Style (Giant killer / Coin-flip / Quick / Grinder) | Lodestone coin-flip | Tarantula giant killer, Corkscrew, Angler, Trebuchet coin-flip, Yoyo grinder | 19 others (now from the 10,560 matchup fights, was 6,336 tag fights) |
+| 🔨 Hard hitter | - | Jukebox, Orbiter | Gaucho, Buzzkill |
+| Arena tags (fit 0.4+) | Thwacker hates ice (−1.23 → −0.22), Popcorn saw specialist, Corkscrew cage fighter and ice skater, Mauler and Vertigo ice, Whaler hates the Cage, Vertigo hates saws, Thwacker saws, Mincer hates ice, Yoyo hates saws, Pincher, Slingshot (cage, saws), Lodestone saws | Hornet hates the Cage, Mincer, Angler, Grandmaster hate saws, Wrecker saw specialist, Jukebox cage fighter | the rest; ice and killbox fits are smaller now (their noise shrink fits at 0.4 and 0.35, was 0.75 and 0.45) |
+
+Not re-measured: the 👑 Giant-slayer builds (no slayer section in the run) and the part levels `PART_LV`. The big run's parts
+section built robots the way the 15 Nov tag tool did (no level growth for drones and modules), so its levels for drones and modules
+are not comparable; for stat parts and legendaries they stay within about ±0.3 of a level except **Overdrive: 0.80 → 1.28 levels**
+(wear makes extra weapon damage worth more). PART_LV is unchanged; a `parttest.js` run would settle Overdrive (question for Kev).
+
+## The big run on Kev's PC (T41)
+
+Kev: "let me know if you want a big one to run on my pc". **Double-click `tools\wear-tables.cmd`.** It does not touch the ROBOCUS
+folder: it clones the branch `claude/bending-on` into `%USERPROFILE%\robocus-wear` (or updates that clone), installs planck and
+Playwright's Chromium there once, and runs `tools/damage-lab/wear-tables.js` on **15 workers** (16 logical processors, one left
+for Windows). Close the window to stop; double-click again to go on (finished jobs are kept). Progress and the time left are on
+one line. At the end it prints one file to send back: `%USERPROFILE%\robocus-wear\wear-results\wear-tables-results.json.gz`.
+
+What it runs (all with wear on and the retuned robots): the open-floor matchup table (528 pairs x 20 = 10,560 fights), the four
+arena tables (4 x 99 pairs x 20 = 7,920), arena fits (5 floors x 16 seeds = 15,840), every part on every robot vs a level up
+(14,784), the 58 fit / epic candidates with and without the part (2 x 5,248), 750 free-for-alls and 750 2v2, then 120 whole AI
+games of the game page (carry-over on). About 77,000 fights. Time: here one duel takes about 1.2 s of one core; a 9800X3D core is
+about twice as fast and 15 workers on 8 cores / 16 threads give about 11 cores' worth, so **about 70 minutes of fights plus about
+15 minutes of whole games: about 1.5 hours** (on an 8-thread PC with 7 workers, about 3 hours).
+
+Note for the orchestrator: Kev's folder is on `main`, which does not have the .cmd yet. It is self-contained: copy it to his
+folder (or let him download it from the branch on GitHub) and double-click it anywhere.
+
+After it comes back: unpack (`node -e` gunzip, `files` map), `matrix-merge.js <dir>` → matrix-data.json → `build.py` (src2/matrix.js);
+`style-tags.js <dir>` → STYLE / HITTER in tabletop-2.html; `arenafit-report.js <dir> --eb` → ARENA_FIT; `tag-tuned-report.py` /
+`tag-tuned-final.py` with OUT=<tags dir> LINEUP=wear-results/lineup.json → fits, epics, FFA_FIT, 2v2 tags; parttest-style
+levels from the parts section → PART_LV if a part moved; `game-sim-report.js` on the games.
+
+---
+
+# Before: bending and wear in real fights, measured (T37, 21 Nov 2026)
 
 Kev (21 Nov): "I saw a fight between buzzkil and whirlwind and his blades didn't even really bend at any point. Did we forget to include this? at one point we had this". Then, to "measure first": "yes do this first step".
 

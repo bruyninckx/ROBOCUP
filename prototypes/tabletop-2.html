@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="352be701">
+<meta charset="utf-8"><meta name="robocus-files" content="31ff00ca">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -647,17 +647,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=352be701"></script>
-<script src="../src2/dmath.js?b=352be701"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=31ff00ca"></script>
+<script src="../src2/dmath.js?b=31ff00ca"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=352be701"></script>
-<script src="../src2/lineup.js?b=352be701"></script>
-<script src="../src2/matrix.js?b=352be701"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=352be701"></script>
-<script src="../src2/sound.js?b=352be701"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=352be701"></script>
+<script src="../src2/engine.js?b=31ff00ca"></script>
+<script src="../src2/lineup.js?b=31ff00ca"></script>
+<script src="../src2/matrix.js?b=31ff00ca"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=31ff00ca"></script>
+<script src="../src2/sound.js?b=31ff00ca"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=31ff00ca"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -764,6 +764,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
     showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
+    wearMarks: true,              // T41 (Kev, 21 Nov: "keep bend until repair"): bends, cracks, saw cuts and warps stay on a robot until its zone is repaired (spec.wear.marks); false = they are gone after the fight
+    wear: true,                   // T41 (Kev, 21 Nov: "bend as much as possible", "include all"): cracks, fragments, bends and saw grooves in every fight (engine ARC.cx; each fight carries it in F.bb.wear, so every screen and the bookie's workers agree); false = all four off
     flavor: true,                 // T39 (Kev, 21 Nov): themed names and drawings on 18 cards (FLAVOR); display only, false = the game's names
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
@@ -1569,7 +1571,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return ZN.get(k);
   }
   const ZONE = {}; for (const z of R2.ZONES) ZONE[z.key] = z;
-  const zoneState = q => q.broken ? 'broken' : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
+  // T41 (Kev, 21 Nov: "keep bend until repair"): a zone also shows the wear marks it carries (Repair2.zones marks: "bent 23°", "warped"...)
+  const zoneMarks = q => q && q.marks && q.marks.length ? q.marks.join(', ') : '';
+  const zonePct = q => q.f < 0.995 || !zoneMarks(q) ? Math.round(q.f * 100) + '%' : '';
+  const zoneState = q => q.broken ? 'broken' : q.damaged ? [zonePct(q), zoneMarks(q)].filter(Boolean).join(', ') : zoneMarks(q) || 'ok';
+  const zoneShort = q => q.broken ? 'broken' : q.damaged ? zonePct(q) || (q.marks[0] || 'dmg').replace(/^a plate bent into a wheel$/, 'plate rub').replace(/^plates bent into \d+ wheels$/, 'plate rub') : 'ok';
   const wrecked = r => { const Z = zonesOf(r); return Z.weapon.broken || Z.drive.broken; };
   const hurt = r => Math.max(0, baseStr(r) - str2(r));   // strength its damage costs
   // Kev, 11 Nov: a dead processor chip carries over inside "Body broken" and all but loses the next fight (the robot wanders on backup control): say so
@@ -1638,8 +1644,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const n = repairCost(r, z.key), p = repairPlan(t, n);
       const hint = !p.ok ? 'can\'t pay: ' + p.cr + ' Cr (you have ' + t.credits + ')'
         : (p.acts ? (p.acts === p.free ? p.acts + ' free action' + (p.acts > 1 ? 's' : '') : actsWord(p.acts).replace(' repair', '')) : '') + (p.acts && p.cr ? ' + ' : '') + (p.cr ? p.cr + ' Cr' : '') + (p.ex.length ? ' · exhausts ' + crewList(p.ex) : '');
-      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%') + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
-      jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: q.broken ? 'broken' : Math.round(q.f * 100) + '%', p, hint, tip });
+      const tip = 'Repair ' + r.name + '\'s ' + z.label + ' (' + zoneState(q) + '): ' + actsWord(n) + '. ' + (p.ok ? 'Paid with ' + [p.acts ? actsWord(p.acts) : '', p.cr ? p.cr + ' Cr' : ''].filter(Boolean).join(' + ') + (p.ex.length ? '; ' + crewList(p.ex) + (p.ex.length > 1 ? ' are' : ' is') + ' exhausted for this round' : '') + '.' : 'Not enough actions or credits (' + repairCr() + ' Cr per action).');
+      jobs.push({ r, zk: z.key, broken: q.broken, f: q.f, ri, st: zoneShort(q), p, hint, tip });
     } });
     return jobs.sort((a, b) => (b.broken - a.broken) || (a.f - b.f) || (ZO[a.zk] - ZO[b.zk]) || (a.ri - b.ri));
   }
@@ -1750,15 +1756,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const PART_FIT = {"Angler":{"quantum":[1,53]},"Thwacker":{"tow":[1,40],"mines":[1,42]},"Corkscrew":{"hospital":[1,38]},"Vertigo":{"powerkit":[1,33]},"Popcorn":{"jam":[1,32]},"Wrecker":{"pester":[1,28]},"Gaucho":{"overdrive":[1,30]},"Forklift":{"laser":[-1,-5]},"Rotisserie":{"pester":[-1,-18]},"Yoyo":{"blocker":[-1,-19]}};   // Kev, 15 Nov: re-tested after the parts were levelled (docs/robocus-part-levels.md)
+  const PART_FIT = {"Angler":{"quantum":[1,56]},"Vertigo":{"powerkit":[1,30],"overdrive":[-1,-15]},"Gaucho":{"overdrive":[1,46]},"Rotisserie":{"pester":[-1,-17],"overdrive":[-1,-7]},"Yoyo":{"blocker":[-1,-14]},"Thwacker":{"mines":[1,44],"pester":[1,36],"tow":[1,48]},"Wrecker":{"pester":[1,40],"jammer":[1,28]},"Snapjaw":{"bait":[1,28]},"Popcorn":{"quantum":[1,40]},"Corkscrew":{"pester":[-1,-15]},"Slingshot":{"bait":[-1,-16]},"Hornet":{"booster":[-1,-25]},"Forklift":{"pester":[-1,-5]}};   // Kev, 21 Nov (T41): wear on, retuned robots: every part on every robot vs a level up (big run, 14,784 fights) and the candidates re-tested once or twice with and without the part (40-78 fights); docs/robocus-wear-in-game.md
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {   // Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
-    'Thwacker|tow': ['Whiplash', 25, 65],
-    'Angler|quantum': ['Phantom Hook', 14, 67],
-    'Vertigo|powerkit': ['Overclock', 43, 77],
-    'Popcorn|jam': ['Haywire', 17, 48],
-    'Gaucho|overdrive': ['Iron Bolas', 32, 62],
+  const EPIC = {   // Kev, 21 Nov (T41): re-tested with wear on (30-48 fights each, fresh seeds): Haywire (Popcorn + Sensor scrambler) gone (17 -> 33%), the other four hold. Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
+    'Thwacker|tow': ['Whiplash', 30, 78],
+    'Angler|quantum': ['Phantom Hook', 28, 83],
+    'Vertigo|powerkit': ['Overclock', 50, 80],
+    'Gaucho|overdrive': ['Iron Bolas', 12, 58],
   };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
@@ -1778,8 +1783,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * wins less than its duel numbers say (FFA win = 10 + 0.59 x the duel-based share), and these robots are far off even that,
    * the same way on both halves of the fights (split-half r = 0.81): [points above / below]. 2v2 follows duel strength (r = 0.22 for
    * anything extra); only two robots are clearly worse partners. */
-  const FFA_FIT = {Rotisserie: -17, Jukebox: 18, Pogo: -24, Trebuchet: -20, Orbiter: 20, Slingshot: 20, Gyro: 15, Corkscrew: -11, Thwacker: 14};   // 15 Nov: tuned lineup, 1,500 free-for-alls
-  const TEAM_FIT = {};   // 15 Nov: tuned lineup, 1,500 2v2s: nobody is 10+ points off any more
+  const FFA_FIT = {Mincer: -16, Thwacker: -18, Angler: 18, Gyro: 14, Pincher: -16, Jukebox: 20, Orbiter: 24, Railgun: 23};   // 21 Nov (T41): wear on, retuned robots, 750 free-for-alls (big run); tagged at 14+ points (10+ on 1,500 before: the same noise level)
+  const TEAM_FIT = {};   // 21 Nov (T41): wear on, 750 2v2s (big run): nobody 14+ points off (Snapjaw -12, Angler +12 below the cut)
   const epicOf = (name, k, arena) => { const e = EPIC[name + '|' + k]; if (!e) return null; const a = arena === undefined ? ARENA_NOW() : arena; return e[3] && a && e[3].includes(a) ? null : e; };
   const epicWhere = e => !e || !e[3] ? '' : e[3].length >= 4 ? ' (open floor only)' : ' (not on ' + e[3].map(a => ARENA_INFO[a] ? ARENA_INFO[a].name : a).join(', ') + ')';
   const epicsOn = r => partsOf(r).map(k => epicOf(r.name, k) ? { k, e: epicOf(r.name, k) } : null).filter(Boolean);
@@ -1940,8 +1945,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
-    return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + Math.round(q.f * 100) + '%)' : 'fine'),
-      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
+    return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + zoneState(q) + ')' : zoneMarks(q) ? zoneMarks(q) : 'fine'),
+      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight and still change how it fights, until this zone is repaired.' + (q.marked && !q.damaged ? ' It does not count as damage: repairing it is optional (' + actsWord(zoneActs(q)) + ' straightens it; the AI teams never spend a repair on marks alone).' : '') : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
   }
   function helpName(t, r) {
     const bits = [];
@@ -2817,7 +2822,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   ACT.repairZone = (S, rid, zk) => {
     const t = G.teams[S], r = myBot(S, rid);
     if (!r || G.phase !== 'upkeep' || !r.wear || !ZONE[zk]) return;
-    if (!zonesOf(r)[zk].damaged) return;
+    if (!zonesOf(r)[zk].damaged && !zonesOf(r)[zk].marked) return;   // T41: a marked zone may be repaired too (optional: it straightens the bends, cracks and cuts)
     const n = repairCost(r, zk), how = spendActs(t, n);
     if (!how) { say(S, '🔧 ' + (n > 1 ? 'This zone needs ' + actsWord(n) + ': not enough actions or credits (' + repairCr() + ' Cr each).' : 'No repair actions left and less than ' + repairCr() + ' Cr.'), '#b45309'); return; }
     doRepair(r, zk); logRepair(t, r, zk, how);
@@ -3349,7 +3354,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21j robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21k wear on in every fight (bends, cracks, saw cuts) and they stay until repaired, robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5452,7 +5457,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else if (X.a && Y.a) add(mine ? 2 : 3, X.a, Y.a, C.per); }
     OVR.jobs = tier.flat(); OVR.tStart = performance.now(); OVR.tFull = OVR.jobs.every(j => j.c.done) ? 0.001 : 0;
   }
-  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open' });
+  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open', wear: BAL.wear !== false });
   function ovrCount(c, i, r) {
     c.fly.delete(i);
     if (!r || r.err || c.got.has(i)) return;
@@ -6198,17 +6203,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
   // Kev, 17 Nov (T4, "lets change the arenas so they have an impact"): stronger arenas, re-measured with 16 seeds (3,168 fights an arena,
   // 64-256 a robot); logit change x each arena's own noise shrink (saws 0.85, cage 0.75, ice 0.75, killbox 0.45). docs/robocus-arenas.md
-  const ARENA_FIT = {"Buzzkill":{"saws":-0.21,"killbox":-0.16,"cage":-0.02,"ice":0.23},"Forklift":{"saws":0.09,"killbox":0.3,"cage":-0.06,"ice":-0.39},"Hornet":{"saws":0.43,"killbox":-0.06,"cage":-0.32,"ice":0.28},"Mincer":{"saws":-0.16,"killbox":-0.1,"cage":-0.02,"ice":-0.47},"Popcorn":{"saws":0.59,"killbox":0.17,"cage":0.24,"ice":0.29},"Scythe":{"saws":-0.25,"killbox":-0.05,"cage":-0.05,"ice":-0.33},"Snapjaw":{"saws":-0.33,"killbox":0.01,"cage":-0.2,"ice":0.06},"Thumper":{"saws":-0.43,"killbox":-0.02,"cage":0.31,"ice":0.24},"Wrecker":{"saws":0.32,"killbox":-0.08,"cage":0.08,"ice":0.1},"Blacksmith":{"saws":0.32,"killbox":0.03,"cage":0.05,"ice":-0.17},"Corkscrew":{"saws":-0.52,"killbox":0.2,"cage":0.67,"ice":0.45},"Mauler":{"saws":0.27,"killbox":-0.13,"cage":-0.05,"ice":0.4},"Thwacker":{"saws":0.51,"killbox":0.04,"cage":-0.96,"ice":-1.23},"Vertigo":{"saws":-0.59,"killbox":-0.14,"cage":0.25,"ice":0.45},"Angler":{"saws":-0.17,"killbox":0.05,"cage":0.16,"ice":0.05},"Gyro":{"saws":1.13,"killbox":0.3,"cage":0,"ice":0.36},"Pincher":{"saws":-0.45,"killbox":-0.06,"cage":0.52,"ice":-0.34},"Whaler":{"saws":1.91,"killbox":0.02,"cage":-0.86,"ice":0.33},"Yoyo":{"saws":-0.54,"killbox":-0.09,"cage":0.12,"ice":-0.02},"Gaucho":{"saws":0.04,"killbox":-0.14,"cage":-0.11,"ice":-0.23},"Grandmaster":{"saws":-0.21,"killbox":0.24,"cage":0.38,"ice":0.3},"Hydra":{"saws":-0.28,"killbox":-0.08,"cage":-0.13,"ice":-0.15},"Scavenger":{"saws":0.08,"killbox":-0.04,"cage":-0.15,"ice":0.2},"Slingshot":{"saws":0.48,"killbox":0.08,"cage":0.43,"ice":-0.1},"Tarantula":{"saws":-0.02,"killbox":-0.06,"cage":-0.36,"ice":0},"Bricklayer":{"saws":-0.14,"killbox":0.05,"cage":0.25,"ice":-0.14},"Jukebox":{"saws":-0.17,"killbox":-0.06,"cage":0.22,"ice":-0.31},"Lodestone":{"saws":0.46,"killbox":0.03,"cage":-0.11,"ice":0.08},"Orbiter":{"saws":0.54,"killbox":-0.06,"cage":-0.58,"ice":-0.26},"Pogo":{"saws":0.05,"killbox":-0.02,"cage":0.08,"ice":0.26},"Railgun":{"saws":-0.18,"killbox":-0.32,"cage":-0.28,"ice":0.17},"Rotisserie":{"saws":-0.85,"killbox":0.06,"cage":0.13,"ice":-0.05},"Trebuchet":{"saws":0.26,"killbox":0.33,"cage":0.33,"ice":0.3}};
+  // Kev, 21 Nov (T41): re-measured with wear on and the retuned robots (big run, 3,168 fights an arena, 16 seeds; arenafit-report.js --eb: shrink saws 0.85, cage 0.65, ice 0.4, killbox 0.35)
+  const ARENA_FIT = {"Buzzkill":{"cage":-0.18,"ice":0.03,"killbox":-0.09,"saws":-0.31},"Forklift":{"cage":0.16,"ice":-0.1,"killbox":0.24,"saws":0.21},"Hornet":{"cage":-0.52,"ice":0.13,"killbox":-0.06,"saws":0.43},"Mincer":{"cage":-0.02,"ice":-0.21,"killbox":-0.05,"saws":-0.41},"Popcorn":{"cage":0.13,"ice":0.11,"killbox":0.09,"saws":0.28},"Scythe":{"cage":0.08,"ice":-0.06,"killbox":-0.01,"saws":-0.13},"Snapjaw":{"cage":0.06,"ice":0.04,"killbox":-0.01,"saws":-0.07},"Thumper":{"cage":0.16,"ice":0.06,"killbox":-0.03,"saws":-0.41},"Wrecker":{"cage":0.03,"ice":-0.01,"killbox":-0.07,"saws":0.41},"Blacksmith":{"cage":-0.02,"ice":-0.03,"killbox":0.1,"saws":0.21},"Corkscrew":{"cage":0.37,"ice":0.06,"killbox":0.04,"saws":-0.5},"Mauler":{"cage":0.04,"ice":-0.09,"killbox":0,"saws":0.24},"Thwacker":{"cage":-0.69,"ice":-0.22,"killbox":-0.06,"saws":0.3},"Vertigo":{"cage":0.3,"ice":0.28,"killbox":-0.09,"saws":-0.27},"Angler":{"cage":0.13,"ice":0.11,"killbox":0.1,"saws":-0.44},"Gyro":{"cage":-0.22,"ice":-0.02,"killbox":0.22,"saws":0.64},"Pincher":{"cage":0.35,"ice":-0.05,"killbox":-0.13,"saws":-0.63},"Whaler":{"cage":-0.32,"ice":0.21,"killbox":0.1,"saws":1.8},"Yoyo":{"cage":-0.04,"ice":-0.18,"killbox":-0.21,"saws":-0.36},"Gaucho":{"cage":-0.03,"ice":-0.11,"killbox":-0.03,"saws":0.2},"Grandmaster":{"cage":0.26,"ice":0.07,"killbox":-0.03,"saws":-0.49},"Hydra":{"cage":-0.02,"ice":-0.09,"killbox":-0.02,"saws":-0.15},"Scavenger":{"cage":-0.26,"ice":0.06,"killbox":-0.02,"saws":-0.17},"Slingshot":{"cage":0.23,"ice":0.02,"killbox":0.11,"saws":0.32},"Tarantula":{"cage":-0.2,"ice":0.05,"killbox":-0.01,"saws":0.3},"Bricklayer":{"cage":0.09,"ice":-0.06,"killbox":-0.03,"saws":-0.36},"Jukebox":{"cage":0.41,"ice":0.01,"killbox":0.1,"saws":0.14},"Lodestone":{"cage":-0.07,"ice":0.22,"killbox":0.1,"saws":0.31},"Orbiter":{"cage":-0.43,"ice":-0.07,"killbox":0.05,"saws":0.71},"Pogo":{"cage":0.09,"ice":0.01,"killbox":-0.04,"saws":-0.05},"Railgun":{"cage":-0.3,"ice":0.05,"killbox":-0.15,"saws":-0.06},"Rotisserie":{"cage":0.13,"ice":-0.07,"killbox":-0.1,"saws":-0.58},"Trebuchet":{"cage":0.1,"ice":-0.09,"killbox":0.06,"saws":-0.15}};
   const arenaFit = (r, a) => (r && a && ARENA_FIT[r.name] && ARENA_FIT[r.name][a]) || 0;
   /* ---------- bookie notes (Kev, 9 Nov): a short tag on a robot card when something stands out from the odds ----------
    * STYLE: from the Lineup Arena matchup data (tools/damage-lab/matrix-data.json, open floor, 20 fights a pair):
    * giant = beats higher-level robots [win %, expected %] (1.25x expected or more); coin = blowouts (winner keeps 85%+) in [%] of
    * its fights (50%+); quick / grind = its fights last [s] on average (40 s or less / 70 s or more). One per robot, in that order. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const STYLE = {"Rotisserie":["coin",55],"Pogo":["quick",31],"Orbiter":["grind",76],"Lodestone":["coin",50],"Railgun":["coin",71],"Scavenger":["coin",59],"Slingshot":["giant",45,36],"Hydra":["giant",51,36],"Grandmaster":["grind",74],"Gaucho":["grind",91],"Whaler":["grind",84],"Pincher":["grind",87],"Gyro":["giant",40,25],"Mauler":["grind",71],"Blacksmith":["giant",29,21],"Thwacker":["grind",88],"Buzzkill":["grind",72],"Wrecker":["grind",75],"Snapjaw":["coin",55],"Mincer":["grind",73]};
+  // Kev, 21 Nov (T41): re-measured with wear on and the retuned robots: the open-floor matchup fights of the big run (tools/wear-tables.cmd, 10,560 fights, 20 a pair; style-tags.js)
+  const STYLE = {"Buzzkill":["grind",74],"Mincer":["grind",70],"Snapjaw":["coin",59],"Wrecker":["grind",75],"Blacksmith":["giant",31,20],"Corkscrew":["coin",57],"Mauler":["grind",77],"Thwacker":["grind",83],"Angler":["coin",53],"Gyro":["giant",52,24],"Pincher":["grind",85],"Whaler":["grind",83],"Yoyo":["grind",70],"Gaucho":["grind",89],"Grandmaster":["grind",76],"Hydra":["giant",47,31],"Scavenger":["coin",61],"Slingshot":["giant",46,31],"Tarantula":["giant",42,31],"Orbiter":["grind",74],"Pogo":["quick",27],"Railgun":["coin",73],"Rotisserie":["coin",59],"Trebuchet":["coin",57]};
   // 🔨 hard hitters (Kev, 9 Nov: "a bot that always does a lot of damage, even if it loses"). Lineup Arena matrix, equal-level
   // duels on the open floor: the health its winner loses when this robot loses, vs the level's average. Tagged at 6+ points.
-  const HITTER = {Gaucho: [32, 26], Buzzkill: [24, 19]};   // 15 Nov: tuned lineup, tagged at 5+ points
+  const HITTER = {Buzzkill:  [23, 18],  Gaucho:  [31, 26],  Jukebox:  [31, 25],  Orbiter:  [32, 25]};   // 21 Nov (T41): wear on, the big run's matchup fights; tagged at 4.5+ points
   const ARENA_TAG = { saws: ['🪚', 'Saw specialist', 'Hates saws'], killbox: ['☠️', 'Killbox natural', 'Hates the Killbox'], cage: ['🔒', 'Cage fighter', 'Hates the Cage'], ice: ['🧊', 'Ice skater', 'Slips on ice'] };
   function bookieTags(r) {   // at most 2: arena (this fight), chip-tuned, fight style
     const out = []; if (!r) return out;
@@ -6287,7 +6294,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
     let arena = F.arena && DL.ARENAS[F.arena] ? F.arena : 'open';
     if (arena === 'cage' && list.length > 2) arena = 'open';   // no room in the Cage for 4 robots or the House Robot (decided before the fight: see afterChoose)
-    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena };
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena, wear: BAL.wear !== false } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena, wear: BAL.wear !== false };
     return { S: DL.create(clone(bb)), botEnt, bb };
   }
   // online (2.0): a client builds the same fight from F.bb (the engine's create options, as the host built them)
@@ -6976,6 +6983,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         for (const lb of baseInfo(r).motors) w.ints[lb] = Math.min(w.ints[lb] != null ? w.ints[lb] : 1, BAL.cards.ocAfter);
         notify('🔥 Overclock wears ' + esc(r.name) + ': its drive motors are left at ' + Math.round(BAL.cards.ocAfter * 100) + '% (⚙ Drive damaged).', '#b45309');
       }
+      if (BAL.wearMarks === false) delete w.marks;   // T41 test switch: marks do not carry (only health and lost parts, as before)
       r.wear = w;
       const lost = best.R.stats.lost.map(x => x.label);
       if (isHuman(ti) && lost.length) say(ti, '⚠️ <b>' + esc(r.name) + '</b> lost ' + esc(lost.join(', ')) + '. Damage stays: ' + esc(zoneTxt(r)) + '. Repair it in Upkeep.', G.teams[ti].col);
@@ -8249,15 +8257,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawZoneButtons(ctx, r, x, y, w, h, clickable, small) {
     const Z = zonesOf(r), gap = small ? 3 : 5, bw = (w - gap * 2) / 3;
     R2.ZONES.forEach((z, k) => {
-      const q = Z[z.key], bx = x + k * (bw + gap), st = q.broken ? 'broken' : q.damaged ? 'dmg' : 'ok';
-      const fill = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#FBF1D2' : PAPER2, edge = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#C99A1E' : '#4C8A3F', fg = st === 'broken' ? '#fff' : st === 'dmg' ? '#8A6A10' : '#4C8A3F';
+      const q = Z[z.key], bx = x + k * (bw + gap), st = q.broken ? 'broken' : q.damaged ? 'dmg' : q.marked ? 'mark' : 'ok';   // mark (T41): health fine, a bend / crack / cut shown; repairing it is optional
+      const fill = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#FBF1D2' : PAPER2, edge = st === 'broken' ? '#B23A2B' : st === 'dmg' ? '#C99A1E' : st === 'mark' ? '#8A8578' : '#4C8A3F', fg = st === 'broken' ? '#fff' : st === 'dmg' ? '#8A6A10' : st === 'mark' ? '#5A554C' : '#4C8A3F';
       ctx.fillStyle = fill; rrect(ctx, bx, y, bw, h, 3); ctx.fill();
-      ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
+      ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' && st !== 'mark' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
       ctx.fillStyle = clickable && st === 'dmg' && repairCrFor(G.teams[HS], zoneActs(q)) ? '#B23A2B' : fg; ctx.textAlign = 'center';
-      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? Math.round(q.f * 100) + '%' : 'ok';
+      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : st === 'mark' ? (small ? 'WEAR' : String(q.marks[0] || 'wear').replace(/^a plate bent into a wheel$|^plates bent into \d+ wheels$/, 'plate rub').toUpperCase()) : 'ok';
       if (small) fitText(ctx, z.icon + stTxt, bx + bw / 2, y + h / 2 + 3.5, bw - 2, '700', 8.5, F_MONO);
-      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
-      const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
+      else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st === 'mark' ? ' · fix?' : clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
+      const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' && st !== 'mark' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
       help(bx, y, bw, h, hz[0] + (crN ? ' · <span style="color:#B23A2B">costs ' + crN + ' Cr</span>' : ''), (crN ? '<div style="background:#B23A2B;color:#fff;font-weight:700;padding:5px 8px;border-radius:4px;margin:2px 0 6px">🪙 This repair costs ' + crN + ' Cr: you have ' + actsWord(repairActs(G.teams[HS])) + ' left, extra actions are ' + repairCr() + ' Cr each.</div>' : '') + hz[1] + (clickable && st !== 'ok' ? '<br><i>Click: spend ' + actsWord(zoneActs(q)) + ' on it' + (crN ? ' (' + crN + ' Cr)' : '') + '.</i>' : ''));
       if (clickable && st !== 'ok') hitRegions.push({ kind: 'zone_fix', robot: r, zone: z.key, x: bx, y, w: bw, h });
     });
@@ -10022,6 +10030,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, bends, cracks and saw cuts', '21 Nov 2026', [
+      'Every fight now wears robots down the way the Damage Lab showed it: spinner bars, spears, tails and forks bend; plates fold in and can drag on a wheel (WHEEL RUB!); discs and saws warp; piercing hits crack metal; saws cut grooves; broken plates shatter into pieces. The fight screen draws it all: fold lines, cracks (also through the top plate), glowing saw cuts, a bent bar spinning out of true, a warped disc.',
+      'Bends, cracks and saw cuts stay on the robot from fight to fight until you repair the zone they are in (Drive, Weapon, Body). The robot card says so, for example "Weapon: bent 23°". A mark alone does not count as damage: repairing it is optional (click the zone on the card, 1 repair action, to straighten it), and the AI teams never spend a repair on it. The bookie sees the marks: they still change the fight.',
+      'Rebalanced for it: tougher robots bend and crack less, and 11 robots changed strength a little (Thwacker, Hydra, Corkscrew, Jukebox, Scavenger and Thumper up; Popcorn, Orbiter, Whaler, Gyro and Wrecker down). Everyone must play on the new files stamp; a game saved before this loads fine, its robots simply have no marks yet.' ]],
     ['2.0.1, robot value', '21 Nov 2026', [
       'Every robot shows its value in credits: a gold coin chip "◉ 6 Cr" on your robots (next to the odds), on the rivals\' tickets and on a robot for sale in the Market. Hover it for the sum: level (1 + 2 per level), each fitted part at its bank price (what the Stash\'s 🏦 button pays), +1 per Fan token and +2 for a Fan Favourite, −1 per repair action its damage needs.',
       'Wherever a robot changes hands you see it too: an AI offer says "Snapjaw (…, worth 5 Cr) for 2 Cr", Hostile Buyout says what your robot is worth beside the 4 Cr, and the trade panel, Museum Donation, trade-in, can\'t-pay-upkeep and spare-or-scrap show each robot\'s value. A Stash part\'s hover says what it adds to a robot.',
@@ -10201,7 +10213,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=352be701"></script>
+<script src="../src2/net.js?b=31ff00ca"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
