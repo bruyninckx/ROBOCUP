@@ -27,7 +27,7 @@ Each team starts with **4 fame** (the host can pick 7, 4, 2 or 1 before the game
 | --- | --- |
 | Intrigue deck | 57 different cards, 130 copies (18 of them Security Bots), in 7 families: Contracts 9, Publicity 14, Smear 6, Sabotage 10, Corporate 3, Match-fixing 6, Security 9 |
 | Auction deck | 16 cards: Remote Trigger 2, Pilot Waypoint 3, Target Overclock 2, Field Engineer 3, Oil Canister 2, EMP Grenade 2, Swap the Entry 2 |
-| Lot deck (Market) | 49 cards: 7 stat upgrades, 6 weapon upgrades, 3 gun calibres, 4 armour, 12 modules, 7 helper drones, 5 New Robot, 5 New Crew |
+| Lot deck (Market) | 29 cards (21 Nov 2026, T47): 6 upgrades, 8 modules (2 of them Repair kits), 4 helper drones, 3 tuning chips, 4 New Robot, 4 New Crew; legendary parts and level 4 robots come on top |
 | Robot deck | 11 Market robot cards, each with a quirk |
 | Legendaries | Railgunner (robot), Twin Turret, Quantum Shield: one copy each |
 | Starter deck | 9 stock `s1.` robots (11 stat points, levels up to 3, stock parts, 1 Chief Engineer) |
