@@ -115,6 +115,9 @@ html, body {
 .prompt-bar .act.secondary:hover:not(:disabled) { background: rgba(255,255,255,.45); color: var(--ink); }
 /* T9 (16 Nov): one button per choice in the note itself (a robot to send to the pit, a bay to fit a part on, a starter, a sponsor,
    a team to invite): the name, and a quiet hint of its state on the right */
+/* T44: a robot's value in credits (coin chip; the breakdown on hover) */
+.valchip { display: inline-block; padding: 0 5px; border-radius: 8px; background: #F3D36B; border: 1px solid #9A6A08; color: #5A3A00; font: 700 0.9em ui-monospace, Menlo, Consolas, monospace; line-height: 1.35; white-space: nowrap; vertical-align: baseline; cursor: help; }
+.valword { border-bottom: 1px dotted #9A6A08; cursor: help; white-space: nowrap; }
 .prompt-bar .act.pick { flex: 1 1 100%; min-width: 0; display: flex; align-items: baseline; gap: 8px; text-align: left; padding: 4px 10px; font-size: 13px; white-space: nowrap; overflow: hidden; }
 .prompt-bar .act.pick b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
 .prompt-bar .act.pick small { margin-left: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 600 10.5px var(--sans); letter-spacing: 0; opacity: .85; }
@@ -464,6 +467,7 @@ html, body {
 .dl-zone.over { border-color: var(--blue); background: #EAF1FA; }
 .dl-stash { background: var(--panel); }
 .dl-chip { border: 2px solid var(--ink); border-radius: 3px; padding: 1px 8px; font: 600 12px var(--sans); background: var(--paper); cursor: grab; }
+.dl-chip .dl-val { color: #7A5200; background: #F3D36B; border-radius: 6px; padding: 0 4px; font: 700 11px ui-monospace, Menlo, Consolas, monospace; }   /* T44 */
 .dl-chip.dl-asset { border-color: var(--purple); background: #F1EAF5; }
 #scoutPanel { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(43,33,24,.3); }
 #scoutPanel[hidden] { display: none; }
@@ -753,6 +757,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // takes its safe default. askMs: a question in the note (one click); askBoxMs: one that stays in the box (ticks to set, a list
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
+    showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
     flavor: true,                 // T39 (Kev, 21 Nov): themed names and drawings on 18 cards (FLAVOR); display only, false = the game's names
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
@@ -2205,7 +2210,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (myTI.length) {
           const nb = myTI[0].bot, t = me();
           pb.innerHTML = '<span>♻️ <b>Your garage is full:</b> pick a robot to scrap for <b>' + esc(nb.name) + '</b> (' + starsOf(nb.level) + '). You get ' + BAL.tradeIn.base + ' Cr + its level; its parts go to your Stash.</span>' +
-            t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(lotQ(id))).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
+            t.robots.map(r => '<button class="act secondary" data-ti="' + r.id + '">♻️ ' + esc(r.name) + ' · L' + r.level + ' · ' + scrapMoney(r) + ' Cr' + (valOn() ? ' (' + valLbl(r).replace('◉ ', '◉ worth ') + ')' : '') + (partLots(r).length ? ' · ' + partLots(r).map(id => esc(lotQ(id))).join(', ') : '') + (R2.ZONES.some(z => zonesOf(r)[z.key].damaged) ? ' · ' + zoneTxt(r) : '') + (r.wins >= favWins(t) ? ' · 🎖 Fan Favourite' : '') + '</button>').join('');
           pb.querySelectorAll('[data-ti]').forEach(b => { b.onclick = () => act('tradeIn', b.dataset.ti); });
         } else if (PS().stashTrim) {
           const t = me(), n = stashOf(t).length - STASH_MAX;
@@ -2320,7 +2325,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (G.awaitingJudgment && G.host === HS) {
         const lr = G.fight.loser.robot, fo = G.fight.fateOffers || { spare: [], scrap: [] };
         const ot = side => fo[side].length ? fo[side].map(o => '<b style="color:' + G.teams[o.team].col + '">' + esc(G.teams[o.team].name) + '</b> ' + bundleText(o.B)).join(', ') : 'no offers';
-        pb.innerHTML = '<span>👑 <b>Host Judgment' + (G.fight.fateN > 1 ? ' (' + G.fight.fateI + ' of ' + G.fight.fateN + ')' : '') + ':</b> Decide the fate of ' + esc(G.teams[G.fight.loser.team].name) + '\'s defeated <b>' + esc(lr.name) + '</b>. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
+        pb.innerHTML = '<span>👑 <b>Host Judgment' + (G.fight.fateN > 1 ? ' (' + G.fight.fateI + ' of ' + G.fight.fateN + ')' : '') + ':</b> Decide the fate of ' + esc(G.teams[G.fight.loser.team].name) + '\'s defeated <b>' + esc(lr.name) + '</b>' + worthTxt(lr) + '. 👍 Spare: ' + ot('spare') + '. 👎 Scrap: ' + ot('scrap') + '. You get the offers of the side you pick.</span>' +
           '<button class="act" id="pAct1">👍 Spare</button><button class="act secondary" id="pAct2" style="border-color:#ff6b6b;color:#ff9b9b">👎 Scrap</button>';
         $('#pAct1').onclick = () => act('fate', false);
         $('#pAct2').onclick = () => act('fate', true);
@@ -2907,7 +2912,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         let r;
         // T31: no answer in time: the robot the AI would scrap (the weakest); every answer costs a robot here (a question for Kev)
         if (isHuman(t.i)) { const weak = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
-          r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name), value: () => x })), 0, weak, { late: 'your weakest robot <b>' + esc(weak.name) + '</b> is scrapped (as the AI would pick)' }); }
+          r = await askSeat(t.i, '🧾 You can\'t pay your upkeep', 'You are <b>' + t.debt + ' Cr</b> short. Spartacus rule: scrap one robot of your choice for each credit you can\'t pay.', t.robots.map(x => ({ label: '👎 Scrap ' + esc(x.name) + (valOn() ? ' (' + valLbl(x) + ')' : ''), value: () => x })), 0, weak, { late: 'your weakest robot <b>' + esc(weak.name) + '</b> is scrapped (as the AI would pick)' }); }
         else r = t.robots.slice().sort((a, b) => power(a) - power(b))[0];
         if (!r) break;
         robotLeaves(t, r, null, 'debt'); t.debt--; returnStarter(r.name);
@@ -3324,7 +3329,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-21i Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
+  const BUILD = 'tabletop 2.0.1 2026-11-21j robot value in credits on every robot card, Mirror and Hostile Buyout texts say what they do, Antikythera Core on the Matador chip, themed names and drawings on 18 cards, trade and bid in one step, repair kit back, crunch week and press tour exhaust robots, every question has a timer, play-latest serves the game, start with 10 Cr, reactions only when they help you, buttons say what they do, questions in the note, sponsors are bid for, resting robots say why and when they are back, fate step says why, power map arrow size by counter strength, repairs in the note, reaction window in the note, arenas change who wins, repair kit works under fire, power map, a click in the note shows ✓, bids can change until all locked, part goes on at once with undo, red flash for a choice, odds overview on Market lots, choices in the yellow note, rarity ladder, tow cable and wall slams, formula odds count damage, phase slides, waiting list, fewer clicks, open hand, diamonds, tuned robots, upgrades in levels, rarity, simulating bookie, changelog';   // bump when the prototype changes, so logs can be matched to code
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -3578,6 +3583,55 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const p = fieldOdds(t.i, r).p;
     return Math.max(1, Math.round(1 + r.level * 2 + (r.parts || []).length * 1.5 + (r.leg ? 3 : 0) + (p - 0.5) * 8 - hurt(r) * 1.5 + (t.robots.length <= 1 ? 2 : 0)));
   }
+  /* ---------- T44 (Kev, 21 Nov): a robot's value in credits, shown on every robot card and wherever a robot changes hands ----------
+   * "A price in credits: one number per robot, from its level, parts and damage: what it is worth in a trade, an offer or a buyout".
+   * DISPLAY ONLY: no AI, price or rule reads it; it is worked out on each screen from synced state (the same number for every
+   * viewer). Level: 1 + 2 × level (as a New Robot lot's own value, LOTS[id].value, and the level part of robotWorth);
+   * each fitted part at its bank price (bankHalf: half its Market value, rarity included; the number on the Stash's 🏦 button:
+   * 48 AI games, 94 robot trades: the AI pays about 1 Cr a part, so full Market value put robots with 2-3 parts 4-8 Cr too high); Fan tokens +1 each,
+   * a Fan Favourite +2 more (its fame goes with it); −1 per repair action its damage needs (a damaged zone 1, a broken one 2);
+   * −1 per extra round a rival's card keeps it out. At least 1 Cr. forTeam: whose Fan Favourite rule counts (default: its owner).
+   * Switch: BAL.showValue (false hides the chip and the "worth" words). docs/robocus-robot-value.md */
+  function robotValueOf(r, forTeam) {
+    const out = { v: 0, lines: [] };
+    if (!r) return out;
+    const lv = r.level || 0, add = (t, v) => { out.lines.push([t, v]); out.v += v; };
+    add(lv ? 'Level ' + lv + ' (' + starsOf(lv) + ')' : 'Starter (level 0)', 1 + 2 * lv);
+    for (const id of partLots(r)) { const L = LOTS[id]; add((L.legend ? '🌟 ' : '🔩 ') + (L.rar ? RAR[L.rar].n + ' ' : '') + partNm(L.part), bankHalf(id)); }
+    const T = forTeam || ownerOf(r), fw = T ? favWins(T) : BAL.fame.favTokens, tok = Math.min(r.wins || 0, fw);
+    if (tok) add('🎖 ' + tok + ' Fan token' + (tok > 1 ? 's' : ''), tok);
+    if ((r.wins || 0) >= fw) add('★ Fan Favourite (its fame goes with it)', 2);
+    if (r.wear) { const Z = zonesOf(r); for (const z of R2.ZONES) { const q = Z[z.key]; if (q.damaged) add(z.icon + ' ' + z.label + ' ' + zoneState(q) + ' (' + actsWord(repairCost(r, z.key)) + ')', -repairCost(r, z.key)); } }
+    if (r.exhausted && G) { const x = exInfo(r), extra = x.back - G.round - 1; if (x.out && extra > 0) add('😴 out until round ' + x.back, -extra); }
+    const raw = out.v; out.v = Math.max(1, Math.round(raw));
+    if (out.v !== raw) out.lines.push(['at least', null]);
+    return out;
+  }
+  const robotValue = (r, forTeam) => robotValueOf(r, forTeam).v;
+  const valOn = () => BAL.showValue !== false;
+  const VAL_HELP = 'A robot\'s value in credits: a guide to what it is worth in a trade, an offer or a buyout. Level: 1 + 2 per level; each part at its bank price (half its Market value, as the Stash\'s 🏦 button shows it); +1 per Fan token, +2 for a Fan Favourite; −1 per repair action its damage needs (a broken zone 2). It is a guide: the AI teams also look at the odds and what they need.';
+  function valueHelp(r) {   // [title, body] for the hover: the breakdown, line by line
+    const o = robotValueOf(r);
+    const rows = o.lines.map(([t, v]) => v == null ? '<i>(' + t + ' 1 Cr)</i>' : esc(t) + ' <b>' + (v >= 0 && t !== o.lines[0][0] ? '+' : '') + (v < 0 ? '−' + (-v) : v) + '</b>').join('<br>');
+    return ['◉ ' + esc(r.name) + ' · worth ' + o.v + ' Cr', rows + '<br>= <b>' + o.v + ' Cr</b><br><br>' + VAL_HELP];
+  }
+  // HTML: "◉ 6 Cr" with the breakdown on hover; worthTxt: " (worth 6 Cr)" for sentences
+  // (the hover text is fully escaped, < and > too, so noteFits still sees one tag and no <br>: questions land where they did)
+  const valAttr = r => { const [t, b] = valueHelp(r); return ' data-help="' + (t + '|' + b).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"'; };
+  const valLbl = r => valOn() && r ? '◉ ' + robotValue(r) + ' Cr' : '';   // plain text, for a button's quiet hint (the part in brackets)
+  const valChip = r => valOn() && r ? '<span class="valchip"' + valAttr(r) + '>◉ ' + robotValue(r) + ' Cr</span>' : '';
+  const worthTxt = r => valOn() && r ? ' (worth <span class="valword"' + valAttr(r) + '>' + robotValue(r) + ' Cr</span>)' : '';
+  // canvas: the coin chip, right-aligned at xr; returns its width (0 when off)
+  function drawValueChip(ctx, r, xr, y, h, size) {
+    if (!valOn() || !r) return 0;
+    const txt = '◉ ' + robotValue(r) + ' Cr';
+    ctx.font = '700 ' + size + 'px ' + F_MONO; const w = Math.ceil(ctx.measureText(txt).width) + 10, x = xr - w;
+    ctx.fillStyle = '#F3D36B'; rrect(ctx, x, y, w, h, h / 2); ctx.fill();
+    ctx.strokeStyle = '#9A6A08'; ctx.lineWidth = 1; rrect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, h / 2); ctx.stroke();
+    ctx.fillStyle = '#5A3A00'; ctx.textAlign = 'center'; ctx.fillText(txt, x + w / 2, y + h / 2 + size * 0.36);
+    const hv = valueHelp(r); help(x, y, w, h, hv[0], hv[1]);
+    return w;
+  }
   const crewWorth = (t, k) => CREW[k].value + (k === 'mechanic' && G.round <= 4 ? 1 : 0) + (hasCrew(t, k) && k !== 'mechanic' && k !== 'chief' ? -1 : 1);
   function tokWorth(t, tok) {
     if (tok[0] === 'R') { const x = robotById(tok.slice(2)); return x ? (x.T === t || t.robots.length < 3 ? robotWorth(t, x.r) : 0) : 0; }
@@ -3586,7 +3640,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   const bundleWorth = (t, B) => (B && B.cr || 0) + (B && B.sec || 0) * 2 + (B && B.items || []).reduce((a, id) => a + tokWorth(t, id), 0);
   const bundleEmpty = B => !B || (!B.cr && !B.sec && !(B.items || []).length);
-  const tokRef = tok => { if (tok[0] === 'R' && tok[1] === ':') { const x = robotById(tok.slice(2)); return x ? '🤖 <b>' + esc(x.r.name) + '</b>' : 'a robot'; } if (tok[0] === 'C' && tok[1] === ':') { const x = crewByUid(tok.slice(2)); return x ? crewRef(x.c.kind) : 'crew'; } return lotRef(tok); };
+  const tokRef = tok => { if (tok[0] === 'R' && tok[1] === ':') { const x = robotById(tok.slice(2)); return x ? '🤖 <b>' + esc(x.r.name) + '</b>' + worthTxt(x.r) : 'a robot'; } if (tok[0] === 'C' && tok[1] === ':') { const x = crewByUid(tok.slice(2)); return x ? crewRef(x.c.kind) : 'crew'; } return lotRef(tok); };
   const bundleText = B => bundleEmpty(B) ? 'nothing' : [B.cr ? B.cr + ' Cr' : '', B.sec ? B.sec + ' Security Bot' + (B.sec > 1 ? 's' : '') : ''].concat((B.items || []).map(tokRef)).filter(Boolean).join(' + ');
   function transfer(from, to, B, src) {
     if (bundleEmpty(B)) return;
@@ -3649,12 +3703,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (!el) { el = document.createElement('div'); el.id = 'dealModal'; document.body.appendChild(el); }
       const chipHelp = id => {
         if (id.startsWith('R:')) { const x = robotById(id.slice(2)); if (!x) return ['robot', '']; const fo = fieldOdds(x.T.i, x.r).p;
-          return ['🤖 ' + esc(x.r.name) + ' (' + starsOf(x.r.level) + ')', esc(wepLabel(x.r.name)) + ' · ' + esc(partsTxt(x.r)) + '<br>Damage: ' + esc(zoneTxt(x.r)) + '<br>🎩 ' + bandOf(fo).name + ' vs the field.<br>It moves with its fitted parts and its damage.'];
+          return ['🤖 ' + esc(x.r.name) + ' (' + starsOf(x.r.level) + ')', esc(wepLabel(x.r.name)) + ' · ' + esc(partsTxt(x.r)) + '<br>Damage: ' + esc(zoneTxt(x.r)) + '<br>🎩 ' + bandOf(fo).name + ' vs the field.<br>It moves with its fitted parts and its damage.' + (valOn() ? '<br><br>' + valueHelp(x.r).join(':<br>') : '')];
         }
         if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? [CREW[x.c.kind].icon + ' ' + CREW[x.c.kind].name, esc(CREW[x.c.kind].text)] : ['crew', '']; }
         return [LOTS[id].icon + ' ' + esc(LOTS[id].name), esc(LOTS[id].text) + '<br>For you: ' + partForTxt(me_, id) + (O ? '<br>For ' + esc(O.name) + ': ' + partForTxt(O, id) : '')];
       };
-      const chipLabel = id => { if (id.startsWith('R:')) { const x = robotById(id.slice(2)); return '🤖 ' + esc(x ? x.r.name : '?'); } if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? CREW[x.c.kind].icon + ' ' + esc(CREW[x.c.kind].name) : '?'; } return LOTS[id].icon + ' ' + esc(LOTS[id].name); };
+      const chipLabel = id => { if (id.startsWith('R:')) { const x = robotById(id.slice(2)); return '🤖 ' + esc(x ? x.r.name : '?') + (x && valOn() ? ' <b class="dl-val">◉ ' + robotValue(x.r) + '</b>' : ''); } if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? CREW[x.c.kind].icon + ' ' + esc(CREW[x.c.kind].name) : '?'; } return LOTS[id].icon + ' ' + esc(LOTS[id].name); };
       const chip = (id, side, zone) => { const h = chipHelp(id); return '<span class="dl-chip' + (isAsset(id) ? ' dl-asset' : '') + '" draggable="true" data-id="' + id + '" data-side="' + side + '" data-zone="' + zone + '"' + helpAttr(h[0], h[1] + '<br><i>Click or drag to move it.</i>') + '>' + chipLabel(id) + '</span>'; };
       const pool = T => stashOf(T).concat(opts.assets ? T.robots.map(r => 'R:' + r.id).concat(T.crew.map(c => 'C:' + c.uid)) : []);
       const draw = () => {
@@ -3728,7 +3782,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="lp-head"><span' + helpAttr('📦 Stash', 'Spare parts: lots none of your robots could take, or parts you kept aside. Fit one when a robot can take it (Upkeep or Market), trade it in a deal, or sell it to the bank at half value. Up to ' + STASH_MAX + ' parts; everyone can see it.') + '>📦 Stash (' + S.length + '/' + STASH_MAX + ')</span></div>' +
       (S.length ? '<div class="st-list">' + S.map((id, k) => {
         const fits = t.robots.filter(r => canFit(r, LOTS[id]));
-        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id)) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
+        return '<div class="st-row"><span class="lcard"' + (LOTS[id].part && rarCan(LOTS[id].part) ? ' data-rar="' + id + '"' : '') + helpAttr(LOTS[id].icon + ' ' + esc(lotQ(id)), (flavOf(id) ? flavLine(id) + '<br>' : '') + esc(LOTS[id].text) + '<br>' + partForTxt(t, id) + (valOn() && LOTS[id].part ? '<br>Fitted on a robot it adds its bank price (' + bankHalf(id) + ' Cr, half its Market value of ' + partValue(id) + ' Cr) to the robot\'s ◉ value.' : '')) + '>' + (hasFlavArt(id) ? flavImg(id, 30, 18, 'fl-mini') + ' ' + esc(lotNm(id)) + ' <small class="fl-g">' + esc(LOTS[id].name) + '</small>' : LOTS[id].icon + ' ' + esc(LOTS[id].name)) + '</span>' +
           (fits.length && canFitNow ? '<button data-fit="' + k + '">Fit</button>' : '') + '<button data-sell="' + k + '"' + helpAttr('🏦 Sell to the bank', 'Half its value: ' + bankHalf(id) + ' Cr.') + '>🏦 ' + bankHalf(id) + ' Cr</button></div>';
       }).join('') + '</div>' : '<div class="sc-note" style="padding:4px 8px 6px">Empty: parts no robot can take land here.</div>');
     el.classList.toggle('empty', !S.length);
@@ -4075,7 +4129,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function hostileBuyout(F, T) {
     const r = T.robots.slice().sort((a, b) => power(a) - power(b))[0];
     const sell = isHuman(T.i)
-      ? await askSeat(T.i, '🏢 ' + esc(cardQ('hostile_buyout')), nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b> for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, false, { late: 'you refuse and keep the robot (−1 fame)' })
+      ? await askSeat(T.i, '🏢 ' + esc(cardQ('hostile_buyout')), nm(F) + ' wants to buy your <b>' + esc(r.name) + '</b>' + worthTxt(r) + ' for 4 Cr. Refuse and lose 1 fame.', [{ label: 'Sell it', value: () => true }, { label: 'Refuse (−1 fame)', secondary: true, value: () => false }], 0, false, { late: 'you refuse and keep the robot (−1 fame)' })
       : T.robots.length >= 3 || T.fame <= 2;
     if (sell) { exhaustBot(r, 'Hostile Buyout', F.i); robotLeaves(T, r, F, 'buyout'); addCr(T, payCr(F, 4, 'card'), 'card'); notify('🏢 ' + nm(F) + ' buys ' + esc(r.name) + ' from ' + nm(T) + ' for 4 Cr.', F.col); }
     else { await loseFame(T, 1); notify('🏢 ' + nm(T) + ' refuses the buyout and loses 1 fame.', T.col); }
@@ -4174,7 +4228,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         let gift = null;
         if (isHuman(F.i)) {
           const R = repState(F), crew = readyCrew(F) > 0 ? F.crew.filter(x => R.used[x.uid] == null) : [];
-          const opts = crew.map(x => ({ label: CREW[x.kind].icon + ' ' + esc(CREW[x.kind].name), value: () => ({ crew: x }) })).concat(F.robots.map(r => ({ label: '🤖 ' + esc(r.name) + (r.wins ? ' (' + r.wins + ' Fan token' + (r.wins > 1 ? 's' : '') + ')' : ''), value: () => ({ robot: r }) })));
+          const opts = crew.map(x => ({ label: CREW[x.kind].icon + ' ' + esc(CREW[x.kind].name), value: () => ({ crew: x }) })).concat(F.robots.map(r => { const h = [r.wins ? r.wins + ' Fan token' + (r.wins > 1 ? 's' : '') : '', valLbl(r)].filter(Boolean).join(' · '); return { label: '🤖 ' + esc(r.name) + (h ? ' (' + h + ')' : ''), value: () => ({ robot: r }) }; }));
           if (opts.length > 1) gift = await askSeat(F.i, '🏛️ Museum Donation', 'Donate a robot or a ready crew member to the museum for +1 fame. Which one?', opts, 0, null, { late: crew.length ? 'a crew member is donated (as the AI does)' : '<b>' + esc(F.robots[0].name) + '</b> is donated' });   // T31: the AI's choice
           if (!gift && !crew.length && F.robots.length) gift = { robot: F.robots[0] };
         }
@@ -4756,7 +4810,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (buyer.credits < price) continue;
       if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
       let yes;
-      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
+      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + (valOn() ? ', worth <span class="valword"' + valAttr(spare) + '>' + robotValue(spare) + ' Cr</span>' : '') + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
       if (!yes) continue;
       if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: ['R:' + spare.id] }) || A.robots.length < 2 || buyer.robots.length >= 3) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
@@ -7024,10 +7078,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const h of humanSeats()) {
       if (h === H.i || !canScrap) continue;
       const mine = L.i === h;
-      const pick = mine ? 'spare' : await askSeat(h, '👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
+      const pick = mine ? 'spare' : await askSeat(h, '👑 Spare or scrap?' + (F.fateN > 1 ? ' (' + F.fateI + ' of ' + F.fateN + ')' : ''), 'Host ' + nm(H) + ' decides the fate of ' + nm(L) + '\'s <b>' + esc(lr.name) + '</b>' + worthTxt(lr) + (F.fateN > 1 ? ' (every losing robot is judged in turn)' : '') + '. Push the decision with a deal?',
         [{ label: '👍 Offer: spare it', value: () => 'spare' }, { label: '👎 Offer: scrap it', value: () => 'scrap' }, { label: 'Stay out', secondary: true, value: () => null }], 0, null, { late: 'you stay out' });
       if (pick) {
-        const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : ''), from: H, lock: 'Lock in offer' }, h);
+        const d = await dealPanel({ title: (pick === 'spare' ? '👍 Plead to spare ' : '👎 Push to scrap ') + esc(lr.name), intro: 'The host only takes the offers of the side it picks.' + (mine ? ' Your robot is on the line.' : '') + (valOn() ? ' ' + esc(lr.name) + ' is worth <span class="valword"' + valAttr(lr) + '>' + robotValue(lr) + ' Cr</span>.' : ''), from: H, lock: 'Lock in offer' }, h);
         if (d && !bundleEmpty(d.give)) F.fateOffers[pick].push({ team: h, B: d.give });
       }
     }
@@ -7586,7 +7640,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { robotValue, robotValueOf, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
@@ -8645,7 +8699,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const tx = bx + ps + 5, tw = bx + bw - tx;
     ctx.textAlign = 'left'; ctx.fillStyle = INK; fitText(ctx, r.name, tx, by + 12, tw, '700', 11.5);
     { const hn = helpName(t, r); help(tx, by + 1, tw, 14, hn[0], hn[1]); }
-    ctx.fillStyle = '#B07A10'; fitText(ctx, r.level ? '★'.repeat(r.level) : 'starter', tx, by + 25, tw, '700', 10, r.level ? F_SANS : F_MONO);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#B07A10'; fitText(ctx, r.level ? '★'.repeat(r.level) : 'starter', tx, by + 25, tw, '700', 10, r.level ? F_SANS : F_MONO);
     ctx.fillStyle = '#7C4D9E'; fitText(ctx, '🎖' + r.wins + (r.wins >= favWins(t) ? ' FAV' : ''), tx, by + 38, tw, '700', 9.5, F_MONO);
     help(tx, by + 16, tw, 26, '★ Level ' + r.level + ' · 🎖 ' + r.wins + ' Fan token' + (r.wins === 1 ? '' : 's'), LEVEL_HELP + '<br>Fan tokens: one per win; ' + favWins(t) + ' make a Fan Favourite.');
     // Kev, 9 Nov: bought parts vanished from a rival's ticket when a bookie tag took their line; they now share the weapon line
@@ -8661,8 +8715,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, '+' + pts.length, bx2 + bw2 / 2, by2 + 10, bw2 - 2, '700', 9, F_MONO); ctx.textAlign = 'left';
       help(bx2, by2, bw2, 13, pts.length + ' part' + (pts.length === 1 ? '' : 's') + ' fitted', esc(ptxt) + '.'); }
     drawZoneButtons(ctx, r, bx, by + 73, bw, 12, false, true);
-    { const fo = fieldOdds(ti, r), cy = by + bh - 17; drawOddsChip(ctx, fo.p, bx, cy, bw, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: bw, h: 16 });
-      const hb = helpBand(ti, r, fo.p); help(bx, cy, bw, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
+    { const fo = fieldOdds(ti, r), cy = by + bh - 17, vw = drawValueChip(ctx, r, bx + bw, cy, 16, 9), ow = bw - (vw ? vw + 3 : 0);   // T44: its value in credits beside the odds
+      drawOddsChip(ctx, fo.p, bx, cy, ow, 16, 9.5, true, r); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: bx, y: cy, w: ow, h: 16 });
+      const hb = helpBand(ti, r, fo.p); help(bx, cy, ow, 16, hb[0], hb[1] + '<br>Short names: H.fav · Fav · Even · Dog · H.dog. Click: the matchups.'); }
     drawExhaustedOverlay(ctx, r, bx - 2, by - 2, bw + 4, bh + 4, true);
     pickGlow(ctx, r, ti, bx - 3, by - 3, bw + 6, bh + 6);
   }
@@ -8746,7 +8801,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? partNm(r.leg) + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
     help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partQ(k)) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + (flavPart(k) ? flavLine('p_' + k) + ' ' : '') + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const rk = partsOf(r).filter(rarCan).sort((p, q) => rarOn(r)(q) - rarOn(r)(p)); if (rk.length) hitRegions.push({ kind: 'rarity', robot: r, part: rk[0], rar: rarOn(r)(rk[0]), x: tx, y: by + 52, w: tw, h: 28 }); }   // the rarity ladder
-    { const fo = fieldOdds(ti, r), cw = Math.min(tw, 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
+    { const vw = drawValueChip(ctx, r, bx + bw - 10, by + 81, 16, 10.5), fo = fieldOdds(ti, r), cw = Math.min(tw - (vw ? vw + 6 : 0), 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
     const actX = bx + 10, actY = by + 127, actW = bw - 20, actH = 18;
@@ -9102,6 +9157,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.fillStyle = bot.level >= 4 ? '#6A3FA0' : '#B07A10'; fitText(ctx, bot.level ? '★'.repeat(bot.level) + ' level ' + bot.level + (bot.level >= 4 ? ' · min ' + BAL.level4.minBid + ' Cr' : '') : 'starter', x + w / 2, y + 98, w - 10, '700', 10.5);
     ctx.fillStyle = MUTED; fitText(ctx, wepLabel(RL.name), x + w / 2, y + 111, w - 10, '600', 10);
     help(x + 4, y + 4, w - 8, 112, '🤖 ' + esc(RL.name) + ' · for sale', esc(descOf(RL.name)) + '<br><b>' + esc(wepLabel(RL.name)) + '</b>, ' + (bot.level ? 'level ' + bot.level : 'starter') + ', power ×' + ROB(RL.name)[1].toFixed(2) + '.' + tellOf(RL.name) + (isL4(RL.name) ? '<br><b>Level 4:</b> lowest winning bid ' + BAL.level4.minBid + ' Cr' + (BAL.level4.upkeep ? ', upkeep +' + BAL.level4.upkeep + ' Cr' : '') + '.' : '') + '<br>' + LEVEL_HELP + '<br>Win it and it joins your team in an empty bay (up to 3 robots), new and with no parts. ' + (full ? (tradeInOn() ? '<b>Your garage is full:</b> win it and you scrap one of your robots (' + BAL.tradeIn.base + ' Cr + its level; its parts go to your Stash).' : '<b>Your bays are full:</b> you would get 2 Cr instead.') : '') + '<br>Robot levels by round: ' + levelsTxt() + (BAL.level4.on ? '; one level 4 robot a round from round ' + BAL.level4.fromRound : '') + '.');
+    drawValueChip(ctx, bot, x + w - 6, y + 4, 15, 9.5);   // T44: its value in credits (new: its level); after the lot's help so its own hover wins
     if (full && tradeInOn()) {
       ctx.fillStyle = '#8A4A10'; fitText(ctx, '♻️ Full garage:', x + w / 2, y + 168, w - 12, '700', 10.5);
       ctx.fillStyle = MUTED; fitText(ctx, 'you\'ll scrap one robot', x + w / 2, y + 184, w - 12, '600', 10);
@@ -9904,6 +9960,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, robot value', '21 Nov 2026', [
+      'Every robot shows its value in credits: a gold coin chip "◉ 6 Cr" on your robots (next to the odds), on the rivals\' tickets and on a robot for sale in the Market. Hover it for the sum: level (1 + 2 per level), each fitted part at its bank price (what the Stash\'s 🏦 button pays), +1 per Fan token and +2 for a Fan Favourite, −1 per repair action its damage needs.',
+      'Wherever a robot changes hands you see it too: an AI offer says "Snapjaw (…, worth 5 Cr) for 2 Cr", Hostile Buyout says what your robot is worth beside the 4 Cr, and the trade panel, Museum Donation, trade-in, can\'t-pay-upkeep and spare-or-scrap show each robot\'s value. A Stash part\'s hover says what it adds to a robot.',
+      'It is a guide only: no price, rule or AI choice changed. The AI teams still look at the odds and what they need, so a robot can sell for a bit more or less (new robots early in the game sell for about 2-3 Cr more).' ]],
     ['2.0.1, themed cards', '21 Nov 2026', [
       'Two card texts now say what the game does (nothing else changed): Mirror makes 2 copies (it said 2–3), and Hostile Buyout buys the target\'s weakest robot for 4 credits (it said a robot or crew member at 2× its value). Scalper Bot\'s line and price tag follow: "Four credits each, no refunds."',
       'One more themed card: the Matador chip is now Antikythera Core ("Two thousand years old, bronze gears. Still faster than your robot."), with its own drawing. It works as before.',
