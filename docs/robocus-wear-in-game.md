@@ -19,14 +19,40 @@ Branch `claude/bending-on`.
   grooves, warp, snapped pieces; numbers only), `applyWear` puts them back. `node tools/damage-lab/wear-carry.js` checks it.
   `src2/repair.js`: repairing a zone clears its marks; a zone with a mark the engine calls out (bent 10°+, warped, a plate in a
   wheel, sawn open, a tip broken off, a crack 10 cm+) counts as damaged (repair button even at full health); `markCost` prices marks.
-- [ ] Step 2, retune (running). Round 1 (`WEAR.hpExp` 0.5: a tougher robot's metal bends, cracks and saws less for the same blow,
-  as weapons already resisted kinks by the square root of their health; 1,976 fights, T37's seeds, paired with T37's "off" fights):
-  Gaucho -15 → -5, Buzzkill +14 → +2, Thumper -14 → -7, Tarantula +12 → +7, Grandmaster +11 → +7; still out: Thwacker -24,
-  Popcorn +20, Orbiter +15, Whaler +14, Hydra -13, level 1 → 2 at 76%. Thwacker diagnosed (144 fights per variant): bending alone
-  -10, cracks -7, no single cause (not the tail kink: -21 without it; wheel rub -15 without it): it fights long and wears down.
-  Round 2: power dials for the robots still outside (`tools/t41` notes below).
-- [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie).
+- [x] Step 2, retune. Round 1 (`WEAR.hpExp` 0.5: a tougher robot's metal bends, cracks and saws less for the same blow, as weapons
+  already resisted kinks by the square root of their health): Gaucho -15 → -5, Buzzkill +14 → +2, Thumper -14 → -7, Tarantula
+  +12 → +7, Grandmaster +11 → +7; still out: Thwacker -24, Popcorn +20, Orbiter +15, Whaler +14, Hydra -13. Thwacker diagnosed
+  (144 fights a variant): no single cause (without its tail kinking -21, without wheel rub -15, bending alone -10, cracks about -7):
+  it fights long and wears down. Round 2: power dials for the 11 robots still off (`tools/damage-lab/lineup.js`, comment above
+  ROBOTS). Result on 1,976 fights (T37's seeds, paired with the same fights without wear): **no robot outside its 95% range**,
+  spread of the changes 5 points (= noise). Details in section "After" below.
+- [x] Kev's PC run ready: `tools\wear-tables.cmd` (see "The big run on Kev's PC" below). Waiting for its result file.
+- [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie): on Kev's PC (below); meanwhile the game keeps the
+  15 Nov tables (measured without wear).
 - [ ] Step 4, checks.
+
+## The big run on Kev's PC (T41)
+
+Kev: "let me know if you want a big one to run on my pc". **Double-click `tools\wear-tables.cmd`.** It does not touch the ROBOCUS
+folder: it clones the branch `claude/bending-on` into `%USERPROFILE%\robocus-wear` (or updates that clone), installs planck and
+Playwright's Chromium there once, and runs `tools/damage-lab/wear-tables.js` on **15 workers** (16 logical processors, one left
+for Windows). Close the window to stop; double-click again to go on (finished jobs are kept). Progress and the time left are on
+one line. At the end it prints one file to send back: `%USERPROFILE%\robocus-wear\wear-results\wear-tables-results.json.gz`.
+
+What it runs (all with wear on and the retuned robots): the open-floor matchup table (528 pairs x 20 = 10,560 fights), the four
+arena tables (4 x 99 pairs x 20 = 7,920), arena fits (5 floors x 16 seeds = 15,840), every part on every robot vs a level up
+(14,784), the 58 fit / epic candidates with and without the part (2 x 5,248), 750 free-for-alls and 750 2v2, then 120 whole AI
+games of the game page (carry-over on). About 77,000 fights. Time: here one duel takes about 1.2 s of one core; a 9800X3D core is
+about twice as fast and 15 workers on 8 cores / 16 threads give about 11 cores' worth, so **about 70 minutes of fights plus about
+15 minutes of whole games: about 1.5 hours** (on an 8-thread PC with 7 workers, about 3 hours).
+
+Note for the orchestrator: Kev's folder is on `main`, which does not have the .cmd yet. It is self-contained: copy it to his
+folder (or let him download it from the branch on GitHub) and double-click it anywhere.
+
+After it comes back: unpack (`node -e` gunzip, `files` map), `matrix-merge.js <dir>` → matrix-data.json → `build.py` (src2/matrix.js);
+`style-tags.js <dir>` → STYLE / HITTER in tabletop-2.html; `arenafit-report.js <dir> --eb` → ARENA_FIT; `tag-tuned-report.py` /
+`tag-tuned-final.py` with OUT=<tags dir> LINEUP=wear-results/lineup.json → fits, epics, FFA_FIT, 2v2 tags; parttest-style
+levels from the parts section → PART_LV if a part moved; `game-sim-report.js` on the games.
 
 ---
 
