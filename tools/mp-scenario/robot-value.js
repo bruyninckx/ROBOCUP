@@ -88,7 +88,8 @@ const path = require('path'), fs = require('fs');
     if (!await until(p, () => !!(window.ROBOCUS_DEBUG.RX.q && !window.ROBOCUS_DEBUG.RX.q.over), 8000)) bad.push(tag + ': no Hostile Buyout question');
     await p.waitForTimeout(1000);
     nt = await noteTxt(p); console.log(tag + ' buyout: ' + nt.text);
-    if (!nt.q || nt.box || !/wants to buy your .*\(worth \d+ Cr\) for 4 Cr/.test(nt.text)) bad.push(tag + ': Hostile Buyout is not in the note with its worth: ' + nt.text);
+    if (!nt.q || nt.box || !/wants to buy your .*\(worth (\d+) Cr\) for (\d+) Cr/.test(nt.text)) bad.push(tag + ': Hostile Buyout is not in the note with its worth: ' + nt.text);
+    else { const m = /worth (\d+) Cr\) for (\d+) Cr/.exec(nt.text); if (+m[2] !== Math.max(4, +m[1])) bad.push(tag + ': Hostile Buyout price ' + m[2] + ' is not its value ' + m[1] + ' (at least 4)'); }   // T45
     await shot(p, tag + '-5-hostile-buyout.png'); await noteShot(p, tag + '-5-hostile-buyout-note.png');
     await p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); });
     await p.close();

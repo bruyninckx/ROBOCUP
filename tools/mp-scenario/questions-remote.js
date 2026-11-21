@@ -2,7 +2,7 @@
 // before; the joined screen puts it in the note when it fits). One host + 3 joined tabs (local transport, bots frozen).
 //   1. second robot of a double duel, asked of seat 1 (a joined screen): its note shows the robots, a click on one adds it
 //      on the host; the host's waiting list names the question for seat 1 (as before); "Just one" adds none;
-//   2. Hostile Buyout played by the host on seat 1: Refuse costs seat 1 one fame, Sell it hands over its robot for 4 Cr;
+//   2. Hostile Buyout played by the host on seat 1: Refuse costs seat 1 one fame, Sell it hands over its robot for its price (its value, at least 4 Cr);
 //   3. Joint Venture played by the host on seat 1: the host answers in its own note; seat 1's question is closed by the host
 //      (a player who left: cancelSeat) and counts as Defect, its default since T20 (a default never costs you credits).
 //   4-7 (T31, 20 Nov): seat 1 leaves a question alone: the host judges the time-out (its default, a ⌛ line to seat 1); a second
@@ -59,8 +59,11 @@ const fs = require('fs'), path = require('path');
   // ---- 2. Hostile Buyout by the host on seat 1
   const hb = C => host.evaluate(C => { const D = window.ROBOCUS_DEBUG, G = D.G, T = G.teams[C]; G.teams[0].hand = ['hostile_buyout']; const c0 = T.credits, f0 = T.fame, n0 = T.robots.length;
     D.playScheme(G.teams[0], 'hostile_buyout', T).then(() => { window.__res = { cr: T.credits - c0, fame: T.fame - f0, robots: T.robots.length - n0 }; }); }, C);
-  for (const [ans, want] of [[/^Refuse/, { cr: 0, fame: -1, robots: 0 }], [/^Sell it/, { cr: 4, fame: 0, robots: -1 }]]) {
-    await prep(1); await hb(C); await okAll();
+  for (const [ans, want0] of [[/^Refuse/, { cr: 0, fame: -1, robots: 0 }], [/^Sell it/, { cr: 'price', fame: 0, robots: -1 }]]) {
+    await prep(1);
+    // T45: the price is seat C's weakest robot's value, at least 4
+    const price = await host.evaluate(C => window.ROBOCUS_DEBUG.buyPrice(window.ROBOCUS_DEBUG.G.teams[C]), C), want = Object.assign({}, want0, want0.cr === 'price' ? { cr: price } : {});
+    await hb(C); await okAll();
     const n = await waitQ(seatOf[C], /Hostile Buyout/);
     if (!n) { bad.push('Hostile Buyout: no question in seat ' + C + '\'s note'); continue; }
     if (shots && /Refuse/.test(ans.source)) await seatOf[C].locator('#promptBar').screenshot({ path: path.join(shots, 'joined-hostile-buyout-note.png') });
