@@ -56,6 +56,10 @@ function startServer() {
       if (x) { res.fights.push(x); console.log(JSON.stringify(x)); } else console.log(k + ': no such fight');
       await p.waitForTimeout(3000);   // let the cut-off fights of the last run finish
     }
+    // the game's own settings (BAL.bookie: 4 s for a duel, msBig for 3+ robots, early stop), all helpers
+    for (const k of ['duel', 'multi']) { const x = await p.evaluate(async k => { const c = window.__F[k]; if (!c) return null; const s = await window.ROBOCUS_DEBUG.simOdds(c.F, {});
+      return s && { kind: k, natural: true, bots: s.bots, n: s.n, ms: s.ms, budget: s.budget, early: s.stop, how: s.how, wins: s.wins }; }, k);
+      if (x) { res.fights.push(x); console.log(JSON.stringify(x)); } await p.waitForTimeout(3000); }
     res.errs = errs; if (errs.length) console.log('page errors', errs.slice(0, 3));
   } finally { await b.close(); srv.s.kill(); }
   if (OUT) fs.writeFileSync(OUT, JSON.stringify(res, null, 1));

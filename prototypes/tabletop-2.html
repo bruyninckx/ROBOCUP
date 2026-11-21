@@ -5554,13 +5554,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const P = aiP(t), gd = hostGuard(t); let budget = Math.max(0, t.credits - P.reserve - Math.max(Math.min(2, Math.round(aiHostValue(t) / 2)), gd ? gd.keep : 0));   // T46: the guard keeps its host-seat credits
       if (aiSavesFor(t)) budget = Math.max(0, budget - 4);   // keeps credits back for next round's epic part
       const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
-      const bids = zeroBids();
+      const bids = zeroBids(), free = 3 - t.robots.length; let rb = 0;
       for (const { k, v } of order) {   // base bids: exactly the old rule (old reserve and budget)
         if (v <= 0.5) continue;
+        if (free > 0 && rb >= free && tiOn(t) && LOTS[G.market[k]] && LOTS[G.market[k]].robot) continue;   // T52: no more robot lots than empty bays (the next one would trade in the one just bought)
         if (rwOn(t, 'hoard') && !(LOTS[G.market[k]] && ((LOTS[G.market[k]].robot && t.robots.length < 2) || LOTS[G.market[k]].crew === 'mechanic'))) continue;   // T35 test AI: hoards (only a 2nd robot and Mechanics)
         let b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
         const mn = minBidOf(G.market[k]); if (mn && b < mn) b = v >= mn && budget >= mn ? mn : 0;   // level 4: at least the minimum, or nothing
-        bids[k] = b; budget -= b;
+        bids[k] = b; budget -= b; if (b > 0 && LOTS[G.market[k]] && LOTS[G.market[k]].robot) rb++;
       }
       // surplus: only ADDS to the base bids. Each lot it bid on is worth up to value × aiSpendMult; the extra comes from what is left
       // above the full reserve (aiReserve) after the base bids, at most spendShare of the surplus per lot, highest value first
@@ -6070,7 +6071,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // its Fan Favourite fame (or most of the way there), and a robot it just bought (no churn)
   function tiKeep(t, o) {
     const P = aiP(t), others = t.robots.filter(r => r !== o), bare = Object.assign({}, o, { parts: [], leg: null, rar: null });
-    let k = tiVal(t, bare, bareStr(o), others, o.level >= 4 ? 0.6 : 0);
+    const l4 = o.level >= 4 ? 0.6 : 0; let k = tiVal(t, bare, bareStr(o), others, l4);
+    if (o.wear) {   // damaged: worth at least what it is worth repaired, less the repair credits (a wrecked Fan Favourite is not worthless)
+      const Z = zonesOf(o), acts = R2.ZONES.reduce((a, z) => a + (Z[z.key] && Z[z.key].damaged ? repairCost(o, z.key) : 0), 0), fix = Object.assign({}, bare, { wear: null });
+      k = Math.max(k, tiVal(t, fix, R2.strength(null, o.name, o.level, []), others, l4) - acts * repairCr()); }
     const fw = favWins(t), w = o.wins || 0;
     k += (P.tiTokK || 0) * Math.min(w, fw);
     if (w >= fw) k += BAL.fame.fanFav * fameCr(t) + (P.tiFavK || 0);
@@ -6088,12 +6092,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function doTradeIn(t, old, nr) {
     if (!old || !t.robots.includes(old)) { t.robots.push(nr); return `New Bot: ${nr.name}`; }
     const cr = scrapMoney(old), parts = garageOn() && GB().partsBack !== false ? scrapPartsOut(old) : partLots(old);   // T38: a part of a broken zone comes back broken
+    const cost = tiOn(t) ? Object.fromEntries(t.robots.map(r => [r.name, +(tiKeep(t, r) - scrapMoney(r)).toFixed(1)])) : null;   // T52 (log only): what losing each robot costs the AI
     robotLeaves(t, old, null, 'trade-in'); returnStarter(old.name);
     addCr(t, cr, 'sale');
     for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');   // Vulture Salvage: +2 Cr whenever a bot is scrapped
     t.robots.push(nr);
     stashParts(t, parts);
-    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round, wins: old.wins || 0, fav: (old.wins || 0) >= favWins(t), held: old.joinR != null ? G.round - old.joinR : null, ai: !isHuman(t.i) });   // T52: its wins, a Fan Favourite, rounds since it joined
+    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round, wins: old.wins || 0, fav: (old.wins || 0) >= favWins(t), held: old.joinR != null ? G.round - old.joinR : null, ai: !isHuman(t.i), cost });   // T52: its wins, a Fan Favourite, rounds since it joined
     notify('♻️ ' + nm(t) + ' trades in <b>' + esc(old.name) + '</b> for ' + cr + ' Cr' + (parts.length ? ' (its parts go to the Stash)' : '') + ' and takes <b>' + esc(nr.name) + '</b>.', t.col);
     return `New Bot: ${nr.name} (traded in ${old.name}, +${cr} Cr)`;
   }

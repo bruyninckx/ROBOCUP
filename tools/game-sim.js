@@ -150,7 +150,7 @@ function installHooks() {
         if (e && e.k === 'garage') X.garage.push({ r: g.round, team: e.team, cost: e.cost, moves: e.moves });
         if (e && e.k === 'parts_back') X.partsBack.push({ r: g.round, team: e.team, why: e.why, n: e.n, broken: e.broken, worth: e.worth });
         if (e && e.k === 'scrap') { const o = X.rvNow[e.robot] || {}; X.leaves.push({ r: g.round, team: e.team, reason: e.reason, to: e.to, v: e.value != null ? e.value : o.v, parts: e.parts != null ? e.parts : o.parts, lv: e.level != null ? e.level : o.lv, host: g.host }); }
-        if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got, wins: e.wins, fav: e.fav, held: e.held });   // T52: wins, Fan Favourite, rounds held
+        if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got, wins: e.wins, fav: e.fav, held: e.held, cost: e.cost });   // T52: wins, Fan Favourite, rounds held
         if (e && e.k === 'msg' && /has no robots left/.test(e.text || '')) X.scraps.push({ r: g.round, why: 'none-left', team: (g.teams.find(t => e.text.includes(t.name)) || {}).i });
       } catch (err) { X.hookErrs.push('event: ' + err.message); }
       return push.apply(this, arguments);
