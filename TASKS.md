@@ -7,6 +7,12 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K41. Fan Favourite and hoarding** (T35): (a) no change by the numbers; want a brake for tables of people anyway
+  ("a Fan Favourite that loses drops a Fan token", or 4 Cr instead of 6)? (b) AI hosts invite a rival's Fan Favourite
+  and the fame leader on purpose: should they stop, as people would (AI change, not a rule)? (c) the AI always ends a
+  round with 6-8 Cr and never bids more than the richest rival + 1 for the host seat, so a saving person buys the host
+  seat at will: a credit sink, an AI that saves for host bids, or a cap on host bids? (d) AI teams pay a person in
+  deals and backing but never each other: fine?
 - **K40. Robot value, follow-ups** (T44): (a) Hostile Buyout is a flat 4 Cr, so it can take an 11 Cr robot for 4:
   should the price follow the value (for example the value, at least 4)? (b) Fire Sale's text says "at value +1 each"
   but the game pays a flat 2 Cr: pay value + 1 now, or fix the text? (c) new robots sell 2-3.5 Cr above their value
@@ -161,18 +167,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   from where it was; (3) re-measure the matchup table, arena tables and counter tags; (4) checks: new stock-fight
   fingerprint and files stamp, sync-check, game-sim, mp-test. Done when: `docs/robocus-wear-in-game.md` has the
   after-numbers with fight counts and ±, and the bookie's Brier is back within noise of today's 0.182. Started 21 Nov.
-- **T35. Is a Fan Favourite a money runaway? Measure, then propose.** Kev (20 Nov, after a solo game he led with 45 Cr
-  against 6-7): "I can runaway in money by making a robot fan favourite and after that getting into battles by whatever
-  means, they cannot scrap it and I get payed a lot. Can you check by doing AI battles if this can be countered or should
-  we balance it". His log: appearance money was 18 of his income, the same as Rust Rivets's 18; he also earned 12 from
-  backing, 12 from cashing in cards, 9 from host deals, and spent less than the AI teams. Goal: bot games that show (a)
-  what a Fan Favourite is worth in credits and wins, (b) whether a team playing Kev's line beats normal AI teams far more
-  than 1 in 4, (c) whether counters the game already has stop it, (d) what each balance option would do. Measuring and
-  options behind `BAL` switches (default off): no change to the game as played until Kev picks. Worker on branch
-  `claude/fan-favourite-check`, started 20 Nov. Done when: `docs/robocus-fan-favourite.md` with the numbers, game counts,
-  ± and a recommendation.
-## Done
-
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
