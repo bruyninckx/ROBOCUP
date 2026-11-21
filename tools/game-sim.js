@@ -12,6 +12,9 @@
 //          --planck (local planck.min.js for 2.0 when the CDN can't be reached; default: node_modules/planck, then
 //          vendor/planck-1.4.3.min.js; --planck=cdn always uses the network), --maxRound (give up after, default 40)
 // The same seeds in two runs = the same shuffles to start with, so two settings compare like for like.
+// T35 (20 Nov): --aip0='{"rw":1}' plays the Fan Favourite "runaway" test AI in seat 0, --aipR='{"ctr":["noInvite","cards","host","smear"]}'
+// the counters in seats 1-3; --bal='{"fan":{...}}' the Fan Favourite test rules (docs/robocus-fan-favourite.md). The result also
+// records robot wins in res.ups[r].wins, res.v2.favSafe (losing Fan Favourites kept safe), res.v2.hosts; report: tools/fan-fav-report.js.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const N = +arg('games', 100), PAR = +arg('par', 4), START = arg('start', null) == null ? null : +arg('start'), WIN = +arg('win', 12), SEED0 = +arg('seed0', 1);
@@ -38,7 +41,7 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', '')), PLAN
 function installHooks() {
   if (window.__sim) return;
   const D = window.ROBOCUS_DEBUG, R2 = window.Repair2, DL = window.DamageLab;
-  const X = window.__sim = { reps: [], ups: [], fights: [], scraps: [], tradeIns: [], rv: [], rvNow: {}, rvTrade: {}, snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
+  const X = window.__sim = { favSafe: [], reps: [], ups: [], fights: [], scraps: [], tradeIns: [], rv: [], rvNow: {}, rvTrade: {}, snaps: [], stepMs: 0, steps: 0, fightWall: [], hookErrs: [], house: [] };
   const G = () => D.G;
   const sumUsed = rep => rep && rep.used ? Object.values(rep.used).reduce((a, b) => a + (b || 0), 0) : 0;
   const zoneSum = r => { const Z = D.zonesOf(r), o = {}; for (const k of ['drive', 'weapon', 'body']) o[k] = Z[k] ? (Z[k].broken ? 'broken' : Z[k].damaged ? 'damaged' : 'ok') : 'ok'; if (Z.body && Z.body.lost && Z.body.lost.length) { o.lost = Z.body.lost.length; if (Z.body.lost.some(l => /chip/i.test(l))) o.fried = 1; } return o; };   // 11 Nov: body pieces lost, chip fried
@@ -105,7 +108,7 @@ function installHooks() {
         if (e && e.k === 'fight_start' && g.fight) {
           const F = g.fight;
           e.host = g.host; e.hostFame = g.teams.map(t => t.fame);   // 11 Nov: who hosts, and the fame table at the fight
-          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, s: D.str2(r), s0: R2.strength(null, r.name, r.level, []), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
+          e.x2 = F.teams.map((ti, i) => { const r = F.robots[i]; return r ? { team: ti, side: F.sides[i], name: r.name, level: r.level, parts: (r.parts || []).length + (r.leg ? 1 : 0), chip: (r.parts || []).find(k => window.Lineup && Lineup.PARTS[k] && Lineup.PARTS[k].kind === 'chip') || null, wins: r.wins || 0, s: D.str2(r), s0: R2.strength(null, r.name, r.level, []), z: zoneSum(r), face: (r.faceDown || []).length } : null; });
           e.house = !!F.house;
         }
         // access check (Kev, 10 Nov): what the Market offered each round, who won it, and what every team's robots carried
@@ -134,6 +137,8 @@ function installHooks() {
           if (e && e.k === 'scrap' && e.reason === 'fire sale') { const o = X.rvNow[e.robot] || {}; X.rv.push({ k: 'fire', r: g.round, lv: o.lv, v: o.v, price: 2 }); }
           if (e && e.k === 'trade_in') { const o = X.rvNow[e.robot] || {}; X.rv.push({ k: 'tradein', r: g.round, lv: e.level, v: o.v, b: o.b, parts: o.parts, price: e.cr }); }
         }
+        // T35: a losing Fan Favourite the host could not scrap (who, whose host, the fame table: would the AI host have scrapped it?)
+        if (e && e.k === 'msg' && /a Fan Favourite can't be scrapped/.test(e.text || '') && g.fight && g.fight.loser) X.favSafe.push({ r: g.round, team: g.fight.loser.team, robot: g.fight.loser.robot.name, host: g.host, fame: g.teams.map(t => t.fame) });
         if (e && e.k === 'trade_in') X.tradeIns.push({ r: e.r, team: e.team, robot: e.robot, level: e.level, cr: e.cr, parts: e.parts, got: e.got });
         if (e && e.k === 'msg' && /has no robots left/.test(e.text || '')) X.scraps.push({ r: g.round, why: 'none-left', team: (g.teams.find(t => e.text.includes(t.name)) || {}).i });
       } catch (err) { X.hookErrs.push('event: ' + err.message); }
@@ -173,7 +178,7 @@ function installHooks() {
       const r = await p.evaluate(() => {
         const D = window.ROBOCUS_DEBUG, G = D.G, ev = D.PT.game.events, C = D.CARDS_ALL();
         const w = G.teams.slice().sort((a, b) => b.fame - a.fame || b.credits - a.credits)[0];
-        const ups = {}; ev.filter(e => e.k === 'phase' && e.ph === 'upkeep').forEach(e => { if (!ups[e.r]) ups[e.r] = { fame: e.teams.map(t => t.fame), cr: e.teams.map(t => t.cr), robots: e.teams.map(t => t.robots.length), hand: e.teams.map(t => t.hand) }; });
+        const ups = {}; ev.filter(e => e.k === 'phase' && e.ph === 'upkeep').forEach(e => { if (!ups[e.r]) ups[e.r] = { fame: e.teams.map(t => t.fame), cr: e.teams.map(t => t.cr), robots: e.teams.map(t => t.robots.length), hand: e.teams.map(t => t.hand), wins: e.teams.map(t => t.robots.map(r => r.wins || 0)) }; });
         const fights = ev.filter(e => e.k === 'fight_start' && !e.fid);
         const fends = ev.filter(e => e.k === 'fight_end' && !e.sandbox && !e.fid);
         const market = ev.filter(e => e.k === 'market').map(e => e.lots.reduce((a, l) => a + (l.winner != null && l.winner >= 0 ? (l.price || 0) : 0), 0));
@@ -191,6 +196,7 @@ function installHooks() {
           const L = D.LOTS;
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
+            favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, rv: X.rv, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),

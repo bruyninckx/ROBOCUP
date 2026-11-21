@@ -739,6 +739,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // Kev, 11 Nov (test options, both off): noRepeat = last round's host cannot bid for the host seat; streakTax = a host's bid counts this many Cr less per round it has hosted in a row
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
+    // T35 (20 Nov, test options; the defaults are the rules as played, docs/robocus-fan-favourite.md). Appearance money for an
+    // invited robot: tokenMoney per Fan token (at most tokenCap tokens count), favMoney in all for a Fan Favourite, +2 per team;
+    // loserShare: the share a losing team keeps (< 1: paid after the result, rounded down; a draw pays everyone that share);
+    // favLoseToken: a Fan Favourite that loses drops a Fan token (and with it the status, its fame and the immunity);
+    // favScrap: '' = a Fan Favourite can't be scrapped; 'two' = it can after its 2nd loss in a row; 'any' = like any robot
+    fan: { tokenMoney: 2, tokenCap: 99, favMoney: 6, loserShare: 1, favLoseToken: false, favScrap: '' },
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
     oddsDamage: true,             // Kev, 16 Nov (K5): the formula odds count damage again, like the test fights (false = read every robot as new, the 15 Nov test)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
@@ -811,6 +817,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // a v2 improvement can be switched off one at a time (params.off = ['bets', …]) to measure what each one is worth
   const aiV2 = (t, f) => (AIV[t.i] || 1) >= 2 && !(f && (aiP(t).off || []).includes(f));
   const aiP = t => AIP[t.i] || AI_PARAMS;
+  /* T35 (20 Nov, test AIs only; never on in a real game: docs/robocus-fan-favourite.md). rw: 1 = the "runaway" line Kev found
+   * (Apex Media, host and invite itself with its Fan Favourite, pay AI hosts to be invited, hoard credits, back schemes for pay);
+   * rwOff: parts switched off ('apex', 'host', 'self', 'deal', 'hoard', 'back'). ctr: the counters other teams use against a
+   * rival's Fan Favourite ('noInvite', 'cards', 'host', 'smear'). rwTips: 1 = when it hosts, the other AI teams offer it the
+   * invite deals they offer a person who hosts (AI hosts get none otherwise). Unset (every real game): the AI as before. */
+  const rwOn = (t, f) => !!aiP(t).rw && !(aiP(t).rwOff || []).includes(f);
+  const ctrOn = (t, f) => (aiP(t).ctr || []).includes(f);
+  const favReady = T => readyRobots(T).filter(r => r.wins >= favWins(T) && !wrecked(r)).sort((a, b) => power(b) - power(a))[0] || null;
+  const hasFav = T => T.robots.some(r => r.wins >= favWins(T));
   let CATCHUP = { leaderhost: 1 };     // catch-up rules: purse / leaderhost / cards. Kev, 7 Nov: leaderhost on (a sole fame leader gets no host fame)
 
   /* 2.0 starters: the 9 level-0 robots of src2/lineup.js (classic robots, no module or chip) */
@@ -830,6 +845,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
   const SPONSOR_KEYS = Object.keys(SPONSORS);
   const favWins = t => t.sponsor === 'apex' ? BAL.fame.favTokensApex : BAL.fame.favTokens;
+  // T35: a robot's appearance money on top of the team's 2 Cr (today: 2 per Fan token, 4 for a Fan Favourite = 6 in all)
+  // T35 test option BAL.fan.favScrap: may the host scrap this losing Fan Favourite? ('' = never, the rule as played)
+  const favScrapOk = r => BAL.fan.favScrap === 'any' || (BAL.fan.favScrap === 'two' && (r.lossRow || 0) >= 2);
+  const appearCr = (T, r) => { const N = BAL.fan; return r.wins >= favWins(T) ? N.favMoney - 2 : N.tokenMoney * Math.min(r.wins, N.tokenCap); };
   const maxBetOf = t => t.sponsor === 'lucky' ? 5 : 3;
   // Kev, 7 Nov (sponsor check: Lucky Seven won 11%): its winning bets pay like the next band down (Even pays like Underdog)
   const payFor = (t, F, sd) => { if (!F || !F.pay) return 1; if (!t || t.sponsor !== 'lucky' || !F.bands || !F.bands[sd]) return F.pay[sd]; const k = BANDS.indexOf(F.bands[sd]); return k >= 0 ? BANDS[Math.min(BANDS.length - 1, k + 1)].pay : F.pay[sd]; };
@@ -2583,6 +2602,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const v = SPONSOR_KEYS.map(k => ({ k, v: SPONSOR_AI[k] + (rnd() < 0.3 ? 1 : 0) - (rnd() < 0.3 ? 1 : 0) })).sort((a, b) => b.v - a.v);
     const b = {}; let budget = Math.min(t.credits, SP_AI_MAX);
     v.slice(0, 2).forEach((x, j) => { const n = Math.max(0, Math.min(SP_AI_MAX, budget, x.v - j)); if (n > 0) { b[x.k] = n; budget -= n; } });   // first choice: its worth; second: 1 less
+    if (rwOn(t, 'apex')) return { apex: Math.min(t.credits, SP_AI_MAX) };   // T35 test AI: Apex Media at any price
     return b;
   }
   const aiSponsorRebid = (t, k, cur, maxAdd) => window.__spAiRebid != null ? Math.min(maxAdd, window.__spAiRebid) : maxAdd > 0 && cur <= SP_AI_MAX && rnd() < 0.5 ? 1 : 0;
@@ -3805,6 +3825,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (g <= -2 && rnd() < Math.min(0.9, (P.grudgeK || 0) * -g * 1.5)) return false;
       if (gt <= -2 && c.harmful && rnd() < Math.min(0.9, 0.3 + (P.grudgeK || 0) * -gt)) return true; }
     if (c.name === 'Corporate Raid' && T) off += Math.min(8, T.credits) / 2;   // a backer gets a share of the take
+    if (rwOn(o, 'back') && off >= 1) return true;   // T35 test AI: backs any scheme not aimed at itself for pay
     if (T && T === lead && o !== lead && c.harmful) return rnd() < 0.85;
     if (F === lead || F.fame >= 9) return off >= 3 && rnd() < 0.4;
     return rnd() < 0.15 + 0.25 * off;
@@ -4393,6 +4414,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (r < 0) th += (P.grudgeK || 0) * -r; else if (r > 0 && !(P.stab && T.fame >= WIN_FAME - 3)) th -= (P.loyalK || 0) * r;
       if (r > 0 && P.stab && T.fame >= WIN_FAME - 3) th += 0.3;
       th = Math.max(0.05, th); }   // Kev, 11 Nov: a team that keeps hosting draws the cards, as it would at a real table
+    if (aiP(F).ctr) { if (ctrOn(F, 'cards') && hasFav(T)) th += aiP(F).ctrK != null ? aiP(F).ctrK : 1;   // T35 test AIs: aim the cards at a Fan Favourite's team
+      if (ctrOn(F, 'smear') && T === leaderOf() && T.fame > Math.max(...G.teams.filter(o => o !== T).map(o => o.fame))) th += aiP(F).ctrLead != null ? aiP(F).ctrLead : 1; }   // ... at a sole fame leader
     return th;
   };
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
@@ -4935,7 +4958,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function aiHostValue(t) {
     const P = aiP(t), fame = CATCHUP.leaderhost && soleLeader() === t ? 0 : HOST_FAME;
     if (fame && t.fame + fame >= WIN_FAME) return t.credits;
-    return fameCr(t) * fame + 1 + hostDenyValue(t);
+    return fameCr(t) * fame + 1 + hostDenyValue(t) + (P.rw || P.ctr ? aiFavHostExtra(t) : 0);
+  }
+  // T35 test AIs: the runaway hosts to put itself in the fight; a counter team outbids it when a rival has a Fan Favourite
+  function aiFavHostExtra(t) {
+    const P = aiP(t); let x = 0;
+    if (rwOn(t, 'host') && readyRobots(t).length) x += P.rwHostK != null ? P.rwHostK : 4;
+    if (ctrOn(t, 'host') && G.teams.some(o => o !== t && favReady(o))) x += P.ctrHostK != null ? P.ctrHostK : 4;
+    return x;
   }
   /* Kev, 11 Nov (playtest: Kev hosted 9 of 10 rounds for 7-13 Cr, put his best robot against the weakest every time and won 13-7-3-0):
    * a team that keeps hosting is buying a win a round. Taking the host seat away from it is worth credits to everyone else:
@@ -4992,6 +5022,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const bids = zeroBids();
       for (const { k, v } of order) {   // base bids: exactly the old rule (old reserve and budget)
         if (v <= 0.5) continue;
+        if (rwOn(t, 'hoard') && !(LOTS[G.market[k]] && ((LOTS[G.market[k]].robot && t.robots.length < 2) || LOTS[G.market[k]].crew === 'mechanic'))) continue;   // T35 test AI: hoards (only a 2nd robot and Mechanics)
         let b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
         const mn = minBidOf(G.market[k]); if (mn && b < mn) b = v >= mn && budget >= mn ? mn : 0;   // level 4: at least the minimum, or nothing
         bids[k] = b; budget -= b;
@@ -5002,7 +5033,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       let pool = Math.min(sur0, Math.max(0, t.credits - bids.reduce((a, b) => a + b, 0) - aiReserve(t)));
       (G.aiSpend = G.aiSpend || {})[t.i] = { sur: sur0, mult, r: G.round };   // rebids use the same surplus
       for (const { k, v } of order) {
-        if (pool <= 0) break;
+        if (pool <= 0 || rwOn(t, 'hoard')) break;
         if (v < 1 || !bids[k]) continue;
         const add = Math.max(0, Math.min(pool, sur0 * (P.spendShare || 0.5), Math.round(bids[k] * (mult - 1))));
         bids[k] += add; pool -= add;
@@ -5982,6 +6013,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         else notify('✋ ' + nm(host) + ' turns down ' + nm(Me) + '\'s ' + bundleText(d.give) + '.', host.col);
       }
     }
+    if (G.teams.some(t => aiP(t).rw || aiP(t).ctr)) {   // T35 test AIs only
+      for (const T of G.teams) {   // the runaway pays an AI host 2 Cr to be invited with its Fan Favourite (the host takes 2+ Cr, as from a person)
+        if (T === host || forceIn >= 0 || isHuman(T.i) || !rwOn(T, 'deal') || !favReady(T) || T.credits < 3) continue;
+        if (ctrOn(host, 'noInvite')) { notify('✋ ' + nm(host) + ' turns down ' + nm(T) + '\'s 2 Cr to be invited.', host.col); continue; }
+        transfer(T, host, { cr: 2, items: [] }, 'hostdeal'); forceIn = T.i; notify('🤝 ' + nm(host) + ' takes 2 Cr from ' + nm(T) + ' and invites it.', host.col);
+      }
+      if (ctrOn(host, 'noInvite') && forceIn < 0) { const keep = others.filter(t => !favReady(t)); if (keep.filter(t => readyRobots(t).length).length >= (readyRobots(host).length ? 1 : 2)) others = keep; }   // never invite a rival's Fan Favourite
+    }
     others = others.filter(t => !forceOut.has(t.i));
     let a, b;
     // Kev, 6 Nov ("improve AI play"): the host weighs the matchups instead of picking at random.
@@ -5992,7 +6031,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // a rival with a bounty robot (We Have Your Number) is worth a little more to fight: +0.08 on the odds it needs
     const bty = T => readyRobots(T).some(r => r.bounty) ? 0.08 : 0;
     const mine = able.map(T => ({ T, p: (bestVs(host, strong(T), host.i) || { p: 0 }).p + bty(T) })).sort((x, y) => y.p - x.p);
-    const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && mine[0].p >= 0.55 && rnd() < 0.85;
+    const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && ((mine[0].p >= 0.55 && rnd() < 0.85) || rwOn(host, 'self'));   // T35: the runaway always invites itself
     if (forceIn >= 0) {
       const vsMe = (bestVs(host, strong(G.teams[forceIn]), host.i) || { p: 0 }).p;
       a = forceIn; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== forceIn).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== forceIn)).i;
@@ -6006,6 +6045,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     } else {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
       a = s[0].i; b = (s[1] || { i: H }).i;
+    }
+    if (aiP(host).rwTips) for (const T of G.teams) {   // T35 test AI (rwTips): the other AI teams offer it the deals they offer a person who hosts; paid when its pick agrees
+      if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
+      if (host.fame > T.fame && (G.hostHist || []).slice(-3).filter(h => h === H).length >= 2) continue;
+      const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p, want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
+      if (want && rnd() < 0.55) { const B = aiBundle(T, host, 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B) && (want === 'in') === (a === T.i || b === T.i)) { transfer(T, host, B, 'hostdeal'); notify('🤝 ' + nm(T) + ' pays the host ' + bundleText(B) + ' (' + (want === 'in' ? 'invited' : 'left out') + ').', T.col); } }
     }
     G.arenaPick = aiPickArena(H, a, b);
     notify('👑 Host <b>' + esc(host.name) + '</b> invites ' + esc(G.teams[a].name) + ' vs ' + esc(G.teams[b].name) + (fmt === 'mirror' ? ' (Mirror: 2 copies each)' : fmt === 'double' ? ' (up to 2 robots each)' : '') + '!', host.col);
@@ -6077,6 +6122,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const foes = teams.filter((x, k) => sides2[k] !== sides2[e]).flatMap(x => readyRobots(G.teams[x]).slice().sort((p, q) => power(q) - power(p)).slice(0, 1));
         const pick = bestVs({ robots: readyRobots(t).filter(r => !wrecked(r)) }, foes, ti);   // Kev, 6 Nov: send the robot with the best matchup, not just the biggest
         G.fight.robots[e] = (pick && pick.r) || readyRobots(t).sort((a, b) => power(b) - power(a))[0] || t.robots[0];
+        if (aiP(t).rw && rwOn(t, 'self')) { const fv = favReady(t);   // T35 test AI: send the Fan Favourite (6 Cr, can't be scrapped), else a decent robot nearest to one
+          const near = readyRobots(t).filter(r => !wrecked(r) && r.wins > 0).map(r => ({ r, p: foes.length ? foes.reduce((a, f) => a + aiEdge(r, f), 0) / foes.length : 0.5 })).filter(x => x.p >= 0.45).sort((x, y) => y.r.wins - x.r.wins || y.p - x.p)[0];
+          if (fv || near) G.fight.robots[e] = fv || near.r; }
       }
     });
     const people = teams.filter(isHuman);
@@ -6309,6 +6357,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return { n, wins, ms: Math.round(performance.now() - t0), how };
   }
 
+  // T35: appearance money held back until the result (BAL.fan.loserShare < 1): winners get it all, losers (and a draw) that share
+  function payAppearOwed(F, ws) {
+    const o = F.appearOwed; if (!o) return; F.appearOwed = null;
+    for (const k in o) { const ti = +k, won = ws !== -1 && ws !== 'house' && F.teams.some((x, e) => x === ti && F.sides[e] === ws);
+      const a = won ? o[k] : Math.floor(o[k] * BAL.fan.loserShare); if (a > 0) addCr(G.teams[ti], a, 'appearance'); }
+  }
   async function afterChoose() {
     G.chooseMyBot = false;
     for (let s = 0; s < 4; s++) PS(s).choose = false;
@@ -6316,7 +6370,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (F && F.format === 'double' && !F.seconds) await addSeconds(F);
     await treacherousStep(F);
     // appearance money (rulebook): 2 Cr per invited team, plus 2 per Fan token on its robot (6 for a Fan Favourite)
-    { const paid = new Set(); F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; if (!r) return; addCr(T, (r.wins >= favWins(T) ? 4 : 2 * r.wins) + (paid.has(ti) ? 0 : 2), 'appearance'); paid.add(ti); }); }   // 2 Cr per invited team + 2 per Fan token (FAV: 6 total)
+    { const paid = new Set(); F.teams.forEach((ti, e) => { const T = G.teams[ti], r = F.robots[e]; if (!r) return; const a = appearCr(T, r) + (paid.has(ti) ? 0 : 2); paid.add(ti); if (BAL.fan.loserShare < 1) { F.appearOwed = F.appearOwed || {}; F.appearOwed[ti] = (F.appearOwed[ti] || 0) + a; } else addCr(T, a, 'appearance'); }); }   // 2 Cr per invited team + 2 per Fan token (FAV: 6 total); T35: BAL.fan
     // 2.0 bookie: every side's strength (Repair2, open information only); P(side) ∝ exp(strength)
     if (F.house && fightBots(F) >= 4) { F.house = false; notify('🏠 No room for the House Robot: a 2.0 fight has at most 4 robots.', '#b45309'); }
     { const copies = F.format === 'mirror' ? 2 : 1;
@@ -6935,6 +6989,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
     F.robots.forEach(r => { if (r) r.lastFight = G.round; });
     if (G.host >= 0 && F.robots.some(r => quirkOf(r) === 'Headline Act')) { G.teams[G.host].fame += 1; notify('✦ Headline Act: the Railgunner fought, so host ' + nm(G.teams[G.host]) + ' gains +1 extra fame.', G.teams[G.host].col); }
+    payAppearOwed(F, ws);   // T35: BAL.fan.loserShare < 1 only (nothing owed otherwise)
     if (ws === -1 || ws === 'house') {
       for (const x of F.bets) { addCr(G.teams[x.team], x.amt, 'bet'); x.payout = x.amt; }
       notify(ws === 'house' ? '🏠 The House Robot wins! Nobody gets fame; bets refunded.' : 'Arena Draw! Bets refunded.', '#111');
@@ -6965,6 +7020,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (quirkOf(r) === 'Hotshot') { addCr(T, 1, 'quirk'); notify('✦ Hotshot: ' + esc(r.name) + ' wins ' + nm(T) + ' +1 Cr.', T.col); }
       G.fameSrc = 'quirk';
       if (quirkOf(r) === 'Showstopper' && G.host >= 0 && G.host !== ti && G.teams[G.host].fame > 0) { G.teams[G.host].fame -= 1; T.fame += 1; notify('✦ Showstopper: ' + esc(r.name) + ' steals the show: ' + nm(T) + ' takes the host\'s +1 fame from ' + nm(G.teams[G.host]) + '.', T.col); }
+    });
+    G.fameSrc = null;
+    if (BAL.fan.favScrap === 'two') { winners.forEach(({ e }) => { if (F.robots[e]) F.robots[e].lossRow = 0; }); losers.forEach(({ e }) => { const r = F.robots[e]; if (r) r.lossRow = (r.lossRow || 0) + 1; }); }   // T35 test option
+    if (BAL.fan.favLoseToken) losers.forEach(({ ti, e }) => {   // T35 test option: a losing Fan Favourite drops a Fan token
+      const T = G.teams[ti], r = F.robots[e]; if (!r || r.wins < favWins(T)) return;
+      r.wins--; if (r.wins < favWins(T) && BAL.fame.fanFav) { G.fameSrc = 'fav'; T.fame = Math.max(0, T.fame - BAL.fame.fanFav); G.fameSrc = null; }
+      notify('🎖 ' + esc(r.name) + ' loses as a Fan Favourite and drops a Fan token' + (r.wins < favWins(T) ? ': no longer a Fan Favourite.' : '.'), T.col);
     });
     G.fameSrc = null;
     // 🎯 bounty (We Have Your Number): a marked robot on the losing side pays every winning team +1 fame (not its own team), then the mark is gone
@@ -7033,7 +7095,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function fateStatus(T, r) {
     const n = '<b>' + esc(r.name) + '</b>: ';
     if (G.host === T.i) return n + 'safe (the host\'s own robot)';
-    if (r.wins >= favWins(T)) return n + 'safe (Fan Favourite, can\'t be scrapped)';
+    if (r.wins >= favWins(T) && !favScrapOk(r)) return n + 'safe (Fan Favourite, can\'t be scrapped)';
     return n + 'the host decides; you can offer credits to spare it';
   }
   /* T25: after the host decides, why, in plain words, for the owner and every player who made an offer: the offers on both
@@ -7060,7 +7122,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function fateStep() {
     if (!G.fight.loser) { nextCrate(); return; }   // no losing robot (safety net)
     const F = G.fight, H = G.teams[G.host], L = G.teams[F.loser.team], lr = F.loser.robot, loser0 = F.loser;
-    const canScrap = lr.wins < favWins(L) && G.host !== L.i;
+    const canScrap = (lr.wins < favWins(L) || favScrapOk(lr)) && G.host !== L.i;
     if (!canScrap) {   // nothing to decide: the host's own robot, or a Fan Favourite
       resolveFate(false, G.host === L.i ? 'it is the host\'s own robot' : 'a Fan Favourite can\'t be scrapped');
       return;
