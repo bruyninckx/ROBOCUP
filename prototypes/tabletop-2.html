@@ -3681,7 +3681,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22a look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
+  const BUILD = 'tabletop 2.0.1 2026-11-22b bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -10956,6 +10956,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, bookie and trade-ins', '22 Nov 2026', [
+      'The bookie uses more of the host\'s PC: up to 14 helpers (cores minus 2) instead of 8, and for a fight with 3 or 4 robots it watches test fights for up to 8 seconds instead of 4 (those fights take much longer to play out). On a PC like Kev\'s, 2v2s and free-for-alls should now get their odds from test fights instead of the estimate. A duel whose result is clear early (60 test fights, the other side won at most 1) starts sooner.',
+      'AI teams trade in a robot only when the new one is really better: they count the robot they would scrap at its full worth, its Fan tokens, a Fan Favourite\'s fame, and a robot they bought only a round or two ago. They keep their Fan Favourites, don\'t swap a robot for one of the same level for the scrap money, and don\'t buy two robots in one Market when they have one empty bay.' ]],
     ['2.0.1, a look from the voting page', '22 Nov 2026', [
       'Rare parts stand out more, the rarer the more: Tuned has a thin coloured edge, Race-spec a soft glow, Works a bigger glow with a light sweeping across, Masterwork the biggest gold glow, a foil shine and twinkling sparks. The same on Market cards, garage slots and the parts rack, Stash names and the rarity ladder (still, if your computer asks for less motion).',
       'Fights: a robot slammed into a wall now gives a short plain flash instead of the comic star, and the dent in the wall fades away after a few seconds. A robot slammed or thrown hard into another robot gets the same flash (only the big hits).',

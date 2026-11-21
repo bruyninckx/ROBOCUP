@@ -120,3 +120,55 @@ retuned fights went from 0.182 to 0.201; with the table measured again with wear
 same 1,976 fights. Whole games (40, same seeds): favourite wins 74% → 77%, Brier 0.177 → 0.164. The test fights see wear marks
 (they are in `spec.wear`); the formula prices them (`src2/repair.js` `markCost`, small: marks cost little next to the health damage).
 Details: `docs/robocus-wear-in-game.md`.
+
+## 21 Nov (T52): all cores and more time for fights with 3-4 robots
+
+Kev's solo game of 21 Nov (build 2026-11-21k, 15 rounds, served from his PC: Ryzen 7 9800X3D, 8 cores / 16 logical processors).
+Every `bookie` event said `how: "8 workers"` (cores minus 2 = 14, capped at 8):
+
+| Round | Fight | Robots | Test fights in 4 s | Per helper a second | Used |
+|---|---|---|---|---|---|
+| 1, 2, 3, 6-10, 12, 13, 15 | duels | 2 | 77-200 (200 = the cap, reached in 2.2-3.7 s) | 2.4-11.4 | yes |
+| 5 | 2v2 (3 robots: 2 against 1) | 3 | 160 | 5.0 | yes |
+| 4 | 2v2 | 4 | 29 | 0.91 | no (under 40) |
+| 11 | 2v2 | 4 | 37 | 1.16 | no |
+| 14 | 2v2 | 4 | 26 | 0.81 | no |
+
+Fights with 4 robots last longer (wear makes them longer still; his real 2v2s ran 68-124 s of fight time, a duel 11-119 s), so a
+helper finishes about one a second on his PC. A fight still running at the end of the budget is thrown away, so with 8
+helpers about 4 fights are lost at the cut: the true rate is about (n + 4) / 4 s / 8 = 1.0-1.3 fights a second a helper.
+
+### What changed (`BAL.bookie`, defaults)
+
+| Setting | Before | Now | Why |
+|---|---|---|---|
+| `cap` (most helpers) | 8 | **14** (cores minus 2) | his PC has 16 logical processors |
+| `msBig` (budget for 3+ robots: copies and the House Robot count) | 4 s | **8 s** | the fights that fell short |
+| `ms` (duels) | 4 s | 4 s | duels were fine |
+| `stopN` / `stopMiss` | none | **60 / 1** | stop early once 60 are in and the other sides together won at most 1: the odds sit at the 95% cap whatever comes next (his rounds 8, 12, 13, 15 would have started 1-3 s sooner) |
+| `min`, `prior`, `n` | 40, 8, 200 | unchanged | see the Brier check below |
+
+A page without helpers (opened from a file) keeps 4 s also for big fights: there each test fight blocks the screen.
+
+### What to expect on his PC (arithmetic from his log)
+
+- 8 helpers, 8 s: (1.0-1.3 a second) x 8 helpers x 8 s - 4 lost at the cut = **about 60-80** test fights for his three 4-robot fights (29, 37, 26 before). Over 40: used.
+- 14 helpers on 8 cores / 16 threads: the extra 6 share cores with the first 8 (SMT), so they add perhaps 20-40%, not 75%: about 70-110 in 8 s. In 4 s alone they would give 35-50: not enough on their own, which is why the time goes up too.
+- Duels: same 4 s, more helpers, so 77-200 becomes about 90-200; clear duels stop at 60 (one of his took 122 of 122 in 4.0 s: now about 2 s).
+- His next log: `bookie` events with `how: "14 workers"`, `cores: 16`, `bots: 4` and `budget: 8000` on 2v2 / free-for-all / House Robot fights, `n` 50-110 and `used: true`; duels `budget: 4000`, some with `early: true`, `n` 60 and `ms` under 4000. If a 4-robot fight still shows `used: false`, the `n` and `ms` say by how much.
+- While it watches, the note says "The bookie is watching test fights of this matchup to set the odds… (a few seconds)" (unchanged); the fighters stand in the pit. Nothing freezes: the fights run in the helpers.
+
+### Measured in the cloud test box (2 slow cores, shared: load 7-21; absolute speeds say little)
+
+`node tools/bookie-speed.js` (served page, pretends 16 processors, AI game seed 3, a duel and a 4-robot fight from round 5 on):
+
+- Memory: the browser grows by 33 MB with 1 helper, 62 MB with 8, 124 MB with 14 (each loads planck and the engine): **about 8-10 MB a helper**, so 14 helpers about 125 MB. The pool starts 5 s after the page loads and lives as long as the page (no start-up cost per fight).
+- Speed per helper (box loaded): the round-7 duel 12.8 fights a second with 1 helper (8.5 each with 2, the box has 2 cores), the round-5 double duel (4 robots) 0.27 with 1 helper: a 4-robot fight costs 30-50 duels here.
+SPEEDNUMBERS
+
+### Game state stays the same for everyone
+
+Checked: the odds a fight uses are worked out only on the host. `afterChoose` (which runs `simOdds`) is reached only from host
+actions (a client's `act` goes to the host), the helpers are started only when the page is not a client, and the odds (`F.p`,
+bands, payouts) reach the other screens in the synced game state. The helpers use the bookie's own seeds, never the game's dice;
+more helpers or an early stop change only how many test fights the host counts, not any game random number. `node tools/mp-test.js`: MPTEST.
