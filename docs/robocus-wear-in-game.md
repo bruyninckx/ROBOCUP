@@ -31,6 +31,93 @@ Branch `claude/bending-on`.
   15 Nov tables (measured without wear).
 - [ ] Step 4, checks.
 
+
+## After (T41): wear on, retuned
+
+All fights below: the game's 33 robots built as the game builds them, open floor, every pair at most one level apart, T37's seeds
+(8 fights a pair, 1,976 fights), paired with T37's fights of the same robots, seeds and sides **without** wear. Wear means all four
+switches on, as the game now plays. Raw results: `tools/damage-lab/wear-game/t41_round2_all.jsonl`, report `t41_round2_report.md`.
+
+### Per robot: change in win rate against the same fights without wear (all its fights, 95% range)
+
+| Lv | Robot | vs own level: before → now | vs a level up: before → now | T37 (wear, old rules) | round 1 (hpExp) | **now** | what changed for it |
+|---|---|---|---|---|---|---|---|
+| 0 | Buzzkill | 55 → 55 | 40 → 53 | +14 ± 12 | +2 ± 12 | **+5 ± 13** (104) | hpExp 0.5 |
+| 0 | Forklift | 44 → 50 | 20 → 28 | +5 ± 11 | +0 ± 11 | **+7 ± 12** (104) | hpExp 0.5 |
+| 0 | Hornet | 33 → 34 | 33 → 30 | +3 ± 12 | -2 ± 12 | **+0 ± 12** (104) | hpExp 0.5 |
+| 0 | Mincer | 48 → 42 | 28 → 28 | -5 ± 10 | -4 ± 8 | **-4 ± 9** (104) | hpExp 0.5 |
+| 0 | Popcorn | 41 → 42 | 8 → 15 | +18 ± 11 | +20 ± 11 | **+4 ± 10** (104) | hpExp 0.5; power 0.97 → 0.897 (-8%): its flipper barely bends while its rivals' weapons do |
+| 0 | Scythe | 47 → 64 | 40 → 30 | -3 ± 12 | +3 ± 12 | **+7 ± 12** (104) | hpExp 0.5 |
+| 0 | Snapjaw | 56 → 52 | 25 → 28 | +1 ± 12 | +0 ± 11 | **-2 ± 11** (104) | hpExp 0.5 |
+| 0 | Thumper | 58 → 52 | 45 → 35 | -14 ± 12 | -7 ± 13 | **-8 ± 13** (104) | hpExp 0.5; power 0.882 → 0.905 (+3%): its axe handle wrenches, cracks |
+| 0 | Wrecker | 69 → 59 | 20 → 30 | +4 ± 12 | +10 ± 12 | **-2 ± 12** (104) | hpExp 0.5; power 1.146 → 1.103 (-4%): its flail folds the most plates (6.4 a fight on rivals) |
+| 1 | Blacksmith | 41 → 44 | 57 → 57 | -3 ± 8 | -3 ± 8 | **-3 ± 8** (144) | hpExp 0.5 |
+| 1 | Corkscrew | 41 → 41 | 33 → 13 | -8 ± 9 | -10 ± 7 | **-5 ± 8** (144) | hpExp 0.5; power 0.753 → 0.781 (+4%): its drill kinks |
+| 1 | Mauler | 41 → 47 | 33 → 20 | +6 ± 10 | +6 ± 9 | **+3 ± 9** (144) | hpExp 0.5 |
+| 1 | Thwacker | 63 → 53 | 30 → 33 | -26 ± 10 | -24 ± 9 | **-6 ± 9** (144) | hpExp 0.5; power 2.898 → 3.159 (+9%): no single cause (tail kink, wheel rub, cracks each a part); it fights long and wears down |
+| 1 | Vertigo | 66 → 66 | 30 → 35 | +3 ± 10 | -1 ± 9 | **-1 ± 9** (144) | hpExp 0.5 |
+| 2 | Angler | 75 → 84 | 23 → 21 | +8 ± 9 | +4 ± 10 | **+5 ± 10** (120) | hpExp 0.5 |
+| 2 | Gyro | 9 → 19 | 67 → 73 | +7 ± 9 | +10 ± 9 | **+3 ± 9** (120) | hpExp 0.5; power 1.084 → 1.043 (-4%): its shell knocks rivals' plates in (6.7 bends, 1.9 wheel rubs a fight on rivals) |
+| 2 | Pincher | 50 → 56 | 29 → 23 | -10 ± 11 | +0 ± 10 | **-5 ± 10** (120) | hpExp 0.5 |
+| 2 | Whaler | 72 → 66 | 29 → 25 | +9 ± 9 | +14 ± 10 | **+6 ± 9** (120) | hpExp 0.5; power 1.449 → 1.373 (-5%): it folds rivals' plates into their wheels |
+| 2 | Yoyo | 44 → 25 | 31 → 17 | -8 ± 11 | -6 ± 12 | **-9 ± 12** (120) | hpExp 0.5 |
+| 3 | Gaucho | 57 → 40 | 27 → 28 | -15 ± 10 | -5 ± 10 | **-6 ± 10** (144) | hpExp 0.5 |
+| 3 | Grandmaster | 43 → 40 | 20 → 27 | +11 ± 9 | +7 ± 9 | **+5 ± 8** (144) | hpExp 0.5 |
+| 3 | Hydra | 65 → 57 | 56 → 41 | -13 ± 10 | -13 ± 9 | **-6 ± 9** (144) | hpExp 0.5; power 1.501 → 1.575 (+5%): its arm segments kink and crack |
+| 3 | Scavenger | 38 → 43 | 36 → 39 | -1 ± 9 | -8 ± 9 | **+3 ± 9** (144) | hpExp 0.5; power 1.723 → 1.775 (+3%): slightly down after round 1 |
+| 3 | Slingshot | 63 → 65 | 50 → 38 | +5 ± 9 | -4 ± 9 | **-3 ± 10** (144) | hpExp 0.5 |
+| 3 | Tarantula | 35 → 55 | 42 → 45 | +12 ± 10 | +7 ± 10 | **+8 ± 10** (144) | hpExp 0.5 |
+| 4 | Bricklayer | 57 → 54 | - | -4 ± 12 | +1 ± 10 | **-6 ± 10** (104) | hpExp 0.5 |
+| 4 | Jukebox | 55 → 59 | - | -6 ± 12 | -9 ± 13 | **-2 ± 12** (104) | hpExp 0.5; power 1.795 → 1.856 (+3%): its records warp, a warped saw cuts less |
+| 4 | Lodestone | 41 → 29 | - | +4 ± 11 | +5 ± 11 | **+2 ± 11** (104) | hpExp 0.5 |
+| 4 | Orbiter | 48 → 46 | - | +12 ± 10 | +15 ± 10 | **+3 ± 10** (104) | hpExp 0.5; power 2.305 → 2.176 (-6%): its discs only warp a little; it saws into rivals |
+| 4 | Pogo | 57 → 63 | - | +3 ± 10 | +2 ± 9 | **+3 ± 9** (104) | hpExp 0.5 |
+| 4 | Railgun | 59 → 63 | - | +5 ± 11 | +2 ± 12 | **+7 ± 11** (104) | hpExp 0.5 |
+| 4 | Rotisserie | 48 → 50 | - | -6 ± 11 | -5 ± 10 | **-4 ± 10** (104) | hpExp 0.5 |
+| 4 | Trebuchet | 34 → 38 | - | +4 ± 11 | +7 ± 12 | **+6 ± 12** (104) | hpExp 0.5 |
+
+No robot is outside its 95% range now (with 33 robots, about 2 would be by luck); the changes spread 5 points, which is what
+noise alone gives. Before the retune (T37) 10 robots were outside, spread 9. Per robot the numbers are good to about ±10.
+
+### Level steps (how often the higher level wins; target 63-68%)
+
+
+| Step | Fights | Today | B: all four | change |
+|---|---|---|---|---|
+| level 0 → 1 | 360 | 71% ± 5 | 69% | -2 ± 5 |
+| level 1 → 2 | 200 | 64% ± 7 | 69% | +5 ± 8 |
+| level 2 → 3 | 240 | 64% ± 6 | 68% | +4 ± 7 |
+| level 3 → 4 | 384 | 61% ± 5 | 64% | +2 ± 6 |
+| all steps | 1184 | 65% ± 3 | 67% | +2 ± 3 |
+
+All within noise of the band; 0 → 1 and 1 → 2 are a point above it (± 5-8). The big run on Kev's PC (10,560 fights, every pair) checks this with three times the fights; a last small nudge can follow from it.
+
+### Fight length, knockouts
+
+
+| | Today (off) | B: all four |
+|---|---|---|
+| Fight length, s | 72.9 ± 1.4 | 72.4 ± 1.5 |
+| Knockouts | 84% | 81% |
+| Ends on time (judges) | 16% | 19% |
+| No winner | 0 | 0 |
+| Winner differs from today, B: all four |  | 32% |
+
+### The bookie (matchup table of 15 Nov, measured without wear, against these results)
+
+
+| Odds | Results | Brier | favourite wins | mean odds of the favourite |
+|---|---|---|---|---|
+| matchup table (game odds, robots as they come) | today (1976) | 0.182 | 75% ± 2 | 77% |
+| matchup table (game odds, robots as they come) | B: all four (1976) | 0.201 | 70% ± 2 | 77% |
+| level only (strength model) | today (1976) | 0.236 | 65% ± 3 | 65% |
+| level only (strength model) | B: all four (1976) | 0.233 | 67% ± 3 | 65% |
+
+Brier change, matchup table, B: all four: +0.019 ± 0.012 (paired).
+
+With the old table the bookie is off by as much as in T37 (0.201 vs 0.182). The table must be measured again with wear on:
+that is the big run on Kev's PC. Until then the game uses the old table (the test-fight bookie already sees wear).
+
 ## The big run on Kev's PC (T41)
 
 Kev: "let me know if you want a big one to run on my pc". **Double-click `tools\wear-tables.cmd`.** It does not touch the ROBOCUS
