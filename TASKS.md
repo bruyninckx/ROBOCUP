@@ -7,6 +7,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K49. Garage** (T38): (a) AI teams never move a part between robots at 2 / 4 Cr (the gain is worth about 0.6 Cr to
+  them): keep the fees, or 1 Cr for a whole move? (b) with parts but nothing touched, Upkeep goes on after 8 s (was
+  0.6 s): right? (c) a part taken off a robot whose zone is broken comes off broken: keep? (d) most parts from a
+  scrapped robot come back broken (losers usually have a broken Body); one repair action each: right price? (e) the
+  AI keeps at most 4 Stash parts: fine?
 - **K48. Smarter AI hosts** (T46): (a) next to a team that hoards and hosts, AI teams spend about 10% less in the
   Market (they keep credits for the host seat): fine, or should they save less? (b) the host seat costs about 0.7 Cr a
   round more and hosts take about 10 Cr a game more in deals: fine? (c) the AI still can't outbid a 40+ Cr pile; only
@@ -130,6 +135,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
 - (T41 saw `repair-note.js` fail on a clean main: "9 repairs: 8 buttons", Thumper's Weapon at 50% gets no button: T28.)
+- (T38's worker, 21 Nov: `repair-note.js` "9 repairs: 8 buttons" is the test's own fault: it sets damage through `wear.parts['Axe arm']`, which Thumper's arm does not read. Fix the test.)
 - **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
   weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
@@ -149,21 +155,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Favourite (−1 fame), and spent 111 Cr in the Market while winning the most fights and losing the game. Worker on
   branch `claude/bookie-tradein`, started 21 Nov. Done when: a measured table of test fights by fight size and worker
   count; trade-ins per AI team per game and Fan Favourite trade-ins before/after in 60 paired bot games; checks pass.
-- **T38. (started 21 Nov, worker on branch `claude/garage`) NEXT BIG TASK (Kev, 21 Nov: "wait for some agents to finnish before implemnting this but this should be the
-  next big task in line"). Garage: swap parts between robots in Upkeep.** Kev's idea: "modify the upkeep phase to also
-  allow swapping of parts onto other robots for a small fee. To make this work, when a robot get scrapped it should
-  also still give the parts back (perhaps damaged as well?) into the stash (stash limit should perhaps be removed).
-  People can play around with swapping items and a sort of garage bill will be displayed which they can lock in".
-  His answers (21 Nov): fee "1 coin for removal and 1 coin for install, maybe 2 for legandaries"; on piling onto one
-  robot: "I would make swapping cost money and pay for removing + pay for putting an item on, which should reduce
-  swapping all the time because money is important"; parts from a scrapped robot: "perhaps depends on what was
-  damaged?"; "stash limit gone"; "should be seemless for people with no parts indeed"; and "I'm also thinking about a
-  nice visual about the upkeep with a garage and your robots in the arena area". Starts after T41 (wear decides how
-  damage sits on a part), T35 (what a scrap is worth) and T44 (robot value on the bill). Settled with Kev (21 Nov, "1 yes / 2 4 in total / 3 right"): fitting a
-  part you just won stays free; a part from the Stash pays the 1 Cr install; a legendary costs 2 to remove and 2 to
-  install (4 for a move); a part from a broken zone of a scrapped robot comes back broken and needs a repair, the rest
-  come back whole. Then measure: scrap matters less, parts pile onto the best robot,
-  fewer Market parts bought, AI must learn to swap, Upkeep clicks for a player who changes nothing (must be zero).
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
