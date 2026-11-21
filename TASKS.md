@@ -7,6 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K35. Card names** (T39): Antikythera Core and Riemann, Compiled were both voted onto Prototype core. Riemann has it
+  for now; which card should Antikythera Core go on (or drop it)? Reincarnation is on Supply Drop for now.
 - **K34. Trade and bid in one step** (T26): (a) a trade still open when the last person locks: the game waits for it
   (answer or time-out); or cancel it? (b) any trade or bank sale unlocks your bids, also one that leaves credits the
   same: OK? (c) AI teams send no offers once you have locked: OK? (d) next round's lots only on the strip under the
@@ -125,6 +127,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T39. Themed names and art on 18 cards (display only).** Kev (21 Nov): "I want a nice thematic change on some of the
+  cards but I am more picky on what to include"; he voted Yes on 19 names on the voting page
+  (https://claude.ai/artifact/Lvqx4oRamR3vByY1NtCAe1), chose "New name big, the game's name small under it", and art
+  direction A, Scrapyard ink (https://claude.ai/artifact/Qr79G7ZxfcvSi9EbpCmCMT). Goal: a `FLAVOR` table keyed by the
+  existing card ids; new name big, game name small, flavour line; one drawing per themed card in the game's own drawing
+  style; log, rules, bookie, AI and network keep the ids and game names. Antikythera Core waits for Kev (it and Riemann,
+  Compiled both wanted Prototype core). Worker on branch `claude/card-flavour`, started 21 Nov. Done when: screenshots
+  of every themed card at 1600x900 and 1280x720, game-sim and mp-test pass, stock-fight fingerprint unchanged.
 - **T37. Bending and wear in real fights: measure first.** Kev (21 Nov): "I saw a fight between buzzkil and whirlwind
   and his blades didn't even really bend at any point. Did we forget to include this? at one point we had this"; then
   "yes do this first step". The 11 Nov wear effects (`ARC.cx.crack`, `frag`, `bend`, `grindout`) are off in the game;
