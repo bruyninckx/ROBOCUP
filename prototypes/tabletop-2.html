@@ -1287,7 +1287,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function recheckGather() {
     if (!G || !G.gather || !gatherThen) return false;
     if (!humanSeats().every(s => G.gather.done[s])) { updateHud(); return false; }
-    if (G.gather.step === 'lots' && G.phase === 'market' && dealsOpen()) { updateHud(); return false; }   // T26: the last lock waits for an open deal
+    if (G.gather.step === 'lots' && G.phase === 'market' && dealsOpen()) closeMarketDeals();   // T47 (was T26: the last lock waited for an open deal): open deals are called off, the lots go out at once
     const f = gatherThen; G.gather = null; gatherThen = null; f(); return true;
   }
   /* T16 (Kev, 16 Nov: "when people lock bids, people can still change their bids after that if there are other people not
@@ -3034,6 +3034,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function ivModal0(title, html, buttons, timeout, def, game, o = {}) {
     return new Promise(res => {
+      if (o.reg && o.reg.dead) { res(def); return; }   // T47: called off while it waited
       let el = document.getElementById('ivModal');
       if (!el) { el = document.createElement('div'); el.id = 'ivModal'; document.body.appendChild(el); }
       // T31: a game question in the box counts down too (seconds and bar over its buttons; the note shows the same seconds)
@@ -3051,6 +3052,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (o.onShow) o.onShow();
       el.querySelectorAll('button[data-k]').forEach(b => { b.onclick = () => finish(buttons[+b.dataset.k].value(el)); });
       el._finish = () => finish(def);   // closed from outside (the host cancelled the question)
+      if (o.reg) o.reg.local = () => el._finish();   // T47: mktDeal can close it
       if (game) { const st = {}, again = () => { if (done) return; const list = [...el.querySelectorAll('button[data-k]')].map(b => ({ el: b, k: +b.dataset.k }));
           list.forEach(x => { x.el.disabled = false; }); armBtns(st, list, again); };
         again(); const fin0 = finish; finish = v => { armDone(st); fin0(v); }; }   // T20: no answer by a click already on its way
@@ -3073,7 +3075,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // T31: the host judges the time: its clock starts when the joined screen shows the question (a question waiting behind
       // another one there gets its full time), stops while the game is paused, and closes it QT_GRACE after the screen's own
       // count reached 0 (the screen counts down for show only). payload.left keeps the time left for a screen that rejoins.
-      const payload = { title, html, small, ms: qms, left: qms, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }, hk = {};
+      const payload = { title, html, small, ms: qms, left: qms, buttons: buttons.map(b => ({ label: b.label, secondary: !!b.secondary })) }, hk = (opt && opt.reg && opt.reg.hk) || {};   // T47: opt.reg (mktDeal) can call it off
       const stop = !small && qms > 0 ? hostJudge(qms, payload, hk, late) : () => {};
       return asking(seat, N.ask(seat, payload, hk)).then(a => {
         stop();
@@ -3081,7 +3083,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const b = a && buttons[a.k]; return b ? b.value(el) : def;
       });
     }
-    return small ? smallAsk(title, html, buttons, timeout, def) : asking(seat, askBox(title, html, buttons, qms, def, { onLate: late }));
+    return small ? smallAsk(title, html, buttons, timeout, def) : asking(seat, askBox(title, html, buttons, qms, def, { onLate: late, reg: opt && opt.reg }));
   }
   /* T20 (Kev, 17 Nov: "move into note yes"): a question to one player (the second robot of a double duel, Joint Venture, Hostile
    * Buyout, Tag Team, a threat, an offer, ...) is asked in the yellow note, not in the box over the pit: its title and text, one
@@ -3200,6 +3202,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   //   left: ms left when it opens (a screen that rejoins), onShow() when it is on screen }
   function noteAsk(title, html, buttons, def, ms = 0, o = {}) {
     const p = modalChain.then(() => new Promise(res => {
+      if (o.reg && o.reg.dead) { res(def); return; }   // T47: called off (the Market closed) while it waited behind another question
       const box = document.createElement('div'); box.innerHTML = html;   // value(el) gets the question's html, as the box gave it
       const left0 = o.left > 0 && o.left < ms ? o.left : ms;
       const q = RX.q = { id: ++RX.n, q: true, clk: true, title, html, ms: ms > 0 ? ms : 0, t0: clkNow() - (ms - left0), buttons, box, done: null, over: false };
@@ -3214,6 +3217,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         else { setTimeout(() => { if (G) updateHud(); }, Q_HOLD + 50); setTimeout(() => { if (G) updateHud(); }, 4050); }   // the ✓ stays a moment (see qOn)
         if (G) { updateHud(); renderWaiting(); } res(v); };
       q.cancel = () => q.finish(def);   // closed from outside (the host cancelled the question, or a person left)
+      if (o.reg) o.reg.local = q.cancel;   // T47: mktDeal can close it
       if (G) { updateHud(); renderWaiting(); }
       if (o.onShow) o.onShow();
       if (BOT) setTimeout(() => { if (!q.done && !q.over && !window.__noBot && RX.q === q) rxPick(Math.floor(Math.random() * buttons.length), q); }, 60 + Math.random() * 120);
@@ -3710,12 +3714,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const ms = opts.ms != null ? opts.ms : opts.assets ? 0 : ASK_DEAL_MS();
     const late = () => say(seat, '⌛ <b>No answer in time</b> (' + opts.title + '): no deal.', '#6E6457');
     if (isRemote(seat) && N && !isClient()) {   // host: the panel opens on that player's screen; the host gets back what they locked in (a client shows its own panel: its seat is 'remote' in SEATS too)
-      const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null, ms, left: ms }), hk = {};
+      const o = Object.assign({}, opts, { from: opts.from ? opts.from.i : null, ms, left: ms }), hk = opts._reg ? opts._reg.hk : {}; delete o._reg;
       const stop = ms > 0 ? hostJudge(ms, o, hk, late) : () => {};   // T31: the host judges the time, as for a question
       return asking(seat, N.deal(seat, o, hk)).then(st => { stop(); return st && st.give ? st : null; });
     }
     // T20: while the panel is open the note says so and points at it (popOpen)
-    const p = dealChain.then(() => { const pr = dealPanel0(opts, seat, { ms, left: opts.left, judged: !!opts._judged, onShow: opts._onShow, onLate: opts._judged ? null : late }); if (G) updateHud();
+    const p = dealChain.then(() => { const pr = dealPanel0(opts, seat, { ms, left: opts.left, judged: !!opts._judged, onShow: opts._onShow, onLate: opts._judged ? null : late, reg: opts._reg }); if (G) updateHud();
       const end = () => { const dm = document.getElementById('dealModal'); if (dm) delete dm.dataset.pq; if (G) updateHud(); };
       return pr.then(v => { end(); return v; }, e => { end(); throw e; }); });
     dealChain = p.catch(() => null);
@@ -3723,6 +3727,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function dealPanel0(opts, seat, k = {}) {
     return new Promise(res0 => {
+      if (k.reg && k.reg.dead) { res0(null); return; }   // T47: called off while it waited
       // T31: the countdown (k.ms; k as noteAsk's o): seconds and bar over the buttons, No deal when the time is up
       const ck = k.ms > 0 ? { ms: k.ms, t0: clkNow() - (k.ms - (k.left > 0 && k.left < k.ms ? k.left : k.ms)) } : null; let qc = null;
       const res = v => { if (qc) QT.delete(qc); const d = document.getElementById('dealModal'); if (d) { d._clk = null; d.classList.remove('q-low'); } res0(v); };
@@ -3788,6 +3793,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       el._clk = ck;
       draw();
       el._finish = () => { el.hidden = true; el.innerHTML = ''; res(null); };
+      if (k.reg) k.reg.local = () => { if (!el.hidden) el._finish(); };   // T47: mktDeal can close it
       if (ck) { qc = { left: () => clkLeft(ck), until: k.judged ? -Infinity : 0, tick: () => { qTick(el, ck); const pb = document.getElementById('promptBar'); if (pb && pb.classList.contains('qpop')) qTick(pb, ck); },
           end: () => { if (el.hidden) return; if (k.onLate) k.onLate(); tlog('deal_panel', { title: ptPlain(opts.title), with: O ? O.name : null, locked: false, late: true }); el._finish(); } }; QT.add(qc); }
       if (k.onShow) k.onShow();
@@ -3795,9 +3801,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     });
   }
   // an AI offer to the human, a trade offer, a backing request or a threat: accept or refuse. T31: no answer in time = Refuse
-  function dealAsk(title, html, seat = HS) {
+  function dealAsk(title, html, seat = HS, reg = null) {   // reg (T47): from mktDeal, so the Market's close can call it off
     const late = /threat/i.test(title) ? 'you did not pay' : /backing/i.test(title) ? 'you did not back it' : 'the offer was refused, nothing changes';
-    return askSeat(seat, title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late });
+    return askSeat(seat, title, html, [{ label: '🤝 Accept', value: () => true }, { label: 'Refuse', secondary: true, value: () => false }], 0, false, { late, reg });
   }
 
   /* ---------- the Stash card in the left column ---------- */
@@ -4780,8 +4786,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    *  - A completed trade or a bank sale takes the lock off (Kev: "yes"), on both sides of a trade (tradeUnlock).
    *  - A person's bids may never add up to more than their credits: Lock is refused until they fit (lockBids), and the
    *    resolve trims anything left over (fitBids; only a skipped or dropped seat can get there).
-   *  - An open deal (a trade panel, or an offer waiting for its answer) holds the end of the step: the last lock waits for it
-   *    (G.mDeals, recheckGather). Nothing moves until both sides said yes, and then it moves at once on the host.
+   *  - An open deal (a trade panel, or an offer waiting for its answer) is counted in G.mDeals (the waiting list shows it). T47: it no
+   *    longer holds the end of the step: at the last lock it is called off (closeMarketDeals, below). Nothing moves until both
+   *    sides said yes, and then it moves at once on the host.
    *  - AI teams make no new offers to a person who has locked. */
   const mktOpen = () => !!G && G.phase === 'market' && G.marketStage === 'lots' && !G.marketAuction && !G.marketResolved;
   const lotsLocked = s => !!(G.gather && G.gather.key === 'lots:' + G.round && G.gather.done[s]);
@@ -4794,6 +4801,29 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (n) D[T.i] = n; else delete D[T.i];
     if (d < 0 && G.gather && G.gather.step === 'lots') recheckGather();
   }
+  /* T47 (Kev, 21 Nov voting page: "Cancel the open trade and go on"): when the last person locks, every deal still open (a trade
+   * panel of the one who proposes, the question to the other side, an AI offer) is called off as "no deal": both sides get a
+   * line saying the Market closed, nothing moves, and the lots go out at once. mktDeal(run) runs one such deal: run(reg) opens
+   * the panel or question with reg; closeMarketDeals() makes every open mktDeal answer MKT_SHUT at once and closes what is on a
+   * screen (a joined screen: N.cancelQ on the host, as a time-out does; this page: the note, box or panel; a question still
+   * queued behind another one never opens). The host runs actions in the order they arrive, so a Yes that reached it before the
+   * last lock went through already (and unlocked both, T26). */
+  const MKT_SHUT = 'market-closed', MKTD = new Map(); let mktDealSeq = 0;
+  function mktDeal(run) {
+    const id = ++mktDealSeq, reg = { dead: false, hk: {}, local: null }; let shut;
+    const closed = new Promise(r => { shut = r; });
+    MKTD.set(id, { shut: () => { if (reg.dead) return; reg.dead = true; shut(MKT_SHUT);
+      const N = window.ROBOCUS_NET; if (N && N.cancelQ && reg.hk.q != null) N.cancelQ(reg.hk.q);
+      if (reg.local) try { reg.local(); } catch (e) { console.warn('mktDeal close', e); } } });
+    const done = () => MKTD.delete(id);
+    return Promise.race([Promise.resolve().then(() => run(reg)), closed]).then(v => { done(); return v; }, e => { done(); throw e; });
+  }
+  function closeMarketDeals() {
+    for (const e of [...MKTD.values()]) e.shut();
+    G.mDeals = {};
+  }
+  const mktShutTxt = (A, B) => '🤝 <b>The Market closed</b> (everyone had locked): the open deal between ' + nm(A) + ' and ' + nm(B) + ' was called off. No deal, nothing moved.';
+  const mktShutSay = (A, B) => { for (const T of [A, B]) if (T && isHuman(T.i)) say(T.i, mktShutTxt(A, B), '#6E6457'); };
   // a trade or a bank sale went through: a person who had locked is unlocked; bids above the credits now must come down first
   function tradeUnlock(T, what) {
     if (!T || !isHuman(T.i) || !mktOpen()) return;
@@ -4833,8 +4863,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (!mktOpen()) break;
         if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
         let yes;
-        if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i); } finally { dealIn(buyer, -1); } }
+        if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i, reg)); } finally { dealIn(buyer, -1); } }
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
+        if (yes === MKT_SHUT) { mktShutSay(A, buyer); continue; }
         if (!yes) continue;
         if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: [id] })) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: [id] });
@@ -4854,8 +4885,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (buyer.credits < price) continue;
       if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
       let yes;
-      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + (valOn() ? ', worth <span class="valword"' + valAttr(spare) + '>' + robotValue(spare) + ' Cr</span>' : '') + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i); } finally { dealIn(buyer, -1); } }
+      if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + (valOn() ? ', worth <span class="valword"' + valAttr(spare) + '>' + robotValue(spare) + ' Cr</span>' : '') + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i, reg)); } finally { dealIn(buyer, -1); } }
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
+      if (yes === MKT_SHUT) { mktShutSay(A, buyer); continue; }
       if (!yes) continue;
       if (!mktOpen() || !bundleHeld(buyer, { cr: price }) || !bundleHeld(A, { items: ['R:' + spare.id] }) || A.robots.length < 2 || buyer.robots.length >= 3) { if (isHuman(buyer.i)) say(buyer.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
       transfer(buyer, A, { cr: price, items: [] }, 'trade'); transfer(A, buyer, { cr: 0, items: ['R:' + spare.id] });
@@ -4871,7 +4903,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (!isHuman(P.i) || lotsLocked(P.i) || !stashOf(P).includes(id)) continue;   // T26: no new offers to a person who has locked (or left, or sold it meanwhile)
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
       let yes; dealIn(P, 1);
-      try { yes = await dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i); } finally { dealIn(P, -1); }
+      try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i, reg)); } finally { dealIn(P, -1); }
+      if (yes === MKT_SHUT) { mktShutSay(A, P); continue; }
       if (yes) {
         if (!mktOpen() || !bundleHeld(A, { cr: price }) || !bundleHeld(P, { items: [id] })) { say(P.i, '⌛ ' + (mktOpen() ? 'That deal fell through: something moved meanwhile.' : 'Too late: the Market bids are closed.') + ' Nothing changed hands.', '#b45309'); continue; }
         transfer(A, P, { cr: price, items: [] }, 'trade'); transfer(P, A, { cr: 0, items: [id] });
@@ -4887,13 +4920,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const Me = G.teams[S];
     if (Me.trading) return; Me.trading = true; dealIn(Me, 1);
     try {
-      const d = await dealPanel({ title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + (isHuman(O.i) ? ' then accepts or refuses.' : ' accepts if it comes out ahead.') + ' Robots, crew and Security Bots only change hands here, in the Market while the bids are open. A trade that goes through unlocks your bids (and theirs).', from: O, want: true, assets: true, lock: 'Lock in trade' }, S);
+      const d = await mktDeal(reg => dealPanel({ _reg: reg, title: '🤝 Trade with ' + esc(O.name), intro: 'Put credits, Stash parts, robots, crew and Security Bots on both sides, then lock it in. ' + nm(O) + (isHuman(O.i) ? ' then accepts or refuses.' : ' accepts if it comes out ahead.') + ' Robots, crew and Security Bots only change hands here, in the Market while the bids are open. A trade that goes through unlocks your bids (and theirs).', from: O, want: true, assets: true, lock: 'Lock in trade' }, S));
+      if (d === MKT_SHUT) { mktShutSay(Me, O); return; }
       if (!d || (bundleEmpty(d.give) && bundleEmpty(d.want))) return;
       if (!mktOpen()) { say(S, closedTxt, '#b45309'); return; }
       if (d.want.items.some(x => x.startsWith('R:')) && O.robots.length - d.want.items.filter(x => x.startsWith('R:')).length + d.give.items.filter(x => x.startsWith('R:')).length < 1) { say(S, '✋ ' + nm(O) + ' must keep a robot.', O.col); return; }
       let yes;
-      if (isHuman(O.i)) { dealIn(O, 1); try { yes = await dealAsk('🤝 Trade offer from ' + esc(Me.name), nm(Me) + ' offers <b>' + bundleText(d.give) + '</b> for your <b>' + bundleText(d.want) + '</b>.' + (mktOpen() ? ' A yes unlocks your bids.' : ''), O.i); } finally { dealIn(O, -1); } }
+      if (isHuman(O.i)) { dealIn(O, 1); try { yes = await mktDeal(reg => dealAsk('🤝 Trade offer from ' + esc(Me.name), nm(Me) + ' offers <b>' + bundleText(d.give) + '</b> for your <b>' + bundleText(d.want) + '</b>.' + (mktOpen() ? ' A yes unlocks your bids.' : ''), O.i, reg)); } finally { dealIn(O, -1); } }
       else yes = bundleWorth(O, d.give) - bundleWorth(O, d.want) >= 1;
+      if (yes === MKT_SHUT) { mktShutSay(Me, O); return; }
       if (!mktOpen()) { say(S, closedTxt, '#b45309'); if (isHuman(O.i)) say(O.i, closedTxt, '#b45309'); return; }
       if (yes && !(bundleHeld(Me, d.give) && bundleHeld(O, d.want))) {   // T26: atomic on the host: both sides must still hold it all, or nothing moves
         const msg = '✋ The trade between ' + nm(Me) + ' and ' + nm(O) + ' fell through: something on the table changed hands meanwhile. Nothing moved.';
@@ -7448,7 +7483,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.awaitingJudgment && G.host === s) return 'spare/scrap';
     if (G.crateChoices && G.crateChoices.team === s) return 'crate';
     if (G.phase === 'arena' && G.host === s && G.pickTeams && !G.fight && !G.hostStep) return 'invites';
-    if (G.phase === 'market' && G.mDeals && G.mDeals[s] && mktOpen()) return 'trade';   // T26: an open deal holds the end of the bids
+    if (G.phase === 'market' && G.mDeals && G.mDeals[s] && mktOpen() && !lotsLocked(s)) return 'trade';   // T26: busy in a deal (T47: a locked person's open deal no longer holds the step)
     const step = gatherStep();
     if (step && !(G.gather && G.gather.key === step[0] + ':' + G.round && G.gather.done[s])) return step[0];
     return null;
