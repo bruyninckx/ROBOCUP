@@ -59,3 +59,36 @@ The 2.0 AI (`prototypes/tabletop-2.html`) now spends credits above a reserve: hi
 - Fixed: while a player's "over your hand limit" question was open, the host still accepted card plays and cash-ins from that player. A late click over the network could crash the host and hang the game. The question now blocks plays (like other Intrigue windows) and asks again if the hand changed anyway.
 - Test bot only (`?bot=1`): it now invites any team when fewer than 2 have robots ready (it got stuck before).
 - Not fixed: in 1 of 6 chaos runs of `tools/mp-test.js` (seed 21), a client that later dropped out showed screen errors (`needsRobot`/`robotLot`: Market code running on that client). The game finished and stayed in sync. `mp-test` now logs longer error stacks to catch it next time.
+
+## Hosts invite like people; a guard for the host seat (T46, 21 Nov 2026; work in progress)
+
+Kev (21 Nov): "improving AI is always good"; on hoarding: teach the AI (no credit sink, no cap); later: "AI teams should make
+the same deals with each other". AI behaviour only, no rule or price change. Every part is an `AI_PARAMS` switch, on by
+default; `--aip='{"invite":0,"guard":0,"favCards":0}'` is the AI as before (seeds 1-3: the same games as main 885ea64,
+every credit change and fight identical).
+
+- `invite`: an AI host weighs what an invitation gives each team (appearance money 2 Cr +2 per Fan token, 6 for a Fan
+  Favourite; the chance of a win: fame, a Fan token; against damage and, unless a Fan Favourite, a scrap) times how dangerous
+  that team is to it (fame threat, credits above the host's), and invites the pair that helps its rivals least (score noise
+  `invNoise`, `invRand` 12% any pair). Invite / leave-out deals are priced with the same numbers (at least 2 Cr; the deal
+  screen says the price). An AI team asks a person who hosts to be invited when the invitation is worth 3+ Cr to it.
+- `guard`: against a rival that piles up credits (3+ Cr above the others' average, or it hosted 2 of the last 3 rounds and
+  holds as much as the guard) and is dangerous (a Fan Favourite, or within 3 fame of the win, and within 1 of the top), the
+  richest AI team keeps credits back and bids up to its own host value + 0.6 x what that rival's hosting would give it
+  (at most 14 Cr, at most the rival's credits + 1).
+- `favCards`: harmful cards aim a little harder (+0.5 threat) at a team with a Fan Favourite that leads or is within 1.
+
+Numbers so far (seeds 1-60, paired by seed; partial, being completed):
+
+| All-AI games (58 paired) | before | after | change |
+|---|---|---|---|
+| Game length (rounds) | 11.5 | 11.4 | -0.2 ±0.6 |
+| Fame per round | 3.2 | 3.4 | +0.1 ±0.1 |
+| Market Cr per game (all teams) | 116 | 110 | -6 ±7 |
+| Host bids paid per game (all teams) | 78 | 82 | +4 ±5 |
+| AI host that stays out invites the sole fame leader | 95% (87) | 46% (91) | |
+| ... a rival's ready Fan Favourite | 89% (38) | 56% (39) | |
+| ... the leader when it has a ready Fan Favourite | 95% (21) | 29% (24) | |
+| Seat 0 (normal AI) wins | 38% | 33% | -5 ±18 pts |
+
+Kev line (seed 1-20 only so far): seat 0 wins 11% before and after; its appearance money 38.7 -> 35.4 Cr a game (-3 ±9).
