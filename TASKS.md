@@ -9,8 +9,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **K44. A won part: "Always ask me first which robot"** (voting page, 21 Nov): read as: when two or more of your robots
   can take it, the game asks before fitting; with one robot it still goes on at once with Undo. Right, or ask even then?
-- **K43. Wear** (T41): level steps 0→1 and 1→2 were at 69% with wear on (target 63-68%): nudge if Kev's big run
-  confirms that?
+- **K43. Wear, after the merge** (T41): (a) level steps 0→1 (74%) and 1→2 (70%) are above the 63-68% band, and Hornet
+  (-16) and Buzzkill (+13) moved: nudge them now (about 6-8% power each)? (b) Overdrive now measures about half a
+  level stronger: run a parts test on Kev's PC (about 23,000 fights)? (c) three combos held at epic level in both
+  rounds (Thwacker + Mine layer, Thwacker + Pester chip, Wrecker + Pester chip): make them epics, with names?
 
 ### Answered
 
@@ -129,6 +131,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
+- (T41, 21 Nov: with wear on the steps are 74 / 70 / 69 / 63%; level 2→3 is no longer the soft one; see K43.)
 - **T3. Level 2 is the softest step** (60% vs level 1; the others 64-66%). Small power nudges for Pincher and Whaler, then
   check the level steps again (`tools/damage-lab/tag-sim2.js` duel section). Done when: every step is 63-68%.
 - **T1. Kev: retire the side folders.** Double-click `tools/retire-side-folders.cmd` once: it pushes the three 11 Nov
@@ -150,23 +153,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   (appearance money, a likely win and its fame) and the AI bids for the host seat against a saver. AI only, no rule
   change. Worker on branch `claude/ai-host`, started 21 Nov. Done when: T35's "Kev line" test AI and its hoard-and-host
   variant measured before and after (60+ games, paired), all-AI games still 11-12 rounds, game-sim and mp-test pass.
-- **T41 status (21 Nov, 17:30): branch `claude/bending-on` at `c2d6619` is NOT merged on purpose: it waits for Kev's
-  run of `tools\wear-tables.cmd` (sent to him as a file), which re-measures the matchup, arena and tag tables with
-  wear on. Done on the branch: one switch (`BAL.wear`), the whole wear drawing in the fight view, marks stay until
-  repaired, retune (`WEAR.hpExp` 0.5 and 11 power dials; no robot outside its range, level steps 69/69/68/64%),
-  checks (fingerprint 0b8a0a7a → 470f6923, sync check 89a95280, mp-test OK). Bookie Brier 0.201 with the old table.
-  When the results file comes back: resume the worker (a08e2f589ae143c24) with it.
-- **T41. Wear in the game: bending, cracks, fragments and saw grooves on, then a rebalance.** Kev (21 Nov): "bend as
-  much as possible"; then, to "Only bending goes on. Cracks, fragments and saw grooves stay off for now": "no include
-  all and do a rebalance"; on the drawing: "port them then". So `ARC.cx.crack`, `frag`, `bend`, `grindout` all on in
-  game fights (T37's variant B). The four bump switches stay off (not measured, not asked). Wear marks stay on the robot until the
-  zone is repaired (Kev: "keep bend until repair"): `wearOf` / `spec.wear` keep bends, warps, cracks and grooves; the
-  bookie sees them; old saves load without marks. Steps, one worker, one branch (`claude/bending-on`), merged only when all are done:
-  (1) one switch turns all four on for the game and the tools; the fight view draws the whole wear layer (port from
-  `tools/damage-lab/ui.js`); (2) retune so every level step is back at 63-68% and no robot is more than about 10 points
-  from where it was; (3) re-measure the matchup table, arena tables and counter tags; (4) checks: new stock-fight
-  fingerprint and files stamp, sync-check, game-sim, mp-test. Done when: `docs/robocus-wear-in-game.md` has the
-  after-numbers with fight counts and ±, and the bookie's Brier is back within noise of today's 0.182. Started 21 Nov.
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
