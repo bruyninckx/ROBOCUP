@@ -9,7 +9,7 @@ parts from a scrapped robot: "perhaps depends on what was damaged?" (a part from
 the rest whole); a part you just won still goes on free, a Stash part pays 1 to go on: "yes"; "should be seemless for people with no
 parts indeed. I'm also thinking about a nice visual about the upkeep with a garage and your robots in the arena area".
 
-Branch `claude/garage`, page `prototypes/tabletop-2.html`, BUILD `2026-11-21m`.
+Branch `claude/garage`, page `prototypes/tabletop-2.html`, BUILD `2026-11-21o`.
 
 ## The rules as built
 
@@ -71,9 +71,67 @@ the bill on a clipboard on the right. Click-then-click (no drag). The yellow not
 - **The AI keeps at most 4 Stash parts** (it sells the least useful), so AI Stashes don't pile up now the limit is gone.
 - `stashLimit`, `partsBack` and `on` keep the old code paths (trim prompt, free Stash fits) for comparison runs.
 
+## Multiplayer and balance
+
+- **Multiplayer:** everyone must be on this version (new actions `garageLock` and `repairPart`; an old screen would not know the
+  `~b` broken lot ids). Nothing new in src2/net.js: the bill is one ordinary action, checked on the host. Drafts are never sent.
+- **Balance:** a little more value survives a host scrap; AI teams recycle Stash parts; robot-to-robot moves are rare at these fees;
+  the Market, the bookie and game length are unchanged within the ranges (length maybe +0.4 rounds).
+
 ## Numbers
 
-NUMBERS
+All-AI bot games (tools/game-sim.js, 4 AI teams, seeds 101-160 both ways, --par=2): before = origin/main c1b5914 (no garage), after =
+this branch before its rebase on T46/T47 (so both sides share the same base). 60 games each; 1 "before" game stalled (a timing stall
+seen on main too) and is left out. ± = 95% range per game (per fight for the bookie rows); the two sides are separate runs on the same
+seeds, so a difference counts only where the ranges clearly part. 0 page errors on both sides.
+
+| | before (59 of 60 games, 1 stalled) | after (60 of 60) |
+|---|---|---|
+| rounds per game | 11.54 ± 0.42 | 11.93 ± 0.45 |
+| fame per round (all teams) | 3.32 ± 0.10 | 3.25 ± 0.10 |
+| close finish (winner ≤ 1 fame ahead) | 34% ± 12 | 27% ± 11 |
+| garage moves per team per game | 0.00 ± 0.00 | 0.71 ± 0.19 |
+|   of which robot → robot | 0.00 ± 0.00 | 0.00 ± 0.00 |
+|   of which Stash → robot | 0.00 ± 0.00 | 0.68 ± 0.18 |
+| garage fees per team per game (Cr) | 0.00 ± 0.00 | 0.83 ± 0.23 |
+| Stash parts per team at the end | 0.64 ± 0.12 | 0.47 ± 0.12 |
+| parts back from scraps per game | 0.00 ± 0.00 | 0.92 ± 0.36 |
+|   of which broken | 0.00 ± 0.00 | 0.83 ± 0.34 |
+| parts per robot (at fights) | 1.05 ± 0.03 | 1.11 ± 0.03 |
+| parts on a team's top robot | 1.34 ± 0.04 | 1.42 ± 0.04 |
+| parts on its other robots (mean) | 0.70 ± 0.04 | 0.76 ± 0.04 |
+| top robot has 2 parts + legendary | 23% ± 2 | 25% ± 2 |
+| Market spend on parts per team, rounds 1-4 (Cr) | 2.07 ± 0.25 | 2.06 ± 0.25 |
+|   rounds 5-8 | 4.75 ± 0.31 | 4.60 ± 0.29 |
+|   rounds 9+ | 4.16 ± 0.57 | 4.09 ± 0.46 |
+| parts bought per game | 20.36 ± 0.92 | 19.97 ± 0.74 |
+| host scraps per game | 2.37 ± 0.27 | 2.50 ± 0.30 |
+| value a host scrap costs the victim (Cr) | 1.62 ± 0.25 | 1.27 ± 0.21 |
+| parts on a host-scrapped robot | 0.32 ± 0.12 | 0.33 ± 0.12 |
+| bookie favourite wins (fights) | 79% ± 3 | 80% ± 3 |
+| Brier (2-sided fights) | 0.147 ± 0.016 | 0.144 ± 0.015 |
+
+fights: before 663, after 697; host scraps: before 140, after 150
+
+What it says:
+- **Moves.** AI teams make 0.7 garage moves per team per game (0.8 Cr in fees), nearly all Stash → robot (a part from a scrapped robot
+  or a part kept aside going back to use). **Robot → robot: 0 in 60 games.** The trace (window.__garTrace) shows why: moving a part
+  from one of its robots to the one it sends gains about 0-4 points of odds vs the field (the bookie's formula), worth at most ~0.6 Cr
+  by the AI's valuation (15 Cr per 1.0 of odds), against a 2 Cr fee (4 for a legendary). With Kev's fees, swapping between robots
+  rarely pays in odds alone; for a person it is about which robot to send.
+- **Parts pile onto one robot?** Hardly: the top robot carries 1.42 parts vs 1.34 (+0.08, just outside the ranges), 2 parts + a
+  legendary 25% vs 23% of fights. Parts per robot 1.11 vs 1.05.
+- **Market:** spend on parts per round unchanged (rounds 1-4, 5-8, 9+ all within ±0.3); 20.0 vs 20.4 parts bought per game. The Market
+  does not cool late.
+- **Scrap:** a host scrap costs its victim 1.27 Cr of value now vs 1.62 before (−0.35, ranges ±0.2 each): it matters a little less.
+  Most returned parts come back broken (0.83 of 0.92 per game): a robot that lost and is scrapped is usually broken in the Body, and
+  drones, modules and legendaries sit there. AI hosts scrap as often as before (2.50 vs 2.37 a game).
+- **Game:** length 11.9 vs 11.5 rounds (+0.4, ranges ±0.45: likely a small real lengthening or noise), fame per round 3.25 vs 3.32,
+  close finishes 27% vs 34% (±11: no clear change), bookie 80% vs 79% favourite wins, Brier 0.144 vs 0.147: unchanged.
+- **Stash:** 0.47 parts per AI team at the end vs 0.64 (they now put parts back to use).
+- **Clicks for a player who changes nothing:** 0 extra. Nothing to move: as before (0.6 s). Parts to move, nothing to repair: Done by
+  itself after 8 s (it was 0.6 s): slower, not a click. Repairs to do: Done, as before.
+
 
 ## Tests
 
