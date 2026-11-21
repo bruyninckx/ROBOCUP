@@ -124,5 +124,73 @@ a rival's ready Fan Favourite and turns down its 2 Cr), **cards** (harmful cards
 +1, which also puts We Have Your Number, Rogue Firmware, Coolant Leak and sabotage on it), **host** (+4 Cr on the host bid when
 a rival has a ready Fan Favourite), **smear** (Smear cards aimed at a sole fame leader: threat +1). Against the Kev line in seat 0:
 
-<!-- C -->
+| Against the Kev line | Games | Seat 0 wins | Paired change | Its appearance Cr a game | Fame it loses to cards a game | Hosts a game |
+|---|---|---|---|---|---|---|
+| normal AI teams | 100 | 16% ±7 | - | 38.5 | -1.1 | 4.0 |
+| all four counters | 60 | 15% ±9 | -2 ±13 pts | 33.2 | -1.8 | 4.7 |
+
+The counters take about **5 Cr a game** of its appearance money away and cost it 0.7 fame a game more in cards. They cost the
+countering teams nothing visible: they still win 28% each, and earn and spend the same (103 / 105 Cr a game against 101 / 102).
+Since the line was already below par, the win rate can't show more. (The four counters one at a time were planned; they were
+not run, see section 7.)
+
+**Can a table of people stop it by play alone? Yes.** Everything the line needs is given by the other teams: a host has to
+invite it (only its own host seat is guaranteed), and the host seat is bid for. A table that refuses to invite a rival's Fan
+Favourite, refuses its deals, outbids it for the host seat when it matters, and aims We Have Your Number, Rogue Firmware,
+Coolant Leak and Smear cards at it, takes most of its 6 Cr a round away. People do that naturally; the AI does not (no AI host
+avoids a Fan Favourite, and an AI host that stays out invites the fame leader on purpose).
+
+## 5. The hoarding question: is "hoard credits, win every host bid" the stronger line?
+
+| Seat 0 plays | Games | Seat 0 wins | Paired change vs normal AI | Hosts a game | Market Cr | Credits at Upkeep 7 / 9 |
+|---|---|---|---|---|---|---|
+| normal AI | 100 | 29% ±9 | - | 2.9 | -30 | 6.5 / 7.4 |
+| no surplus spending (`spendK 0`) | 60 | 38% ±12 | +0 ±12 pts | 3.2 | -26 | 7.4 / 9.2 |
+| hoard + host (no Market, `spendK 0`, +4 Cr on host value) | 60 | 25% ±11 | -13 ±16 pts | 4.8 | -9 | 8.9 / 9.9 |
+
+(The normal AI's 38% in the `spendK 0` row is its own seeds 1-60; the paired change is the number to read.)
+
+**Not for the AI.** An AI that stops spending its surplus does as well as one that spends it (+0 ±12); one that skips the
+Market to win more host bids hosts 4.8 times a game instead of 2.9 and wins less (-13 ±16): plain robots lose the fights that
+hosting sets up. None of them piles up credits the way Kev did (the AI repairs broken zones and bids what hosting is worth;
+credits at Upkeep stay under 10).
+
+What the AI does show: it **ends every round with 6-8 Cr** whatever it is told, because it spends what it gets. A person who
+saves (no repairs, few Market buys, AI teams paying them) ends up with 3-6 times that, as Kev did. Whether a big pile of credits
+then wins the game depends on the host bids: an AI bids at most what hosting is worth to it (about 6-11 Cr) and never more than
+the richest rival + 1, so a person with 45 Cr can take the host seat every round they want, for +1 fame and the pick of the
+fight each time. That is a credit-sink and AI-saving question, separate from the Fan Favourite; it is for Kev (section 8).
+
+## 6. Part D: balance options
+
+Each option is a `BAL` switch, off by default (`--bal='{"fan":{...}}'`):
+
+| Option (one line for players) | Switch |
+|---|---|
+| A Fan Favourite earns 4 Cr appearance money, not 6 | `fan.favMoney: 4` |
+| A Fan Favourite that loses drops a Fan token (it can lose the status, its fame and its immunity) | `fan.favLoseToken: true` |
+| The loser keeps half its appearance money | `fan.loserShare: 0.5` |
+| A Fan Favourite can be scrapped after its 2nd loss in a row | `fan.favScrap: 'two'` |
+| Apex Media: Fan Favourite at 3 wins, like everyone | `fame.favTokensApex: 3` |
+| (also: count at most N Fan tokens for money) | `fan.tokenCap` |
+
+In normal AI games (seeds 1-60, 60 games each):
+
+| | today | Fan Favourite 4 Cr | loses a token when it loses |
+|---|---|---|---|
+| Game length (rounds) | 11.5 ±0.4 | 11.4 ±0.4 | 11.6 ±0.4 |
+| Fame per round (all teams) | 3.2 | 3.2 | 3.2 |
+| Host scraps a game | 2.8 ±0.3 | 2.8 ±0.3 | 2.7 ±0.3 |
+| Fan Favourites a game | 1.8 ±0.2 | 1.6 ±0.2 | 1.7 ±0.2 |
+| Appearance Cr a game (all teams) | 92.7 ±4.3 | 88.3 ±4.4 | 94.6 ±5.1 |
+| Losing Fan Favourites kept safe a game | 0.8 | 0.8 | 0.2 |
+| Seat 0 (normal AI) paired change | - | +0 ±9 pts | -3 ±8 pts |
+
+Neither changes a normal game in any way the numbers can see: same length, same fame per round, same scraps. (Half money for
+the loser, scrappable after 2 losses and Apex at 3 were not run on normal games; see section 7.)
+
+Against the Kev line (seeds 1-40):
+
+<!-- D -->
+
 
