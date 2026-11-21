@@ -6,8 +6,8 @@
 //   2. B offers A 2 Cr through the deal panel on B's screen; A accepts in its note. On the host, at once: B −2, A +2, both
 //      unlocked; every screen shows the same credits and A and B DECIDING. B's bids are now above its credits: B's Lock is
 //      greyed and a lock sent anyway is refused with a line; B lowers a bid and locks.
-//   3. An open deal at the last lock: A locks, then opens a trade panel with C and leaves it open; C locks last. The step waits
-//      (the waiting list names A, "a trade"); A presses No deal: the lots resolve at once, with the bids and credits expected.
+//   3. An open deal at the last lock: A locks, then opens a trade panel with C and leaves it open; C locks last. T47: the step no
+//      longer waits: A's panel closes as no deal, A and C get a "the Market closed" line, the lots resolve at once, as expected.
 //   4. A late trade and a late bid from A: refused, with a "Too late" line on A's screen.
 //   node tools/mp-scenario/market-step-online.js [seed=7] [screenshotFolder]
 const path = require('path'), fs = require('fs');
@@ -96,14 +96,14 @@ const { setup, press } = require('./lib.js');
   if (!await until(A, () => { const d = document.getElementById('dealModal'); return d && !d.hidden; }, 8000)) bad.push('no deal panel on A');
   await host.waitForTimeout(800);
   if (!await lockOn(C)) bad.push('no Lock Bids on C');
-  await host.waitForTimeout(2500);
-  const held = await hs(), railC = await rail(C);
-  console.log('3 last lock with A\'s panel open: ' + JSON.stringify(held) + '\n   C\'s list: ' + railC.replace(/\s+/g, ' ').slice(0, 160));
-  await shot(C, 'joined-C-3-waiting-for-open-deal.png');
-  if (!held.open || held.locked.length !== 4 || !held.deals[1]) bad.push('the last lock did not wait for A\'s open deal: ' + JSON.stringify(held));
-  if (!/trade/i.test(railC)) bad.push('C\'s waiting list does not say A is in a trade');
-  await A.evaluate(() => { const bt = document.querySelector('#dealModal [data-k="no"]'); if (bt) bt.click(); });
+  // T47 (Kev, 21 Nov: "Cancel the open trade and go on"): the last lock no longer waits; A's panel closes, both get a line
   await until(host, () => { const G = window.ROBOCUS_DEBUG.G; return !!(G.marketResolved || G.marketAuction); }, 10000);
+  const held = await hs(), panelA = await A.evaluate(() => { const d = document.getElementById('dealModal'); return !!d && !d.hidden; });
+  console.log('3 last lock with A\'s panel open: ' + JSON.stringify(held) + ' · A\'s panel ' + (panelA ? 'STILL OPEN' : 'closed'));
+  await shot(A, 'joined-A-3-market-closed.png');
+  if (held.open || panelA) bad.push('the last lock did not close A\'s open deal and go on: ' + JSON.stringify(held) + ' panel ' + panelA);
+  if (!await say(A, /The Market closed.*called off\. No deal, nothing moved/)) bad.push('A has no "the Market closed" line');
+  if (!await say(C, /The Market closed.*called off\. No deal, nothing moved/)) bad.push('C has no "the Market closed" line');
   await until(host, () => !!window.ROBOCUS_DEBUG.G.marketResolved, 15000);
   const res = await host.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; return { resolved: !!G.marketResolved, results: (G.marketResults || []).map(r => [r.winner, r.price]), cr: G.teams.map(t => t.credits) }; });
   console.log('   No deal → ' + JSON.stringify(res));
