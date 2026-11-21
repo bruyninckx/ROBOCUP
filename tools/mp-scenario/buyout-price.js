@@ -5,7 +5,8 @@
 //   3. buyer short of credits: you can't play it, the message names the price (and the AI's precheck refuses it too);
 //   4. the target refuses: −1 fame, no credits move, the robot stays;
 //   5. an AI target: it sells when the price + 1 fame covers what the robot is worth to it (aiSellsBuyout), and the result matches;
-//   6. Fire Sale (you): tick everything: your strongest robot stays, the rest pays value + 1 each; "Sell nothing": nothing moves;
+//   6. Fire Sale (you, 6 things: the box with ticks): tick everything: your strongest robot stays, the rest pays value + 1 each; "Sell nothing": nothing moves;
+//   6b. Fire Sale (you, 3 things: in the note, one click a thing, then Done);
 //   7. Fire Sale (an AI team with 3 robots and Stash parts): it sells its spare things at value + 1.
 //   node tools/mp-scenario/buyout-price.js [screenshotFolder]
 const path = require('path'), fs = require('fs');
@@ -128,6 +129,23 @@ const path = require('path'), fs = require('fs');
       if (!/each pays its value \+ 1/i.test(txt)) bad.push('6: the question does not say value + 1: ' + txt);
     } else if (!eq([r.cr, r.robots, r.crew, r.stash], [0, 0, 0, 0])) bad.push('6: "Sell nothing" moved something: ' + JSON.stringify(r));
   }
+
+  // ---- 6b. Fire Sale in the note (few things: 2 robots and 1 Stash part): one click sells one thing at once, Done ends it
+  { await prep(2, 1, { crew: [], stash: parts2.slice(0, 1) });
+    const items = await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; me.hand = ['fire_sale']; const c0 = me.credits;
+      const it = D.fireItems(me).map(x => ({ kind: x.kind, name: x.name, price: x.price }));
+      window.__res = undefined; D.playScheme(me, 'fire_sale', me).then(() => { window.__res = { cr: me.credits - c0, robots: me.robots.length, stash: me.stash.length }; }); return it; });
+    if (!await noteQ()) bad.push('6b: no Fire Sale question in the note');
+    else {
+      const t = await noteText(); console.log('6b. note: ' + t.slice(0, 200)); await shot('6b-fire-sale-note.png');
+      if (!/\d+ s/.test(t)) bad.push('6b: no countdown in the note');
+      const part = items.find(x => x.kind === 'part');
+      await clickNote(new RegExp('\\+' + part.price + ' Cr')); await p.waitForTimeout(600);
+      if (!await noteQ()) bad.push('6b: no second question after the first sale');
+      else { const t2 = await noteText(); if (!/Sold: /.test(t2) || !/Done/.test(t2)) bad.push('6b: the second question does not say what was sold / Done: ' + t2); await clickNote(/^Done/); }
+      const r = await waitRes(); console.log('   → part, then Done: ' + JSON.stringify(r) + ' · ' + (await lastLog(1))[0]);
+      if (!(r.cr === part.price && r.robots === 2 && r.stash === 0)) bad.push('6b: ' + JSON.stringify(r) + ', want +' + part.price + ' Cr, both robots kept');
+    } }
 
   // ---- 7. Fire Sale, an AI team with 3 robots and 2 Stash parts
   { const r = await p.evaluate(parts2 => { const D = window.ROBOCUS_DEBUG, G = D.G, T = G.teams[3]; T.hand = ['fire_sale']; T.stash = parts2.slice();
