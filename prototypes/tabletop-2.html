@@ -862,7 +862,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
      * leads or is within 1 fame of the lead. */
     invite: 1, invNoise: 0.25, invRand: 0.12, invCrK: 0.3, guard: 1, guardRich: 3, guardK: 0.6, guardCap: 14, guardNear: 3, guardMatch: 2, favCards: 1, favCardsK: 0.5,
     // aiDeals: AI teams offer an AI host the invite / leave-out deals they offer a person who hosts (Kev, 21 Nov). Backing was already the same for AI backers.
-    aiDeals: 1 };
+    aiDeals: 1,
+    /* T52 (Kev's playtest, 21 Nov: Plum traded in 6 robots, one its Fan Favourite, and paid 111 Cr in the Market). tiV2: a robot lot
+     * with a full garage is worth the new robot minus the robot it would scrap, both valued the same way (tiVal), plus the scrap money,
+     * minus what the old one carries: tiTokK Cr per Fan token, a Fan Favourite its fame (fame x fameCr) + tiFavK, one win short of
+     * one tiNearK x fameCr, bought in the last tiRecent rounds tiRecentK. It bids only when the new robot is worth tiUp more than
+     * the old one (no sideways swap for the scrap money) and the whole gain is tiMin or more, never more than
+     * that (no surplus extra on such a lot), and scraps the robot that costs least to lose. 0 = the AI as before. docs/ai-v2.md */
+    tiV2: 1, tiTokK: 1.5, tiFavK: 4, tiNearK: 0.5, tiRecent: 2, tiRecentK: 3, tiMin: 2, tiUp: 1 };
   // AI styles for tests (game-sim --aip0='{"style":"vengeful"}') and for solo games
   const AI_STYLES = {
     vengeful:    { grudgeK: 0.6, loyalK: 0.05 },
@@ -3674,7 +3681,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22a look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
+  const BUILD = 'tabletop 2.0.1 2026-11-22b bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5525,6 +5532,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     stepMarketAuction();
   }
 
+  const tiFull = (t, id) => tiOn(t) && t.robots.length >= 3 && !!(LOTS[id] && LOTS[id].robot) && tradeInOn();   // T52: a robot lot that means a trade-in
   // v2: a part is worth its value plus the bookie's gain on the robot it fits (partWorth); robots and crew as before
   function aiLotValue(t, id) {
     const L = LOTS[id]; if (!L) return 0;
@@ -5546,13 +5554,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const P = aiP(t), gd = hostGuard(t); let budget = Math.max(0, t.credits - P.reserve - Math.max(Math.min(2, Math.round(aiHostValue(t) / 2)), gd ? gd.keep : 0));   // T46: the guard keeps its host-seat credits
       if (aiSavesFor(t)) budget = Math.max(0, budget - 4);   // keeps credits back for next round's epic part
       const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
-      const bids = zeroBids();
+      const bids = zeroBids(), free = 3 - t.robots.length; let rb = 0;
       for (const { k, v } of order) {   // base bids: exactly the old rule (old reserve and budget)
         if (v <= 0.5) continue;
+        if (free > 0 && rb >= free && tiOn(t) && LOTS[G.market[k]] && LOTS[G.market[k]].robot) continue;   // T52: no more robot lots than empty bays (the next one would trade in the one just bought)
         if (rwOn(t, 'hoard') && !(LOTS[G.market[k]] && ((LOTS[G.market[k]].robot && t.robots.length < 2) || LOTS[G.market[k]].crew === 'mechanic'))) continue;   // T35 test AI: hoards (only a 2nd robot and Mechanics)
         let b = Math.max(0, Math.min(budget, Math.round(v * (1 + (rnd() - 0.5) * 2 * P.bidNoise) * 0.8)));
         const mn = minBidOf(G.market[k]); if (mn && b < mn) b = v >= mn && budget >= mn ? mn : 0;   // level 4: at least the minimum, or nothing
-        bids[k] = b; budget -= b;
+        bids[k] = b; budget -= b; if (b > 0 && LOTS[G.market[k]] && LOTS[G.market[k]].robot) rb++;
       }
       // surplus: only ADDS to the base bids. Each lot it bid on is worth up to value × aiSpendMult; the extra comes from what is left
       // above the full reserve (aiReserve) after the base bids, at most spendShare of the surplus per lot, highest value first
@@ -5562,6 +5571,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       for (const { k, v } of order) {
         if (pool <= 0 || rwOn(t, 'hoard')) break;
         if (v < 1 || !bids[k]) continue;
+        if (tiFull(t, G.market[k])) continue;   // T52: a trade-in lot is worth its gain, no more
         const add = Math.max(0, Math.min(pool, sur0 * (P.spendShare || 0.5), Math.round(bids[k] * (mult - 1))));
         bids[k] += add; pool -= add;
       }
@@ -5598,7 +5608,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (aiV2(t, k === HOST_K ? 'host' : 'bids')) {   // v2: add up to what the lot is worth to it, no more
       let worth = k === HOST_K ? aiHostValue(t) : aiLotValue(t, G.market[k]);
       const sp = k === HOST_K ? { sur: Math.max(0, aiSurplus(t, true, 'spendHost') - (aiP(t).spendMkt || 0)) } : G.aiSpend && G.aiSpend[t.i] && G.aiSpend[t.i].r === G.round ? G.aiSpend[t.i] : null;   // surplus: worth more, as in the sealed bid
-      if (sp && sp.sur > 0 && worth >= 1.5 && worth < t.credits) worth += Math.min(sp.sur * (aiP(t).spendShare || 0.5), worth * (aiSpendMult(t, sp.sur) - 1));
+      if (sp && sp.sur > 0 && worth >= 1.5 && worth < t.credits && !(k !== HOST_K && tiFull(t, G.market[k]))) worth += Math.min(sp.sur * (aiP(t).spendShare || 0.5), worth * (aiSpendMult(t, sp.sur) - 1));
       if (k === HOST_K) { const gd = hostGuard(t); if (gd) worth = Math.max(worth, gd.cap); }   // T46: the guard
       return Math.max(0, Math.min(maxAdd, Math.round(worth - curBid)));
     }
@@ -5746,6 +5756,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const v = robotVal(s) + l4 + off + (p - 0.5) * 2 + (lead > 0 ? lead * 1.2 : lead * 0.6);
     if (t.robots.length < 3) return v + (t.robots.length === 0 ? 3 : t.robots.length === 1 ? 1 : 0);
     if (!tradeInOn()) return 1;
+    if (tiOn(t)) {   // T52: the same valuation for the new robot and the one it scraps (tiVal), next to the other two
+      const old = aiTradeInPick(t), others = t.robots.filter(r => r !== old), vn = tiVal(t, bot, s, others, l4) + off;
+      const up = vn - tiKeep(t, old), gain = up + scrapMoney(old);   // up: the new robot is better than the old one (no sideways swaps for the scrap money)
+      return up >= (aiP(t).tiUp || 0) && gain >= (aiP(t).tiMin || 0) ? gain : 0;
+    }
     const old = aiTradeInPick(t), keep = old ? BENCH_K * robotVal(bareStr(old)) + (old.wins >= favWins(t) ? BAL.fame.fanFav * fameCr(t) : 0) : 0;
     return Math.max(0, v - keep + scrapMoney(old));
   }
@@ -6045,7 +6060,30 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const partLots = r => (r.parts || []).concat(r.leg ? [r.leg] : []).map(k => 'p_' + k + (rarOn(r)(k) ? '~' + rarOn(r)(k) : '')).filter(id => LOTS[id]);   // with their tiers
   // strength without its parts (they go to the Stash), with its damage
   const bareStr = r => power(r) - (baseStr(r) - R2.strength(null, r.name, r.level, []));
+  /* T52: what a robot of strength s is worth to team t next to its other robots (the robotWant formula: its value by strength, how
+   * the bookie rates it against the rivals, and how it compares with the team's best). One number for a lot and for a robot it owns. */
+  const tiOn = t => aiV2(t) && !isHuman(t.i) && !!aiP(t).tiV2;
+  function tiVal(t, bot, s, others, l4) {
+    const p = fieldOdds(t.i, bot).p, best = others.length ? Math.max(...others.map(power)) : -1, lead = Math.max(-1, Math.min(1.5, s - best));
+    return robotVal(s) + (l4 || 0) + (p - 0.5) * 2 + (lead > 0 ? lead * 1.2 : lead * 0.6);
+  }
+  // what losing robot o costs team t (before its scrap money): its value without its parts (they stay with the team), its Fan tokens,
+  // its Fan Favourite fame (or most of the way there), and a robot it just bought (no churn)
+  function tiKeep(t, o) {
+    const P = aiP(t), others = t.robots.filter(r => r !== o), bare = Object.assign({}, o, { parts: [], leg: null, rar: null });
+    const l4 = o.level >= 4 ? 0.6 : 0; let k = tiVal(t, bare, bareStr(o), others, l4);
+    if (o.wear) {   // damaged: worth at least what it is worth repaired, less the repair credits (a wrecked Fan Favourite is not worthless)
+      const Z = zonesOf(o), acts = R2.ZONES.reduce((a, z) => a + (Z[z.key] && Z[z.key].damaged ? repairCost(o, z.key) : 0), 0), fix = Object.assign({}, bare, { wear: null });
+      k = Math.max(k, tiVal(t, fix, R2.strength(null, o.name, o.level, []), others, l4) - acts * repairCr()); }
+    const fw = favWins(t), w = o.wins || 0;
+    k += (P.tiTokK || 0) * Math.min(w, fw);
+    if (w >= fw) k += BAL.fame.fanFav * fameCr(t) + (P.tiFavK || 0);
+    else if (w === fw - 1 && w > 0) k += (P.tiNearK || 0) * fameCr(t);
+    if (o.joinR != null && G.round - o.joinR <= (P.tiRecent || 0)) k += P.tiRecentK || 0;
+    return k;
+  }
   function aiTradeInPick(t) {   // the weakest robot by strength (damage counted, parts not: they are kept); a Fan Favourite only if clearly weakest
+    if (tiOn(t) && t.robots.length) return t.robots.reduce((a, r) => { const c = tiKeep(t, r) - scrapMoney(r); return !a || c < a.c ? { r, c } : a; }, null).r;   // T52: the one that costs least to lose
     const ff = r => r.wins >= favWins(t);
     const byStr = t.robots.slice().sort((a, b) => bareStr(a) - bareStr(b));
     const w = byStr[0], nf = byStr.find(r => !ff(r));
@@ -6054,12 +6092,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function doTradeIn(t, old, nr) {
     if (!old || !t.robots.includes(old)) { t.robots.push(nr); return `New Bot: ${nr.name}`; }
     const cr = scrapMoney(old), parts = garageOn() && GB().partsBack !== false ? scrapPartsOut(old) : partLots(old);   // T38: a part of a broken zone comes back broken
+    const cost = tiOn(t) ? Object.fromEntries(t.robots.map(r => [r.name, +(tiKeep(t, r) - scrapMoney(r)).toFixed(1)])) : null;   // T52 (log only): what losing each robot costs the AI
     robotLeaves(t, old, null, 'trade-in'); returnStarter(old.name);
     addCr(t, cr, 'sale');
     for (const v of G.teams) if (v.sponsor === 'vulture') addCr(v, 2, 'sponsor');   // Vulture Salvage: +2 Cr whenever a bot is scrapped
     t.robots.push(nr);
     stashParts(t, parts);
-    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round });
+    tlog('trade_in', { team: t.i, robot: old.name, level: old.level, parts: parts.length, cr, got: nr.name, round: G.round, wins: old.wins || 0, fav: (old.wins || 0) >= favWins(t), held: old.joinR != null ? G.round - old.joinR : null, ai: !isHuman(t.i), cost });   // T52: its wins, a Fan Favourite, rounds since it joined
     notify('♻️ ' + nm(t) + ' trades in <b>' + esc(old.name) + '</b> for ' + cr + ' Cr' + (parts.length ? ' (its parts go to the Stash)' : '') + ' and takes <b>' + esc(nr.name) + '</b>.', t.col);
     return `New Bot: ${nr.name} (traded in ${old.name}, +${cr} Cr)`;
   }
@@ -6099,6 +6138,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       let nr;
       if (L.bot) { nr = L.bot; L.bot = null; }   // the robot shown on the tile
       else nr = mkRobot(drawStarter() || pick(Object.keys(STARTERS)));
+      nr.joinR = G.round;   // T52: when it joined (the AI does not trade in a robot it just bought)
       if (t.robots.length >= 3) {   // trade-in (BAL.tradeIn): the AI scraps its weakest robot now; a person picks (PS.tradeIn prompt)
         if (isHuman(ti)) { (PS(ti).tradeIn = PS(ti).tradeIn || []).push({ bot: nr, lot }); return '♻️ Trade-in: pick a robot to scrap'; }
         const old = aiTradeInPick(t);
@@ -6919,7 +6959,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * as BAL.bookie.prior (8) fights, so a short run does not jump about. */
   const BOOKIE = { pool: null, bad: false, gen: 0, onres: null, onready: null };
   let bookieOn = false;   // T15: this page's bookie is watching test fights right now (the note and the pit say so; not synced)
-  const bookieCfg = () => Object.assign({ n: 200, ms: 4000, min: 40, prior: 8 }, BAL.bookie || {});
+  /* T52 (Kev's playtest, 21 Nov: 16 logical processors, 8 workers, 4-robot fights got 26-37 test fights in 4 s and fell back to the
+   * formula): cap = most workers (cores minus 2, so 14 on his PC); msBig = the budget for a fight with 3 or more robots (copies and the
+   * House Robot counted); stopN / stopMiss = stop early once stopN fights are in and the other sides together have won stopMiss or
+   * fewer (the odds are at the cap whatever comes next). docs/robocus-sim-bookie.md */
+  const bookieCfg = () => Object.assign({ n: 200, ms: 4000, msBig: 8000, min: 40, prior: 8, cap: 14, stopN: 60, stopMiss: 1 }, BAL.bookie || {});
   function bookiePool() {
     if (BOOKIE.pool || BOOKIE.bad) return BOOKIE.pool;
     try {
@@ -6929,7 +6973,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const code = 'const U=' + JSON.stringify(U) + ';let ok=false;try{importScripts(U.d);for(const u of U.p){try{importScripts(u);}catch(e){}if(self.planck)break;}importScripts(U.e);ok=!!(self.DamageLab&&self.planck);}catch(e){}postMessage({ready:ok});' +
         'onmessage=m=>{const d=m.data;let r;try{const bb=d.bb;bb.seed=d.seed;const S=self.DamageLab.create(bb);let g=0;while(!S.over&&g++<48000){self.DamageLab.step(S);S.fx.length=0;}const x=S.result;r=x?{winner:x.winner,winTeam:x.winTeam,multi:!!S.multi,mode:S.mode}:{none:1};}catch(e){r={err:String(e&&e.message)};}postMessage({gen:d.gen,r});};';
       const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-      const n = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 2));
+      const n = Math.max(1, Math.min(bookieCfg().cap || 8, (navigator.hardwareConcurrency || 4) - 2));
       BOOKIE.pool = Array.from({ length: n }, () => {
         const o = { w: new Worker(url), ready: false, dead: false, busy: false };
         o.w.onmessage = m => { const d = m.data || {}; if ('ready' in d) { o.ready = !!d.ready; o.dead = !d.ready; if (BOOKIE.onready) BOOKIE.onready(); } else { o.busy = false; if (BOOKIE.onres) BOOKIE.onres(d); } };
@@ -6944,23 +6988,26 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   async function simOdds(F, opt) {
     const C = Object.assign(bookieCfg(), opt || {});
     if (!C.n || (G.fast && !opt) || window.__noBookie) return null;
-    const budget = BOT && !WATCH && !window.__bookieFull && !opt ? Math.min(C.ms, 400) : C.ms;   // bot test games: no long wait
     let m; try { m = buildFight(F, 1, false); } catch (e) { return null; }
+    const bots = m.botEnt.length, ms = bots >= 3 && C.msBig ? Math.max(C.ms, C.msBig) : C.ms;   // T52: 3+ robots (copies, House Robot) get the longer budget
+    const budget = BOT && !WATCH && !window.__bookieFull && !opt ? Math.min(C.ms, 400) : opt && opt.ms ? opt.ms : ms;   // bot test games: no long wait
     const bb = clone(m.bb); bb.countdown = 0;
     let sd = ((G.round * 7919 + (F.teams || []).reduce((a, t) => a * 31 + t + 1, 17)) ^ 0x5bd1e995) >>> 0; const nextSeed = () => { sd = (Math.imul(sd, 1664525) + 1013904223) >>> 0; return sd; };
-    const t0 = performance.now(), wins = {}, gen = ++BOOKIE.gen; let n = 0, sent = 0, how = 'page';
-    const count = r => { if (!r || r.err) return; const k = sideOfRes(F, m.botEnt, r); n++; wins[k] = (wins[k] || 0) + 1; };
+    const t0 = performance.now(), wins = {}, gen = ++BOOKIE.gen; let n = 0, sent = 0, how = 'page', stop = false;
+    const count = r => { if (!r || r.err) return; const k = sideOfRes(F, m.botEnt, r); n++; wins[k] = (wins[k] || 0) + 1;
+      if (C.stopN && n >= C.stopN && n - Math.max(...Object.values(wins)) <= (C.stopMiss || 0)) stop = true; };   // T52: clear result, stop early
     const pool = bookiePool();
     if (pool && pool.some(o => !o.dead)) {
       await new Promise(res => { let fin = false; const done = () => { if (!fin) { fin = true; res(); } };
-        const feed = () => { if (fin) return; const live = pool.filter(o => !o.dead); if (!live.length || n >= C.n) return done(); for (const o of live) if (o.ready && !o.busy && sent < C.n) { o.busy = true; sent++; o.w.postMessage({ gen, bb, seed: nextSeed() }); } };
+        const feed = () => { if (fin) return; const live = pool.filter(o => !o.dead); if (!live.length || n >= C.n || stop) return done(); for (const o of live) if (o.ready && !o.busy && sent < C.n) { o.busy = true; sent++; o.w.postMessage({ gen, bb, seed: nextSeed() }); } };
         BOOKIE.onready = feed; BOOKIE.onres = d => { if (d.gen === gen) count(d.r); feed(); };
         setTimeout(done, budget); feed(); });
       BOOKIE.onres = null; BOOKIE.onready = null;
-      if (n) how = pool.filter(o => o.ready).length + ' workers';
+      if (n) how = pool.filter(o => o.ready && !o.dead).length + ' workers';
     }
-    if (!n) while (n < C.n && performance.now() - t0 < budget) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
-    return { n, wins, ms: Math.round(performance.now() - t0), how };
+    const pageMs = Math.min(budget, opt && opt.ms ? opt.ms : C.ms);   // T52: on the page itself (no helpers) a fight blocks the screen: no longer budget there
+    if (!n) while (n < C.n && !stop && performance.now() - t0 < pageMs) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
+    return { n, wins, ms: Math.round(performance.now() - t0), how, budget: how === 'page' ? pageMs : budget, bots, stop };
   }
 
   // T35: appearance money held back until the result (BAL.fan.loserShare < 1): winners get it all, losers (and a draw) that share
@@ -7003,7 +7050,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
       }
       else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds are its estimate, as before.', '#b45309');
-      tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
+      tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
     if (F.robots.some(r => quirkOf(r) === 'Underrated')) notify('✦ Underrated: the bookie lists Artillery\'s side one band lower than its numbers.', '#111');
@@ -8319,7 +8366,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get BOOKIE() { return BOOKIE; }, bookieCfg: () => bookieCfg(), robotWant, tiKeep, tiVal, aiLotValue, mkRobot, setAIP: (i, o) => { AIP[i] = Object.assign({}, AI_PARAMS, o); }, get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
@@ -10909,6 +10956,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, bookie and trade-ins', '22 Nov 2026', [
+      'The bookie uses more of the host\'s PC: up to 14 helpers (cores minus 2) instead of 8, and for a fight with 3 or 4 robots it watches test fights for up to 8 seconds instead of 4 (those fights take much longer to play out). On a PC like Kev\'s, 2v2s and free-for-alls should now get their odds from test fights instead of the estimate. A duel whose result is clear early (60 test fights, the other side won at most 1) starts sooner.',
+      'AI teams trade in a robot only when the new one is really better: they count the robot they would scrap at its full worth, its Fan tokens, a Fan Favourite\'s fame, and a robot they bought only a round or two ago. They keep their Fan Favourites, don\'t swap a robot for one of the same level for the scrap money, and don\'t buy two robots in one Market when they have one empty bay.' ]],
     ['2.0.1, a look from the voting page', '22 Nov 2026', [
       'Rare parts stand out more, the rarer the more: Tuned has a thin coloured edge, Race-spec a soft glow, Works a bigger glow with a light sweeping across, Masterwork the biggest gold glow, a foil shine and twinkling sparks. The same on Market cards, garage slots and the parts rack, Stash names and the rarity ladder (still, if your computer asks for less motion).',
       'Fights: a robot slammed into a wall now gives a short plain flash instead of the comic star, and the dent in the wall fades away after a few seconds. A robot slammed or thrown hard into another robot gets the same flash (only the big hits).',
