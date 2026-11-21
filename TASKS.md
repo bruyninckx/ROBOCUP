@@ -150,6 +150,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T53. Three small fixes in one go** (T40, T36, T28). Worker on branch `claude/small-fixes`, started 22 Nov.
+  (1) T40: Lineup Arena and Contact Lab pages throw a script error on opening (fourth robot card defaults to
+  Juggernaut, not in the lineup; `tools/damage-lab/ui.js`). (2) T36: `play-latest.cmd` must survive an update that
+  changes the file itself, and say what holds port 8765 when it is busy. (3) T28: `repair-note.js` "9 repairs: 8
+  buttons" is the test's fault (it sets damage through `wear.parts['Axe arm']`, which Thumper's arm does not read):
+  fix the test, and confirm in the game that a damaged Weapon always gets its repair button.
 - **T52. Bookie on all cores for 4-robot fights; AI trade-in stops churning** (from Kev's 21 Nov playtest, T51 (2) and
   (4)). (a) On his 16-processor PC the bookie ran 8 workers and 4-robot fights got 26-37 test fights, under the 40
   needed: raise the cap and/or the time so they are used. (b) Plum (AI) traded in 6 robots in one game, one its Fan
