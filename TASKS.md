@@ -7,10 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K37. Bending and wear in the game** (T37): (a) keep off / bend only with a retune of about 9 robots and new matchup
-  tables and tags / all four with a retune / bend on spinner bars only (not measured yet)? (b) if on: should a bend
-  carry to the next fight, and a Weapon repair straighten it? (c) port the lab's crack and fold drawing into the game's
-  fight view either way?
+- **K38. Bending, what is assumed** (T41): Kev said "bend as much as possible" and typed "straighten" when asked
+  about the other effects; the carry-over question got no answer. Assumed: bending only (cracks, fragments, saw grooves
+  stay off), and a blade is straight again next fight. Ask: (a) the other three effects too, later? (b) should a bend
+  stay until a Weapon repair straightens it (needs save and online changes)?
 - **K36. Card names, follow-ups** (T39): (a) fight formats ("Mirror duel", "GRAND FINAL" on the bookie header) keep the
   game's names: also use the new ones? (b) found on the way: Mirror's card text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
@@ -137,6 +137,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T41. Bending on in the game, for every part that can bend.** Kev (21 Nov), asked "keep it off, bending only, all
+  four effects, or bending on spinner bars only?": "bend as much as possible". Reading: `ARC.cx.bend` on in game fights
+  for all weapons and plates (T37's variant A), not spinner bars only. Assumed until Kev says otherwise (K38): the
+  other three wear effects stay off; a bend does not carry to the next fight. Steps, one worker, one branch
+  (`claude/bending-on`), merged only when all are done: (1) the game and the tools turn bending on through one switch;
+  the fight view draws fold lines and the bent-bar spin marks (port from `tools/damage-lab/ui.js`); (2) retune the
+  robots T37 found outside their range so every level step is back at 63-68% and no robot is more than about 10 points
+  from where it was; (3) re-measure the matchup table, arena tables and counter tags the bookie and the cards use;
+  (4) checks: new stock-fight fingerprint and files stamp (the task changes them), sync-check, game-sim, mp-test.
+  Done when: `docs/robocus-wear-in-game.md` has the after-numbers with fight counts and ±, and the bookie's Brier with
+  bending on is back within noise of today's 0.182. Started 21 Nov.
 - **T35. Is a Fan Favourite a money runaway? Measure, then propose.** Kev (20 Nov, after a solo game he led with 45 Cr
   against 6-7): "I can runaway in money by making a robot fan favourite and after that getting into battles by whatever
   means, they cannot scrap it and I get payed a lot. Can you check by doing AI battles if this can be countered or should
