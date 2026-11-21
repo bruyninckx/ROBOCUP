@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K37. Bending and wear in the game** (T37): (a) keep off / bend only with a retune of about 9 robots and new matchup
+  tables and tags / all four with a retune / bend on spinner bars only (not measured yet)? (b) if on: should a bend
+  carry to the next fight, and a Weapon repair straighten it? (c) port the lab's crack and fold drawing into the game's
+  fight view either way?
 - **K36. Card names, follow-ups** (T39): (a) fight formats ("Mirror duel", "GRAND FINAL" on the bookie header) keep the
   game's names: also use the new ones? (b) found on the way: Mirror's card text says "2-3 copies" but the game makes 2;
   Hostile Buyout's text says "2x its value" but the game pays a flat 4 Cr. Fix the texts, or the game?
@@ -101,6 +105,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## To do
 
+- **T40. Lineup Arena and Contact Lab pages throw a script error when they open** (found by T37, 21 Nov): the fourth
+  robot card defaults to Juggernaut, which is no longer in the lineup (`tools/damage-lab/ui.js` `st.spec`). Fix there,
+  rebuild with `build.py`. Done when: both pages open with 0 page errors, stock-fight fingerprint unchanged.
 - **T38 (parked by Kev, 21 Nov: "maybe lets hold off on it until we have some other things fixed"). Garage: swap parts
   between robots in Upkeep.** Kev: "modify the upkeep phase to also allow swapping of parts onto other robots for a small
   fee. To make this work, when a robot get scrapped it should also still give the parts back (perhaps damaged as well?)
@@ -130,15 +137,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T37. Bending and wear in real fights: measure first.** Kev (21 Nov): "I saw a fight between buzzkil and whirlwind
-  and his blades didn't even really bend at any point. Did we forget to include this? at one point we had this"; then
-  "yes do this first step". The 11 Nov wear effects (`ARC.cx.crack`, `frag`, `bend`, `grindout`) are off in the game;
-  balance with them on was never measured. Goal: numbers for two variants, (A) bending only, (B) all four wear effects,
-  against today's game (all off), same seeds: win rate per robot, how the level steps move (higher level wins, per
-  step), fight length and knockouts, which robots gain or lose most, how far the bookie's odds would be off, and what
-  the game's fight view (`src2/view.js`) draws of a bend or crack today. Nothing is switched on in the game. Done when:
-  `docs/robocus-wear-in-game.md` with the numbers, fight counts and ±, and options for Kev. Worker on branch
-  `claude/wear-measure`, started 21 Nov.
 - **T35. Is a Fan Favourite a money runaway? Measure, then propose.** Kev (20 Nov, after a solo game he led with 45 Cr
   against 6-7): "I can runaway in money by making a robot fan favourite and after that getting into battles by whatever
   means, they cannot scrap it and I get payed a lot. Can you check by doing AI battles if this can be countered or should
@@ -151,6 +149,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   ± and a recommendation.
 ## Done
 
+- **T37. Bending and wear measured for the game** (21 Nov): nothing switched on. 5,928 fights (every pair at most one
+  level apart, 8 fights, three variants on the same seeds). Level steps hold on average (65% → 65% bend only / 67% all
+  four) but 9-10 robots move outside their range (Thwacker −23/−26, Popcorn +18/+18, Whaler +17/+9, Gaucho −12/−15);
+  bookie Brier 0.182 → 0.204 / 0.200, favourite wins 75% → 69% / 70%. Buzzkill vs Whirlwind bend 26-28° on average with
+  bending on. The game's fight view draws bent outlines and debris but not fold lines, cracks, grooves or warps; a bend
+  does not carry to the next fight. Doc `docs/robocus-wear-in-game.md`, tools `tools/damage-lab/wear-game*.js`. Branch
+  `claude/wear-measure`, commit `4872da4`. Side finding: Lineup Arena and Contact Lab pages throw a script error on
+  opening (fourth robot card defaults to Juggernaut, no longer in the lineup): T40.
 - **T39. Themed names and drawings on 18 cards** (21 Nov): `FLAVOR` table keyed by card ids (6 parts, 12 cards), 18
   drawings in the scrapyard style (`FLAV_ART`), new name big with the game's name small under it, the line in the hover;
   `BAL.flavor` (true) turns it off. The log, rules and docs keep the game's names; a question that names a themed card
