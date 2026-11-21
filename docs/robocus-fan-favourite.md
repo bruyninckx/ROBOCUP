@@ -65,4 +65,64 @@ shows, against all teams in other games at the same round with the same fame and
 **In normal AI games a Fan Favourite is no runaway.** It is worth about 1 Cr a round (it fights only every third round) and
 the +1 fame it brings, and a team that has one does no better than a team with the same fame without one, beyond noise.
 
-<!-- B -->
+## 3. Part B: does Kev's line beat the AI?
+
+The line as a test AI in seat 0 (`rw`, `tools/game-sim.js --aip0='{"rw":1,...}'`), against three normal AI teams, the same
+seeds as the normal AI in seat 0:
+- **Apex Media** at any price in the sponsor auction (Fan Favourite at 2 wins);
+- **hosts**: +4 Cr on what hosting is worth to it, and as host it always invites itself (its best matchup);
+- **sends its Fan Favourite** to every fight it is in (else its robot with the most wins and 45%+ odds);
+- **pays an AI host 2 Cr to be invited** when it has a ready Fan Favourite (the host takes it, as it would from a person);
+- **hoards**: no Market bids but a 2nd robot and Mechanics; `spendK 0` (no surplus spending); repairs broken zones as the AI does;
+- **backs any scheme for pay**;
+- `rwTips`: when it hosts, the other AI teams offer it the invite deals they offer a person who hosts (AI hosts get none otherwise).
+
+"Kev line" = all of that. Paired change = seat 0 win rate minus the normal AI's in seat 0 on the same seed.
+
+| Seat 0 plays | Games | Seat 0 wins | Paired change | Hosts a game | Fan Favourite (games, median round made) | Appearance Cr a game | Market Cr | Repairs Cr | Credits at Upkeep 7 / 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| normal AI | 100 | 29% ±9 | - | 2.9 | 46%, r7 | 22.5 | -30 | -8 | 6.5 / 7.4 |
+| **Kev line** | 100 | **16% ±7** | **-13 ±12 pts** | 4.0 | 71%, r4 | **38.5** | -6 | -26 | 7.5 / 8.3 |
+| Kev line without rwTips / spendK 0 | 100 | 18% ±8 | -11 ±11 | 4.2 | 71%, r4 | 41.4 | -8 | -28 | 7.0 / 7.6 |
+| Kev line, no Apex Media | 60 | 28% ±11 | -10 ±17 | 4.9 | 45%, r7 | 40.4 | -9 | -20 | 8.7 / 10.0 |
+
+(The other three teams win 24% each against the normal AI, 28% against the Kev line. Game length 11.5 rounds in all.)
+
+**The line earns what Kev saw, and still loses.** It brings in about **16 Cr more appearance money a game** (38.5 against 22.5)
+and gets its Fan Favourite 3 rounds earlier, but it pays for that: about 24 Cr less goes into the Market, so its robots stay
+plain; they fight every round they can, so they need about 18 Cr more in repairs; and it pays 11 Cr more for host bids. Its
+credits at Upkeep stay at 7-10, like everyone's: the money comes in and goes out again. Fame from fight wins drops (2.8 a game
+against 3.5) because plain, battered robots lose more. It wins 13 points less than the normal AI in the same seat.
+
+Without Apex Media it gets a Fan Favourite less often (45% of games, as the normal AI) and still earns 40 Cr appearance money
+(it fights every round); it does a little better (-10 ±17, within noise of the Apex line).
+
+Which part carries what: the appearance money comes from being in every fight (host and invite itself, pay to be invited), not
+from the Fan Favourite as such (without Apex it gets almost as much). What makes the line lose is the hoarding (no Market).
+The runs with the other parts switched off one at a time (no hoarding, no self-invite) are in section 6.
+
+### Why Kev's game looked different
+
+His ledger (build 2026-11-17g, rounds 1-7): Mechanics +20, appearance +18, cards cashed +12, backing +12, host deals +9,
+sponsor +8; spent: host bids -23, Market -18, upkeep -7, **no repairs**. Three things a person gets that the AI line doesn't:
+1. **AI teams pay a person.** AI teams offer a person who hosts credits to be invited or left out, and pay to back a person's
+   scheme; they never do that among themselves. That was 21 Cr in his game. `rwTips` gives the test AI the invite part of
+   this; it changes little (section 3 table, first two rows), because a host that keeps hosting while it leads gets no
+   such offers (rule of 11 Nov).
+2. **He didn't repair** (his Fan Favourite fought with its Body broken). The AI pays credits to fix broken zones.
+3. **AI hosts invite the fame leader.** An AI host that stays out puts the team with the most fame against its best counter
+   (80%). As the leader Kev was invited even when he did not host, so his Fan Favourite fought most rounds.
+
+His lead at round 7 was 45 Cr but only 7 fame against 6: the credits had not turned into fame yet. Credits turn into fame mainly
+through the host seat (an AI bids at most the richest rival's credits + 1, so a rich team wins every host bid it wants). That
+is the real lever behind his observation, and it is about hoarding, not the Fan Favourite (section 5).
+
+## 4. Part C: can the other teams counter it by play?
+
+The three other seats get counters the rules already have (`--aipR='{"ctr":[...]}'`): **noInvite** (an AI host never invites
+a rival's ready Fan Favourite and turns down its 2 Cr), **cards** (harmful cards aimed at a team with a Fan Favourite: threat
++1, which also puts We Have Your Number, Rogue Firmware, Coolant Leak and sabotage on it), **host** (+4 Cr on the host bid when
+a rival has a ready Fan Favourite), **smear** (Smear cards aimed at a sole fame leader: threat +1). Against the Kev line in seat 0:
+
+<!-- C -->
+
