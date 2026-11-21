@@ -866,9 +866,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     /* T52 (Kev's playtest, 21 Nov: Plum traded in 6 robots, one its Fan Favourite, and paid 111 Cr in the Market). tiV2: a robot lot
      * with a full garage is worth the new robot minus the robot it would scrap, both valued the same way (tiVal), plus the scrap money,
      * minus what the old one carries: tiTokK Cr per Fan token, a Fan Favourite its fame (fame x fameCr) + tiFavK, one win short of
-     * one tiNearK x fameCr, bought in the last tiRecent rounds tiRecentK. It bids only when that is tiMin or more, never more than
+     * one tiNearK x fameCr, bought in the last tiRecent rounds tiRecentK. It bids only when the new robot is worth tiUp more than
+     * the old one (no sideways swap for the scrap money) and the whole gain is tiMin or more, never more than
      * that (no surplus extra on such a lot), and scraps the robot that costs least to lose. 0 = the AI as before. docs/ai-v2.md */
-    tiV2: 1, tiTokK: 1.5, tiFavK: 4, tiNearK: 0.5, tiRecent: 2, tiRecentK: 3, tiMin: 2 };
+    tiV2: 1, tiTokK: 1.5, tiFavK: 4, tiNearK: 0.5, tiRecent: 2, tiRecentK: 3, tiMin: 2, tiUp: 1 };
   // AI styles for tests (game-sim --aip0='{"style":"vengeful"}') and for solo games
   const AI_STYLES = {
     vengeful:    { grudgeK: 0.6, loyalK: 0.05 },
@@ -5756,8 +5757,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!tradeInOn()) return 1;
     if (tiOn(t)) {   // T52: the same valuation for the new robot and the one it scraps (tiVal), next to the other two
       const old = aiTradeInPick(t), others = t.robots.filter(r => r !== old), vn = tiVal(t, bot, s, others, l4) + off;
-      const gain = vn - tiKeep(t, old) + scrapMoney(old);
-      return gain >= (aiP(t).tiMin || 0) ? gain : 0;
+      const up = vn - tiKeep(t, old), gain = up + scrapMoney(old);   // up: the new robot is better than the old one (no sideways swaps for the scrap money)
+      return up >= (aiP(t).tiUp || 0) && gain >= (aiP(t).tiMin || 0) ? gain : 0;
     }
     const old = aiTradeInPick(t), keep = old ? BENCH_K * robotVal(bareStr(old)) + (old.wins >= favWins(t) ? BAL.fame.fanFav * fameCr(t) : 0) : 0;
     return Math.max(0, v - keep + scrapMoney(old));
@@ -8359,7 +8360,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get BOOKIE() { return BOOKIE; }, bookieCfg: () => bookieCfg(), get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get BOOKIE() { return BOOKIE; }, bookieCfg: () => bookieCfg(), robotWant, tiKeep, tiVal, aiLotValue, mkRobot, setAIP: (i, o) => { AIP[i] = Object.assign({}, AI_PARAMS, o); }, get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
