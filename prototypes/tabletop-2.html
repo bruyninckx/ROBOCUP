@@ -803,7 +803,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
      * a team that helped it once that team is within 3 fame of the win. fameCurve: what 1 fame is worth in credits by the leader's
      * fame (0-3, 4-6, 7-9, 10+), see tools/worth-report.js (AI games: about 0.1-1 / 0.4-1.2 / 2 / 4-10 Cr); null = hostFame at every stage.
      * moneyCap: never bid more than the richest rival could (its credits + 1). */
-    grudgeK: 0.15, loyalK: 0.1, stab: 0, fameCurve: null, moneyCap: 1 };
+    grudgeK: 0.15, loyalK: 0.1, stab: 0, fameCurve: null, moneyCap: 1,
+    /* T46 (21 Nov, Kev: "improving AI is always good"; docs/ai-v2.md "Hosts invite like people"). 0 = the AI as before (same seeds, same games).
+     * invite: an AI host weighs what an invitation gives each team (appearance money, the chance of a win and its fame, a Fan token,
+     * against the loss: damage, and a scrap unless it is a Fan Favourite), times how dangerous that team is to it (fame, credits);
+     * it invites the pair that helps its rivals least, prices invite / leave-out deals with the same numbers, and an AI team asks a
+     * person who hosts to be invited or left out by what the invitation is worth to it. invNoise: score noise; invRand: share of
+     * random pairs (people are not perfect); invCrK: threat per 10 Cr a rival holds more than the host.
+     * guard: one AI team (the richest AI rival) keeps credits back to contest the host seat against a dangerous rival that piles up
+     * credits (guardRich Cr more than the others' average, or it hosted 2 of the last 3 rounds) and could outbid it (a Fan Favourite
+     * it would invite itself with, or within guardNear fame of the win); it keeps and bids up to
+     * guardK x what that rival's hosting would give it (+ its own host value), at most guardCap.
+     * favCards: harmful cards aim a little harder (+favCardsK threat) at the team whose Fan Favourite earns for it, when that team
+     * leads or is within 1 fame of the lead. */
+    invite: 1, invNoise: 0.25, invRand: 0.12, invCrK: 0.3, guard: 1, guardRich: 3, guardK: 0.6, guardCap: 14, guardNear: 3, favCards: 1, favCardsK: 0.5 };
   // AI styles for tests (game-sim --aip0='{"style":"vengeful"}') and for solo games
   const AI_STYLES = {
     vengeful:    { grudgeK: 0.6, loyalK: 0.05 },
@@ -4512,6 +4525,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       th = Math.max(0.05, th); }   // Kev, 11 Nov: a team that keeps hosting draws the cards, as it would at a real table
     if (aiP(F).ctr) { if (ctrOn(F, 'cards') && hasFav(T)) th += aiP(F).ctrK != null ? aiP(F).ctrK : 1;   // T35 test AIs: aim the cards at a Fan Favourite's team
       if (ctrOn(F, 'smear') && T === leaderOf() && T.fame > Math.max(...G.teams.filter(o => o !== T).map(o => o.fame))) th += aiP(F).ctrLead != null ? aiP(F).ctrLead : 1; }   // ... at a sole fame leader
+    if (aiP(F).favCards && hasFav(T) && T.fame >= Math.max(...G.teams.map(o => o.fame)) - 1) th += aiP(F).favCardsK || 0;   // T46: the team a Fan Favourite earns for, near the lead
     return th;
   };
   const aiLandP = (F, c, T) => { if (!c.harmful || !T || T === F || c.name === 'Security Override' || c.name === 'Asset Strip') return 0.85; const pass = hasCrew(T, 'secchief') ? 2 / 6 : 0.5; return Math.pow(pass, secReady(T)) * 0.85; };
@@ -5048,16 +5062,42 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       rep = Math.max(0, need - acts) * repairCr();
     }
     const war = P.spendLate != null && t.fame >= WIN_FAME - P.spendLate ? Math.min(P.spendWar || 99, Math.max(0, ...G.teams.filter(o => o !== t).map(o => o.credits + 1))) : 0;
-    return P.reserve + (P.spendRes || 0) + upkeep + (t.debt || 0) + Math.max(rep, war);
+    const gd = hostGuard(t);   // T46: the guard keeps credits for the host seat
+    return P.reserve + (P.spendRes || 0) + upkeep + (t.debt || 0) + Math.max(rep, war, gd ? gd.keep : 0);
+  }
+  /* T46 (AI_PARAMS.guard): the host seat against a dangerous rival. A rival is dangerous when it is within 1 fame of the top and has a
+   * Fan Favourite (as host it invites itself with it: 6 Cr and a likely win) or is within guardNear fame of the win. What its hosting
+   * would give it (host fame, a fight it picks, the Fan Favourite's 6 Cr) times its threat is what keeping it out is worth (all its
+   * credits when hosting wins it the game). One AI team guards (the richest AI team other than that rival; ties: lower seat), so the
+   * AI teams don't all save at once. It keeps up to guardK x that + its own host value (at most guardCap), but no more than the rival
+   * could bid (its credits + 1). No random numbers. Returns { R, keep, cap } or null. */
+  function hostGuard(t) {
+    const P = aiP(t); if (!P.guard || !aiV2(t, 'host') || isHuman(t.i) || !G.teams) return null;
+    const top = Math.max(...G.teams.map(o => o.fame)), fw = fameCr(t); let best = null;
+    for (const R of G.teams) {
+      if (R === t || R.fame < top - 1 || !R.robots.length) continue;
+      const others = G.teams.filter(o => o !== R), saver = R.credits >= others.reduce((a, o) => a + o.credits, 0) / others.length + (P.guardRich != null ? P.guardRich : 3) || (G.hostHist || []).slice(-3).filter(h => h === R.i).length >= 2;
+      if (!saver) continue;   // only a team that piles up credits (or keeps taking the host seat) can outbid it
+      const fav = R.robots.some(r => r.wins >= favWins(R) && !wrecked(r)), near = R.fame >= WIN_FAME - (P.guardNear || 3);
+      if (!fav && !near) continue;
+      const hf = CATCHUP.leaderhost && soleLeader() === R ? 0 : HOST_FAME;
+      const d = hf && R.fame + hf >= WIN_FAME ? 99 : aiThreat(t, R) * (hf * fw + 0.6 * BAL.fame.win * fw + (fav ? BAL.fan.favMoney : 0));
+      if (!best || d > best.d) best = { R, d };
+    }
+    if (!best) return null;
+    const g = G.teams.filter(o => o !== best.R && !isHuman(o.i)).sort((x, y) => y.credits - x.credits || x.i - y.i)[0];
+    if (g !== t) return null;
+    const cap = Math.min(P.guardCap || 14, Math.round(aiHostValue(t, true) + (P.guardK || 0) * best.d));
+    return { R: best.R, keep: Math.max(0, Math.min(cap, best.R.credits + 1)), cap };
   }
   // f: one use switched off for the benchmark (params.off: spendLots / spendHost / spendCards / spendRep)
   const aiSurplus = (t, withRepairs = true, f) => aiV2(t, 'spend') && (!f || aiV2(t, f)) && aiP(t).spendK > 0 ? Math.max(0, t.credits - aiReserve(t, withRepairs)) : 0;
   const aiSpendMult = (t, sur) => { const P = aiP(t); return sur > 0 ? Math.min(1 + (P.spendCap || 0), 1 + P.spendK * sur / 10) : 1; };
   // AI host bid: what it is worth to this team, from the credits left after the lots
   // v2: hosting is worth its fame (none for a sole leader) plus picking the fights; everything when it wins the game
-  function aiHostValue(t) {
+  function aiHostValue(t, noWin) {
     const P = aiP(t), fame = CATCHUP.leaderhost && soleLeader() === t ? 0 : HOST_FAME;
-    if (fame && t.fame + fame >= WIN_FAME) return t.credits;
+    if (fame && t.fame + fame >= WIN_FAME) return noWin ? Math.min(t.credits, P.guardCap || 14) : t.credits;
     return fameCr(t) * fame + 1 + hostDenyValue(t) + (P.rw || P.ctr ? aiFavHostExtra(t) : 0);
   }
   // T35 test AIs: the runaway hosts to put itself in the fight; a counter team outbids it when a rival has a Fan Favourite
@@ -5081,7 +5121,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (aiV2(t, 'host')) {
       const P = aiP(t), v = aiHostValue(t), sur = Math.max(0, aiSurplus(t, true, 'spendHost') - (P.spendMkt || 0)), hv = v >= t.credits ? v : v + Math.min(sur, v * (aiSpendMult(t, sur) - 1));   // surplus: hosting is worth more (capped)
       const bid = Math.max(0, Math.min(Math.round(hv * (1 + (rnd() - 0.5) * 2 * P.hostNoise)), t.credits - (t.credits > P.reserve + 1 ? P.reserve : 0)));
-      const capped = P.moneyCap ? Math.min(bid, Math.max(...G.teams.filter(o => o !== t).map(o => o.credits)) + 1) : bid;
+      const gd = hostGuard(t), bid2 = gd ? Math.max(bid, Math.min(gd.cap, gd.R.credits + 1, t.credits)) : bid;   // T46: the guard bids to keep the dangerous rival out
+      if (gd) AILOG.push({ g: 1, r: G.round, t: t.i, R: gd.R.i, keep: gd.keep, cap: gd.cap, bid, bid2, cr: t.credits, rCr: gd.R.credits });   // recording only
+      const capped = P.moneyCap ? Math.min(bid2, Math.max(...G.teams.filter(o => o !== t).map(o => o.credits)) + 1) : bid2;
       return P.hostMin ? Math.max(capped, Math.min(P.hostMin, t.credits)) : capped;   // hostMin: a test AI that always goes for the host seat ("the bully")
     }
     const want = t.fame >= 9 ? 3 : 1.5;   // Kev, 7 Nov: no Apex-only bonus (it made AI Apex host most rounds and win 47%)
@@ -5116,7 +5158,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const aiSavesFor = t => G.nextMarket && G.nextRound === G.round + 1 && G.nextMarket.some((id, k) => { const L = LOTS[id]; return conveyorShown(k) && L && L.part && epicTargets(L.part).concat(tripleTargets(L.part)).some(q => q.T === t); });
   function aiBids(t) {
     if (aiV2(t, 'bids')) {
-      const P = aiP(t); let budget = Math.max(0, t.credits - P.reserve - Math.min(2, Math.round(aiHostValue(t) / 2)));
+      const P = aiP(t), gd = hostGuard(t); let budget = Math.max(0, t.credits - P.reserve - Math.max(Math.min(2, Math.round(aiHostValue(t) / 2)), gd ? gd.keep : 0));   // T46: the guard keeps its host-seat credits
       if (aiSavesFor(t)) budget = Math.max(0, budget - 4);   // keeps credits back for next round's epic part
       const order = G.market.map((id, k) => ({ k, v: aiLotValue(t, id) })).sort((a, b) => b.v - a.v);
       const bids = zeroBids();
@@ -5172,6 +5214,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       let worth = k === HOST_K ? aiHostValue(t) : aiLotValue(t, G.market[k]);
       const sp = k === HOST_K ? { sur: Math.max(0, aiSurplus(t, true, 'spendHost') - (aiP(t).spendMkt || 0)) } : G.aiSpend && G.aiSpend[t.i] && G.aiSpend[t.i].r === G.round ? G.aiSpend[t.i] : null;   // surplus: worth more, as in the sealed bid
       if (sp && sp.sur > 0 && worth >= 1.5 && worth < t.credits) worth += Math.min(sp.sur * (aiP(t).spendShare || 0.5), worth * (aiSpendMult(t, sp.sur) - 1));
+      if (k === HOST_K) { const gd = hostGuard(t); if (gd) worth = Math.max(worth, gd.cap); }   // T46: the guard
       return Math.max(0, Math.min(maxAdd, Math.round(worth - curBid)));
     }
     if (k < NLOTS && !canTake(t, G.market[k])) return Math.min(maxAdd, rnd() < 0.3 ? 1 : 0);
@@ -6042,6 +6085,37 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // what the face-down cards a team put on this robot itself do to its odds (it knows them; others' cards stay hidden)
   const knownSwing = (r, ti) => ti == null ? 0 : (r.faceDown || []).filter(x => x.from === ti).reduce((a, x) => a + (CARDS[x.id] && CARDS[x.id].name === 'Secret Upgrade' ? CARD_SWING.up : 0), 0);
   const bestVs = (T, foes, ti) => readyRobots(T).map(r => ({ r, p: (foes.length ? foes.reduce((a, f) => a + aiEdge(r, f), 0) / foes.length : 0.5) + knownSwing(r, ti) })).sort((x, y) => y.p - x.p)[0];
+  /* T46: what an invitation against team Y gives team X, in credits, as X sees it (AI_PARAMS.invite): appearance money (2 Cr, +2 per
+   * Fan token, 6 for a Fan Favourite), the chance of a win (its fame, a Fan token, a Fan Favourite at the last one), against damage and,
+   * unless it is a Fan Favourite, the chance that host H scraps it when it loses. X sends its best matchup, or its Fan Favourite when
+   * that is nearly as good (a person would). No random numbers. */
+  const strongOf = T => readyRobots(T).slice().sort((x, y) => power(y) - power(x)).slice(0, 2);
+  function inviteGift(H, X, Y) {
+    const foes = Y ? strongOf(Y) : [], best = bestVs(X, foes, X.i); if (!best) return { g: 0, p: 0, r: null };
+    const fv = favReady(X), pf = fv ? (foes.length ? foes.reduce((a, f) => a + aiEdge(fv, f), 0) / foes.length : 0.5) : 0;
+    const r = fv && pf >= best.p - 0.1 ? fv : best.r, p = Math.max(0, Math.min(1, r === best.r ? best.p : pf)), fw = fameCr(H), fav = r.wins >= favWins(X);
+    const money = 2 + appearCr(X, r);
+    const winV = BAL.fame.win * fw + (fav ? 0 : r.wins + 1 >= favWins(X) ? (BAL.fame.fanFav || 1) * fw + 2 : BAL.fan.tokenMoney);   // fame, and a Fan token (money next time) or the Fan Favourite it makes
+    const lean = X !== H && (X.fame >= H.fame - aiP(H).scrapThreat || X === leaderOf()), scrapRisk = fav || X === H || !lean ? 0 : 0.85 * Math.max(2, robotValue(r));
+    const dmg = 1 + (1 - p);   // repairs after a fight, more for the loser
+    return { g: money + p * winV - (1 - p) * scrapRisk - dmg, p, r };
+  }
+  // how much host H minds team X gaining a credit: its fame threat, plus the credits it holds above the host's (a saver)
+  const giftW = (H, X) => X === H ? 0 : aiThreat(H, X) + (aiP(H).invCrK || 0) * Math.max(0, X.credits - H.credits) / 10;
+  // the harm to host H of inviting a against b (H not in it): the rivals' gifts weighted by how much H minds them. Lower is better for H
+  const inviteHarm = (H, A, B) => giftW(H, A) * inviteGift(H, A, B).g + giftW(H, B) * inviteGift(H, B, A).g;
+  // every pair the host could invite while staying out, best first (no noise)
+  const invitePairs = (H, able) => { const o = []; for (let i = 0; i < able.length; i++) for (let j = i + 1; j < able.length; j++) o.push({ a: able[i], b: able[j], h: inviteHarm(H, able[i], able[j]) }); return o.sort((x, y) => x.h - y.h); };
+  // what an AI team wants from a person who hosts: 'in' when an invitation is worth 3+ Cr to it, 'out' when it costs it
+  function aiInviteWant(T, Hh) {
+    const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0]; if (!r) return null; if (wrecked(r)) return 'out';
+    const rivals = G.teams.filter(o => o !== T && o !== Hh && readyRobots(o).length).concat(readyRobots(Hh).length ? [Hh] : []);
+    if (!rivals.length) return null;
+    const g = rivals.reduce((a, Y) => a + inviteGift(Hh, T, Y).g, 0) / rivals.length;
+    return g >= 3 ? 'in' : g <= 0 ? 'out' : null;
+  }
+  // T46 recording (tools/game-sim.js, display only): every AI host's pick, whether it stayed out, and who it could have invited
+  const AILOG = [];
   const sideTeams = (F, sd) => F.teams.filter((_, e) => F.sides[e] === sd);
   const sideName = (F, sd) => sd === 'house' || sd === 9 ? 'House Robot' : sideTeams(F, sd).map(ti => G.teams[ti].name).join(' + ');
   const sideRobots = (F, sd) => F.robots.filter((r, e) => F.sides[e] === sd && r);
@@ -6080,7 +6154,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
         if (G.teams[H].fame > T.fame && (G.hostHist || []).slice(-3).filter(h => h === H).length >= 2) continue;   // Kev, 11 Nov: no gifts for a leader who keeps hosting (his playtest: 18 Cr of these paid half his host bids)
         const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p;
-        const want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
+        const want = aiP(T).invite ? aiInviteWant(T, G.teams[H]) : wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;   // T46: by what the invitation is worth to it
         if (want && rnd() < 0.55) { const B = aiBundle(T, G.teams[H], 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B)) G.inviteOffers.push({ team: T.i, want, B }); }
       }
       // 14 Nov (Friday playtest, "people cannot bid on host"): only AI teams could make a human host an offer. Every other
@@ -6102,14 +6176,24 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let others = tieSort(G.teams.filter(t => t.i !== H));
     // you may offer the AI host a deal: invite me, or leave me out
     let forceIn = -1; const forceOut = new Set();
+    // T46 (AI_PARAMS.invite): the host prices a deal by what it changes: the harm of its best pair with that team in (or out)
+    // against the harm of its best pair; at least 2 Cr, as before. Off: 2 Cr for anything.
+    const T46 = !!aiP(host).invite;
+    const priceOf = (X, want) => {
+      if (!T46) return 2;
+      const pairs = invitePairs(host, others.filter(t => readyRobots(t).length && !forceOut.has(t.i))); if (!pairs.length) return 2;
+      const sub = pairs.filter(q => want === 'in' ? (q.a === X || q.b === X) : (q.a !== X && q.b !== X));
+      return sub.length ? Math.max(2, Math.round(sub[0].h - pairs[0].h)) : want === 'in' ? 2 : 99;
+    };
     for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
       const Me = G.teams[h];
       if (!readyRobots(Me).length) continue;
       const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
       if (!pick || (pick === 'in' && forceIn >= 0)) continue;
-      const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.', from: host, lock: 'Lock in offer' }, h);
+      const ask = priceOf(Me, pick);
+      const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.' + (T46 ? ' It takes ' + (ask >= 99 ? 'nothing: it can\'t leave you out' : ask + ' Cr or more') + '.' : ''), from: host, lock: 'Lock in offer' }, h);
       if (d && !bundleEmpty(d.give)) {
-        if (bundleWorth(host, d.give) >= 2) { transfer(Me, host, d.give, 'hostdeal'); if (pick === 'in') forceIn = h; else forceOut.add(h); notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' from ' + nm(Me) + ' and ' + (pick === 'in' ? 'invites it.' : 'leaves it out.'), host.col); }
+        if (bundleWorth(host, d.give) >= ask) { transfer(Me, host, d.give, 'hostdeal'); if (pick === 'in') forceIn = h; else forceOut.add(h); notify('🤝 ' + nm(host) + ' takes ' + bundleText(d.give) + ' from ' + nm(Me) + ' and ' + (pick === 'in' ? 'invites it.' : 'leaves it out.'), host.col); }
         else notify('✋ ' + nm(host) + ' turns down ' + nm(Me) + '\'s ' + bundleText(d.give) + '.', host.col);
       }
     }
@@ -6117,7 +6201,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       for (const T of G.teams) {   // the runaway pays an AI host 2 Cr to be invited with its Fan Favourite (the host takes 2+ Cr, as from a person)
         if (T === host || forceIn >= 0 || isHuman(T.i) || !rwOn(T, 'deal') || !favReady(T) || T.credits < 3) continue;
         if (ctrOn(host, 'noInvite')) { notify('✋ ' + nm(host) + ' turns down ' + nm(T) + '\'s 2 Cr to be invited.', host.col); continue; }
-        transfer(T, host, { cr: 2, items: [] }, 'hostdeal'); forceIn = T.i; notify('🤝 ' + nm(host) + ' takes 2 Cr from ' + nm(T) + ' and invites it.', host.col);
+        const offer = priceOf(T, 'in');   // T46: it pays the host's price, up to 5 Cr (a Fan Favourite earns 6)
+        if (offer > 5 || T.credits < offer + 1) { notify('✋ ' + nm(host) + ' wants ' + offer + ' Cr from ' + nm(T) + ' to invite it: no deal.', host.col); continue; }
+        transfer(T, host, { cr: offer, items: [] }, 'hostdeal'); forceIn = T.i; notify('🤝 ' + nm(host) + ' takes ' + offer + ' Cr from ' + nm(T) + ' and invites it.', host.col);
       }
       if (ctrOn(host, 'noInvite') && forceIn < 0) { const keep = others.filter(t => !favReady(t)); if (keep.filter(t => readyRobots(t).length).length >= (readyRobots(host).length ? 1 : 2)) others = keep; }   // never invite a rival's Fan Favourite
     }
@@ -6132,24 +6218,39 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const bty = T => readyRobots(T).some(r => r.bounty) ? 0.08 : 0;
     const mine = able.map(T => ({ T, p: (bestVs(host, strong(T), host.i) || { p: 0 }).p + bty(T) })).sort((x, y) => y.p - x.p);
     const fightSelf = readyRobots(host).length && (!two || okTeam(host)) && mine.length && ((mine[0].p >= 0.55 && rnd() < 0.85) || rwOn(host, 'self'));   // T35: the runaway always invites itself
+    let mode = 'rand';
+    const noisy = h => h + (rnd() - 0.5) * 2 * (aiP(host).invNoise || 0) * (Math.abs(h) + 2);
     if (forceIn >= 0) {
       const vsMe = (bestVs(host, strong(G.teams[forceIn]), host.i) || { p: 0 }).p;
-      a = forceIn; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== forceIn).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== forceIn)).i;
+      a = forceIn; b = readyRobots(host).length && vsMe >= 0.55 ? H : (able.filter(t => t.i !== forceIn).sort((x, y) => y.fame - x.fame)[0] || others.find(t => t.i !== forceIn)).i; mode = 'deal';
     } else if (fightSelf) {
-      a = H; b = mine[0].T.i;   // its best matchup (ties: whoever has more fame)
+      a = H; b = mine[0].T.i; mode = 'self';   // its best matchup (ties: whoever has more fame)
+      if (T46) {   // T46: of the matchups it likes (55%+), the one where it gains most and its rival least (its gift weighted by the threat)
+        const ok = mine.filter(m => m.p >= 0.55), c = (ok.length ? ok : mine).map(m => ({ T: m.T, s: noisy(inviteGift(host, host, m.T).g - giftW(host, m.T) * inviteGift(host, m.T, host).g) })).sort((x, y) => y.s - x.s);
+        b = c[0].T.i;
+      }
+    } else if (able.length >= 2 && T46) {
+      // T46: stay out and invite the pair that helps its rivals least (a leader's Fan Favourite earns 6 Cr win or lose, and can't be scrapped);
+      // invRand of the time any pair (people are not perfect)
+      const pairs = invitePairs(host, able);
+      if (rnd() < (aiP(host).invRand || 0)) { const sh = shuffle(able.slice()); a = sh[0].i; b = sh[1].i; }
+      else { const q = pairs.map(x => ({ x, h: noisy(x.h) })).sort((u, v) => u.h - v.h)[0].x; a = q.a.i; b = q.b.i; mode = 'out'; }
     } else if (able.length >= 2) {
       // stay out: put the team with the most fame against the rival most likely to beat it
       const lead = able.slice().sort((x, y) => y.fame - x.fame)[0], rest = able.filter(t => t !== lead);
       const foe = rest.map(T => ({ T, p: (bestVs(T, strong(lead)) || { p: 0 }).p })).sort((x, y) => y.p - x.p)[0];
-      if (rnd() < 0.8 && foe) { a = lead.i; b = foe.T.i; } else { const sh = shuffle(able.slice()); a = sh[0].i; b = sh[1].i; }
+      if (rnd() < 0.8 && foe) { a = lead.i; b = foe.T.i; mode = 'out'; } else { const sh = shuffle(able.slice()); a = sh[0].i; b = sh[1].i; }
     } else {
       const s = shuffle(able.length >= 2 ? able.slice() : others.slice());
-      a = s[0].i; b = (s[1] || { i: H }).i;
+      a = s[0].i; b = (s[1] || { i: H }).i; mode = 'few';
     }
+    { const fm = able.map(t => t.fame), top = Math.max(-1, ...fm), L = able.filter(t => t.fame === top);   // T46 recording only (no rnd, nothing in G)
+      AILOG.push({ r: G.round, host: H, mode, a, b, stay: a !== H && b !== H, able: able.map(t => t.i), lead: L.length === 1 ? L[0].i : -1, top: soleLeader() ? soleLeader().i : -1,
+        favs: able.filter(t => favReady(t)).map(t => t.i), fame: G.teams.map(t => t.fame), cr: G.teams.map(t => t.credits) }); }
     if (aiP(host).rwTips) for (const T of G.teams) {   // T35 test AI (rwTips): the other AI teams offer it the deals they offer a person who hosts; paid when its pick agrees
       if (T.i === H || isHuman(T.i) || !readyRobots(T).length) continue;
       if (host.fame > T.fame && (G.hostHist || []).slice(-3).filter(h => h === H).length >= 2) continue;
-      const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p, want = wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
+      const r = readyRobots(T).sort((x, y) => power(y) - power(x))[0], p = fieldOdds(T.i, r).p, want = aiP(T).invite ? aiInviteWant(T, host) : wrecked(r) || p <= 0.3 ? 'out' : p >= 0.55 ? 'in' : null;
       if (want && rnd() < 0.55) { const B = aiBundle(T, host, 1 + (rnd() < 0.4 ? 1 : 0)); if (!bundleEmpty(B) && (want === 'in') === (a === T.i || b === T.i)) { transfer(T, host, B, 'hostdeal'); notify('🤝 ' + nm(T) + ' pays the host ' + bundleText(B) + ' (' + (want === 'in' ? 'invited' : 'left out') + ').', T.col); } }
     }
     G.arenaPick = aiPickArena(H, a, b);
@@ -7805,7 +7906,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { robotValue, robotValueOf, buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
