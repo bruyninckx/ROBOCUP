@@ -84,7 +84,7 @@ What the AI does differently:
   who keeps hosting"), settled at once (no question, no timer), one log line per deal the host takes. Backing was already the
   same between AI teams as towards a person (`aiBacking` asks every team and pays AI backers: about 19-20 Cr a game moved
   between AI teams before this task), so nothing changed there.
-- **`guard`: one AI team watches the host seat.** When a rival piles up credits (3+ Cr above the others' average, or it hosted
+- **`guard`: one AI team watches the host seat** (and at match point, `guardMatch`, see below). When a rival piles up credits (3+ Cr above the others' average, or it hosted
   2 of the last 3 rounds and holds as much as the guard), is within 1 fame of the top and is dangerous (a Fan Favourite it would
   invite itself with, or within 3 fame of the win), the richest AI team other than it keeps credits back through the Market and
   bids up to its own host value + 0.6 x what that rival's hosting would give it (all of it when hosting wins the game), at most
@@ -153,6 +153,39 @@ and Mechanics, no surplus spending, +4 Cr on the host value; seeds 1-40):
 Watch: next to a team that hoards and hosts, the Market gets 10% less (-12 ±8 Cr a game; -7 ±6 next to the Kev line, +1 ±8
 in normal games): the guard keeps credits back and the host deals move credits to the host. Not a collapse, but the place to
 look if AI robots feel plainer against a saver. `guardK` / `guardCap` turn it down.
+
+### Match point (Kev's playtest of 21 Nov) and the new base
+
+Kev's solo game (build 2026-11-21k, 15 rounds): he hosted 9 of 15 rounds for 7-12 Cr (76 Cr in all, 6 of his 13 fame) and
+took the last three host seats for 9, 12 and 8 Cr one fame from the win; the AI teams' host bids were 1-13. He was no
+hoarder: he earned 137 Cr and spent more than half on the host seat. So `guardMatch` (2): a rival within 2 fame of the win that
+could win the game by hosting (host fame plus the fight it picks; a sole leader gets no host fame) is outbid by the guard with
+**everything it has**, saver or not (it keeps those credits through the Market too).
+
+Measured on main 1a395da (T41 wear and T45 buyout prices in; 25 games each, seeds 1-25, paired; small runs: read the
+± ranges):
+
+| Seat 0 plays | | before | after | paired change |
+|---|---|---|---|---|
+| **host every round** (`--aip0='{"hostMin":10,"rw":1,"rwOff":["apex","deal","hoard","back"]}'`: bids at least 10 Cr or all it has, invites itself, buys in the Market) | wins | 20% | 32% | +12 ±26 pts (25) |
+| | hosts per game | 5.6 | 4.7 | -0.9 ±0.8 |
+| | appearance Cr per game | 40.3 | 31.1 | -9 ±6 |
+| | pays for host seats per game | 48.6 | 40.8 | -8 ±8 |
+| | rounds at 10-11 fame in which it hosts | 26% (23) | 19% (21) | |
+| | Market Cr per game (all) | 122 | 111 | -11 ±9 |
+| **Kev line** | wins | 8% | 13% | +4 ±14 pts (24) |
+| | appearance Cr per game | 36.8 | 27.4 | **-9 ±8** (same as on the old base) |
+| | host bids per game (all) | 83 | 95 | +13 ±11 |
+| | game length | 11.2 | 11.7 | +0.5 ±0.9 |
+
+The guard's match-point bid came 29 times in 25 host-every-round games and won the seat 23 times. The host-every-round line
+loses about 1 host seat a game and 9 Cr of appearance money; its win rate did not drop (+12 ±26: noise at 25 games). Taking the
+host seat from a person at match point needs one AI team to have more credits than that person bids; with 8-12 Cr bids that
+usually holds, against a 40 Cr pile it doesn't (no cap: Kev's choice).
+
+From the same log, not changed here: 9 of 15 fights had a 90%+ favourite (hosts, Kev and the AI, pick mismatches: an AI host
+that stays out now prefers a pair that gains little, which is often a mismatch of two weak teams); an AI team (Moss) sent
+Buzzkill with a broken Body three times (robot pick by matchup odds; T51 / K46 on the task board).
 
 Not run: the seat-0 normal AI against `aiDeals` off alone beyond the 37-game run above; the counters one at a time; the
 `favCards` part alone (it is on by default as part of the package; its effect is not separated). Stalled games (1-3 per run)
