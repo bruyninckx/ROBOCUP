@@ -29,7 +29,15 @@ Branch `claude/bending-on`.
 - [x] Kev's PC run ready: `tools\wear-tables.cmd` (see "The big run on Kev's PC" below). Waiting for its result file.
 - [ ] Step 3, tables (matchup table, arenas, counter tags, fits, combos, bookie): on Kev's PC (below); meanwhile the game keeps the
   15 Nov tables (measured without wear).
-- [ ] Step 4, checks.
+- [x] Step 4, checks (21 Nov, on this branch): build.py; stock-fight fingerprint (`l4-regress.js`) changes as it must:
+  md5 of its output 0b8a0a7a… (origin/main) → 470f6923… (first line "Juggernaut v Brawler: 56.442 Juggernaut wins by KO" →
+  "44.517 Juggernaut wins by KO"); with the four wear switches off it is bit-identical to origin/main (checked on the step-1 engine).
+  Files stamp 352be701 → dbad9aea (changes again at the rebase/merge). Sync check: new reference 89a95280 (was 408e7f67): the engine
+  changed and it now plays 25 fights (two with carried wear marks); node and Chromium give the same code. game-sim 2/2 finished,
+  0 page errors. mp-test (2.0 page, 3 clients): OK, desyncs 0 on every client, 9 fights checked (marks carried online between them),
+  3.4 min. mp-scenario: fight-panels OK, repair-note-online OK; repair-note FAIL "9 repairs: 8 buttons" (Thumper's Weapon at 50% gets
+  no button) — the same failure on origin/main (checked on a clean copy), so not from this branch. Whole games: 40 + 40 (below).
+  Screenshots (game fight view, 1600x900, plus 2x zooms): /home/claude/t41-shots/ (not in the repo).
 
 
 ## After (T41): wear on, retuned
