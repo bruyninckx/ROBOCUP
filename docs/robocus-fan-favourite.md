@@ -10,7 +10,22 @@ play out exactly as on main (10 of 10 seeds identical, section 1).
 **Base:** main 27604e5 (T26 one-step Market, T29 start credits **10**, T31 timers, T33/T34 in; the Repair kit is in the
 deck). An earlier partial run on 47c1f5c (start credits 10, old Market) gave the same picture; its numbers are not used.
 
-<!-- ANSWER -->
+## Answer in plain words
+
+- **Can it be countered by play? Yes.** A Fan Favourite earns its 6 Cr only when it is invited; a table that won't invite it,
+  outbids it for the host seat and aims sabotage and Smear cards at it takes most of that away. The AI doesn't do this (an AI
+  host even invites the fame leader on purpose), which is why it felt unstoppable against 3 AI teams.
+- **Is it a runaway in bot games? No.** In 100 normal games a Fan Favourite fights every third round and is worth about 1 Cr a
+  round; a team with one does no better than a team with the same fame without one (+7 ±8 pts wins, +0.3 ±1.5 Cr). Played as
+  hard as the rules allow by a test AI (Apex Media, host and invite itself, pay to be invited), the line earns **16 Cr more a
+  game** but wins **as often as the normal AI** (-2 ±20 pts, 40 games); with hoarding on top it wins **less** (-13 ±12, 100 games).
+- **Should we balance it?** Not needed by these numbers. If Kev wants a brake for tables of people: **a Fan Favourite that loses
+  drops a Fan token** (one line, changes nothing measurable in a normal game), or **a Fan Favourite earns 4 Cr, not 6**.
+- **Kev's lead was mostly hoarding**: he spent 48 Cr in 7 rounds where an AI team spends about 60 (104 in an 11.5-round game), made no repairs, and AI teams paid him
+  21 Cr in deals and backing (they pay a person, never each other). Hoarding is not stronger for the AI (+0 ±12 without
+  surplus spending, -13 ±16 skipping the Market to host), but a person's pile of credits buys the host seat at will (an AI bids at
+  most the richest rival + 1). That is a separate question for Kev (section 8).
+
 
 ## The mechanism in plain words
 
@@ -191,6 +206,41 @@ the loser, scrappable after 2 losses and Apex at 3 were not run on normal games;
 
 Against the Kev line (seeds 1-40):
 
-<!-- D -->
+| Seat 0 plays (seeds 1-40) | Games | Seat 0 wins | Paired change vs Kev line | Paired change vs normal AI | Appearance Cr a game |
+|---|---|---|---|---|---|
+| normal AI | 40 | 40% ±15 | - | - | 22.9 |
+| Kev line, rules as today | 40 | 15% ±11 | - | -25 ±18 pts | 39.0 |
+| Kev line, Fan Favourite 4 Cr | 40 | 5% ±7 | -10 ±9 pts | -35 ±17 | 30.9 |
+| Kev line, a losing Fan Favourite drops a token | 40 | 20% ±13 | +5 ±16 | -20 ±17 | 32.0 |
+| **Fan Favourite line without hoarding** (buys in the Market like the normal AI) | 40 | 38% ±15 | +23 ±19 | **-2 ±20** | 39.2 |
+
+The last row is the one that matters for "which part carries it": the same line (Apex Media, host and invite itself, its Fan
+Favourite in every fight, pay to be invited, back for pay) but with the normal AI's Market buying. It earns the same +16 Cr
+appearance money a game, gets a Fan Favourite in 95% of games, and wins **exactly as often as the normal AI** (-2 ±20). So the
+Fan Favourite line is a fair line, not a broken one; the hoarding is what sank the Kev line in AI hands.
+
+Fan Favourite 4 Cr takes 8 Cr a game off the line; a token lost on a loss takes 7 Cr and about half of its Fan Favourite fame
+(0.4 instead of 1.0 a game). Both work as brakes; neither is needed by these numbers.
+
+## 7. What was not run (time; restarts)
+
+- 100 more normal games (seeds 101-200) for part A: A has 100 games.
+- The four counters one at a time (only all four together, 60 games).
+- On normal games and on the Kev line: half appearance money for the loser, scrappable after 2 losses in a row, Apex Media at
+  3 wins (the switches are in and work; 1-game smoke tests only).
+- The Kev line with the other parts off one at a time beyond "no hoarding" and "no Apex" (no self-invite, no deals).
+
+## 8. Questions for Kev
+
+1. Do you want a brake on the Fan Favourite anyway, for tables of people? The cheapest one to explain: "a Fan Favourite that
+   loses a fight drops a Fan token" (it can lose the status, its +1 fame and the scrap immunity, and win it back). It changed
+   nothing measurable in normal games. Second choice: "a Fan Favourite earns 4 Cr, not 6".
+2. AI teams pay a person who hosts (invite deals) and back a person's schemes for pay, but never do that among themselves, and
+   an AI host that stays out invites the fame leader on purpose. Should AI hosts stop inviting a rival's Fan Favourite (or the
+   leader) as often, as people would? That is an AI change, not a rule change.
+3. Hoarding: the AI spends almost everything every round (6-8 Cr left), so a saving person ends up with 3-6 times the AI's
+   credits, and an AI never bids more than the richest rival + 1 for the host seat. Do you want a credit sink, an AI that saves
+   up for host bids, or a cap on host bids? Separate from the Fan Favourite.
+
 
 
