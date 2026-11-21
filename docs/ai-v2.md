@@ -233,4 +233,38 @@ does not carry the damage) and asks the AI again; the old rule picks the same si
 Replaying Plum's game with the new rule: it would not have bought Grandmaster (round 9), Tarantula (13) or Jukebox (14), and in
 round 10 it would have scrapped Gaucho or Grandmaster for Lodestone (L4), not its Fan Favourite Vertigo.
 
-NUMBERS
+### Numbers (all-AI games, `tools/game-sim.js`, seeds 1-60, --par=2, paired by seed; `node tools/tradein-report.js A B`)
+
+New main (2ea3956: T41 wear, T46, T38 garage in), `--aip='{"tiV2":0}'` against the default; 59 games finished in both:
+
+| | before (tiV2 0) | now | paired change |
+|---|---|---|---|
+| Trade-ins per team per game | 0.34 | 0.19 | **-0.16 ± 0.04** |
+| Fan Favourite trade-ins per game | 0.08 | 0 | -0.08 ± 0.04 |
+| Trade-ins one win short of Fan Favourite | 0.29 | 0.05 | -0.24 ± 0.08 |
+| Trade-ins of a robot held 2 rounds or less | 0.32 | 0.02 | **-0.31 ± 0.09** |
+| Market Cr on robot lots per game (all teams) | 74.5 | 69.8 | -4.7 ± 1.7 |
+| ... by the team that pays most for robots | 34.0 | 29.9 | -4.1 ± 1.1 |
+| Win rate of the team that pays most for robots | 42% | 37% | -5 ± 7 pts |
+| Level 3-4 robot lots sold per game (of about 5.9 offered) | 5.61 | 5.31 | -0.31 ± 0.21 |
+| Level 4 lots sold per game | 3.36 | 3.22 | -0.14 ± 0.12 |
+| Market Cr on all lots per game | 117.8 | 113.9 | -3.9 ± 2.0 |
+| Game length (rounds) | 12.10 | 12.02 | -0.08 ± 0.22 |
+| Fame per round (all teams) | 3.23 | 3.26 | +0.02 ± 0.04 |
+| Page errors | 0 | 0 | |
+
+The same on the old main (c529940, before the garage; 47 games): trade-ins per team 0.31 → 0.19 (-0.12 ± 0.05), one win short of
+Fan Favourite 0.30 → 0.02, held 2 rounds or less 0.26 → 0.09, robot-lot Cr -2.8 ± 1.7, level 3-4 lots sold -0.09 ± 0.20. The
+off switch is the old AI exactly: main itself and `tiV2 0` gave the same final fame in 46 of 46 games.
+
+What it says: in all-AI games trade-ins were never Plum-sized (a team trades in about once in three games; the AI teams compete
+for robot lots, so they are not cheap). The new rule halves them and removes the bad ones: no Fan Favourite or near Fan
+Favourite goes, almost no robot bought a round ago. Robots still change late: 5.3 of 5.8 level 3-4 lots sell (-0.3, within
+two s.e.), level 4 lots sell as before. The AI spends about 4 Cr less a game on robot lots; game length and fame are unchanged.
+Kev's game was the case these runs barely show: an AI with 17-24 Cr and no rival bidding for robots. The Plum replay above
+covers that case.
+
+The garage (T38) makes a trade-in a little cheaper (the parts come back, a broken zone's parts broken). The AI already valued
+the scrapped robot without its parts, so nothing changes in the rule; the numbers above are on the garage build.
+
+Not measured: a person in the game (the T35 "Kev line" seat). Next log: `trade_in` events with `cost` say why each pick.
