@@ -125,7 +125,9 @@ const path = require('path'), fs = require('fs');
       if (r.n && r.n.bs.length !== 3) bad.push(tag + ' Tag Team Licence: ' + r.n.bs.length + ' buttons, want 3 (the three teams)');
       if (r.res.tag !== '0+2') bad.push(tag + ' Tag Team Licence: ' + JSON.stringify(r.res) + ', want 0+2'); }
     // ---- 6. the Stash's Fit: a part both your robots can take
-    const fit = () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; G.phase = 'upkeep';
+    // T38: with the garage on, the Stash's Fit in Upkeep goes on the garage bill (tools/mp-scenario/garage.js); the question is still asked
+    // in the Market and with BAL.garage.on false: tested here with the garage off
+    const fit = () => { const D = window.ROBOCUS_DEBUG, G = D.G, me = G.teams[0]; G.phase = 'upkeep'; D.BAL.garage.on = false;
       const id = Object.keys(D.LOTS).find(k => D.LOTS[k].part && !D.LOTS[k].legendary && me.robots.every(r => D.canFit(r, D.LOTS[k])));
       me.stash = [id]; window.__fitId = id; D.updateHud();
       setTimeout(() => { document.querySelector('#stashCard [data-fit="0"]').click(); }, 50);
