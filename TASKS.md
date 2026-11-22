@@ -73,6 +73,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **22 Nov (screens):** "drop the phone, smallest res should be 1280". No phone layout; the smallest supported screen is
+  1280 wide (tested at 1280 x 720). Passed to T64.
+
 - **22 Nov (K58, T61):** the loose-shell "debris grinding" (a knocked-off shell destroys its own chassis in 2 s, about 1
   fight in 200): "don't fix, kinda like it". T61 cancelled; the effect stays. "Tough matchup" marker: "20 is good" (from
   15; with T62's branch). Parts per matchup: wants a design first (T63).
