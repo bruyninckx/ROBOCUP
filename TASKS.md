@@ -7,18 +7,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K61 (T58, 22 Nov). Combo hunt results are in** (Kev's PC: 278,626 fights, 3 h, depth 7 of 8; report and proposed
-  tables in `tools/damage-lab/combo-hunt/kev-2026-11-22/`). To decide: (a) apply the new tables before the playtest?
-  9 epics (3 hold: Whiplash, Phantom Hook, Overclock; Iron Bolas becomes a great fit; 6 new), 13 great and 5 poor fits,
-  9 old fits dropped. (b) names for the 6 new epics: Whaler + Waller drone, Vertigo + Field hospital, Wrecker + Pester
-  chip, Mauler + Laser drone, Mauler + Pester chip, Thwacker + Mine layer (orchestrator's suggestions: Sea Wall, Second
-  Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole). (c) giant-slayer builds: by the 80% rule only Gyro and Thwacker
-  qualify; the game's Gyro build (Spotter + Waller + Quantum: 86% bare, 58% kitted) does better against kitted robots
-  than the new pick (89% / 44%), and the game's Whaler build sits at 80% (76-83): keep both old ones and add Thwacker
-  (Booster + Mine layer + Prototype core: 83% / 37%)? (d) looks too strong, for after the playtest: Thwacker + a
-  Race-spec or better Tow cable (93-98%), Thwacker's full build (98% a level up, 56% against kitted robots two levels
-  up), Vertigo's build (99%), Mauler's (97%); Masterwork stand-outs (Scythe + Sensor scrambler +41, Mauler + Laser
-  drone +40, Popcorn + Overdrive +38).
 - **K60 (T62, 22 Nov).** When the bookie's time is up, fights still running are thrown away. Wait up to half a second
   more for them (a few more test fights, half a second slower)?
 - **K59 (T58, 22 Nov). Combo hunt:** (a) "ultimate" = a full build (2 parts + a legendary): right? (b) the epic rule
@@ -86,6 +74,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   rounds (Thwacker + Mine layer, Thwacker + Pester chip, Wrecker + Pester chip): make them epics, with names?
 
 ### Answered
+
+- **22 Nov (K61, combo hunt):** apply the new tables before the playtest: "yes"; the six names: "good" (Sea Wall,
+  Second Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole); giant-slayers (keep the game's Gyro and Whaler builds, add
+  Thwacker): "ok"; the too-strong list (Thwacker + Race-spec Tow cable 93-98%, full builds of Thwacker 98%, Vertigo
+  99%, Mauler 97%, Bricklayer 96%; Masterwork stand-outs) after the playtest: "yes". T65.
 
 - **22 Nov (screens):** "drop the phone, smallest res should be 1280". No phone layout; the smallest supported screen is
   1280 wide (tested at 1280 x 720). Passed to T64.
@@ -172,6 +165,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
+- **After the playtest (K61d): combos that look too strong.** Thwacker + a Race-spec or better Tow cable (93-98%);
+  full builds: Thwacker (Booster + Mine layer + Prototype core: 98% a level up, 56% against kitted robots two levels
+  up), Vertigo 99%, Mauler 97%, Bricklayer 96%; Masterwork stand-outs: Scythe + Sensor scrambler +41, Mauler + Laser
+  drone +40, Popcorn + Overdrive +38. Numbers: `tools/damage-lab/combo-hunt/kev-2026-11-22/report.md`.
 - **T57. `tools/mp-scenario/robot-value.js` is out of date** (found by T56): it looks for the robot offer in the yellow
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
@@ -196,6 +193,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T65. Put the combo hunt's tables in the game** (Kev, 22 Nov, K61: "1 yes 2 good 3 ok 4 yes"): new PART_FIT and
+  EPIC from his run; names Sea Wall, Second Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole; giant-slayers: keep the
+  game's Gyro and Whaler builds with the new numbers, add Thwacker; the too-strong list waits until after the playtest.
+  Worker on branch `claude/combo-tables`, started 22 Nov.
 - **T64. A version to playtest** (Kev, 22 Nov: "I'm trying to go to a version to playtest, first myself only (with 2
   pcs) then with friends"). Feature freeze: no new features until the playtests. Worker on branch
   `claude/playtest-ready`, started 22 Nov: run every test we have on main (all scenario scripts, the online test on
