@@ -16,7 +16,7 @@ function render(A) {
   o('# ROBOCUS combo hunt: report');
   o('');
   o(`${A.meta.fights} fights, ${A.meta.robots.length} robots (${A.meta.robots.length === 33 ? 'the whole lineup' : A.meta.robots.join(', ')}), every part card, wear on, open floor. ` +
-    `Depth ${A.meta.depth} of 4 (${A.meta.hours} h asked). Speed ${A.meta.rate || '?'} fights a second on ${A.meta.workers} workers (${A.meta.cores} logical processors). Engine ${A.meta.fp}${A.meta.rev ? ', branch at ' + A.meta.rev : ''}.`);
+    `Depth ${A.meta.depth} of 8 (${A.meta.hours} h asked). Speed ${A.meta.rate || '?'} fights a second on ${A.meta.workers} workers (${A.meta.cores} logical processors). Engine ${A.meta.fp}${A.meta.rev ? ', branch at ' + A.meta.rev : ''}.`);
   o('');
   o('How to read it: "gain" is points of win % against robots a level up (level 4: its own level), with and without the part on the same seeds; the range in brackets is 95%. ' +
     '"Over avg" is the gain minus what the part gives an average robot (the old epic rule). Everything listed as found held on two separate sets of fresh seeds (sorting and verify); the numbers shown are the verify fights only, so they are not inflated by the picking.');

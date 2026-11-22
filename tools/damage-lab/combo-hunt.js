@@ -2,7 +2,7 @@
 // with the new damage models etc, make a gigantic program to run on my pc to find combos that work really well").
 // Started by tools\combo-hunt.cmd (double-click). docs/robocus-combo-hunt.md says what it does and why.
 //
-//   node tools/damage-lab/combo-hunt.js [--hours=3] [--workers=N] [--out=combo-results] [--robots=A,B,..] [--depth=0-4]
+//   node tools/damage-lab/combo-hunt.js [--hours=3] [--workers=N] [--out=combo-results] [--robots=A,B,..] [--depth=0-8]
 //                                       [--screen=4] [--report]
 //
 // An adaptive, staged search with today's engine (wear on), the tuned lineup (33 robots), every part card and the rarity tiers as
@@ -105,6 +105,10 @@ const DEPTH = {
   2: { cap: 160, r2: 6, fv: 8, top: 5, rnd: 6, synV: 16, fvy: 8, P: 4, hr: 4, fw: 4, tiers: [2, 4], ft: 4 },
   3: { cap: 240, r2: 8, fv: 12, top: 6, rnd: 10, synV: 24, fvy: 10, P: 5, hr: 4, fw: 8, tiers: [1, 2, 4], ft: 6 },
   4: { cap: 320, r2: 10, fv: 16, top: 7, rnd: 16, synV: 32, fvy: 12, P: 6, hr: 5, fw: 12, tiers: [1, 2, 3, 4], ft: 8 },
+  5: { cap: 400, r2: 12, fv: 20, top: 8, rnd: 24, synV: 40, fvy: 16, P: 7, hr: 5, fw: 16, tiers: [1, 2, 3, 4], ft: 12 },
+  6: { cap: 500, r2: 16, fv: 24, top: 9, rnd: 32, synV: 48, fvy: 20, P: 8, hr: 5, fw: 24, tiers: [1, 2, 3, 4], ft: 16 },
+  7: { cap: 600, r2: 20, fv: 32, top: 10, rnd: 48, synV: 64, fvy: 24, P: 9, hr: 5, fw: 32, tiers: [1, 2, 3, 4], ft: 24 },
+  8: { cap: 700, r2: 24, fv: 48, top: 11, rnd: 64, synV: 80, fvy: 32, P: 10, hr: 5, fw: 48, tiers: [1, 2, 3, 4], ft: 32 },
 };
 const HALV = [2, 2, 4, 8, 16];   // fights a pair added in each halving round
 function estCost(c, nR, nCand) {   // rough fight count of stages 2-4 (for the depth choice and the time left)
@@ -227,9 +231,9 @@ async function plan() {
   const pool1 = Object.keys(s1).filter(id => scoreC(id) >= 0.15 && !forced.has(id)).sort((a, b) => scoreC(b) - scoreC(a) || (a < b ? -1 : 1));
   if (state.depth == null) {
     const r = state.rate || 10, left = state.hours * 3600 * r - R.size; let d = 1;
-    for (const x of [1, 2, 3, 4]) if (estCost(DEPTH[x], subj.length, pool1.length + forced.size) <= left) d = x;
+    for (const x of [1, 2, 3, 4, 5, 6, 7, 8]) if (estCost(DEPTH[x], subj.length, pool1.length + forced.size) <= 0.85 * left) d = x;   // 15% spare: the estimate is rough
     state.depth = d; saveState();
-    console.log(`\n  Speed here: ${r.toFixed(1)} fights a second. For ${state.hours} h the search goes to depth ${d} of 4 (about ${estCost(DEPTH[d], subj.length, pool1.length + forced.size)} more fights).`);
+    console.log(`\n  Speed here: ${r.toFixed(1)} fights a second. For ${state.hours} h the search goes to depth ${d} of 8 (about ${estCost(DEPTH[d], subj.length, pool1.length + forced.size)} more fights).`);
   }
   const C = DEPTH[state.depth]; A.meta.depth = state.depth; A.meta.cfg = C; A.meta.hours = state.hours;
   forecast = R.size + estCost(C, subj.length, pool1.length + forced.size);
