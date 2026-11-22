@@ -29,7 +29,7 @@ const path = require('path'), fs = require('fs');
   async function open(w, h) {
     const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => errs.push(w + 'x' + h + ': ' + e.message));
     await PLK.route(p, PL);
-    await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=13'); await p.waitForTimeout(800);
+    await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=13&bal=' + encodeURIComponent(JSON.stringify({ tradeFloor: false }))); await p.waitForTimeout(800);   // T55: the old Market flow (deal panel, offers in the note); the floor: trading-floor.js
     await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
     await p.click('#pAct2'); await p.waitForTimeout(1500); await p.mouse.move(5, 5);
     // a quiet table: empty hands (no schemes, no reaction windows), no Stash, 10 Cr each; Rust Rivets has 3 robots and 3 Cr

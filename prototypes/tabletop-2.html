@@ -623,6 +623,60 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   .prompt-bar::before { top: 6px; left: 10px; }
 }
 /* T47: a trade between other teams, a short banner over the pit (not over the note, never a question) */
+/* T55: the trading floor under the pit (Market, trade and bid) */
+#tradeFloor { position: fixed; z-index: 24; display: flex; flex-direction: column; gap: 5px; background: #EFE6D2; border: 2px solid var(--ink); border-radius: 6px; padding: 5px 8px 6px; font: 12px/1.3 var(--sans); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+#tradeFloor .tf-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#tradeFloor .tf-title { font: 400 15px var(--stencil); letter-spacing: .04em; white-space: nowrap; }
+#tradeFloor .tf-hint { flex: 1; min-width: 0; color: #6E6457; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tradeFloor .tf-body { flex: 1; display: flex; gap: 7px; min-height: 0; }
+#tradeFloor .tf-row { flex: 1; display: flex; gap: 7px; overflow-x: auto; overflow-y: hidden; min-width: 0; padding-bottom: 3px; align-items: stretch; }
+#tradeFloor .tf-empty { align-self: center; color: #6E6457; font-style: italic; padding-left: 4px; }
+#tradeFloor .tf-t { flex: 0 0 196px; display: flex; flex-direction: column; gap: 3px; min-height: 0; background: #FFFDF8; border: 2px solid var(--ink); border-top: 5px solid var(--c); border-radius: 5px; padding: 3px 7px 5px; }
+#tradeFloor .tf-t.fresh { animation: tfIn .9s ease-out; }
+@keyframes tfIn { 0% { box-shadow: 0 0 0 4px #E8C547; } 100% { box-shadow: 0 0 0 0 rgba(232,197,71,0); } }
+#tradeFloor .tf-t.other { flex-basis: 160px; background: #F6F2EA; border-color: #8B8073; font-size: 11px; }
+#tradeFloor .tf-t.done { flex-basis: 160px; background: #EDE7DA; border-style: dashed; border-top-style: solid; font-size: 11px; opacity: .9; }
+#tradeFloor .tf-who { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; white-space: nowrap; }
+#tradeFloor .tf-who > b { overflow: hidden; text-overflow: ellipsis; color: var(--c); }
+#tradeFloor .tf-t.out .tf-who > b { color: var(--ink); }
+#tradeFloor .tf-st { font-size: 10.5px; font-weight: 600; color: #6E6457; }
+#tradeFloor .tf-stamp { font: 700 10px var(--mono); color: var(--c); }
+#tradeFloor .tf-txt { flex: 1; min-height: 0; overflow-y: auto; line-height: 1.3; }
+#tradeFloor .tf-txt i { font-style: normal; color: #6E6457; }
+#tradeFloor .tf-bar { height: 4px; flex: 0 0 4px; background: #DDD3BF; border-radius: 2px; overflow: hidden; }
+#tradeFloor .tf-bar i { display: block; height: 100%; width: 100%; background: var(--c); transition: width .25s linear; }
+#tradeFloor .tf-t.low .tf-bar i { background: #B23A2B; }
+#tradeFloor .tf-t.low .tf-sec { color: #B23A2B; }
+#tradeFloor button { font: 700 12px var(--sans); min-height: 26px; padding: 2px 8px; border: 2px solid var(--ink); border-radius: 4px; background: #FFFDF8; color: var(--ink); cursor: pointer; }
+#tradeFloor button:hover:not(:disabled) { background: var(--ink); color: var(--hazard, #E8C547); }
+#tradeFloor button.yes { background: var(--ink); color: #fff; }
+#tradeFloor button.no { color: #8A2A16; }
+#tradeFloor button:disabled { opacity: .5; cursor: default; }
+#tradeFloor button.done { opacity: 1; background: #E3F0E6; border-color: #2F7D4A; color: #2F7D4A; }
+#tradeFloor .tf-btns { display: flex; gap: 4px; }
+#tradeFloor .tf-btns button { flex: 1; padding: 2px 4px; }
+#tradeFloor .tf-new { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; border: 2px dashed var(--ink); border-radius: 5px; padding: 5px 7px; background: #FFFDF8; }
+#tradeFloor .tf-new > span { font: 400 13px var(--stencil); letter-spacing: .03em; }
+#tradeFloor .tf-new > div { display: flex; flex-direction: column; gap: 4px; }
+#tradeFloor .tf-new button { border-left: 6px solid var(--c); text-align: left; }
+#tradeFloor.tf-low .tf-new > div { flex-direction: row; }
+#tradeFloor .tf-cbtn { display: flex; gap: 6px; }
+#tradeFloor .tf-flash { color: #b45309; font-weight: 700; }
+#tradeFloor .tf-comp { flex: 1; display: flex; gap: 8px; min-height: 0; }
+#tradeFloor .tf-swap { align-self: center; font: 700 20px var(--sans); }
+#tradeFloor .tf-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; background: #FFFDF8; border: 2px solid var(--ink); border-top: 5px solid var(--c); border-radius: 5px; padding: 4px 8px 6px; }
+#tradeFloor .tf-ch { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 700; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #6E6457; }
+#tradeFloor .tf-step { display: inline-flex; align-items: center; gap: 4px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+#tradeFloor .tf-step button { min-height: 22px; padding: 0 7px; }
+#tradeFloor .tf-step b { font: 700 13px var(--mono); min-width: 38px; text-align: center; }
+#tradeFloor .tf-step small { color: #6E6457; font-weight: 600; }
+#tradeFloor .tf-chips { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4px; }
+#tradeFloor .tf-chip { display: inline-flex; align-items: center; gap: 3px; min-height: 24px; padding: 0 7px; border: 2px solid var(--ink); border-radius: 4px; background: #fff; font-weight: 600; cursor: pointer; }
+#tradeFloor .tf-chip:hover { background: #F7E3DE; }
+#tradeFloor .tf-chips select { min-height: 26px; max-width: 100%; font: 600 12px var(--sans); border: 2px dashed var(--ink); border-radius: 4px; background: #FFFDF8; padding: 0 4px; cursor: pointer; }
+#tradeFloor .tf-none { color: #6E6457; font-style: italic; align-self: center; }
+/* the hand steps down to a strip while the trading floor is open (hover its tab to look at it) */
+@media (min-width: 700px) { .hand-stage.floor:not(.dragging-active) .hand-tray:not(:has(.hs-slot:hover)) { transform: translateY(186px) !important; } }
 #tradeBan { position: fixed; z-index: 40; top: 210px; transform: translateX(-50%); pointer-events: none; background: #FFF8E6; border: 2px solid #C9A54A;
   border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.18); padding: 8px 14px; font: 600 13.5px/1.35 system-ui, sans-serif; color: #3A3226;
   opacity: 0; transition: opacity .35s; text-align: center; }
@@ -810,6 +864,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
     wearMarks: true,              // T41 (Kev, 21 Nov: "keep bend until repair"): bends, cracks, saw cuts and warps stay on a robot until its zone is repaired (spec.wear.marks); false = they are gone after the fight
     wear: true,                   // T41 (Kev, 21 Nov: "bend as much as possible", "include all"): cracks, fragments, bends and saw grooves in every fight (engine ARC.cx; each fight carries it in F.bb.wear, so every screen and the bookie's workers agree); false = all four off
+    // T55 (Kev, 22 Nov: "some type of open auction panel so you can lock in trades with other people while keeping an overview"; layout
+    // A, "counter is ok, see deals as they happen"): the trading floor under the pit. Every open Market offer is a ticket there, answered
+    // in any order while you bid (Yes / Counter / No; your own: Take back). tradeFloor false = the old flow (deal panel, offers in the note).
+    // floorPair: open offers one team may have to one other team at a time (Kev did not say; 1 each way); floorMs: a ticket's time
+    // (0 = askDealMs); floorShowMs: how long a finished deal stays on the floor
+    tradeFloor: true, floorPair: 1, floorMs: 0, floorShowMs: 6000,
     flavor: true,                 // T39 (Kev, 21 Nov): themed names and drawings on 18 cards (FLAVOR); display only, false = the game's names
   };
   try { if (window.DamageLab && window.DamageLab.LIVE_K) BAL_DEFAULT.live = Object.assign({}, window.DamageLab.LIVE_K); } catch (e) {}
@@ -1357,7 +1417,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function recheckGather() {
     if (!G || !G.gather || !gatherThen) return false;
     if (!humanSeats().every(s => G.gather.done[s])) { updateHud(); return false; }
-    if (G.gather.step === 'lots' && G.phase === 'market' && dealsOpen()) closeMarketDeals();   // T47 (was T26: the last lock waited for an open deal): open deals are called off, the lots go out at once
+    if (G.gather.step === 'lots' && G.phase === 'market' && (dealsOpen() || floorOpen())) closeMarketDeals();   // T47 (was T26: the last lock waited for an open deal): open deals are called off, the lots go out at once
     const f = gatherThen; G.gather = null; gatherThen = null; f(); return true;
   }
   /* T16 (Kev, 16 Nov: "when people lock bids, people can still change their bids after that if there are other people not
@@ -2100,6 +2160,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function updateHud() {
     try { tradeBanShow(); } catch (e) { console.warn('trade banner', e); }
+    try { renderFloor(); } catch (e) { console.warn('trading floor', e); }   // T55
     // 15 Nov (overnight click test, a 1366 x 768 screen): a hand kept open lay over the third robot bay, so a player whose only
     // ready robot sat there could not send it. While you must click one of your own bays (send a robot, fit a part, repair),
     // a pinned hand steps down; it comes back by itself afterwards.
@@ -2380,13 +2441,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
          * The 🤝 buttons open a trade with that team; the 📦 Stash card (left) sells parts to the bank. A trade or a sale
          * unlocks you. Bids above your credits (after a trade) must come down before Lock works. */
         const spent = lotBidSum(HS), over = spent > t.credits, mine = !!(G.mDeals && G.mDeals[HS]);
-        const tradeBtns = G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Credits, 📦 Stash parts, robots, crew and Security Bots, both ways. Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '. A trade that goes through unlocks both teams\' bids.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('');
+        const fl = floorOn(), nIn = fl ? (G.offers || []).filter(o => o.to === HS).length : 0;   // T55: trades are on the trading floor under the pit
+        const flTxt = fl ? (nIn ? ' <b>' + nIn + ' offer' + (nIn > 1 ? 's wait' : ' waits') + ' for you on the trading floor ↓</b>' : ' Trades: on the trading floor under the pit.') : '';
+        const tradeBtns = fl ? '' : G.teams.filter(o => o.i !== HS).map(o => '<button class="act secondary" data-trade="' + o.i + '"' + helpAttr('🤝 Trade with ' + esc(o.name), 'Credits, 📦 Stash parts, robots, crew and Security Bots, both ways. Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '. A trade that goes through unlocks both teams\' bids.') + '>🤝 ' + esc(o.name.split(' ')[0]) + '</button>').join('');
         const dealTxt = mine && !popOpen() ? ' <i>Your trade waits for an answer.</i>' : '';
         if (iWait('lots')) {
-          pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + spent + ' Cr). ' + waitTxt('lots') + dealTxt + '<br><small>You can still change bids, trade or sell until everyone has locked. A change or a trade unlocks you; then lock again.</small></span>' + tradeBtns;
+          pb.innerHTML = '<span>📦 <b>Bids locked</b> (' + spent + ' Cr). ' + waitTxt('lots') + dealTxt + flTxt + '<br><small>You can still change bids, trade or sell until everyone has locked. A change or a trade unlocks you; then lock again.</small></span>' + tradeBtns;
         } else {
           pb.innerHTML = '<span>📦 <b>Market: trade and bid.</b> Bid on the lots in secret (' + spent + '/' + t.credits + ' Cr); trade and sell while you bid. Lock when done.' +
-            (over ? ' <b style="color:#b91c1c">Your bids are more than your credits: lower them first.</b>' : '') + dealTxt + analystNote() + '</span>' + tradeBtns +   // next round's lots: on the pit's NEXT ROUND strip (the 🔭 line did not fit at 1280x720)
+            (over ? ' <b style="color:#b91c1c">Your bids are more than your credits: lower them first.</b>' : '') + dealTxt + flTxt + analystNote() + '</span>' + tradeBtns +   // next round's lots: on the pit's NEXT ROUND strip (the 🔭 line did not fit at 1280x720)
             '<button class="act" id="pAct1"' + (over ? ' disabled' : '') + '>Lock Bids →</button>';
           $('#pAct1').onclick = () => act('lockBids');
         }
@@ -3681,7 +3744,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22c Forklift and Trebuchet pictures show their forks, bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
+  const BUILD = 'tabletop 2.0.1 2026-11-22d trading floor: every Market offer is a ticket under the pit (Yes / Counter / No, Take back, new offers without a pop-up), deals of other teams as they happen';   // was: 2026-11-22c
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5157,7 +5220,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // T26 (Kev, 17 Nov: "lets do the open auction during the betting, and when everybody locks bids, the open auction is done"):
     // one step. The lots are biddable from the start and the open market is open at the same time (trades, bank sales, offers);
     // it ends when every person has locked their bids. Then the lots, tie rebids, installs, and hosting as its own bid (6 Nov).
-    G.marketStage = 'lots'; G.hostResolved = false; G.mDeals = {};
+    G.marketStage = 'lots'; G.hostResolved = false; G.mDeals = {}; G.offers = []; G.floorDone = []; FQ.clear();   // T55: an empty trading floor
     notify('📦 <b>Market:</b> bid on the ' + NLOTS + ' lots in secret; trade and sell while you bid. When everyone has locked, the lots go out.', '#111');
     updateHud();
     openMarketAI();
@@ -5236,6 +5299,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     return Promise.race([Promise.resolve().then(() => run(reg)), closed]).then(v => { done(); return v; }, e => { done(); throw e; });
   }
   function closeMarketDeals() {
+    floorShutAll();   // T55: the trading floor's open offers too
     for (const e of [...MKTD.values()]) e.shut();
     G.mDeals = {};
   }
@@ -5248,6 +5312,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * stays. The host keeps the last few in G.tradeBan (so every screen gets them); each screen shows the ones it has not shown. */
   function tradeDone(A, B, html, col) {
     notify(html, col);
+    if (floorOn()) { floorShow({ from: A.i, to: B.i, html: html.replace(/^🤝 /, ''), res: 'yes' }); return; }   // T55: on the trading floor (for everyone), not the banner
     const L = G.tradeBan = (G.tradeBan || []).slice(-5);
     L.push({ id: (L.length ? L[L.length - 1].id : 0) + 1, teams: [A.i, B.i], html: html.replace(/^🤝 /, '') });
   }
@@ -5310,6 +5375,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const price = partValue(id);
         if (!mktOpen()) break;
         if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
+        if (isHuman(buyer.i) && floorOn()) { floorAI(A, buyer, 'part', { cr: 0, items: [id] }, { cr: price, items: [] }, { info: partForTxt(buyer, id) }); continue; }   // T55: a ticket on the trading floor
         let yes;
         if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you ' + lotRef(id) + ' for <b>' + price + ' Cr</b>: you give ' + price + ' Cr, you get the part.<br>' + partForTxt(buyer, id), buyer.i, reg)); } finally { dealIn(buyer, -1); } }
         else yes = partWorth(buyer, id) >= price && buyer.credits >= price + 2;
@@ -5332,6 +5398,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const price = Math.max(2, Math.min(robotWorth(buyer, spare), robotWorth(A, spare) + 1));
       if (buyer.credits < price) continue;
       if (isHuman(buyer.i) && lotsLocked(buyer.i)) continue;   // T26: no new offers to a person who has locked
+      if (isHuman(buyer.i) && floorOn()) { floorAI(A, buyer, 'robot', { cr: 0, items: ['R:' + spare.id] }, { cr: price, items: [] }, { rn: spare.name, info: starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + '. You have only one robot now.' }); continue; }   // T55
       let yes;
       if (isHuman(buyer.i)) { dealIn(buyer, 1); try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' offers you its robot <b>' + esc(spare.name) + '</b> (' + starsOf(spare.level) + ', ' + esc(wepLabel(spare.name)) + ', damage: ' + esc(zoneTxt(spare)) + (valOn() ? ', worth <span class="valword"' + valAttr(spare) + '>' + robotValue(spare) + ' Cr</span>' : '') + ') for <b>' + price + ' Cr</b>. You give ' + price + ' Cr, you get ' + esc(spare.name) + ' in your garage. You have only one robot now.', buyer.i, reg)); } finally { dealIn(buyer, -1); } }
       else yes = robotWorth(buyer, spare) >= price && buyer.credits >= price + 1 && rnd() < 0.7;
@@ -5350,6 +5417,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       if (!A || rnd() < 0.4) continue;
       if (!isHuman(P.i) || lotsLocked(P.i) || !stashOf(P).includes(id)) continue;   // T26: no new offers to a person who has locked (or left, or sold it meanwhile)
       const price = Math.min(A.credits - 1, partValue(id) + (partWorth(A, id) > partValue(id) + 1 ? 1 : 0));
+      if (floorOn()) { floorAI(A, P, 'buy', { cr: price, items: [] }, { cr: 0, items: [id] }, { info: 'For them: ' + partForTxt(A, id) }); continue; }   // T55
       let yes; dealIn(P, 1);
       try { yes = await mktDeal(reg => dealAsk('🤝 Offer from ' + esc(A.name), nm(A) + ' wants to buy ' + lotRef(id) + ' from your Stash for <b>' + price + ' Cr</b>: you give the part, you get ' + price + ' Cr.<br>For them: ' + partForTxt(A, id), P.i, reg)); } finally { dealIn(P, -1); }
       if (yes === MKT_SHUT) { mktShutSay(A, P); continue; }
@@ -5389,6 +5457,344 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else notify('✋ ' + nm(O) + ' turns down ' + nm(Me) + '\'s trade (' + bundleText(d.give) + ' for ' + bundleText(d.want) + ').', O.col);
     } finally { Me.trading = false; dealIn(Me, -1); updateHud(); }
   }
+  /* ---------- T55: the trading floor (Kev, 22 Nov: "sometimes there is a lot of open auction action going on and this all comes into
+   * the yellow box and you need to refuse or accept offers one by one, can we make some type of open auction panel so you can lock in
+   * trades with other people while keeping an overview"; layout A, "counter is ok, see deals as they happen") ----------
+   * Every open Market offer lives on the host in G.offers (every screen draws the same floor from it, a late or reconnecting screen
+   * gets it with the snapshot): { id, from, to, kind, give, want, ms, left }. give = what `from` puts on the table, want = what it
+   * asks of `to`. kind: 'trade' (a person's offer, or a counter), 'part' / 'robot' (an AI team sells to a person), 'buy' (an AI team
+   * buys a part from a person's Stash). Nothing moves until `to` says yes; then it moves at once on the host, atomically (both sides
+   * must still hold all of it and keep a robot, else "fell through", nothing moved), and both teams' bids unlock (tradeUnlock).
+   * Offers are answered in any order and never hold the step: the last lock calls every open offer off (closeMarketDeals: MKT_SHUT).
+   * One open offer per pair of teams in each direction (BAL.floorPair). An unanswered offer times out as No (BAL.floorMs, default
+   * askDealMs) on the host's question clock (it stops while the game is paused). AI teams answer a person's offer or counter at once
+   * by the old rule (bundleWorth: they come out ahead by 1+); their own offers to a person are tickets now (same offers, same order;
+   * one waits while that pair already has one open). Finished deals stay on the floor a few seconds (G.floorDone, BAL.floorShowMs);
+   * every completed Market trade goes there, AI-AI too (the T47 banner is folded into it while the floor is on).
+   * BAL.tradeFloor false: the old flow (deal panel, offers as questions in the note, the banner). */
+  const floorOn = () => BAL.tradeFloor !== false;
+  const FLOOR_MS = () => BAL.floorMs > 0 ? BAL.floorMs : ASK_DEAL_MS();
+  const FLOOR_SHOW = () => BAL.floorShowMs > 0 ? BAL.floorShowMs : 6000;
+  const floorPairMax = () => Math.max(1, (BAL.floorPair | 0) || 1);
+  const floorOpen = () => !!(G && G.offers && G.offers.length);
+  const offerById = id => ((G && G.offers) || []).find(o => o.id === id) || null;
+  const pairOpen = (a, b) => ((G && G.offers) || []).filter(o => o.from === a && o.to === b).length;
+  const FQ = new Map(), OCLK = new Map(), RCLK = new Map();   // host only: AI offers waiting for their pair's slot; offer clocks; result clocks
+  const rCount = B => ((B && B.items) || []).filter(x => x.startsWith('R:')).length;
+  // the keep-a-robot and three-bays rules for a whole offer (A gives `give`, B gives `want`); null = fine
+  function robotsWhy(A, give, B, want) {
+    const g = rCount(give), w = rCount(want);
+    if (g && A.robots.length - g < 1) return esc(A.name) + ' must keep a robot.';
+    if (w && B.robots.length - w < 1) return esc(B.name) + ' must keep a robot.';
+    if (A.robots.length - g + w > 3) return esc(A.name) + ' has no free bay (3 robots max).';
+    if (B.robots.length - w + g > 3) return esc(B.name) + ' has no free bay (3 robots max).';
+    return null;
+  }
+  // an offer as it came over the network: whole numbers, known tokens, each robot or crew member once
+  function cleanBundle(B) {
+    const o = { cr: Math.max(0, Math.floor(+((B && B.cr) || 0)) || 0), sec: Math.max(0, Math.floor(+((B && B.sec) || 0)) || 0), items: [] };
+    for (const id of ((B && Array.isArray(B.items)) ? B.items : []).slice(0, 24)) {
+      if (typeof id !== 'string') continue;
+      if ((id.startsWith('R:') || id.startsWith('C:')) && o.items.includes(id)) continue;
+      if (!(id.startsWith('R:') || id.startsWith('C:') || LOTS[id])) continue;
+      o.items.push(id);
+    }
+    return o;
+  }
+  const crOf = B => (B && B.cr) || 0, itemOf = B => ((B && B.items) || [])[0];
+  // what the person reads: "You get … / You give …" seen from seat s (an offer to s, or one s made)
+  const offerGet = (o, s) => o.to === s ? o.give : o.want, offerGive = (o, s) => o.to === s ? o.want : o.give;
+  function offerLine(o) {   // one line for the log of the person it is made to
+    const A = G.teams[o.from];
+    if (o.kind === 'part') return '🤝 ' + nm(A) + ' offers you ' + lotRef(itemOf(o.give)) + ' for <b>' + crOf(o.want) + ' Cr</b> (on the trading floor).';
+    if (o.kind === 'robot') return '🤝 ' + nm(A) + ' offers you its robot <b>' + esc(o.rn || 'a robot') + '</b> for <b>' + crOf(o.want) + ' Cr</b> (on the trading floor).';
+    if (o.kind === 'buy') return '🤝 ' + nm(A) + ' wants to buy ' + lotRef(itemOf(o.want)) + ' from your Stash for <b>' + crOf(o.give) + ' Cr</b> (on the trading floor).';
+    return '🤝 ' + nm(A) + (o.ctr ? ' answers with a counter-offer' : ' offers you a trade') + ': you get <b>' + bundleText(o.give) + '</b>, you give <b>' + bundleText(o.want) + '</b> (on the trading floor).';
+  }
+  function floorPost(o) {
+    G.offerSeq = (G.offerSeq || 0) + 1; o.id = G.offerSeq; o.ms = FLOOR_MS(); o.left = o.ms;
+    (G.offers || (G.offers = [])).push(o);
+    OCLK.set(o.id, { ms: o.ms, t0: clkNow() });
+    if (isHuman(o.to)) say(o.to, offerLine(o), G.teams[o.from].col);
+    tlog('offer', { id: o.id, from: o.from, to: o.to, kind: o.kind, give: o.give, want: o.want, ctr: o.ctr });
+    updateHud();
+    return o;
+  }
+  // a finished offer's result stays on the floor a few seconds (every screen sees the same list)
+  function floorShow(x) {
+    if (!floorOn() || !G) return;
+    G.floorSeq = (G.floorSeq || 0) + 1; x.id = 'd' + G.floorSeq; x.left = FLOOR_SHOW();
+    const L = G.floorDone = (G.floorDone || []).slice(-7); L.push(x); RCLK.set(x.id, clkNow());
+  }
+  function floorDrop(o) { const L = G.offers || [], k = L.indexOf(o); if (k < 0) return false; L.splice(k, 1); OCLK.delete(o.id); return true; }
+  function floorEnd(o, res) {   // the offer leaves the floor: no (refused), late (timed out), back (taken back), countered, fell, shut
+    if (!floorDrop(o)) return false;
+    if (res === 'no' || res === 'late' || res === 'back' || res === 'fell') floorShow({ from: o.from, to: o.to, kind: o.kind, give: o.give, want: o.want, rn: o.rn, res });
+    tlog('offer_end', { id: o.id, res });
+    floorNext(o.from, o.to);
+    updateHud();
+    return true;
+  }
+  // AI offers to a person: a ticket now, or when that pair's open offer is gone (same offers, same order as the old questions)
+  function floorAI(A, T, kind, give, want, extra) {
+    const o = Object.assign({ from: A.i, to: T.i, kind, give, want, ai: 1 }, extra || {});
+    if (pairOpen(A.i, T.i) < floorPairMax()) floorPost(o);
+    else { const k = A.i + '>' + T.i; if (!FQ.has(k)) FQ.set(k, []); FQ.get(k).push(o); }
+  }
+  function floorNext(a, b) {
+    const q = FQ.get(a + '>' + b);
+    while (q && q.length && pairOpen(a, b) < floorPairMax()) {
+      const o = q.shift(), A = G.teams[o.from], T = G.teams[o.to];
+      if (!mktOpen() || !isHuman(T.i) || lotsLocked(T.i)) continue;   // T26: no new offers to a person who has locked
+      if (!bundleHeld(A, o.give) || (o.kind === 'buy' && !bundleHeld(T, o.want))) continue;   // sold or moved meanwhile
+      floorPost(o);
+    }
+  }
+  // yes: everything moves at once on the host, or nothing
+  function floorSettle(o) {
+    const A = G.teams[o.from], B = G.teams[o.to], ai = o.kind !== 'trade';
+    if (!mktOpen()) { floorDrop(o); for (const T of [A, B]) if (isHuman(T.i)) say(T.i, closedTxt, '#b45309'); updateHud(); return false; }
+    const rw = robotsWhy(A, o.give, B, o.want);
+    if (!(bundleHeld(A, o.give) && bundleHeld(B, o.want)) || rw) {
+      const msg = ai ? '⌛ That deal fell through: ' + (rw || 'something moved meanwhile.') + ' Nothing changed hands.'
+        : '✋ The trade between ' + nm(A) + ' and ' + nm(B) + ' fell through: ' + (rw || 'something on the table changed hands meanwhile.') + ' Nothing moved.';
+      for (const T of [A, B]) if (isHuman(T.i)) say(T.i, msg, '#b45309');
+      floorEnd(o, 'fell'); return false;
+    }
+    floorDrop(o);
+    transfer(A, B, o.give, 'trade'); transfer(B, A, o.want, 'trade');
+    if (o.kind === 'part') tradeDone(B, A, '🤝 ' + nm(B) + ' buys ' + lotRef(itemOf(o.give)) + ' from ' + nm(A) + ' for ' + crOf(o.want) + ' Cr.', B.col);
+    else if (o.kind === 'robot') tradeDone(A, B, '🤝 ' + nm(A) + ' sells its robot <b>' + esc(o.rn || 'a robot') + '</b> to ' + nm(B) + ' for ' + crOf(o.want) + ' Cr.', A.col);
+    else if (o.kind === 'buy') tradeDone(B, A, '🤝 ' + nm(B) + ' sells ' + lotRef(itemOf(o.want)) + ' to ' + nm(A) + ' for ' + crOf(o.give) + ' Cr.', B.col);
+    else tradeDone(A, B, '🤝 Trade: ' + nm(A) + ' gives ' + bundleText(o.give) + ', ' + nm(B) + ' gives ' + bundleText(o.want) + '.', A.col);
+    tradeUnlock(A, 'Your trade with ' + esc(B.name)); tradeUnlock(B, 'Your trade with ' + esc(A.name));
+    tlog('offer_end', { id: o.id, res: 'yes' });
+    floorNext(o.from, o.to);
+    updateHud();
+    return true;
+  }
+  function floorAnswer(o, yes) {
+    if (yes) return floorSettle(o);
+    const A = G.teams[o.from], B = G.teams[o.to];
+    if (o.kind === 'trade') notify('✋ ' + nm(B) + ' turns down ' + nm(A) + '\'s trade (' + bundleText(o.give) + ' for ' + bundleText(o.want) + ').', B.col);
+    floorEnd(o, 'no');
+    return false;
+  }
+  // the Market closed (the last lock, or the step ended any other way): every open offer is called off, nothing moves
+  function floorShutAll() {
+    FQ.clear();
+    if (!G || !G.offers || !G.offers.length) return;
+    for (const o of G.offers.slice()) { floorDrop(o); mktShutSay(G.teams[o.from], G.teams[o.to]); tlog('offer_end', { id: o.id, res: 'shut' }); }
+    G.offers = [];
+  }
+  function floorTick() {   // host / one screen: the counts every screen shows, time-outs, results that have been shown long enough
+    if (!G || isClient() || !G.teams) return;
+    let ch = false;
+    if (G.offers && G.offers.length && !mktOpen()) { floorShutAll(); ch = true; }
+    for (const o of (G.offers || []).slice()) {
+      let c = OCLK.get(o.id); if (!c) { c = { ms: o.ms, t0: clkNow() - (o.ms - (o.left > 0 ? o.left : o.ms)) }; OCLK.set(o.id, c); }
+      const l = c.ms - (clkNow() - c.t0);
+      if (l <= 0) {
+        const A = G.teams[o.from], B = G.teams[o.to];
+        if (isHuman(B.i)) say(B.i, '⌛ <b>No answer in time</b> (offer from ' + esc(A.name) + '): the offer was refused, nothing changes.', '#6E6457');
+        if (isHuman(A.i)) say(A.i, '⌛ ' + nm(B) + ' did not answer your offer in time: no deal, nothing moved.', '#6E6457');
+        floorEnd(o, 'late'); ch = true; continue;
+      }
+      const left = Math.ceil(l / 1000) * 1000; if (o.left !== left) { o.left = left; ch = true; }
+    }
+    if (G.floorDone && G.floorDone.length) {
+      const keep = [];
+      for (const x of G.floorDone) { let t0 = RCLK.get(x.id); if (t0 == null) { t0 = clkNow() - (FLOOR_SHOW() - (x.left || 0)); RCLK.set(x.id, t0); }
+        const l = FLOOR_SHOW() - (clkNow() - t0); if (l > 0) { const lf = Math.ceil(l / 1000) * 1000; if (x.left !== lf) { x.left = lf; ch = true; } keep.push(x); } else { RCLK.delete(x.id); ch = true; } }
+      if (keep.length !== G.floorDone.length) G.floorDone = keep;
+    }
+    if (ch) updateHud();
+  }
+  setInterval(() => { try { floorTick(); } catch (e) { console.warn('trading floor', e); } }, 250);
+  ACT.offerSend = (S, to, give, want, replaces) => {
+    const Me = G.teams[S], O = G.teams[to];
+    if (!floorOn() || !Me || !O || to === S) return;
+    if (!mktOpen()) { say(S, closedTxt, '#b45309'); return; }
+    give = cleanBundle(give); want = cleanBundle(want);
+    if (bundleEmpty(give) && bundleEmpty(want)) { say(S, '✋ Put something on the table first: nothing was sent.', '#b45309'); return; }
+    if (!bundleHeld(Me, give)) { say(S, '✋ You no longer hold everything you put on the table: nothing was sent.', '#b45309'); return; }
+    if (!bundleHeld(O, want)) { say(S, '✋ ' + nm(O) + ' no longer holds everything you asked for: nothing was sent.', '#b45309'); return; }
+    const rw = robotsWhy(Me, give, O, want); if (rw) { say(S, '✋ ' + rw + ' Nothing was sent.', '#b45309'); return; }
+    const old = replaces != null ? offerById(replaces) : null;
+    if (replaces != null && !(old && old.from === to && old.to === S)) { say(S, '⌛ The offer you answered is not open any more: your counter-offer was not sent.', '#b45309'); return; }
+    const mine = (G.offers || []).filter(o => o.from === S && o.to === to);
+    if (!old && mine.length >= floorPairMax()) { say(S, '✋ You already have an open offer to ' + nm(O) + ': take it back first.', '#b45309'); return; }
+    if (old) {   // a counter replaces the offer it answers (and an older offer of yours to that team): the other side gets the new one
+      floorEnd(old, 'countered'); for (const m of mine) floorEnd(m, 'countered');
+      if (isHuman(to)) say(to, '↪ ' + nm(Me) + ' answered your offer with a counter-offer (your offer is withdrawn).', Me.col);
+    }
+    const o = floorPost({ from: S, to, kind: 'trade', give, want, ctr: old ? old.id : undefined });
+    if (!isHuman(to)) floorAnswer(o, bundleWorth(O, give) - bundleWorth(O, want) >= 1);   // an AI team answers at once: yes when it comes out ahead (as before)
+  };
+  ACT.offerAnswer = (S, id, yes) => {
+    const o = offerById(id);
+    if (!o || o.to !== S) { say(S, '⌛ That offer is not open any more. Nothing changed hands.', '#6E6457'); return; }
+    if (!mktOpen()) { say(S, closedTxt, '#b45309'); return; }
+    floorAnswer(o, !!yes);
+  };
+  ACT.offerBack = (S, id) => {
+    const o = offerById(id);
+    if (!o || o.from !== S) return;
+    if (floorEnd(o, 'back') && isHuman(o.to)) say(o.to, '↩ ' + nm(G.teams[S]) + ' took back its offer.', G.teams[S].col);
+  };
+  /* ---------- T55: the trading floor on screen (layout A: under the pit, in the middle column) ----------
+   * HTML over the canvas, placed from the pit's box each frame (placeFloor), drawn from G.offers / G.floorDone (renderFloor, from
+   * updateHud). While it shows, the hand steps down to a strip (hover its tab to look at it). The composer (a new offer or a counter)
+   * opens inside the panel; it may grow up into the pit as far as the bottom of the lots, never over them. Local only: FL. */
+  const FL = { comp: null, sent: new Map(), clk: new Map(), key: null, place: null, lotsY: null, flash: '' };
+  const floorVisible = () => floorOn() && !!G && !!G.teams && !G.over && HS >= 0 && mktOpen();
+  const flShort = t => esc(t.name.split(' ')[0]);
+  const flBlank = () => ({ cr: 0, sec: 0, items: [] });
+  const flCopy = B => ({ cr: (B && B.cr) || 0, sec: (B && B.sec) || 0, items: ((B && B.items) || []).slice() });
+  function flEl() {
+    let el = document.getElementById('tradeFloor');
+    if (!el) { el = document.createElement('div'); el.id = 'tradeFloor'; el.hidden = true; document.body.appendChild(el); }
+    return el;
+  }
+  function placeFloor(L) {
+    const el = document.getElementById('tradeFloor'), hs = document.getElementById('handStage');
+    const on = floorVisible() && !narrowScreen();
+    if (hs) hs.classList.toggle('floor', on && !!(me().hand || []).length);
+    if (!el) return;
+    if (!on) { if (!el.hidden) el.hidden = true; return; }
+    const a = worldToScreen(L.pit.x, L.pit.y + L.pit.h), b = worldToScreen(L.pit.x + L.pit.w, L.pit.y + L.pit.h);
+    const peek = (me().hand || []).length ? 44 : 0, bottom = window.innerHeight - 4 - peek;
+    let top = Math.round(a.y + 6);
+    if (FL.comp) {   // the composer needs about 205 px: it may grow up into the pit, down to the bottom of the lots
+      const lots = FL.lotsY != null ? worldToScreen(0, FL.lotsY).y + 4 : top;
+      top = Math.round(Math.max(Math.min(top, bottom - 205), Math.min(top, lots)));
+    }
+    const key = [Math.round(a.x), top, Math.round(b.x - a.x), bottom].join(':');
+    if (FL.place !== key) { FL.place = key; Object.assign(el.style, { left: Math.round(a.x) + 'px', top: top + 'px', width: Math.round(b.x - a.x) + 'px', height: Math.max(90, bottom - top) + 'px' }); el.classList.toggle('tf-low', bottom - top < 150); }
+    if (el.hidden) el.hidden = false;
+  }
+  const FL_RES = { yes: ['✓ DEAL', '#2F7D4A'], no: ['✗ REFUSED', '#B23A2B'], late: ['⌛ NO ANSWER', '#6E6457'], back: ['↩ TAKEN BACK', '#6E6457'], fell: ['✋ FELL THROUGH', '#B45309'] };
+  function flTicket(o) {
+    const A = G.teams[o.from], B = G.teams[o.to], inc = o.to === HS, out = o.from === HS;
+    const col = inc ? A.col : out ? B.col : A.col, pend = FL.sent.has(o.id);
+    const what = o.kind === 'buy' ? 'wants to buy' : o.ctr ? 'counter-offer' : 'offers you';
+    const head = inc ? '<b>' + esc(A.name) + '</b><span class="tf-st">' + what + ' · <span class="tf-sec"></span></span>'
+      : out ? '<b>To ' + esc(B.name) + '</b><span class="tf-st">your offer · waiting · <span class="tf-sec"></span></span>'
+      : '<b>' + flShort(A) + ' → ' + flShort(B) + '</b><span class="tf-st"><span class="tf-sec"></span></span>';
+    const txt = inc || out ? '<i>You get</i> <b>' + bundleText(offerGet(o, HS)) + '</b><br><i>You give</i> <b>' + bundleText(offerGive(o, HS)) + '</b>'
+      : '<i>' + flShort(A) + ' gives</i> ' + bundleText(o.give) + '<br><i>' + flShort(B) + ' gives</i> ' + bundleText(o.want);
+    const tip = o.info ? helpAttr(inc ? '🤝 Offer from ' + esc(A.name) : '🤝 ' + esc(A.name) + ' → ' + esc(B.name), o.info) : '';
+    const btns = inc ? (pend ? '<button disabled class="done">✓ sent</button>' : '<button class="yes" data-fy="' + o.id + '">Yes</button><button data-fc="' + o.id + '">Counter</button><button class="no" data-fn="' + o.id + '">No</button>')
+      : out ? (pend ? '<button disabled class="done">✓ sent</button>' : '<button data-fb="' + o.id + '">Take back</button>') : '';
+    return '<div class="tf-t' + (inc ? ' in' : out ? ' out' : ' other') + (FL.clk.has(o.id) ? '' : ' fresh') + '" data-oid="' + o.id + '" style="--c:' + col + '">' +
+      '<div class="tf-who">' + head + '</div><div class="tf-txt"' + tip + '>' + txt + '</div><div class="tf-bar"><i></i></div>' + (btns ? '<div class="tf-btns">' + btns + '</div>' : '') + '</div>';
+  }
+  function flDone(x) {
+    const A = G.teams[x.from], B = G.teams[x.to], R = FL_RES[x.res] || ['', '#6E6457'];
+    const txt = x.html ? x.html : '<i>' + flShort(A) + ' offered</i> ' + bundleText(x.give) + '<br><i>for</i> ' + bundleText(x.want);
+    return '<div class="tf-t done" style="--c:' + R[1] + '"><div class="tf-who"><b>' + flShort(A) + ' ⇄ ' + flShort(B) + '</b><span class="tf-stamp">' + R[0] + '</span></div><div class="tf-txt">' + txt + '</div></div>';
+  }
+  // the composer: a new offer (or a counter) to one team, everything dealPanel can put on the table
+  function flPool(T) { return stashOf(T).concat(T.robots.map(r => 'R:' + r.id), T.crew.map(c => 'C:' + c.uid)); }
+  function flChipLbl(id) {
+    if (id.startsWith('R:')) { const x = robotById(id.slice(2)); return '🤖 ' + esc(x ? x.r.name : '?') + (x && valOn() ? ' <b class="dl-val">◉ ' + robotValue(x.r) + '</b>' : ''); }
+    if (id.startsWith('C:')) { const x = crewByUid(id.slice(2)); return x ? CREW[x.c.kind].icon + ' ' + esc(CREW[x.c.kind].name) : '?'; }
+    return LOTS[id] ? LOTS[id].icon + ' ' + esc(LOTS[id].name) : esc(id);
+  }
+  const flOptLbl = id => flChipLbl(id).replace(/<[^>]*>/g, '') + (id.startsWith('R:') ? ' (robot)' : id.startsWith('C:') ? ' (crew)' : ' (Stash)');
+  function flComposer() {
+    const c = FL.comp, Me = me(), O = G.teams[c.to];
+    const col = (side, T) => {
+      const st = c[side], left = flPool(T).slice(); st.items.forEach(id => { const k = left.indexOf(id); if (k >= 0) left.splice(k, 1); });
+      return '<div class="tf-col" style="--c:' + T.col + '"><div class="tf-ch"><span>' + (side === 'give' ? 'You give' : 'You get from ' + flShort(O)) + '</span>' +
+        '<span class="tf-step"><button data-xc="' + side + '" data-d="-1">−</button><b>' + st.cr + ' Cr</b><button data-xc="' + side + '" data-d="1">+</button><small>of ' + T.credits + '</small></span>' +
+        ((T.secBots || 0) || st.sec ? '<span class="tf-step"><button data-xs="' + side + '" data-d="-1">−</button><b>🤖 ' + st.sec + '</b><button data-xs="' + side + '" data-d="1">+</button><small>Security Bots of ' + (T.secBots || 0) + '</small></span>' : '') + '</div>' +
+        '<div class="tf-chips">' + st.items.map((id, k) => '<span class="tf-chip" data-xr="' + side + '" data-k="' + k + '" title="Click to take it off the table">' + flChipLbl(id) + ' ✕</span>').join('') +
+        (left.length ? '<select data-xa="' + side + '"><option value="">+ Add…</option>' + left.map(id => '<option value="' + esc(id) + '">' + esc(flOptLbl(id)) + '</option>').join('') + '</select>' : '<span class="tf-none">' + (side === 'give' ? 'nothing else to add' : flShort(O) + ' has nothing else to add') + '</span>') + '</div></div>';
+    };
+    const ctr = c.replaces != null && offerById(c.replaces);
+    const full = !ctr && pairOpen(HS, c.to) >= floorPairMax();
+    const note = c.msg ? c.msg : full ? 'You already have an open offer to ' + flShort(O) + ': take it back first.' : isHuman(O.i) ? esc(O.name) + ' answers Yes, Counter or No (' + Math.round(FLOOR_MS() / 1000) + ' s). A yes unlocks both teams\' bids.' : esc(O.name) + ' is an AI team: it says yes when it comes out ahead. A yes unlocks your bids.';
+    return '<div class="tf-head"><span class="tf-title">TRADING FLOOR · ' + (ctr ? 'COUNTER-OFFER TO ' : 'NEW OFFER TO ') + esc(O.name.toUpperCase()) + '</span><span class="tf-hint">' + note + '</span>' +
+      '<span class="tf-cbtn"><button data-xk="cancel">Cancel</button><button class="yes" data-xk="send"' + (full ? ' disabled' : '') + '>' + (ctr ? 'Send counter' : 'Send offer') + '</button></span></div>' +
+      (FL.flash ? '<div class="tf-flash">⚠️ ' + FL.flash + '</div>' : '') +
+      '<div class="tf-comp">' + col('give', Me) + '<div class="tf-swap" aria-hidden="true">⇄</div>' + col('want', O) + '</div>';
+  }
+  function flOpen(to, give, want, replaces) { FL.comp = { to, give: flCopy(give), want: flCopy(want), replaces: replaces == null ? null : replaces, msg: '' }; FL.flash = ''; FL.key = null; FL.place = null; renderFloor(); }
+  function flAdd(side, id) {   // the panel's rules: a team keeps a robot, 3 bays
+    const c = FL.comp, Me = me(), O = G.teams[c.to], other = side === 'give' ? 'want' : 'give';
+    if (id.startsWith('R:')) {
+      const fromT = side === 'give' ? Me : O, toT = side === 'give' ? O : Me;
+      if (fromT.robots.length - rCount(c[side]) <= 1) { FL.flash = 'A team always keeps at least one robot.'; return; }
+      if (toT.robots.length - rCount(c[other]) + rCount(c[side]) >= 3) { FL.flash = esc(toT.name) + ' has no free bay (3 robots max).'; return; }
+    }
+    c[side].items.push(id); FL.flash = '';
+  }
+  function renderFloor() {
+    const el = flEl();
+    if (!floorVisible()) { if (!el.hidden) el.hidden = true; FL.comp = null; FL.key = null; const hs = document.getElementById('handStage'); if (hs) hs.classList.remove('floor'); return; }
+    const offers = G.offers || [], done = G.floorDone || [];
+    for (const [id, t] of [...FL.sent]) if (!offerById(id) || performance.now() - t > 4000) FL.sent.delete(id);
+    if (FL.comp) {   // the composer follows what happens meanwhile
+      const c = FL.comp, O = G.teams[c.to];
+      if (c.replaces != null && !offerById(c.replaces)) { c.replaces = null; c.msg = 'The offer you were answering has closed: this is a new offer now.'; }
+      for (const side of ['give', 'want']) { const T = side === 'give' ? me() : O, pool = flPool(T); c[side].items = c[side].items.filter(id => { const k = pool.indexOf(id); if (k < 0) return false; pool.splice(k, 1); return true; }); c[side].cr = Math.min(c[side].cr, T.credits); c[side].sec = Math.min(c[side].sec, T.secBots || 0); }
+    }
+    const key = JSON.stringify([HS, offers.map(o => [o.id, o.from, o.to, o.give, o.want]), done.map(x => x.id), FL.comp, FL.flash, [...FL.sent.keys()],
+      FL.comp ? G.teams.map(t => [t.credits, t.secBots || 0, stashOf(t), t.robots.map(r => r.id + ':' + (valOn() ? robotValue(r) : 0)), t.crew.map(c => c.uid)]) : G.teams.map(t => t.robots.length)]);
+    if (FL.key !== key) {
+      FL.key = key;
+      if (FL.comp) el.innerHTML = flComposer();
+      else {
+        const inc = offers.filter(o => o.to === HS), out = offers.filter(o => o.from === HS), oth = offers.filter(o => o.to !== HS && o.from !== HS);
+        const tiles = inc.map(flTicket).concat(out.map(flTicket), oth.map(flTicket), done.slice().reverse().map(flDone)).join('');
+        const nw = '<div class="tf-new"><span>New offer to</span><div>' + G.teams.filter(o => o.i !== HS).map(o => { const busy = pairOpen(HS, o.i) >= floorPairMax();
+          return '<button data-fo="' + o.i + '" style="--c:' + o.col + '"' + (busy ? ' disabled' + helpAttr('🤝 ' + esc(o.name), 'Your offer to ' + esc(o.name) + ' is still open: take it back first.') : helpAttr('🤝 New offer to ' + esc(o.name), 'Credits, 📦 Stash parts, robots, crew and Security Bots, both ways. Its Stash: ' + (stashOf(o).length ? stashOf(o).map(lotRef).join(', ') : 'empty') + '. Credits: ' + o.credits + '. ' + (isHuman(o.i) ? 'A person: answers Yes, Counter or No.' : 'An AI team: says yes at once when it comes out ahead.'))) + '>' + flShort(o) + '</button>'; }).join('') + '</div></div>';
+        const n = inc.length;
+        el.innerHTML = '<div class="tf-head"><span class="tf-title">TRADING FLOOR</span><span class="tf-hint">' + (n ? n + ' offer' + (n > 1 ? 's' : '') + ' for you: answer in any order, your bids stay as they are. ' : '') + 'Open offers and finished deals of every team. A deal that goes through unlocks both teams\' bids.</span></div>' +
+          '<div class="tf-body"><div class="tf-row">' + (tiles || '<span class="tf-empty">No open offers. Make one: pick a team on the right.</span>') + '</div>' + nw + '</div>';
+      }
+      flWire(el);
+    }
+    flClocks();
+  }
+  function flWire(el) {
+    const send = (id, name, ...args) => { FL.sent.set(id, performance.now()); FL.key = null; renderFloor(); afterPaint().then(() => act(name, ...args)); };   // ✓ at once, the action after that frame (T15)
+    el.querySelectorAll('[data-fy]').forEach(b => { b.onclick = () => send(+b.dataset.fy, 'offerAnswer', +b.dataset.fy, true); });
+    el.querySelectorAll('[data-fn]').forEach(b => { b.onclick = () => send(+b.dataset.fn, 'offerAnswer', +b.dataset.fn, false); });
+    el.querySelectorAll('[data-fb]').forEach(b => { b.onclick = () => send(+b.dataset.fb, 'offerBack', +b.dataset.fb); });
+    el.querySelectorAll('[data-fc]').forEach(b => { b.onclick = () => { const o = offerById(+b.dataset.fc); if (o) flOpen(o.from, offerGive(o, HS), offerGet(o, HS), o.id); }; });
+    el.querySelectorAll('[data-fo]').forEach(b => { b.onclick = () => flOpen(+b.dataset.fo, flBlank(), flBlank(), null); });
+    const c = FL.comp; if (!c) return;
+    const T = side => side === 'give' ? me() : G.teams[c.to];
+    el.querySelectorAll('[data-xc]').forEach(b => { b.onclick = () => { const s = b.dataset.xc; c[s].cr = Math.max(0, Math.min(T(s).credits, c[s].cr + +b.dataset.d)); FL.flash = ''; renderFloor(); }; });
+    el.querySelectorAll('[data-xs]').forEach(b => { b.onclick = () => { const s = b.dataset.xs; c[s].sec = Math.max(0, Math.min(T(s).secBots || 0, c[s].sec + +b.dataset.d)); FL.flash = ''; renderFloor(); }; });
+    el.querySelectorAll('[data-xr]').forEach(b => { b.onclick = () => { c[b.dataset.xr].items.splice(+b.dataset.k, 1); FL.flash = ''; renderFloor(); }; });
+    el.querySelectorAll('[data-xa]').forEach(s => { s.onchange = () => { if (s.value) flAdd(s.dataset.xa, s.value); renderFloor(); }; });
+    el.querySelector('[data-xk="cancel"]').onclick = () => { FL.comp = null; FL.flash = ''; FL.place = null; renderFloor(); };
+    el.querySelector('[data-xk="send"]').onclick = () => {
+      if (bundleEmpty(c.give) && bundleEmpty(c.want)) { FL.flash = 'Put something on the table first.'; renderFloor(); return; }
+      const x = FL.comp; FL.comp = null; FL.flash = ''; FL.place = null; renderFloor();
+      act('offerSend', x.to, x.give, x.want, x.replaces);
+    };
+  }
+  // the timer bars and seconds: from the host's `left` (every screen the same), running on this screen's question clock between snapshots
+  function flClocks() {
+    const el = document.getElementById('tradeFloor'); if (!el || el.hidden) return;
+    const live = new Set();
+    for (const o of (G && G.offers) || []) {
+      live.add(o.id);
+      let c = FL.clk.get(o.id); const want = o.left > 0 ? o.left : o.ms;
+      if (!c || Math.abs((c.ms - (clkNow() - c.t0)) - want) > 1200) { c = { ms: o.ms, t0: clkNow() - (o.ms - want) }; FL.clk.set(o.id, c); }
+      const l = Math.max(0, c.ms - (clkNow() - c.t0)), t = el.querySelector('.tf-t[data-oid="' + o.id + '"]'); if (!t) continue;
+      const bar = t.querySelector('.tf-bar i'), sec = t.querySelector('.tf-sec');
+      if (bar) bar.style.width = (100 * l / c.ms).toFixed(1) + '%';
+      if (sec) sec.textContent = (clkPaused() ? '⏸ ' : '') + Math.ceil(l / 1000) + ' s';
+      t.classList.toggle('low', l <= QT_LOW);
+    }
+    for (const id of [...FL.clk.keys()]) if (!live.has(id)) FL.clk.delete(id);
+  }
+  setInterval(() => { try { if (G && floorOn()) flClocks(); } catch (e) {} }, 250);
   ACT.bid = (S, k, kind) => {
     if (!(k >= 0 && k <= HOST_K)) return;
     const open = G.phase === 'market' && !G.marketAuction && !G.marketResolved && (k === HOST_K ? G.marketStage === 'host' : G.marketStage === 'lots');
@@ -6185,7 +6591,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function resolveMarket() {
     if (G.marketAuction) return;   // already resolving (rebid or Botched Install window)
     for (const s of humanSeats()) fitBids(s);   // T26: a bid total may never be more than the credits (Lock refuses it; this is the safety net)
-    G.mDeals = {};
+    G.mDeals = {}; floorShutAll();   // T55: nothing stays open on the trading floor
     const all = G.teams.map(t => isHuman(t.i) ? (PS(t.i).bids || zeroBids()).slice() : aiBids(t));
     G.teams.forEach((t, i) => { if (t.shill) { all[i] = all[i].map(v => Math.max(0, v - t.shill)); if (all[i].some(v => v)) notify('🏢 Shill Bidder: ' + esc(t.name) + '\'s bids count ' + t.shill + ' lower.', t.col); } });
     all.forEach(b => { b[HOST_K] = 0; });
@@ -8269,6 +8675,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (qOpen()) return;   // T20: a question in the note (the bot answers it there)
     if (document.getElementById('dealModal') && !document.getElementById('dealModal').hidden) return;
     const t = me(), P = PS(), R = Math.random;
+    if (floorOn() && mktOpen() && botFloor(t, R)) return;   // T55: answers its tickets on the trading floor (also after locking), sometimes makes an offer
     const busy = seatBusyWith(HS);
     if (!busy) return;
     if (busy === 'spbids') { const bk0 = 'spbids:' + G.gid; if (botDid !== bk0) { botDid = bk0; const ks = SPONSOR_KEYS.filter(() => R() < 0.3); for (const k of ks) { const n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('spBid', k, 'plus'); } } return act('spLock'); }
@@ -8307,6 +8714,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (busy === 'hostbid' && botDid !== bk) { botDid = bk; if (R() < 0.5) act('bid', HOST_K, 'plus'); return; }
     if (busy === 'bets' && botDid !== bk && G.fight) { botDid = bk; if (R() < 0.5) act('bet', Math.floor(R() * G.fight.nSides)); if (G.fight.auction && R() < 0.6) { const k = R() < 0.5 ? 0 : 1, n = 1 + Math.floor(R() * 3); for (let j = 0; j < n; j++) act('cardBid', k, 1); } return; }
     const step = gatherStep(); if (step) act(step[1]);
+  }
+  // T55: the test bot on the trading floor: each offer to it gets one answer after a short look (yes or no at random, as it answers
+  // questions; it does not lock while one waits, as a question in the note held it), and once per round it may offer 1-2 Cr for a Stash part of another team (online: a person-to-person ticket)
+  const botFl = { seen: new Map(), round: null };
+  function botFloor(t, R) {
+    for (const o of G.offers || []) {
+      if (o.to !== HS || FL.sent.has(o.id)) continue;
+      const k = G.gid + ':' + o.id, at = botFl.seen.get(k); if (at == null) { botFl.seen.set(k, performance.now() + 60 + R() * 240); return !lotsLocked(HS); }
+      if (performance.now() < at) return !lotsLocked(HS);   // as with a question in the note: it does not lock while an offer to it waits
+      FL.sent.set(o.id, performance.now()); act('offerAnswer', o.id, R() < 0.5); return true;
+    }
+    const rk = G.gid + ':' + G.round;
+    if (botFl.round !== rk && !lotsLocked(HS)) { botFl.round = rk;
+      if (R() < 0.3) { const o = G.teams.filter(x => x.i !== HS && stashOf(x).length && pairOpen(HS, x.i) < floorPairMax())[0];
+        if (o && t.credits >= 2) { act('offerSend', o.i, { cr: 1 + (R() < 0.5 ? 1 : 0), sec: 0, items: [] }, { cr: 0, sec: 0, items: [stashOf(o)[0]] }, null); return true; } } }
+    return false;
   }
   if (BOT) setInterval(() => { try { botStep(); } catch (e) { console.warn('bot', e); } }, 120);
 
@@ -8366,7 +8789,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   };
 
   /* test hook for automated play-throughs (read-only use) */
-  window.ROBOCUS_DEBUG = { get BOOKIE() { return BOOKIE; }, bookieCfg: () => bookieCfg(), robotWant, tiKeep, tiVal, aiLotValue, mkRobot, setAIP: (i, o) => { AIP[i] = Object.assign({}, AI_PARAMS, o); }, get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
+  window.ROBOCUS_DEBUG = { get BOOKIE() { return BOOKIE; }, floorOn, offerById, floorAI, floorTick, renderFloor, robotsWhy, get FL() { return FL; }, get BALref() { return BAL; }, bundleWorth, bundleHeld,  bookieCfg: () => bookieCfg(), robotWant, tiKeep, tiVal, aiLotValue, mkRobot, setAIP: (i, o) => { AIP[i] = Object.assign({}, AI_PARAMS, o); }, get GD() { return GD; }, garagePlan, garageToks, garageSig, garageApply, aiGarage, scrapParts, gdPlan: () => gdPlan(), gdMove, gdSync, isBroken, stashOf, robotLeaves, resolveFate, upkeepIdle, garageWork, robotValue, robotValueOf, get ailog() { return AILOG; }, inviteGift, invitePairs, hostGuard: t => hostGuard(t), buyBot, buyPrice, fireItems, aiFirePicks, precheck, aiSellsBuyout, get RX() { return RX; }, curTie: () => curTie(), spOpen: () => spOpen(), askBox, addSeconds, treacherousStep, noteFits, openOddsOverview, closeOddsOverview, get OVR() { return OVR; }, simOdds, buildFight, winSide, bookieTags, isStock, oddsDoubt, pairP, counterOf, makeAwards, renderAwards, ARENA_INFO, get ARENA_FIT() { return ARENA_FIT; }, aiPickArena, playScheme, defend, overrideStep, aiBacking, playLive, liveValid, aiLiveMoment, LIVE_ENG, openMatchups, worldToScreen, get hitRegions() { return hitRegions; }, buildFight, winSide, get PT() { return PT; }, ptSaveNow, ptError, get G() { return G; }, CARDS, humanPlay, cashIn, LOTS, fieldOdds, oddsShift, updateHud, afterChoose, humanBookiesFriend, humanHedgeBet, toStash, humanTrade, robotLot, mktOpen, fitBids, lotBidSum, applyMarketWins, aiTradeInPick, openMarketAI, drawStarter, resolveMarket, applyLot, settleDebts, get helpRegions() { return helpRegions; }, get hitRegions() { return hitRegions; }, get FX() { return FX; }, TEAMS, spec2, fightSpec, str2, zonesOf, repairActs, canFit, runAct, act, CARDS_ALL: () => CARDS, DECK: () => DECK_TEMPLATE, worldToScreen, cam, autopilot: on => { HS = on ? -1 : viewerSeat; G.fast = !!on; },
     ai: o => { AIP_SET = true; if (o.versions) AIV = o.versions.slice(); if (o.params) AIP = o.params.map(x => Object.assign({}, AI_PARAMS, x && x.style ? AI_STYLES[x.style] : null, x || {})); return { AIV, AIP }; }, get HS() { return HS; }, tune: o => { if (o.win) WIN_FAME = BAL.winFame = o.win; if (o.host != null) HOST_FAME = BAL.fame.host = o.host; if (o.catchup) CATCHUP = o.catchup; return { WIN_FAME, HOST_FAME, CATCHUP }; },
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
@@ -9015,6 +9438,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     placeOverlays(L);
     placeHand(L);
+    placeFloor(L);   // T55
     if (dragCard) drawTargetingArrow(ctx, dragCard.startX, dragCard.startY, dragCard.curX, dragCard.curY, dragCard.card.phase === 'fight' ? '#B07A10' : '#2F6DB5');
     ctx.restore();
   }
@@ -10060,6 +10484,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       help(L.ax - 230, y + h + 8, 460, 22, 'Credits left', 'What every team has left after the lots: that is all they can bid for hosting.');
     } else pitHead('3 · MARKET · TRADE AND BID', 'SEALED BIDS · TRADE AND SELL WHILE YOU BID');
 
+    if (G.marketStage !== 'host') FL.lotsY = stageToWorld(0, y + h).y;   // T55: the composer may grow up to here, never over the lots
     if (G.marketStage !== 'host' && G.nextMarket && G.nextRound === G.round + 1) drawConveyor(ctx, L.ax, y + h + 22, Math.min(L.aw - 16, Math.max(totalW, 620)));
     items.forEach((it, j) => {
       const k = it.k, x = startX + j * (w + gap), bid = (PS().bids || [])[k] || 0, K = lotKind(it.id), yb = y + 18;
@@ -10956,6 +11381,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, the trading floor', '22 Nov 2026', [
+      'Market: every open trade offer is now a ticket on the TRADING FLOOR, a panel under the pit, instead of a question in the yellow box. Answer them in any order with Yes, Counter or No while you keep bidding; the yellow box is back to your bids and Lock.',
+      'Counter opens the offer in the panel with both sides already filled in (swapped to your side); change it and send it. It replaces the offer you answered. AI teams answer at once: yes when they come out ahead.',
+      'New offer to [team] opens the same panel: credits, Stash parts, robots, crew and Security Bots on both sides, then Send offer. Your open offers say "waiting" and have Take back. One open offer per team you trade with, each way.',
+      'You see the open offers between other teams too (smaller tickets), and every finished deal (and a refused or timed-out one) stays on the floor for a few seconds. Sealed bids are never shown.',
+      'Same rules as before: nothing moves until the other side says yes, then all of it at once or nothing ("fell through"); a team keeps a robot; a deal unlocks both teams\' bids; an unanswered offer is a no after 45 s; the last lock calls every open offer off. The hand steps down to a strip while the floor is open: hover it to see your cards.' ]],
     ['2.0.1, forks in the picture', '22 Nov 2026', [
       'Forklift and Trebuchet now show their forks in their pictures (robot cards, garage bays, Market lots, tickets). The fight always drew them; the still picture skipped them.' ]],
     ['2.0.1, bookie and trade-ins', '22 Nov 2026', [

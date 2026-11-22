@@ -33,7 +33,7 @@ async function solo(b, w, h) {
   const tag = w + 'x' + h, PLK = require('../planck-local.js'), PL = PLK.find();
   const p = await b.newPage({ viewport: { width: w, height: h } }); p.on('pageerror', e => { if (errs.length < 3 || /resolve|lock|Market/i.test(e.stack)) console.log('PAGEERR', e.stack.slice(0, 600)); errs.push(tag + ': ' + e.message); });
   await PLK.route(p, PL);
-  await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11'); await p.waitForTimeout(800);
+  await p.goto(require('url').pathToFileURL(path.resolve('prototypes/tabletop-2.html')).href + '?seed=11&bal=' + encodeURIComponent(JSON.stringify({ tradeFloor: false }))); await p.waitForTimeout(800);   // T55: the old flow (the banner); the floor: trading-floor.js
   await p.evaluate(() => { window.__noSlide = true; window.__noAuto = true; });
   await p.click('#pAct2'); await p.waitForTimeout(1500); await p.mouse.move(5, 5);
   const shot = n => shots ? p.screenshot({ path: path.join(shots, tag + '-' + n) }) : null;
@@ -172,7 +172,7 @@ async function solo(b, w, h) {
 async function online() {
   const { setup, press } = require('./lib.js');
   const seed = 7;
-  const { b, host, errs: e2, seatOf, all } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); });
+  const { b, host, errs: e2, seatOf, all } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); }, { bal: { tradeFloor: false } });   // T55: the old Market flow (trading-floor.js tests the floor)
   const H = seatOf[0], A = seatOf[1], B = seatOf[2], C = seatOf[3];
   const actOn = (p, name, ...args) => p.evaluate(([n, a]) => window.ROBOCUS_DEBUG.act(n, ...a), [name, args]);
   const hs = () => host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { phase: G.phase, open: D.mktOpen(), cr: G.teams.map(t => t.credits), locked: G.gather && G.gather.key === 'lots:' + G.round ? Object.keys(G.gather.done).map(Number) : [], deals: Object.assign({}, G.mDeals || {}), mktd: D.mktdOpen() }; });
