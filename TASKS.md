@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K57 (T59, 22 Nov). Who steps in:** (a) 30 s to choose, then the team with the most fame: fine? (b) a person who
+  steps in after another team DECLINES is not asked which robot (the strongest goes); after a "no robot" drop-out they
+  are asked: ask in both cases? (c) the host's own team can be a candidate when it is not in the fight: keep?
 - **K56 (T59, 22 Nov).** A team that is invited but has no ready robot "declines" and loses 1 fame. A host can invite
   such a team on purpose to cost it a fame. Keep, or no fame loss when it simply has no robot (or grey its invite
   button out)?
@@ -159,11 +162,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T59. The host picks who steps in** (Kev, 22 Nov, screenshot of round 5: "wonder how it was decided that rust rivets
-  steps in here"; offered "The host picks the replacement from the teams with a ready robot": "yes"). Today the first
-  team in seat order with a ready robot steps in (`invite()` and the decline path in `prototypes/tabletop-2.html`).
-  Worker on branch `claude/host-picks-stand-in`, started 22 Nov. Not answered by Kev: whether a team with no robot at
-  all still loses a fame for "declining" (kept as it is; K56).
 - **T60. Scavenger against Kev's stacked Gyro: odd chance or not, and why the power map said nothing** (Kev, 22 Nov, his
   second game of the day, log /home/claude/t-play/kev-log-22nov-b.json: "for some reason, scavenger really slapped my
   stacked gyro although it was not an indication in the power map??"; "can you check with these specific matchup if it
@@ -181,6 +179,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T59. The host picks who steps in** (22 Nov; Kev: "wonder how it was decided that rust rivets steps in here", "yes"
+  to the host picking). When an invited team drops out (no ready robot, or it declines) and 2+ teams could step in,
+  the host chooses: a person gets "Who steps in?" in the note and in the pit (team, strongest ready robot, band; 30 s,
+  then the most fame); an AI host uses its invitation valuation. One candidate: no question. `BAL.hostPicksStandIn`.
+  Fame rule unchanged (K56). Commit `83c8b8e`; BUILD `2026-11-22f`, files stamp `28762982`. 40 AI games: stand-ins
+  0.05 a game, no balance effect. Orchestrator's checks on the merge: game-sim 2/2, stand-in.js, decline.js OK, mp-test
+  OK (3x desyncs 0), fingerprint 470f6923. Questions: K57.
 - **T56. Three remarks from Kev's playtest of 22 Nov** (22 Nov; log /home/claude/t-play/kev-log-22nov.json, 12 rounds,
   Moss won 12-10-9-7). (1) The bookie says what its odds rest on ("odds from 158 test fights", "stopped early: clear
   favourite", "odds from the formula"): Bets pit and note, band help, fight card, odds panel; `F.bk`, shared with
