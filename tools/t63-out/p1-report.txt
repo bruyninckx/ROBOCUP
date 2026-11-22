@@ -1,0 +1,37 @@
+== full: 200 fights, Gyro wins 38.5%, fight length median 80.5 s
+  booster: shot down in 0/200 fights (median at null s; by ), alive 100% of fight time; fights with any hit 18, damage steps 21 (with Scavenger's scoop within 0.45 m: 19)
+  jammer: shot down in 0/200 fights (median at null s; by ), alive 100% of fight time; fights with any hit 19, damage steps 22 (with Scavenger's scoop within 0.45 m: 17); within 1.7 m of Scavenger 93.2% of fight time
+  Scavenger jammed 87% of fight time; loaded (cannon works, ammo in hopper) 86.2%, hopper empty 13.8%; jammed while loaded 86.4% of loaded time
+  Scavenger shots per fight 9.6 (per minute 8.8), junk hits 9.4, junk damage 297.4, sucked up 9.8; time between shots median 2.23 s (under 1.0 s: 6.7%, 1.0-1.5 s: 33%); first shot median 0.48 s
+  Gyro shell motor lost in 182/200 (median 8.5 s), shell off in 123; spinning shell works until median 12.8 s = 33.4% of the fight; shell actually spinning (>12 rad/s) 25.2% of fight time
+  Booster docked 56.7% of fight time, docked AND shell spinning 12%; nitro kicks per fight 8.2; Gyro speed docked 0.73 m/s vs not 1.05
+  Gyro damage dealt 416.2 per fight (with booster docked 128.3, while its shell spins 121.2); by cause {"shell":291,"slam":71,"landing":13,"ceiling":34,"ram":7,"wrench":0}
+  Scavenger cannon lost 0/200, vacuum lost 0/200; Gyro takes 572.3, Scavenger takes 511
+== jamfix: 190 fights, Gyro wins 88.4%, fight length median 120 s
+  booster: shot down in 0/190 fights (median at null s; by ), alive 100% of fight time; fights with any hit 29, damage steps 33 (with Scavenger's scoop within 0.45 m: 25)
+  jammer: shot down in 0/190 fights (median at null s; by ), alive 100% of fight time; fights with any hit 19, damage steps 30 (with Scavenger's scoop within 0.45 m: 28); within 1.7 m of Scavenger 98.6% of fight time
+  Scavenger jammed 97% of fight time; loaded (cannon works, ammo in hopper) 93.3%, hopper empty 6.7%; jammed while loaded 97% of loaded time
+  Scavenger shots per fight 7.5 (per minute 4.2), junk hits 7.4, junk damage 228.4, sucked up 8.7; time between shots median 10.12 s (under 1.0 s: 0.5%, 1.0-1.5 s: 2.2%); first shot median 0.48 s
+  Gyro shell motor lost in 72/190 (median 52.4 s), shell off in 18; spinning shell works until median 98.7 s = 81.5% of the fight; shell actually spinning (>12 rad/s) 61.2% of fight time
+  Booster docked 57.9% of fight time, docked AND shell spinning 31.1%; nitro kicks per fight 12.2; Gyro speed docked 0.8699999999999999 m/s vs not 1.33
+  Gyro damage dealt 719.9 per fight (with booster docked 202.8, while its shell spins 467.7); by cause {"shell":509,"slam":145,"ram":4,"ceiling":39,"landing":22,"wrench":1}
+  Scavenger cannon lost 0/190, vacuum lost 0/190; Gyro takes 214.9, Scavenger takes 790.2
+== nojammer: 200 fights, Gyro wins 44.5%, fight length median 86.9 s
+  booster: shot down in 0/200 fights (median at null s; by ), alive 100% of fight time; fights with any hit 23, damage steps 28 (with Scavenger's scoop within 0.45 m: 26)
+  Scavenger jammed 0% of fight time; loaded (cannon works, ammo in hopper) 81%, hopper empty 19%; jammed while loaded 0% of loaded time
+  Scavenger shots per fight 10.6 (per minute 9.8), junk hits 10.4, junk damage 329.8, sucked up 10.4; time between shots median 1.49 s (under 1.0 s: 41.5%, 1.0-1.5 s: 8.7%); first shot median 0.48 s
+  Gyro shell motor lost in 184/200 (median 9.6 s), shell off in 126; spinning shell works until median 14.6 s = 34.8% of the fight; shell actually spinning (>12 rad/s) 25.3% of fight time
+  Booster docked 58.1% of fight time, docked AND shell spinning 13.1%; nitro kicks per fight 8.4; Gyro speed docked 0.77 m/s vs not 1.05
+  Gyro damage dealt 454.5 per fight (with booster docked 145.7, while its shell spins 143.7); by cause {"shell":313,"ram":8,"ceiling":40,"slam":80,"landing":14,"wrench":0}
+  Scavenger cannon lost 0/200, vacuum lost 0/200; Gyro takes 540.4, Scavenger takes 557.6
+== nobooster: 200 fights, Gyro wins 35.5%, fight length median 95.5 s
+  jammer: shot down in 0/200 fights (median at null s; by ), alive 100% of fight time; fights with any hit 19, damage steps 22 (with Scavenger's scoop within 0.45 m: 19); within 1.7 m of Scavenger 93.9% of fight time
+  Scavenger jammed 88.3% of fight time; loaded (cannon works, ammo in hopper) 88.1%, hopper empty 11.9%; jammed while loaded 88.3% of loaded time
+  Scavenger shots per fight 9.8 (per minute 7.8), junk hits 9.6, junk damage 299.5, sucked up 10; time between shots median 2.42 s (under 1.0 s: 4.9%, 1.0-1.5 s: 32.6%); first shot median 0.53 s
+  Gyro shell motor lost in 187/200 (median 12.3 s), shell off in 129; spinning shell works until median 17.1 s = 31.9% of the fight; shell actually spinning (>12 rad/s) 25.7% of fight time
+  Booster docked 0% of fight time, docked AND shell spinning 0%; nitro kicks per fight 0.6; Gyro speed docked 0 m/s vs not 0.74
+  Gyro damage dealt 390.4 per fight (with booster docked 0, while its shell spins 130.4); by cause {"shell":276,"landing":15,"slam":62,"ceiling":33,"ram":4}
+  Scavenger cannon lost 0/200, vacuum lost 0/200; Gyro takes 552, Scavenger takes 482.8
+== paired full vs nojammer (200 seeds): win gain of the part -6 points ± 9.2; Scavenger shots 9.6 vs 10.6 per fight, per minute 8.8 vs 9.8; shell motor dies at median 8.5 vs 9.6 s (paired difference median 0.20000000000000018 s, mean -1.7 s, 169 pairs); first shot at 1.3
+== paired full vs nobooster (200 seeds): win gain of the part 3 points ± 9.1; Scavenger shots 9.6 vs 9.8 per fight, per minute 8.8 vs 7.8; shell motor dies at median 8.5 vs 12.3 s (paired difference median -0.20000000000000018 s, mean -1.5 s, 170 pairs); first shot at 1.3
+== paired full vs jamfix (190 seeds): win gain of the part -50 points ± 8; Scavenger shots 9.6 vs 7.5 per fight, per minute 8.9 vs 4.2; shell motor dies at median 8.5 vs 52.4 s (paired difference median -34.800000000000004 s, mean -35 s, 70 pairs); first shot at 1.3
