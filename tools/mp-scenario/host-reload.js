@@ -1,4 +1,4 @@
-// T64 (22 Nov 2026, playtest-ready): the host reloads its page in the middle of an online game. The game runs in the host's
+// T64 (22 Nov 2026, playtest-ready): the host closes (or reloads) its page in the middle of an online game. The game runs in the host's
 // page, so a reload ends it for everyone; since T64:
 //   1. the browser asks first ("Leave site?": a beforeunload dialog) while an online game with joined players runs;
 //   2. after the reload the host lobby shows "↩ Resume the last game (round N)" (the round-start save kept in this browser);
@@ -18,7 +18,7 @@ const path = require('path'), fs = require('fs');
   const until = async (p, f, ms = 8000, arg) => { for (let t = 0; t < ms; t += 250) { try { if (await p.evaluate(f, arg)) return true; } catch (e) {} await new Promise(r => setTimeout(r, 250)); } return false; };
   const shot = async (p, n) => { if (shots) await p.screenshot({ path: path.join(shots, n) }); };
   // the host is a person (no bot): its seat 0 is played here by the AI autopilot of the test (debug act), the joined tabs are bots
-  const host = await open('&host=1&name=Kev&seed=' + seed, 'host');
+  let host = await open('&host=1&name=Kev&seed=' + seed, 'host');
   const c1 = await open('&name=Ann&bot=1', 'Ann'), c2 = await open('&name=Bob&bot=1', 'Bob');
   await until(host, () => !!document.querySelector('#nlStart:not([disabled])') && document.querySelectorAll('.nl-seat').length === 4 && /2 player/.test(document.body.innerText), 20000);
   await host.evaluate(() => document.getElementById('nlStart').click());
@@ -41,24 +41,40 @@ const path = require('path'), fs = require('fs');
   let asked = '';
   host.on('dialog', d => { asked = d.type(); d.accept(); });
   await host.mouse.click(5, 300);   // Chrome asks "Leave site?" only on a page the person has clicked (a real click, not a script's)
-  await host.reload({ waitUntil: 'load' }).catch(() => {});
-  await host.waitForTimeout(1500);
-  say('reload dialog: ' + (asked || 'none'));
-  want(asked === 'beforeunload', 'the host reload did not ask first (Leave site?)');
+  // the host closes its tab (or the browser crashes), waits, and opens the game again. Over the internet a joined screen notices
+  // the host is gone when no message has come for 10 s (net.js), then tries again every 3 s; the local test room behaves the same
+  // only if the host is away that long (a reload in under 10 s would leave the joined screens on the old game: the local room has
+  // no "link closed" event). So: close, 12 s, open again.
+  const hostUrl = host.url();
+  await host.close({ runBeforeUnload: true }); await new Promise(r => setTimeout(r, 1500));
+  say('closing the host tab asked: ' + (asked || 'nothing'));
+  await until(c1, () => { const el = document.getElementById('netPause'); return !!(el && /Lost the host/.test(el.textContent)); }, 16000);
+  const lost0 = await c1.evaluate(() => { const el = document.getElementById('netPause'); return el ? el.textContent.replace(/\s+/g, ' ') : ''; });
+  say('Ann sees while the host is away: ' + (lost0 || 'NOTHING'));
+  want(/Lost the host/.test(lost0), 'the joined screen does not say it lost the host');
+  await shot(c1, 't64-host-gone-joined.png');
+  host = await ctx.newPage(); host.on('pageerror', e => errs.push('host2: ' + e.message)); await host.goto(hostUrl); await host.waitForTimeout(1500);
+  say('dialog: ' + (asked || 'none'));
+  want(asked === 'beforeunload', 'closing the host tab did not ask first (Leave site?)');
   // what the joined screens show while the host is gone
   await c1.waitForTimeout(3000);
-  const lost = await c1.evaluate(() => { const el = document.getElementById('netPause') || document.getElementById('netLobby'); return el ? el.innerText.replace(/\s+/g, ' ').slice(0, 200) : document.body.innerText.slice(0, 120); });
-  say('Ann sees: ' + lost);
-  await shot(c1, 't64-host-reload-joined.png');
+  const lost = await c1.evaluate(() => { const el = document.getElementById('netPause'); return el ? el.innerText.replace(/\s+/g, ' ').slice(0, 200) : '(no box)'; });
+  say('Ann sees with the host back in its lobby: ' + lost);
+  await shot(c1, 't64-host-back-joined.png');
   // 2. the host lobby shows Resume
   const res = await until(host, () => !!document.getElementById('nlResume'), 10000);
   const rtxt = res ? await host.evaluate(() => document.getElementById('nlResume').textContent) : '';
   say('host lobby: ' + (rtxt || 'NO RESUME BUTTON'));
   want(res && new RegExp('round ' + before.round).test(rtxt), 'no "Resume the last game (round ' + before.round + ')" in the host lobby');
   await shot(host, 't64-host-reload-lobby.png');
+  const players = () => host.evaluate(() => JSON.stringify((window.ROBOCUS_HOST && window.ROBOCUS_HOST.players || []).map(p => [p.name, p.seat, p.connected, p.ready, !!p.gone])));
+  say('host players before Resume: ' + await players());
   if (res) {
     await host.evaluate(() => document.getElementById('nlResume').click());
+    for (let k = 0; k < 4; k++) { await host.waitForTimeout(1500); say('host players after Resume +' + (1.5 * (k + 1)) + ' s: ' + await players()); }
     await until(host, () => /Loaded: round/.test(document.body.innerText), 5000);
+    // the friends press I'm ready again (the test bots only do it once per page)
+    for (const c of [c1, c2]) { await until(c, () => !!document.getElementById('nlReady'), 15000); await c.evaluate(() => { const b = document.getElementById('nlReady'); if (b && !/Ready \(click to undo\)/.test(b.textContent)) b.click(); }); }
     const ready = await until(host, () => !!document.querySelector('#nlStart:not([disabled])') && /2 player/.test(document.body.innerText), 30000);
     const lob = await host.evaluate(() => [...document.querySelectorAll('.nl-seat')].map(x => x.innerText.replace(/\s+/g, ' ')).join(' | '));
     say('lobby after Resume: ' + lob);

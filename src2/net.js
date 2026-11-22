@@ -340,7 +340,7 @@
       $('#nlName').onchange = e => { H.me.name = e.target.value.trim().slice(0, 20) || 'Host'; lsSet('robocus.name', H.me.name); pushLobby(); };
       el.querySelectorAll('[data-seat]').forEach(b => { b.onclick = () => { const s = +b.dataset.seat; if (!seatTaken(s)) { H.me.seat = s; pushLobby(); } }; });
       $('#nlFame').onchange = e => { H.startFame = +e.target.value; pushLobby(); };
-      $('#nlLoad').onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t); if (!o.G || !o.G.teams) throw new Error('not a ROBOCUS save'); H.save = o; const hs = o.G.teams.findIndex(x => x.player && x.player.toLowerCase() === H.me.name.toLowerCase()); if (hs >= 0 && !H.players.some(p => p.seat === hs)) H.me.seat = hs; pushLobby(); } catch (err) { toast('⚠️ ' + esc(err.message), 3000); } }); };
+      $('#nlLoad').onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const o = JSON.parse(t); if (!o.G || !o.G.teams) throw new Error('not a ROBOCUS save'); H.save = o; const sv = n => o.G.teams.findIndex(x => x.player && x.player.toLowerCase() === String(n).toLowerCase()); const hs = sv(H.me.name); if (hs >= 0) { const q = pBySeat(hs); if (q) q.seat = H.me.seat; H.me.seat = hs; } H.players.forEach(p => { const s = sv(p.name); if (s < 0 || s === p.seat || s === H.me.seat) return; const q = pBySeat(s); if (q) q.seat = p.seat; p.seat = s; }); pushLobby(); } catch (err) { toast('⚠️ ' + esc(err.message), 3000); } }); };
       $('#nlStart').onclick = start;
       $('#nlCancel').onclick = () => { location.href = location.href.split('?')[0]; };
     }
@@ -369,7 +369,7 @@
       switch (d.t) {
         case 'hb': return;
         case 'full': drawJoin(d.why); return;
-        case 'welcome': C.seat = d.seat; C.joined = true; GAME().becomeClient(d.seat); if (d.started) { C.started = true; closeLobby(); } else drawClientLobby(); clientBadge(); return;
+        case 'welcome': C.seat = d.seat; C.joined = true; GAME().becomeClient(d.seat); if (d.started) { C.started = true; closeLobby(); } else { C.started = false; C.botReady = false; drawClientLobby(); } clientBadge(); return;   // T64: a host that came back opens a new lobby: show it (and its Ready button) again
         case 'lobby': C.lobby = d.st; C.seat = d.you; if (!C.started) drawClientLobby(); return;
         case 'start': C.started = true; closeLobby(); clientBadge(); return;
         case 'snap': if (!C.started) { C.started = true; closeLobby(); } GAME().applySnap(Object.assign({ g: d.g }, d.meta)); drawClientPause(d.meta.paused); return;
