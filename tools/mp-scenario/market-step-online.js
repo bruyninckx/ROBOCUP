@@ -14,7 +14,7 @@ const path = require('path'), fs = require('fs');
 const { setup, press } = require('./lib.js');
 (async () => {
   const seed = +(process.argv[2] || 7), shots = process.argv[3]; if (shots) fs.mkdirSync(shots, { recursive: true });
-  const { b, host, errs, seatOf, all } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); });
+  const { b, host, errs, seatOf, all } = await setup(seed, () => { const G = window.ROBOCUS_GAME && window.ROBOCUS_GAME.G; return !!(G && G.phase === 'intrigue' && G.round >= 1 && G.intrigueTurn >= 0 && !G.ivBusy); }, { bal: { tradeFloor: false } });   // T55: the old Market flow (trading-floor.js tests the floor)
   const H = seatOf[0], A = seatOf[1], B = seatOf[2], C = seatOf[3], bad = [];
   const shot = (p, n) => shots ? p.screenshot({ path: path.join(shots, n) }) : null;
   const noteShot = (p, n) => shots ? p.locator('#promptBar').screenshot({ path: path.join(shots, n) }) : null;

@@ -68,7 +68,7 @@ const path = require('path'), fs = require('fs');
     await pitPlus(p, 0);
     // 1. two offers at once: Rust's robot (openMarketAI) and Moss's part (a part it sells to you)
     const partM = tb.fits[0];
-    await p.evaluate(part => { const D = window.ROBOCUS_DEBUG, G = D.G; G.teams[2].stash = [part]; D.openMarketAI(); D.floorAI(G.teams[2], G.teams[0], 'part', { cr: 0, items: [part] }, { cr: 2, items: [] }, { info: 'test' }); }, partM);
+    await p.evaluate(part => { const D = window.ROBOCUS_DEBUG, G = D.G; G.teams[2].stash = [part]; G.teams[0].credits = 12; D.openMarketAI(); D.floorAI(G.teams[2], G.teams[0], 'part', { cr: 0, items: [part] }, { cr: 2, items: [] }, { info: 'test' }); }, partM);
     await until(p, () => (window.ROBOCUS_DEBUG.G.offers || []).filter(o => o.to === 0).length >= 2, 5000);
     await p.waitForTimeout(500);
     let s = await st(p), f = await floor(p);
@@ -229,7 +229,7 @@ const path = require('path'), fs = require('fs');
   if (!await ticketBtn(B, 2, 'Take back')) bad.push('online: no Take back on B');
   await host.waitForTimeout(1200);
   const cB = await floor(C);
-  if ((await hs()).offers.some(x => x === '2>3:trade') || (cB && cB.tickets.some(t => t.id && /Bolts|Rust|Moss|Plum/.test(t.text) && /\bin\b/.test(t.cls) && /B/.test('') ))) bad.push('online: B\'s offer to C is still open');
+  if ((await hs()).offers.includes('2>3:trade') || !cB || cB.tickets.some(t => /\bin\b/.test(t.cls) && /^P2/.test(t.text))) bad.push('online: B\'s offer to C is still open (host or C\'s screen)');
   // C counters ... A's? C → A is C's own; A counters C's offer (A's view: Counter on the ticket from C): ask 1 Cr more
   if (!await ticketBtn(A, 3, 'Counter')) bad.push('online: no Counter on C\'s ticket on A\'s screen');
   await A.waitForTimeout(300); await step(A, 'want', 1, 1); await clickIn(A, '[data-xk="send"]');
@@ -242,10 +242,10 @@ const path = require('path'), fs = require('fs');
   const cr1 = (await hs()).cr; console.log('online C yes to the counter: ' + cr0 + ' → ' + cr1);
   if (cr1[3] !== cr0[3] - 2 + 0 && cr1[3] !== cr0[3] - 2) bad.push('online: the counter (C gives 2 Cr) did not go through: ' + cr1);
   // a late screen: C reloads and gets the open offers from the state
-  const open1 = (await hs()).offers;
+  await C.addInitScript(() => { window.__noBot = true; });
   await C.reload(); await C.waitForTimeout(500);
   await until(C, () => !!(window.ROBOCUS_GAME && window.ROBOCUS_GAME.G && window.ROBOCUS_DEBUG.mktOpen()), 15000); await C.waitForTimeout(1500);
-  const fC = await floor(C);
+  const fC = await floor(C), open1 = (await hs()).offers;
   console.log('online C reloaded: floor ' + (fC ? fC.tickets.filter(t => t.id).length + ' open tickets' : 'NONE') + ' (host ' + open1.length + ')');
   if (!fC || fC.tickets.filter(t => t.id).length !== open1.length) bad.push('online: a reloaded screen does not show the open offers');
   // the last lock with offers open: all called off, nothing moved
