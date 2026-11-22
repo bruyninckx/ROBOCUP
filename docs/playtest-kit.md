@@ -1,42 +1,43 @@
 # ROBOCUS Playtest Kit (`docs/playtest-kit.md`)
 
-Share this page with friends before a session. The first half is a 2-minute rules briefing; the second half is a quick feedback form you can paste into Discord after a game.
+Share this page with friends before a session. Part 1 is the one-page note for friends (what it is, the address, joining, timers, what to do when something goes wrong); Part 2 is a quick feedback form to paste into Discord after a game. Kev's own two-PC checklist: `docs/robocus-two-pc-test.md`. Updated 22 Nov 2026 (T64).
 
 ---
 
-## Part 1: One-Page Rules Summary ("Scrapyard Dominus")
+## Part 1: For friends (one page; send this before the session)
 
-**The Pitch:** *Spartacus: A Game of Blood & Treachery* meets *Robot Wars*. Four robotics teams scheme, bid on parts, bet with the bookmaker, and send custom battlebots into a top-down physics arena.
-**How to Win:** First team to reach **12 Fame** wins the game (usually 7–9 rounds).
+**What it is.** ROBOCUS: four robot teams scheme, bid on parts, bet, and send their robots into a top-down physics arena. Think
+*Spartacus: A Game of Blood & Treachery* meets *Robot Wars*. First team to **12 fame** wins. One game is about 1.5-2 hours.
+The AI plays every seat nobody takes. Talk on Discord while you play.
 
-### Your Garage
-- You start with **4 Fame**, **8 Credits**, **3 Mechanics**, **2 Robots**, and a **Team Sponsor** (your unique house rule).
-- **Mechanics** earn **+1 Credit** each per round. **Robots** cost **1 Credit** upkeep each per round (max 3 robots).
-- **Damage stays** on a robot between rounds until you pay to repair it (**1 Credit per 20 HP**).
+**What you need.** A computer or laptop (screen 1280 wide or more) with Chrome or Edge. No install, no account. Not a phone.
 
-### The 6 Phases of a Round
-1. **Upkeep**: Collect Mechanic income, pay Robot upkeep, draw **2 Intrigue Cards** (max hand of 4), and repair damaged robots.
-2. **Intrigue**: Play **1 Scheme** (or pass).
-   - *Sabotage* (*Loose Bolts*, *Sugar in the Tank*, *Stripped Gears*, *Smudged Lens*) secretly weakens an opponent's robots for their next fight—they don't know until the fight starts!
-   - *Secret Upgrade* secretly boosts your own robots for their next fight.
-   - *Guard Dog* stays in your hand and has a 50% chance to block a scheme played against you.
-3. **Market (Sealed Bids)**: Secretly bid Credits on **3 Part/Crew Lots** and on the right to **Host the Fight**. Highest bid wins and pays; **ties go to the team with lower Fame**.
-4. **Arena Invitation**: The **Host** gains **+1 Fame** and invites **2 teams** to fight (can include themselves).
-   - Invited teams get **+2 Credits** appearance money and pick which robot to field.
-   - Declining an invitation costs **−1 Fame** (and another team steps in).
-5. **Bets**: The Bookmaker simulates the fight using only what is **publicly visible** and posts odds.
-   - You may bet up to **3 Credits** on a fighter (you cannot bet against your own robot).
-   - *Tip:* If you secretly sabotaged the favourite (or fitted a secret upgrade on the underdog), the bookmaker's odds are wrong—exploit them!
-6. **Fight & Aftermath**: The two robots battle automatically in the arena.
-   - **Winner**: **+1 Fame**, **+3 Credits**, and picks **1 of 3 Winner's Crate** rewards. A robot's 3rd win makes it a **Fan Favourite** (**+1 bonus Fame**).
-   - **Loser**: Receives a consolation **Scrap Crate** so they aren't locked out of the game.
-   - **Thumbs Up / Down**: The Host decides whether to **Spare** the losing robot (it limps back to the garage with its damage) or **Scrap** it (destroyed! Scrapping a 3-win Fan Favourite costs the Host **−1 Fame**). If a team loses its last robot, they get a weak **Scrapbot** for free.
+**The address.** https://bruyninckx.github.io/ROBOCUP/ (click **▶ Play ROBOCUS**). The rules, short, with a fight clip:
+https://bruyninckx.github.io/ROBOCUP/rules.html
 
-### Arena Cheat-Sheet (Rock–Paper–Scissors)
-- **Armour** removes flat damage from every hit (`0` to `6`), down to a minimum chip %—it **shrugs off Rapid guns**, but **Heavy cannons** and **Mortars** punch right through it, and **Lasers / Fire** ignore armour completely.
-- **Weight**: Every level of Armour (`−9%`) and Health (`−4%`) slows your robot down.
-- **Fast / Dodge builds** (*Dasher*, *Hornet*) circle around slow turrets and dodge **Mortars** and **Heavy shells**, but get tracked by **Lasers** and **Rapid guns**.
-- **Modules (`?`)** are hidden surprise tricks (Shield, Decoy, Flipper, Smoke, EMP, Mines, Repair, Self-Destruct) that reveal themselves mid-fight.
+**How to join.**
+1. The host sends a link that ends in `?room=ABCDE`. Open it.
+2. Type your name, click **Join**, then **I'm ready**. Click a colour first if you want another team.
+3. Wait for the host to press Start. Bottom left you see `files ........`: it should be the same on every screen.
+
+**Timers.** Every question in the yellow note has a countdown (20-45 seconds). When it runs out, the game picks the safe default
+for you and says so with ⌛ in the log. Nothing is lost, you just did not choose. Upkeep (repairs and the garage) waits until
+you press **Done**; if you take long, the host can nudge you (🔔 "The host is waiting for you!") or skip you.
+
+**When something goes wrong.**
+- **A red bar at the top** ("Old game files are loaded"): press **Ctrl+F5**. Still there: close the tab and open the link again.
+- **"Your game is a different version than the host's"**: press **Ctrl+F5**, open the link again. Still different: tell the host,
+  who should press Ctrl+F5 *before* starting (the game was updated a few minutes ago).
+- **Your tab closed, or your internet dropped**: open the same link again and type the **same name**. You get your seat back
+  where the game is. The others see "⏸ Game paused, waiting for ..." until you are back.
+- **"Lost the host"**: the host's browser closed. Wait: the host opens the game again and resumes the last round; you join
+  with the same link and the same name.
+- **Something looks wrong**: click **🐞** (top of the log, right side) and type one line. It marks the moment for Kev.
+
+**The host** (Kev): keep the game tab open the whole time, it *is* the game. Closing it asks "Leave site?" first. If it closed
+anyway: open the game, 🌐 Online, Host a game, **↩ Resume the last game (round N)**, and send the new link.
+
+(The old one-page rules summary that stood here was for ROBOCUS 1.0 and is out of date; the 2.0 rules are on rules.html.)
 
 ---
 
