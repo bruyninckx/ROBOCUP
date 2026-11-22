@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K56 (T59, 22 Nov).** A team that is invited but has no ready robot "declines" and loses 1 fame. A host can invite
+  such a team on purpose to cost it a fame. Keep, or no fame loss when it simply has no robot (or grey its invite
+  button out)?
 - **K55 (T56, 22 Nov).** (a) Bookie wording "odds from 158 test fights" under the bet cards: right words, right
   place? (b) A person who never clicks Done in Upkeep now holds the table (the host has Nudge and Skip): fine, or a
   long timer (60 s)? (c) the host-bid step shows "NEXT FIGHT" only when an event is already known: also for a plain
@@ -156,6 +159,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T59. The host picks who steps in** (Kev, 22 Nov, screenshot of round 5: "wonder how it was decided that rust rivets
+  steps in here"; offered "The host picks the replacement from the teams with a ready robot": "yes"). Today the first
+  team in seat order with a ready robot steps in (`invite()` and the decline path in `prototypes/tabletop-2.html`).
+  Worker on branch `claude/host-picks-stand-in`, started 22 Nov. Not answered by Kev: whether a team with no robot at
+  all still loses a fame for "declining" (kept as it is; K56).
 - **T58. Combo hunt: recheck epic and ultimate combos with wear on, as a big run for Kev's PC** (Kev, 22 Nov: "can we
   do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage models etc,
   make a gigantic program to run on my pc to find combos that work really well"). Worker on branch
