@@ -24,6 +24,10 @@ https://bruyninckx.github.io/ROBOCUP/rules.html
 for you and says so with ⌛ in the log. Nothing is lost, you just did not choose. Upkeep (repairs and the garage) waits until
 you press **Done**; if you take long, the host can nudge you (🔔 "The host is waiting for you!") or skip you.
 
+**Tips.** The first time something matters, a small 💡 tip points at it (the yellow note, the bookie's odds, part rarity, the
+trading floor...). Read it, click **Got it**, and it won't come back. **No more tips** stops them; the 💡 tips button at the top
+lists them all again.
+
 **When something goes wrong.**
 - **A red bar at the top** ("Old game files are loaded"): press **Ctrl+F5**. Still there: close the tab and open the link again.
 - **"Your game is a different version than the host's"**: press **Ctrl+F5**, open the link again. Still different: tell the host,
