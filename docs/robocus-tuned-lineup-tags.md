@@ -5,6 +5,10 @@ Kev (14 Nov): "lets tune the lineup, but lets go for 66% win rate for next level
 Branch `claude/robots-2.0.1`. Lineup: the 33 robots from the casting board (see `robocus-lineup-by-cool.md`, section 6).
 
 
+**22 Nov (T65): the fit, epic and giant-slayer sections below are superseded.** The game's great / poor fits, epic combos and
+giant-slayer builds now come from Kev's combo hunt (278,626 fights): `docs/robocus-combo-hunt.md`, "Results of Kev's run, 22 Nov".
+The other tag sections stand as described in the 21 Nov note.
+
 **21 Nov (T41): wear on in every fight.** The lineup was retuned for it (`WEAR.hpExp` 0.5 and 11 power dials) and every tag the game
 reads was measured again on Kev's PC (77,000 fights: matchup table, arenas, parts, fits, free-for-alls, 2v2). The numbers and the
 tag tables below are the 15 Nov ones; what moved (counter picks 43 → 50, Haywire gone, new great and poor fits, Brawl masters, arena

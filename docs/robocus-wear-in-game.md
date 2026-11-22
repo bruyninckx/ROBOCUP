@@ -285,6 +285,8 @@ seen on 15 Nov). Kev's run: 119 of 120 finished (1 stall), 0 page errors.
 | 🔨 Hard hitter | - | Jukebox, Orbiter | Gaucho, Buzzkill |
 | Arena tags (fit 0.4+) | Thwacker hates ice (−1.23 → −0.22), Popcorn saw specialist, Corkscrew cage fighter and ice skater, Mauler and Vertigo ice, Whaler hates the Cage, Vertigo hates saws, Thwacker saws, Mincer hates ice, Yoyo hates saws, Pincher, Slingshot (cage, saws), Lodestone saws | Hornet hates the Cage, Mincer, Angler, Grandmaster hate saws, Wrecker saw specialist, Jukebox cage fighter | the rest; ice and killbox fits are smaller now (their noise shrink fits at 0.4 and 0.35, was 0.75 and 0.45) |
 
+(22 Nov, T65: the epic, great / poor fit and giant-slayer rows are superseded by Kev's combo hunt: `docs/robocus-combo-hunt.md`.)
+
 Not re-measured: the 👑 Giant-slayer builds (no slayer section in the run) and the part levels `PART_LV`. The big run's parts
 section built robots the way the 15 Nov tag tool did (no level growth for drones and modules), so its levels for drones and modules
 are not comparable; for stat parts and legendaries they stay within about ±0.3 of a level except **Overdrive: 0.80 → 1.28 levels**
