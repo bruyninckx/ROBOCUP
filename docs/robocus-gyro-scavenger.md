@@ -5,20 +5,22 @@ indication in the power map??" and "can you check with these specific matchup if
 
 ## Short answer
 
-1. **Round 9 (Killbox): mostly bad luck.** Rebuilt as the game builds it, Gyro wins **65%** of 300 fights (95% range 59-70%),
-   the same as the bookie's 65% (154 test fights). The live cards played in that fight change nothing (65% of 300 with them).
-   But the *way* it ended is very rare: a KO of Gyro inside 15 s happened in **5 of 600** fights (about 1 in 120), and
-   "chassis torn apart (debris)" inside 15 s in **0 of 600** Killbox fights (1 of 277 on open floor). A 1-in-200-or-rarer ending.
-2. **Round 11 (open floor): not bad luck: the bookie was too kind to Gyro.** With the bookie's own seeds, Gyro wins
-   **40%** of 140 (95% range 32-48%; 37% of 137 with other seeds), where the bookie said 55% (126 test fights). Scavenger
-   winning was the likely result. Why the bookie's test fights gave 55% we could not reproduce (see "Open points").
+1. **Round 9 (Killbox): partly bad luck.** Rebuilt as the game builds it, Gyro wins **58%** of 1,000 fights (95% range 55-61%;
+   the first 300 gave 65%), a bit below the bookie's 65% (154 test fights, its own range about 58-73%). The live cards played in
+   that fight change nothing (65% of 300 with them, against 65% of the same 300 without). So Gyro was a slight favourite and
+   lost a 58/42 fight. The *way* it ended is rare: a KO of Gyro inside 15 s in **13 of 1,300** Killbox fights (1 in 100), and
+   "chassis torn apart (debris)" inside 15 s in **none of 1,300** (1 of the 1,140 open-floor fights). Rarer than 1 in 1,000.
+2. **Round 11 (open floor): not bad luck: the bookie was too kind to Gyro.** Gyro wins **40%** of 1,000 fights (95% range
+   37-44%), 40% of 140 with the bookie's own seeds, where the bookie said 55% (126 test fights). With the face-down Smudged Lens
+   on Gyro (the bookie can't see it) and the live cards: **31%** of 140. Scavenger winning was the expected result. Why the
+   bookie's test fights gave 55% we could not reproduce (see "Open points").
 3. **Why Scavenger is dangerous for Gyro:** its fired junk shoots off Gyro's **Shell motor** first in nearly every fight
-   (in 86% of the Killbox fights and 94% of the open-floor fights Gyro loses it, half the time within 7-9 s; 254 of 257 times
+   (Gyro loses it in 881 of 1,000 Killbox fights and 921 of 1,000 open-floor fights, median after 6 s and 10 s, nearly always
    to junk). A Gyro without its spinning shell has no weapon. Scavenger's two parts make that happen: bare Gyro vs Scavenger
    with Overdrive + Weapon overhaul wins only **5%** (148 fights); bare against bare, **20%** (102 fights; the table says 3 of 20).
 4. **Of Kev's three parts only the Quantum shield works here.** It alone takes Gyro from 7% to about 39% (200 fights each).
-   The Booster drone adds 3 points (within the noise), the Jammer drone nothing (Gyro does 6 points *better* without it, also
-   within the noise). On Scavenger's side the **Overdrive** does the damage: take it off and Gyro wins 63%; take the Weapon
+   The Booster drone adds 2 points and the Jammer drone takes 2 off (400 fights each, both well within the noise): they did
+   nothing against Scavenger. On Scavenger's side the **Overdrive** does the damage: take it off and Gyro wins 63%; take the Weapon
    overhaul off and Gyro wins 46%.
 5. **A bug that looks like Kev's round 9 ending:** when Gyro's spinning shell is knocked off, the loose ring can stay jammed
    against Gyro's chassis; if Scavenger then pushes on it, every physics step counts as a "debris" hit and the whole chassis
@@ -49,17 +51,23 @@ From Kev's log (`kev-log-22nov-b.json`), and what had to be assumed:
 | | fights | Gyro wins | 95% range |
 |---|---|---|---|
 | Bookie on Kev's PC | 154 | 65.6% | |
-| Rebuilt (no cards) | 300 | 65.0% | 59-70% |
+| Rebuilt (no cards) | 1,000 | 58.0% | 55-61% |
+| (the first 300 of those) | 300 | 65.0% | 59-70% |
 | Rebuilt with the two live cards (Chip Hack on Gyro at 5 s by team 3, Field Engineer on Scavenger at 9.3 s) | 300 | 65.3% | 60-71% |
 
-- How Gyro loses (105 losses): median 57 s (quarters 39 / 57 / 81 s). Over inside 15 s: 2 of 300 (with the cards 3 of 300).
-  Endings: immobilised 31, crippled 22, radio receiver 15, battery 12, chassis torn apart 11; debris KOs 0 (3 of 300 with the cards).
-- The Killbox's spikes and saws took a Gyro part in 18 of the 105 losses (10 of 104 with the cards): they are not what beats Gyro.
-- Scavenger loses no part at all in 17 of 300 fights (6%), as in Kev's fight. In Gyro's wins Scavenger is mostly crippled (123)
-  or immobilised (43): the shell spinner and the Killbox wear down its damaged body.
+- How Gyro loses (420 losses of 1,000): median 58.5 s (quarters 41 / 58 / 89 s). Over inside 15 s: 10 of 1,000 (with the
+  cards 3 of 300). Endings: immobilised 110, crippled 98, radio receiver 64, chassis torn apart 62, battery 56; judges 59 of all.
+  "Chassis torn apart (debris)": 3 of 1,000, none inside 15 s.
+- The Killbox's spikes and floor saws took a Gyro part in 43 of the 420 losses (part losses by cause: junk 2,103, spikes 46,
+  floor saw 38): they are not what beats Gyro.
+- Scavenger loses no part at all in 68 of 1,000 fights (7%), as in Kev's fight. In Gyro's wins Scavenger is mostly crippled or
+  immobilised: the shell spinner and the Killbox wear down its damaged body.
 - The Chip Hack on Gyro (5 s) and Field Engineer on Scavenger did not change the odds.
 
-So round 9 was a 65/35 fight that went to the 35, and it went in an unusually fast way (see the bug below).
+So round 9 was about a 60/40 fight that went to the 40, and it ended in a very unusual way (see the bug below).
+
+Why the 1,000 say 58% where the first 300 said 65%: noise in the first 300 (65% is at the top of the 1,000's spread). Our
+Scavenger look-alikes read Body 50-53% where Kev's read 54%, a hair weaker, so that does not explain the bookie's 65% either.
 
 ## Round 11: open floor, Gyro vs Scavenger (both "no damage")
 
@@ -67,29 +75,29 @@ So round 9 was a 65/35 fight that went to the 35, and it went in an unusually fa
 |---|---|---|---|
 | Bookie on Kev's PC | 126 | 54.8% | 46-63% |
 | Rebuilt, the bookie's seeds | 140 | 40.0% | 32-48% |
-| Rebuilt, seeds 1-137 | 137 | 37.2% | 30-46% |
+| Rebuilt, seeds 1-1,000 | 1,000 | 40.4% | 37-44% |
 | + Gyro's face-down Smudged Lens (−25% weapon damage), bookie seeds | 140 | 29.3% | 22-37% |
 | + Lens + the live cards (Kev's EMP Grenade at 1.1 s, Rust Rivets' Supply Drop "overcharge" at 8 s), bookie seeds | 140 | 31.4% | 24-40% |
 
 The face-down Smudged Lens on Gyro (which the bookie can't see) cost Gyro about 10 points; the live cards changed little.
 With all of it Gyro had about a 30% chance: Scavenger winning was the expected result.
 
-- How Gyro loses (84 losses, bookie seeds): median 81 s; KO 109 of 140, judges 31. Endings: immobilised 26 (Kev's fight:
-  "immobilised, no working wheels" at 58 s, a typical one), crippled 14, battery 14, judges 14. Scavenger loses nothing in
-  39 of 140 fights (28%), in about half of its wins.
-- The shell motor goes to junk in 133 of 140 fights, median at 13.6 s.
+- How Gyro loses (596 losses of 1,000): median 73 s (quarters 49 / 73 / 102 s); judges decide 226 of the 1,000. Endings:
+  immobilised 150 (Kev's fight: "immobilised, no working wheels" at 58 s, a typical one), crippled 116, radio receiver 98,
+  battery 73. Scavenger loses nothing in 309 of 1,000 fights (31%), in half of its wins.
+- The shell motor goes in 921 of 1,000 fights, median at 10.5 s, to junk.
 
 ## Why: bare robots and each part (open floor)
 
-Same seeds (1-200) for every row, Scavenger and Gyro as new, open floor.
+Seeds 1-200 (1-400 where it says 400) for every row, Scavenger and Gyro as new, open floor. Kev's build on seeds 1-400: 39.3%.
 
 | Gyro | Scavenger | fights | Gyro wins | 95% range |
 |---|---|---|---|---|
-| bare | bare | 200 | 18.5% | 14-25% (the table: 3 of 20) |
+| bare | bare | 400 | 21.5% | 18-26% (the table: 3 of 20) |
 | bare | Overdrive + Weapon overhaul | 200 | 7.0% | 4-11% |
 | **Booster + Jammer + Quantum** | **Overdrive + Weapon overhaul** | 200 | **38.5%** | 32-45% |
-| without Booster (Jammer + Quantum) | Overdrive + Weapon overhaul | 200 | 35.5% | 29-42% |
-| without Jammer (Booster + Quantum) | Overdrive + Weapon overhaul | 200 | 44.5% | 38-51% |
+| without Booster (Jammer + Quantum) | Overdrive + Weapon overhaul | 400 | 37.3% | 33-42% |
+| without Jammer (Booster + Quantum) | Overdrive + Weapon overhaul | 400 | 41.5% | 37-46% |
 | without Quantum (Booster + Jammer) | Overdrive + Weapon overhaul | 200 | 7.5% | 5-12% |
 | Booster + Jammer + Quantum | without Overdrive (Weapon overhaul) | 200 | 63.0% | 56-69% |
 | Booster + Jammer + Quantum | without Weapon overhaul (Overdrive) | 200 | 45.5% | 39-52% |
@@ -105,7 +113,7 @@ What it says:
   its module; Scavenger has no module and its junk gun seems not to care.
 - The power map and the bookie's formula count each part as about a level for any rival ("Fights like ★7"), so they read this
   Gyro as far above a ★3 Scavenger with parts. Against Scavenger two of the three parts are worth nothing.
-- Bigger runs (400 fights for the rows above, 1,000 for rounds 9 and 11) are still filling in `tools/t60-out/`.
+- Same seeds, fight by fight: without the Booster, 95 fights flip to a loss and 87 to a win; without the Jammer, 84 and 93.
 
 ## A bug: a knocked-off shell grinds its own Gyro's chassis
 
@@ -114,8 +122,8 @@ Overdrive + Weapon overhaul, countdown 0, wear on): Shell motor lost at 6.7 s, S
 shell ring stays 0.39 m from Gyro's centre, touching Gyro's chassis at four points while it hardly turns (0.3-5 rad/s), and
 Scavenger pushes on it. From 9.1 s the chassis loses 0.5-2 HP **every physics step** (contact impulse about 37-40 each step,
 counted as a "debris" hit, capped at 45 so 2-3 HP a step), 229 → 0 by 11.1 s: "Gyro chassis torn apart (debris)", the same
-ending as Kev's round 9. A steady push on a loose part is counted as a new impact 120 times a second. 7 of about 1,100 fights
-end like this (chassis by debris right after the shell came off). Replay: `node -e "const m=require('./tools/gyro-scavenger.js'); console.log(m.fight(m.CFG.r11, 1583827593))"`. Not changed here (engine work: tools/damage-lab).
+ending as Kev's round 9. A steady push on a loose part is counted as a new impact 120 times a second. About 1 fight in 200
+ends "chassis torn apart (debris)" (3 of 1,000 Killbox, 7 of 1,000 open floor), nearly all within 6 s of the shell coming off. Replay: `node -e "const m=require('./tools/gyro-scavenger.js'); console.log(m.fight(m.CFG.r11, 1583827593))"`. Not changed here (engine work: tools/damage-lab).
 
 ## Open points
 
