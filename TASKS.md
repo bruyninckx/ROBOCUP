@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K55 (T56, 22 Nov).** (a) Bookie wording "odds from 158 test fights" under the bet cards: right words, right
+  place? (b) A person who never clicks Done in Upkeep now holds the table (the host has Nudge and Skip): fine, or a
+  long timer (60 s)? (c) the host-bid step shows "NEXT FIGHT" only when an event is already known: also for a plain
+  duel?
 - **K54 (T55, 22 Nov). Trading floor:** (a) one open offer to each rival at a time (up to three out, three in): more?
   (b) every ticket has 45 s (an offer in the note had 20 s): shorter? (c) AI teams answer your offer at once: let them
   "think" 1-2 s so you see your ticket first? (d) other teams' open tickets show both sides in full: fine, or only
@@ -134,6 +138,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
+- **T57. `tools/mp-scenario/robot-value.js` is out of date** (found by T56): it looks for the robot offer in the yellow
+  note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
@@ -150,16 +156,21 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T56. Three remarks from Kev's playtest of 22 Nov** (build 2026-11-22b, 12 rounds, Moss won 12-10-9-7, Kev last;
-  log in /home/claude/t-play/kev-log-22nov.json). Kev: (1) "be open about how many fights the bookie was able to
-  process"; (2) "should be more clear during host phase if special 2v2 or other event is happening"; (3) "when the
-  upkeep phase was going but I was not in the fight and had no repairs, it automatically skipped to next phase, we should
-  have to click here I think, there are many options". Worker on branch `claude/playtest-remarks`, started 22 Nov.
+(nothing running)
 
 ## Done
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T56. Three remarks from Kev's playtest of 22 Nov** (22 Nov; log /home/claude/t-play/kev-log-22nov.json, 12 rounds,
+  Moss won 12-10-9-7). (1) The bookie says what its odds rest on ("odds from 158 test fights", "stopped early: clear
+  favourite", "odds from the formula"): Bets pit and note, band help, fight card, odds panel; `F.bk`, shared with
+  joined screens. (2) The round's format as a yellow banner in the pit and a headline in the note during host bid,
+  Host and Bets (2v2 Tag Team, Grand Final, free-for-all, Mirror, 2 per side, House Robot, arena); a plain duel gets
+  one quiet line. (3) A person's Upkeep ends only on the Done click (`BAL.upkeepAuto` false; true = old skip and 8 s
+  garage countdown); button "Nothing to repair · Done → Intrigue". Commit `4f094b4`; BUILD `2026-11-22e`, files stamp
+  `28762982` (no src2 change). All-AI games identical on 20 seeds. Orchestrator's checks on the merge: game-sim 2/2,
+  garage.js, repair-note.js, trading-floor.js OK, mp-test OK (3x desyncs 0), fingerprint 470f6923. Questions: K55.
 - **T55. Market: the trading floor** (22 Nov; Kev picked layout A, "counter is ok, see deals as they happen"). Every
   Market offer is a ticket in a panel under the pit: Yes / Counter / No with a timer, own offers with Take back, other
   teams' offers read-only, finished deals stay 6 s; new offers and counters are built in the panel (no pop-up); the
