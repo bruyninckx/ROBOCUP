@@ -7,6 +7,12 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K63 (T64, 22 Nov). Before friends play:** (a) at 1280 x 720 long questions in the yellow note are cut (the last
+  line runs under the buttons; they still work): shorten the texts or let the note grow? (b) start fame: the online
+  lobby starts at 4, a solo game at 0: which for friends? (c) a backing request reaches a new player seconds after the
+  start with no explanation of backing: add one line? (d) friends should use Chrome or Edge (nothing else tested).
+  Known and not fixed: joining before the host opens the room gives a misleading message; do not merge to main
+  during a session.
 - **K62 (T65, 22 Nov).** The rules page shows a GIF of Popcorn + Overdrive as "the right part on the right robot"; that
   pair is no longer a fit. Swap it for a real epic (Thwack-a-mole)? Thwacker now has 2 epics, a giant-slayer build and
   3 great fits: on the after-playtest list.
@@ -196,12 +202,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T64. A version to playtest** (Kev, 22 Nov: "I'm trying to go to a version to playtest, first myself only (with 2
-  pcs) then with friends"). Feature freeze: no new features until the playtests. Worker on branch
-  `claude/playtest-ready`, started 22 Nov: run every test we have on main (all scenario scripts, the online test on
-  several seeds and with drop-outs, click games, the two-PC tool on one box), fix what is broken or out of date (T57
-  robot-value.js), list what could bite in a real game, and bring `docs/robocus-two-pc-test.md` and
-  `docs/playtest-kit.md` up to date.
+(nothing running: feature freeze until the playtests)
+
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
   `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
@@ -214,6 +216,18 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T64. A version to playtest** (22 Nov; Kev: "I'm trying to go to a version to playtest, first myself only (with 2
+  pcs) then with friends"; "drop the phone, smallest res should be 1280"). Worker's verdict: GO for Kev's two-PC
+  session; GO for friends after it if it shows nothing new. Fixed in the game: the host's page asks before closing a
+  running online game; the host lobby offers "Resume the last game (round N)" after a reload (round-start save, 12 h);
+  `src2/net.js`: joined screens show the new lobby when the host comes back, and loading a save puts joined players in
+  their saved seats; `index.html` links the 2.0 game. Tests fixed (robot-value, cards, repair-all, the clicker closes
+  the rarity ladder) and new (`rejoin.js`, `host-reload.js`, `first-minute.js`). Docs: `docs/robocus-playtest-ready.md`
+  (results table, risks), `docs/robocus-two-pc-test.md` (what Kev double-clicks), `docs/playtest-kit.md` (one-page note
+  for friends). Worker's runs: 40/40 AI games, mp-test 5 of 5 seeds and 3 of 3 with drop-outs (0 desyncs), click games,
+  layout at 1280 x 720 and 1920 x 1080. Commit `0efa0e5`; BUILD `2026-11-22k`, NEW files stamp `41c0103e`, fingerprint
+  470f6923, sync-check 89a95280. Orchestrator's checks on the merge: game-sim 2/2, host-reload, rejoin, first-minute,
+  trading-floor OK, mp-test seeds 5 and 11 OK (3x desyncs 0 each). Questions: K63.
 - **T65. The combo hunt's tables are in the game** (22 Nov; Kev: "1 yes 2 good 3 ok 4 yes"). PART_FIT as his run gives
   it (13 great, 5 poor; 9 old fits gone); EPIC: Phantom Hook, Overclock, Whiplash with new numbers, and Sea Wall
   (Whaler + Waller drone), Second Wind (Vertigo + Field hospital), Heckler (Wrecker + Pester chip), Laser Tag (Mauler +
