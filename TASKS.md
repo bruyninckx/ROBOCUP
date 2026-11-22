@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K64 (T66, 22 Nov). Tips:** (a) the 12 texts and their order: change any; (b) one new tip a phase (all 12 take
+  about 3 rounds): right pace? (c) a tip box can sit over part of the pit or a team panel until clicked away: fine, or
+  wait until the player has acted in that phase? (d) tips also show on the host's (your) screen: keep?
 - **K63 (T64, 22 Nov). Before friends play:** (a) at 1280 x 720 long questions in the yellow note are cut (the last
   line runs under the buttons; they still work): shorten the texts or let the note grow? (b) start fame: the online
   lobby starts at 4, a solo game at 0: which for friends? (c) a backing request reaches a new player seconds after the
@@ -205,10 +208,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T66. First-time tips that point at things** (Kev, 22 Nov, for the friends' playtest: "I would like to have some
-  tutorial box that people can click and then it can point out certain things like where to find the bookie stats,
-  where to find the part rarity stats etc, once they clicked it once it doesnt appear again"). On the backing request
-  for new players he said the text is fine as it is. Worker on branch `claude/first-tips`, started 22 Nov.
+(nothing running: feature freeze until the playtests)
 
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
@@ -222,6 +222,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T66. First-time tips that point at things** (22 Nov; Kev: "some tutorial box that people can click and then it can
+  point out certain things ... once they clicked it once it doesnt appear again"). A 💡 tip box with an arrow and a ring
+  on the thing; Got it / click / Esc closes it for good on that browser (`localStorage robocus.tips`); one new tip a
+  phase, never over a timed question or the fight; a "💡 tips" button lists all 12 with "Show the tips again" and "No
+  more tips". 12 tips: yellow note, garage, hand and Gate, rarity, lot odds, trading floor, bookie, waiting list, power
+  map, value chip, log/report, files stamp. Display only, each screen its own; off in bot and tool runs (`BAL.tips`,
+  `?tips=1`). Commit `6ff2790`; BUILD `2026-11-22l`, files stamp `41c0103e` unchanged. Orchestrator's checks on the
+  merge: game-sim 2/2, tips.js, first-minute, trading-floor OK, mp-test OK (3x desyncs 0), fingerprint 470f6923.
+  Texts in `docs/robocus-2.0.1-screen.md` (T66 section). Questions: K64.
 - **T64. A version to playtest** (22 Nov; Kev: "I'm trying to go to a version to playtest, first myself only (with 2
   pcs) then with friends"; "drop the phone, smallest res should be 1280"). Worker's verdict: GO for Kev's two-PC
   session; GO for friends after it if it shows nothing new. Fixed in the game: the host's page asks before closing a
