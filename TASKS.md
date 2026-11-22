@@ -7,6 +7,10 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K58 (T60, 22 Nov).** (a) Parts count as about a level against anyone ("fights like ★7"), but against Scavenger
+  the Booster and Jammer were worth nothing: is the "tough matchup" marker enough, or should bands use part values per
+  matchup (a big job)? (b) "tough" starts at 15 points worse than the level gap (a table cell is 20 fights): or 20?
+  (c) pill wording ("Heavy dog", "Even · tough") and the amber ring: fine?
 - **K57 (T59, 22 Nov). Who steps in:** (a) 30 s to choose, then the team with the most fame: fine? (b) a person who
   steps in after another team DECLINES is not asked which robot (the strongest goes); after a "no robot" drop-out they
   are asked: ask in both cases? (c) the host's own team can be a candidate when it is not in the fight: keep?
@@ -144,6 +148,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
+- **T61. Engine bug: a knocked-off spinning shell grinds its own robot's chassis** (found by T60): a loose part resting
+  on a chassis while the other robot pushes counts as a new debris impact 120 times a second (229 HP in 2 s). Fix in
+  `tools/damage-lab/engine.js` (one impact per contact, or no debris damage from a resting contact), build.py, new
+  fingerprint, check the level steps and the matchup table for shell spinners. Starts when T58 is merged (same
+  folder). Kev to say: before or after his combo hunt run (orchestrator: before).
 - **T57. `tools/mp-scenario/robot-value.js` is out of date** (found by T56): it looks for the robot offer in the yellow
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
@@ -162,12 +171,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T60. Scavenger against Kev's stacked Gyro: odd chance or not, and why the power map said nothing** (Kev, 22 Nov, his
-  second game of the day, log /home/claude/t-play/kev-log-22nov-b.json: "for some reason, scavenger really slapped my
-  stacked gyro although it was not an indication in the power map??"; "can you check with these specific matchup if it
-  was odd chance, also, it really didnt show in the power map, also not if I clicked on it"). Round 9, Killbox: Gyro
-  (Booster drone, Jammer, Quantum shield) 65% by 154 test fights, torn apart in 14.9 s; round 11, open: 55%, lost in
-  58 s. Matchup table, as new, open floor: Gyro 3 of 20. Worker on branch `claude/gyro-scavenger`, started 22 Nov.
+- **T62. Why did the bookie say 55% for Gyro in round 11 when the rebuilt fight gives 40%?** (found by T60, 22 Nov).
+  On the bookie's own seeds the rebuild counts 51 Gyro wins in 126, Kev's PC counted 69; round 9 matches (58-65%).
+  Find what the bookie's test fights build differently from the real fight (tiers, wear, face-down cards, countdown,
+  sides), fix it if it is a bug, and make the `bookie` event log the exact specs so a playtest fight can be replayed.
+  Worker on branch `claude/bookie-gap`, started 22 Nov.
 - **T58. Combo hunt: recheck epic and ultimate combos with wear on, as a big run for Kev's PC** (Kev, 22 Nov: "can we
   do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage models etc,
   make a gigantic program to run on my pc to find combos that work really well"). Worker on branch
@@ -179,6 +187,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T60. Scavenger against Kev's stacked Gyro** (22 Nov; "can you check with these specific matchup if it was odd
+  chance, also, it really didnt show in the power map, also not if I clicked on it"). A: round 9 (Killbox) Gyro wins
+  58% of 1,000 rebuilt fights (bookie 65%); a KO inside 15 s is 1 in 100; round 11 (open) Gyro wins 40% of 1,000
+  (bookie said 55%: T62). Scavenger's junk takes Gyro's shell motor in 9 fights of 10; of Kev's parts only the Quantum
+  shield counted (without it 7.5%), Booster and Jammer nothing. ENGINE BUG found: a knocked-off shell ring jammed on its
+  own chassis is a "debris" hit every physics step (seed 1583827593, replays on main; about 1 fight in 200): T61.
+  Doc `docs/robocus-gyro-scavenger.md`, tool `tools/gyro-scavenger.js`. B: power map: click one of this game's robots
+  and every other robot of this game shows its band against it (not dimmed), listed toughest first; a "tough matchup"
+  marker for 15-39 points worse than the level gap as new. Commit `5374f57`; BUILD `2026-11-22g`, stamp `28762982`.
+  Orchestrator's checks on the merge: game-sim 2/2, pmap-gyro-scav.js (state hash unchanged, 0 errors), report re-run,
+  bug seed replayed, fingerprint 470f6923. Questions: K58.
 - **T59. The host picks who steps in** (22 Nov; Kev: "wonder how it was decided that rust rivets steps in here", "yes"
   to the host picking). When an invited team drops out (no ready robot, or it declines) and 2+ teams could step in,
   the host chooses: a person gets "Who steps in?" in the note and in the pit (team, strongest ready robot, band; 30 s,
