@@ -143,7 +143,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-(nothing running; everything left in To do waits for Kev or is a watch item)
+- **T54. Forklift's picture has no forks** (Kev, 22 Nov, screenshot of his Forklift card: "lifts of forklift are not
+  displayed"). Cause found by the orchestrator: `portrait()` in `src2/view.js` only calls `drawRobot`, which skips
+  `lifter` parts; the arena draws forks in its own pass (the `R.forks` line in the frame loop). Worker on branch
+  `claude/forks-in-picture`, started 22 Nov. Done when: every robot with `R.forks` shows them in its picture
+  everywhere pictures are used (cards, tickets, lots, power map), screenshot before/after.
 
 ## Done
 
