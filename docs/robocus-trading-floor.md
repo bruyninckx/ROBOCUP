@@ -77,8 +77,17 @@ Try the old flow: add `?bal={"tradeFloor":false}` to the page address.
 
 - 1905 x 932 (Kev): panel 832 x 179 under the pit; room for four tickets and the New offer tile side by side.
 - 1440 x 900: 655 x 180; two or three tickets show, the rest scroll sideways inside the panel.
-- 1920 x 1080: the same height (the hand's room under the pit is fixed in screen pixels).
+- 1920 x 1080: 846 x 180 under the pit (the hand's room under the pit is fixed in screen pixels, so the height is the same).
 - The composer grows up into the pit to about 205 px, down to the bottom of the lots.
+
+## Measured
+
+- All-AI games (tools/game-sim.js, seeds 1-60, floor on vs `tradeFloor: false`): 60 / 60 finished both ways, 0 page errors, and
+  all 60 games identical (same rounds, winner, fame, credits, Market spend, fights). Expected: with no person at the table no
+  ticket ever opens; AI-to-AI deals settle at once as before. Rounds 12.00, wins by seat 16/17/16/11 in both.
+- A test-bot person + 3 AI (tools/market-step-measure.js, seeds 1-16 each way; the bot answers each ticket yes or no at random,
+  as it answered the note questions): rounds 11.50 ± 0.93 (off) vs 10.88 ± 0.59 (on); trades per game 5.1 ± 1.5 vs 6.0 ± 1.7;
+  AI offers to the person 7.9 ± 2.4 vs 8.1 ± 3.0; Market spend 100 ± 8 vs 93 ± 6 Cr. All within noise at 16 games.
 
 ## Questions for Kev
 
