@@ -84,6 +84,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **22 Nov (K63c):** the backing request reaching a new player early: "I think this is fine"; instead he wants
+  click-away first-time tips that point at things (T66).
+
 - **22 Nov (K61, combo hunt):** apply the new tables before the playtest: "yes"; the six names: "good" (Sea Wall,
   Second Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole); giant-slayers (keep the game's Gyro and Whaler builds, add
   Thwacker): "ok"; the too-strong list (Thwacker + Race-spec Tow cable 93-98%, full builds of Thwacker 98%, Vertigo
@@ -202,7 +205,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-(nothing running: feature freeze until the playtests)
+- **T66. First-time tips that point at things** (Kev, 22 Nov, for the friends' playtest: "I would like to have some
+  tutorial box that people can click and then it can point out certain things like where to find the bookie stats,
+  where to find the part rarity stats etc, once they clicked it once it doesnt appear again"). On the backing request
+  for new players he said the text is fine as it is. Worker on branch `claude/first-tips`, started 22 Nov.
 
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
