@@ -7,6 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K54 (T55, 22 Nov). Trading floor:** you did not say whether a team may have several offers open at once. Built as:
+  one open offer to each rival at a time (so up to three of yours, and up to three coming in). More?
 - **K53 (T54, 22 Nov). Robot pictures:** Buzzkill's blade, Jukebox's record and Scythe's sweeper stick out slightly past
   the edge of their picture. Fit the frame to them too (small task)?
 - **K52 (T49, 22 Nov). Repair kit extra.** The kit is weak since wear came in (+0.4 of a level; other parts about
@@ -129,14 +131,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
-- **T55. Market: an open trading panel** (Kev, 22 Nov: "there is a lot of open auction action going on and this all
-  comes into the yellow box and you need to refuse or accept offers one by one, can we make some type of open auction
-  panel so you can lock in trades with other people while keeping an overview ... make some design to see if it could
-  fit"). The orchestrator drew two layouts at his 1905 x 932 window (canvas
-  https://claude.ai/artifact/FFvjNC7gMHavhvqD5yMwD7): A trading floor under the pit (836 x 208 free there), B trade desk
-  on the right in place of the waiting-for list; C a new-offer composer without a pop-up. Waits for Kev's pick and his
-  answers (counter-offers? several offers open at once? see the others' deals?). Then a worker; touches `src2/net.js`
-  asks, so the online test is part of done.
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
@@ -153,7 +147,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-(nothing running)
+- **T55. Market: the trading floor** (Kev, 22 Nov: "there is a lot of open auction action going on and this all comes
+  into the yellow box and you need to refuse or accept offers one by one, can we make some type of open auction panel so
+  you can lock in trades with other people while keeping an overview"). Design canvas
+  https://claude.ai/artifact/FFvjNC7gMHavhvqD5yMwD7; Kev picked "A, counter is ok, see deals as they happen": a panel
+  under the pit with one ticket per open offer (Yes / Counter / No, timer), own offers with Take back, other teams'
+  open offers visible, new offers built in the panel without a pop-up. Worker on branch `claude/trading-floor`,
+  started 22 Nov. Orchestrator's choice where Kev did not answer: one open offer per pair of teams in each direction
+  (K54).
 
 ## Done
 
