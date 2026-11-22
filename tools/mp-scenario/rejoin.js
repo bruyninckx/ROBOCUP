@@ -150,9 +150,9 @@ const answerOpen = () => { const bs = [...document.querySelectorAll('#promptBar.
   const paused = () => host.evaluate(() => { const el = document.getElementById('netPause'); return el ? el.innerText.replace(/\s+/g, ' ') : ''; });
   const hostSt = () => host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { ph: G.phase, round: G.round, open: D.mktOpen(), cr: G.teams.map(t => t.credits), offers: (G.offers || []).map(o => o.id + ':' + o.from + '>' + o.to), done: (G.floorDone || []).map(x => x.from + '>' + x.to + ':' + x.res) }; });
   const all = () => [host, seatOf[1], seatOf[2], seatOf[3]].filter(Boolean);
-  const playTo = async (f, ms = 240000) => { await Promise.all(all().map(p => p.evaluate(() => { window.__noBot = false; }))); const t0 = Date.now(); let ok = false;
+  const playTo = async (f, ms = 240000, arg) => { await Promise.all(all().map(p => p.evaluate(() => { window.__noBot = false; }))); const t0 = Date.now(); let ok = false;
     let k = 0;
-    while (Date.now() - t0 < ms) { if (await host.evaluate(f)) { ok = true; break; }
+    while (Date.now() - t0 < ms) { if (await host.evaluate(f, arg)) { ok = true; break; }
       if (++k % 8 === 0) for (const p of all()) await p.evaluate(answerOpen).catch(() => {});   // a question that opened while the bots were frozen missed its bot answer (as in lib.js setup)
       await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const s = v.querySelector('.fv-skip:not([hidden])'); if (s) s.click(); const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); } }); await sleep(250); }
     if (!ok) for (const p of all()) say('   screen ' + await p.evaluate(() => window.ROBOCUS_GAME.HS).catch(() => '?') + ': ' + await require('./lib.js').modal(p).catch(e => e.message));
@@ -185,7 +185,7 @@ const answerOpen = () => { const bs = [...document.querySelectorAll('#promptBar.
   const s3 = await host.evaluate(() => window.ROBOCUS_GAME.SEATS[3]); say('4 seat 3 is now ' + s3); want(s3 === 'ai', '4: seat 3 not handed to the AI');
   want(!(await paused()), '4: the pause box stays after "Let the AI play"');
   const r4 = (await hostSt()).round;
-  want(await playTo(r4 => { const G = window.ROBOCUS_DEBUG.G; return G.over || G.round > r4 && G.phase === 'intrigue'; }, 300000), '4: the game did not reach the next round after the AI took seat 3');
+  want(await playTo(r4 => { const G = window.ROBOCUS_DEBUG.G; return G.over || G.round > r4 && G.phase === 'intrigue'; }, 300000, r4), '4: the game did not reach the next round after the AI took seat 3');
 
   // ---------- 5. Market: an unanswered ticket to P2; the host Skips P2
   const r5 = (await hostSt()).round;
@@ -202,7 +202,7 @@ const answerOpen = () => { const bs = [...document.querySelectorAll('#promptBar.
   const d5 = (await hostSt()); say('5 ticket after its time: ' + JSON.stringify(d5.offers) + ' done ' + JSON.stringify(d5.done) + ' credits ' + c5 + ' → ' + d5.cr);
   want(gone, '5: the unanswered ticket did not time out');
   want(d5.cr[0] === c5[0] && d5.cr[2] === c5[2], '5: credits moved for an unanswered ticket');
-  want(await playTo(r5 => { const G = window.ROBOCUS_DEBUG.G; return G.over || G.round > r5; }, 300000), '5: the game did not go on after the Market');
+  want(await playTo(r5 => { const G = window.ROBOCUS_DEBUG.G; return G.over || G.round > r5; }, 300000, r5), '5: the game did not go on after the Market');
 
   await desyncs(all());
   await b.close();
