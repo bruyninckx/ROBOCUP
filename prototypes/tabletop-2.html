@@ -485,6 +485,7 @@ html, body {
 .sc-x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; }
 .sc-sub { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
 .sc-field { font-weight: 700; margin: 6px 0; }
+.fmt-ev { display: inline-block; background: #1A1A12; color: #F2C200; font: 700 12.5px var(--mono); padding: 2px 7px; border-radius: 3px; margin: 0 0 3px; letter-spacing: .02em; }
 .sc-chip { display: inline-block; color: #fff; font: 700 11px var(--mono); padding: 1px 7px; border-radius: 2px; white-space: nowrap; }
 .sc-tags { margin: 6px 0 8px; font-size: 12.5px; }
 .sc-tags i { color: var(--muted); font-style: normal; font-size: 11px; }
@@ -828,6 +829,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // idleMs: a player with parts to move but nothing to repair goes on by itself after this long unless they touch the garage.
     // on: false = no garage (Stash fits free, as before T38). docs/robocus-garage.md
     garage: { on: true, feeOff: 1, feeOn: 1, legOff: 2, legOn: 2, stashLimit: 0, partsBack: true, idleMs: 8000 },
+    // T56 (Kev, 22 Nov: "when the upkeep phase was going but I was not in the fight and had no repairs, it automatically skipped to
+    // next phase, we should have to click here I think, there are many options"): a person's Upkeep ends only with their Done click.
+    // true = the old way: nothing to do → on by itself after 0.6 s; parts to move but untouched → after garage.idleMs. AI teams: unchanged.
+    upkeepAuto: false,
     // Kev, 11 Nov (test options, both off): noRepeat = last round's host cannot bid for the host seat; streakTax = a host's bid counts this many Cr less per round it has hosted in a row
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
@@ -1934,9 +1939,49 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const fitOf = r => partsOf(r).map(k => PART_FIT[r.name] && PART_FIT[r.name][k] ? { k, f: PART_FIT[r.name][k][0], d: PART_FIT[r.name][k][1] } : null).filter(Boolean);
   const fitAdj = r => (tripleOf(r) ? 0.6 : 0) + fitOf(r).reduce((a, x) => a + (epicOf(r.name, x.k) ? 0.7 : 0.3) * x.f, 0) + epicsOn(r).filter(x => !(PART_FIT[r.name] && PART_FIT[r.name][x.k])).length * 0.7;   // the bookie knows these: +-0.3 logit a fit
   const fitNote = (name, k) => { const ep = epicOf(name, k); if (ep) return ' · ⚡ EPIC: ' + ep[0]; const x = PART_FIT[name] && PART_FIT[name][k]; return x ? (x[0] > 0 ? ' · 🧩 great fit' : ' · 🧩 poor fit') : ''; };
+  /* T56 (Kev, 22 Nov: "should be more clear during host phase if special 2v2 or other event is happening"): this round's fight
+   * format in words, from the fight once it is set up, else from what is known before the fighters are picked (an Intrigue
+   * event, the host's Arena cards, the House Robot, the robot count, the arena the host has picked). Display only. */
+  function roundFmt() {
+    if (!G || !G.teams) return null;
+    const F = G.fight && G.fight.teams && (G.phase === 'arena' || G.phase === 'bets') ? G.fight : null;
+    if (!F && G.phase !== 'arena' && !(G.phase === 'market' && G.marketStage === 'host' && G.nextEvent)) return null;
+    const ev = F ? F.event : G.phase === 'arena' ? G.arenaEvent : G.nextEvent, ek = ev && ev.kind;
+    const fmt = F ? F.format : ek === 'ffa' ? 'ffa' : ek === 'tag' || ek === 'final' ? '2v2' : ek === 'mirror' ? 'mirror' : G.phase === 'arena' ? (G.pendingFormat || (G.hostCount === 2 ? 'double' : 'duel')) : 'duel';
+    const house = F ? !!F.house : G.phase === 'arena' && !!G.houseRobot, arena = F ? F.arena || 'open' : G.phase === 'arena' ? G.arenaPick || 'open' : 'open';
+    const tn = i => G.teams[i] ? G.teams[i].name : '?', ready = G.teams.filter(t => readyRobots(t).length).length;
+    let icon = '⚔️', head = 'DUEL', sub = 'the host invites 2 teams, one robot each';
+    if (ek === 'tag') { icon = '🤝'; head = '2v2 TAG TEAM'; const a = F ? sideTeams(F, 0) : ev.teams || []; sub = a.map(tn).join(' + ') + ' vs the other two · the card set the teams: no invites'; }
+    else if (ek === 'final') { icon = '🏆'; head = '2v2 GRAND FINAL · DOUBLE FAME'; const a = F ? sideTeams(F, 0) : G.teams.slice().sort((x, y) => y.fame - x.fame || tieRank(x) - tieRank(y)).slice(0, 2).map(t => t.i); sub = 'the two fame leaders (' + a.map(tn).join(' + ') + ') vs the other two · no invites'; }
+    else if (fmt === '2v2') { icon = '🤝'; head = '2v2'; sub = F ? sideName(F, 0) + ' vs ' + sideName(F, 1) : 'two teams a side'; }
+    else if (fmt === 'ffa') { icon = '💥'; head = 'FREE-FOR-ALL'; const n = F ? F.robots.length || F.teams.length : ready; sub = 'every team with a ready robot fights · ' + n + ' robots, last one standing · no invites'; }
+    else if (fmt === 'mirror') { icon = '🪞'; head = 'MIRROR DUEL'; sub = 'the host invites 2 teams · every robot fights as 2 copies'; }
+    else if (fmt === 'double') { icon = '🤖🤖'; head = 'DOUBLE DUEL · 2 ROBOTS PER SIDE'; sub = 'the host invites 2 teams · each sends up to 2 robots'; }
+    if (house) { head += ' + HOUSE ROBOT'; sub += ' · 🏠 the House Robot is in the arena'; }
+    const ar = arena !== 'open' && ARENA_INFO[arena] ? ARENA_INFO[arena] : null;
+    if (ar) { head += ' · ' + ar.name.toUpperCase(); sub += ' · ' + ar.icon + ' ' + ar.name + ': ' + ar.text; }
+    const plain = fmt === 'duel' && !ek && !house && !ar;
+    return { icon, head, sub, plain, next: !F && G.phase === 'market', quiet: 'Duel · open floor' };
+  }
+  const fmtAsk = () => { const f = roundFmt(); return f ? 'This round: <b>' + f.icon + ' ' + esc(f.plain ? f.quiet : f.head) + '</b>' + (f.plain ? '' : ' (' + esc(f.sub) + ')') + '.<br>' : ''; };   // T56: in the "make the host a deal?" question
+  // the yellow note's headline for it (a plain duel on open floor: nothing)
+  const fmtNote = () => { const f = roundFmt(); if (!f || f.plain) return '';
+    return '<span class="fmt-ev">' + f.icon + ' ' + (f.next ? 'NEXT FIGHT' : 'THIS ROUND') + ': ' + esc(f.head) + '</span> <small>' + esc(f.sub) + '</small><br>'; };
+  // T56: how many test fights the fight's odds rest on, in plain words (F.bk is set by the host in afterChoose and synced in G.fight)
+  const bookieTxt = F => { const b = F && F.bk; if (!b) return '';
+    const nf = k => k + ' test fight' + (k === 1 ? '' : 's');
+    if (b.used) return 'odds from ' + nf(b.n) + (b.early ? ' (stopped early: clear favourite)' : '');
+    if (b.off) return 'no test fights (switched off): odds from the formula';
+    return (b.n ? 'only ' + nf(b.n) : 'no test fights finished in time') + (b.file ? ' (the host\'s game opened as a file)' : '') + ': odds from the formula'; };
+  const bookieHelp = F => { const b = F && F.bk; if (!b) return '';
+    return b.used ? ' The bookie watched <b>' + b.n + '</b> test fights of exactly this matchup on the host\'s PC' + (b.early ? ' and stopped early: after ' + b.n + ' the result was so clear that more fights would not move the odds' : '') + '; its odds mix those results with the formula.'
+      : ' The host\'s PC finished ' + (b.n ? 'only <b>' + b.n + '</b>' : 'no') + ' test fights in time (the bookie wants ' + (b.min || 40) + ' or more)' + (b.file ? ', because the game was opened as a file and runs them on the page itself' : '') + ', so these odds come from the formula: levels, parts, damage and the matchup table.'; };
   const rangeTxt = p => { const lo = Math.min(80, Math.floor(p * 5) * 20); return lo + '–' + (lo + 20) + '%'; };
   const duelP = (ra, rb) => pairP(ra, rb, G && G.fight && G.fight.arena);
   // click an odds chip: this robot's chance against each rival robot on its own (like 1.0's scout panel, no scout needed)
+  // T56: a robot in this round's fight, once the bookie has set its odds: its band there and what the odds rest on
+  const inFightTxt = r => { const F = G && G.fight, e = F && F.bands && (G.phase === 'bets' || G.phase === 'fight') ? F.robots.indexOf(r) : -1; if (e < 0) return '';
+    const sd = F.sides[e], bd = F.bands[sd]; return bd ? '<div class="sc-field">This fight: <span class="sc-chip" style="background:' + bd.col + '">' + esc(bd.short) + '</span> pays ' + F.pay[sd] + '×' + (bookieTxt(F) ? ' · <span class="sc-note">' + esc(bookieTxt(F)) + '</span>' : '') + '</div>' : ''; };
   function openMatchups(ti, r) {
     let el = document.getElementById('scoutPanel');
     if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
@@ -1947,7 +1992,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
       '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + ' <span style="color:#b45309">' + ('★'.repeat(r.level) || 'starter') + '</span></h3>' +
       '<div class="sc-sub">' + esc(wepLabel(r.name)) + ' · Parts: ' + esc(partsTxt(r)) + '<br>Damage: ' + esc(zoneTxt(r)) + '</div>' +
-      '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
+      '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + inFightTxt(r) + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
       (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>bookie</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
       '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from the Lineup Arena matchup table (20 fights a pair), shifted by fitted parts and damage. Robots as they come show the arena range (e.g. 40–60%); changed robots show a band. 🎯 = counter pick (much better than the level gap says), ⚠️ = bad matchup. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
       '<div class="iv-btns"><button class="secondary sc-close">Close</button></div></div>';
@@ -2322,12 +2367,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const gBill = gLines.length ? '<div class="g-bill"><span>🧾 <b>Bill ' + gP.cost + ' Cr</b> (' + gLines.length + ' move' + (gLines.length > 1 ? 's' : '') + ')' + (gShort ? ' · <b class="g-short">you have ' + t.credits + ' Cr</b>' : ' · after: ' + (t.credits - gP.cost) + ' Cr') + '</span>' +
           '<button class="act secondary" id="gReset">↺ Reset</button><button class="act" id="gLock"' + (gBad ? ' disabled' : '') + '>🔒 Lock in</button></div>' : '';
         const gIdle = gOn && GD.left != null ? ' <span class="g-auto">Goes on by itself in ' + GD.left + ' s (click a part to stay).</span>' : '';
-        const doneLbl = gLines.length ? '🔒 Pay ' + gP.cost + ' Cr, Done →' : 'Done → Intrigue', doneOff = G.debtBusy || gBad || (gP && GD.sending);
+        const doneLbl = gLines.length ? '🔒 Pay ' + gP.cost + ' Cr, Done →' : !jobs.length && !pjobs.length && !BAL.upkeepAuto ? 'Nothing to repair · Done → Intrigue' : 'Done → Intrigue', doneOff = G.debtBusy || gBad || (gP && GD.sending);
         const lr = repDone && repDone.round === G.round && G.phase === 'upkeep' ? myBot(HS, repDone.rid) : null;
         const doneTxt = lr && ZONE[repDone.zk] && !zonesOf(lr)[repDone.zk].damaged ? ' <b class="rep-ok">✓ ' + esc(lr.name) + ' ' + ZONE[repDone.zk].icon + ' ' + ZONE[repDone.zk].label + ' repaired.</b>' : '';
         if (!jobs.length && !fits.length && !pjobs.length && !gLines.length && gP && garageWork(t)) {   // T38: nothing to repair, parts you could move
           pb.innerHTML = '<span>🔧 <b>Upkeep: your garage.</b> Nothing to repair. To move a part: click it, then a socket on another robot or the rack (off ' + GB().feeOff + ' Cr, on ' + GB().feeOn + ' Cr; legendary ' + GB().legOff + ' + ' + GB().legOn + '). Nothing is paid until you lock the bill in.' + doneTxt + gIdle + '</span>' +
             '<button class="act" id="pAct1"' + (doneOff ? ' disabled' : '') + '>' + doneLbl + '</button>';
+        } else if (!jobs.length && !fits.length && !pjobs.length && !gLines.length && !BAL.upkeepAuto) {   // T56: nothing to repair: it waits for your click
+          pb.innerHTML = '<span>🔧 <b>Upkeep: nothing to repair.</b> Your robots are fine. Take your time: look over your cards, your Stash and your garage. Upkeep ends when you press Done.' + doneTxt + '</span>' +
+            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Nothing to repair · Done → Intrigue</button>';
         } else if (!jobs.length && !fits.length && !pjobs.length && !gLines.length) {
           pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.' + doneTxt + '</span>' +
             '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
@@ -2426,12 +2474,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         }
       } else if (G.marketStage === 'host' && iWait('hostbid')) {
         const hc = PS().hostCount || 1;
-        pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
+        pb.innerHTML = '<span>' + fmtNote() + '👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
           '<button class="act secondary" id="pCount">🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>';
         $('#pCount').onclick = () => act('hostCount');
       } else if (G.marketStage === 'host') {
         const hc = PS().hostCount || 1;
-        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame (not if it is the sole fame leader) and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
+        pb.innerHTML = '<span>' + fmtNote() + '👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame (not if it is the sole fame leader) and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
           '<button class="act secondary" id="pCount"' + helpAttr('🤖 Robot-count wager', 'Name 1 or 2 robots per side with your host bid. Only the winning host\'s count is used, and only for a normal duel (events keep their own format). 2 per side costs ' + WAGER_COST + ' Cr; each invited team sends up to 2 of its ready robots. If the fight ends up uneven (2 vs 1), you lose your +1 host fame that round.') + '>🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
         $('#pCount').onclick = () => act('hostCount');
@@ -2492,17 +2540,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else if (G.host >= 0 && !G.fight) {
         pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking the fighters…</span>';
       }
+      { const fh = fmtNote(), sp = fh && pb.querySelector(':scope > span:not(.sent-list)'); if (sp) sp.insertAdjacentHTML('afterbegin', fh); }   // T56: this round's format, first thing in the note
     } else if (G.phase === 'bets') {
       const lim = betLimit(t), myBet = PS().bet || [], staked = myBet.reduce((a, b) => a + b, 0);
       const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
       const cb = (PS().cardBid || []).reduce((a, b) => a + b, 0);
-      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (G.fight && G.fight.auction ? ' · 🃏 sealed bids on the fight cards below (' + cb + ' Cr)' : '') + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
+      const bkN = bookieTxt(G.fight) ? '<br><small>🎩 Bookie: ' + esc(bookieTxt(G.fight)) + '.</small>' : '';   // T56
+      pb.innerHTML = '<span>' + fmtNote() + '🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (G.fight && G.fight.auction ? ' · 🃏 sealed bids on the fight cards below (' + cb + ' Cr)' : '') + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.' + bkN + '</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock bets & bids →</button>';
       // T47 (Kev, 21 Nov voting page: "Keep them playable after locking"): Bookie's Friend and Hedge Bet stay in the locked note.
       // Playing one keeps your lock (it changes no bet); a bet you then change unlocks you, as any change does.
-      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + '</span>' +
+      if (iWait('bets')) pb.innerHTML = '<span>' + fmtNote() + '🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + bkN + '</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text) + '<br>Playing it keeps your lock.') + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text) + '<br>Playing it keeps your lock; changing your bet afterwards unlocks you.') + '>🎲 Hedge Bet</button>' : '');
       if ($('#pAct1')) $('#pAct1').onclick = () => act('lockBets');
@@ -3744,7 +3794,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22d trading floor: every Market offer is a ticket under the pit (Yes / Counter / No, Take back, new offers without a pop-up), deals of other teams as they happen';   // was: 2026-11-22c
+  const BUILD = 'tabletop 2.0.1 2026-11-22e playtest remarks: the bookie says how many test fights its odds rest on, the round\'s format is a banner in the Host phase, Upkeep waits for your Done';   // was: 2026-11-22d trading floor
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -6997,7 +7047,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // person with a ready robot may now offer the host something to be invited or to be left out, each on its own screen,
       // all at the same time. As with the AI offers, it is paid only if the host does what was asked (ACT.invite).
       await Promise.all(humanSeats().filter(h => h !== H && readyRobots(G.teams[h]).length).map(async h => {
-        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
+        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', fmtAsk() + 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
         if (!pick) return;
         const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(G.teams[H]) + ' something for it. You pay only if the host does it.', from: G.teams[H], lock: 'Lock in offer' }, h);
         if (d && !bundleEmpty(d.give) && G.phase === 'arena' && G.host === H) G.inviteOffers.push({ team: h, want: pick, B: d.give });
@@ -7024,7 +7074,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
       const Me = G.teams[h];
       if (!readyRobots(Me).length) continue;
-      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
+      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', fmtAsk() + 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
       if (!pick || (pick === 'in' && forceIn >= 0)) continue;
       const ask = priceOf(Me, pick);
       const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.' + (T46 ? ' It takes ' + (ask >= 99 ? 'nothing: it can\'t leave you out' : ask + ' Cr or more') + '.' : ''), from: host, lock: 'Lock in offer' }, h);
@@ -7451,11 +7501,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       try { sim = await simOdds(F); } catch (e) { console.warn('bookie', e); }
       if (bookieOn) { bookieOn = false; updateHud(); }
       if (G.fight !== F) return;   // the game was restarted while the bookie watched
+      // T56 (Kev, 22 Nov: "be open about how many fights the bookie was able to process"): what the odds rest on, in G.fight so
+      // every screen shows the same (display only: nothing reads it back into the game)
+      if (!G.fast) F.bk = { n: sim ? sim.n : 0, used: !!(sim && sim.n >= C.min), early: !!(sim && sim.stop), off: !sim, min: C.min, file: location.protocol === 'file:' && !!sim && sim.how === 'page' };
       if (sim && sim.n >= C.min) {
         F.p = p0.map((p, sd) => Math.max(0.03, Math.min(0.95, ((sim.wins[sd] || 0) + C.prior * p) / (sim.n + C.prior)))); F.simN = sim.n;
-        notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
+        notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup' + (sim.stop ? ' and stopped early (clear favourite)' : '') + ' (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
       }
-      else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds are its estimate, as before.', '#b45309');
+      else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds come from the formula.', '#b45309');
       tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
@@ -7713,7 +7766,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const odds = Array.from({ length: F.nSides || 2 }, (_, sd) => esc(sideLabel(F, sd)) + ' ' + (F.bands && F.bands[sd] ? F.bands[sd].short : '') + (F.pay ? ' ' + F.pay[sd] + '×' : '')).join(' · ');
       const host = G.host >= 0 ? G.teams[G.host] : null, bounty = (F.robots || []).filter(r => r && r.bounty);
       return '<h4>BETS</h4>' + (bets.length ? bets.map(b => '<div class="fv-ib"><b style="color:' + G.teams[b.team].col + '">' + who(b.team) + '</b><i>' + esc(sideLabel(F, b.side)) + ' · ' + b.amt + ' Cr</i></div>').join('') : '<div>No bets on this fight.</div>') +
-        '<div style="color:#6E6457;font-size:11.5px;margin-top:3px">Bookie: ' + odds + '</div>' +
+        '<div style="color:#6E6457;font-size:11.5px;margin-top:3px">Bookie: ' + odds + (bookieTxt(F) ? '<br><small>' + esc(bookieTxt(F)) + '</small>' : '') + '</div>' +
         '<div class="fv-next">NEXT · 7 FATE' + (host ? ' (' + who(host.i) + ' hosts)' : '') + ': ' + (host ? 'the host spares or scraps the loser.' : 'the loser is spared.') + (bounty.length ? ' 🎯 Bounty on ' + bounty.map(r => esc(r.name)).join(', ') + ': +' + BAL.fame.bounty + ' fame to whoever beats it.' : '') + '</div>';
     } catch (e) { console.warn('fightInfo', e); return ''; }
   }
@@ -8494,7 +8547,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * second (src2/net.js: its open questions and deal panels, else seatBusyWith) and every screen shows it over the pit:
    * the others when you are done yourself, or "everyone is waiting for you" when you are the only one left. */
   const WAIT_WORDS = { sponsor: 'picking a sponsor', spbids: 'sponsor bids', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
-    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', trade: 'a trade',
+    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'Upkeep', mres: 'reading the results', mres2: 'reading the results', trade: 'a trade',
     lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
   /* 2.0.1, fewer clicks (Kev, 15 Nov, after the Friday playtest: "too much clicking"). The host's page moves three kinds of
    * step on by itself:
@@ -8520,7 +8573,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let left = null;
     if (key) {
       const dt = Date.now() - AUTO.t0;
-      if (step[0] === 'upkeep') { if (dt >= 600) for (const s of hs) if (G.phase === 'upkeep' && !isDone(s) && upkeepIdle(s)) runAct(s, 'upkeepDone'); }
+      if (step[0] === 'upkeep') { if (dt >= 600 && BAL.upkeepAuto) for (const s of hs) if (G.phase === 'upkeep' && !isDone(s) && upkeepIdle(s)) runAct(s, 'upkeepDone'); }
       else if (AUTO_STEPS[step[0]]) {
         left = Math.ceil((AUTO_MS() - dt) / 1000);
         if (left <= 0) { left = null; AUTO.key = null; for (const s of hs) if (!isDone(s)) runAct(s, step[1]); }
@@ -9786,7 +9839,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   // the owner's screen: nothing to repair, parts it could move but did not touch the garage → Done after idleMs (no click)
   function garageIdleTick() {
-    if (!G || G.over || G.phase !== 'upkeep' || !garageOn() || window.__noAuto || BOT) { if (GD.left != null) { GD.left = null; } return; }
+    if (!G || G.over || G.phase !== 'upkeep' || !garageOn() || window.__noAuto || BOT || !BAL.upkeepAuto) { if (GD.left != null) { GD.left = null; } return; }   // T56: off unless BAL.upkeepAuto
     const t = gdSync(); if (!t || !gdMine()) { GD.left = null; return; }
     const on = upkeepIdle0(HS) && garageWork(t) && !GD.touched && !Object.keys(GD.place).length && !qOpen();
     let left = null;
@@ -9926,6 +9979,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else if (GD.sending) { ctx.fillStyle = '#2F7D4A'; ctx.textAlign = 'center'; fitText(ctx, '✓ SENT · WAITING FOR THE HOST', lx + lw / 2, fy + 48, lw, '700', 9.5, F_MONO); }
     }
   }
+  // T56: this round's format as a banner in the pit (hazard yellow for anything but a plain duel on open floor; that one is a quiet line)
+  function drawFmtBanner(ctx, cx, y, w) {
+    const f = roundFmt(); if (!f) return 0;
+    ctx.save(); ctx.textAlign = 'center';
+    if (f.plain) { ctx.fillStyle = '#CFC6B7'; fitText(ctx, 'THIS ROUND: ' + f.quiet.toUpperCase() + ' · ' + f.sub, cx, y + 14, w, '700', 11, F_MONO); ctx.restore(); help(cx - w / 2, y, w, 20, '⚔️ This round: a duel', 'A plain duel on open floor: the host invites 2 teams, each sends one robot.'); return 22; }
+    const h = 54, x = cx - w / 2;
+    ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; ctx.fillStyle = HAZ; rrect(ctx, x, y, w, h, 6); ctx.fill(); ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#1A1A12'; ctx.lineWidth = 3; rrect(ctx, x, y, w, h, 6); ctx.stroke();
+    ctx.fillStyle = '#1A1A12'; fitText(ctx, f.icon + ' ' + (f.next ? 'NEXT FIGHT' : 'THIS ROUND') + ': ' + f.head, cx, y + 26, w - 20, '400', 22, F_STEN);
+    fitText(ctx, f.sub, cx, y + 44, w - 20, '700', 11);
+    ctx.restore();
+    help(x, y, w, h, f.icon + ' This round: ' + esc(f.head), esc(f.sub) + '.');
+    return h + 8;
+  }
   function drawStandbyStage(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
     const pw = Math.min(L.aw - 48, 640), px0 = cx - pw / 2;   // the paper panels: centred, at most 640 wide
@@ -9933,7 +10000,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.phase === 'arena' && G.fight && G.fight.teams) {
       // the invited fight (any format: sides joined by VS, teams on a side by +)
       const F = G.fight, n = F.nSides || 2;
-      pitHead('4 · HOST · THE FIGHTERS', (F.arena && F.arena !== 'open' && ARENA_INFO[F.arena] ? 'ARENA: ' + ARENA_INFO[F.arena].name.toUpperCase() : 'OPEN FLOOR'));
+      const rf = roundFmt();
+      pitHead('4 · HOST · THE FIGHTERS', rf && !rf.plain ? rf.head : (F.arena && F.arena !== 'open' && ARENA_INFO[F.arena] ? 'ARENA: ' + ARENA_INFO[F.arena].name.toUpperCase() : 'OPEN FLOOR'));
+      drawFmtBanner(ctx, cx, cy - 136, pw);   // T56
       paperBox(ctx, px0, cy - 70, pw, 120);
       ctx.fillStyle = MUTED; fitText(ctx, 'NEXT FIGHT: ' + fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : ''), cx, cy - 42, pw - 30, '700', 11, F_MONO);
       const parts = [];
@@ -9945,8 +10014,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 8); px += ctx.measureText(p.t).width; });
       ctx.textAlign = 'center'; ctx.fillStyle = '#2F7D4A';
       fitText(ctx, pickWaiting('send') ? '✓ ' + pickWaiting('send').label : PS().choose ? '▶ Pick a robot: SEND TO THE PIT on its card (left) or in the note' : G.chooseMyBot ? 'Waiting for the invited teams…' : bookieOn ? '🎩 The bookie is watching test fights…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
-    } else if (G.phase === 'arena' && G.host === HS) {
-      pitHead('4 · HOST · YOU HOST', 'PICK 2 TEAMS');
+    } else if (G.phase === 'arena' && G.host === HS && !(G.arenaEvent && ['tag', 'final', 'ffa'].includes(G.arenaEvent.kind))) {   // T56: an event sets the teams: no "click 2 teams"
+      const rf = roundFmt();
+      pitHead('4 · HOST · YOU HOST', rf && !rf.plain ? rf.head : 'PICK 2 TEAMS');
+      drawFmtBanner(ctx, cx, cy - 118, pw);   // T56
       paperBox(ctx, px0, cy - 52, pw, 96);
       ctx.fillStyle = INK; fitText(ctx, 'CLICK 2 TEAMS TO INVITE THEM', cx, cy - 16, pw - 30, '400', 20, F_STEN);
       const picked = (G.pickTeams || []).map(i => G.teams[i].name).join('  vs  ');
@@ -9962,7 +10033,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       drawGarage(ctx, L, now);   // T38: the pit is your garage in Upkeep (the fame race sits small on top)
     } else {
       // Upkeep (and between steps): the fame race
-      if (G.phase === 'arena') pitHead('4 · HOST', G.host >= 0 ? (G.teams[G.host].name.toUpperCase() + ' HOSTS · PICKING THE FIGHTERS') : 'HOST: DECIDED IN THE MARKET', G.host >= 0 ? G.teams[G.host].col : HAZ);
+      if (G.phase === 'arena') pitHead('4 · HOST', G.host >= 0 ? (G.teams[G.host].name.toUpperCase() + ' HOSTS · ' + (roundFmt() && !roundFmt().plain ? roundFmt().head : 'PICKING THE FIGHTERS')) : 'HOST: DECIDED IN THE MARKET', G.host >= 0 ? G.teams[G.host].col : HAZ);
       else pitHead(G.phase === 'upkeep' ? '1 · UPKEEP · REPAIRS AND PAY' : PHASE_TITLE[G.phase] || 'STANDBY', 'FIRST TO ' + WIN_FAME + ' FAME WINS');
       paperBox(ctx, px0, y0 + 36, pw, 52 + G.teams.length * 34);
       ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'THE FAME RACE', px0 + 16, y0 + 60, 300, '700', 11, F_MONO);
@@ -9974,6 +10045,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         ctx.fillStyle = INK; ctx.textAlign = 'right'; fitText(ctx, tm.fame + '/' + WIN_FAME + ' · ' + tm.credits + ' Cr', px0 + pw - 16, ry + 13, 100, '600', 11, F_MONO);
       });
       help(px0, y0 + 36, pw, 52 + G.teams.length * 34, 'The fame race', 'Fame and credits of every team. ' + WIN_CHECKS);
+      if (G.phase === 'arena') drawFmtBanner(ctx, cx, y0 + 36 + 52 + G.teams.length * 34 + 12, pw);   // T56: this round's format (the other seats decide whether to ask for an invite)
     }
     // the Market's results stay on the floor while the host picks
     if (G.phase === 'arena' && G.marketResults && G.marketResults.length) {
@@ -10482,6 +10554,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - 230, y + h + 8, 460, 22, INK, 1.5);
       ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'Credits left: ' + hb, L.ax, y + h + 23, 440, '600', 10, F_MONO);
       help(L.ax - 230, y + h + 8, 460, 22, 'Credits left', 'What every team has left after the lots: that is all they can bid for hosting.');
+      { const rf = roundFmt(); if (rf && !rf.plain) drawFmtBanner(ctx, L.ax, y + h + 38, Math.min(L.aw - 40, 620)); }   // T56: an event already set for this round (Tag Team, Grand Final)
     } else pitHead('3 · MARKET · TRADE AND BID', 'SEALED BIDS · TRADE AND SELL WHILE YOU BID');
 
     if (G.marketStage !== 'host') FL.lotsY = stageToWorld(0, y + h).y;   // T55: the composer may grow up to here, never over the lots
@@ -10605,7 +10678,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const totalW = n * w + (n - 1) * gap, x0 = L.ax - totalW / 2;
     const AU = F.auction && !F.auction.done ? F.auction : null;   // with the card auction the robots move up
     const ay0 = L.ay; L = Object.assign({}, L, { ay: AU ? L.ay - L.ah / 2 + 30 + h / 2 : L.ay });
-    pitHead('5 · BETS · THE BOOKIE', fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : '') + (F.format === 'mirror' ? ' · EVERY ROBOT AS 2 COPIES' : F.event && F.event.kind === 'final' ? ' · GRAND FINAL: DOUBLE FAME' : ''));
+    { const rf = roundFmt(); pitHead('5 · BETS · THE BOOKIE', rf && !rf.plain ? rf.icon + ' ' + rf.head + (F.format === 'mirror' ? ' · EVERY ROBOT AS 2 COPIES' : '') : fightTitle(F).toUpperCase()); }   // T56: the round's format, as in the Host phase
     if (F.house) help(L.ax - 160, L.ay - h / 2 - 20, 320, 16, '🏠 House Robot', 'Big Mallet: a huge neutral robot with a giant hammer. It goes for whoever is closest, winds up (red ring and strobe) and slams where its target was. It rarely lands a hit, but a hit hurts and can take a lid off. Robots keep away from it. It does not count for the result: the fight ends when one team is left. Only if it outlasts every team does nobody get fame (bets refunded). The bookie\'s odds are closer to even with it in.');
     for (let s = 0; s < n; s++) {
       const ents = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === s);
@@ -10634,7 +10707,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const stockDuel = F.nSides === 2 && F.robots.length === 2 && F.robots.every(x2 => x2 && isStock(x2)) && !doubt;
       fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + (stockDuel ? ' ' + rangeTxt(F.p[s]) : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
-      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
+      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.bk ? bookieHelp(F).trim() + ' Face-down cards are secret and not in it.' : F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#8A4A10' : MUTED;
         fitText(ctx, dm.length ? '🔧 ' + dm.map(x2 => (robots.length > 1 ? x2.name + ': ' : '') + zoneTxt(x2)).join(' · ') : 'No damage · the bookie ignores face-down cards', x + w / 2, y + 100, w - 30, '600', 9.5);
@@ -10666,6 +10739,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, INK, 1.5);
       ctx.textAlign = 'center'; ctx.fillStyle = INK;
       fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, L.ay + h / 2 + 23, L.aw - 40, '600', 10.5);
+      if (bookieTxt(F)) { ctx.fillStyle = F.bk.used ? MUTED : '#8A4A10'; fitText(ctx, '🎩 Bookie: ' + bookieTxt(F), L.ax, L.ay + h / 2 + 44, L.aw - 40, '600', 10.5); help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 33, L.aw - 24, 15, '🎩 What the odds rest on', bookieHelp(F).trim()); }   // T56
       help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, '🎲 Public bets', 'Bets on the robots are public. When someone changes a bet, everyone who already locked is un-locked to react.'); }
   }
 
@@ -10674,7 +10748,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawCardAuction(ctx, L, ay0, F, AU, y) {
     const pub = (F.pubBets || []).map((b, i) => b ? G.teams[i].name.split(' ')[0] + ' ' + b.amt + ' Cr on ' + sideLabel(F, b.side) : null).filter(Boolean);
     ctx.textAlign = 'center'; ctx.fillStyle = INK;
-    fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);
+    fitText(ctx, (bookieTxt(F) ? '🎩 Bookie: ' + bookieTxt(F) + '   ·   ' : '') + '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);   // T56: what the odds rest on
     help(L.ax - L.aw / 2 + 12, y, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public and update live. When someone changes a bet, everyone who already locked is un-locked to react.');
     const my = PS().cardBid || [0, 0], free = me().credits - betStake(HS), n = AU.cards.length, gap = 14, cw = Math.min(330, (L.aw - 24 - gap * (n - 1)) / n), anyFl = AU.cards.some(hasFlavArt), ch = anyFl ? 96 : 84, cy = y + 20, cx0 = L.ax - (n * cw + (n - 1) * gap) / 2;
     AU.cards.forEach((id, k) => {
@@ -11381,6 +11455,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, playtest remarks', '22 Nov 2026', [
+      'The bookie is open about its odds: wherever a fight\'s odds are shown (the Bets pit, the yellow note, the fight\'s side card, a fighter\'s odds panel) a small line says what they rest on: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)", or "only 26 test fights: odds from the formula". Every screen shows the same.',
+      'The round\'s format can\'t be missed: in the Host phase (and the host bid, and Bets) a yellow banner in the pit and a headline in the note name it before the fighters are picked: 2v2 TAG TEAM (and who teams up), GRAND FINAL, FREE-FOR-ALL, MIRROR DUEL, 2 ROBOTS PER SIDE, + HOUSE ROBOT, and the arena when it is not open floor. A plain duel on open floor is one quiet line.',
+      'Upkeep waits for you: with nothing to repair it no longer moves on by itself (and no 8-second count with parts to move). Press "Nothing to repair · Done → Intrigue" when you are ready. The waiting list shows who is still in Upkeep. AI teams are unchanged.',
+    ]],
     ['2.0.1, the trading floor', '22 Nov 2026', [
       'Market: every open trade offer is now a ticket on the TRADING FLOOR, a panel under the pit, instead of a question in the yellow box. Answer them in any order with Yes, Counter or No while you keep bidding; the yellow box is back to your bids and Lock.',
       'Counter opens the offer in the panel with both sides already filled in (swapped to your side); change it and send it. It replaces the offer you answered. AI teams answer at once: yes when they come out ahead.',

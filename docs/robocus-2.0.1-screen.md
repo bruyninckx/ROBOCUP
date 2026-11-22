@@ -46,7 +46,7 @@ Kev: "when I clicked it it somehow didn't register, or perhaps it did register b
 
 ## Fewer clicks (Kev said yes to all four, 15 Nov)
 
-- Upkeep: a player with nothing to repair and no Stash part that fits (also no robots, round 1) is ready after 0.6 s (`upkeepIdle`, `autoStep`).
+- Upkeep: a player with nothing to repair and no Stash part that fits (also no robots, round 1) is ready after 0.6 s (`upkeepIdle`, `autoStep`). **Since T56 (22 Nov) off:** a person's Upkeep waits for their Done click; `BAL.upkeepAuto: true` brings this back (see the T56 section below).
 - Market results (after the lots, after the host bid) and "next round": go on by themselves after `BAL.autoMs` (6 s). The count only runs while nobody has something else to do (fitting a part, trade-in, open question, reaction window). The note shows "Goes on by itself in N s" (`G.autoLeft`); the button stays. `window.__noAuto = true` turns it off.
 - Bets: one chip per amount on each robot (`bet_amt`, `ACT.bet(S, side, amt)`); the same amount again takes the bet back. Lock bets is still a click (the card bids are in the same step).
 - A won part goes on at once (`applyMarketWins`, `BAL.autoFit`); since T12 also with two or three robots that can take it (see below). Since T47 (`BAL.autoFit: 'ask'`) the game asks first when two or more robots can take it.
@@ -90,7 +90,7 @@ Kev, 17 Nov (round 2 Upkeep, one broken Body on Wrecker): "also add repair optio
 - Order: broken zones first, then the worst damage (lowest health), then weapon, drive, body, then robots in bay order.
 - Fit: up to 3 buttons one per row (name left, cost right); from 4 on two per row with the cost on a second line. Done stays visible; the button list scrolls inside the note when it is longer (1600x900: 6 fit, 9 scroll; 1280x720: 2-3 rows show, the rest scroll).
 - Also in the note in Upkeep: `🔩 <part> → <robot>` for each Stash part that fits a robot now (hint: the odds), the same `act('fitStash', k, id, robotId)` as the Stash card's Fit.
-- Nothing to repair and no Stash part to fit: the old one-line text and Done (a person with nothing to do still goes on by itself after 0.6 s).
+- Nothing to repair and no Stash part to fit: the old one-line text and Done (a person with nothing to do still goes on by itself after 0.6 s). Since T56: "Upkeep: nothing to repair" and the button `Nothing to repair · Done → Intrigue`; it waits for the click.
 - Not changed: repair rules, costs, the zone buttons on the card, what is synced, the bots and AI teams.
 - Test: tools/mp-scenario/repair-note.js (solo, both screen sizes, screenshots), tools/mp-scenario/repair-note-online.js (a joined client presses the note buttons and the card zone).
 
@@ -342,3 +342,44 @@ Kev: "can we make some type of open auction panel so you can lock in trades with
 - The note no longer gets trade offers as questions and has no 🤝 buttons; it says how many offers wait on the floor. The hand steps down to a strip while the floor shows (hover it).
 - Actions `offerSend`, `offerAnswer`, `offerBack` (host); clocks on the host (`floorTick`, the question clock); `BAL.tradeFloor` false = the old flow (this section's tables above).
 - Test: tools/mp-scenario/trading-floor.js (solo 1905x932 and 1440x900, online 4 people). market-step.js, market-step-online.js, questions-note.js and vote-rules.js test the old flow with `tradeFloor: false`.
+
+## T56 (22 Nov 2026): Kev's playtest remarks: bookie count, the round's format, Upkeep waits
+
+Kev's game of 22 Nov (build 2026-11-22b, seat 0). Build 2026-11-22e.
+
+1. **"be open about how many fights the bookie was able to process".** The host's bookie writes what the odds rest on into the
+   fight (`F.bk = { n, used, early, off, min, file }`, set in `afterChoose`, synced with `G.fight` like the odds, display only).
+   `bookieTxt(F)` says it in words: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)",
+   "only 26 test fights: odds from the formula" (+ "(the host's game opened as a file)" when the fights ran on the page from a file),
+   "no test fights finished in time: odds from the formula", "no test fights (switched off): odds from the formula". Shown:
+   Bets pit (a line under the side cards, or before "Public bets" when fight cards are up for bids; brown when it is the
+   formula), the yellow note in Bets (small line), the hover help of each side's band (`bookieHelp`), the fight screen's side card
+   ("Bookie: … · from N test fights"), and a fighter's odds panel (click its odds chip) in Bets / Fight: "This fight: Fav pays 1.5× ·
+   odds from …". The log lines say "stopped early (clear favourite)" too; the fallback line now says "these odds come from the formula".
+   The Host phase shows no fight odds (the bookie runs after the fighters are in), so there is nothing to count there.
+2. **"should be more clear during host phase if special 2v2 or other event is happening".** `roundFmt()` reads the round's format:
+   from the fight once it is set up, else from what is known before the fighters are picked (`G.arenaEvent`: Tag Team, Grand
+   Final, free-for-all, Mirror; `G.houseRobot`; the host's robot count `G.hostCount` / `G.pendingFormat`; `G.arenaPick`), and in the
+   Market's host bid from `G.nextEvent` (a Tag Team or Grand Final played in Intrigue). Everything it reads is in `G`, so joined
+   screens show the same. Where:
+   - the pit: a hazard-yellow banner "🤝 THIS ROUND: 2v2 TAG TEAM" with a line under it ("Steel Bolts + Moss Gears vs the other two ·
+     the card set the teams: no invites"), over the fighters box, over the host's "click 2 teams" box, and under the fame race on the
+     other seats' screens; in the host bid as "NEXT FIGHT: …"; the pit's top-right title says the same in Host and Bets. A plain duel on
+     open floor: one quiet grey line "THIS ROUND: DUEL · OPEN FLOOR · the host invites 2 teams, one robot each".
+   - the yellow note: a dark headline chip "🤝 THIS ROUND: 2v2 TAG TEAM" + the line, first thing in the note in Host (every step: host
+     step, picking, waiting, sending), Bets and the host bid; nothing for a plain duel.
+   - the question "Host X picks the fighters · Make the host a deal?" starts with "This round: ⚔️ DUEL + HOUSE ROBOT (…)".
+   - A host whose round has a Tag Team, Grand Final or free-for-all no longer sees "CLICK 2 TEAMS TO INVITE THEM" during the host
+     step (the event sets the teams).
+   Formats: 2v2 TAG TEAM, 2v2 GRAND FINAL · DOUBLE FAME, FREE-FOR-ALL, MIRROR DUEL, DOUBLE DUEL · 2 ROBOTS PER SIDE, + HOUSE ROBOT,
+   · <ARENA> (with its one-line rule).
+3. **"when the upkeep phase was going but I was not in the fight and had no repairs, it automatically skipped to next phase, we
+   should have to click here I think, there are many options".** `BAL.upkeepAuto` (default **false**): a person's Upkeep ends only
+   with their Done. Off are the host's 0.6 s skip for a person with nothing to do (`autoStep`) and the garage's 8 s count for a
+   person with parts to move who touches nothing (`garageIdleTick`, `BAL.garage.idleMs`). The note says "Upkeep: nothing to repair.
+   Your robots are fine. Take your time: look over your cards, your Stash and your garage. Upkeep ends when you press Done." and the
+   button "Nothing to repair · Done → Intrigue" (also in the garage note when there is no bill). The waiting list says "Upkeep"
+   (was "repairs") for each person still in it. AI teams: unchanged (they finish Upkeep on the host at once). The test bot
+   (`?bot=1`) already pressed Done after its repairs; `tools/mp-scenario/garage.js` now checks that Upkeep waits (with and without
+   parts), that the Done click ends it, and the old way with `upkeepAuto: true`.
+
