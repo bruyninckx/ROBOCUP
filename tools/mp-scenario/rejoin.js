@@ -16,6 +16,10 @@
 //   node tools/mp-scenario/rejoin.js [seed=7] [screenshotFolder]
 const { setup } = require('./lib.js');
 const path = require('path'), fs = require('fs');
+// what the test bot does for a question it missed: a random answer in the note, No in a deal panel (lib.js setup does the same)
+const answerOpen = () => { const bs = [...document.querySelectorAll('#promptBar.rxmode [data-rk]:not(:disabled), #promptBar.qmode [data-rk]:not(:disabled)')]; if (bs.length) bs[Math.floor(Math.random() * bs.length)].click();
+  const m = document.getElementById('ivModal'); if (m && !m.hidden) { const b = [...m.querySelectorAll('button[data-k]')]; if (b.length) b[Math.floor(Math.random() * b.length)].click(); }
+  const d = document.getElementById('dealModal'); if (d && !d.hidden) { const no = d.querySelector('[data-k="no"]'); if (no) no.click(); } };
 (async () => {
   const seed = +process.argv[2] || 7, shots = process.argv[3]; if (shots) fs.mkdirSync(shots, { recursive: true });
   const bad = [], want = (c, m) => { if (!c) bad.push(m); }, say = (...a) => console.log(...a);
@@ -147,7 +151,11 @@ const path = require('path'), fs = require('fs');
   const hostSt = () => host.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; return { ph: G.phase, round: G.round, open: D.mktOpen(), cr: G.teams.map(t => t.credits), offers: (G.offers || []).map(o => o.id + ':' + o.from + '>' + o.to), done: (G.floorDone || []).map(x => x.from + '>' + x.to + ':' + x.res) }; });
   const all = () => [host, seatOf[1], seatOf[2], seatOf[3]].filter(Boolean);
   const playTo = async (f, ms = 240000) => { await Promise.all(all().map(p => p.evaluate(() => { window.__noBot = false; }))); const t0 = Date.now(); let ok = false;
-    while (Date.now() - t0 < ms) { if (await host.evaluate(f)) { ok = true; break; } await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const s = v.querySelector('.fv-skip:not([hidden])'); if (s) s.click(); const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); } }); await sleep(250); }
+    let k = 0;
+    while (Date.now() - t0 < ms) { if (await host.evaluate(f)) { ok = true; break; }
+      if (++k % 8 === 0) for (const p of all()) await p.evaluate(answerOpen).catch(() => {});   // a question that opened while the bots were frozen missed its bot answer (as in lib.js setup)
+      await host.evaluate(() => { const v = document.getElementById('fightView'); if (v && !v.hidden) { const s = v.querySelector('.fv-skip:not([hidden])'); if (s) s.click(); const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); } }); await sleep(250); }
+    if (!ok) for (const p of all()) say('   screen ' + await p.evaluate(() => window.ROBOCUS_GAME.HS).catch(() => '?') + ': ' + await require('./lib.js').modal(p).catch(e => e.message));
     if (!ok) say('   (stuck at: ' + await host.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; return G.round + ' ' + G.phase + ' ' + (G.marketStage || '') + ' busy ' + [0, 1, 2, 3].map(s => window.ROBOCUS_GAME.seatBusyWith(s) || '-').join('|') + ' seats ' + window.ROBOCUS_GAME.SEATS + ' note: ' + (document.getElementById('promptBar') || {}).innerText; }).catch(e => e.message) + ')');
     await Promise.all(all().map(p => p.evaluate(() => { window.__noBot = true; }))); await sleep(1500); return ok; };
   // ---------- 3. "Who steps in?" asked of a joined host who drops (a fresh room, frozen in round 1's Intrigue)
