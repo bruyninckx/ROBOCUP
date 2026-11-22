@@ -30,12 +30,12 @@ function render(A) {
   o('');
   // ---------- epics
   const old = A.old || { fit: {}, epic: {}, triple: {} };
-  const row = (id, x) => { const [n, k] = id.split('|'); return `| ${n} + ${PN(k)} | ${P(x.v.wo)}% → ${P(x.v.w)}% | ${rng(x.v)} | ${S(x.x)} | ${P(x.all.wo)}% → ${P(x.all.w)}% (${x.all.n}) |`; };
+  const row = (id, x) => { const [n, k] = id.split('|'); return `| ${n} + ${PN(k)} | ${P(x.v.wo)}% → ${P(x.v.w)}% | ${rng(x.v)} | ${S(x.x)} | ${P(x.all.wo)}% → ${P(x.all.w)}% (${x.all.n})`; };
   const hdr = () => { o('| Robot + part | Verify: without → with | Gain (95%) | Over avg | All fights: without → with (fights) |'); o('|---|---|---|---|---|'); };
   o('## 2. Epic combos (gain 30+ and 20+ over the part\'s average, on both seed sets)');
   o('');
   const ep = kv.filter(([, x]) => x.final === 'epic'), epNew = ep.filter(([id]) => !old.epic[id]);
-  if (ep.length) { hdr(); for (const [id, x] of ep.sort((a, b) => b[1].v.m - a[1].v.m)) o(row(id, x) + (old.epic[id] ? ` (in the game: ${old.epic[id][0]})` : ' **new**')); } else o('None found.');
+  if (ep.length) { hdr(); for (const [id, x] of ep.sort((a, b) => b[1].v.m - a[1].v.m)) o(row(id, x) + (old.epic[id] ? ` (in the game: ${old.epic[id][0]})` : ' **new**') + ' |'); } else o('None found.');
   o('');
   for (const [id, x] of ep) res.epic[id] = [old.epic[id] ? old.epic[id][0] : 'NEW ' + id.replace('|', ' + '), P(x.all.wo), P(x.all.w), x.all.n];
   o(`New: ${epNew.length ? epNew.map(([id]) => id.replace('|', ' + ')).join(', ') : 'none'}.`);
@@ -50,9 +50,9 @@ function render(A) {
   o('');
   const gr = kv.filter(([, x]) => x.final === 'great' || x.final === 'epic'), po = kv.filter(([, x]) => x.final === 'poor');
   o('### Great fits (15+ over the part\'s average)'); o('');
-  if (gr.length) { hdr(); for (const [id, x] of gr.sort((a, b) => b[1].x - a[1].x)) { const [n, k] = id.split('|'); o(row(id, x) + (old.fit[n] && old.fit[n][k] ? '' : ' **new**')); } } else o('None found.');
+  if (gr.length) { hdr(); for (const [id, x] of gr.sort((a, b) => b[1].x - a[1].x)) { const [n, k] = id.split('|'); o(row(id, x) + (old.fit[n] && old.fit[n][k] ? '' : ' **new**') + ' |'); } } else o('None found.');
   o(''); o('### Poor fits (15+ below the part\'s average)'); o('');
-  if (po.length) { hdr(); for (const [id, x] of po.sort((a, b) => a[1].x - b[1].x)) { const [n, k] = id.split('|'); o(row(id, x) + (old.fit[n] && old.fit[n][k] ? '' : ' **new**')); } } else o('None found.');
+  if (po.length) { hdr(); for (const [id, x] of po.sort((a, b) => a[1].x - b[1].x)) { const [n, k] = id.split('|'); o(row(id, x) + (old.fit[n] && old.fit[n][k] ? '' : ' **new**') + ' |'); } } else o('None found.');
   for (const [id, x] of gr.concat(po)) { const [n, k] = id.split('|'); (res.fits[n] = res.fits[n] || {})[k] = [x.final === 'poor' ? -1 : 1, P(x.all.m)]; }
   o('');
   o('### The game\'s fits today that did not hold'); o('');
