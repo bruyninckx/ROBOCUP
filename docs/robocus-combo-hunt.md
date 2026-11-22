@@ -139,7 +139,7 @@ estimate (the size of stages 3-4 depends on what stage 2 finds; on the slice its
 - The slice (below) ran end to end; it was stopped by a kill in stage 1 (492 fights on file) and started again: it said "going on
   from an earlier run: 492 fights on file" and finished with 7,678 fights, no fight twice in the file.
 - Determinism: 30 fights picked across all stages of the slice were fought again in a fresh process: 30 of 30 identical (score,
-  length to 0.1 s, how it ended). Two separate runs of a smaller slice (Thwacker and Angler, `--screen=1`): see "Two runs" below.
+  length to 0.1 s, how it ended). Two separate runs of a smaller slice end to end, at the same time in two folders (Thwacker and Angler, `--screen=1 --depth=0`, 2,148 fights each): the fight files are identical line for line (sorted: the order of lines depends on which worker finishes first), `analysis.json` and `combo-results.json` identical, `report.md` identical apart from the measured speed in its first line.
 - No engine change: stock-fight fingerprint (`l4-regress.js | md5sum`) **470f6923**, nothing under `src2/` changed (files stamp
   28762982, sync check 89a95280 untouched), game-sim check 2/2 finished, 0 page errors.
 
