@@ -214,3 +214,76 @@ Kev's playtest of 22 Nov (build 2026-11-22b, 14 workers): the bookie ran 200, 60
 - The log line says "stopped early (clear favourite)" when it did; the fallback line says "these odds come from the formula"
   (was "its estimate, as before").
 
+
+## 22 Nov (T62): the bookie gap, found and fixed
+
+Kev's game of 22 Nov (build 2026-11-22e), round 11, open floor: his Gyro (level 2, Race-spec Booster drone, Race-spec Jammer
+drone, Quantum shield) against Rust Rivets' Scavenger (level 3, Overdrive, Weapon overhaul). The bookie's helpers counted Gyro
+**69 of 126** test fights (odds 55%); the same fight rebuilt (T60, `docs/robocus-gyro-scavenger.md`) gives Gyro **51 of the
+same 126 seeds** (40%). The group is "very sensitive about not having the right odds", so this mattered.
+
+### What was wrong (in plain words)
+
+The game tunes how strong each part card's drone or module is (the "part dials": Booster 0.85, Jammer 1.1, Quantum shield 0.85,
+Blocker 2.9, Repair kit 12, Medic 0.68 and so on; `LU.usePK()` in `src2/lineup.js` writes them into the engine when the page
+loads). The bookie's helpers (the background fights, used whenever the game runs from `play-latest` or GitHub Pages) load only the
+engine, not the lineup file, so **in the helpers every part card fought with the engine's default dial of 1**. The fight in the
+arena, the page's own fallback, the T60 rebuild and online clients all use the tuned dials. So the bookie's test fights were
+not quite the fight the arena runs whenever a part card with a drone or module was in it.
+
+Numbers (same 126 seeds, the bookie's own seeds for round 11, side 0 = Gyro):
+
+| Who ran the fights | Gyro wins |
+|---|---|
+| Bookie on Kev's PC (14 helpers, 4 s) | 69 of 126 |
+| Node, engine default dials (what the helpers did) | 68 of the first 126 seeds |
+| Served page, old helpers (main b219f07, `tools/bookie-page-check.js --root=`) | 68 of 126 |
+| Served page, the page itself (the real fight's engine) | 51 of 126 |
+| Served page, **new helpers** | **51 of 126**, same winner and same fight time on 126 of 126 seeds |
+
+Same fights, fight by fight: 54 of the first 140 seeds have a different winner with and without the dials. Round 9 (Killbox, same
+two robots) was hardly touched by it: 102 of 160 seeds without the dials, 105 of 160 with them (the bookie said 101 of 154).
+
+How much it mattered elsewhere: 20 fights from two AI games (duels, double duels, 2v2, 11 with part cards), 40 seeds each with
+and without the dials: on average 0.6 points apart (1.3 with part cards, 0 without; largest 5 points, none 15+). Most of those
+fights were lopsided, where a dial does not move the count; Kev's Gyro vs Scavenger was a close fight decided by drones and a
+shield, the worst case. Any close fight with part-card drones or modules could be off by that much.
+
+### Ruled out (with numbers)
+
+- **Wrong robots**: tiers (`~2` Race-spec reach the helpers in `r.rar`), drones, the Quantum shield, wear, arena, sides, countdown 0
+  and seeds are the same in the bookie and the arena: the fight the page builds for the helpers equals the one the replay tool
+  builds from the log on 11 of 11 fights of an AI game (worn robots, double duels and 2v2 among them).
+- **Results of an earlier fight leaking in**: each run has its own number (`gen`); a late result of round 10's run is dropped.
+- **The time cut**: a fight still running at the cut was dropped, so slow fights went missing more often. In this matchup Gyro's
+  wins are the slow ones (median 90 s of fight against 81 s for its losses), so the cut leaned *against* Gyro: about 0.5 points at
+  126 fights and 1.2 at 60 (simulated with 14 helpers over 41 windows of the 1,000 T60 fights). On the 20 mixed fights: 0.3 points.
+  Small, and the wrong way to explain the gap, but a lean all the same: fixed too (below).
+- **Face-down cards / live cards**: not in the bookie by design; T60 measured them (Smudged Lens about −10 points for Gyro).
+
+### What changed (build 2026-11-22h)
+
+- The helpers get the page's part dials (and the live-card numbers) with every test fight, so they fight exactly as the arena does.
+  The odds overview on Market lots used the same helpers and is fixed by the same change.
+- Only an unbroken run of seeds from the first one counts (seeds 0 to k−1, all finished). A slow fight no longer goes missing while
+  faster later ones count. Cost: about 5-8 fewer fights counted per run (14 helpers), none of them biased. The early stop
+  (`stopN` / `stopMiss`) looks at that same run.
+- The `bookie` event in the playtest log now also carries: `fmt`, `arena`, `house`, `lb` (level boost), `wear`, `seed0` (the first
+  seed), `sent`, `late` (fights that finished after a slower earlier one was cut, not counted), `rb` (each robot: team, side, name,
+  level, parts, tiers, wear: open information only, as the bookie sees it) and `per` (per seed "side:seconds", e.g. `0:66.5 1:103.5`).
+  About 0.8 KB with 40 fights, 1.5-2 KB with 200 (wear adds 0.4-0.8 KB a worn robot).
+- `node tools/bookie-replay.js <log.json> [round] [--n=200] [--nopk]` re-runs the bookie's fights from such a log and prints the
+  count next to the logged one, and the seeds that differ (`--n` runs more seeds, `--nopk` runs them as the old helpers did).
+  Checked: a served page's log (40 fights), 40 of 40 the same winner and fight time, 26 s on the test box. Logs from before
+  2026-11-22h have no replay data and say so.
+- `tools/bookie-page-check.js` serves the page, stages Kev's round 11 and compares the helpers with the page seed by seed.
+
+### What Kev will see
+
+- Fights with part cards that have drones or modules can get different odds than before (his round 11 would have read about
+  42% for Gyro, "Even" band still, instead of 55%). Fights without part cards: no change.
+- The bookie line may show a few fewer test fights ("watched N test fights"): the ones cut short no longer count, and nor do the
+  faster ones behind them.
+- Odds are still worked out on the host only and reach other screens in the synced state. All-AI game-sim games never run the
+  bookie (autopilot skips it), so their odds do not change: 30 games, seeds 1-30, on main b219f07 and on this branch: identical
+  games (30 of 30), favourite wins 74% of 344 fights both, Brier 0.174 both (coin 0.249).

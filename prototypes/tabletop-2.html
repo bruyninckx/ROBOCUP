@@ -848,6 +848,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
     oddsDamage: true,             // Kev, 16 Nov (K5): the formula odds count damage again, like the test fights (false = read every robot as new, the 15 Nov test)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
+    toughTag: 0.20,               // Kev, 22 Nov (T60/T62: "20 is good me think"): the power map's "tough matchup" mark from this far off the level gap (up to counterTag); was 0.15
     counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
@@ -3802,7 +3803,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22g power map: click a robot of this game and every other one shows its odds against it, tough matchups marked';   // was: 2026-11-22f the host picks who steps in
+  const BUILD = 'tabletop 2.0.1 2026-11-22h bookie: test fights in the helpers fight with the game\'s part tuning, no lean from the time cut';   // was: 2026-11-22g power map: click a robot, its odds against every other one
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -6485,7 +6486,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let live = 0;
     for (const o of BOOKIE.pool || []) { if (o.dead) continue; if (o.ready) live++; if (!o.ready || o.busy) continue;
       const nx = ovrNext(); if (!nx) break;
-      o.busy = true; nx.c.fly.add(nx.i); o.w.postMessage({ gen: { ovr: nx.c.key, i: nx.i }, bb: ovrBB(nx.c, nx.i), seed: ovrSeed(nx.c.sk, nx.i) }); }
+      o.busy = true; nx.c.fly.add(nx.i); o.w.postMessage(bkJob({ ovr: nx.c.key, i: nx.i }, ovrBB(nx.c, nx.i), ovrSeed(nx.c.sk, nx.i), nx.i)); }
     OVR.how = live ? 'on ' + live + ' helper' + (live > 1 ? 's' : '') + ' beside the game' : 'starting the helpers';
   }
   // the fight bookie (simOdds) owns the pool while it runs: then wait. A page opened from a file (no helpers) runs the fights on the
@@ -7486,6 +7487,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * House Robot counted); stopN / stopMiss = stop early once stopN fights are in and the other sides together have won stopMiss or
    * fewer (the odds are at the cap whatever comes next). docs/robocus-sim-bookie.md */
   const bookieCfg = () => Object.assign({ n: 200, ms: 4000, msBig: 8000, min: 40, prior: 8, cap: 14, stopN: 60, stopMiss: 1 }, BAL.bookie || {});
+  // T62: one helper job; it carries the page's part dials (ARC.pk) and live-card numbers, so a helper fights the game's fight
+  const bkJob = (gen, bb, seed, i) => ({ gen, bb, seed, i, pk: DL.ARC.pk, lk: DL.LIVE_K || null });
   function bookiePool() {
     if (BOOKIE.pool || BOOKIE.bad) return BOOKIE.pool;
     try {
@@ -7493,7 +7496,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const U = { d: one('dmath.js'), e: one('src2/engine.js'), p: all.filter(u => /planck/.test(u)) };
       if (!U.d || !U.e || !U.p.length || !window.Worker || location.protocol === 'file:') { BOOKIE.bad = true; return null; }
       const code = 'const U=' + JSON.stringify(U) + ';let ok=false;try{importScripts(U.d);for(const u of U.p){try{importScripts(u);}catch(e){}if(self.planck)break;}importScripts(U.e);ok=!!(self.DamageLab&&self.planck);}catch(e){}postMessage({ready:ok});' +
-        'onmessage=m=>{const d=m.data;let r;try{const bb=d.bb;bb.seed=d.seed;const S=self.DamageLab.create(bb);let g=0;while(!S.over&&g++<48000){self.DamageLab.step(S);S.fx.length=0;}const x=S.result;r=x?{winner:x.winner,winTeam:x.winTeam,multi:!!S.multi,mode:S.mode}:{none:1};}catch(e){r={err:String(e&&e.message)};}postMessage({gen:d.gen,r});};';
+        // T62: the page's part dials (LU.usePK() sets the engine's ARC.pk on the page; a helper loads only the engine, so without
+        // this its Booster, Jammer, Quantum shield, Blocker... fought at the engine's default potency 1, not the game's)
+        'onmessage=m=>{const d=m.data;let r;try{const A=self.DamageLab.ARC;if(d.pk){for(const k in A.pk)delete A.pk[k];Object.assign(A.pk,d.pk);}if(d.lk&&self.DamageLab.LIVE_K)Object.assign(self.DamageLab.LIVE_K,d.lk);const bb=d.bb;bb.seed=d.seed;const S=self.DamageLab.create(bb);let g=0;while(!S.over&&g++<48000){self.DamageLab.step(S);S.fx.length=0;}const x=S.result;r=x?{winner:x.winner,winTeam:x.winTeam,multi:!!S.multi,mode:S.mode}:{none:1};r.t=Math.round(S.t*10)/10;}catch(e){r={err:String(e&&e.message)};}postMessage({gen:d.gen,i:d.i,r});};';
       const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
       const n = Math.max(1, Math.min(bookieCfg().cap || 8, (navigator.hardwareConcurrency || 4) - 2));
       BOOKIE.pool = Array.from({ length: n }, () => {
@@ -7506,7 +7511,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   setTimeout(() => { try { if (!isClient() && !(BOT && !WATCH)) bookiePool(); } catch (e) {} }, 5000);   // warm before the first fight
   const sideOfRes = (F, botEnt, r) => { if (!r || r.none) return -1; if (r.multi && r.mode === '2v2') return r.winTeam === 9 ? 'house' : r.winTeam; const e = botEnt[r.winner]; return e == null || e < 0 ? 'house' : F.sides[e]; };
-  const simOne = (bb, seed) => { const S = DL.create(Object.assign(clone(bb), { seed })); let g = 0; while (!S.over && g++ < 48000) { DL.step(S); S.fx.length = 0; } const x = S.result; return x ? { winner: x.winner, winTeam: x.winTeam, multi: !!S.multi, mode: S.mode } : { none: 1 }; };
+  const simOne = (bb, seed) => { const S = DL.create(Object.assign(clone(bb), { seed })); let g = 0; while (!S.over && g++ < 48000) { DL.step(S); S.fx.length = 0; } const x = S.result, r = x ? { winner: x.winner, winTeam: x.winTeam, multi: !!S.multi, mode: S.mode } : { none: 1 }; r.t = Math.round(S.t * 10) / 10; return r; };
   async function simOdds(F, opt) {
     const C = Object.assign(bookieCfg(), opt || {});
     if (!C.n || (G.fast && !opt) || window.__noBookie) return null;
@@ -7514,22 +7519,31 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const bots = m.botEnt.length, ms = bots >= 3 && C.msBig ? Math.max(C.ms, C.msBig) : C.ms;   // T52: 3+ robots (copies, House Robot) get the longer budget
     const budget = BOT && !WATCH && !window.__bookieFull && !opt ? Math.min(C.ms, 400) : opt && opt.ms ? opt.ms : ms;   // bot test games: no long wait
     const bb = clone(m.bb); bb.countdown = 0;
-    let sd = ((G.round * 7919 + (F.teams || []).reduce((a, t) => a * 31 + t + 1, 17)) ^ 0x5bd1e995) >>> 0; const nextSeed = () => { sd = (Math.imul(sd, 1664525) + 1013904223) >>> 0; return sd; };
-    const t0 = performance.now(), wins = {}, gen = ++BOOKIE.gen; let n = 0, sent = 0, how = 'page', stop = false;
-    const count = r => { if (!r || r.err) return; const k = sideOfRes(F, m.botEnt, r); n++; wins[k] = (wins[k] || 0) + 1;
+    const seed0 = ((G.round * 7919 + (F.teams || []).reduce((a, t) => a * 31 + t + 1, 17)) ^ 0x5bd1e995) >>> 0; let sd = seed0; const nextSeed = () => { sd = (Math.imul(sd, 1664525) + 1013904223) >>> 0; return sd; };
+    const t0 = performance.now(), gen = ++BOOKIE.gen; let wins = {}, n = 0, sent = 0, how = 'page', stop = false;
+    /* T62: results are kept by seed number and only an unbroken run from the first seed counts (seeds 0..k-1, all finished). Before,
+     * every fight that finished inside the budget counted and the ones still running at the cut were dropped: slow (long) fights
+     * went missing more often than quick ones, which favours the side that wins fast. */
+    const got = [];
+    const tally = () => { wins = {}; n = 0; let k = 0; while (got[k]) { const r = got[k]; if (!r.err) { const s = sideOfRes(F, m.botEnt, r); n++; wins[s] = (wins[s] || 0) + 1; } k++; } return k; };
+    const count = (i, r) => { if (!r || got[i]) return; got[i] = r; tally();
       if (C.stopN && n >= C.stopN && n - Math.max(...Object.values(wins)) <= (C.stopMiss || 0)) stop = true; };   // T52: clear result, stop early
     const pool = bookiePool();
     if (pool && pool.some(o => !o.dead)) {
       await new Promise(res => { let fin = false; const done = () => { if (!fin) { fin = true; res(); } };
-        const feed = () => { if (fin) return; const live = pool.filter(o => !o.dead); if (!live.length || n >= C.n || stop) return done(); for (const o of live) if (o.ready && !o.busy && sent < C.n) { o.busy = true; sent++; o.w.postMessage({ gen, bb, seed: nextSeed() }); } };
-        BOOKIE.onready = feed; BOOKIE.onres = d => { if (d.gen === gen) count(d.r); feed(); };
+        const feed = () => { if (fin) return; const live = pool.filter(o => !o.dead); if (!live.length || n >= C.n || stop) return done(); for (const o of live) if (o.ready && !o.busy && sent < C.n) { o.busy = true; o.w.postMessage(bkJob(gen, bb, nextSeed(), sent)); sent++; } };
+        BOOKIE.onready = feed; BOOKIE.onres = d => { if (d.gen === gen) count(d.i, d.r); feed(); };
         setTimeout(done, budget); feed(); });
       BOOKIE.onres = null; BOOKIE.onready = null;
       if (n) how = pool.filter(o => o.ready && !o.dead).length + ' workers';
     }
     const pageMs = Math.min(budget, opt && opt.ms ? opt.ms : C.ms);   // T52: on the page itself (no helpers) a fight blocks the screen: no longer budget there
-    if (!n) while (n < C.n && !stop && performance.now() - t0 < pageMs) { try { count(simOne(bb, nextSeed())); } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); }
-    return { n, wins, ms: Math.round(performance.now() - t0), how, budget: how === 'page' ? pageMs : budget, bots, stop };
+    if (!n) { got.length = 0; sd = seed0; sent = 0;   // nothing usable from the helpers: the page runs the same seeds itself, from the first
+      while (n < C.n && !stop && performance.now() - t0 < pageMs) { try { count(sent, simOne(bb, nextSeed())); sent++; } catch (e) { break; } await new Promise(r => setTimeout(r, 0)); } }
+    const k = tally(), late = got.filter(Boolean).length - k;   // late: fights that finished after an earlier, slower one was cut (not counted)
+    // T62, for the playtest log: per seed 0..k-1 the winning side (h = House, - = none or error) and the fight's seconds
+    const per = got.slice(0, k).map(r => { const s = r.err ? '-' : sideOfRes(F, m.botEnt, r); return (s === 'house' ? 'h' : s === -1 ? '-' : s) + ':' + (r.t != null ? r.t : ''); }).join(' ');
+    return { n, wins, ms: Math.round(performance.now() - t0), how, budget: how === 'page' ? pageMs : budget, bots, stop, seed0, sent, late, per };
   }
 
   // T35: appearance money held back until the result (BAL.fan.loserShare < 1): winners get it all, losers (and a draw) that share
@@ -7575,7 +7589,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup' + (sim.stop ? ' and stopped early (clear favourite)' : '') + ' (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
       }
       else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds come from the formula.', '#b45309');
-      tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
+      tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN,
+        // T62: what tools/bookie-replay.js needs to run the same test fights again: the robots as the helpers saw them (open information),
+        // arena, format, the first seed, how many were sent / finished late, and per seed the winning side and the fight's seconds
+        fmt: F.format, arena: F.arena || 'open', house: !!F.house, lb: BAL.levelBoost || 0, wear: BAL.wear !== false, seed0: sim ? sim.seed0 : null, sent: sim ? sim.sent : 0, late: sim ? sim.late : 0,
+        rb: F.robots.map((r, e) => r ? { t: F.teams[e], s: F.sides[e], nm: r.name, lv: r.level, p: partsOf(r), rar: r.rar || undefined, w: r.wear ? clone(r.wear) : undefined } : null), per: sim ? sim.per : '' }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
     if (F.robots.some(r => quirkOf(r) === 'Underrated')) notify('✦ Underrated: the bookie lists Artillery\'s side one band lower than its numbers.', '#111');
@@ -11323,16 +11341,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* T60 (Kev, 22 Nov: Scavenger "really slapped my stacked gyro although it was not an indication in the power map", "also not if I
    * clicked on it"): click one of this game's robots and every other robot of this game gets its bookie band against it on its token
    * (pairP on open floor, parts and damage counted, the scout panel's chip), and a robot that is a TOUGH matchup for the clicked one
-   * (as they come, from the table: PM_TOUGH = 15 to 39 points better for it than the level gap gives; 40+ is the game's ⚠️ counter)
+   * (as they come, from the table: BAL.toughTag = 20 to 39 points (15 until 22 Nov) better for it than the level gap gives; 40+ is the game's ⚠️ counter)
    * gets an amber marker. Display only: pairP and the table are read, nothing is written. */
-  const PM_TOUGH = 0.15;
+  const PM_TOUGH = () => BAL.toughTag != null ? BAL.toughTag : 0.2;   // T62: in BAL (Kev, 22 Nov: 20 points, was 15)
   function pmVs(sel) {
     if (!sel || !pmInGame(sel)) return null;
     const out = new Map(), r = sel.r;
     for (const it of PM.items) { if (it === sel || !pmInGame(it) || it.r === r || !pmShown(it)) continue;
       const p = pairP(it.r, r, 'open'), c = oddsChip(p, false, isStock(r) ? it.r : null), m = mxP(it.name, r.name, 'open'), e = MX_EXP[baseLv(it.r) - baseLv(r)];
       const d = m && e != null ? m.p - e : 0;   // how much better it does as new than the level gap gives (+ = tough for the clicked robot)
-      out.set(it, { p, chip: c, band: bandOf(p), d, m: m ? m.p : null, e, tough: d >= PM_TOUGH - 1e-9 && d < BAL.counterTag - 1e-9, counter: d >= BAL.counterTag - 1e-9, easy: d <= -BAL.counterTag + 1e-9 }); }
+      out.set(it, { p, chip: c, band: bandOf(p), d, m: m ? m.p : null, e, tough: d >= PM_TOUGH() - 1e-9 && d < BAL.counterTag - 1e-9, counter: d >= BAL.counterTag - 1e-9, easy: d <= -BAL.counterTag + 1e-9 }); }
     return out;
   }
   const PM_AMBER = '#C77A12';
@@ -11463,7 +11481,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
       '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
       '<p>A robot with parts or damage stands where it <b>fights now</b> (a great or poor fit and an epic combo count too, as the bookie counts them), with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
-      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. Click one of <b>this game\'s</b> robots and every other robot of this game shows its bookie band against it on its token (e.g. <span class="pm-pill" style="background:#4C8A3F">Favourite vs Gyro</span>); a dashed amber ring marks a <b>tough matchup</b> (15-39 points better than the level gap gives, as they come).</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
+      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. Click one of <b>this game\'s</b> robots and every other robot of this game shows its bookie band against it on its token (e.g. <span class="pm-pill" style="background:#4C8A3F">Favourite vs Gyro</span>); a dashed amber ring marks a <b>tough matchup</b> (' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' points better than the level gap gives, as they come).</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
     const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
     // a row per counter, strongest first: a bar as thick as its arrow and as long as how far it is off the level odds
     const li = (c, good) => { const win = good ? c.p : 1 - c.p, exp = good ? c.e : 1 - c.e, w = pmW(c.d), L = Math.round(8 + 46 * Math.min(1, (c.d - PM_MIN) / (PM_TOP - PM_MIN)));
@@ -11480,10 +11498,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const V = PM.vs && PM.sel === it ? PM.vs : pmVs(it), rows = V ? [...V.entries()].sort((a, b) => b[1].p - a[1].p) : [];
       const who = x => x.kind === 'team' ? '<b style="color:' + x.T.col + '">' + esc(x.T.i === viewerSeat ? 'You' : x.T.name.split(' ')[0]) + '</b> ' : x.kind === 'lot' ? '<b style="color:#D9731A">LOT</b> ' : '<b style="color:#A79C8C">NEXT</b> ';
       const mark = v => v.counter ? '<span class="pm-tough c" title="A counter (the game\'s ⚠️ tag): as they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '%">⚠️ counter</span>'
-        : v.tough ? '<span class="pm-tough" title="As they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '% (' + Math.round(v.d * 100) + ' points better: 15-39 = tough, 40+ = a ⚠️ counter)">tough matchup</span>' : v.easy ? ' 🎯' : '';
+        : v.tough ? '<span class="pm-tough" title="As they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '% (' + Math.round(v.d * 100) + ' points better: ' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' = tough, ' + Math.round(BAL.counterTag * 100) + '+ = a ⚠️ counter)">tough matchup</span>' : v.easy ? ' 🎯' : '';
       vs = '<div class="pm-vsbox"><div class="pm-h">Each robot in this game against ' + esc(r.name) + '</div>' + (rows.length ? '<table class="pm-vs">' + rows.map(([x, v]) =>
         '<tr' + (v.tough || v.counter ? ' class="tg"' : '') + '><td>' + who(x) + esc(x.r.name) + (v.tough || v.counter ? '<br>' + mark(v) : v.easy ? mark(v) : '') + '</td><td><span class="sc-chip" style="background:' + v.chip.col + '">' + esc(v.chip.text) + '</span></td></tr>').join('') + '</table>' : '<p class="pm-n">No other robots in this game yet.</p>') +
-        '<p class="pm-n">Their bookie odds against ' + esc(r.name) + ' in a duel on open floor, parts and damage counted (also written on their tokens). Toughest for ' + esc(r.name) + ' first. <span class="pm-tough">tough matchup</span> = as they come they do 15-39 points better against it than the level gap gives; ⚠️ = 40+ (a counter); 🎯 = ' + esc(r.name) + ' counters it.</p></div>';
+        '<p class="pm-n">Their bookie odds against ' + esc(r.name) + ' in a duel on open floor, parts and damage counted (also written on their tokens). Toughest for ' + esc(r.name) + ' first. <span class="pm-tough">tough matchup</span> = as they come they do ' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' points better against it than the level gap gives; ⚠️ = ' + Math.round(BAL.counterTag * 100) + '+ (a counter); 🎯 = ' + esc(r.name) + ' counters it.</p></div>';
     }
     el.innerHTML = '<div class="pm-top"><b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span><button class="pm-x2" data-pm="">✕</button></div><div class="pm-sub">' + esc(wepLabel(r.name)) + ' · ' + pmOwner(it) + '</div>' +
       (pmInGame(it) ? '<div>Parts: ' + pmParts(r) + '</div><div>Damage: ' + esc(zoneTxt(r)) + '</div>' : '') + '<div>' + pmFights(it) + '</div>' + vs +
@@ -11571,6 +11589,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, bookie odds fixed', '22 Nov 2026', [
+      'The bookie\'s test fights now fight exactly as the arena does. Its helpers (the background fights from play-latest or GitHub Pages) left out the game\'s part tuning, so drones and modules from part cards (Booster, Jammer, Quantum shield, Blocker, Repair kit...) fought at the wrong strength there. Example, Kev\'s Gyro vs Scavenger (22 Nov, round 11): the helpers gave Gyro 69 of 126, the real fight gives it 51 of the same 126 (odds 55% would now be about 42%).',
+      'A test fight still running when the bookie\'s time is up no longer skews the count: only an unbroken run of fights from the first one counts (a few fewer fights, no lean toward the side that wins fast). The playtest log\'s bookie line now carries the robots, arena and every test fight\'s result, so tools/bookie-replay.js can re-run it.',
+      'Power map: the "tough matchup" mark now starts at 20 points worse than the level gap gives (was 15), so 20-39 is tough and 40+ stays the ⚠️ counter (BAL.toughTag).' ]],
     ['2.0.1, power map matchups', '22 Nov 2026', [
       'Power map: click one of this game\'s robots and every other robot of this game shows, under its name, its bookie odds against the one you clicked (Heavy fav ... Heavy dog, parts and damage counted, as in the scout panel). Those robots are no longer dimmed when there is no arrow to them.',
       'A dashed amber ring and "tough" mark a tough matchup: as they come, that robot does 15-39 points better against the clicked one than the level gap gives (40+ stays the ⚠️ counter with its arrow). The side panel lists the robots of this game against the clicked one in a box at the top, toughest first, with the same marks. Display only: nothing in the game, the odds or the AI changes.' ]],
