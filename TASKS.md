@@ -7,6 +7,18 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K61 (T58, 22 Nov). Combo hunt results are in** (Kev's PC: 278,626 fights, 3 h, depth 7 of 8; report and proposed
+  tables in `tools/damage-lab/combo-hunt/kev-2026-11-22/`). To decide: (a) apply the new tables before the playtest?
+  9 epics (3 hold: Whiplash, Phantom Hook, Overclock; Iron Bolas becomes a great fit; 6 new), 13 great and 5 poor fits,
+  9 old fits dropped. (b) names for the 6 new epics: Whaler + Waller drone, Vertigo + Field hospital, Wrecker + Pester
+  chip, Mauler + Laser drone, Mauler + Pester chip, Thwacker + Mine layer (orchestrator's suggestions: Sea Wall, Second
+  Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole). (c) giant-slayer builds: by the 80% rule only Gyro and Thwacker
+  qualify; the game's Gyro build (Spotter + Waller + Quantum: 86% bare, 58% kitted) does better against kitted robots
+  than the new pick (89% / 44%), and the game's Whaler build sits at 80% (76-83): keep both old ones and add Thwacker
+  (Booster + Mine layer + Prototype core: 83% / 37%)? (d) looks too strong, for after the playtest: Thwacker + a
+  Race-spec or better Tow cable (93-98%), Thwacker's full build (98% a level up, 56% against kitted robots two levels
+  up), Vertigo's build (99%), Mauler's (97%); Masterwork stand-outs (Scythe + Sensor scrambler +41, Mauler + Laser
+  drone +40, Popcorn + Overdrive +38).
 - **K60 (T62, 22 Nov).** When the bookie's time is up, fights still running are thrown away. Wait up to half a second
   more for them (a few more test fights, half a second slower)?
 - **K59 (T58, 22 Nov). Combo hunt:** (a) "ultimate" = a full build (2 parts + a legendary): right? (b) the epic rule

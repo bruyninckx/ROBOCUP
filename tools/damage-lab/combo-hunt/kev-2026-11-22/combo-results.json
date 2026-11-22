@@ -1,0 +1,9431 @@
+{
+ "meta": {
+  "oldTriple_Gyro": [
+   [
+    "spotter",
+    "waller",
+    "quantum"
+   ],
+   46,
+   86,
+   58,
+   448
+  ],
+  "oldTriple_Whaler": [
+   [
+    "tow",
+    "waller",
+    "quantum"
+   ],
+   19,
+   80,
+   41,
+   448
+  ],
+  "fights": 278626,
+  "robots": [
+   "Buzzkill",
+   "Forklift",
+   "Hornet",
+   "Mincer",
+   "Popcorn",
+   "Scythe",
+   "Snapjaw",
+   "Thumper",
+   "Wrecker",
+   "Blacksmith",
+   "Corkscrew",
+   "Mauler",
+   "Thwacker",
+   "Vertigo",
+   "Angler",
+   "Gyro",
+   "Pincher",
+   "Whaler",
+   "Yoyo",
+   "Gaucho",
+   "Grandmaster",
+   "Hydra",
+   "Scavenger",
+   "Slingshot",
+   "Tarantula",
+   "Bricklayer",
+   "Jukebox",
+   "Lodestone",
+   "Orbiter",
+   "Pogo",
+   "Railgun",
+   "Rotisserie",
+   "Trebuchet"
+  ],
+  "depth": 7,
+  "fp": "d60cb367",
+  "rev": "d501e59 Sun Nov 22 15:45:08 2026 +0100",
+  "rule": {
+   "great": 0.15,
+   "poor": -0.15,
+   "epicGain": 0.3,
+   "epicOver": 0.2
+  }
+ },
+ "partAvg": {
+  "core": 22,
+  "quantum": 22,
+  "hospital": 17,
+  "overdrive": 16,
+  "bodyguard": 15,
+  "weapon": 15,
+  "shield": 15,
+  "jammer": 13,
+  "hull": 12,
+  "tow": 11,
+  "spotter": 10,
+  "booster": 10,
+  "pester": 10,
+  "laser": 10,
+  "bait": 9,
+  "jam": 9,
+  "medic": 9,
+  "armourkit": 9,
+  "waller": 8,
+  "popper": 8,
+  "gunner": 8,
+  "matador": 7,
+  "mines": 7,
+  "emp": 7,
+  "powerkit": 7,
+  "repair": 6,
+  "blocker": 5
+ },
+ "fits": {
+  "Whaler": {
+   "waller": [
+    1,
+    40
+   ]
+  },
+  "Angler": {
+   "quantum": [
+    1,
+    48
+   ],
+   "shield": [
+    1,
+    35
+   ],
+   "hospital": [
+    1,
+    40
+   ]
+  },
+  "Wrecker": {
+   "pester": [
+    1,
+    35
+   ]
+  },
+  "Mauler": {
+   "laser": [
+    1,
+    34
+   ],
+   "pester": [
+    1,
+    32
+   ]
+  },
+  "Vertigo": {
+   "powerkit": [
+    1,
+    34
+   ],
+   "hospital": [
+    1,
+    42
+   ]
+  },
+  "Thwacker": {
+   "mines": [
+    1,
+    35
+   ],
+   "tow": [
+    1,
+    34
+   ],
+   "pester": [
+    1,
+    32
+   ],
+   "hospital": [
+    -1,
+    -6
+   ],
+   "armourkit": [
+    -1,
+    -12
+   ]
+  },
+  "Gaucho": {
+   "overdrive": [
+    1,
+    33
+   ]
+  },
+  "Rotisserie": {
+   "overdrive": [
+    -1,
+    -9
+   ]
+  },
+  "Blacksmith": {
+   "pester": [
+    -1,
+    -15
+   ]
+  },
+  "Slingshot": {
+   "bait": [
+    -1,
+    -7
+   ]
+  }
+ },
+ "epic": {
+  "Angler|quantum": [
+   "Phantom Hook",
+   24,
+   71,
+   432
+  ],
+  "Whaler|waller": [
+   "NEW Whaler + waller",
+   30,
+   69,
+   336
+  ],
+  "Vertigo|hospital": [
+   "NEW Vertigo + hospital",
+   43,
+   85,
+   250
+  ],
+  "Wrecker|pester": [
+   "NEW Wrecker + pester",
+   30,
+   64,
+   360
+  ],
+  "Mauler|laser": [
+   "NEW Mauler + laser",
+   16,
+   49,
+   360
+  ],
+  "Mauler|pester": [
+   "NEW Mauler + pester",
+   16,
+   47,
+   360
+  ],
+  "Vertigo|powerkit": [
+   "Overclock",
+   44,
+   78,
+   360
+  ],
+  "Thwacker|mines": [
+   "NEW Thwacker + mines",
+   35,
+   69,
+   310
+  ],
+  "Thwacker|tow": [
+   "Whiplash",
+   34,
+   68,
+   360
+  ]
+ },
+ "triple": {
+  "Gyro": [
+   [
+    "shield",
+    "weapon",
+    "hospital"
+   ],
+   46,
+   89,
+   44,
+   448
+  ],
+  "Thwacker": [
+   [
+    "booster",
+    "mines",
+    "core"
+   ],
+   17,
+   83,
+   37,
+   448
+  ]
+ },
+ "builds": {
+  "Buzzkill": {
+   "b": "matador,weapon,core",
+   "parts": [
+    "matador",
+    "weapon",
+    "core"
+   ],
+   "up1": [
+    33,
+    94,
+    42,
+    160
+   ],
+   "up2": [
+    12,
+    71,
+    3,
+    160
+   ],
+   "l34": [
+    18,
+    64,
+    18,
+    448
+   ]
+  },
+  "Forklift": {
+   "b": "jammer,overdrive,hospital",
+   "parts": [
+    "jammer",
+    "overdrive",
+    "hospital"
+   ],
+   "up1": [
+    23,
+    90,
+    30,
+    160
+   ],
+   "up2": [
+    21,
+    86,
+    16,
+    160
+   ],
+   "l34": [
+    7,
+    41,
+    6,
+    448
+   ]
+  },
+  "Hornet": {
+   "b": "hull,overdrive,core",
+   "parts": [
+    "hull",
+    "overdrive",
+    "core"
+   ],
+   "up1": [
+    31,
+    94,
+    44,
+    160
+   ],
+   "up2": [
+    16,
+    70,
+    10,
+    160
+   ],
+   "l34": [
+    11,
+    48,
+    17,
+    448
+   ]
+  },
+  "Mincer": {
+   "b": "overdrive,pester,core",
+   "parts": [
+    "overdrive",
+    "pester",
+    "core"
+   ],
+   "up1": [
+    21,
+    78,
+    36,
+    160
+   ],
+   "up2": [
+    14,
+    84,
+    14,
+    160
+   ],
+   "l34": [
+    12,
+    53,
+    14,
+    448
+   ]
+  },
+  "Popcorn": {
+   "b": "booster,jammer,core",
+   "parts": [
+    "booster",
+    "jammer",
+    "core"
+   ],
+   "up1": [
+    26,
+    86,
+    29,
+    160
+   ],
+   "up2": [
+    16,
+    89,
+    29,
+    160
+   ],
+   "l34": [
+    3,
+    42,
+    7,
+    448
+   ]
+  },
+  "Scythe": {
+   "b": "matador,powerkit,core",
+   "parts": [
+    "matador",
+    "powerkit",
+    "core"
+   ],
+   "up1": [
+    28,
+    89,
+    55,
+    160
+   ],
+   "up2": [
+    18,
+    84,
+    19,
+    160
+   ],
+   "l34": [
+    13,
+    50,
+    11,
+    448
+   ]
+  },
+  "Snapjaw": {
+   "b": "blocker,bodyguard,hospital",
+   "parts": [
+    "blocker",
+    "bodyguard",
+    "hospital"
+   ],
+   "up1": [
+    29,
+    70,
+    31,
+    160
+   ],
+   "up2": [
+    17,
+    51,
+    16,
+    160
+   ],
+   "l34": [
+    9,
+    33,
+    9,
+    448
+   ]
+  },
+  "Thumper": {
+   "b": "armourkit,bodyguard,quantum",
+   "parts": [
+    "armourkit",
+    "bodyguard",
+    "quantum"
+   ],
+   "up1": [
+    28,
+    79,
+    24,
+    160
+   ],
+   "up2": [
+    24,
+    75,
+    9,
+    160
+   ],
+   "l34": [
+    5,
+    50,
+    9,
+    448
+   ]
+  },
+  "Wrecker": {
+   "b": "jam,laser,quantum",
+   "parts": [
+    "jam",
+    "laser",
+    "quantum"
+   ],
+   "up1": [
+    31,
+    91,
+    28,
+    160
+   ],
+   "up2": [
+    16,
+    93,
+    14,
+    160
+   ],
+   "l34": [
+    13,
+    61,
+    12,
+    448
+   ]
+  },
+  "Blacksmith": {
+   "b": "hull,shield,core",
+   "parts": [
+    "hull",
+    "shield",
+    "core"
+   ],
+   "up1": [
+    52,
+    89,
+    54,
+    160
+   ],
+   "up2": [
+    21,
+    66,
+    27,
+    192
+   ],
+   "l34": [
+    21,
+    53,
+    19,
+    448
+   ]
+  },
+  "Corkscrew": {
+   "b": "laser,popper,hospital",
+   "parts": [
+    "laser",
+    "popper",
+    "hospital"
+   ],
+   "up1": [
+    13,
+    89,
+    10,
+    160
+   ],
+   "up2": [
+    24,
+    63,
+    10,
+    192
+   ],
+   "l34": [
+    17,
+    50,
+    10,
+    448
+   ]
+  },
+  "Mauler": {
+   "b": "armourkit,laser,quantum",
+   "parts": [
+    "armourkit",
+    "laser",
+    "quantum"
+   ],
+   "up1": [
+    18,
+    97,
+    16,
+    160
+   ],
+   "up2": [
+    26,
+    79,
+    18,
+    192
+   ],
+   "l34": [
+    17,
+    69,
+    18,
+    448
+   ]
+  },
+  "Thwacker": {
+   "b": "booster,mines,core",
+   "parts": [
+    "booster",
+    "mines",
+    "core"
+   ],
+   "up1": [
+    31,
+    98,
+    55,
+    160
+   ],
+   "up2": [
+    30,
+    96,
+    56,
+    192
+   ],
+   "l34": [
+    17,
+    83,
+    37,
+    448
+   ]
+  },
+  "Vertigo": {
+   "b": "bodyguard,matador,hospital",
+   "parts": [
+    "bodyguard",
+    "matador",
+    "hospital"
+   ],
+   "up1": [
+    37,
+    99,
+    15,
+    160
+   ],
+   "up2": [
+    27,
+    82,
+    12,
+    192
+   ],
+   "l34": [
+    13,
+    58,
+    8,
+    448
+   ]
+  },
+  "Angler": {
+   "b": "bodyguard,jam,hospital",
+   "parts": [
+    "bodyguard",
+    "jam",
+    "hospital"
+   ],
+   "up1": [
+    25,
+    82,
+    15,
+    192
+   ],
+   "up2": [
+    11,
+    64,
+    8,
+    256
+   ],
+   "l34": [
+    17,
+    72,
+    11,
+    448
+   ]
+  },
+  "Gyro": {
+   "b": "shield,weapon,hospital",
+   "parts": [
+    "shield",
+    "weapon",
+    "hospital"
+   ],
+   "up1": [
+    56,
+    92,
+    47,
+    192
+   ],
+   "up2": [
+    38,
+    86,
+    41,
+    256
+   ],
+   "l34": [
+    46,
+    89,
+    44,
+    448
+   ]
+  },
+  "Pincher": {
+   "b": "spotter,tow,quantum",
+   "parts": [
+    "spotter",
+    "tow",
+    "quantum"
+   ],
+   "up1": [
+    23,
+    91,
+    25,
+    192
+   ],
+   "up2": [
+    7,
+    61,
+    9,
+    256
+   ],
+   "l34": [
+    14,
+    74,
+    16,
+    448
+   ]
+  },
+  "Whaler": {
+   "b": "overdrive,waller,quantum",
+   "parts": [
+    "overdrive",
+    "waller",
+    "quantum"
+   ],
+   "up1": [
+    34,
+    94,
+    52,
+    192
+   ],
+   "up2": [
+    8,
+    68,
+    33,
+    256
+   ],
+   "l34": [
+    19,
+    79,
+    41,
+    448
+   ]
+  },
+  "Yoyo": {
+   "b": "overdrive,spotter,core",
+   "parts": [
+    "overdrive",
+    "spotter",
+    "core"
+   ],
+   "up1": [
+    18,
+    89,
+    50,
+    192
+   ],
+   "up2": [
+    17,
+    69,
+    32,
+    256
+   ],
+   "l34": [
+    17,
+    78,
+    40,
+    448
+   ]
+  },
+  "Gaucho": {
+   "b": "overdrive,repair,core",
+   "parts": [
+    "overdrive",
+    "repair",
+    "core"
+   ],
+   "up1": [
+    20,
+    86,
+    36,
+    256
+   ]
+  },
+  "Grandmaster": {
+   "b": "blocker,overdrive,core",
+   "parts": [
+    "blocker",
+    "overdrive",
+    "core"
+   ],
+   "up1": [
+    29,
+    76,
+    20,
+    256
+   ]
+  },
+  "Hydra": {
+   "b": "jammer,tow,core",
+   "parts": [
+    "jammer",
+    "tow",
+    "core"
+   ],
+   "up1": [
+    47,
+    91,
+    45,
+    256
+   ]
+  },
+  "Scavenger": {
+   "b": "overdrive,weapon,core",
+   "parts": [
+    "overdrive",
+    "weapon",
+    "core"
+   ],
+   "up1": [
+    40,
+    91,
+    47,
+    256
+   ]
+  },
+  "Slingshot": {
+   "b": "jam,overdrive,core",
+   "parts": [
+    "jam",
+    "overdrive",
+    "core"
+   ],
+   "up1": [
+    49,
+    88,
+    50,
+    256
+   ]
+  },
+  "Tarantula": {
+   "b": "overdrive,tow,hospital",
+   "parts": [
+    "overdrive",
+    "tow",
+    "hospital"
+   ],
+   "up1": [
+    35,
+    84,
+    32,
+    256
+   ]
+  },
+  "Bricklayer": {
+   "b": "overdrive,tow,core",
+   "parts": [
+    "overdrive",
+    "tow",
+    "core"
+   ],
+   "up1": [
+    56,
+    96,
+    68,
+    224
+   ]
+  },
+  "Jukebox": {
+   "b": "gunner,overdrive,core",
+   "parts": [
+    "gunner",
+    "overdrive",
+    "core"
+   ],
+   "up1": [
+    52,
+    94,
+    55,
+    224
+   ]
+  },
+  "Lodestone": {
+   "b": "bodyguard,popper,quantum",
+   "parts": [
+    "bodyguard",
+    "popper",
+    "quantum"
+   ],
+   "up1": [
+    33,
+    87,
+    38,
+    224
+   ]
+  },
+  "Orbiter": {
+   "b": "bait,tow,quantum",
+   "parts": [
+    "bait",
+    "tow",
+    "quantum"
+   ],
+   "up1": [
+    46,
+    89,
+    48,
+    224
+   ]
+  },
+  "Pogo": {
+   "b": "jammer,powerkit,core",
+   "parts": [
+    "jammer",
+    "powerkit",
+    "core"
+   ],
+   "up1": [
+    62,
+    88,
+    58,
+    224
+   ]
+  },
+  "Railgun": {
+   "b": "hull,shield,quantum",
+   "parts": [
+    "hull",
+    "shield",
+    "quantum"
+   ],
+   "up1": [
+    62,
+    88,
+    37,
+    224
+   ]
+  },
+  "Rotisserie": {
+   "b": "armourkit,bodyguard,quantum",
+   "parts": [
+    "armourkit",
+    "bodyguard",
+    "quantum"
+   ],
+   "up1": [
+    41,
+    85,
+    46,
+    224
+   ]
+  },
+  "Trebuchet": {
+   "b": "overdrive,weapon,quantum",
+   "parts": [
+    "overdrive",
+    "weapon",
+    "quantum"
+   ],
+   "up1": [
+    34,
+    80,
+    49,
+    224
+   ]
+  }
+ },
+ "synergy": [
+  {
+   "n": "Pincher",
+   "b": "medic,overdrive",
+   "bare": 24,
+   "a": 36,
+   "c": 33,
+   "pair": 66,
+   "syn": 21,
+   "lo": 8,
+   "hi": 34,
+   "logit": 0.785,
+   "fights": 144,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Mauler",
+   "b": "armourkit,booster",
+   "bare": 20,
+   "a": 33,
+   "c": 27,
+   "pair": 56,
+   "syn": 16,
+   "lo": 1,
+   "hi": 31,
+   "logit": 0.55,
+   "fights": 120,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Scavenger",
+   "b": "shield,waller",
+   "bare": 38,
+   "a": 51,
+   "c": 43,
+   "pair": 71,
+   "syn": 15,
+   "lo": 3,
+   "hi": 28,
+   "logit": 0.651,
+   "fights": 192,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Scavenger",
+   "b": "tow,waller",
+   "bare": 38,
+   "a": 35,
+   "c": 43,
+   "pair": 55,
+   "syn": 15,
+   "lo": 2,
+   "hi": 27,
+   "logit": 0.591,
+   "fights": 192,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Scavenger",
+   "b": "bodyguard,overdrive",
+   "bare": 38,
+   "a": 45,
+   "c": 54,
+   "pair": 75,
+   "syn": 14,
+   "lo": 2,
+   "hi": 25,
+   "logit": 0.62,
+   "fights": 192,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Snapjaw",
+   "b": "bodyguard,mines",
+   "bare": 30,
+   "a": 34,
+   "c": 27,
+   "pair": 43,
+   "syn": 13,
+   "lo": -2,
+   "hi": 28,
+   "logit": 0.546,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "repair,spotter",
+   "bare": 24,
+   "a": 23,
+   "c": 32,
+   "pair": 43,
+   "syn": 13,
+   "lo": 2,
+   "hi": 23,
+   "logit": 0.546,
+   "fights": 192,
+   "verdict": "real synergy"
+  },
+  {
+   "n": "Forklift",
+   "b": "armourkit,jammer",
+   "bare": 24,
+   "a": 23,
+   "c": 35,
+   "pair": 44,
+   "syn": 11,
+   "lo": -3,
+   "hi": 25,
+   "logit": 0.473,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gaucho",
+   "b": "hull,overdrive",
+   "bare": 25,
+   "a": 32,
+   "c": 54,
+   "pair": 72,
+   "syn": 10,
+   "lo": -1,
+   "hi": 21,
+   "logit": 0.407,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Forklift",
+   "b": "booster,jammer",
+   "bare": 24,
+   "a": 30,
+   "c": 35,
+   "pair": 51,
+   "syn": 10,
+   "lo": -4,
+   "hi": 24,
+   "logit": 0.354,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thumper",
+   "b": "gunner,mines",
+   "bare": 28,
+   "a": 33,
+   "c": 28,
+   "pair": 43,
+   "syn": 10,
+   "lo": -4,
+   "hi": 24,
+   "logit": 0.428,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Snapjaw",
+   "b": "blocker,bodyguard",
+   "bare": 30,
+   "a": 40,
+   "c": 34,
+   "pair": 53,
+   "syn": 9,
+   "lo": -5,
+   "hi": 23,
+   "logit": 0.345,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thumper",
+   "b": "spotter,tow",
+   "bare": 28,
+   "a": 41,
+   "c": 25,
+   "pair": 46,
+   "syn": 8,
+   "lo": -5,
+   "hi": 22,
+   "logit": 0.37,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "jammer,pester",
+   "bare": 24,
+   "a": 40,
+   "c": 21,
+   "pair": 44,
+   "syn": 7,
+   "lo": -4,
+   "hi": 18,
+   "logit": 0.349,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thwacker",
+   "b": "armourkit,booster",
+   "bare": 34,
+   "a": 26,
+   "c": 60,
+   "pair": 57,
+   "syn": 6,
+   "lo": -9,
+   "hi": 20,
+   "logit": 0.292,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Corkscrew",
+   "b": "repair,spotter",
+   "bare": 17,
+   "a": 23,
+   "c": 26,
+   "pair": 38,
+   "syn": 6,
+   "lo": -8,
+   "hi": 20,
+   "logit": 0.172,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Hornet",
+   "b": "spotter,weapon",
+   "bare": 30,
+   "a": 47,
+   "c": 47,
+   "pair": 68,
+   "syn": 5,
+   "lo": -10,
+   "hi": 20,
+   "logit": 0.188,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Forklift",
+   "b": "emp,jammer",
+   "bare": 24,
+   "a": 27,
+   "c": 35,
+   "pair": 42,
+   "syn": 4,
+   "lo": -10,
+   "hi": 19,
+   "logit": 0.15,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "jammer,shield",
+   "bare": 24,
+   "a": 40,
+   "c": 39,
+   "pair": 59,
+   "syn": 4,
+   "lo": -6,
+   "hi": 15,
+   "logit": 0.071,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gaucho",
+   "b": "gunner,repair",
+   "bare": 25,
+   "a": 37,
+   "c": 26,
+   "pair": 42,
+   "syn": 4,
+   "lo": -8,
+   "hi": 15,
+   "logit": 0.136,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thumper",
+   "b": "gunner,tow",
+   "bare": 28,
+   "a": 33,
+   "c": 25,
+   "pair": 33,
+   "syn": 3,
+   "lo": -12,
+   "hi": 18,
+   "logit": 0.168,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Corkscrew",
+   "b": "mines,overdrive",
+   "bare": 17,
+   "a": 26,
+   "c": 31,
+   "pair": 43,
+   "syn": 3,
+   "lo": -9,
+   "hi": 16,
+   "logit": -0.011,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Corkscrew",
+   "b": "matador,popper",
+   "bare": 17,
+   "a": 14,
+   "c": 26,
+   "pair": 27,
+   "syn": 3,
+   "lo": -11,
+   "hi": 18,
+   "logit": 0.23,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Rotisserie",
+   "b": "hull,pester",
+   "bare": 45,
+   "a": 52,
+   "c": 29,
+   "pair": 39,
+   "syn": 3,
+   "lo": -8,
+   "hi": 14,
+   "logit": 0.164,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Corkscrew",
+   "b": "laser,popper",
+   "bare": 17,
+   "a": 44,
+   "c": 26,
+   "pair": 56,
+   "syn": 3,
+   "lo": -13,
+   "hi": 18,
+   "logit": -0.081,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "bait,jammer",
+   "bare": 24,
+   "a": 18,
+   "c": 40,
+   "pair": 35,
+   "syn": 2,
+   "lo": -8,
+   "hi": 12,
+   "logit": 0.2,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Blacksmith",
+   "b": "armourkit,gunner",
+   "bare": 56,
+   "a": 63,
+   "c": 62,
+   "pair": 70,
+   "syn": 2,
+   "lo": -15,
+   "hi": 18,
+   "logit": 0.094,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Pogo",
+   "b": "bait,waller",
+   "bare": 63,
+   "a": 73,
+   "c": 66,
+   "pair": 77,
+   "syn": 1,
+   "lo": -9,
+   "hi": 12,
+   "logit": 0.09,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Railgun",
+   "b": "armourkit,popper",
+   "bare": 60,
+   "a": 60,
+   "c": 65,
+   "pair": 66,
+   "syn": 1,
+   "lo": -10,
+   "hi": 13,
+   "logit": 0.051,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Lodestone",
+   "b": "armourkit,pester",
+   "bare": 34,
+   "a": 51,
+   "c": 33,
+   "pair": 51,
+   "syn": 1,
+   "lo": -13,
+   "hi": 14,
+   "logit": 0.03,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "jammer,mines",
+   "bare": 24,
+   "a": 40,
+   "c": 38,
+   "pair": 54,
+   "syn": 1,
+   "lo": -11,
+   "hi": 12,
+   "logit": -0.074,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Buzzkill",
+   "b": "repair,weapon",
+   "bare": 46,
+   "a": 45,
+   "c": 62,
+   "pair": 61,
+   "syn": 0,
+   "lo": -16,
+   "hi": 16,
+   "logit": -0.001,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gaucho",
+   "b": "laser,overdrive",
+   "bare": 25,
+   "a": 31,
+   "c": 54,
+   "pair": 61,
+   "syn": 0,
+   "lo": -12,
+   "hi": 12,
+   "logit": -0.059,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "armourkit,jammer",
+   "bare": 24,
+   "a": 32,
+   "c": 40,
+   "pair": 47,
+   "syn": 0,
+   "lo": -11,
+   "hi": 10,
+   "logit": -0.094,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Snapjaw",
+   "b": "blocker,jammer",
+   "bare": 30,
+   "a": 40,
+   "c": 43,
+   "pair": 53,
+   "syn": -1,
+   "lo": -15,
+   "hi": 14,
+   "logit": -0.072,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thwacker",
+   "b": "armourkit,spotter",
+   "bare": 34,
+   "a": 26,
+   "c": 45,
+   "pair": 36,
+   "syn": -1,
+   "lo": -15,
+   "hi": 14,
+   "logit": 0.016,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Snapjaw",
+   "b": "jam,powerkit",
+   "bare": 30,
+   "a": 53,
+   "c": 28,
+   "pair": 49,
+   "syn": -1,
+   "lo": -15,
+   "hi": 14,
+   "logit": -0.012,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gaucho",
+   "b": "hull,repair",
+   "bare": 25,
+   "a": 32,
+   "c": 26,
+   "pair": 32,
+   "syn": -1,
+   "lo": -12,
+   "hi": 10,
+   "logit": -0.058,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Jukebox",
+   "b": "hull,powerkit",
+   "bare": 58,
+   "a": 68,
+   "c": 67,
+   "pair": 76,
+   "syn": -1,
+   "lo": -12,
+   "hi": 10,
+   "logit": -0.001,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Rotisserie",
+   "b": "pester,tow",
+   "bare": 45,
+   "a": 29,
+   "c": 53,
+   "pair": 36,
+   "syn": -1,
+   "lo": -13,
+   "hi": 11,
+   "logit": -0.011,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Popcorn",
+   "b": "bait,spotter",
+   "bare": 22,
+   "a": 33,
+   "c": 42,
+   "pair": 52,
+   "syn": -2,
+   "lo": -18,
+   "hi": 15,
+   "logit": -0.185,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Snapjaw",
+   "b": "blocker,powerkit",
+   "bare": 30,
+   "a": 40,
+   "c": 28,
+   "pair": 36,
+   "syn": -2,
+   "lo": -17,
+   "hi": 14,
+   "logit": -0.055,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "bait,gunner",
+   "bare": 24,
+   "a": 18,
+   "c": 40,
+   "pair": 32,
+   "syn": -2,
+   "lo": -12,
+   "hi": 8,
+   "logit": 0.016,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Jukebox",
+   "b": "jam,powerkit",
+   "bare": 58,
+   "a": 69,
+   "c": 67,
+   "pair": 76,
+   "syn": -2,
+   "lo": -15,
+   "hi": 10,
+   "logit": -0.056,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Mauler",
+   "b": "blocker,mines",
+   "bare": 20,
+   "a": 20,
+   "c": 46,
+   "pair": 43,
+   "syn": -3,
+   "lo": -20,
+   "hi": 13,
+   "logit": -0.134,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Tarantula",
+   "b": "booster,jam",
+   "bare": 34,
+   "a": 47,
+   "c": 42,
+   "pair": 51,
+   "syn": -4,
+   "lo": -16,
+   "hi": 8,
+   "logit": -0.184,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Vertigo",
+   "b": "shield,waller",
+   "bare": 33,
+   "a": 68,
+   "c": 53,
+   "pair": 83,
+   "syn": -4,
+   "lo": -18,
+   "hi": 10,
+   "logit": 0.041,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Popcorn",
+   "b": "booster,jammer",
+   "bare": 22,
+   "a": 44,
+   "c": 48,
+   "pair": 66,
+   "syn": -4,
+   "lo": -19,
+   "hi": 11,
+   "logit": -0.29,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Rotisserie",
+   "b": "pester,popper",
+   "bare": 45,
+   "a": 29,
+   "c": 49,
+   "pair": 29,
+   "syn": -4,
+   "lo": -15,
+   "hi": 7,
+   "logit": -0.166,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gyro",
+   "b": "hull,shield",
+   "bare": 56,
+   "a": 72,
+   "c": 74,
+   "pair": 86,
+   "syn": -4,
+   "lo": -13,
+   "hi": 5,
+   "logit": 0.052,
+   "fights": 144,
+   "verdict": "noise"
+  },
+  {
+   "n": "Tarantula",
+   "b": "overdrive,tow",
+   "bare": 34,
+   "a": 57,
+   "c": 57,
+   "pair": 75,
+   "syn": -5,
+   "lo": -17,
+   "hi": 7,
+   "logit": -0.121,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Forklift",
+   "b": "bodyguard,emp",
+   "bare": 24,
+   "a": 29,
+   "c": 27,
+   "pair": 27,
+   "syn": -5,
+   "lo": -19,
+   "hi": 10,
+   "logit": -0.253,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Hornet",
+   "b": "powerkit,weapon",
+   "bare": 30,
+   "a": 49,
+   "c": 47,
+   "pair": 61,
+   "syn": -5,
+   "lo": -19,
+   "hi": 9,
+   "logit": -0.237,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Grandmaster",
+   "b": "jammer,waller",
+   "bare": 24,
+   "a": 40,
+   "c": 40,
+   "pair": 50,
+   "syn": -5,
+   "lo": -16,
+   "hi": 6,
+   "logit": -0.306,
+   "fights": 192,
+   "verdict": "noise"
+  },
+  {
+   "n": "Yoyo",
+   "b": "blocker,waller",
+   "bare": 19,
+   "a": 17,
+   "c": 32,
+   "pair": 24,
+   "syn": -6,
+   "lo": -18,
+   "hi": 7,
+   "logit": -0.228,
+   "fights": 144,
+   "verdict": "noise"
+  },
+  {
+   "n": "Popcorn",
+   "b": "jammer,spotter",
+   "bare": 22,
+   "a": 48,
+   "c": 42,
+   "pair": 62,
+   "syn": -6,
+   "lo": -23,
+   "hi": 11,
+   "logit": -0.367,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Bricklayer",
+   "b": "blocker,weapon",
+   "bare": 59,
+   "a": 73,
+   "c": 74,
+   "pair": 80,
+   "syn": -8,
+   "lo": -19,
+   "hi": 4,
+   "logit": -0.272,
+   "fights": 168,
+   "verdict": "noise"
+  },
+  {
+   "n": "Gyro",
+   "b": "gunner,laser",
+   "bare": 56,
+   "a": 73,
+   "c": 76,
+   "pair": 80,
+   "syn": -13,
+   "lo": -26,
+   "hi": -1,
+   "logit": -0.532,
+   "fights": 144,
+   "verdict": "they get in each other's way"
+  },
+  {
+   "n": "Forklift",
+   "b": "gunner,pester",
+   "bare": 24,
+   "a": 25,
+   "c": 18,
+   "pair": 6,
+   "syn": -13,
+   "lo": -25,
+   "hi": -1,
+   "logit": -1.285,
+   "fights": 120,
+   "verdict": "they get in each other's way"
+  },
+  {
+   "n": "Popcorn",
+   "b": "jam,jammer",
+   "bare": 22,
+   "a": 49,
+   "c": 48,
+   "pair": 60,
+   "syn": -15,
+   "lo": -31,
+   "hi": 1,
+   "logit": -0.737,
+   "fights": 120,
+   "verdict": "noise"
+  },
+  {
+   "n": "Forklift",
+   "b": "laser,pester",
+   "bare": 24,
+   "a": 25,
+   "c": 18,
+   "pair": 4,
+   "syn": -15,
+   "lo": -26,
+   "hi": -4,
+   "logit": -1.612,
+   "fights": 120,
+   "verdict": "they get in each other's way"
+  },
+  {
+   "n": "Hornet",
+   "b": "bait,overdrive",
+   "bare": 30,
+   "a": 49,
+   "c": 58,
+   "pair": 63,
+   "syn": -15,
+   "lo": -29,
+   "hi": -1,
+   "logit": -0.634,
+   "fights": 120,
+   "verdict": "they get in each other's way"
+  },
+  {
+   "n": "Hornet",
+   "b": "overdrive,repair",
+   "bare": 30,
+   "a": 58,
+   "c": 36,
+   "pair": 46,
+   "syn": -18,
+   "lo": -32,
+   "hi": -4,
+   "logit": -0.761,
+   "fights": 120,
+   "verdict": "they get in each other's way"
+  },
+  {
+   "n": "Orbiter",
+   "b": "medic,medic",
+   "bare": 44,
+   "a": 66,
+   "c": 66,
+   "pair": 63,
+   "syn": -24,
+   "lo": -39,
+   "hi": -10,
+   "logit": -1.001,
+   "fights": 168,
+   "verdict": "they get in each other's way"
+  }
+ ],
+ "tiers": [
+  {
+   "id": "Angler|hospital",
+   "std": [
+    26,
+    64,
+    144
+   ],
+   "t": {
+    "1": [
+     69,
+     5,
+     -1,
+     11
+    ],
+    "2": [
+     67,
+     4,
+     -4,
+     11
+    ],
+    "3": [
+     74,
+     10,
+     3,
+     18
+    ],
+    "4": [
+     79,
+     15,
+     7,
+     23
+    ]
+   }
+  },
+  {
+   "id": "Angler|quantum",
+   "std": [
+    26,
+    76,
+    144
+   ],
+   "t": {
+    "1": [
+     76,
+     -1,
+     -5,
+     3
+    ],
+    "2": [
+     78,
+     1,
+     -4,
+     7
+    ],
+    "3": [
+     81,
+     5,
+     -1,
+     11
+    ],
+    "4": [
+     90,
+     14,
+     6,
+     22
+    ]
+   }
+  },
+  {
+   "id": "Angler|shield",
+   "std": [
+    26,
+    58,
+    144
+   ],
+   "t": {
+    "1": [
+     62,
+     4,
+     -4,
+     11
+    ],
+    "2": [
+     69,
+     11,
+     2,
+     20
+    ],
+    "3": [
+     70,
+     12,
+     3,
+     21
+    ],
+    "4": [
+     83,
+     24,
+     15,
+     33
+    ]
+   }
+  },
+  {
+   "id": "Blacksmith|core",
+   "std": [
+    55,
+    72,
+    120
+   ],
+   "t": {
+    "1": [
+     79,
+     8,
+     2,
+     13
+    ],
+    "2": [
+     79,
+     8,
+     1,
+     14
+    ],
+    "3": [
+     80,
+     8,
+     0,
+     16
+    ],
+    "4": [
+     87,
+     15,
+     7,
+     23
+    ]
+   }
+  },
+  {
+   "id": "Bricklayer|core",
+   "std": [
+    55,
+    79,
+    168
+   ],
+   "t": {
+    "1": [
+     82,
+     3,
+     -4,
+     10
+    ],
+    "2": [
+     86,
+     8,
+     2,
+     14
+    ],
+    "3": [
+     91,
+     12,
+     5,
+     19
+    ],
+    "4": [
+     90,
+     11,
+     4,
+     18
+    ]
+   }
+  },
+  {
+   "id": "Buzzkill|core",
+   "std": [
+    40,
+    63,
+    120
+   ],
+   "t": {
+    "1": [
+     70,
+     8,
+     -3,
+     18
+    ],
+    "2": [
+     74,
+     12,
+     2,
+     22
+    ],
+    "3": [
+     83,
+     20,
+     10,
+     30
+    ],
+    "4": [
+     93,
+     30,
+     21,
+     39
+    ]
+   }
+  },
+  {
+   "id": "Corkscrew|armourkit",
+   "std": [
+    16,
+    30,
+    120
+   ],
+   "t": {
+    "1": [
+     28,
+     -2,
+     -9,
+     6
+    ],
+    "2": [
+     40,
+     10,
+     1,
+     19
+    ],
+    "3": [
+     32,
+     2,
+     -6,
+     10
+    ],
+    "4": [
+     31,
+     1,
+     -8,
+     9
+    ]
+   }
+  },
+  {
+   "id": "Forklift|hospital",
+   "std": [
+    23,
+    38,
+    120
+   ],
+   "t": {
+    "1": [
+     39,
+     1,
+     -7,
+     9
+    ],
+    "2": [
+     38,
+     -1,
+     -10,
+     8
+    ],
+    "3": [
+     46,
+     8,
+     -2,
+     17
+    ],
+    "4": [
+     46,
+     8,
+     -2,
+     17
+    ]
+   }
+  },
+  {
+   "id": "Gaucho|overdrive",
+   "std": [
+    22,
+    55,
+    192
+   ],
+   "t": {
+    "1": [
+     65,
+     10,
+     3,
+     17
+    ],
+    "2": [
+     67,
+     12,
+     4,
+     20
+    ],
+    "3": [
+     73,
+     18,
+     10,
+     27
+    ],
+    "4": [
+     88,
+     33,
+     25,
+     41
+    ]
+   }
+  },
+  {
+   "id": "Grandmaster|blocker",
+   "std": [
+    26,
+    37,
+    192
+   ],
+   "t": {
+    "1": [
+     40,
+     3,
+     0,
+     7
+    ],
+    "2": [
+     40,
+     3,
+     0,
+     7
+    ],
+    "3": [
+     39,
+     2,
+     -1,
+     6
+    ],
+    "4": [
+     40,
+     3,
+     -1,
+     6
+    ]
+   }
+  },
+  {
+   "id": "Gyro|shield",
+   "std": [
+    55,
+    83,
+    144
+   ],
+   "t": {
+    "1": [
+     87,
+     4,
+     -2,
+     10
+    ],
+    "2": [
+     90,
+     7,
+     0,
+     14
+    ],
+    "3": [
+     91,
+     8,
+     2,
+     15
+    ],
+    "4": [
+     92,
+     10,
+     3,
+     17
+    ]
+   }
+  },
+  {
+   "id": "Hornet|weapon",
+   "std": [
+    25,
+    48,
+    120
+   ],
+   "t": {
+    "1": [
+     57,
+     10,
+     0,
+     20
+    ],
+    "2": [
+     65,
+     18,
+     7,
+     28
+    ],
+    "3": [
+     70,
+     23,
+     12,
+     33
+    ],
+    "4": [
+     75,
+     28,
+     16,
+     39
+    ]
+   }
+  },
+  {
+   "id": "Hydra|quantum",
+   "std": [
+    41,
+    65,
+    192
+   ],
+   "t": {
+    "1": [
+     69,
+     4,
+     -2,
+     10
+    ],
+    "2": [
+     79,
+     15,
+     8,
+     22
+    ],
+    "3": [
+     81,
+     16,
+     9,
+     23
+    ],
+    "4": [
+     86,
+     21,
+     14,
+     29
+    ]
+   }
+  },
+  {
+   "id": "Jukebox|jam",
+   "std": [
+    56,
+    58,
+    168
+   ],
+   "t": {
+    "1": [
+     66,
+     7,
+     -1,
+     15
+    ],
+    "2": [
+     65,
+     7,
+     -2,
+     15
+    ],
+    "3": [
+     72,
+     14,
+     5,
+     22
+    ],
+    "4": [
+     77,
+     19,
+     11,
+     27
+    ]
+   }
+  },
+  {
+   "id": "Lodestone|popper",
+   "std": [
+    36,
+    52,
+    168
+   ],
+   "t": {
+    "1": [
+     61,
+     9,
+     1,
+     17
+    ],
+    "2": [
+     55,
+     3,
+     -5,
+     11
+    ],
+    "3": [
+     67,
+     16,
+     8,
+     23
+    ],
+    "4": [
+     68,
+     16,
+     8,
+     24
+    ]
+   }
+  },
+  {
+   "id": "Mauler|armourkit",
+   "std": [
+    15,
+    30,
+    120
+   ],
+   "t": {
+    "1": [
+     35,
+     5,
+     -5,
+     15
+    ],
+    "2": [
+     43,
+     13,
+     3,
+     24
+    ],
+    "3": [
+     50,
+     20,
+     10,
+     30
+    ],
+    "4": [
+     63,
+     33,
+     23,
+     44
+    ]
+   }
+  },
+  {
+   "id": "Mauler|laser",
+   "std": [
+    15,
+    48,
+    120
+   ],
+   "t": {
+    "1": [
+     62,
+     14,
+     5,
+     23
+    ],
+    "2": [
+     67,
+     19,
+     10,
+     29
+    ],
+    "3": [
+     80,
+     33,
+     23,
+     42
+    ],
+    "4": [
+     88,
+     40,
+     30,
+     50
+    ]
+   }
+  },
+  {
+   "id": "Mincer|hospital",
+   "std": [
+    25,
+    25,
+    120
+   ],
+   "t": {
+    "1": [
+     21,
+     -4,
+     -13,
+     5
+    ],
+    "2": [
+     24,
+     -1,
+     -10,
+     8
+    ],
+    "3": [
+     24,
+     -1,
+     -10,
+     9
+    ],
+    "4": [
+     21,
+     -4,
+     -14,
+     6
+    ]
+   }
+  },
+  {
+   "id": "Orbiter|hospital",
+   "std": [
+    51,
+    69,
+    168
+   ],
+   "t": {
+    "1": [
+     78,
+     10,
+     1,
+     18
+    ],
+    "2": [
+     72,
+     4,
+     -5,
+     12
+    ],
+    "3": [
+     76,
+     8,
+     -1,
+     17
+    ],
+    "4": [
+     74,
+     6,
+     -2,
+     14
+    ]
+   }
+  },
+  {
+   "id": "Pincher|tow",
+   "std": [
+    24,
+    52,
+    144
+   ],
+   "t": {
+    "1": [
+     54,
+     1,
+     -10,
+     13
+    ],
+    "2": [
+     59,
+     7,
+     -3,
+     17
+    ],
+    "3": [
+     67,
+     15,
+     5,
+     24
+    ],
+    "4": [
+     79,
+     27,
+     17,
+     38
+    ]
+   }
+  },
+  {
+   "id": "Pogo|quantum",
+   "std": [
+    67,
+    79,
+    168
+   ],
+   "t": {
+    "1": [
+     81,
+     2,
+     -2,
+     6
+    ],
+    "2": [
+     87,
+     8,
+     3,
+     12
+    ],
+    "3": [
+     91,
+     11,
+     6,
+     17
+    ],
+    "4": [
+     92,
+     13,
+     7,
+     19
+    ]
+   }
+  },
+  {
+   "id": "Popcorn|overdrive",
+   "std": [
+    29,
+    44,
+    120
+   ],
+   "t": {
+    "1": [
+     49,
+     5,
+     -5,
+     15
+    ],
+    "2": [
+     62,
+     18,
+     7,
+     28
+    ],
+    "3": [
+     68,
+     24,
+     14,
+     34
+    ],
+    "4": [
+     82,
+     38,
+     28,
+     47
+    ]
+   }
+  },
+  {
+   "id": "Railgun|overdrive",
+   "std": [
+    65,
+    80,
+    168
+   ],
+   "t": {
+    "1": [
+     80,
+     0,
+     -7,
+     7
+    ],
+    "2": [
+     83,
+     2,
+     -5,
+     9
+    ],
+    "3": [
+     87,
+     7,
+     -1,
+     14
+    ],
+    "4": [
+     91,
+     10,
+     4,
+     17
+    ]
+   }
+  },
+  {
+   "id": "Rotisserie|shield",
+   "std": [
+    37,
+    61,
+    168
+   ],
+   "t": {
+    "1": [
+     62,
+     1,
+     -5,
+     8
+    ],
+    "2": [
+     62,
+     1,
+     -6,
+     9
+    ],
+    "3": [
+     66,
+     5,
+     -3,
+     13
+    ],
+    "4": [
+     73,
+     13,
+     5,
+     20
+    ]
+   }
+  },
+  {
+   "id": "Scavenger|quantum",
+   "std": [
+    37,
+    63,
+    192
+   ],
+   "t": {
+    "1": [
+     67,
+     4,
+     0,
+     8
+    ],
+    "2": [
+     73,
+     11,
+     6,
+     16
+    ],
+    "3": [
+     74,
+     12,
+     6,
+     17
+    ],
+    "4": [
+     83,
+     21,
+     14,
+     27
+    ]
+   }
+  },
+  {
+   "id": "Scythe|jam",
+   "std": [
+    29,
+    46,
+    120
+   ],
+   "t": {
+    "1": [
+     51,
+     5,
+     -3,
+     13
+    ],
+    "2": [
+     55,
+     9,
+     -1,
+     20
+    ],
+    "3": [
+     57,
+     12,
+     1,
+     22
+    ],
+    "4": [
+     87,
+     41,
+     32,
+     50
+    ]
+   }
+  },
+  {
+   "id": "Slingshot|waller",
+   "std": [
+    51,
+    66,
+    192
+   ],
+   "t": {
+    "1": [
+     70,
+     4,
+     -3,
+     10
+    ],
+    "2": [
+     69,
+     3,
+     -4,
+     10
+    ],
+    "3": [
+     72,
+     6,
+     -1,
+     13
+    ],
+    "4": [
+     71,
+     5,
+     -4,
+     13
+    ]
+   }
+  },
+  {
+   "id": "Snapjaw|emp",
+   "std": [
+    23,
+    48,
+    120
+   ],
+   "t": {
+    "1": [
+     47,
+     -2,
+     -12,
+     9
+    ],
+    "2": [
+     49,
+     1,
+     -11,
+     12
+    ],
+    "3": [
+     57,
+     9,
+     -3,
+     21
+    ],
+    "4": [
+     69,
+     21,
+     11,
+     31
+    ]
+   }
+  },
+  {
+   "id": "Tarantula|gunner",
+   "std": [
+    40,
+    55,
+    192
+   ],
+   "t": {
+    "1": [
+     54,
+     0,
+     -7,
+     6
+    ],
+    "2": [
+     57,
+     3,
+     -4,
+     10
+    ],
+    "3": [
+     57,
+     2,
+     -5,
+     9
+    ],
+    "4": [
+     67,
+     12,
+     5,
+     19
+    ]
+   }
+  },
+  {
+   "id": "Thumper|overdrive",
+   "std": [
+    20,
+    43,
+    120
+   ],
+   "t": {
+    "1": [
+     50,
+     7,
+     -3,
+     16
+    ],
+    "2": [
+     51,
+     8,
+     -3,
+     18
+    ],
+    "3": [
+     62,
+     18,
+     8,
+     29
+    ],
+    "4": [
+     71,
+     28,
+     17,
+     38
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|core",
+   "std": [
+    34,
+    54,
+    120
+   ],
+   "t": {
+    "1": [
+     63,
+     9,
+     0,
+     19
+    ],
+    "2": [
+     69,
+     15,
+     6,
+     24
+    ],
+    "3": [
+     72,
+     18,
+     8,
+     27
+    ],
+    "4": [
+     82,
+     28,
+     18,
+     37
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|mines",
+   "std": [
+    34,
+    70,
+    120
+   ],
+   "t": {
+    "1": [
+     70,
+     0,
+     -6,
+     6
+    ],
+    "2": [
+     75,
+     5,
+     -2,
+     12
+    ],
+    "3": [
+     79,
+     9,
+     2,
+     17
+    ],
+    "4": [
+     80,
+     10,
+     3,
+     18
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|tow",
+   "std": [
+    34,
+    73,
+    120
+   ],
+   "t": {
+    "1": [
+     76,
+     3,
+     -7,
+     13
+    ],
+    "2": [
+     93,
+     20,
+     11,
+     29
+    ],
+    "3": [
+     96,
+     23,
+     15,
+     32
+    ],
+    "4": [
+     98,
+     26,
+     17,
+     34
+    ]
+   }
+  },
+  {
+   "id": "Trebuchet|bodyguard",
+   "std": [
+    41,
+    47,
+    168
+   ],
+   "t": {
+    "1": [
+     49,
+     2,
+     -3,
+     7
+    ],
+    "2": [
+     50,
+     3,
+     -2,
+     8
+    ],
+    "3": [
+     52,
+     5,
+     0,
+     10
+    ],
+    "4": [
+     54,
+     7,
+     1,
+     12
+    ]
+   }
+  },
+  {
+   "id": "Vertigo|hospital",
+   "std": [
+    44,
+    85,
+    120
+   ],
+   "t": {
+    "1": [
+     89,
+     4,
+     -3,
+     11
+    ],
+    "2": [
+     88,
+     3,
+     -5,
+     10
+    ],
+    "3": [
+     93,
+     8,
+     0,
+     15
+    ],
+    "4": [
+     82,
+     -3,
+     -12,
+     5
+    ]
+   }
+  },
+  {
+   "id": "Vertigo|powerkit",
+   "std": [
+    44,
+    83,
+    120
+   ],
+   "t": {
+    "1": [
+     84,
+     2,
+     -6,
+     9
+    ],
+    "2": [
+     83,
+     1,
+     -6,
+     8
+    ],
+    "3": [
+     84,
+     2,
+     -6,
+     10
+    ],
+    "4": [
+     85,
+     3,
+     -6,
+     11
+    ]
+   }
+  },
+  {
+   "id": "Whaler|waller",
+   "std": [
+    30,
+    68,
+    144
+   ],
+   "t": {
+    "1": [
+     69,
+     1,
+     -7,
+     10
+    ],
+    "2": [
+     75,
+     7,
+     0,
+     14
+    ],
+    "3": [
+     75,
+     7,
+     0,
+     14
+    ],
+    "4": [
+     77,
+     9,
+     2,
+     17
+    ]
+   }
+  },
+  {
+   "id": "Wrecker|quantum",
+   "std": [
+    21,
+    60,
+    120
+   ],
+   "t": {
+    "1": [
+     61,
+     1,
+     -5,
+     7
+    ],
+    "2": [
+     73,
+     13,
+     4,
+     21
+    ],
+    "3": [
+     74,
+     14,
+     7,
+     21
+    ],
+    "4": [
+     78,
+     18,
+     8,
+     27
+    ]
+   }
+  },
+  {
+   "id": "Yoyo|mines",
+   "std": [
+    17,
+    34,
+    144
+   ],
+   "t": {
+    "1": [
+     39,
+     5,
+     -4,
+     13
+    ],
+    "2": [
+     42,
+     8,
+     -1,
+     17
+    ],
+    "3": [
+     47,
+     13,
+     5,
+     22
+    ],
+    "4": [
+     59,
+     25,
+     16,
+     34
+    ]
+   }
+  }
+ ],
+ "single": {
+  "Buzzkill|medic": [
+   38,
+   69,
+   31,
+   23,
+   16
+  ],
+  "Buzzkill|gunner": [
+   38,
+   31,
+   -6,
+   -14,
+   16
+  ],
+  "Buzzkill|laser": [
+   38,
+   50,
+   13,
+   3,
+   16
+  ],
+  "Buzzkill|booster": [
+   38,
+   50,
+   13,
+   2,
+   16
+  ],
+  "Buzzkill|waller": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Buzzkill|bodyguard": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Buzzkill|spotter": [
+   38,
+   63,
+   25,
+   15,
+   16
+  ],
+  "Buzzkill|jammer": [
+   38,
+   63,
+   25,
+   12,
+   16
+  ],
+  "Buzzkill|blocker": [
+   38,
+   25,
+   -12,
+   -17,
+   16
+  ],
+  "Buzzkill|shield": [
+   38,
+   50,
+   13,
+   -2,
+   16
+  ],
+  "Buzzkill|emp": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Buzzkill|mines": [
+   38,
+   44,
+   6,
+   -1,
+   16
+  ],
+  "Buzzkill|popper": [
+   38,
+   50,
+   13,
+   4,
+   16
+  ],
+  "Buzzkill|tow": [
+   38,
+   44,
+   6,
+   -4,
+   16
+  ],
+  "Buzzkill|jam": [
+   38,
+   50,
+   13,
+   4,
+   16
+  ],
+  "Buzzkill|overdrive": [
+   38,
+   69,
+   31,
+   15,
+   16
+  ],
+  "Buzzkill|repair": [
+   38,
+   25,
+   -12,
+   -18,
+   16
+  ],
+  "Buzzkill|weapon": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Buzzkill|hull": [
+   38,
+   69,
+   31,
+   19,
+   16
+  ],
+  "Buzzkill|powerkit": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Buzzkill|armourkit": [
+   38,
+   50,
+   13,
+   4,
+   16
+  ],
+  "Buzzkill|core": [
+   38,
+   69,
+   31,
+   9,
+   16
+  ],
+  "Buzzkill|hospital": [
+   38,
+   56,
+   19,
+   2,
+   16
+  ],
+  "Buzzkill|quantum": [
+   38,
+   69,
+   31,
+   9,
+   16
+  ],
+  "Buzzkill|matador": [
+   38,
+   44,
+   6,
+   -1,
+   16
+  ],
+  "Buzzkill|bait": [
+   38,
+   69,
+   31,
+   22,
+   16
+  ],
+  "Buzzkill|pester": [
+   38,
+   56,
+   19,
+   9,
+   16
+  ],
+  "Forklift|medic": [
+   19,
+   31,
+   13,
+   4,
+   16
+  ],
+  "Forklift|gunner": [
+   19,
+   19,
+   0,
+   -8,
+   16
+  ],
+  "Forklift|laser": [
+   19,
+   25,
+   6,
+   -3,
+   16
+  ],
+  "Forklift|booster": [
+   19,
+   6,
+   -12,
+   -23,
+   16
+  ],
+  "Forklift|waller": [
+   19,
+   25,
+   6,
+   -2,
+   16
+  ],
+  "Forklift|bodyguard": [
+   19,
+   19,
+   0,
+   -15,
+   16
+  ],
+  "Forklift|spotter": [
+   19,
+   19,
+   0,
+   -10,
+   16
+  ],
+  "Forklift|jammer": [
+   19,
+   13,
+   -6,
+   -19,
+   16
+  ],
+  "Forklift|blocker": [
+   19,
+   25,
+   6,
+   2,
+   16
+  ],
+  "Forklift|shield": [
+   19,
+   13,
+   -6,
+   -21,
+   16
+  ],
+  "Forklift|emp": [
+   19,
+   6,
+   -12,
+   -19,
+   16
+  ],
+  "Forklift|mines": [
+   19,
+   19,
+   0,
+   -7,
+   16
+  ],
+  "Forklift|popper": [
+   19,
+   13,
+   -6,
+   -14,
+   16
+  ],
+  "Forklift|tow": [
+   19,
+   25,
+   6,
+   -4,
+   16
+  ],
+  "Forklift|jam": [
+   19,
+   19,
+   0,
+   -9,
+   16
+  ],
+  "Forklift|overdrive": [
+   19,
+   19,
+   0,
+   -16,
+   16
+  ],
+  "Forklift|repair": [
+   19,
+   19,
+   0,
+   -5,
+   16
+  ],
+  "Forklift|weapon": [
+   19,
+   19,
+   0,
+   -15,
+   16
+  ],
+  "Forklift|hull": [
+   19,
+   25,
+   6,
+   -6,
+   16
+  ],
+  "Forklift|powerkit": [
+   19,
+   19,
+   0,
+   -7,
+   16
+  ],
+  "Forklift|armourkit": [
+   19,
+   6,
+   -12,
+   -21,
+   16
+  ],
+  "Forklift|core": [
+   19,
+   19,
+   0,
+   -22,
+   16
+  ],
+  "Forklift|hospital": [
+   19,
+   44,
+   25,
+   8,
+   16
+  ],
+  "Forklift|quantum": [
+   19,
+   19,
+   0,
+   -22,
+   16
+  ],
+  "Forklift|matador": [
+   19,
+   25,
+   6,
+   -1,
+   16
+  ],
+  "Forklift|bait": [
+   19,
+   13,
+   -6,
+   -15,
+   16
+  ],
+  "Forklift|pester": [
+   19,
+   25,
+   6,
+   -4,
+   16
+  ],
+  "Hornet|medic": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Hornet|gunner": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Hornet|laser": [
+   13,
+   25,
+   13,
+   3,
+   16
+  ],
+  "Hornet|booster": [
+   13,
+   44,
+   31,
+   21,
+   16
+  ],
+  "Hornet|waller": [
+   13,
+   44,
+   31,
+   23,
+   16
+  ],
+  "Hornet|bodyguard": [
+   13,
+   38,
+   25,
+   10,
+   16
+  ],
+  "Hornet|spotter": [
+   13,
+   63,
+   50,
+   40,
+   16
+  ],
+  "Hornet|jammer": [
+   13,
+   44,
+   31,
+   19,
+   16
+  ],
+  "Hornet|blocker": [
+   13,
+   31,
+   19,
+   14,
+   16
+  ],
+  "Hornet|shield": [
+   13,
+   31,
+   19,
+   4,
+   16
+  ],
+  "Hornet|emp": [
+   13,
+   19,
+   6,
+   0,
+   16
+  ],
+  "Hornet|mines": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Hornet|popper": [
+   13,
+   31,
+   19,
+   11,
+   16
+  ],
+  "Hornet|tow": [
+   13,
+   31,
+   19,
+   8,
+   16
+  ],
+  "Hornet|jam": [
+   13,
+   25,
+   13,
+   4,
+   16
+  ],
+  "Hornet|overdrive": [
+   13,
+   63,
+   50,
+   34,
+   16
+  ],
+  "Hornet|repair": [
+   13,
+   44,
+   31,
+   26,
+   16
+  ],
+  "Hornet|weapon": [
+   13,
+   69,
+   56,
+   41,
+   16
+  ],
+  "Hornet|hull": [
+   13,
+   56,
+   44,
+   32,
+   16
+  ],
+  "Hornet|powerkit": [
+   13,
+   50,
+   38,
+   31,
+   16
+  ],
+  "Hornet|armourkit": [
+   13,
+   50,
+   38,
+   29,
+   16
+  ],
+  "Hornet|core": [
+   13,
+   63,
+   50,
+   28,
+   16
+  ],
+  "Hornet|hospital": [
+   13,
+   63,
+   50,
+   33,
+   16
+  ],
+  "Hornet|quantum": [
+   13,
+   63,
+   50,
+   28,
+   16
+  ],
+  "Hornet|matador": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Hornet|bait": [
+   13,
+   44,
+   31,
+   22,
+   16
+  ],
+  "Hornet|pester": [
+   13,
+   50,
+   38,
+   28,
+   16
+  ],
+  "Mincer|medic": [
+   25,
+   38,
+   13,
+   4,
+   16
+  ],
+  "Mincer|gunner": [
+   25,
+   44,
+   19,
+   11,
+   16
+  ],
+  "Mincer|laser": [
+   25,
+   44,
+   19,
+   9,
+   16
+  ],
+  "Mincer|booster": [
+   25,
+   44,
+   19,
+   9,
+   16
+  ],
+  "Mincer|waller": [
+   25,
+   50,
+   25,
+   17,
+   16
+  ],
+  "Mincer|bodyguard": [
+   25,
+   44,
+   19,
+   4,
+   16
+  ],
+  "Mincer|spotter": [
+   25,
+   31,
+   6,
+   -4,
+   16
+  ],
+  "Mincer|jammer": [
+   25,
+   25,
+   0,
+   -13,
+   16
+  ],
+  "Mincer|blocker": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Mincer|shield": [
+   25,
+   31,
+   6,
+   -8,
+   16
+  ],
+  "Mincer|emp": [
+   25,
+   31,
+   6,
+   0,
+   16
+  ],
+  "Mincer|mines": [
+   25,
+   31,
+   6,
+   -1,
+   16
+  ],
+  "Mincer|popper": [
+   25,
+   38,
+   13,
+   4,
+   16
+  ],
+  "Mincer|tow": [
+   25,
+   25,
+   0,
+   -11,
+   16
+  ],
+  "Mincer|jam": [
+   25,
+   44,
+   19,
+   10,
+   16
+  ],
+  "Mincer|overdrive": [
+   25,
+   44,
+   19,
+   3,
+   16
+  ],
+  "Mincer|repair": [
+   25,
+   44,
+   19,
+   13,
+   16
+  ],
+  "Mincer|weapon": [
+   25,
+   31,
+   6,
+   -9,
+   16
+  ],
+  "Mincer|hull": [
+   25,
+   31,
+   6,
+   -6,
+   16
+  ],
+  "Mincer|powerkit": [
+   25,
+   38,
+   13,
+   6,
+   16
+  ],
+  "Mincer|armourkit": [
+   25,
+   31,
+   6,
+   -2,
+   16
+  ],
+  "Mincer|core": [
+   25,
+   31,
+   6,
+   -16,
+   16
+  ],
+  "Mincer|hospital": [
+   25,
+   50,
+   25,
+   8,
+   16
+  ],
+  "Mincer|quantum": [
+   25,
+   31,
+   6,
+   -16,
+   16
+  ],
+  "Mincer|matador": [
+   25,
+   31,
+   6,
+   -1,
+   16
+  ],
+  "Mincer|bait": [
+   25,
+   38,
+   13,
+   3,
+   16
+  ],
+  "Mincer|pester": [
+   25,
+   38,
+   13,
+   3,
+   16
+  ],
+  "Popcorn|medic": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Popcorn|gunner": [
+   25,
+   38,
+   13,
+   5,
+   16
+  ],
+  "Popcorn|laser": [
+   25,
+   38,
+   13,
+   3,
+   16
+  ],
+  "Popcorn|booster": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Popcorn|waller": [
+   25,
+   50,
+   25,
+   17,
+   16
+  ],
+  "Popcorn|bodyguard": [
+   25,
+   50,
+   25,
+   10,
+   16
+  ],
+  "Popcorn|spotter": [
+   25,
+   19,
+   -6,
+   -16,
+   16
+  ],
+  "Popcorn|jammer": [
+   25,
+   25,
+   0,
+   -13,
+   16
+  ],
+  "Popcorn|blocker": [
+   25,
+   31,
+   6,
+   2,
+   16
+  ],
+  "Popcorn|shield": [
+   25,
+   31,
+   6,
+   -8,
+   16
+  ],
+  "Popcorn|emp": [
+   25,
+   31,
+   6,
+   0,
+   16
+  ],
+  "Popcorn|mines": [
+   25,
+   25,
+   0,
+   -7,
+   16
+  ],
+  "Popcorn|popper": [
+   25,
+   19,
+   -6,
+   -14,
+   16
+  ],
+  "Popcorn|tow": [
+   25,
+   25,
+   0,
+   -11,
+   16
+  ],
+  "Popcorn|jam": [
+   25,
+   31,
+   6,
+   -3,
+   16
+  ],
+  "Popcorn|overdrive": [
+   25,
+   69,
+   44,
+   28,
+   16
+  ],
+  "Popcorn|repair": [
+   25,
+   19,
+   -6,
+   -12,
+   16
+  ],
+  "Popcorn|weapon": [
+   25,
+   44,
+   19,
+   4,
+   16
+  ],
+  "Popcorn|hull": [
+   25,
+   31,
+   6,
+   -6,
+   16
+  ],
+  "Popcorn|powerkit": [
+   25,
+   50,
+   25,
+   18,
+   16
+  ],
+  "Popcorn|armourkit": [
+   25,
+   38,
+   13,
+   4,
+   16
+  ],
+  "Popcorn|core": [
+   25,
+   50,
+   25,
+   3,
+   16
+  ],
+  "Popcorn|hospital": [
+   25,
+   25,
+   0,
+   -17,
+   16
+  ],
+  "Popcorn|quantum": [
+   25,
+   56,
+   31,
+   9,
+   16
+  ],
+  "Popcorn|matador": [
+   25,
+   19,
+   -6,
+   -13,
+   16
+  ],
+  "Popcorn|bait": [
+   25,
+   19,
+   -6,
+   -15,
+   16
+  ],
+  "Popcorn|pester": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Scythe|medic": [
+   38,
+   44,
+   6,
+   -2,
+   16
+  ],
+  "Scythe|gunner": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Scythe|laser": [
+   38,
+   50,
+   13,
+   3,
+   16
+  ],
+  "Scythe|booster": [
+   38,
+   56,
+   19,
+   9,
+   16
+  ],
+  "Scythe|waller": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Scythe|bodyguard": [
+   38,
+   50,
+   13,
+   -3,
+   16
+  ],
+  "Scythe|spotter": [
+   38,
+   50,
+   13,
+   2,
+   16
+  ],
+  "Scythe|jammer": [
+   38,
+   63,
+   25,
+   12,
+   16
+  ],
+  "Scythe|blocker": [
+   38,
+   44,
+   6,
+   2,
+   16
+  ],
+  "Scythe|shield": [
+   38,
+   50,
+   13,
+   -2,
+   16
+  ],
+  "Scythe|emp": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Scythe|mines": [
+   38,
+   56,
+   19,
+   12,
+   16
+  ],
+  "Scythe|popper": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Scythe|tow": [
+   38,
+   63,
+   25,
+   14,
+   16
+  ],
+  "Scythe|jam": [
+   38,
+   69,
+   31,
+   22,
+   16
+  ],
+  "Scythe|overdrive": [
+   38,
+   44,
+   6,
+   -10,
+   16
+  ],
+  "Scythe|repair": [
+   38,
+   38,
+   0,
+   -5,
+   16
+  ],
+  "Scythe|weapon": [
+   38,
+   44,
+   6,
+   -9,
+   16
+  ],
+  "Scythe|hull": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Scythe|powerkit": [
+   38,
+   63,
+   25,
+   18,
+   16
+  ],
+  "Scythe|armourkit": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Scythe|core": [
+   38,
+   63,
+   25,
+   3,
+   16
+  ],
+  "Scythe|hospital": [
+   38,
+   56,
+   19,
+   2,
+   16
+  ],
+  "Scythe|quantum": [
+   38,
+   56,
+   19,
+   -4,
+   16
+  ],
+  "Scythe|matador": [
+   38,
+   56,
+   19,
+   12,
+   16
+  ],
+  "Scythe|bait": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Scythe|pester": [
+   38,
+   44,
+   6,
+   -4,
+   16
+  ],
+  "Snapjaw|medic": [
+   38,
+   25,
+   -12,
+   -21,
+   16
+  ],
+  "Snapjaw|gunner": [
+   38,
+   31,
+   -6,
+   -14,
+   16
+  ],
+  "Snapjaw|laser": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Snapjaw|booster": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Snapjaw|waller": [
+   38,
+   19,
+   -19,
+   -27,
+   16
+  ],
+  "Snapjaw|bodyguard": [
+   38,
+   25,
+   -12,
+   -28,
+   16
+  ],
+  "Snapjaw|spotter": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Snapjaw|jammer": [
+   38,
+   38,
+   0,
+   -13,
+   16
+  ],
+  "Snapjaw|blocker": [
+   38,
+   19,
+   -19,
+   -23,
+   16
+  ],
+  "Snapjaw|shield": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Snapjaw|emp": [
+   38,
+   56,
+   19,
+   12,
+   16
+  ],
+  "Snapjaw|mines": [
+   38,
+   19,
+   -19,
+   -26,
+   16
+  ],
+  "Snapjaw|popper": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Snapjaw|tow": [
+   38,
+   50,
+   13,
+   2,
+   16
+  ],
+  "Snapjaw|jam": [
+   38,
+   38,
+   0,
+   -9,
+   16
+  ],
+  "Snapjaw|overdrive": [
+   38,
+   44,
+   6,
+   -10,
+   16
+  ],
+  "Snapjaw|repair": [
+   38,
+   31,
+   -6,
+   -12,
+   16
+  ],
+  "Snapjaw|weapon": [
+   38,
+   31,
+   -6,
+   -21,
+   16
+  ],
+  "Snapjaw|hull": [
+   38,
+   25,
+   -12,
+   -25,
+   16
+  ],
+  "Snapjaw|powerkit": [
+   38,
+   13,
+   -25,
+   -32,
+   16
+  ],
+  "Snapjaw|armourkit": [
+   38,
+   25,
+   -12,
+   -21,
+   16
+  ],
+  "Snapjaw|core": [
+   38,
+   50,
+   13,
+   -10,
+   16
+  ],
+  "Snapjaw|hospital": [
+   38,
+   31,
+   -6,
+   -23,
+   16
+  ],
+  "Snapjaw|quantum": [
+   38,
+   38,
+   0,
+   -22,
+   16
+  ],
+  "Snapjaw|matador": [
+   38,
+   56,
+   19,
+   12,
+   16
+  ],
+  "Snapjaw|bait": [
+   38,
+   38,
+   0,
+   -9,
+   16
+  ],
+  "Snapjaw|pester": [
+   38,
+   56,
+   19,
+   9,
+   16
+  ],
+  "Thumper|medic": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Thumper|gunner": [
+   38,
+   19,
+   -19,
+   -26,
+   16
+  ],
+  "Thumper|laser": [
+   38,
+   31,
+   -6,
+   -16,
+   16
+  ],
+  "Thumper|booster": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Thumper|waller": [
+   38,
+   31,
+   -6,
+   -15,
+   16
+  ],
+  "Thumper|bodyguard": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Thumper|spotter": [
+   38,
+   44,
+   6,
+   -4,
+   16
+  ],
+  "Thumper|jammer": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Thumper|blocker": [
+   38,
+   31,
+   -6,
+   -11,
+   16
+  ],
+  "Thumper|shield": [
+   38,
+   31,
+   -6,
+   -21,
+   16
+  ],
+  "Thumper|emp": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Thumper|mines": [
+   38,
+   19,
+   -19,
+   -26,
+   16
+  ],
+  "Thumper|popper": [
+   38,
+   31,
+   -6,
+   -14,
+   16
+  ],
+  "Thumper|tow": [
+   38,
+   13,
+   -25,
+   -36,
+   16
+  ],
+  "Thumper|jam": [
+   38,
+   38,
+   0,
+   -9,
+   16
+  ],
+  "Thumper|overdrive": [
+   38,
+   75,
+   38,
+   21,
+   16
+  ],
+  "Thumper|repair": [
+   38,
+   50,
+   13,
+   7,
+   16
+  ],
+  "Thumper|weapon": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Thumper|hull": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Thumper|powerkit": [
+   38,
+   50,
+   13,
+   6,
+   16
+  ],
+  "Thumper|armourkit": [
+   38,
+   63,
+   25,
+   17,
+   16
+  ],
+  "Thumper|core": [
+   38,
+   38,
+   0,
+   -22,
+   16
+  ],
+  "Thumper|hospital": [
+   38,
+   44,
+   6,
+   -11,
+   16
+  ],
+  "Thumper|quantum": [
+   38,
+   50,
+   13,
+   -10,
+   16
+  ],
+  "Thumper|matador": [
+   38,
+   38,
+   0,
+   -7,
+   16
+  ],
+  "Thumper|bait": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Thumper|pester": [
+   38,
+   56,
+   19,
+   9,
+   16
+  ],
+  "Wrecker|medic": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Wrecker|gunner": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Wrecker|laser": [
+   25,
+   38,
+   13,
+   3,
+   16
+  ],
+  "Wrecker|booster": [
+   25,
+   50,
+   25,
+   15,
+   16
+  ],
+  "Wrecker|waller": [
+   25,
+   44,
+   19,
+   10,
+   16
+  ],
+  "Wrecker|bodyguard": [
+   25,
+   38,
+   13,
+   -3,
+   16
+  ],
+  "Wrecker|spotter": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Wrecker|jammer": [
+   25,
+   44,
+   19,
+   6,
+   16
+  ],
+  "Wrecker|blocker": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Wrecker|shield": [
+   25,
+   50,
+   25,
+   10,
+   16
+  ],
+  "Wrecker|emp": [
+   25,
+   50,
+   25,
+   18,
+   16
+  ],
+  "Wrecker|mines": [
+   25,
+   44,
+   19,
+   12,
+   16
+  ],
+  "Wrecker|popper": [
+   25,
+   31,
+   6,
+   -2,
+   16
+  ],
+  "Wrecker|tow": [
+   25,
+   25,
+   0,
+   -11,
+   16
+  ],
+  "Wrecker|jam": [
+   25,
+   50,
+   25,
+   16,
+   16
+  ],
+  "Wrecker|overdrive": [
+   25,
+   44,
+   19,
+   3,
+   16
+  ],
+  "Wrecker|repair": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Wrecker|weapon": [
+   25,
+   56,
+   31,
+   16,
+   16
+  ],
+  "Wrecker|hull": [
+   25,
+   50,
+   25,
+   13,
+   16
+  ],
+  "Wrecker|powerkit": [
+   25,
+   25,
+   0,
+   -7,
+   16
+  ],
+  "Wrecker|armourkit": [
+   25,
+   31,
+   6,
+   -2,
+   16
+  ],
+  "Wrecker|core": [
+   25,
+   63,
+   38,
+   15,
+   16
+  ],
+  "Wrecker|hospital": [
+   25,
+   44,
+   19,
+   2,
+   16
+  ],
+  "Wrecker|quantum": [
+   25,
+   69,
+   44,
+   21,
+   16
+  ],
+  "Wrecker|matador": [
+   25,
+   44,
+   19,
+   12,
+   16
+  ],
+  "Wrecker|bait": [
+   25,
+   56,
+   31,
+   22,
+   16
+  ],
+  "Wrecker|pester": [
+   25,
+   88,
+   63,
+   53,
+   16
+  ],
+  "Blacksmith|medic": [
+   50,
+   75,
+   25,
+   17,
+   16
+  ],
+  "Blacksmith|gunner": [
+   50,
+   75,
+   25,
+   17,
+   16
+  ],
+  "Blacksmith|laser": [
+   50,
+   69,
+   19,
+   9,
+   16
+  ],
+  "Blacksmith|booster": [
+   50,
+   63,
+   13,
+   2,
+   16
+  ],
+  "Blacksmith|waller": [
+   50,
+   56,
+   6,
+   -2,
+   16
+  ],
+  "Blacksmith|bodyguard": [
+   50,
+   75,
+   25,
+   10,
+   16
+  ],
+  "Blacksmith|spotter": [
+   50,
+   63,
+   13,
+   2,
+   16
+  ],
+  "Blacksmith|jammer": [
+   50,
+   75,
+   25,
+   12,
+   16
+  ],
+  "Blacksmith|blocker": [
+   50,
+   50,
+   0,
+   -5,
+   16
+  ],
+  "Blacksmith|shield": [
+   50,
+   81,
+   31,
+   17,
+   16
+  ],
+  "Blacksmith|emp": [
+   50,
+   50,
+   0,
+   -7,
+   16
+  ],
+  "Blacksmith|mines": [
+   50,
+   50,
+   0,
+   -7,
+   16
+  ],
+  "Blacksmith|popper": [
+   50,
+   75,
+   25,
+   17,
+   16
+  ],
+  "Blacksmith|tow": [
+   50,
+   56,
+   6,
+   -4,
+   16
+  ],
+  "Blacksmith|jam": [
+   50,
+   50,
+   0,
+   -9,
+   16
+  ],
+  "Blacksmith|overdrive": [
+   50,
+   75,
+   25,
+   9,
+   16
+  ],
+  "Blacksmith|repair": [
+   50,
+   56,
+   6,
+   1,
+   16
+  ],
+  "Blacksmith|weapon": [
+   50,
+   63,
+   13,
+   -2,
+   16
+  ],
+  "Blacksmith|hull": [
+   50,
+   63,
+   13,
+   0,
+   16
+  ],
+  "Blacksmith|powerkit": [
+   50,
+   50,
+   0,
+   -7,
+   16
+  ],
+  "Blacksmith|armourkit": [
+   50,
+   63,
+   13,
+   4,
+   16
+  ],
+  "Blacksmith|core": [
+   50,
+   81,
+   31,
+   9,
+   16
+  ],
+  "Blacksmith|hospital": [
+   50,
+   81,
+   31,
+   14,
+   16
+  ],
+  "Blacksmith|quantum": [
+   50,
+   69,
+   19,
+   -4,
+   16
+  ],
+  "Blacksmith|matador": [
+   50,
+   69,
+   19,
+   12,
+   16
+  ],
+  "Blacksmith|bait": [
+   50,
+   38,
+   -12,
+   -22,
+   16
+  ],
+  "Blacksmith|pester": [
+   50,
+   31,
+   -19,
+   -29,
+   16
+  ],
+  "Corkscrew|medic": [
+   13,
+   6,
+   -6,
+   -15,
+   16
+  ],
+  "Corkscrew|gunner": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Corkscrew|laser": [
+   13,
+   31,
+   19,
+   9,
+   16
+  ],
+  "Corkscrew|booster": [
+   13,
+   25,
+   13,
+   2,
+   16
+  ],
+  "Corkscrew|waller": [
+   13,
+   13,
+   0,
+   -8,
+   16
+  ],
+  "Corkscrew|bodyguard": [
+   13,
+   44,
+   31,
+   16,
+   16
+  ],
+  "Corkscrew|spotter": [
+   13,
+   19,
+   6,
+   -4,
+   16
+  ],
+  "Corkscrew|jammer": [
+   13,
+   38,
+   25,
+   12,
+   16
+  ],
+  "Corkscrew|blocker": [
+   13,
+   25,
+   13,
+   8,
+   16
+  ],
+  "Corkscrew|shield": [
+   13,
+   50,
+   38,
+   23,
+   16
+  ],
+  "Corkscrew|emp": [
+   13,
+   19,
+   6,
+   0,
+   16
+  ],
+  "Corkscrew|mines": [
+   13,
+   6,
+   -6,
+   -13,
+   16
+  ],
+  "Corkscrew|popper": [
+   13,
+   13,
+   0,
+   -8,
+   16
+  ],
+  "Corkscrew|tow": [
+   13,
+   25,
+   13,
+   2,
+   16
+  ],
+  "Corkscrew|jam": [
+   13,
+   13,
+   0,
+   -9,
+   16
+  ],
+  "Corkscrew|overdrive": [
+   13,
+   13,
+   0,
+   -16,
+   16
+  ],
+  "Corkscrew|repair": [
+   13,
+   6,
+   -6,
+   -12,
+   16
+  ],
+  "Corkscrew|weapon": [
+   13,
+   25,
+   13,
+   -2,
+   16
+  ],
+  "Corkscrew|hull": [
+   13,
+   25,
+   13,
+   0,
+   16
+  ],
+  "Corkscrew|powerkit": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Corkscrew|armourkit": [
+   13,
+   56,
+   44,
+   35,
+   16
+  ],
+  "Corkscrew|core": [
+   13,
+   56,
+   44,
+   21,
+   16
+  ],
+  "Corkscrew|hospital": [
+   13,
+   38,
+   25,
+   8,
+   16
+  ],
+  "Corkscrew|quantum": [
+   13,
+   50,
+   38,
+   15,
+   16
+  ],
+  "Corkscrew|matador": [
+   13,
+   6,
+   -6,
+   -13,
+   16
+  ],
+  "Corkscrew|bait": [
+   13,
+   6,
+   -6,
+   -15,
+   16
+  ],
+  "Corkscrew|pester": [
+   13,
+   6,
+   -6,
+   -16,
+   16
+  ],
+  "Mauler|medic": [
+   19,
+   31,
+   13,
+   4,
+   16
+  ],
+  "Mauler|gunner": [
+   19,
+   31,
+   13,
+   5,
+   16
+  ],
+  "Mauler|laser": [
+   19,
+   56,
+   38,
+   28,
+   16
+  ],
+  "Mauler|booster": [
+   19,
+   56,
+   38,
+   27,
+   16
+  ],
+  "Mauler|waller": [
+   19,
+   50,
+   31,
+   23,
+   16
+  ],
+  "Mauler|bodyguard": [
+   19,
+   44,
+   25,
+   10,
+   16
+  ],
+  "Mauler|spotter": [
+   19,
+   50,
+   31,
+   21,
+   16
+  ],
+  "Mauler|jammer": [
+   19,
+   50,
+   31,
+   19,
+   16
+  ],
+  "Mauler|blocker": [
+   19,
+   25,
+   6,
+   2,
+   16
+  ],
+  "Mauler|shield": [
+   19,
+   25,
+   6,
+   -8,
+   16
+  ],
+  "Mauler|emp": [
+   19,
+   31,
+   13,
+   6,
+   16
+  ],
+  "Mauler|mines": [
+   19,
+   38,
+   19,
+   12,
+   16
+  ],
+  "Mauler|popper": [
+   19,
+   38,
+   19,
+   11,
+   16
+  ],
+  "Mauler|tow": [
+   19,
+   31,
+   13,
+   2,
+   16
+  ],
+  "Mauler|jam": [
+   19,
+   31,
+   13,
+   4,
+   16
+  ],
+  "Mauler|overdrive": [
+   19,
+   44,
+   25,
+   9,
+   16
+  ],
+  "Mauler|repair": [
+   19,
+   13,
+   -6,
+   -12,
+   16
+  ],
+  "Mauler|weapon": [
+   19,
+   38,
+   19,
+   4,
+   16
+  ],
+  "Mauler|hull": [
+   19,
+   19,
+   0,
+   -12,
+   16
+  ],
+  "Mauler|powerkit": [
+   19,
+   31,
+   13,
+   6,
+   16
+  ],
+  "Mauler|armourkit": [
+   19,
+   63,
+   44,
+   35,
+   16
+  ],
+  "Mauler|core": [
+   19,
+   50,
+   31,
+   9,
+   16
+  ],
+  "Mauler|hospital": [
+   19,
+   31,
+   13,
+   -5,
+   16
+  ],
+  "Mauler|quantum": [
+   19,
+   56,
+   38,
+   15,
+   16
+  ],
+  "Mauler|matador": [
+   19,
+   44,
+   25,
+   18,
+   16
+  ],
+  "Mauler|bait": [
+   19,
+   50,
+   31,
+   22,
+   16
+  ],
+  "Mauler|pester": [
+   19,
+   44,
+   25,
+   15,
+   16
+  ],
+  "Thwacker|medic": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Thwacker|gunner": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Thwacker|laser": [
+   13,
+   38,
+   25,
+   15,
+   16
+  ],
+  "Thwacker|booster": [
+   13,
+   38,
+   25,
+   15,
+   16
+  ],
+  "Thwacker|waller": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Thwacker|bodyguard": [
+   13,
+   31,
+   19,
+   4,
+   16
+  ],
+  "Thwacker|spotter": [
+   13,
+   25,
+   13,
+   2,
+   16
+  ],
+  "Thwacker|jammer": [
+   13,
+   56,
+   44,
+   31,
+   16
+  ],
+  "Thwacker|blocker": [
+   13,
+   44,
+   31,
+   27,
+   16
+  ],
+  "Thwacker|shield": [
+   13,
+   31,
+   19,
+   4,
+   16
+  ],
+  "Thwacker|emp": [
+   13,
+   19,
+   6,
+   0,
+   16
+  ],
+  "Thwacker|mines": [
+   13,
+   63,
+   50,
+   43,
+   16
+  ],
+  "Thwacker|popper": [
+   13,
+   44,
+   31,
+   23,
+   16
+  ],
+  "Thwacker|tow": [
+   13,
+   56,
+   44,
+   33,
+   16
+  ],
+  "Thwacker|jam": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Thwacker|overdrive": [
+   13,
+   56,
+   44,
+   28,
+   16
+  ],
+  "Thwacker|repair": [
+   13,
+   31,
+   19,
+   13,
+   16
+  ],
+  "Thwacker|weapon": [
+   13,
+   50,
+   38,
+   23,
+   16
+  ],
+  "Thwacker|hull": [
+   13,
+   38,
+   25,
+   13,
+   16
+  ],
+  "Thwacker|powerkit": [
+   13,
+   13,
+   0,
+   -7,
+   16
+  ],
+  "Thwacker|armourkit": [
+   13,
+   0,
+   -12,
+   -21,
+   16
+  ],
+  "Thwacker|core": [
+   13,
+   69,
+   56,
+   34,
+   16
+  ],
+  "Thwacker|hospital": [
+   13,
+   13,
+   0,
+   -17,
+   16
+  ],
+  "Thwacker|quantum": [
+   13,
+   31,
+   19,
+   -4,
+   16
+  ],
+  "Thwacker|matador": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Thwacker|bait": [
+   13,
+   56,
+   44,
+   35,
+   16
+  ],
+  "Thwacker|pester": [
+   13,
+   69,
+   56,
+   46,
+   16
+  ],
+  "Vertigo|medic": [
+   50,
+   69,
+   19,
+   10,
+   16
+  ],
+  "Vertigo|gunner": [
+   50,
+   44,
+   -6,
+   -14,
+   16
+  ],
+  "Vertigo|laser": [
+   50,
+   56,
+   6,
+   -3,
+   16
+  ],
+  "Vertigo|booster": [
+   50,
+   75,
+   25,
+   15,
+   16
+  ],
+  "Vertigo|waller": [
+   50,
+   31,
+   -19,
+   -27,
+   16
+  ],
+  "Vertigo|bodyguard": [
+   50,
+   81,
+   31,
+   16,
+   16
+  ],
+  "Vertigo|spotter": [
+   50,
+   63,
+   13,
+   2,
+   16
+  ],
+  "Vertigo|jammer": [
+   50,
+   69,
+   19,
+   6,
+   16
+  ],
+  "Vertigo|blocker": [
+   50,
+   69,
+   19,
+   14,
+   16
+  ],
+  "Vertigo|shield": [
+   50,
+   56,
+   6,
+   -8,
+   16
+  ],
+  "Vertigo|emp": [
+   50,
+   81,
+   31,
+   25,
+   16
+  ],
+  "Vertigo|mines": [
+   50,
+   19,
+   -31,
+   -38,
+   16
+  ],
+  "Vertigo|popper": [
+   50,
+   56,
+   6,
+   -2,
+   16
+  ],
+  "Vertigo|tow": [
+   50,
+   63,
+   13,
+   2,
+   16
+  ],
+  "Vertigo|jam": [
+   50,
+   69,
+   19,
+   10,
+   16
+  ],
+  "Vertigo|overdrive": [
+   50,
+   50,
+   0,
+   -16,
+   16
+  ],
+  "Vertigo|repair": [
+   50,
+   44,
+   -6,
+   -12,
+   16
+  ],
+  "Vertigo|weapon": [
+   50,
+   81,
+   31,
+   16,
+   16
+  ],
+  "Vertigo|hull": [
+   50,
+   75,
+   25,
+   13,
+   16
+  ],
+  "Vertigo|powerkit": [
+   50,
+   63,
+   13,
+   6,
+   16
+  ],
+  "Vertigo|armourkit": [
+   50,
+   56,
+   6,
+   -2,
+   16
+  ],
+  "Vertigo|core": [
+   50,
+   75,
+   25,
+   3,
+   16
+  ],
+  "Vertigo|hospital": [
+   50,
+   88,
+   38,
+   20,
+   16
+  ],
+  "Vertigo|quantum": [
+   50,
+   69,
+   19,
+   -4,
+   16
+  ],
+  "Vertigo|matador": [
+   50,
+   69,
+   19,
+   12,
+   16
+  ],
+  "Vertigo|bait": [
+   50,
+   81,
+   31,
+   22,
+   16
+  ],
+  "Vertigo|pester": [
+   50,
+   63,
+   13,
+   3,
+   16
+  ],
+  "Angler|medic": [
+   31,
+   75,
+   44,
+   35,
+   16
+  ],
+  "Angler|gunner": [
+   31,
+   50,
+   19,
+   11,
+   16
+  ],
+  "Angler|laser": [
+   31,
+   50,
+   19,
+   9,
+   16
+  ],
+  "Angler|booster": [
+   31,
+   25,
+   -6,
+   -16,
+   16
+  ],
+  "Angler|waller": [
+   31,
+   31,
+   0,
+   -8,
+   16
+  ],
+  "Angler|bodyguard": [
+   31,
+   75,
+   44,
+   29,
+   16
+  ],
+  "Angler|spotter": [
+   31,
+   44,
+   13,
+   2,
+   16
+  ],
+  "Angler|jammer": [
+   31,
+   50,
+   19,
+   6,
+   16
+  ],
+  "Angler|blocker": [
+   31,
+   31,
+   0,
+   -5,
+   16
+  ],
+  "Angler|shield": [
+   31,
+   75,
+   44,
+   29,
+   16
+  ],
+  "Angler|emp": [
+   31,
+   25,
+   -6,
+   -13,
+   16
+  ],
+  "Angler|mines": [
+   31,
+   50,
+   19,
+   12,
+   16
+  ],
+  "Angler|popper": [
+   31,
+   31,
+   0,
+   -8,
+   16
+  ],
+  "Angler|tow": [
+   31,
+   25,
+   -6,
+   -17,
+   16
+  ],
+  "Angler|jam": [
+   31,
+   56,
+   25,
+   16,
+   16
+  ],
+  "Angler|overdrive": [
+   31,
+   25,
+   -6,
+   -22,
+   16
+  ],
+  "Angler|repair": [
+   31,
+   44,
+   13,
+   7,
+   16
+  ],
+  "Angler|weapon": [
+   31,
+   50,
+   19,
+   4,
+   16
+  ],
+  "Angler|hull": [
+   31,
+   50,
+   19,
+   7,
+   16
+  ],
+  "Angler|powerkit": [
+   31,
+   31,
+   0,
+   -7,
+   16
+  ],
+  "Angler|armourkit": [
+   31,
+   44,
+   13,
+   4,
+   16
+  ],
+  "Angler|core": [
+   31,
+   69,
+   38,
+   15,
+   16
+  ],
+  "Angler|hospital": [
+   31,
+   75,
+   44,
+   27,
+   16
+  ],
+  "Angler|quantum": [
+   31,
+   81,
+   50,
+   28,
+   16
+  ],
+  "Angler|matador": [
+   31,
+   38,
+   6,
+   -1,
+   16
+  ],
+  "Angler|bait": [
+   31,
+   38,
+   6,
+   -3,
+   16
+  ],
+  "Angler|pester": [
+   31,
+   44,
+   13,
+   3,
+   16
+  ],
+  "Gyro|medic": [
+   75,
+   75,
+   0,
+   -8,
+   16
+  ],
+  "Gyro|gunner": [
+   75,
+   75,
+   0,
+   -8,
+   16
+  ],
+  "Gyro|laser": [
+   75,
+   69,
+   -6,
+   -16,
+   16
+  ],
+  "Gyro|booster": [
+   75,
+   69,
+   -6,
+   -16,
+   16
+  ],
+  "Gyro|waller": [
+   75,
+   75,
+   0,
+   -8,
+   16
+  ],
+  "Gyro|bodyguard": [
+   75,
+   88,
+   13,
+   -3,
+   16
+  ],
+  "Gyro|spotter": [
+   75,
+   75,
+   0,
+   -10,
+   16
+  ],
+  "Gyro|jammer": [
+   75,
+   81,
+   6,
+   -6,
+   16
+  ],
+  "Gyro|blocker": [
+   75,
+   63,
+   -12,
+   -17,
+   16
+  ],
+  "Gyro|shield": [
+   75,
+   100,
+   25,
+   10,
+   16
+  ],
+  "Gyro|emp": [
+   75,
+   81,
+   6,
+   0,
+   16
+  ],
+  "Gyro|mines": [
+   75,
+   56,
+   -19,
+   -26,
+   16
+  ],
+  "Gyro|popper": [
+   75,
+   81,
+   6,
+   -2,
+   16
+  ],
+  "Gyro|tow": [
+   75,
+   81,
+   6,
+   -4,
+   16
+  ],
+  "Gyro|jam": [
+   75,
+   63,
+   -12,
+   -21,
+   16
+  ],
+  "Gyro|overdrive": [
+   75,
+   69,
+   -6,
+   -22,
+   16
+  ],
+  "Gyro|repair": [
+   75,
+   63,
+   -12,
+   -18,
+   16
+  ],
+  "Gyro|weapon": [
+   75,
+   75,
+   0,
+   -15,
+   16
+  ],
+  "Gyro|hull": [
+   75,
+   88,
+   13,
+   0,
+   16
+  ],
+  "Gyro|powerkit": [
+   75,
+   75,
+   0,
+   -7,
+   16
+  ],
+  "Gyro|armourkit": [
+   75,
+   63,
+   -12,
+   -21,
+   16
+  ],
+  "Gyro|core": [
+   75,
+   94,
+   19,
+   -4,
+   16
+  ],
+  "Gyro|hospital": [
+   75,
+   88,
+   13,
+   -5,
+   16
+  ],
+  "Gyro|quantum": [
+   75,
+   94,
+   19,
+   -4,
+   16
+  ],
+  "Gyro|matador": [
+   75,
+   75,
+   0,
+   -7,
+   16
+  ],
+  "Gyro|bait": [
+   75,
+   63,
+   -12,
+   -22,
+   16
+  ],
+  "Gyro|pester": [
+   75,
+   81,
+   6,
+   -4,
+   16
+  ],
+  "Pincher|medic": [
+   31,
+   38,
+   6,
+   -2,
+   16
+  ],
+  "Pincher|gunner": [
+   31,
+   50,
+   19,
+   11,
+   16
+  ],
+  "Pincher|laser": [
+   31,
+   50,
+   19,
+   9,
+   16
+  ],
+  "Pincher|booster": [
+   31,
+   44,
+   13,
+   2,
+   16
+  ],
+  "Pincher|waller": [
+   31,
+   31,
+   0,
+   -8,
+   16
+  ],
+  "Pincher|bodyguard": [
+   31,
+   13,
+   -19,
+   -34,
+   16
+  ],
+  "Pincher|spotter": [
+   31,
+   50,
+   19,
+   9,
+   16
+  ],
+  "Pincher|jammer": [
+   31,
+   38,
+   6,
+   -6,
+   16
+  ],
+  "Pincher|blocker": [
+   31,
+   19,
+   -12,
+   -17,
+   16
+  ],
+  "Pincher|shield": [
+   31,
+   63,
+   31,
+   17,
+   16
+  ],
+  "Pincher|emp": [
+   31,
+   25,
+   -6,
+   -13,
+   16
+  ],
+  "Pincher|mines": [
+   31,
+   44,
+   13,
+   6,
+   16
+  ],
+  "Pincher|popper": [
+   31,
+   56,
+   25,
+   17,
+   16
+  ],
+  "Pincher|tow": [
+   31,
+   69,
+   38,
+   27,
+   16
+  ],
+  "Pincher|jam": [
+   31,
+   38,
+   6,
+   -3,
+   16
+  ],
+  "Pincher|overdrive": [
+   31,
+   25,
+   -6,
+   -22,
+   16
+  ],
+  "Pincher|repair": [
+   31,
+   31,
+   0,
+   -5,
+   16
+  ],
+  "Pincher|weapon": [
+   31,
+   44,
+   13,
+   -2,
+   16
+  ],
+  "Pincher|hull": [
+   31,
+   38,
+   6,
+   -6,
+   16
+  ],
+  "Pincher|powerkit": [
+   31,
+   19,
+   -12,
+   -19,
+   16
+  ],
+  "Pincher|armourkit": [
+   31,
+   25,
+   -6,
+   -15,
+   16
+  ],
+  "Pincher|core": [
+   31,
+   38,
+   6,
+   -16,
+   16
+  ],
+  "Pincher|hospital": [
+   31,
+   44,
+   13,
+   -5,
+   16
+  ],
+  "Pincher|quantum": [
+   31,
+   44,
+   13,
+   -10,
+   16
+  ],
+  "Pincher|matador": [
+   31,
+   25,
+   -6,
+   -13,
+   16
+  ],
+  "Pincher|bait": [
+   31,
+   38,
+   6,
+   -3,
+   16
+  ],
+  "Pincher|pester": [
+   31,
+   19,
+   -12,
+   -22,
+   16
+  ],
+  "Whaler|medic": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Whaler|gunner": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Whaler|laser": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Whaler|booster": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Whaler|waller": [
+   25,
+   69,
+   44,
+   35,
+   16
+  ],
+  "Whaler|bodyguard": [
+   25,
+   31,
+   6,
+   -9,
+   16
+  ],
+  "Whaler|spotter": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Whaler|jammer": [
+   25,
+   44,
+   19,
+   6,
+   16
+  ],
+  "Whaler|blocker": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Whaler|shield": [
+   25,
+   31,
+   6,
+   -8,
+   16
+  ],
+  "Whaler|emp": [
+   25,
+   25,
+   0,
+   -7,
+   16
+  ],
+  "Whaler|mines": [
+   25,
+   44,
+   19,
+   12,
+   16
+  ],
+  "Whaler|popper": [
+   25,
+   19,
+   -6,
+   -14,
+   16
+  ],
+  "Whaler|tow": [
+   25,
+   44,
+   19,
+   8,
+   16
+  ],
+  "Whaler|jam": [
+   25,
+   25,
+   0,
+   -9,
+   16
+  ],
+  "Whaler|overdrive": [
+   25,
+   44,
+   19,
+   3,
+   16
+  ],
+  "Whaler|repair": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Whaler|weapon": [
+   25,
+   38,
+   13,
+   -2,
+   16
+  ],
+  "Whaler|hull": [
+   25,
+   25,
+   0,
+   -12,
+   16
+  ],
+  "Whaler|powerkit": [
+   25,
+   31,
+   6,
+   0,
+   16
+  ],
+  "Whaler|armourkit": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Whaler|core": [
+   25,
+   38,
+   13,
+   -10,
+   16
+  ],
+  "Whaler|hospital": [
+   25,
+   25,
+   0,
+   -17,
+   16
+  ],
+  "Whaler|quantum": [
+   25,
+   38,
+   13,
+   -10,
+   16
+  ],
+  "Whaler|matador": [
+   25,
+   31,
+   6,
+   -1,
+   16
+  ],
+  "Whaler|bait": [
+   25,
+   19,
+   -6,
+   -15,
+   16
+  ],
+  "Whaler|pester": [
+   25,
+   44,
+   19,
+   9,
+   16
+  ],
+  "Yoyo|medic": [
+   19,
+   19,
+   0,
+   -8,
+   16
+  ],
+  "Yoyo|gunner": [
+   19,
+   25,
+   6,
+   -1,
+   16
+  ],
+  "Yoyo|laser": [
+   19,
+   31,
+   13,
+   3,
+   16
+  ],
+  "Yoyo|booster": [
+   19,
+   25,
+   6,
+   -4,
+   16
+  ],
+  "Yoyo|waller": [
+   19,
+   31,
+   13,
+   4,
+   16
+  ],
+  "Yoyo|bodyguard": [
+   19,
+   19,
+   0,
+   -15,
+   16
+  ],
+  "Yoyo|spotter": [
+   19,
+   44,
+   25,
+   15,
+   16
+  ],
+  "Yoyo|jammer": [
+   19,
+   31,
+   13,
+   0,
+   16
+  ],
+  "Yoyo|blocker": [
+   19,
+   19,
+   0,
+   -5,
+   16
+  ],
+  "Yoyo|shield": [
+   19,
+   31,
+   13,
+   -2,
+   16
+  ],
+  "Yoyo|emp": [
+   19,
+   31,
+   13,
+   6,
+   16
+  ],
+  "Yoyo|mines": [
+   19,
+   50,
+   31,
+   24,
+   16
+  ],
+  "Yoyo|popper": [
+   19,
+   44,
+   25,
+   17,
+   16
+  ],
+  "Yoyo|tow": [
+   19,
+   31,
+   13,
+   2,
+   16
+  ],
+  "Yoyo|jam": [
+   19,
+   13,
+   -6,
+   -15,
+   16
+  ],
+  "Yoyo|overdrive": [
+   19,
+   38,
+   19,
+   3,
+   16
+  ],
+  "Yoyo|repair": [
+   19,
+   13,
+   -6,
+   -12,
+   16
+  ],
+  "Yoyo|weapon": [
+   19,
+   31,
+   13,
+   -2,
+   16
+  ],
+  "Yoyo|hull": [
+   19,
+   25,
+   6,
+   -6,
+   16
+  ],
+  "Yoyo|powerkit": [
+   19,
+   6,
+   -12,
+   -19,
+   16
+  ],
+  "Yoyo|armourkit": [
+   19,
+   25,
+   6,
+   -2,
+   16
+  ],
+  "Yoyo|core": [
+   19,
+   31,
+   13,
+   -10,
+   16
+  ],
+  "Yoyo|hospital": [
+   19,
+   31,
+   13,
+   -5,
+   16
+  ],
+  "Yoyo|quantum": [
+   19,
+   25,
+   6,
+   -16,
+   16
+  ],
+  "Yoyo|matador": [
+   19,
+   31,
+   13,
+   6,
+   16
+  ],
+  "Yoyo|bait": [
+   19,
+   25,
+   6,
+   -3,
+   16
+  ],
+  "Yoyo|pester": [
+   19,
+   19,
+   0,
+   -10,
+   16
+  ],
+  "Gaucho|medic": [
+   13,
+   25,
+   13,
+   4,
+   16
+  ],
+  "Gaucho|gunner": [
+   13,
+   44,
+   31,
+   24,
+   16
+  ],
+  "Gaucho|laser": [
+   13,
+   44,
+   31,
+   22,
+   16
+  ],
+  "Gaucho|booster": [
+   13,
+   25,
+   13,
+   2,
+   16
+  ],
+  "Gaucho|waller": [
+   13,
+   50,
+   38,
+   29,
+   16
+  ],
+  "Gaucho|bodyguard": [
+   13,
+   19,
+   6,
+   -9,
+   16
+  ],
+  "Gaucho|spotter": [
+   13,
+   38,
+   25,
+   15,
+   16
+  ],
+  "Gaucho|jammer": [
+   13,
+   31,
+   19,
+   6,
+   16
+  ],
+  "Gaucho|blocker": [
+   13,
+   38,
+   25,
+   20,
+   16
+  ],
+  "Gaucho|shield": [
+   13,
+   19,
+   6,
+   -8,
+   16
+  ],
+  "Gaucho|emp": [
+   13,
+   13,
+   0,
+   -7,
+   16
+  ],
+  "Gaucho|mines": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Gaucho|popper": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Gaucho|tow": [
+   13,
+   38,
+   25,
+   14,
+   16
+  ],
+  "Gaucho|jam": [
+   13,
+   13,
+   0,
+   -9,
+   16
+  ],
+  "Gaucho|overdrive": [
+   13,
+   75,
+   63,
+   46,
+   16
+  ],
+  "Gaucho|repair": [
+   13,
+   44,
+   31,
+   26,
+   16
+  ],
+  "Gaucho|weapon": [
+   13,
+   44,
+   31,
+   16,
+   16
+  ],
+  "Gaucho|hull": [
+   13,
+   44,
+   31,
+   19,
+   16
+  ],
+  "Gaucho|powerkit": [
+   13,
+   25,
+   13,
+   6,
+   16
+  ],
+  "Gaucho|armourkit": [
+   13,
+   13,
+   0,
+   -8,
+   16
+  ],
+  "Gaucho|core": [
+   13,
+   56,
+   44,
+   21,
+   16
+  ],
+  "Gaucho|hospital": [
+   13,
+   38,
+   25,
+   8,
+   16
+  ],
+  "Gaucho|quantum": [
+   13,
+   56,
+   44,
+   21,
+   16
+  ],
+  "Gaucho|matador": [
+   13,
+   25,
+   13,
+   6,
+   16
+  ],
+  "Gaucho|bait": [
+   13,
+   25,
+   13,
+   3,
+   16
+  ],
+  "Gaucho|pester": [
+   13,
+   31,
+   19,
+   9,
+   16
+  ],
+  "Grandmaster|medic": [
+   19,
+   19,
+   0,
+   -8,
+   16
+  ],
+  "Grandmaster|gunner": [
+   19,
+   19,
+   0,
+   -8,
+   16
+  ],
+  "Grandmaster|laser": [
+   19,
+   31,
+   13,
+   3,
+   16
+  ],
+  "Grandmaster|booster": [
+   19,
+   38,
+   19,
+   9,
+   16
+  ],
+  "Grandmaster|waller": [
+   19,
+   25,
+   6,
+   -2,
+   16
+  ],
+  "Grandmaster|bodyguard": [
+   19,
+   25,
+   6,
+   -9,
+   16
+  ],
+  "Grandmaster|spotter": [
+   19,
+   44,
+   25,
+   15,
+   16
+  ],
+  "Grandmaster|jammer": [
+   19,
+   0,
+   -19,
+   -31,
+   16
+  ],
+  "Grandmaster|blocker": [
+   19,
+   44,
+   25,
+   20,
+   16
+  ],
+  "Grandmaster|shield": [
+   19,
+   25,
+   6,
+   -8,
+   16
+  ],
+  "Grandmaster|emp": [
+   19,
+   25,
+   6,
+   0,
+   16
+  ],
+  "Grandmaster|mines": [
+   19,
+   31,
+   13,
+   6,
+   16
+  ],
+  "Grandmaster|popper": [
+   19,
+   13,
+   -6,
+   -14,
+   16
+  ],
+  "Grandmaster|tow": [
+   19,
+   19,
+   0,
+   -11,
+   16
+  ],
+  "Grandmaster|jam": [
+   19,
+   25,
+   6,
+   -3,
+   16
+  ],
+  "Grandmaster|overdrive": [
+   19,
+   25,
+   6,
+   -10,
+   16
+  ],
+  "Grandmaster|repair": [
+   19,
+   31,
+   13,
+   7,
+   16
+  ],
+  "Grandmaster|weapon": [
+   19,
+   31,
+   13,
+   -2,
+   16
+  ],
+  "Grandmaster|hull": [
+   19,
+   19,
+   0,
+   -12,
+   16
+  ],
+  "Grandmaster|powerkit": [
+   19,
+   38,
+   19,
+   12,
+   16
+  ],
+  "Grandmaster|armourkit": [
+   19,
+   38,
+   19,
+   10,
+   16
+  ],
+  "Grandmaster|core": [
+   19,
+   44,
+   25,
+   3,
+   16
+  ],
+  "Grandmaster|hospital": [
+   19,
+   19,
+   0,
+   -17,
+   16
+  ],
+  "Grandmaster|quantum": [
+   19,
+   38,
+   19,
+   -4,
+   16
+  ],
+  "Grandmaster|matador": [
+   19,
+   13,
+   -6,
+   -13,
+   16
+  ],
+  "Grandmaster|bait": [
+   19,
+   6,
+   -12,
+   -22,
+   16
+  ],
+  "Grandmaster|pester": [
+   19,
+   13,
+   -6,
+   -16,
+   16
+  ],
+  "Hydra|medic": [
+   38,
+   44,
+   6,
+   -2,
+   16
+  ],
+  "Hydra|gunner": [
+   38,
+   19,
+   -19,
+   -26,
+   16
+  ],
+  "Hydra|laser": [
+   38,
+   31,
+   -6,
+   -16,
+   16
+  ],
+  "Hydra|booster": [
+   38,
+   56,
+   19,
+   9,
+   16
+  ],
+  "Hydra|waller": [
+   38,
+   44,
+   6,
+   -2,
+   16
+  ],
+  "Hydra|bodyguard": [
+   38,
+   50,
+   13,
+   -3,
+   16
+  ],
+  "Hydra|spotter": [
+   38,
+   44,
+   6,
+   -4,
+   16
+  ],
+  "Hydra|jammer": [
+   38,
+   56,
+   19,
+   6,
+   16
+  ],
+  "Hydra|blocker": [
+   38,
+   56,
+   19,
+   14,
+   16
+  ],
+  "Hydra|shield": [
+   38,
+   44,
+   6,
+   -8,
+   16
+  ],
+  "Hydra|emp": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Hydra|mines": [
+   38,
+   50,
+   13,
+   6,
+   16
+  ],
+  "Hydra|popper": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Hydra|tow": [
+   38,
+   56,
+   19,
+   8,
+   16
+  ],
+  "Hydra|jam": [
+   38,
+   31,
+   -6,
+   -15,
+   16
+  ],
+  "Hydra|overdrive": [
+   38,
+   50,
+   13,
+   -4,
+   16
+  ],
+  "Hydra|repair": [
+   38,
+   56,
+   19,
+   13,
+   16
+  ],
+  "Hydra|weapon": [
+   38,
+   50,
+   13,
+   -2,
+   16
+  ],
+  "Hydra|hull": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Hydra|powerkit": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Hydra|armourkit": [
+   38,
+   63,
+   25,
+   17,
+   16
+  ],
+  "Hydra|core": [
+   38,
+   63,
+   25,
+   3,
+   16
+  ],
+  "Hydra|hospital": [
+   38,
+   50,
+   13,
+   -5,
+   16
+  ],
+  "Hydra|quantum": [
+   38,
+   81,
+   44,
+   21,
+   16
+  ],
+  "Hydra|matador": [
+   38,
+   50,
+   13,
+   6,
+   16
+  ],
+  "Hydra|bait": [
+   38,
+   31,
+   -6,
+   -15,
+   16
+  ],
+  "Hydra|pester": [
+   38,
+   25,
+   -12,
+   -22,
+   16
+  ],
+  "Scavenger|medic": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Scavenger|gunner": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Scavenger|laser": [
+   38,
+   50,
+   13,
+   3,
+   16
+  ],
+  "Scavenger|booster": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Scavenger|waller": [
+   38,
+   13,
+   -25,
+   -33,
+   16
+  ],
+  "Scavenger|bodyguard": [
+   38,
+   63,
+   25,
+   10,
+   16
+  ],
+  "Scavenger|spotter": [
+   38,
+   38,
+   0,
+   -10,
+   16
+  ],
+  "Scavenger|jammer": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Scavenger|blocker": [
+   38,
+   31,
+   -6,
+   -11,
+   16
+  ],
+  "Scavenger|shield": [
+   38,
+   50,
+   13,
+   -2,
+   16
+  ],
+  "Scavenger|emp": [
+   38,
+   69,
+   31,
+   25,
+   16
+  ],
+  "Scavenger|mines": [
+   38,
+   31,
+   -6,
+   -13,
+   16
+  ],
+  "Scavenger|popper": [
+   38,
+   38,
+   0,
+   -8,
+   16
+  ],
+  "Scavenger|tow": [
+   38,
+   44,
+   6,
+   -4,
+   16
+  ],
+  "Scavenger|jam": [
+   38,
+   63,
+   25,
+   16,
+   16
+  ],
+  "Scavenger|overdrive": [
+   38,
+   63,
+   25,
+   9,
+   16
+  ],
+  "Scavenger|repair": [
+   38,
+   44,
+   6,
+   1,
+   16
+  ],
+  "Scavenger|weapon": [
+   38,
+   56,
+   19,
+   4,
+   16
+  ],
+  "Scavenger|hull": [
+   38,
+   31,
+   -6,
+   -18,
+   16
+  ],
+  "Scavenger|powerkit": [
+   38,
+   31,
+   -6,
+   -13,
+   16
+  ],
+  "Scavenger|armourkit": [
+   38,
+   31,
+   -6,
+   -15,
+   16
+  ],
+  "Scavenger|core": [
+   38,
+   63,
+   25,
+   3,
+   16
+  ],
+  "Scavenger|hospital": [
+   38,
+   50,
+   13,
+   -5,
+   16
+  ],
+  "Scavenger|quantum": [
+   38,
+   75,
+   38,
+   15,
+   16
+  ],
+  "Scavenger|matador": [
+   38,
+   38,
+   0,
+   -7,
+   16
+  ],
+  "Scavenger|bait": [
+   38,
+   50,
+   13,
+   3,
+   16
+  ],
+  "Scavenger|pester": [
+   38,
+   63,
+   25,
+   15,
+   16
+  ],
+  "Slingshot|medic": [
+   31,
+   38,
+   6,
+   -2,
+   16
+  ],
+  "Slingshot|gunner": [
+   31,
+   56,
+   25,
+   17,
+   16
+  ],
+  "Slingshot|laser": [
+   31,
+   56,
+   25,
+   15,
+   16
+  ],
+  "Slingshot|booster": [
+   31,
+   50,
+   19,
+   9,
+   16
+  ],
+  "Slingshot|waller": [
+   31,
+   75,
+   44,
+   35,
+   16
+  ],
+  "Slingshot|bodyguard": [
+   31,
+   56,
+   25,
+   10,
+   16
+  ],
+  "Slingshot|spotter": [
+   31,
+   56,
+   25,
+   15,
+   16
+  ],
+  "Slingshot|jammer": [
+   31,
+   31,
+   0,
+   -13,
+   16
+  ],
+  "Slingshot|blocker": [
+   31,
+   25,
+   -6,
+   -11,
+   16
+  ],
+  "Slingshot|shield": [
+   31,
+   56,
+   25,
+   10,
+   16
+  ],
+  "Slingshot|emp": [
+   31,
+   44,
+   13,
+   6,
+   16
+  ],
+  "Slingshot|mines": [
+   31,
+   50,
+   19,
+   12,
+   16
+  ],
+  "Slingshot|popper": [
+   31,
+   38,
+   6,
+   -2,
+   16
+  ],
+  "Slingshot|tow": [
+   31,
+   63,
+   31,
+   21,
+   16
+  ],
+  "Slingshot|jam": [
+   31,
+   63,
+   31,
+   22,
+   16
+  ],
+  "Slingshot|overdrive": [
+   31,
+   63,
+   31,
+   15,
+   16
+  ],
+  "Slingshot|repair": [
+   31,
+   56,
+   25,
+   20,
+   16
+  ],
+  "Slingshot|weapon": [
+   31,
+   56,
+   25,
+   10,
+   16
+  ],
+  "Slingshot|hull": [
+   31,
+   56,
+   25,
+   13,
+   16
+  ],
+  "Slingshot|powerkit": [
+   31,
+   44,
+   13,
+   6,
+   16
+  ],
+  "Slingshot|armourkit": [
+   31,
+   44,
+   13,
+   4,
+   16
+  ],
+  "Slingshot|core": [
+   31,
+   50,
+   19,
+   -4,
+   16
+  ],
+  "Slingshot|hospital": [
+   31,
+   63,
+   31,
+   14,
+   16
+  ],
+  "Slingshot|quantum": [
+   31,
+   50,
+   19,
+   -4,
+   16
+  ],
+  "Slingshot|matador": [
+   31,
+   38,
+   6,
+   -1,
+   16
+  ],
+  "Slingshot|bait": [
+   31,
+   38,
+   6,
+   -3,
+   16
+  ],
+  "Slingshot|pester": [
+   31,
+   50,
+   19,
+   9,
+   16
+  ],
+  "Tarantula|medic": [
+   56,
+   38,
+   -19,
+   -27,
+   16
+  ],
+  "Tarantula|gunner": [
+   56,
+   75,
+   19,
+   11,
+   16
+  ],
+  "Tarantula|laser": [
+   56,
+   56,
+   0,
+   -10,
+   16
+  ],
+  "Tarantula|booster": [
+   56,
+   44,
+   -12,
+   -23,
+   16
+  ],
+  "Tarantula|waller": [
+   56,
+   50,
+   -6,
+   -15,
+   16
+  ],
+  "Tarantula|bodyguard": [
+   56,
+   69,
+   13,
+   -3,
+   16
+  ],
+  "Tarantula|spotter": [
+   56,
+   44,
+   -12,
+   -23,
+   16
+  ],
+  "Tarantula|jammer": [
+   56,
+   63,
+   6,
+   -6,
+   16
+  ],
+  "Tarantula|blocker": [
+   56,
+   50,
+   -6,
+   -11,
+   16
+  ],
+  "Tarantula|shield": [
+   56,
+   56,
+   0,
+   -15,
+   16
+  ],
+  "Tarantula|emp": [
+   56,
+   63,
+   6,
+   0,
+   16
+  ],
+  "Tarantula|mines": [
+   56,
+   56,
+   0,
+   -7,
+   16
+  ],
+  "Tarantula|popper": [
+   56,
+   56,
+   0,
+   -8,
+   16
+  ],
+  "Tarantula|tow": [
+   56,
+   50,
+   -6,
+   -17,
+   16
+  ],
+  "Tarantula|jam": [
+   56,
+   31,
+   -25,
+   -34,
+   16
+  ],
+  "Tarantula|overdrive": [
+   56,
+   50,
+   -6,
+   -22,
+   16
+  ],
+  "Tarantula|repair": [
+   56,
+   63,
+   6,
+   1,
+   16
+  ],
+  "Tarantula|weapon": [
+   56,
+   56,
+   0,
+   -15,
+   16
+  ],
+  "Tarantula|hull": [
+   56,
+   75,
+   19,
+   7,
+   16
+  ],
+  "Tarantula|powerkit": [
+   56,
+   63,
+   6,
+   0,
+   16
+  ],
+  "Tarantula|armourkit": [
+   56,
+   63,
+   6,
+   -2,
+   16
+  ],
+  "Tarantula|core": [
+   56,
+   63,
+   6,
+   -16,
+   16
+  ],
+  "Tarantula|hospital": [
+   56,
+   75,
+   19,
+   2,
+   16
+  ],
+  "Tarantula|quantum": [
+   56,
+   75,
+   19,
+   -4,
+   16
+  ],
+  "Tarantula|matador": [
+   56,
+   56,
+   0,
+   -7,
+   16
+  ],
+  "Tarantula|bait": [
+   56,
+   50,
+   -6,
+   -15,
+   16
+  ],
+  "Tarantula|pester": [
+   56,
+   56,
+   0,
+   -10,
+   16
+  ],
+  "Bricklayer|medic": [
+   63,
+   63,
+   0,
+   -8,
+   16
+  ],
+  "Bricklayer|gunner": [
+   63,
+   63,
+   0,
+   -8,
+   16
+  ],
+  "Bricklayer|laser": [
+   63,
+   56,
+   -6,
+   -16,
+   16
+  ],
+  "Bricklayer|booster": [
+   63,
+   69,
+   6,
+   -4,
+   16
+  ],
+  "Bricklayer|waller": [
+   63,
+   56,
+   -6,
+   -15,
+   16
+  ],
+  "Bricklayer|bodyguard": [
+   63,
+   75,
+   13,
+   -3,
+   16
+  ],
+  "Bricklayer|spotter": [
+   63,
+   69,
+   6,
+   -4,
+   16
+  ],
+  "Bricklayer|jammer": [
+   63,
+   69,
+   6,
+   -6,
+   16
+  ],
+  "Bricklayer|blocker": [
+   63,
+   75,
+   13,
+   8,
+   16
+  ],
+  "Bricklayer|shield": [
+   63,
+   63,
+   0,
+   -15,
+   16
+  ],
+  "Bricklayer|emp": [
+   63,
+   56,
+   -6,
+   -13,
+   16
+  ],
+  "Bricklayer|mines": [
+   63,
+   69,
+   6,
+   -1,
+   16
+  ],
+  "Bricklayer|popper": [
+   63,
+   56,
+   -6,
+   -14,
+   16
+  ],
+  "Bricklayer|tow": [
+   63,
+   81,
+   19,
+   8,
+   16
+  ],
+  "Bricklayer|jam": [
+   63,
+   63,
+   0,
+   -9,
+   16
+  ],
+  "Bricklayer|overdrive": [
+   63,
+   75,
+   13,
+   -4,
+   16
+  ],
+  "Bricklayer|repair": [
+   63,
+   50,
+   -12,
+   -18,
+   16
+  ],
+  "Bricklayer|weapon": [
+   63,
+   69,
+   6,
+   -9,
+   16
+  ],
+  "Bricklayer|hull": [
+   63,
+   69,
+   6,
+   -6,
+   16
+  ],
+  "Bricklayer|powerkit": [
+   63,
+   56,
+   -6,
+   -13,
+   16
+  ],
+  "Bricklayer|armourkit": [
+   63,
+   56,
+   -6,
+   -15,
+   16
+  ],
+  "Bricklayer|core": [
+   63,
+   100,
+   38,
+   15,
+   16
+  ],
+  "Bricklayer|hospital": [
+   63,
+   88,
+   25,
+   8,
+   16
+  ],
+  "Bricklayer|quantum": [
+   63,
+   75,
+   13,
+   -10,
+   16
+  ],
+  "Bricklayer|matador": [
+   63,
+   50,
+   -12,
+   -19,
+   16
+  ],
+  "Bricklayer|bait": [
+   63,
+   63,
+   0,
+   -9,
+   16
+  ],
+  "Bricklayer|pester": [
+   63,
+   56,
+   -6,
+   -16,
+   16
+  ],
+  "Jukebox|medic": [
+   56,
+   56,
+   0,
+   -8,
+   16
+  ],
+  "Jukebox|gunner": [
+   56,
+   69,
+   13,
+   5,
+   16
+  ],
+  "Jukebox|laser": [
+   56,
+   56,
+   0,
+   -10,
+   16
+  ],
+  "Jukebox|booster": [
+   56,
+   56,
+   0,
+   -10,
+   16
+  ],
+  "Jukebox|waller": [
+   56,
+   44,
+   -12,
+   -21,
+   16
+  ],
+  "Jukebox|bodyguard": [
+   56,
+   50,
+   -6,
+   -21,
+   16
+  ],
+  "Jukebox|spotter": [
+   56,
+   69,
+   13,
+   2,
+   16
+  ],
+  "Jukebox|jammer": [
+   56,
+   56,
+   0,
+   -13,
+   16
+  ],
+  "Jukebox|blocker": [
+   56,
+   63,
+   6,
+   2,
+   16
+  ],
+  "Jukebox|shield": [
+   56,
+   75,
+   19,
+   4,
+   16
+  ],
+  "Jukebox|emp": [
+   56,
+   50,
+   -6,
+   -13,
+   16
+  ],
+  "Jukebox|mines": [
+   56,
+   63,
+   6,
+   -1,
+   16
+  ],
+  "Jukebox|popper": [
+   56,
+   50,
+   -6,
+   -14,
+   16
+  ],
+  "Jukebox|tow": [
+   56,
+   56,
+   0,
+   -11,
+   16
+  ],
+  "Jukebox|jam": [
+   56,
+   88,
+   31,
+   22,
+   16
+  ],
+  "Jukebox|overdrive": [
+   56,
+   69,
+   13,
+   -4,
+   16
+  ],
+  "Jukebox|repair": [
+   56,
+   63,
+   6,
+   1,
+   16
+  ],
+  "Jukebox|weapon": [
+   56,
+   69,
+   13,
+   -2,
+   16
+  ],
+  "Jukebox|hull": [
+   56,
+   75,
+   19,
+   7,
+   16
+  ],
+  "Jukebox|powerkit": [
+   56,
+   88,
+   31,
+   25,
+   16
+  ],
+  "Jukebox|armourkit": [
+   56,
+   31,
+   -25,
+   -33,
+   16
+  ],
+  "Jukebox|core": [
+   56,
+   81,
+   25,
+   3,
+   16
+  ],
+  "Jukebox|hospital": [
+   56,
+   50,
+   -6,
+   -23,
+   16
+  ],
+  "Jukebox|quantum": [
+   56,
+   63,
+   6,
+   -16,
+   16
+  ],
+  "Jukebox|matador": [
+   56,
+   50,
+   -6,
+   -13,
+   16
+  ],
+  "Jukebox|bait": [
+   56,
+   69,
+   13,
+   3,
+   16
+  ],
+  "Jukebox|pester": [
+   56,
+   50,
+   -6,
+   -16,
+   16
+  ],
+  "Lodestone|medic": [
+   50,
+   63,
+   13,
+   4,
+   16
+  ],
+  "Lodestone|gunner": [
+   50,
+   56,
+   6,
+   -1,
+   16
+  ],
+  "Lodestone|laser": [
+   50,
+   63,
+   13,
+   3,
+   16
+  ],
+  "Lodestone|booster": [
+   50,
+   63,
+   13,
+   2,
+   16
+  ],
+  "Lodestone|waller": [
+   50,
+   63,
+   13,
+   4,
+   16
+  ],
+  "Lodestone|bodyguard": [
+   50,
+   63,
+   13,
+   -3,
+   16
+  ],
+  "Lodestone|spotter": [
+   50,
+   44,
+   -6,
+   -16,
+   16
+  ],
+  "Lodestone|jammer": [
+   50,
+   63,
+   13,
+   0,
+   16
+  ],
+  "Lodestone|blocker": [
+   50,
+   63,
+   13,
+   8,
+   16
+  ],
+  "Lodestone|shield": [
+   50,
+   56,
+   6,
+   -8,
+   16
+  ],
+  "Lodestone|emp": [
+   50,
+   50,
+   0,
+   -7,
+   16
+  ],
+  "Lodestone|mines": [
+   50,
+   44,
+   -6,
+   -13,
+   16
+  ],
+  "Lodestone|popper": [
+   50,
+   94,
+   44,
+   36,
+   16
+  ],
+  "Lodestone|tow": [
+   50,
+   56,
+   6,
+   -4,
+   16
+  ],
+  "Lodestone|jam": [
+   50,
+   56,
+   6,
+   -3,
+   16
+  ],
+  "Lodestone|overdrive": [
+   50,
+   56,
+   6,
+   -10,
+   16
+  ],
+  "Lodestone|repair": [
+   50,
+   63,
+   13,
+   7,
+   16
+  ],
+  "Lodestone|weapon": [
+   50,
+   63,
+   13,
+   -2,
+   16
+  ],
+  "Lodestone|hull": [
+   50,
+   63,
+   13,
+   0,
+   16
+  ],
+  "Lodestone|powerkit": [
+   50,
+   50,
+   0,
+   -7,
+   16
+  ],
+  "Lodestone|armourkit": [
+   50,
+   56,
+   6,
+   -2,
+   16
+  ],
+  "Lodestone|core": [
+   50,
+   75,
+   25,
+   3,
+   16
+  ],
+  "Lodestone|hospital": [
+   50,
+   88,
+   38,
+   20,
+   16
+  ],
+  "Lodestone|quantum": [
+   50,
+   69,
+   19,
+   -4,
+   16
+  ],
+  "Lodestone|matador": [
+   50,
+   38,
+   -12,
+   -19,
+   16
+  ],
+  "Lodestone|bait": [
+   50,
+   50,
+   0,
+   -9,
+   16
+  ],
+  "Lodestone|pester": [
+   50,
+   13,
+   -37,
+   -47,
+   16
+  ],
+  "Orbiter|medic": [
+   56,
+   88,
+   31,
+   23,
+   16
+  ],
+  "Orbiter|gunner": [
+   56,
+   75,
+   19,
+   11,
+   16
+  ],
+  "Orbiter|laser": [
+   56,
+   63,
+   6,
+   -3,
+   16
+  ],
+  "Orbiter|booster": [
+   56,
+   75,
+   19,
+   9,
+   16
+  ],
+  "Orbiter|waller": [
+   56,
+   56,
+   0,
+   -8,
+   16
+  ],
+  "Orbiter|bodyguard": [
+   56,
+   75,
+   19,
+   4,
+   16
+  ],
+  "Orbiter|spotter": [
+   56,
+   63,
+   6,
+   -4,
+   16
+  ],
+  "Orbiter|jammer": [
+   56,
+   75,
+   19,
+   6,
+   16
+  ],
+  "Orbiter|blocker": [
+   56,
+   63,
+   6,
+   2,
+   16
+  ],
+  "Orbiter|shield": [
+   56,
+   56,
+   0,
+   -15,
+   16
+  ],
+  "Orbiter|emp": [
+   56,
+   69,
+   13,
+   6,
+   16
+  ],
+  "Orbiter|mines": [
+   56,
+   75,
+   19,
+   12,
+   16
+  ],
+  "Orbiter|popper": [
+   56,
+   88,
+   31,
+   23,
+   16
+  ],
+  "Orbiter|tow": [
+   56,
+   81,
+   25,
+   14,
+   16
+  ],
+  "Orbiter|jam": [
+   56,
+   75,
+   19,
+   10,
+   16
+  ],
+  "Orbiter|overdrive": [
+   56,
+   75,
+   19,
+   3,
+   16
+  ],
+  "Orbiter|repair": [
+   56,
+   69,
+   13,
+   7,
+   16
+  ],
+  "Orbiter|weapon": [
+   56,
+   75,
+   19,
+   4,
+   16
+  ],
+  "Orbiter|hull": [
+   56,
+   56,
+   0,
+   -12,
+   16
+  ],
+  "Orbiter|powerkit": [
+   56,
+   56,
+   0,
+   -7,
+   16
+  ],
+  "Orbiter|armourkit": [
+   56,
+   75,
+   19,
+   10,
+   16
+  ],
+  "Orbiter|core": [
+   56,
+   75,
+   19,
+   -4,
+   16
+  ],
+  "Orbiter|hospital": [
+   56,
+   88,
+   31,
+   14,
+   16
+  ],
+  "Orbiter|quantum": [
+   56,
+   63,
+   6,
+   -16,
+   16
+  ],
+  "Orbiter|matador": [
+   56,
+   69,
+   13,
+   6,
+   16
+  ],
+  "Orbiter|bait": [
+   56,
+   81,
+   25,
+   16,
+   16
+  ],
+  "Orbiter|pester": [
+   56,
+   75,
+   19,
+   9,
+   16
+  ],
+  "Pogo|medic": [
+   75,
+   63,
+   -12,
+   -21,
+   16
+  ],
+  "Pogo|gunner": [
+   75,
+   56,
+   -19,
+   -26,
+   16
+  ],
+  "Pogo|laser": [
+   75,
+   75,
+   0,
+   -10,
+   16
+  ],
+  "Pogo|booster": [
+   75,
+   81,
+   6,
+   -4,
+   16
+  ],
+  "Pogo|waller": [
+   75,
+   69,
+   -6,
+   -15,
+   16
+  ],
+  "Pogo|bodyguard": [
+   75,
+   88,
+   13,
+   -3,
+   16
+  ],
+  "Pogo|spotter": [
+   75,
+   69,
+   -6,
+   -16,
+   16
+  ],
+  "Pogo|jammer": [
+   75,
+   81,
+   6,
+   -6,
+   16
+  ],
+  "Pogo|blocker": [
+   75,
+   75,
+   0,
+   -5,
+   16
+  ],
+  "Pogo|shield": [
+   75,
+   88,
+   13,
+   -2,
+   16
+  ],
+  "Pogo|emp": [
+   75,
+   75,
+   0,
+   -7,
+   16
+  ],
+  "Pogo|mines": [
+   75,
+   56,
+   -19,
+   -26,
+   16
+  ],
+  "Pogo|popper": [
+   75,
+   69,
+   -6,
+   -14,
+   16
+  ],
+  "Pogo|tow": [
+   75,
+   69,
+   -6,
+   -17,
+   16
+  ],
+  "Pogo|jam": [
+   75,
+   75,
+   0,
+   -9,
+   16
+  ],
+  "Pogo|overdrive": [
+   75,
+   75,
+   0,
+   -16,
+   16
+  ],
+  "Pogo|repair": [
+   75,
+   94,
+   19,
+   13,
+   16
+  ],
+  "Pogo|weapon": [
+   75,
+   75,
+   0,
+   -15,
+   16
+  ],
+  "Pogo|hull": [
+   75,
+   81,
+   6,
+   -6,
+   16
+  ],
+  "Pogo|powerkit": [
+   75,
+   88,
+   13,
+   6,
+   16
+  ],
+  "Pogo|armourkit": [
+   75,
+   81,
+   6,
+   -2,
+   16
+  ],
+  "Pogo|core": [
+   75,
+   75,
+   0,
+   -22,
+   16
+  ],
+  "Pogo|hospital": [
+   75,
+   69,
+   -6,
+   -23,
+   16
+  ],
+  "Pogo|quantum": [
+   75,
+   94,
+   19,
+   -4,
+   16
+  ],
+  "Pogo|matador": [
+   75,
+   75,
+   0,
+   -7,
+   16
+  ],
+  "Pogo|bait": [
+   75,
+   81,
+   6,
+   -3,
+   16
+  ],
+  "Pogo|pester": [
+   75,
+   75,
+   0,
+   -10,
+   16
+  ],
+  "Railgun|medic": [
+   69,
+   81,
+   13,
+   4,
+   16
+  ],
+  "Railgun|gunner": [
+   69,
+   75,
+   6,
+   -1,
+   16
+  ],
+  "Railgun|laser": [
+   69,
+   69,
+   0,
+   -10,
+   16
+  ],
+  "Railgun|booster": [
+   69,
+   69,
+   0,
+   -10,
+   16
+  ],
+  "Railgun|waller": [
+   69,
+   50,
+   -19,
+   -27,
+   16
+  ],
+  "Railgun|bodyguard": [
+   69,
+   69,
+   0,
+   -15,
+   16
+  ],
+  "Railgun|spotter": [
+   69,
+   75,
+   6,
+   -4,
+   16
+  ],
+  "Railgun|jammer": [
+   69,
+   56,
+   -12,
+   -25,
+   16
+  ],
+  "Railgun|blocker": [
+   69,
+   69,
+   0,
+   -5,
+   16
+  ],
+  "Railgun|shield": [
+   69,
+   88,
+   19,
+   4,
+   16
+  ],
+  "Railgun|emp": [
+   69,
+   81,
+   13,
+   6,
+   16
+  ],
+  "Railgun|mines": [
+   69,
+   75,
+   6,
+   -1,
+   16
+  ],
+  "Railgun|popper": [
+   69,
+   63,
+   -6,
+   -14,
+   16
+  ],
+  "Railgun|tow": [
+   69,
+   75,
+   6,
+   -4,
+   16
+  ],
+  "Railgun|jam": [
+   69,
+   75,
+   6,
+   -3,
+   16
+  ],
+  "Railgun|overdrive": [
+   69,
+   88,
+   19,
+   3,
+   16
+  ],
+  "Railgun|repair": [
+   69,
+   63,
+   -6,
+   -12,
+   16
+  ],
+  "Railgun|weapon": [
+   69,
+   75,
+   6,
+   -9,
+   16
+  ],
+  "Railgun|hull": [
+   69,
+   75,
+   6,
+   -6,
+   16
+  ],
+  "Railgun|powerkit": [
+   69,
+   63,
+   -6,
+   -13,
+   16
+  ],
+  "Railgun|armourkit": [
+   69,
+   63,
+   -6,
+   -15,
+   16
+  ],
+  "Railgun|core": [
+   69,
+   75,
+   6,
+   -16,
+   16
+  ],
+  "Railgun|hospital": [
+   69,
+   81,
+   13,
+   -5,
+   16
+  ],
+  "Railgun|quantum": [
+   69,
+   81,
+   13,
+   -10,
+   16
+  ],
+  "Railgun|matador": [
+   69,
+   75,
+   6,
+   -1,
+   16
+  ],
+  "Railgun|bait": [
+   69,
+   75,
+   6,
+   -3,
+   16
+  ],
+  "Railgun|pester": [
+   69,
+   69,
+   0,
+   -10,
+   16
+  ],
+  "Rotisserie|medic": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Rotisserie|gunner": [
+   13,
+   19,
+   6,
+   -1,
+   16
+  ],
+  "Rotisserie|laser": [
+   13,
+   19,
+   6,
+   -3,
+   16
+  ],
+  "Rotisserie|booster": [
+   13,
+   19,
+   6,
+   -4,
+   16
+  ],
+  "Rotisserie|waller": [
+   13,
+   25,
+   13,
+   4,
+   16
+  ],
+  "Rotisserie|bodyguard": [
+   13,
+   56,
+   44,
+   29,
+   16
+  ],
+  "Rotisserie|spotter": [
+   13,
+   38,
+   25,
+   15,
+   16
+  ],
+  "Rotisserie|jammer": [
+   13,
+   50,
+   38,
+   25,
+   16
+  ],
+  "Rotisserie|blocker": [
+   13,
+   25,
+   13,
+   8,
+   16
+  ],
+  "Rotisserie|shield": [
+   13,
+   63,
+   50,
+   35,
+   16
+  ],
+  "Rotisserie|emp": [
+   13,
+   25,
+   13,
+   6,
+   16
+  ],
+  "Rotisserie|mines": [
+   13,
+   25,
+   13,
+   6,
+   16
+  ],
+  "Rotisserie|popper": [
+   13,
+   44,
+   31,
+   23,
+   16
+  ],
+  "Rotisserie|tow": [
+   13,
+   44,
+   31,
+   21,
+   16
+  ],
+  "Rotisserie|jam": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Rotisserie|overdrive": [
+   13,
+   13,
+   0,
+   -16,
+   16
+  ],
+  "Rotisserie|repair": [
+   13,
+   25,
+   13,
+   7,
+   16
+  ],
+  "Rotisserie|weapon": [
+   13,
+   13,
+   0,
+   -15,
+   16
+  ],
+  "Rotisserie|hull": [
+   13,
+   44,
+   31,
+   19,
+   16
+  ],
+  "Rotisserie|powerkit": [
+   13,
+   25,
+   13,
+   6,
+   16
+  ],
+  "Rotisserie|armourkit": [
+   13,
+   50,
+   38,
+   29,
+   16
+  ],
+  "Rotisserie|core": [
+   13,
+   19,
+   6,
+   -16,
+   16
+  ],
+  "Rotisserie|hospital": [
+   13,
+   38,
+   25,
+   8,
+   16
+  ],
+  "Rotisserie|quantum": [
+   13,
+   44,
+   31,
+   9,
+   16
+  ],
+  "Rotisserie|matador": [
+   13,
+   31,
+   19,
+   12,
+   16
+  ],
+  "Rotisserie|bait": [
+   13,
+   38,
+   25,
+   16,
+   16
+  ],
+  "Rotisserie|pester": [
+   13,
+   44,
+   31,
+   21,
+   16
+  ],
+  "Trebuchet|medic": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Trebuchet|gunner": [
+   25,
+   38,
+   13,
+   5,
+   16
+  ],
+  "Trebuchet|laser": [
+   25,
+   19,
+   -6,
+   -16,
+   16
+  ],
+  "Trebuchet|booster": [
+   25,
+   38,
+   13,
+   2,
+   16
+  ],
+  "Trebuchet|waller": [
+   25,
+   44,
+   19,
+   10,
+   16
+  ],
+  "Trebuchet|bodyguard": [
+   25,
+   50,
+   25,
+   10,
+   16
+  ],
+  "Trebuchet|spotter": [
+   25,
+   25,
+   0,
+   -10,
+   16
+  ],
+  "Trebuchet|jammer": [
+   25,
+   25,
+   0,
+   -13,
+   16
+  ],
+  "Trebuchet|blocker": [
+   25,
+   31,
+   6,
+   2,
+   16
+  ],
+  "Trebuchet|shield": [
+   25,
+   38,
+   13,
+   -2,
+   16
+  ],
+  "Trebuchet|emp": [
+   25,
+   31,
+   6,
+   0,
+   16
+  ],
+  "Trebuchet|mines": [
+   25,
+   31,
+   6,
+   -1,
+   16
+  ],
+  "Trebuchet|popper": [
+   25,
+   25,
+   0,
+   -8,
+   16
+  ],
+  "Trebuchet|tow": [
+   25,
+   19,
+   -6,
+   -17,
+   16
+  ],
+  "Trebuchet|jam": [
+   25,
+   38,
+   13,
+   4,
+   16
+  ],
+  "Trebuchet|overdrive": [
+   25,
+   38,
+   13,
+   -4,
+   16
+  ],
+  "Trebuchet|repair": [
+   25,
+   25,
+   0,
+   -5,
+   16
+  ],
+  "Trebuchet|weapon": [
+   25,
+   44,
+   19,
+   4,
+   16
+  ],
+  "Trebuchet|hull": [
+   25,
+   19,
+   -6,
+   -18,
+   16
+  ],
+  "Trebuchet|powerkit": [
+   25,
+   31,
+   6,
+   0,
+   16
+  ],
+  "Trebuchet|armourkit": [
+   25,
+   31,
+   6,
+   -2,
+   16
+  ],
+  "Trebuchet|core": [
+   25,
+   38,
+   13,
+   -10,
+   16
+  ],
+  "Trebuchet|hospital": [
+   25,
+   25,
+   0,
+   -17,
+   16
+  ],
+  "Trebuchet|quantum": [
+   25,
+   50,
+   25,
+   3,
+   16
+  ],
+  "Trebuchet|matador": [
+   25,
+   31,
+   6,
+   -1,
+   16
+  ],
+  "Trebuchet|bait": [
+   25,
+   31,
+   6,
+   -3,
+   16
+  ],
+  "Trebuchet|pester": [
+   25,
+   31,
+   6,
+   -4,
+   16
+  ]
+ }
+}

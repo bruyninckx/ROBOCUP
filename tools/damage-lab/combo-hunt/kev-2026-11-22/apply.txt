@@ -1,0 +1,50 @@
+// ---- paste over the three tables in prototypes/tabletop-2.html (combo hunt 2026-11-22, 278626 fights, depth 7, engine d60cb367) ----
+
+  const PART_FIT = {"Whaler":{"waller":[1,40]},"Angler":{"quantum":[1,48],"shield":[1,35],"hospital":[1,40]},"Wrecker":{"pester":[1,35]},"Mauler":{"laser":[1,34],"pester":[1,32]},"Vertigo":{"powerkit":[1,34],"hospital":[1,42]},"Thwacker":{"mines":[1,35],"tow":[1,34],"pester":[1,32],"hospital":[-1,-6],"armourkit":[-1,-12]},"Gaucho":{"overdrive":[1,33]},"Rotisserie":{"overdrive":[-1,-9]},"Blacksmith":{"pester":[-1,-15]},"Slingshot":{"bait":[-1,-7]}};   // T58 combo hunt (2026-11-22): docs/robocus-combo-hunt.md
+
+  const EPIC = {   // T58 combo hunt (2026-11-22): held on two fresh seed sets vs every robot a level up
+    'Angler|quantum': ['Phantom Hook', 24, 71],
+    'Whaler|waller': ['NEW Whaler + waller', 30, 69],
+    'Vertigo|hospital': ['NEW Vertigo + hospital', 43, 85],
+    'Wrecker|pester': ['NEW Wrecker + pester', 30, 64],
+    'Mauler|laser': ['NEW Mauler + laser', 16, 49],
+    'Mauler|pester': ['NEW Mauler + pester', 16, 47],
+    'Vertigo|powerkit': ['Overclock', 44, 78],
+    'Thwacker|mines': ['NEW Thwacker + mines', 35, 69],
+    'Thwacker|tow': ['Whiplash', 34, 68],
+  };
+
+  const TRIPLE = {   // T58 combo hunt (2026-11-22): best full build of each level 0-2 robot, 80%+ vs bare level 3-4 robots (last number: vs kitted ones)
+    Gyro: [['shield', 'weapon', 'hospital'], 46, 89, 44], Thwacker: [['booster', 'mines', 'core'], 17, 83, 37],
+  };
+
+// ---- changes against the game today ----
+// + fit Angler + shield great (35)
+// + fit Angler + hospital great (40)
+// - fit Vertigo + overdrive (was poor -15)
+// + fit Vertigo + hospital great (42)
+// - fit Rotisserie + pester (was poor -17)
+// - fit Yoyo + blocker (was poor -14)
+// + fit Thwacker + hospital poor (-6)
+// + fit Thwacker + armourkit poor (-12)
+// - fit Wrecker + jammer (was great 28)
+// - fit Snapjaw + bait (was great 28)
+// - fit Popcorn + quantum (was great 40)
+// - fit Corkscrew + pester (was poor -15)
+// - fit Hornet + booster (was poor -25)
+// - fit Forklift + pester (was poor -5)
+// + fit Whaler + waller great (40)
+// + fit Mauler + laser great (34)
+// + fit Mauler + pester great (32)
+// + fit Blacksmith + pester poor (-15)
+// - epic Gaucho|overdrive ['Iron Bolas', 12, 58]
+// + epic Whaler|waller ['NEW Whaler + waller', 30, 69] (needs a name)
+// + epic Vertigo|hospital ['NEW Vertigo + hospital', 43, 85] (needs a name)
+// + epic Wrecker|pester ['NEW Wrecker + pester', 30, 64] (needs a name)
+// + epic Mauler|laser ['NEW Mauler + laser', 16, 49] (needs a name)
+// + epic Mauler|pester ['NEW Mauler + pester', 16, 47] (needs a name)
+// + epic Thwacker|mines ['NEW Thwacker + mines', 35, 69] (needs a name)
+// ~ giant-slayer Gyro [['quantum', 'spotter', 'waller'], 38, 89, 66] -> [['shield', 'weapon', 'hospital'], 46, 89, 44]
+// - giant-slayer Whaler [['quantum', 'tow', 'waller'], 23, 82, 50]
+// + giant-slayer Thwacker [['booster', 'mines', 'core'], 17, 83, 37]
+// (not table material: best builds of 33 robots, 64 synergy rows, 39 tier rows: see report.md)
