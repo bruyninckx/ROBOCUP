@@ -1,6 +1,6 @@
 // T44 (Kev, 21 Nov): a robot's value in credits ("◉ 6 Cr") on every robot card and where a robot changes hands. Solo, one screen,
 // at 1600x900 and 1280x720, in the Market of round 1: your robots (one with parts, Fan tokens and damage), the rival tickets, the
-// robot lot, the hover breakdown, the trade panel with a robot on the table, an AI robot offer in the note, Hostile Buyout in the note.
+// robot lot, the hover breakdown, the trade panel with a robot on the table, an AI robot offer on the trading floor (T55: a ticket), Hostile Buyout in the note.
 // Checks: every robot card has a chip and it is inside the screen; the breakdown adds up; the value matches robotValue; the offer
 // and Hostile Buyout questions are in the note (not the box) and say "worth N Cr"; BAL.showValue=false hides every chip.
 //   node tools/mp-scenario/robot-value.js [screenshotFolder]
@@ -75,19 +75,23 @@ const path = require('path'), fs = require('fs');
     await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G; const t = G.teams[0]; t.robots = [t.robots[1]];
       [1, 2, 3].forEach(i => { const T = G.teams[i], r0 = T.robots[0]; T.robots = [r0]; for (let k = 1; k < (i === 1 ? 3 : 2); k++) { const r = JSON.parse(JSON.stringify(r0)); r.id = 'T44o' + i + k; T.robots.push(r); } });
       G.teams[1].credits = 3; D.updateHud(); D.openMarketAI(); });
-    if (!await until(p, () => !!(window.ROBOCUS_DEBUG.RX.q && !window.ROBOCUS_DEBUG.RX.q.over), 8000)) bad.push(tag + ': no AI robot offer');
+    // T55: an offer to a person is a ticket on the trading floor (no longer a question in the note): read the ticket
+    const tk = () => p.evaluate(() => { const G = window.ROBOCUS_DEBUG.G, o = (G.offers || []).find(x => x.to === 0 && x.from === 1); if (!o) return null;
+      const el = document.querySelector('#tradeFloor .tf-t[data-oid="' + o.id + '"]'); return { id: o.id, el: !!el, text: el ? el.innerText.replace(/\s+/g, ' ').trim() : '' }; });
+    if (!await until(p, () => (window.ROBOCUS_DEBUG.G.offers || []).some(x => x.to === 0 && x.from === 1), 8000)) bad.push(tag + ': no AI robot offer');
     await p.waitForTimeout(1000);
-    let nt = await noteTxt(p); console.log(tag + ' offer: ' + nt.text);
-    if (!nt.q || nt.box || !/offers you its robot .*worth \d+ Cr\) for \d+ Cr/.test(nt.text)) bad.push(tag + ': the robot offer is not in the note with its worth: ' + nt.text);
-    await shot(p, tag + '-4-ai-offer.png'); await noteShot(p, tag + '-4-ai-offer-note.png');
-    await p.evaluate(() => { const R = window.ROBOCUS_DEBUG.RX; if (R.q && !R.q.over) R.q.cancel(); }); await p.waitForTimeout(800);
+    const t4 = await tk(); console.log(tag + ' offer ticket: ' + (t4 ? t4.text : 'NONE'));
+    if (!t4 || !t4.el || !/You get 🤖 \S.* \(worth \d+ Cr\).*You give \d+ Cr/.test(t4.text)) bad.push(tag + ': the robot offer ticket does not show the robot with its worth: ' + (t4 ? t4.text : 'none'));
+    const nt4 = await noteTxt(p); if (nt4.box) bad.push(tag + ': the robot offer opened the old box');
+    await shot(p, tag + '-4-ai-offer.png');
+    await p.evaluate(() => { const G = window.ROBOCUS_DEBUG.G; (G.offers || []).filter(o => o.to === 0).forEach(o => { const b = document.querySelector('#tradeFloor [data-fn="' + o.id + '"]'); if (b) b.click(); }); }); await p.waitForTimeout(800);
     for (let k = 0; k < 6; k++) { if (!await p.evaluate(() => !!(window.ROBOCUS_DEBUG.RX.q && !window.ROBOCUS_DEBUG.RX.q.over))) break; await p.evaluate(() => window.ROBOCUS_DEBUG.RX.q.cancel()); await p.waitForTimeout(600); }
     // 5. Hostile Buyout on you (2 robots)
     await p.evaluate(() => { const D = window.ROBOCUS_DEBUG, G = D.G, t = G.teams[0]; const r = JSON.parse(JSON.stringify(t.robots[0])); r.id = 'T44c'; r.parts = []; r.leg = null; r.wins = 0; r.wear = null; r.level = 1; t.robots.push(r); t.secBots = 0; t.exSec = 0; t.hand = [];
       G.teams[1].hand = ['hostile_buyout']; G.teams[1].credits = 10; G.teams[1].robots = G.teams[1].robots.slice(0, 1); D.updateHud(); D.playScheme(G.teams[1], 'hostile_buyout', t); });
     if (!await until(p, () => !!(window.ROBOCUS_DEBUG.RX.q && !window.ROBOCUS_DEBUG.RX.q.over), 8000)) bad.push(tag + ': no Hostile Buyout question');
     await p.waitForTimeout(1000);
-    nt = await noteTxt(p); console.log(tag + ' buyout: ' + nt.text);
+    const nt = await noteTxt(p); console.log(tag + ' buyout: ' + nt.text);
     if (!nt.q || nt.box || !/wants to buy your .*\(worth (\d+) Cr\) for (\d+) Cr/.test(nt.text)) bad.push(tag + ': Hostile Buyout is not in the note with its worth: ' + nt.text);
     else { const m = /worth (\d+) Cr\) for (\d+) Cr/.exec(nt.text); if (+m[2] !== Math.max(4, +m[1])) bad.push(tag + ': Hostile Buyout price ' + m[2] + ' is not its value ' + m[1] + ' (at least 4)'); }   // T45
     await shot(p, tag + '-5-hostile-buyout.png'); await noteShot(p, tag + '-5-hostile-buyout-note.png');

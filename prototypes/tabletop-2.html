@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="28762982">
+<meta charset="utf-8"><meta name="robocus-files" content="41c0103e">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -737,17 +737,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=28762982"></script>
-<script src="../src2/dmath.js?b=28762982"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=41c0103e"></script>
+<script src="../src2/dmath.js?b=41c0103e"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=28762982"></script>
-<script src="../src2/lineup.js?b=28762982"></script>
-<script src="../src2/matrix.js?b=28762982"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=28762982"></script>
-<script src="../src2/sound.js?b=28762982"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=28762982"></script>
+<script src="../src2/engine.js?b=41c0103e"></script>
+<script src="../src2/lineup.js?b=41c0103e"></script>
+<script src="../src2/matrix.js?b=41c0103e"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=41c0103e"></script>
+<script src="../src2/sound.js?b=41c0103e"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=41c0103e"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -3808,7 +3808,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22j combo tables: great and poor fits, epics and giant-slayer builds from Kev\'s combo hunt (278,626 fights)';   // was: 2026-11-22h bookie: test fights in the helpers fight with the game's part tuning, no lean from the time cut
+  const BUILD = 'tabletop 2.0.1 2026-11-22k playtest-ready: the host page asks before it closes, and can resume the last online game after a reload';   // was: 2026-11-22j combo tables: great and poor fits, epics and giant-slayer builds from Kev\'s combo hunt (278,626 fights)
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -4006,6 +4006,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   window.addEventListener('error', e => ptError(e.message, e.error && e.error.stack || (e.filename + ':' + e.lineno)));
   window.addEventListener('unhandledrejection', e => ptError('Unhandled promise: ' + (e.reason && e.reason.message || e.reason), e.reason && e.reason.stack));
   window.addEventListener('beforeunload', () => { if (PT.game) { const json = JSON.stringify(PT.game); lsSet('robocus2.playtest.' + PT.game.id, json); } });
+  // T64: the host's page IS the online game (a reload or a closed tab ends it for everyone): the browser asks "Leave site?" first
+  window.addEventListener('beforeunload', e => { try { if (NETROLE === 'host' && isNetGame() && G && !G.over && !BOT && SEATS.includes('remote')) { e.preventDefault(); e.returnValue = ''; } } catch (x) {} });
   // every HTML button you press (prompt, modals, deal panel, Stash, hand-limit…)
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -8583,7 +8585,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const g = JSON.parse(JSON.stringify(G, function (k, v) { if (typeof v === 'function') return undefined; if (G.fight && this === G.fight && (k === 'B' || k === 'S')) return undefined; return v; }));
     return { v: 1, build: BUILD, at: new Date().toISOString(), G: g, rnd: rndState, lotsDyn: dynLots(), seq: { botSeq, crewSeq, crewLotSeq, fightSeq }, WIN_FAME, HOST_FAME, CATCHUP, BAL: clone(BAL), names: netNames.slice() };
   }
-  function roundSave() { if (!G || G.fast || G.phase !== 'upkeep') return; try { SAVE = JSON.stringify(saveState()); } catch (e) { console.warn('save failed', e); } }
+  function roundSave() { if (!G || G.fast || G.phase !== 'upkeep') return; try { SAVE = JSON.stringify(saveState()); } catch (e) { console.warn('save failed', e); }
+    if (SAVE && NETROLE === 'host' && !BOT) lsSet('robocus2.hostSave', JSON.stringify({ at: Date.now(), round: G.round, names: netNames.slice(), save: SAVE })); }   // T64: for "Resume" after a host reload
+  /* T64 (playtest-ready): a host who reloads or closes the tab ended the online game for everyone (the game runs in the host's
+   * page; the round-start save was only in memory). The host's page now keeps the last round-start save in this browser, and the
+   * host lobby of a new or the same room shows "↩ Resume the last game (round N)": it loads that save the way "Load saved game"
+   * does (same names = same seats). Kept 12 hours; cleared when a game ends. */
+  setInterval(() => { try {
+    const inp = document.getElementById('nlLoad'); if (!inp || document.getElementById('nlResume')) return;
+    const raw = lsGet('robocus2.hostSave'); if (!raw) return; const o = JSON.parse(raw); if (!o || !o.save || Date.now() - o.at > 12 * 3600e3) return;
+    if (inp.parentElement && /Loaded: round/.test(inp.parentElement.parentElement.textContent)) return;
+    const b = document.createElement('button'); b.id = 'nlResume'; b.type = 'button'; b.className = 'sec';
+    b.textContent = '↩ Resume the last game (round ' + o.round + ', ' + new Date(o.at).toTimeString().slice(0, 5) + ')';
+    b.title = 'Players: ' + (o.names || []).filter(Boolean).join(', ') + '. They join with the same names to get their seats back.';
+    b.onclick = () => { try { const dt = new DataTransfer(); dt.items.add(new File([o.save], 'robocus-last-game.json', { type: 'application/json' })); inp.files = dt.files; inp.dispatchEvent(new Event('change')); } catch (e) { notify('⚠️ Could not resume: ' + esc(e.message), '#b45309'); } };
+    inp.parentElement.insertAdjacentElement('afterend', b);
+  } catch (e) {} }, 500);
   function loadState(o) {
     G = o.G; rndState = o.rnd >>> 0;
     Object.assign(LOTS, o.lotsDyn || {});
@@ -9012,7 +9029,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const w = G.teams.filter(t => t.fame >= WIN_FAME).sort((a, b) => b.fame - a.fame || b.credits - a.credits);
     if (!w.length) return false;
     if (!G.over) { G.winner = w[0].i; G.awards = makeAwards(); tlog('awards', { awards: G.awards }); tlog('game_over', { winner: w[0].i, winnerName: w[0].name, rounds: G.round, teams: ptSnapshot() }); setTimeout(ptSaveNow, 50); }
-    G.over = true;
+    G.over = true; if (NETROLE === 'host') try { localStorage.removeItem('robocus2.hostSave'); } catch (e) {}
     updateHud();
     return true;
   }
@@ -11594,6 +11611,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, safe host reload', '22 Nov 2026', [
+      'If you host an online game, your page is the game: closing it or reloading it ends the game for everyone. The browser now asks "Leave site?" first.',
+      'If it happens anyway (a crash, Ctrl+F5 on the red bar): open the game again and Host a game. The lobby shows "↩ Resume the last game (round N)". Click it, your friends join with the same names and get their seats back, and the game goes on from the start of that round. Kept in your browser for 12 hours.'
+    ]],
     ['2.0.1, combo tables from the combo hunt', '22 Nov 2026', [
       'New epic combos from Kev\'s combo hunt (278,626 test fights): Sea Wall (Whaler + Waller drone), Second Wind (Vertigo + Field hospital), Heckler (Wrecker + Pester chip), Laser Tag (Mauler + Laser drone), Bad Dog (Mauler + Pester chip) and Thwack-a-mole (Thwacker + Mine layer). Whiplash, Phantom Hook and Overclock stay, with new numbers. Iron Bolas (Gaucho + Overdrive) is now a great fit, not an epic.',
       'Great and poor fits re-measured: new great fits Angler + Energy shield and Angler + Field hospital; new poor fits Thwacker + Field hospital, Thwacker + Armour kit and Blacksmith + Pester chip. Gone: Popcorn + Quantum shield, Wrecker + Jammer drone, Snapjaw + Wall Bait chip (great), Hornet + Booster drone, Vertigo + Overdrive, Rotisserie + Pester chip, Yoyo + Blocker drone, Corkscrew + Pester chip, Forklift + Pester chip (poor).',
@@ -11840,7 +11861,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=28762982"></script>
+<script src="../src2/net.js?b=41c0103e"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';

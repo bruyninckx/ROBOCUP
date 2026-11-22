@@ -25,7 +25,9 @@ const modalOf = () => { { const pb = document.getElementById('promptBar'), bs = 
     G.intrigueTurn = actor; G.cashMode = false; G.nextEvent = null; G.arenaEvent = null; G.over = false; D.updateHud();
     return D.PT.game.events.length;
   }, [actor, id, base, TARGET, o]);
-  const norm = (txt, actor, TARGET) => String(txt || '').split(names[actor]).join('PLAYER').split(names[TARGET]).join('TARGET').replace(new RegExp(names.filter((_, i) => i !== actor && i !== TARGET).map(n => n.replace(/[^\w ]/g, '.')).join('|'), 'g'), 'OTHER').replace(/\d+/g, '#');
+  // T64: names as whole words only (the host is called "Host": "Hostile Buyout" must not become "PLAYERile Buyout")
+  const wordRe = n => new RegExp('\\b' + n.replace(/[^\w ]/g, '.') + '\\b', 'g');
+  const norm = (txt, actor, TARGET) => String(txt || '').replace(wordRe(names[actor]), 'PLAYER').replace(wordRe(names[TARGET]), 'TARGET').replace(new RegExp(names.filter((_, i) => i !== actor && i !== TARGET).map(n => '\\b' + n.replace(/[^\w ]/g, '.') + '\\b').join('|'), 'g'), 'OTHER').replace(/\d+/g, '#');
   async function playOnce(actor, c, o = {}) {
     const TARGET = o.target != null ? o.target : 2, react = o.react ? new RegExp(o.react) : null;
     const mark = await prep(actor, c.id, TARGET, o), p = seatOf[actor], e0 = errs.length;
