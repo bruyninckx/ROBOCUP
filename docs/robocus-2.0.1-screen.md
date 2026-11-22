@@ -350,7 +350,7 @@ Kev's game of 22 Nov (build 2026-11-22b, seat 0). Build 2026-11-22e.
 1. **"be open about how many fights the bookie was able to process".** The host's bookie writes what the odds rest on into the
    fight (`F.bk = { n, used, early, off, min, file }`, set in `afterChoose`, synced with `G.fight` like the odds, display only).
    `bookieTxt(F)` says it in words: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)",
-   "only 26 test fights: odds from the formula" (+ "(game opened as a file)" when the fights ran on the page from a file),
+   "only 26 test fights: odds from the formula" (+ "(the host's game opened as a file)" when the fights ran on the page from a file),
    "no test fights finished in time: odds from the formula", "no test fights (switched off): odds from the formula". Shown:
    Bets pit (a line under the side cards, or before "Public bets" when fight cards are up for bids; brown when it is the
    formula), the yellow note in Bets (small line), the hover help of each side's band (`bookieHelp`), the fight screen's side card

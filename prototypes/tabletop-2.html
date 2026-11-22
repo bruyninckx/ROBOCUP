@@ -1972,7 +1972,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const nf = k => k + ' test fight' + (k === 1 ? '' : 's');
     if (b.used) return 'odds from ' + nf(b.n) + (b.early ? ' (stopped early: clear favourite)' : '');
     if (b.off) return 'no test fights (switched off): odds from the formula';
-    return (b.n ? 'only ' + nf(b.n) : 'no test fights finished in time') + (b.file ? ' (game opened as a file)' : '') + ': odds from the formula'; };
+    return (b.n ? 'only ' + nf(b.n) : 'no test fights finished in time') + (b.file ? ' (the host\'s game opened as a file)' : '') + ': odds from the formula'; };
   const bookieHelp = F => { const b = F && F.bk; if (!b) return '';
     return b.used ? ' The bookie watched <b>' + b.n + '</b> test fights of exactly this matchup on the host\'s PC' + (b.early ? ' and stopped early: after ' + b.n + ' the result was so clear that more fights would not move the odds' : '') + '; its odds mix those results with the formula.'
       : ' The host\'s PC finished ' + (b.n ? 'only <b>' + b.n + '</b>' : 'no') + ' test fights in time (the bookie wants ' + (b.min || 40) + ' or more)' + (b.file ? ', because the game was opened as a file and runs them on the page itself' : '') + ', so these odds come from the formula: levels, parts, damage and the matchup table.'; };
