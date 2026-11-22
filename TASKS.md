@@ -7,6 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K53 (T54, 22 Nov). Robot pictures:** Buzzkill's blade, Jukebox's record and Scythe's sweeper stick out slightly past
+  the edge of their picture. Fit the frame to them too (small task)?
 - **K52 (T49, 22 Nov). Repair kit extra.** The kit is weak since wear came in (+0.4 of a level; other parts about
   +0.8). (1) Which extra: (c) "also hammers out bends and cracks" (recommended, +0.74, marks fade during the fight),
   (b) restarts dead motors (+0.66), (d) judges count repairs (+0.74, only matters at time-out), or your battery idea
@@ -151,16 +153,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T54. Forklift's picture has no forks** (Kev, 22 Nov, screenshot of his Forklift card: "lifts of forklift are not
-  displayed"). Cause found by the orchestrator: `portrait()` in `src2/view.js` only calls `drawRobot`, which skips
-  `lifter` parts; the arena draws forks in its own pass (the `R.forks` line in the frame loop). Worker on branch
-  `claude/forks-in-picture`, started 22 Nov. Done when: every robot with `R.forks` shows them in its picture
-  everywhere pictures are used (cards, tickets, lots, power map), screenshot before/after.
+(nothing running)
 
 ## Done
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T54. Forks show in robot pictures** (22 Nov; Kev: "lifts of forklift are not displayed"). `portrait()` in
+  `src2/view.js` now draws the forks (one helper `drawForks`, shared with the fight view): Forklift and Trebuchet. Display
+  only. Commit `9b4523e`; BUILD `2026-11-22c`, files stamp `28762982`; fingerprint 470f6923 and sync-check 89a95280
+  unchanged; game-sim 2/2 (orchestrator). Left for Kev: Buzzkill's blade, Jukebox's record and Scythe's sweeper poke
+  slightly past the picture edge (K53).
 - **T49. Repair kit: "something extra" study** (22 Nov; Kev, 21 Nov vote: "2 copies + something extra e.g. battery").
   With wear on, today's kit is worth +0.40 ± 0.16 of a level (2,448 fights; target about +0.75; before wear +0.64).
   Four extras built as switches, ALL OFF (`PK.repairBatt/repairBattAny/repairFix/repairWear/repairScore` in
