@@ -124,22 +124,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
-- **T40. Lineup Arena and Contact Lab pages throw a script error when they open** (found by T37, 21 Nov): the fourth
-  robot card defaults to Juggernaut, which is no longer in the lineup (`tools/damage-lab/ui.js` `st.spec`). Fix there,
-  rebuild with `build.py`. Done when: both pages open with 0 page errors, stock-fight fingerprint unchanged.
-- **T36. `play-latest.cmd` must survive updating itself; port 8765 busy on Kev's PC.** Kev's first run (21 Nov) worked
-  (server on 8766, game opened) but printed "'folder' is not recognized as an internal or external command": the update
-  replaced the batch file while cmd was reading it, so cmd went on in the middle of a line of the new file. Goal: the
-  batch reads itself whole before updating (one parenthesised block, or re-start itself from a temp copy), so a changed
-  `play-latest.cmd` can never run half a line. Also: say in the window what holds port 8765 when it is busy and not ours
-  (Kev got 8766; settings are per port). Done when: a scripted update that changes the batch mid-run runs clean (needs
-  a Windows run by Kev or careful reading), `tools/serve-check.js` passes.
 - **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
-- (T41 saw `repair-note.js` fail on a clean main: "9 repairs: 8 buttons", Thumper's Weapon at 50% gets no button: T28.)
-- (T38's worker, 21 Nov: `repair-note.js` "9 repairs: 8 buttons" is the test's own fault: it sets damage through `wear.parts['Axe arm']`, which Thumper's arm does not read. Fix the test.)
-- **T28. Check: a broken weapon with no repair button.** Seen by the T21 worker in `repair-note.js` with seed 11 (a broken
-  weapon on Thumper gave no button in the note). Test setup or a T22 bug? Reproduce and say.
 - **T18. Watch: one online test run stalled in round 8, step "after", nobody waited for** (seen once by the T16 worker,
   0 desyncs, not seen again in three later runs). If it shows again: find it.
 - (T41, 21 Nov: with wear on the steps are 74 / 70 / 69 / 63%; level 2→3 is no longer the soft one; see K43.)
@@ -153,12 +139,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 - **T49. Repair kit: something extra.** Worker on branch `claude/repair-kit-extra`, started 22 Nov: a study with options behind switches, nothing changes for players until Kev picks. Kev: "Give it something extra, for example protecting the
   battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
-- **T53. Three small fixes in one go** (T40, T36, T28). Worker on branch `claude/small-fixes`, started 22 Nov.
-  (1) T40: Lineup Arena and Contact Lab pages throw a script error on opening (fourth robot card defaults to
-  Juggernaut, not in the lineup; `tools/damage-lab/ui.js`). (2) T36: `play-latest.cmd` must survive an update that
-  changes the file itself, and say what holds port 8765 when it is busy. (3) T28: `repair-note.js` "9 repairs: 8
-  buttons" is the test's fault (it sets damage through `wear.parts['Axe arm']`, which Thumper's arm does not read):
-  fix the test, and confirm in the game that a damaged Weapon always gets its repair button.
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
