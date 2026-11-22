@@ -7,6 +7,12 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K52 (T49, 22 Nov). Repair kit extra.** The kit is weak since wear came in (+0.4 of a level; other parts about
+  +0.8). (1) Which extra: (c) "also hammers out bends and cracks" (recommended, +0.74, marks fade during the fight),
+  (b) restarts dead motors (+0.66), (d) judges count repairs (+0.74, only matters at time-out), or your battery idea
+  (a) (barely helps alone)? (2) Until then the card badge says +3/4 but the kit gives +0.4: correct the badge now?
+  (3) Energy shield measures +1.14 with wear on, above target: re-tune as its own task? Optional bigger run on your
+  PC: double-click `tools\kit-extra.cmd` (15-30 min, does not touch the ROBOCUS folder).
 - **K51. Bookie** (T52): (a) lower the minimum to about 25 test fights for 3-4 robot fights, so 4-6 core PCs also get
   test-fight odds (only 15 fights back it so far; a longer run would settle it)? (b) 14 helpers leave the browser 2
   processors: tell me if fights stutter while the bookie watches.
@@ -120,7 +126,7 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   (4) Plum (AI) traded in 6 robots, one of them its Fan Favourite (−1 fame), and spent 111 Cr in the Market: the AI
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
-  Not started: (2) and (4) are worker tasks; (3) and (5) need Kev (K46).
+  (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
@@ -137,8 +143,43 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T49. Repair kit: something extra.** Worker on branch `claude/repair-kit-extra`, started 22 Nov: a study with options behind switches, nothing changes for players until Kev picks. Kev: "Give it something extra, for example protecting the
-  battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
+(nothing running; everything left in To do waits for Kev or is a watch item)
+
+## Done
+
+(The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
+
+- **T49. Repair kit: "something extra" study** (22 Nov; Kev, 21 Nov vote: "2 copies + something extra e.g. battery").
+  With wear on, today's kit is worth +0.40 ± 0.16 of a level (2,448 fights; target about +0.75; before wear +0.64).
+  Four extras built as switches, ALL OFF (`PK.repairBatt/repairBattAny/repairFix/repairWear/repairScore` in
+  `tools/damage-lab/lineup.js`), 31,008 fights: (a) shielded battery +0.46 total (almost nothing over today's kit);
+  (b) restarts dead motors +0.66; (c) mends bends and cracks at 0.5: +0.74, even over all levels (worker's pick);
+  (d) judges count repaired HP +0.74. Doc `docs/robocus-repair-kit-extra.md`; questions in K52. Branch
+  `claude/repair-kit-extra`, commit `6a4f582`, merge `b6d2170` (keep the branch: `tools/kit-extra.cmd` for Kev's PC
+  clones it). No BUILD change; files stamp `588e81b8` (engine text changed, fights the same: fingerprint 470f6923,
+  sync-check 89a95280). Orchestrator's checks: build.py no diff, fingerprint, game-sim 2/2, repair-note OK, mp-test OK
+  (3x desyncs 0), report script re-run gives the worker's table.
+- **T53. Three small fixes** (22 Nov; T40, T36, T28; nothing new for players, no BUILD). (1) Lineup Arena and Contact
+  Lab open again. (2) `play-latest.cmd` copies itself to %TEMP% and runs the copy, so an update of the file cannot cut
+  a line in half; padded so the 20 Nov file on Kev's PC resumes at a line start (byte 1181, checked by the
+  orchestrator); `tools/serve.js` says what holds port 8765. Not run on Windows: Kev's next double-click is the test
+  (expected once: "Checking GitHub..." twice). (3) The repair tests damage a zone the way a fight does; new
+  `tools/mp-scenario/repair-all.js`: all 33 robots after 198 real fights, every damaged or broken zone has its repair
+  button. Commit `9968020`, merge `4b5804b`; stamp `3e38ef63`, fingerprint 470f6923 unchanged. Checks: serve-check,
+  serve-port-check, repair-note, repair-note-online, garage OK; game-sim 2/2; three lab pages open with 0 errors.
+- **T52. Bookie on all cores for big fights; AI trade-in stops churning** (22 Nov; from Kev's playtest, T51 (2) and (4)).
+  Up to 14 helpers and 8 s for 3-4 robot fights. Merge `89e06d0`, BUILD `2026-11-22b`, stamp `3e38ef63`. Questions: K51.
+- **T48. Look batch from the voting page** (22 Nov): rarity glow ladder, plain slam flash with fading dents, robot-on-robot
+  flash, fits and epics move a robot on the power map. Merge `8e26419`. Questions: K50.
+- **T38. The garage** (21 Nov): swap parts between robots in Upkeep on a bill you lock in; a scrapped robot's parts come
+  back; no Stash limit. Merge `2464ede`. Doc `docs/robocus-garage.md`. Questions: K49.
+- **T46. Smarter AI hosts** (21 Nov): AI hosts invite like people, guard the host seat, AI teams deal with each other.
+  Merge `eb0569d`. Questions: K48.
+- **T47. Rules and clicks from the voting page** (21 Nov). Merge `87ae4f1`. Questions: K47.
+- **T45. Hostile Buyout costs the robot's value (at least 4 Cr); Fire Sale pays value + 1, back with 2 copies** (21 Nov).
+  Merge `b306388`. Questions: K45.
+- **T41. Wear in the game** (21 Nov): bends, cracks, fragments, saw grooves; marks stay until repaired; retune; tables
+  from Kev's PC run. Merge `9a5c602`. Doc `docs/robocus-wear-in-game.md`. Questions: K43.
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
