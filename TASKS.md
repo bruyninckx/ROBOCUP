@@ -199,6 +199,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   robots, 7,678 fights, resume and determinism checked. Commit `d501e59`; no game change, stamp `28762982`, fingerprint
   470f6923; game-sim 2/2 (orchestrator). Doc `docs/robocus-combo-hunt.md`. WAITS: T61 (engine fix) first, then Kev's
   run; he sends back `%USERPROFILE%\robocus-combo\combo-results\combo-hunt-results.json.gz`. Questions: K59.
+
+## Done
+
+- **T63. Study: what is a part worth in THIS matchup?** (22 Nov; parked by Kev the same day: idea box). Against
+  Scavenger: the drones are never shot down; the Jammer jams 87% of the fight but Scavenger is short of junk, not of
+  reload time; the Booster is docked on a spinning shell only 12% of the fight. Only this matchup for the Jammer (+64
+  against Whaler, 25 fights). A part's value moves 8-12 points from opponent to opponent; telling 0 from +15 takes
+  120-150 paired fights; showing it for a duel would cost 4-18 s on Kev's PC. Partial (stopped early). Commit `108ec44`;
+  docs and tools only. Doc `docs/robocus-parts-by-matchup.md`.
 - **T60. Scavenger against Kev's stacked Gyro** (22 Nov; "can you check with these specific matchup if it was odd
   chance, also, it really didnt show in the power map, also not if I clicked on it"). A: round 9 (Killbox) Gyro wins
   58% of 1,000 rebuilt fights (bookie 65%); a KO inside 15 s is 1 in 100; round 11 (open) Gyro wins 40% of 1,000
