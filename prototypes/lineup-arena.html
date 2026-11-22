@@ -5031,8 +5031,22 @@ window.LU_MATRIX = {"made":"2026-11-21","arenas":{"cage":{"mode":"same","pairs":
   const LBL = { weapon: 'Weapon', chassis: 'Frame', drive: 'Drive', motor: 'Motors', battery: 'Battery', bumper: 'Bumpers', proc: 'Processor', mod: 'Module', shape: 'Hull' };
   const FIELDS = ['weapon', 'chassis', 'shape', 'drive', 'motor', 'battery', 'bumper', 'proc', 'mod'];
   const opt = (list, v) => list.map(([k, l]) => `<option value="${k}"${k === v ? ' selected' : ''}>${l}</option>`).join('');
-  if (LU) st.spec = [{ robot: 'Thumper', parts: [] }, { robot: 'Hornet', parts: [] }, { robot: 'Juggernaut', parts: [] }, { robot: 'Forklift', parts: [] }];
-  function fullSpec(i) { if (LU) { const s = st.spec[i]; return L.normSpec(LU.build(s.robot, s.parts)); }
+  // default robots: four from the tuned lineup (22 Nov, T53: Juggernaut left the lineup on 15 Nov and the page threw on open)
+  if (LU) st.spec = [{ robot: 'Thumper', parts: [] }, { robot: 'Hornet', parts: [] }, { robot: 'Mauler', parts: [] }, { robot: 'Forklift', parts: [] }];
+  // guard: a robot (Lineup Arena) or preset (Damage Lab) that no longer exists is swapped for one that does, never a script error
+  function okSpec(i) {
+    const s = st.spec[i] || (st.spec[i] = LU ? { robot: '', parts: [] } : { preset: '' });
+    if (LU) { if (LU.ROBOTS[s.robot]) return s;
+      const taken = st.spec.map(x => x && x.robot), pool = Object.keys(LU.ROBOTS).filter(k => !CAND[k]);
+      const pick = pool.find(k => !taken.includes(k)) || pool[0];
+      if (typeof console !== 'undefined') console.warn('Lineup Arena: robot "' + s.robot + '" is not in the lineup; using ' + pick);
+      return (st.spec[i] = { robot: pick, parts: [] }); }
+    if (s.custom || L.PRESETS[s.preset]) return s;
+    const taken = st.spec.map(x => x && x.preset), pool = Object.keys(L.PRESETS), pick = pool.find(k => !taken.includes(k)) || pool[0];
+    if (typeof console !== 'undefined') console.warn('Damage Lab: preset "' + s.preset + '" does not exist; using ' + pick);
+    return (st.spec[i] = Object.assign({}, s, { preset: pick })); }
+  for (let i = 0; i < 4; i++) okSpec(i);
+  function fullSpec(i) { if (LU) { const s = okSpec(i); return L.normSpec(LU.build(s.robot, s.parts)); }
     return fullSpecLab(i); }
   function fullSpecLab(i) { const s = st.spec[i]; const base = L.PRESETS[s.preset] || {}; return L.normSpec(Object.assign({}, base, s, { armour: Object.assign({}, base.armour, s.armour) })); }
   const strainOf = sp => L.DRIVES[sp.drive].strain + L.PROCS[sp.proc].strain + L.MODULES[sp.mod].strain + (sp.helpers || []).length;
@@ -5040,7 +5054,7 @@ window.LU_MATRIX = {"made":"2026-11-21","arenas":{"cage":{"mode":"same","pairs":
   function nameOfLab(i) { const s = st.spec[i]; return s.custom ? (s.cname || 'Custom ' + L.WEAPONS[fullSpec(i).weapon].label.toLowerCase()) : s.preset + (s.wd && s.wd !== 'std' ? ' Mk II' : '') + ((s.helpers || []).length ? '+' + s.helpers.length : ''); }
   // Lineup Arena card: robot by level, two parts and a legendary
   function buildLineupCard(i) {
-    const el = $('bot' + i), s = st.spec[i], sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
+    const el = $('bot' + i), s = okSpec(i), sp = fullSpec(i), lv = LU.ROBOTS[s.robot][0], P = LU.PARTS;
     el.style.borderTopColor = TC(i).col;
     const robotOpts = LU.LEVELS.map((lab, t) => `<optgroup label="${lab}">${Object.entries(LU.ROBOTS).filter(([k2, v]) => v[0] === t && !CAND[k2]).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, power x${v[1].toFixed(2)})</option>`).join('')}</optgroup>`).join('') + (Object.keys(CAND).length ? `<optgroup label="Candidates (grade 1, measured level, not in the game)">${Object.entries(CAND).map(([k, v]) => `<option value="${k}"${k === s.robot ? ' selected' : ''}>${k} (${L.WEAPONS[L.PRESETS[k].weapon].label.toLowerCase()}, measured level ${v[0]})</option>`).join('')}</optgroup>` : '');
     // tuning chips (9 Nov): the % is a level 1 robot with the chip against level 3 (stock 23%), from tools/damage-lab/chipfit.js

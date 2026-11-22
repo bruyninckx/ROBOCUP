@@ -9,6 +9,7 @@
 //   node tools/serve.js --open=rules.html       ... and open that page instead
 //   node tools/serve.js --port=9000             start looking for a free port at 9000 (default 8765, tries 20 ports)
 //   node tools/serve.js --check                 only say whether a ROBOCUS server already runs (exit 0 yes, 1 no)
+// Port 8765 busy: the window says what holds it (netstat + tasklist on Windows) and uses the next free port.
 //
 // Safety: listens on 127.0.0.1 only (no other PC can reach it, so Windows Firewall has nothing to ask), read-only (GET and
 // HEAD only), serves files under the repo folder only (no "..", no hidden files or folders such as .git, no links that
@@ -118,8 +119,63 @@ function openBrowser(url) {
   } catch (e) { console.log('Could not open the browser by itself. Open this address: ' + url); }
 }
 
-(async function main() {
+// ---- port busy: who holds it? (T53, 22 Nov: Kev got 8766 without knowing why) ----
+// Windows: "netstat -ano" lists every socket with its process number (PID); "tasklist" turns the PID into a program name.
+// The state column ("LISTENING") is translated on a Dutch or German Windows, so a listening socket is found by its
+// foreign address instead (0.0.0.0:0, [::]:0, *:*), which is never translated. Linux / Mac (tests): "ss -ltnpH".
+// Pure functions, so tools/serve-check.js can test them on sample output without Windows.
+function pidsFromNetstat(text, port) {
+  const pids = [];
+  String(text || '').split(/\r?\n/).forEach(line => {
+    const f = line.trim().split(/\s+/);
+    if (f.length < 4 || !/^TCP$/i.test(f[0])) return;
+    const local = f[1], foreign = f[2], pid = f[f.length - 1];
+    if (!/^\d+$/.test(pid) || +pid === 0) return;
+    if (local.slice(local.lastIndexOf(':') + 1) !== String(port)) return;
+    if (!/^(0\.0\.0\.0:0|\[::\]:0|\*:\*)$/.test(foreign)) return;   // listening sockets only (not connections to it)
+    if (pids.indexOf(+pid) < 0) pids.push(+pid);
+  });
+  return pids;
+}
+// tasklist /FI "PID eq 1234" /FO CSV /NH  ->  "node.exe","1234","Console","1","45.678 K"  (no match: a translated INFO line)
+function nameFromTasklist(text) {
+  const m = String(text || '').match(/^\s*"([^"]+)","(\d+)"/m);
+  return m ? m[1] : null;
+}
+// ss -ltnpH  ->  LISTEN 0 511 127.0.0.1:8765 0.0.0.0:* users:(("node",pid=123,fd=18))
+function fromSs(text, port) {
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const f = line.trim().split(/\s+/), local = f[3] || '';
+    if (local.slice(local.lastIndexOf(':') + 1) !== String(port)) continue;
+    const m = line.match(/\("([^"]+)",pid=(\d+)/);
+    return m ? { pid: +m[2], name: m[1] } : { pid: null, name: null };
+  }
+  return null;
+}
+function run(cmd, args) {
+  try { return cp.execFileSync(cmd, args, { encoding: 'utf8', timeout: 4000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { return ''; }
+}
+// -> { pid, name } or null (could not find out; never throws, a few hundred ms at most)
+function whoHolds(port) {
+  if (process.platform === 'win32') {
+    const pid = pidsFromNetstat(run('netstat', ['-ano']), port)[0];
+    if (!pid) return null;
+    return { pid, name: nameFromTasklist(run('tasklist', ['/FI', 'PID eq ' + pid, '/FO', 'CSV', '/NH'])) };
+  }
+  return fromSs(run('ss', ['-ltnpH']), port);
+}
+function busyLine(port, why) {
+  if (why && why.root) return 'Port ' + port + ' is used by another ROBOCUS game server, for the folder ' + why.root + '.';
+  const w = why && why.who;
+  if (w && w.name) return 'Port ' + port + ' is used by ' + w.name + (w.pid ? ' (process ' + w.pid + ')' : '') + '.'
+    + (/^node(\.exe)?$/i.test(w.name) ? ' Maybe an old game server window: close it, or end that process in Task Manager (Details tab).' : '');
+  if (w && w.pid) return 'Port ' + port + ' is used by process ' + w.pid + ' (see Task Manager, Details tab).';
+  return 'Port ' + port + ' is used by another program (could not see which).';
+}
+
+async function main() {
   const same = j => j && path.resolve(j.root) === ROOT;
+  let firstWhy = null;   // why FIRST was skipped: { root } another ROBOCUS folder, or { who } another program
   for (let port = FIRST; port < FIRST + TRIES; port++) {
     const j = await probe(port);
     if (same(j)) {   // already running for this folder: reuse it
@@ -129,14 +185,19 @@ function openBrowser(url) {
       if (PAGE) openBrowser(url);
       return process.exit(0);
     }
-    if (j) continue;   // a ROBOCUS server for another folder: leave it alone
+    if (j) { if (port === FIRST) firstWhy = { root: j.root }; continue; }   // a ROBOCUS server for another folder: leave it alone
     if (arg('check', false)) continue;
     let srv;
-    try { srv = await listen(port); } catch (e) { if (e.code === 'EADDRINUSE' || e.code === 'EACCES') continue; throw e; }
+    try { srv = await listen(port); } catch (e) {
+      if (e.code === 'EADDRINUSE' || e.code === 'EACCES') { if (port === FIRST) firstWhy = { who: whoHolds(port) }; continue; }
+      throw e; }
     const url = 'http://' + HOST + ':' + port + '/' + PAGE;
     console.log('');
     console.log('ROBOCUS game server: http://' + HOST + ':' + port + '/  (this PC only; folder ' + ROOT + ')');
-    if (port !== FIRST) console.log('Port ' + FIRST + ' was busy, so this is ' + port + '. Saved settings and logs in the browser belong to one port: the next time it is ' + FIRST + ' again if that is free.');
+    if (port !== FIRST) {
+      console.log(busyLine(FIRST, firstWhy) + ' So this is ' + port + '.');
+      console.log('Note: the browser keeps saved settings and playtest logs per address, so on ' + port + ' they start fresh. Next time it is ' + FIRST + ' again if that is free.');
+    }
     console.log('Leave this window open while you play. Close it when you are done.');
     if (PAGE) { console.log('Opening ' + url); openBrowser(url); }
     if (!QUIET) srv.on('request', (q) => { if (q.method !== 'GET' && q.method !== 'HEAD') console.log(q.method + ' ' + q.url + ' refused'); });
@@ -145,6 +206,9 @@ function openBrowser(url) {
     return;
   }
   if (arg('check', false)) { console.log('no ROBOCUS server running'); process.exit(1); }
-  console.log('No free port between ' + FIRST + ' and ' + (FIRST + TRIES - 1) + '.');
+  console.log('No free port between ' + FIRST + ' and ' + (FIRST + TRIES - 1) + '. ' + busyLine(FIRST, firstWhy));
   process.exit(3);
-})().catch(e => { console.log('Could not start the game server: ' + (e && e.message || e)); process.exit(2); });
+}
+
+module.exports = { pidsFromNetstat, nameFromTasklist, fromSs, busyLine, whoHolds };
+if (require.main === module) main().catch(e => { console.log('Could not start the game server: ' + (e && e.message || e)); process.exit(2); });

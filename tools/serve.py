@@ -4,7 +4,7 @@
 # no-cache" on every answer (so the files stamp keeps working), ports 8765..8784, and a second start for the same folder
 # only opens the game in the browser. Python 3.7 or newer, no extra packages.
 #   py -3 tools/serve.py [--open[=page]] [--port=N] [--check]
-import http.server, json, os, sys, urllib.request, urllib.parse, webbrowser, socketserver
+import http.server, json, os, re, subprocess, sys, urllib.request, urllib.parse, webbrowser, socketserver
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 HOST = '127.0.0.1'
@@ -73,11 +73,33 @@ def probe(port):
     except Exception:
         return None
 
+def who_holds(port):
+    # port busy (T53): netstat -ano + tasklist on Windows, as in tools/serve.js (listening = foreign address 0.0.0.0:0 / [::]:0,
+    # because the state word is translated on a Dutch Windows). Returns (pid, name) or None; never raises.
+    if os.name != 'nt': return None
+    def run(c):
+        try: return subprocess.run(c, capture_output=True, text=True, timeout=4).stdout
+        except Exception: return ''
+    for line in run(['netstat', '-ano']).splitlines():
+        f = line.split()
+        if len(f) >= 4 and f[0].upper() == 'TCP' and f[1].rsplit(':', 1)[-1] == str(port) and f[2] in ('0.0.0.0:0', '[::]:0') and f[-1].isdigit() and f[-1] != '0':
+            m = re.search(r'^\s*"([^"]+)","(\d+)"', run(['tasklist', '/FI', 'PID eq ' + f[-1], '/FO', 'CSV', '/NH']), re.M)
+            return (int(f[-1]), m.group(1) if m else None)
+    return None
+
+def busy_line(port, why):
+    if why and why.get('root'): return 'Port %d is used by another ROBOCUS game server, for the folder %s.' % (port, why['root'])
+    w = why and why.get('who')
+    if w and w[1]: return 'Port %d is used by %s (process %d).' % (port, w[1], w[0])
+    if w: return 'Port %d is used by process %d (see Task Manager, Details tab).' % (port, w[0])
+    return 'Port %d is used by another program (could not see which).' % port
+
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
 def main():
+    first_why = None
     for port in range(FIRST, FIRST + 20):
         j = probe(port)
         url = 'http://%s:%d/%s' % (HOST, port, PAGE)
@@ -86,11 +108,16 @@ def main():
             print('The game server is already running in another window (%s:%d). Opening the game there.' % (HOST, port))
             if PAGE and not os.environ.get('ROBOCUS_NO_BROWSER'): webbrowser.open(url)
             sys.exit(0)
+        if j and port == FIRST: first_why = {'root': j.get('root', '?')}
         if j or arg('check'): continue
         try: srv = Server((HOST, port), Handler)
-        except OSError: continue
+        except OSError:
+            if port == FIRST: first_why = {'who': who_holds(port)}
+            continue
         print('\nROBOCUS game server: http://%s:%d/  (this PC only; folder %s)' % (HOST, port, ROOT))
-        if port != FIRST: print('Port %d was busy, so this is %d. Saved settings and logs in the browser belong to one port.' % (FIRST, port))
+        if port != FIRST:
+            print(busy_line(FIRST, first_why) + ' So this is %d.' % port)
+            print('Note: the browser keeps saved settings and playtest logs per address, so on %d they start fresh. Next time it is %d again if that is free.' % (port, FIRST))
         print('Leave this window open while you play. Close it when you are done.')
         if PAGE:
             print('Opening ' + url)
