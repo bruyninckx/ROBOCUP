@@ -1934,9 +1934,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const fitOf = r => partsOf(r).map(k => PART_FIT[r.name] && PART_FIT[r.name][k] ? { k, f: PART_FIT[r.name][k][0], d: PART_FIT[r.name][k][1] } : null).filter(Boolean);
   const fitAdj = r => (tripleOf(r) ? 0.6 : 0) + fitOf(r).reduce((a, x) => a + (epicOf(r.name, x.k) ? 0.7 : 0.3) * x.f, 0) + epicsOn(r).filter(x => !(PART_FIT[r.name] && PART_FIT[r.name][x.k])).length * 0.7;   // the bookie knows these: +-0.3 logit a fit
   const fitNote = (name, k) => { const ep = epicOf(name, k); if (ep) return ' · ⚡ EPIC: ' + ep[0]; const x = PART_FIT[name] && PART_FIT[name][k]; return x ? (x[0] > 0 ? ' · 🧩 great fit' : ' · 🧩 poor fit') : ''; };
+  const fmtNote = () => '';   // T56 part 2
+  // T56: how many test fights the fight's odds rest on, in plain words (F.bk is set by the host in afterChoose and synced in G.fight)
+  const bookieTxt = F => { const b = F && F.bk; if (!b) return '';
+    const nf = k => k + ' test fight' + (k === 1 ? '' : 's');
+    if (b.used) return 'odds from ' + nf(b.n) + (b.early ? ' (stopped early: clear favourite)' : '');
+    if (b.off) return 'no test fights (switched off): odds from the formula';
+    return (b.n ? 'only ' + nf(b.n) : 'no test fights finished in time') + (b.file ? ' (game opened as a file)' : '') + ': odds from the formula'; };
+  const bookieHelp = F => { const b = F && F.bk; if (!b) return '';
+    return b.used ? ' The bookie watched <b>' + b.n + '</b> test fights of exactly this matchup on the host\'s PC' + (b.early ? ' and stopped early: after ' + b.n + ' the result was so clear that more fights would not move the odds' : '') + '; its odds mix those results with the formula.'
+      : ' The host\'s PC finished ' + (b.n ? 'only <b>' + b.n + '</b>' : 'no') + ' test fights in time (the bookie wants ' + (b.min || 40) + ' or more)' + (b.file ? ', because the game was opened as a file and runs them on the page itself' : '') + ', so these odds come from the formula: levels, parts, damage and the matchup table.'; };
   const rangeTxt = p => { const lo = Math.min(80, Math.floor(p * 5) * 20); return lo + '–' + (lo + 20) + '%'; };
   const duelP = (ra, rb) => pairP(ra, rb, G && G.fight && G.fight.arena);
   // click an odds chip: this robot's chance against each rival robot on its own (like 1.0's scout panel, no scout needed)
+  // T56: a robot in this round's fight, once the bookie has set its odds: its band there and what the odds rest on
+  const inFightTxt = r => { const F = G && G.fight, e = F && F.bands && (G.phase === 'bets' || G.phase === 'fight') ? F.robots.indexOf(r) : -1; if (e < 0) return '';
+    const sd = F.sides[e], bd = F.bands[sd]; return bd ? '<div class="sc-field">This fight: <span class="sc-chip" style="background:' + bd.col + '">' + esc(bd.short) + '</span> pays ' + F.pay[sd] + '×' + (bookieTxt(F) ? ' · <span class="sc-note">' + esc(bookieTxt(F)) + '</span>' : '') + '</div>' : ''; };
   function openMatchups(ti, r) {
     let el = document.getElementById('scoutPanel');
     if (!el) { el = document.createElement('div'); el.id = 'scoutPanel'; document.body.appendChild(el); }
@@ -1947,7 +1960,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     el.innerHTML = '<div class="sc-box"><button class="sc-x" title="Close">✕</button>' +
       '<h3><span style="color:' + T.col + '">' + esc(T.name) + '</span> · ' + esc(r.name) + ' <span style="color:#b45309">' + ('★'.repeat(r.level) || 'starter') + '</span></h3>' +
       '<div class="sc-sub">' + esc(wepLabel(r.name)) + ' · Parts: ' + esc(partsTxt(r)) + '<br>Damage: ' + esc(zoneTxt(r)) + '</div>' +
-      '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
+      '<div class="sc-field">Bookie vs the field: ' + chip(F.p, r) + '</div>' + inFightTxt(r) + (oddsDoubt(r).length ? '<div class="sc-note">??? The bookie isn\'t sure: ' + oddsDoubt(r).join('; ') + '.</div>' : '') +
       (F.per.length ? '<table class="sc-t"><tr><th>vs</th><th>weapon · damage</th><th>bookie</th></tr>' + rows + '</table>' : '<div class="sc-note">No rival robots yet.</div>') +
       '<div class="sc-note">The bookie\'s chance for ' + esc(r.name) + ' in a duel against each robot, from the Lineup Arena matchup table (20 fights a pair), shifted by fitted parts and damage. Robots as they come show the arena range (e.g. 40–60%); changed robots show a band. 🎯 = counter pick (much better than the level gap says), ⚠️ = bad matchup. Face-down cards stay secret. 😴 = exhausted this round.</div>' +
       '<div class="iv-btns"><button class="secondary sc-close">Close</button></div></div>';
@@ -2496,13 +2509,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const lim = betLimit(t), myBet = PS().bet || [], staked = myBet.reduce((a, b) => a + b, 0);
       const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
       const cb = (PS().cardBid || []).reduce((a, b) => a + b, 0);
-      pb.innerHTML = '<span>🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (G.fight && G.fight.auction ? ' · 🃏 sealed bids on the fight cards below (' + cb + ' Cr)' : '') + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.</span>' +
+      const bkN = bookieTxt(G.fight) ? '<br><small>🎩 Bookie: ' + esc(bookieTxt(G.fight)) + '.</small>' : '';   // T56
+      pb.innerHTML = '<span>' + fmtNote() + '🎲 <b>Bookie\'s Board:</b> Click a side to bet up to ' + lim + ' Cr (' + staked + ' Cr staked, public)' + (G.fight && G.fight.auction ? ' · 🃏 sealed bids on the fight cards below (' + cb + ' Cr)' : '') + (PS().hedge ? '. 🎲 Hedge Bet: any side, even against your own robot' : '') + '.' + bkN + '</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text)) + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text)) + '>🎲 Hedge Bet</button>' : '') +
         '<button class="act" id="pAct1"' + (G.betsLocked ? ' disabled' : '') + '>Lock bets & bids →</button>';
       // T47 (Kev, 21 Nov voting page: "Keep them playable after locking"): Bookie's Friend and Hedge Bet stay in the locked note.
       // Playing one keeps your lock (it changes no bet); a bet you then change unlocks you, as any change does.
-      if (iWait('bets')) pb.innerHTML = '<span>🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + '</span>' +
+      if (iWait('bets')) pb.innerHTML = '<span>' + fmtNote() + '🎲 <b>Bets locked</b> (' + staked + ' Cr' + (G.fight && G.fight.auction ? ', fight-card bids ' + cb + ' Cr' : '') + '). ' + waitTxt('bets') + relockTxt('your bets' + (G.fight && G.fight.auction ? ' and card bids' : '')) + bkN + '</span>' +
         (can('bookie_s_friend') ? '<button class="act secondary" id="pBF"' + helpAttr('🔍 Bookie\'s Friend', esc(CARDS.bookie_s_friend.text) + '<br>Playing it keeps your lock.') + '>🔍 Bookie\'s Friend</button>' : '') +
         (can('hedge_bet') && !PS().hedge ? '<button class="act secondary" id="pHB"' + helpAttr('🎲 Hedge Bet', esc(CARDS.hedge_bet.text) + '<br>Playing it keeps your lock; changing your bet afterwards unlocks you.') + '>🎲 Hedge Bet</button>' : '');
       if ($('#pAct1')) $('#pAct1').onclick = () => act('lockBets');
@@ -7451,11 +7465,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       try { sim = await simOdds(F); } catch (e) { console.warn('bookie', e); }
       if (bookieOn) { bookieOn = false; updateHud(); }
       if (G.fight !== F) return;   // the game was restarted while the bookie watched
+      // T56 (Kev, 22 Nov: "be open about how many fights the bookie was able to process"): what the odds rest on, in G.fight so
+      // every screen shows the same (display only: nothing reads it back into the game)
+      if (!G.fast) F.bk = { n: sim ? sim.n : 0, used: !!(sim && sim.n >= C.min), early: !!(sim && sim.stop), off: !sim, min: C.min, file: location.protocol === 'file:' && !!sim && sim.how === 'page' };
       if (sim && sim.n >= C.min) {
         F.p = p0.map((p, sd) => Math.max(0.03, Math.min(0.95, ((sim.wins[sd] || 0) + C.prior * p) / (sim.n + C.prior)))); F.simN = sim.n;
-        notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
+        notify('🎩 The bookie watched <b>' + sim.n + '</b> test fights of exactly this matchup' + (sim.stop ? ' and stopped early (clear favourite)' : '') + ' (robots, parts, damage and arena as they are; face-down cards and live cards don\'t count).', '#111');
       }
-      else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds are its estimate, as before.', '#b45309');
+      else if (sim && !(BOT && !WATCH)) notify('🎩 The bookie had time for only ' + sim.n + ' test fights on the host\'s PC (it wants ' + C.min + ' or more): these odds come from the formula.', '#b45309');
       tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
@@ -7713,7 +7730,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const odds = Array.from({ length: F.nSides || 2 }, (_, sd) => esc(sideLabel(F, sd)) + ' ' + (F.bands && F.bands[sd] ? F.bands[sd].short : '') + (F.pay ? ' ' + F.pay[sd] + '×' : '')).join(' · ');
       const host = G.host >= 0 ? G.teams[G.host] : null, bounty = (F.robots || []).filter(r => r && r.bounty);
       return '<h4>BETS</h4>' + (bets.length ? bets.map(b => '<div class="fv-ib"><b style="color:' + G.teams[b.team].col + '">' + who(b.team) + '</b><i>' + esc(sideLabel(F, b.side)) + ' · ' + b.amt + ' Cr</i></div>').join('') : '<div>No bets on this fight.</div>') +
-        '<div style="color:#6E6457;font-size:11.5px;margin-top:3px">Bookie: ' + odds + '</div>' +
+        '<div style="color:#6E6457;font-size:11.5px;margin-top:3px">Bookie: ' + odds + (bookieTxt(F) ? '<br><small>' + esc(bookieTxt(F)) + '</small>' : '') + '</div>' +
         '<div class="fv-next">NEXT · 7 FATE' + (host ? ' (' + who(host.i) + ' hosts)' : '') + ': ' + (host ? 'the host spares or scraps the loser.' : 'the loser is spared.') + (bounty.length ? ' 🎯 Bounty on ' + bounty.map(r => esc(r.name)).join(', ') + ': +' + BAL.fame.bounty + ' fame to whoever beats it.' : '') + '</div>';
     } catch (e) { console.warn('fightInfo', e); return ''; }
   }
@@ -10634,7 +10651,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const stockDuel = F.nSides === 2 && F.robots.length === 2 && F.robots.every(x2 => x2 && isStock(x2)) && !doubt;
       fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + (stockDuel ? ' ' + rangeTxt(F.p[s]) : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
-      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
+      help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.bk ? bookieHelp(F).trim() + ' Face-down cards are secret and not in it.' : F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#8A4A10' : MUTED;
         fitText(ctx, dm.length ? '🔧 ' + dm.map(x2 => (robots.length > 1 ? x2.name + ': ' : '') + zoneTxt(x2)).join(' · ') : 'No damage · the bookie ignores face-down cards', x + w / 2, y + 100, w - 30, '600', 9.5);
@@ -10666,6 +10683,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, INK, 1.5);
       ctx.textAlign = 'center'; ctx.fillStyle = INK;
       fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, L.ay + h / 2 + 23, L.aw - 40, '600', 10.5);
+      if (bookieTxt(F)) { ctx.fillStyle = F.bk.used ? MUTED : '#8A4A10'; fitText(ctx, '🎩 Bookie: ' + bookieTxt(F), L.ax, L.ay + h / 2 + 44, L.aw - 40, '600', 10.5); help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 33, L.aw - 24, 15, '🎩 What the odds rest on', bookieHelp(F).trim()); }   // T56
       help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, '🎲 Public bets', 'Bets on the robots are public. When someone changes a bet, everyone who already locked is un-locked to react.'); }
   }
 
@@ -10674,7 +10692,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawCardAuction(ctx, L, ay0, F, AU, y) {
     const pub = (F.pubBets || []).map((b, i) => b ? G.teams[i].name.split(' ')[0] + ' ' + b.amt + ' Cr on ' + sideLabel(F, b.side) : null).filter(Boolean);
     ctx.textAlign = 'center'; ctx.fillStyle = INK;
-    fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);
+    fitText(ctx, (bookieTxt(F) ? '🎩 Bookie: ' + bookieTxt(F) + '   ·   ' : '') + '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);   // T56: what the odds rest on
     help(L.ax - L.aw / 2 + 12, y, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public and update live. When someone changes a bet, everyone who already locked is un-locked to react.');
     const my = PS().cardBid || [0, 0], free = me().credits - betStake(HS), n = AU.cards.length, gap = 14, cw = Math.min(330, (L.aw - 24 - gap * (n - 1)) / n), anyFl = AU.cards.some(hasFlavArt), ch = anyFl ? 96 : 84, cy = y + 20, cx0 = L.ax - (n * cw + (n - 1) * gap) / 2;
     AU.cards.forEach((id, k) => {
