@@ -429,6 +429,9 @@ html, body {
 #pmapBox .pm-note { margin: 8px 0 2px; padding: 4px 7px; border-left: 4px solid #D9731A; background: #FBEBD9; font-size: 12px; line-height: 1.35; }
 #pmapBox .pm-li i { font-style: normal; color: #b45309; font-size: 11px; } #pmapBox .pm-li em { font: 500 11px var(--mono); font-style: normal; color: var(--muted); }
 #pmapBox .pm-vs { border-collapse: collapse; width: 100%; } #pmapBox .pm-vs td { padding: 2px 3px; border-bottom: 1px solid var(--line); } #pmapBox .pm-vs td:last-child { text-align: right; white-space: nowrap; }
+#pmapBox .pm-vsbox { margin: 6px 0 4px; padding: 2px 6px 4px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper); }
+#pmapBox .pm-vsbox .pm-h { color: var(--ink); margin-top: 4px; } #pmapBox .pm-vs tr.tg td { background: #FBEBD9; }
+#pmapBox .pm-tough { display: inline-block; font: 600 10.5px var(--sans); color: #fff; background: #C77A12; border-radius: 3px; padding: 0 5px; margin-top: 1px; } #pmapBox .pm-tough.c { background: #B23A2B; }
 #pmapBox .sc-chip, #pmTip .sc-chip { color: #fff; border-radius: 9px; padding: 1px 7px; font: 600 11px var(--mono); }
 .pm-pill { display: inline-block; color: #fff; border-radius: 3px; padding: 0 4px; font: 700 10px var(--mono); }
 .pm-st { color: #b45309; } .pm-q { color: #D9731A; font-weight: 700; }
@@ -11265,7 +11268,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.font = '700 10px IBM Plex Sans, system-ui, sans-serif';
     const pill = mine || it.kind === 'lot' || it.kind === 'next', tag = pmInGame(it) && Math.abs(it.pl.sh) >= 0.124 ? ctx.measureText(pmLike(it.pl.eff)).width + 10 : 0;
     ctx.font = (pmInGame(it) ? '700 ' : '500 ') + pmFont(it) + 'px IBM Plex Sans, system-ui, sans-serif';
-    return { l: Math.max(r + ring + 2, ctx.measureText(it.name).width / 2 + 3), r: Math.max(r + ring + 2 + tag, ctx.measureText(it.name).width / 2 + 3), t: r + ring + (pill ? 8 : 1), b: r + ring + pmFont(it) + 3 };
+    const vw = pmInGame(it) ? 40 : 0;   // T60: half the widest band pill ("Heavy dog · tough") under a robot of this game
+    return { l: Math.max(r + ring + 2, ctx.measureText(it.name).width / 2 + 3, vw), r: Math.max(r + ring + 2 + tag, ctx.measureText(it.name).width / 2 + 3, vw), t: r + ring + (pill ? 8 : 1), b: r + ring + pmFont(it) + 3 + (pmInGame(it) ? 16 : 0) };   // T60: room for the band pill under a robot of this game
   }
   const pmFont = it => pmInGame(it) ? PM.geo.font : PM.geo.font - 1;
   function pmLayout() {
@@ -11316,6 +11320,22 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const pmW = d => 1.6 + 8.4 * Math.max(0, Math.min(1, (d - PM_MIN) / (PM_TOP - PM_MIN)));   // line width: 1.6 px at 30 points, 10 px at 85+
   const PM_GC = ['#2F7D4A', '#7FB592'], PM_RC = ['#B23A2B', '#DA8E83'];   // [40+, 30-39]: green = it counters, red = countered by
   const pmCol = (good, tag) => (good ? PM_GC : PM_RC)[tag ? 0 : 1];
+  /* T60 (Kev, 22 Nov: Scavenger "really slapped my stacked gyro although it was not an indication in the power map", "also not if I
+   * clicked on it"): click one of this game's robots and every other robot of this game gets its bookie band against it on its token
+   * (pairP on open floor, parts and damage counted, the scout panel's chip), and a robot that is a TOUGH matchup for the clicked one
+   * (as they come, from the table: PM_TOUGH = 15 to 39 points better for it than the level gap gives; 40+ is the game's ⚠️ counter)
+   * gets an amber marker. Display only: pairP and the table are read, nothing is written. */
+  const PM_TOUGH = 0.15;
+  function pmVs(sel) {
+    if (!sel || !pmInGame(sel)) return null;
+    const out = new Map(), r = sel.r;
+    for (const it of PM.items) { if (it === sel || !pmInGame(it) || it.r === r || !pmShown(it)) continue;
+      const p = pairP(it.r, r, 'open'), c = oddsChip(p, false, isStock(r) ? it.r : null), m = mxP(it.name, r.name, 'open'), e = MX_EXP[baseLv(it.r) - baseLv(r)];
+      const d = m && e != null ? m.p - e : 0;   // how much better it does as new than the level gap gives (+ = tough for the clicked robot)
+      out.set(it, { p, chip: c, band: bandOf(p), d, m: m ? m.p : null, e, tough: d >= PM_TOUGH - 1e-9 && d < BAL.counterTag - 1e-9, counter: d >= BAL.counterTag - 1e-9, easy: d <= -BAL.counterTag + 1e-9 }); }
+    return out;
+  }
+  const PM_AMBER = '#C77A12';
   // the tokens an arrow goes to: this game's copies of that robot, else the lineup token
   const pmTargets = n => { const a = PM.items.filter(i => i.name === n && pmInGame(i) && pmShown(i)); return a.length ? a : PM.items.filter(i => i.name === n && !pmInGame(i) && pmShown(i)); };
   // one arrow p -> q; c = the counter ({ d, tag, good }); returns its curve (for hovering) and its middle
@@ -11364,6 +11384,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     else if (it.kind === 'next') pmPill(ctx, x, top, 'NEXT', '#A79C8C', '#fff');
     if (game && Math.abs(it.pl.sh) >= 0.124) { ctx.font = '700 10px IBM Plex Sans, sans-serif'; const tx = pmLike(it.pl.eff), w = ctx.measureText(tx).width; pmPill(ctx, x + R + (mine ? 7 : 3) + w / 2, y - R * 0.45, tx, it.pl.sh > 0 ? '#D9731A' : '#B23A2B', '#fff'); }
     if (game && Math.abs(it.x) > g.xm) pmPill(ctx, x + (it.x > 0 ? R + 4 : -R - 4), y + R * 0.4, it.x > 0 ? '»' : '«', '#2B2118', '#fff');
+    const v = PM.vs && PM.vs.get(it);   // T60: its band against the clicked robot, under its name
+    if (v) { const ny = y + R + fs + (mine ? 6 : 2) + 11, tx = v.chip.text + (v.counter ? ' ⚠' : v.tough ? ' · tough' : '');
+      if (v.tough || v.counter) { ctx.strokeStyle = PM_AMBER; ctx.lineWidth = 2.5; ctx.setLineDash([5, 3]); ctx.beginPath(); ctx.arc(x, y, R + (mine ? 10 : 6), 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.font = '700 11px IBM Plex Sans, system-ui, sans-serif'; const w = ctx.measureText(tx).width + 10;
+      ctx.fillStyle = v.chip.col; pmRR(ctx, x - w / 2, ny - 8, w, 16, 4); ctx.fill(); ctx.strokeStyle = v.tough || v.counter ? PM_AMBER : '#FFFDF8'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(tx, x, ny + 0.5); ctx.textBaseline = 'alphabetic'; }
     ctx.globalAlpha = 1;
   }
   function pmDraw() {
@@ -11388,6 +11414,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     ctx.textAlign = 'left'; ctx.fillText('← weaker for its level', g.left + 18, g.H - 6); ctx.textAlign = 'right'; ctx.fillText('stronger for its level →', g.W - g.right, g.H - 6);
     const sel = PM.sel && PM.items.includes(PM.sel) ? PM.sel : null, rel = new Set(), arrows = [];
+    PM.vs = pmVs(sel); if (PM.vs) for (const it of PM.vs.keys()) rel.add(it);   // T60: this game's robots keep full colour (their band is on them)
     if (sel) { rel.add(sel); if (sel.home) rel.add(sel.home); PM.items.forEach(i => { if (i.home === sel) rel.add(i); }); const C = pmCounters(sel);
       for (const c of C.beats) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([sel, t, Object.assign({ good: true }, c)]); }
       for (const c of C.lose) for (const t of pmTargets(c.n)) { rel.add(t); arrows.push([t, sel, Object.assign({ good: false }, c)]); } }
@@ -11406,6 +11433,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const [a, b, c] of arrows) if (hl && c.n === hl) PM.arr.push(Object.assign({ n: c.n, c }, pmArrow(ctx, a, b, c, false, true)));
     for (const it of order) if (!pmInGame(it) && sel && rel.has(it)) pmTok(ctx, it, hl && it !== sel && it.name !== hl ? 0.35 : 1);   // the robots at the arrows' ends stay readable
     for (const it of order) if (pmInGame(it)) pmTok(ctx, it, hl && rel.has(it) && it !== sel && it.name !== hl ? 0.35 : alpha(it));
+    if (PM.vs && PM.vs.size) { ctx.font = '700 12px IBM Plex Sans, system-ui, sans-serif'; const tx = 'Under each robot of this game: its bookie odds against ' + sel.name + ' (dashed amber ring = a tough matchup for ' + sel.name + ')', w = ctx.measureText(tx).width + 14;
+      ctx.fillStyle = '#2B2118'; pmRR(ctx, g.W / 2 - w / 2, g.H - 19, w, 17, 4); ctx.fill(); ctx.fillStyle = '#E8C547'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(tx, g.W / 2, g.H - 10); ctx.textBaseline = 'alphabetic'; }   // T60
     // the hovered pair: its odds at the arrow's middle
     for (const A of PM.arr) if (A.c) { const c = A.c, win = c.good ? c.p : 1 - c.p, exp = c.good ? c.e : 1 - c.e, who = c.good ? sel.name : c.n;
       pmPill(ctx, A.mid[0], A.mid[1], who + ' wins ' + rangeTxt(win) + ' · levels give ' + Math.round(exp * 100) + '%', pmCol(c.good, true), '#fff'); }
@@ -11434,7 +11463,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
       '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
       '<p>A robot with parts or damage stands where it <b>fights now</b> (a great or poor fit and an epic combo count too, as the bookie counts them), with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
-      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. For a robot in this game you also get the bookie\'s band against each rival.</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
+      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. Click one of <b>this game\'s</b> robots and every other robot of this game shows its bookie band against it on its token (e.g. <span class="pm-pill" style="background:#4C8A3F">Favourite vs Gyro</span>); a dashed amber ring marks a <b>tough matchup</b> (15-39 points better than the level gap gives, as they come).</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
     const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
     // a row per counter, strongest first: a bar as thick as its arrow and as long as how far it is off the level odds
     const li = (c, good) => { const win = good ? c.p : 1 - c.p, exp = good ? c.e : 1 - c.e, w = pmW(c.d), L = Math.round(8 + 46 * Math.min(1, (c.d - PM_MIN) / (PM_TOP - PM_MIN)));
@@ -11447,12 +11476,14 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const hasP = selCh && partsOf(r).length > 0, hasD = selCh && !isStock(Object.assign({}, r, { parts: [], leg: null })), what = [hasP && 'parts', hasD && 'damage'].filter(Boolean).join(' and ');
     const note = selCh || othCh ? '<div class="pm-note">Arrows: robots <b>as they come</b>. ' + (selCh ? esc(r.name) + ' has ' + what : 'Some of these have parts or damage') + ' now; ' + (pmInGame(it) ? 'today\'s odds are the bands above.' : 'today\'s odds: the scout panel.') + '</div>' : '';
     let vs = '';
-    if (pmInGame(it)) {
-      const riv = (G.teams || []).filter(T => !(it.kind === 'team' && T === it.T)).flatMap(T => T.robots.map(x => ({ T, r: x })));
-      const chip = x => { const p = pairP(r, x.r, 'open'), c = oddsChip(p, false, isStock(x.r) ? r : null); return '<span class="sc-chip" style="background:' + c.col + '">' + esc(c.text) + '</span>'; };
-      vs = '<div class="pm-h">Against the robots in this game</div>' + (riv.length ? '<table class="pm-vs">' + riv.map(x => { const c = counterOf(r, x.r);
-        return '<tr><td><b style="color:' + x.T.col + '">' + esc(x.T.i === viewerSeat ? 'You' : x.T.name.split(' ')[0]) + '</b> ' + esc(x.r.name) + '</td><td>' + chip(x) + (c ? (c.good ? ' 🎯' : ' ⚠️') : '') + '</td></tr>'; }).join('') + '</table>' : '<p class="pm-n">No rival robots yet.</p>') +
-        '<p class="pm-n">The bookie\'s duel odds on open floor, with parts and damage. A band only for changed robots; both robots as they come show the arena range.</p>';
+    if (pmInGame(it)) {   // T60: every other robot of this game, its band against this one (pairP, as on its token), worst for this one first
+      const V = PM.vs && PM.sel === it ? PM.vs : pmVs(it), rows = V ? [...V.entries()].sort((a, b) => b[1].p - a[1].p) : [];
+      const who = x => x.kind === 'team' ? '<b style="color:' + x.T.col + '">' + esc(x.T.i === viewerSeat ? 'You' : x.T.name.split(' ')[0]) + '</b> ' : x.kind === 'lot' ? '<b style="color:#D9731A">LOT</b> ' : '<b style="color:#A79C8C">NEXT</b> ';
+      const mark = v => v.counter ? '<span class="pm-tough c" title="A counter (the game\'s ⚠️ tag): as they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '%">⚠️ counter</span>'
+        : v.tough ? '<span class="pm-tough" title="As they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '% (' + Math.round(v.d * 100) + ' points better: 15-39 = tough, 40+ = a ⚠️ counter)">tough matchup</span>' : v.easy ? ' 🎯' : '';
+      vs = '<div class="pm-vsbox"><div class="pm-h">Each robot in this game against ' + esc(r.name) + '</div>' + (rows.length ? '<table class="pm-vs">' + rows.map(([x, v]) =>
+        '<tr' + (v.tough || v.counter ? ' class="tg"' : '') + '><td>' + who(x) + esc(x.r.name) + (v.tough || v.counter ? '<br>' + mark(v) : v.easy ? mark(v) : '') + '</td><td><span class="sc-chip" style="background:' + v.chip.col + '">' + esc(v.chip.text) + '</span></td></tr>').join('') + '</table>' : '<p class="pm-n">No other robots in this game yet.</p>') +
+        '<p class="pm-n">Their bookie odds against ' + esc(r.name) + ' in a duel on open floor, parts and damage counted (also written on their tokens). Toughest for ' + esc(r.name) + ' first. <span class="pm-tough">tough matchup</span> = as they come they do 15-39 points better against it than the level gap gives; ⚠️ = 40+ (a counter); 🎯 = ' + esc(r.name) + ' counters it.</p></div>';
     }
     el.innerHTML = '<div class="pm-top"><b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span><button class="pm-x2" data-pm="">✕</button></div><div class="pm-sub">' + esc(wepLabel(r.name)) + ' · ' + pmOwner(it) + '</div>' +
       (pmInGame(it) ? '<div>Parts: ' + pmParts(r) + '</div><div>Damage: ' + esc(zoneTxt(r)) + '</div>' : '') + '<div>' + pmFights(it) + '</div>' + vs +

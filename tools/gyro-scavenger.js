@@ -42,13 +42,34 @@ function scavWears(k = 6) {
   }
   fs.writeFileSync(f, JSON.stringify(got)); return got;
 }
+// Scavenger in round 11 ("no damage"): what its round 9 win over Gyro left (the card shows only zones below 70%, so it can carry
+// wear and marks), after round 10's Upkeep (body heal) and the crew repair of its Body zone (log, round 10). Look-alikes: round 9
+// rebuilt fights that Scavenger won, kept when Drive and Weapon read undamaged (>= 70%, nothing lost) after the Body repair.
+function scavWears11(k = 8) {
+  const f = path.join(OUT, 'scav-wear11.json');
+  if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8'));
+  const got = [], W9 = scavWears();
+  for (let seed = 1; seed < 3000 && got.length < k; seed++) {
+    const g = spec(GYRO, 'Steel Bolts'), s = spec(SCAV, 'Rust Rivets', W9[seed % W9.length].wear);
+    const S = DL.create({ a: s, b: g, seed, countdown: 0, arena: 'killbox', wear: true });
+    let n = 0; while (!S.over && n++ < 48000) { DL.step(S); S.fx.length = 0; }
+    if (!S.result || S.result.winner !== 0) continue;
+    const sp = Object.assign(spec(SCAV, 'Rust Rivets'), { wear: DL.wearOf(S.robots[0]) });
+    R2.bodyHeal(sp, 0.5); R2.repairZone(sp, 'body');
+    const Z = R2.zones(sp); if (Z.drive.damaged || Z.weapon.damaged || Z.body.damaged) continue;
+    got.push({ seed, t: +S.result.t.toFixed(1), drive: +Z.drive.f.toFixed(2), weapon: +Z.weapon.f.toFixed(2), marks: [].concat(Z.drive.marks || [], Z.weapon.marks || []), wear: sp.wear });
+    process.stderr.write('r11 scav wear from r9 seed ' + seed + ' (' + S.result.t.toFixed(1) + ' s): drive ' + Z.drive.f.toFixed(2) + ' weapon ' + Z.weapon.f.toFixed(2) + ' ' + got[got.length - 1].marks.join(', ') + '\n');
+  }
+  fs.writeFileSync(f, JSON.stringify(got)); return got;
+}
 const drop = (r, k) => Object.assign({}, r, { parts: r.parts.filter(x => x !== k) });
 // configs: arena, Gyro, Scavenger, Scavenger wear (r9), live cards (replayed at their times), Gyro's face-down Smudged Lens
 const CFG = {
   r9:       { arena: 'killbox', g: GYRO, s: SCAV, wear: true },                         // round 9 as the bookie saw it
   r9live:   { arena: 'killbox', g: GYRO, s: SCAV, wear: true, live: [{ t: 5, type: 'chiphack', on: 'g', by: 'Team3' }, { t: 9.3, type: 'field_eng', on: 's', by: 'Rust' }] },
   r9new:    { arena: 'killbox', g: GYRO, s: SCAV, wear: false },                        // round 9 with Scavenger undamaged
-  r11:      { arena: 'open', g: GYRO, s: SCAV },                                         // round 11 as the bookie saw it
+  r11:      { arena: 'open', g: GYRO, s: SCAV },
+  r11worn:  { arena: 'open', g: GYRO, s: SCAV, wear11: true },                           // + the wear Scavenger may have carried from round 9                                         // round 11 as the bookie saw it
   r11lens:  { arena: 'open', g: GYRO, s: SCAV, lens: true },                             // + the face-down Smudged Lens on Gyro
   r11live:  { arena: 'open', g: GYRO, s: SCAV, lens: true, live: [{ t: 1.1, type: 'emp', x: 1.5606672519754174, y: 0.5253731343283584, by: 'Steel' }, { t: 8, type: 'supply', x: 1.9361587983324025, y: 1.5084689187429468, crate: 'overcharge', by: 'Rust' }] },
   bare:     { arena: 'open', g: { name: 'Gyro', level: 2, parts: [] }, s: { name: 'Scavenger', level: 3, parts: [] } },
@@ -63,7 +84,7 @@ const CFG = {
 };
 // one fight: who wins, how, when, what each lost (with cause and who), what Gyro's shield / quantum did
 function fight(c, seed) {
-  const W = c.wear ? scavWears() : null, wear = W && W.length ? W[(seed >>> 0) % W.length].wear : null;
+  const W = c.wear ? scavWears() : c.wear11 ? scavWears11() : null, wear = W && W.length ? W[(seed >>> 0) % W.length].wear : null;
   const g = spec(c.g, 'Steel Bolts'), s = spec(c.s, 'Rust Rivets', wear);
   if (c.lens) g.dmgK *= 0.75;   // BAL.cards.lens (fightSpec: tm.lens)
   // the side order as in Kev's fights: round 9 Scavenger first (a), round 11 Gyro first
