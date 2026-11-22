@@ -1,0 +1,8 @@
+nojammer 25
+nojammer 50
+nojammer 75
+nojammer 100
+nojammer 125
+nojammer 150
+nojammer 175
+nojammer 200
