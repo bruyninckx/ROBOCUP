@@ -1236,7 +1236,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       }
     }
     if (part.kind === 'chassis') d *= 0.5;
-    if (ARC.pk.repairBatt && part.key === 'battery' && kitCard(R) && modOn(R)) d *= Math.max(0, 1 - ARC.pk.repairBatt);   // T49 (a): off on main
+    if (ARC.pk.repairBatt && part.key === 'battery' && kitCard(R) && (ARC.pk.repairBattAny || modOn(R))) d *= Math.max(0, 1 - ARC.pk.repairBatt);   // T49 (a): off on main
     if (S.wx.crack || S.wx.grindout) d = wearPre(S, R, part, h, d);
     const before = part.hp;
     part.hp -= d;
@@ -2338,6 +2338,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   /* T49 (Kev, 21 Nov: the Repair kit card gets "something extra"; docs/robocus-repair-kit-extra.md). Study knobs, all off on main
    * (unset or 0 = today's kit, the same fights bit for bit); only the part card, never Mauler's built-in module:
    *   ARC.pk.repairBatt  (a) while the kit works, the battery takes this much less damage (1 = it can't be destroyed)   [engine hit()]
+ *   ARC.pk.repairBattAny   with (a): the battery stays shielded after the kit itself is wrecked (its casing shields it)
    *   ARC.pk.repairFix   (b) the kit gets burned-out drive motors and a dead weapon motor going again, and clears jams:
    *                          a dead motor regains repairFix x the kit's internal repair rate (HP/s) and runs again at 25% HP
    *   ARC.pk.repairWear  (c) the kit straightens bends, kinks and warps and closes cracks and saw grooves: every mark shrinks
