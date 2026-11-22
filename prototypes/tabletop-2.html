@@ -848,6 +848,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     arenas: { on: true, cost: 1, list: ['open', 'saws', 'killbox', 'cage', 'ice'] },   // arena layouts (Kev, 9 Nov): the host picks one when inviting; open floor is free, the others cost the host `cost` Cr
     oddsDamage: true,             // Kev, 16 Nov (K5): the formula odds count damage again, like the test fights (false = read every robot as new, the 15 Nov test)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
+    toughTag: 0.20,               // Kev, 22 Nov (T60/T62: "20 is good me think"): the power map's "tough matchup" mark from this far off the level gap (up to counterTag); was 0.15
     counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
@@ -11340,16 +11341,16 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* T60 (Kev, 22 Nov: Scavenger "really slapped my stacked gyro although it was not an indication in the power map", "also not if I
    * clicked on it"): click one of this game's robots and every other robot of this game gets its bookie band against it on its token
    * (pairP on open floor, parts and damage counted, the scout panel's chip), and a robot that is a TOUGH matchup for the clicked one
-   * (as they come, from the table: PM_TOUGH = 15 to 39 points better for it than the level gap gives; 40+ is the game's ⚠️ counter)
+   * (as they come, from the table: BAL.toughTag = 20 to 39 points (15 until 22 Nov) better for it than the level gap gives; 40+ is the game's ⚠️ counter)
    * gets an amber marker. Display only: pairP and the table are read, nothing is written. */
-  const PM_TOUGH = 0.15;
+  const PM_TOUGH = () => BAL.toughTag != null ? BAL.toughTag : 0.2;   // T62: in BAL (Kev, 22 Nov: 20 points, was 15)
   function pmVs(sel) {
     if (!sel || !pmInGame(sel)) return null;
     const out = new Map(), r = sel.r;
     for (const it of PM.items) { if (it === sel || !pmInGame(it) || it.r === r || !pmShown(it)) continue;
       const p = pairP(it.r, r, 'open'), c = oddsChip(p, false, isStock(r) ? it.r : null), m = mxP(it.name, r.name, 'open'), e = MX_EXP[baseLv(it.r) - baseLv(r)];
       const d = m && e != null ? m.p - e : 0;   // how much better it does as new than the level gap gives (+ = tough for the clicked robot)
-      out.set(it, { p, chip: c, band: bandOf(p), d, m: m ? m.p : null, e, tough: d >= PM_TOUGH - 1e-9 && d < BAL.counterTag - 1e-9, counter: d >= BAL.counterTag - 1e-9, easy: d <= -BAL.counterTag + 1e-9 }); }
+      out.set(it, { p, chip: c, band: bandOf(p), d, m: m ? m.p : null, e, tough: d >= PM_TOUGH() - 1e-9 && d < BAL.counterTag - 1e-9, counter: d >= BAL.counterTag - 1e-9, easy: d <= -BAL.counterTag + 1e-9 }); }
     return out;
   }
   const PM_AMBER = '#C77A12';
@@ -11480,7 +11481,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (!it) { el.innerHTML = '<div class="pm-h">How to read it</div><p>One band per level, ★4 on top. Left to right: weaker or stronger than the average robot of that level (from the matchup table, robots as they come).</p>' +
       '<p><b>This game\'s robots</b> have a ring in their team\'s colour; yours have a thick ring and <span class="pm-pill" style="background:#2B2118;color:#E8C547">YOU</span>. <span class="pm-pill" style="background:#D9731A">LOT</span> = a robot in the Market. The rest are dimmed.</p>' +
       '<p>A robot with parts or damage stands where it <b>fights now</b> (a great or poor fit and an epic combo count too, as the bookie counts them), with an orange tag like <span class="pm-pill" style="background:#D9731A">★2.6</span>. A dotted line goes back to a faint copy where it stood new. Enough upgrades take it up a band.</p>' +
-      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. Click one of <b>this game\'s</b> robots and every other robot of this game shows its bookie band against it on its token (e.g. <span class="pm-pill" style="background:#4C8A3F">Favourite vs Gyro</span>); a dashed amber ring marks a <b>tough matchup</b> (15-39 points better than the level gap gives, as they come).</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
+      '<p>Click a robot: <b style="color:#2F7D4A">green arrows</b> to robots it counters, <b style="color:#B23A2B">red</b> from robots that counter it. The thicker the arrow, the bigger the upset against what the level gap gives: thin and light from 30 points off, dark from 40 (the game\'s 🎯 / ⚠️ rule), thickest at 85. Click one of <b>this game\'s</b> robots and every other robot of this game shows its bookie band against it on its token (e.g. <span class="pm-pill" style="background:#4C8A3F">Favourite vs Gyro</span>); a dashed amber ring marks a <b>tough matchup</b> (' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' points better than the level gap gives, as they come).</p><p class="pm-n">Face-down cards are not counted. M or Esc closes.</p>'; return; }
     const r = it.r, C = pmCounters(it), inG = n => PM.items.some(i => i.name === n && pmInGame(i));
     // a row per counter, strongest first: a bar as thick as its arrow and as long as how far it is off the level odds
     const li = (c, good) => { const win = good ? c.p : 1 - c.p, exp = good ? c.e : 1 - c.e, w = pmW(c.d), L = Math.round(8 + 46 * Math.min(1, (c.d - PM_MIN) / (PM_TOP - PM_MIN)));
@@ -11497,10 +11498,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const V = PM.vs && PM.sel === it ? PM.vs : pmVs(it), rows = V ? [...V.entries()].sort((a, b) => b[1].p - a[1].p) : [];
       const who = x => x.kind === 'team' ? '<b style="color:' + x.T.col + '">' + esc(x.T.i === viewerSeat ? 'You' : x.T.name.split(' ')[0]) + '</b> ' : x.kind === 'lot' ? '<b style="color:#D9731A">LOT</b> ' : '<b style="color:#A79C8C">NEXT</b> ';
       const mark = v => v.counter ? '<span class="pm-tough c" title="A counter (the game\'s ⚠️ tag): as they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '%">⚠️ counter</span>'
-        : v.tough ? '<span class="pm-tough" title="As they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '% (' + Math.round(v.d * 100) + ' points better: 15-39 = tough, 40+ = a ⚠️ counter)">tough matchup</span>' : v.easy ? ' 🎯' : '';
+        : v.tough ? '<span class="pm-tough" title="As they come it wins ' + Math.round(v.m * 100) + '% where the level gap gives ' + Math.round(v.e * 100) + '% (' + Math.round(v.d * 100) + ' points better: ' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' = tough, ' + Math.round(BAL.counterTag * 100) + '+ = a ⚠️ counter)">tough matchup</span>' : v.easy ? ' 🎯' : '';
       vs = '<div class="pm-vsbox"><div class="pm-h">Each robot in this game against ' + esc(r.name) + '</div>' + (rows.length ? '<table class="pm-vs">' + rows.map(([x, v]) =>
         '<tr' + (v.tough || v.counter ? ' class="tg"' : '') + '><td>' + who(x) + esc(x.r.name) + (v.tough || v.counter ? '<br>' + mark(v) : v.easy ? mark(v) : '') + '</td><td><span class="sc-chip" style="background:' + v.chip.col + '">' + esc(v.chip.text) + '</span></td></tr>').join('') + '</table>' : '<p class="pm-n">No other robots in this game yet.</p>') +
-        '<p class="pm-n">Their bookie odds against ' + esc(r.name) + ' in a duel on open floor, parts and damage counted (also written on their tokens). Toughest for ' + esc(r.name) + ' first. <span class="pm-tough">tough matchup</span> = as they come they do 15-39 points better against it than the level gap gives; ⚠️ = 40+ (a counter); 🎯 = ' + esc(r.name) + ' counters it.</p></div>';
+        '<p class="pm-n">Their bookie odds against ' + esc(r.name) + ' in a duel on open floor, parts and damage counted (also written on their tokens). Toughest for ' + esc(r.name) + ' first. <span class="pm-tough">tough matchup</span> = as they come they do ' + Math.round(PM_TOUGH() * 100) + '-' + (Math.round(BAL.counterTag * 100) - 1) + ' points better against it than the level gap gives; ⚠️ = ' + Math.round(BAL.counterTag * 100) + '+ (a counter); 🎯 = ' + esc(r.name) + ' counters it.</p></div>';
     }
     el.innerHTML = '<div class="pm-top"><b>' + esc(r.name) + '</b> <span class="pm-st">' + starsOf(it.pl.lv) + '</span><button class="pm-x2" data-pm="">✕</button></div><div class="pm-sub">' + esc(wepLabel(r.name)) + ' · ' + pmOwner(it) + '</div>' +
       (pmInGame(it) ? '<div>Parts: ' + pmParts(r) + '</div><div>Damage: ' + esc(zoneTxt(r)) + '</div>' : '') + '<div>' + pmFights(it) + '</div>' + vs +
@@ -11590,7 +11591,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const CHANGES = [
     ['2.0.1, bookie odds fixed', '22 Nov 2026', [
       'The bookie\'s test fights now fight exactly as the arena does. Its helpers (the background fights from play-latest or GitHub Pages) left out the game\'s part tuning, so drones and modules from part cards (Booster, Jammer, Quantum shield, Blocker, Repair kit...) fought at the wrong strength there. Example, Kev\'s Gyro vs Scavenger (22 Nov, round 11): the helpers gave Gyro 69 of 126, the real fight gives it 51 of the same 126 (odds 55% would now be about 42%).',
-      'A test fight still running when the bookie\'s time is up no longer skews the count: only an unbroken run of fights from the first one counts (a few fewer fights, no lean toward the side that wins fast). The playtest log\'s bookie line now carries the robots, arena and every test fight\'s result, so tools/bookie-replay.js can re-run it.' ]],
+      'A test fight still running when the bookie\'s time is up no longer skews the count: only an unbroken run of fights from the first one counts (a few fewer fights, no lean toward the side that wins fast). The playtest log\'s bookie line now carries the robots, arena and every test fight\'s result, so tools/bookie-replay.js can re-run it.',
+      'Power map: the "tough matchup" mark now starts at 20 points worse than the level gap gives (was 15), so 20-39 is tough and 40+ stays the ⚠️ counter (BAL.toughTag).' ]],
     ['2.0.1, power map matchups', '22 Nov 2026', [
       'Power map: click one of this game\'s robots and every other robot of this game shows, under its name, its bookie odds against the one you clicked (Heavy fav ... Heavy dog, parts and damage counted, as in the scout panel). Those robots are no longer dimmed when there is no arrow to them.',
       'A dashed amber ring and "tough" mark a tough matchup: as they come, that robot does 15-39 points better against the clicked one than the level gap gives (40+ stays the ⚠️ counter with its arrow). The side panel lists the robots of this game against the clicked one in a box at the top, toughest first, with the same marks. Display only: nothing in the game, the odds or the AI changes.' ]],

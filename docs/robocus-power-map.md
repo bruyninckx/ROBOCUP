@@ -56,14 +56,17 @@ What changed (display only, `pmVs`, `PM_TOUGH`):
   name with its bookie band **against the clicked robot** (`pairP(it, clicked, 'open')`, parts and damage counted; the scout
   panel's chip, so both robots as they come show the 20% range). These robots keep full colour when a robot is picked.
   A yellow caption at the bottom of the map says what the pills are.
-- **Tough matchup**: as they come (open-floor table), the robot does 15-39 points better against the clicked one than the level
-  gap gives (`PM_TOUGH` 0.15; 40+ is `BAL.counterTag`, the ⚠️ counter, whose arrows and rule are unchanged). Marked with a
+- **Tough matchup**: as they come (open-floor table), the robot does 20-39 points better against the clicked one than the level
+  gap gives (`BAL.toughTag` 0.20; 15 until 22 Nov, Kev: "20 is good me think"; 40+ is `BAL.counterTag`, the ⚠️ counter, whose arrows and rule are unchanged). Marked with a
   dashed amber ring round the token, "· tough" on its pill ("⚠" for a 40+ counter), and an amber "tough matchup" tag in the list.
 - The side panel's box "Each robot in this game against <robot>" (framed, right under the robot's parts) lists them toughest
   first (highest band against it first), with the same marks; the hover of a tag gives the table numbers.
 - Layout: a robot of this game reserves room for the pill under its name, so tokens of this game spread a little more.
-- Why 15 points: a table cell is 20 fights (±11 points at 50%), so a 15-point gap is a hint, not proof; it is shown lighter than
+- Why 15 (now 20) points: a table cell is 20 fights (±11 points at 50%), so a 15-point gap is a hint, not proof; it is shown lighter than
   the arrows, and only for this game's robots.
+- 22 Nov (T62): raised to 20 points (Kev). Gyro against Scavenger as they come is about 16 points off the level gap, so with
+  Kev's round 11 build (`tools/pmap-gyro-scav.js`) Scavenger is **no longer marked tough** for Gyro: its pill reads "Even" without
+  the ring (Popcorn keeps its ⚠️ counter). State hash unchanged, 0 page errors.
 
 Checked (`tools/pmap-gyro-scav.js`, 1905 x 932): opens, clicks Gyro and Scavenger, state hash of `G` and `LOTS` unchanged,
 0 page errors. Screenshots: `/home/claude/out/t60-map-{before,after}-{open,click-gyro,click-scavenger}.png`.
