@@ -7,9 +7,8 @@
 //   2. only team 3 could step in: no question, team 3 steps in ("steps in.");
 //   3. no answer (askBoxMs 3 s): the team with the most fame steps in (team 3 has more fame than team 2), a ⌛ line, the log says so;
 //   4. you host and invite yourself and team 1, then decline: you are asked who steps in for you (teams 2 and 3);
-//   5. an AI host (team 1) invites team 2 (no ready robot) and team 3: candidates you and ... no: team 1 invites itself and team 2;
-//      candidates you (seat 0) and team 3: no question anywhere, it picks by its valuation (D.standlog: the scores, the pick = the
-//      best score), the log says "the host picks";
+//   5. an AI host (team 1) invites itself and team 2 (no ready robot); candidates you (seat 0) and team 3: no question anywhere,
+//      it picks by its valuation (D.standlog: the scores, the pick = the best score), the log says "the host picks";
 //   6. BAL.hostPicksStandIn false: no question, the first in seat order steps in ("steps in.").
 // Online (one host page + 3 joined screens, local transport, bots frozen):
 //   7. joined seat 1 is the host, invites itself and seat 2 (no ready robot): seat 1's note asks (2 answers: seat 0 and seat 3), the
@@ -50,7 +49,7 @@ const path = require('path'), fs = require('fs');
 
   // ---- 1. you host, invite yourself + team 1 (no ready robot); teams 2 and 3 could step in; pick the second (team 3)
   { const p = await open(), N = await names(p);
-    await prep(p, 0, [1]); await p.evaluate(() => { window.ROBOCUS_DEBUG.invite([0, 1], [0, 1], 'duel'); });
+    await prep(p, 0, [1]); await p.evaluate(() => { const D = window.ROBOCUS_DEBUG; D.G.houseRobot = true; D.invite([0, 1], [0, 1], 'duel'); });   // Kev's round 5: a duel + House Robot
     const n = await waitQ(p);
     if (!n) bad.push('1: no question in the note');
     else {

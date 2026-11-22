@@ -212,6 +212,7 @@ function installHooks() {
           const fstarts = ev.filter(e => e.k === 'fight_start'), fe = ev.filter(e => e.k === 'fight_end');
           out.v2 = {
             inv: D.ailog ? D.ailog.slice() : null,   // T46: every AI host's pick (mode, pair, the leader, ready Fan Favourites)
+            standIn: D.standlog ? D.standlog.slice() : null, stepIns: ev.filter(e => e.k === 'msg' && /steps in/.test(e.text || '')).map(e => e.text),   // T59: the AI host's stand-in picks; every stand-in log line
             favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
             garage: X.garage, partsBack: X.partsBack, leaves: X.leaves, stashEnd: G.teams.map(t => (t.stash || []).length),
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, rv: X.rv, buyouts: X.buyouts, fires: X.fires, hookErrs: X.hookErrs.slice(0, 10),

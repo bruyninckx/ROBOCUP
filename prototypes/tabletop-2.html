@@ -3799,7 +3799,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22e playtest remarks: the bookie says how many test fights its odds rest on, the round\'s format is a banner in the Host phase, Upkeep waits for your Done';   // was: 2026-11-22d trading floor
+  const BUILD = 'tabletop 2.0.1 2026-11-22f the host picks who steps in when an invited team drops out';   // was: 2026-11-22e playtest remarks (bookie test-fight count, format banner, Upkeep waits for Done)
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -11540,6 +11540,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, the host picks who steps in', '22 Nov 2026', [
+      'When an invited team drops out of a duel (it has no ready robot, or it declines) and two teams could step in, the host now picks which. Before, the game took the first team in seat order.',
+      'If you host, the yellow note asks "Who steps in?" with one button per team: its strongest ready robot and the bookie\'s band against the robot it would fight. The pit shows the same teams; a click there works too. You have 30 seconds; then the team with the most fame steps in (seat order on a tie), and the log says so.',
+      'An AI host picks the team it would rather see in the fight, the way it picks its invitations. Only one team could step in: it steps in, nobody is asked. The log line says who chose: "... declines (−1 fame); the host picks Moss Gears to step in."',
+    ]],
     ['2.0.1, playtest remarks', '22 Nov 2026', [
       'The bookie is open about its odds: wherever a fight\'s odds are shown (the Bets pit, the yellow note, the fight\'s side card, a fighter\'s odds panel) a small line says what they rest on: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)", or "only 26 test fights: odds from the formula". Every screen shows the same.',
       'The round\'s format can\'t be missed: in the Host phase (and the host bid, and Bets) a yellow banner in the pit and a headline in the note name it before the fighters are picked: 2v2 TAG TEAM (and who teams up), GRAND FINAL, FREE-FOR-ALL, MIRROR DUEL, 2 ROBOTS PER SIDE, + HOUSE ROBOT, and the arena when it is not open floor. A plain duel on open floor is one quiet line.',
