@@ -1,9 +1,9 @@
 // T49: the Repair kit extras on a big PC (tools\kit-extra.cmd). Runs kitextra.js for every variant below on N cores, F fights a pair
-// (seeds 0..F-1, the same seeds as the run on the build box, which used 0..3), then writes kit-extra-pc/report.md: the one file to send back.
+// (seeds 0..F-1; the build box ran 0..11 for the main variants), then writes kit-extra-pc/report.md: the one file to send back.
 // Stop it any time (close the window) and start it again: it goes on where it stopped.   node tools/damage-lab/kitextra-pc.js [cores 15] [F 16]
 const { spawn, execFileSync } = require('child_process'), path = require('path'), fs = require('fs');
 const N = +(process.argv[2] || 15), F = +(process.argv[3] || 16), D = __dirname, OUT = path.join(D, 'kit-extra-pc');
-const VARIANTS = (process.env.VARIANTS || 'none,kit,shield,medic,hull,tow,kit+repairBatt=1,kit+repairFix=0.5,kit+repairWear=0.3,kit+repairScore=0.3').split(',');
+const VARIANTS = (process.env.VARIANTS || 'none,kit,shield,medic,hull,tow,kit+repairBatt=1+repairBattAny=1,kit+repairFix=1.5,kit+repairWear=0.5,kit+repairScore=2').split(',');
 fs.mkdirSync(OUT, { recursive: true });
 const jobs = []; for (const v of VARIANTS) for (let s = 0; s < 4; s++) jobs.push([v, s]);   // 4 shards a variant
 let run = 0, left = jobs.length; const t0 = Date.now();
