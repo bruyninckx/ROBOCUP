@@ -418,3 +418,52 @@ ready robot": "yes". Build 2026-11-22f.
 - Tested: `tools/mp-scenario/stand-in.js` (solo: question and pit, pick the second, one candidate, time-out, a decline, an AI host,
   the switch off; online: a joined seat as host, both paths).
 
+## T66 (22 Nov 2026): first-time tips that point at things
+
+Kev, for the friends' playtest: "I would like to have some tutorial box that people can click and then it can point out certain
+things like where to find the bookie stats, where to find the part rarity stats etc, once they clicked it once it doesnt appear
+again". Build 2026-11-22l. Display only: nothing in `G`, nothing on the network, no rule changes; each screen has its own tips.
+
+- A small paper box (💡 TIP n / 12, title, one or two sentences, **Got it**, "No more tips") next to its thing, with an arrow and a
+  pulsing yellow ring on the thing (`#tipBox`, `#tipRing`, pointer-events off on the ring). Got it, a click on the box or Esc closes
+  it for good in this browser: `localStorage['robocus.tips'] = { seen: { id: time }, off }`; storage blocked: once per page load.
+- When: the first time its anchor is on screen in its phase, for a person's own seat; at most **one new tip per phase**
+  (round:phase), phase-specific tips first, then the general ones in order; 1.5 s after the phase starts, and on screen for two checks
+  in a row. Never while this player has a question or reaction window counting down, a step clock, an incoming trading-floor offer,
+  a box or panel open (power map, odds overview, rarity ladder, changes, lobby, pause), a card dragged, a click on its way, the
+  phase slide, the fight phase or the fight view. A tip that is up when one of those starts hides (not closed) and comes back.
+  It never pauses or holds a timer.
+- Where the box goes (`tipPlace`): beside the anchor (below, above, right, left; three alignments each), on screen, never over the
+  anchor, with the least overlap with what can be clicked (the note and the waiting list's button weigh most, then the pit's buttons,
+  the trading floor, the top bar, the hand). Tested at 1280 x 720 (and the anchors at 1920 x 1080 through first-minute).
+- Canvas anchors: `tipAt(id, x, y, w, h)` (world coordinates, mapped from the stage like hit regions): `bookie` (the "🎩 Bookie: odds
+  from N test fights" line in Bets), `band` (the first side's odds band), `value` (your robot's gold value chip). Others use hit
+  regions (`rarity` on a Market lot, `lot_odds`) or HTML elements.
+- The 💡 tips button in the top bar (next to changes) lists all twelve with ✓ seen / not yet, "↺ Show the tips again" (clears them)
+  and "No more tips".
+- Switches: `BAL.tips` (default true); off for the test bot (`?bot=1`) and automated browsers (`navigator.webdriver`: every tool);
+  `?tips=1` forces them on, `?tips=0` off; `ROBOCUS_DEBUG.tips` (force, reset, stop, close, cur, at, busy). Playtest log: `tip`
+  events (shown / closed / no more tips / show again); the tip's own buttons are not logged as 'button' clicks.
+
+| id | Shows in | Points at | Text |
+|---|---|---|---|
+| note | setup (first), any phase | the yellow note | This note says what the game is waiting for from you. Yellow (YOUR MOVE): your turn to click; grey: nothing for you to do. A question here counts down; when the time is up, the game picks the safe answer for you. |
+| garage | Upkeep, while you are in it, with robots | the pit's title "UPKEEP · YOUR GARAGE" | In Upkeep the pit is your garage: click a damaged zone to repair it, or a part and then a slot to move it. Upkeep ends when you press Done in the yellow note. |
+| hand | Intrigue, with cards | a card's GATE chip (else the first card) | Your hand lies under the pit. On your Intrigue turn, drag a card onto a team (the card says where). GATE n: you need n fame to play it; short of fame, you can ask other teams to back you. |
+| rarity | Market | a part lot's diamonds | The diamonds show a part card's rarity: one ◆ for each step above a standard copy (Tuned, Race-spec, Works; 1 in 100 is a Masterwork). Hover them for a short tip, click them for the rarity ladder. |
+| lotodds | Market | a lot's 🎩 odds | Click the 🎩 odds on a lot: every robot against every rival robot, before → after, for each team that could win it. Only you see it; it changes nothing. |
+| floor | Market (trade and bid) | the TRADING FLOOR title | Trade offers show up here as tickets. Answer them in any order with Yes, Counter or No while you keep bidding; "New offer to" starts your own. |
+| bookie | Bets | the "🎩 Bookie: odds from N test fights" line (else the first odds band) | Each side has a band (Favourite, Even, Underdog...) and what a bet pays. "Odds from N test fights": the host's PC fought exactly this matchup N times to set them. Click an amount to bet; click it again to take it back. |
+| wait | any | the waiting list | One row per team: YOUR MOVE, DECIDING, READY or NOTHING TO DO. The game moves on when nobody has to click any more. |
+| pmap | any | 🗺 power map | Every robot by level and strength (or press M). Click one of this game's robots there to see its odds against every other robot in the game. |
+| value | any | your robot's ◉ chip | The gold ◉ chip is the robot's value in credits: a guide to what it is worth in a trade, an offer or a buyout (level, parts, Fan tokens, minus damage). Hover it for the sum. |
+| log | any | 🐞 report / 📝 | The game keeps a log of everything for Kev (📝: save or download it). Something looks wrong? Click 🐞 report and type one line: it marks the moment on every screen. |
+| files | any | the files stamp, bottom left | Bottom left: the game files this page runs on; every screen should show the same. A red bar at the top means old files: press Ctrl+F5. Hosting online? If your page reloads mid-game, Host a game again and click ↩ Resume. |
+
+A first game usually goes: setup note, Upkeep garage, Intrigue hand, Market rarity, Host waiting list, Bets bookie, Fate power map;
+round 2: value, log, odds overview, files; the trading floor in round 3's Market.
+
+Test: `tools/mp-scenario/tips.js` (fresh browser, Got it, reload, a timed question with a tip pending, one per phase, Esc, the list,
+Show again, No more tips, bot runs, bookie / rarity / floor on their anchors with screenshots, online: a joined seat's tip and the
+host's state hash unchanged).
+
