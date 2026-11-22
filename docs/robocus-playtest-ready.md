@@ -30,9 +30,10 @@ First run on main 142c8ac (before any fix), then again after the fixes (rebased 
 | **new** rejoin.js | drop and rejoin mid-Market with offers open, mid-Upkeep with a garage draft, while "Who steps in?" waits; host Nudge / Skip in Upkeep; seat to AI; an unanswered ticket | see 4 |
 | **new** host-reload.js | host closes its tab mid-game and comes back | OK after the fixes (see 2 and 4) |
 | **new** first-minute.js | a friend's first minute at 1280 x 720 and 1920 x 1080 | OK: no button off screen, no box over the note, 0 page errors; notes in 3 |
-| layout-check 1280x720, 1920x1080 | every phase, help regions hidden, modals that don't fit | LAYOUT_RESULT |
+| layout-check 1280x720, 1920x1080 | every phase, help regions hidden, modals that don't fit | 15 states each, 0 page errors, 0 modals that don't fit; the 2 states with notes are by design: the opened hand covers the robot cards' help regions, and the fight view covers the board |
 | click-many, 6 games x 8 min (real mouse clicks on 4 screens, 2 with reloads) | trapped overlays, stuck steps | 33 rounds, **no findings**. Coverage: the clicker never used the trading floor (offerSend / offerAnswer / offerBack), the garage (garageLock) or the Stash: those are covered by the scripts above, not by clicks |
-| remote.js both (the two-PC tool on one box, 1 game, 10 min) | the tool itself | 9 rounds, 7 fights, 21 of 21 the same on the joined screens, 0 errors; 4 "stuck" on the joined side: all the rarity ladder panel left open by the clicker (a person closes it with ×, Esc or a click beside it). The clicker now closes it (see 2). REMOTE2 |
+| remote.js both (the two-PC tool on one box, 1 game, 10 min) | the tool itself | 9 rounds, 7 fights, 21 of 21 the same on the joined screens, 0 errors; 4 "stuck" on the joined side: all the rarity ladder panel left open by the clicker (a person closes it with ×, Esc or a click beside it). The clicker now closes it (see 2).
+Run again after the fix (low load): 1 game, 24 of 24 fights the same, 1 late live card (replayed, same result), **0 stuck**, 0 errors |
 
 ## 2. What was fixed
 
@@ -89,7 +90,7 @@ Confusions (not fixed: looks / wording, Kev's call):
 | Host closes its tab (or the browser crashes) | since T64: "Leave site?" first; the joined screens say "📡 Lost the host, trying to reconnect" after 10 s; the host opens the game, Host a game (same or new room), ↩ Resume; the friends come back to the lobby by themselves (same room) or open the new link with the same name, get their seats, Start: the game is back at the start of that round, with the joined screens in step |
 | A friend on an old cached page | two guards: the red bar ("Old game files are loaded ... Press Ctrl+F5, or close the tab and open the game again") when the page and the game files differ; and the host refuses a different version with a message that says what to do ("Refresh this page with Ctrl+F5 ... If it still differs, the host should refresh too, before starting"), and the host's lobby names who has another version. Clear enough; the friend note repeats it |
 
-REJOIN3
+rejoin.js: OK on the final branch (all five parts, 0 desyncs, 0 page errors). Earlier runs "failed" part 4 because the test waited for the end of the game instead of the next round (its own bug, fixed); under load 34 one run also saw a rejoined screen take over 20 s to come back, which passed on every later run.
 
 Not covered by any script: a friend's internet dropping (rather than a closed tab) over a real PeerJS link with the new
 features; the 15 Nov two-PC run covered drops in principle and remote.js drops the link in every second game.
