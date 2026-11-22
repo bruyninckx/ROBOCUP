@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K51. Bookie** (T52): (a) lower the minimum to about 25 test fights for 3-4 robot fights, so 4-6 core PCs also get
+  test-fight odds (only 15 fights back it so far; a longer run would settle it)? (b) 14 helpers leave the browser 2
+  processors: tell me if fights stutter while the bookie watches.
 - **K50. Look batch** (T48): (a) dents gone after 5 s (2.5 s steady, 2.5 s fade): longer or shorter? (b) robot-on-robot
   flash from power 100: about 3 a fight, up to 12 in a long spinner duel: stricter? (c) show an epic combo or fit on
   the power map token itself, not only in the detail? (d) the glow also on rival tickets and the odds overview (they
@@ -156,12 +159,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   changes the file itself, and say what holds port 8765 when it is busy. (3) T28: `repair-note.js` "9 repairs: 8
   buttons" is the test's fault (it sets damage through `wear.parts['Axe arm']`, which Thumper's arm does not read):
   fix the test, and confirm in the game that a damaged Weapon always gets its repair button.
-- **T52. Bookie on all cores for 4-robot fights; AI trade-in stops churning** (from Kev's 21 Nov playtest, T51 (2) and
-  (4)). (a) On his 16-processor PC the bookie ran 8 workers and 4-robot fights got 26-37 test fights, under the 40
-  needed: raise the cap and/or the time so they are used. (b) Plum (AI) traded in 6 robots in one game, one its Fan
-  Favourite (−1 fame), and spent 111 Cr in the Market while winning the most fights and losing the game. Worker on
-  branch `claude/bookie-tradein`, started 21 Nov. Done when: a measured table of test fights by fight size and worker
-  count; trade-ins per AI team per game and Fan Favourite trade-ins before/after in 60 paired bot games; checks pass.
 - **T44. A robot's value in credits on its card** (21 Nov): `robotValue(r)`: 1 + 2 x level; each fitted part at its bank
   price (half its Market value, at least 1); +1 per Fan token, +2 more for a Fan Favourite; -1 per repair action
   needed; -1 per extra round a rival's card keeps it out; never below 1. Shown as a gold "N Cr" chip on own robots,
