@@ -10,6 +10,8 @@ const collect = () => {
   const lab = el => (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 28);
   { const pb = document.getElementById('promptBar'), bs = pb && pb.classList.contains('rxmode') ? [...pb.querySelectorAll('[data-rk]:not(:disabled)')] : [];   // T2: the reaction window is in the note
     if (bs.length) { out.modal = 'reactWin'; out.title = lab(pb.querySelector('.rx-head b') || pb); bs.forEach(b => { const p = at(b); if (p) out.items.push(Object.assign({ type: 'btn', label: lab(b), primary: !b.classList.contains('secondary'), k: b.dataset.rk }, p)); }); return out; } }
+  { const rp = document.getElementById('rarPanel'), x = rp && !rp.hidden && rp.querySelector('.rx-x'), p = x && at(x);   // T64: the rarity ladder (a click on a part's name) covers the screen: a person closes it with its ×
+    if (p) { out.modal = 'rarPanel'; out.title = 'rarity ladder'; out.items.push(Object.assign({ type: 'btn', label: '× close', primary: true }, p)); return out; } }
   for (const id of ['ivModal', 'dealModal']) {   // a question (it opens on top of a deal panel)
     const m = document.getElementById(id);
     if (m && !m.hidden) {
