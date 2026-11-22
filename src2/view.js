@@ -417,6 +417,13 @@
       starPath(d, d, r); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill(); // lit lower edge of the dent
       starPath(0, 0, r); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(); ctx.restore(); }
   }
+  // the forks (Forklift's lifter, Trebuchet's scoops) lie low, under everything: the fight draws them before all robots,
+  // the still picture (portrait) before its robot. One helper, so both look the same.
+  function drawForks(R, i) {
+    const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle());
+    for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, i), R, decorate(q, R, i)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } }
+    ctx.restore();
+  }
   function drawRobot(R, i) {
     const b = R.body, p = b.getPosition(), a = b.getAngle();
     const air = R.airborne > 0 ? Math.sin(Math.PI * Math.min(1, 1 - R.airborne / Math.max(R.airMax, 0.01))) : 0;
@@ -1265,7 +1272,7 @@
     for (const d of S.debris) drawDebris(d);
     // robot in the air is drawn last
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
-    for (const R of S.robots) if (R.forks && !R.inPit) { const b = R.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); for (const q of R.forks) if (q.attached && q.body === b) { drawPart(q, fillFor(q, R, R.id), R, decorate(q, R, R.id)); ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX * 1.2; for (let k = 1; k < 4; k++) { const x = R.hl + k * 0.08, y = (q.verts[2][1]); ctx.beginPath(); ctx.moveTo(x, y - 0.02); ctx.lineTo(x, y + 0.02); ctx.stroke(); } } ctx.restore(); }
+    for (const R of S.robots) if (R.forks && !R.inPit) drawForks(R, R.id);
     for (const R of order) drawRobot(R, R.id);
     drawTows();
     for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
@@ -1605,6 +1612,7 @@
       S = P; ctx = c.getContext('2d'); PX = 1 / k;
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.translate(size / 2, size / 2); ctx.scale(k, k); ctx.rotate(-Math.PI / 2);
       ctx.translate(-cx, -cy); ctx.rotate(-ang); ctx.translate(-pos.x, -pos.y);
+      if (R.forks) drawForks(R, 0); // forks are not drawn by drawRobot (they go under everything)
       drawRobot(R, 0);
     } catch (e) { /* a picture must never break the game */ }
     finally { S = sS; ctx = sCtx; PX = sPX; }
