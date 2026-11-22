@@ -8716,13 +8716,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const step = gatherStep(); if (step) act(step[1]);
   }
   // T55: the test bot on the trading floor: each offer to it gets one answer after a short look (yes or no at random, as it answers
-  // questions), and once per round it may offer 1-2 Cr for a Stash part of another team (online: a person-to-person ticket)
+  // questions; it does not lock while one waits, as a question in the note held it), and once per round it may offer 1-2 Cr for a Stash part of another team (online: a person-to-person ticket)
   const botFl = { seen: new Map(), round: null };
   function botFloor(t, R) {
     for (const o of G.offers || []) {
       if (o.to !== HS || FL.sent.has(o.id)) continue;
-      const k = G.gid + ':' + o.id, at = botFl.seen.get(k); if (at == null) { botFl.seen.set(k, performance.now() + 300 + R() * 1500); continue; }
-      if (performance.now() < at) continue;
+      const k = G.gid + ':' + o.id, at = botFl.seen.get(k); if (at == null) { botFl.seen.set(k, performance.now() + 60 + R() * 240); return !lotsLocked(HS); }
+      if (performance.now() < at) return !lotsLocked(HS);   // as with a question in the note: it does not lock while an offer to it waits
       FL.sent.set(o.id, performance.now()); act('offerAnswer', o.id, R() < 0.5); return true;
     }
     const rk = G.gid + ':' + G.round;

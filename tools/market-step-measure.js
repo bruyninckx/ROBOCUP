@@ -6,6 +6,7 @@
 // the formula bookie) and draws nothing, so a game takes about a minute; the bot still plays seat 0 through the real actions.
 //   node tools/market-step-measure.js --page=prototypes/tabletop-2.html --games=60 --par=2 --seed0=1 --tag=after
 //   node tools/market-step-measure.js --report=before,after
+//   --bal='{...}' merged into the page's BAL (T55: --bal='{"tradeFloor":false}' for the old Market flow)
 // Results: sims/market-<tag>.json.
 const fs = require('fs'), path = require('path');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
@@ -61,7 +62,7 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', ''));
     try {
       await PLK.route(p, PL);
       await p.addInitScript(() => { window.__noRender = true; });
-      await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + '&bot=1&bal=' + encodeURIComponent(JSON.stringify({ autoMs: 400 }))); await p.waitForTimeout(200);
+      await p.goto('file://' + path.resolve(PAGE) + '?seed=' + seed + '&bot=1&bal=' + encodeURIComponent(JSON.stringify(Object.assign({ autoMs: 400 }, JSON.parse(arg('bal', '{}')))))); await p.waitForTimeout(200);
       await p.evaluate(() => { const D = window.ROBOCUS_DEBUG; D.ai({ versions: [2, 2, 2, 2] }); D.tune({ win: 12 }); });
       // the test bot starts the solo game by itself
       await p.evaluate(() => {   // watch seat 0: which step the game waits on, AI offers it gets, its market time
@@ -70,7 +71,8 @@ const PLK = require('./planck-local.js'), PL = PLK.find(arg('planck', ''));
         setInterval(() => { const G = D.G; if (!G || G.over) return; G.fast = true;
           const busy = GM.seatBusyWith(0), key = G.round + ':' + busy;
           if (busy && !X.seen[key]) { X.seen[key] = 1; X.waits[busy] = (X.waits[busy] || 0) + 1; }
-          const q = D.RX.q; if (q && !X.qs[q.id] && /Offer from/.test(q.title)) { X.qs[q.id] = 1; X.offers++; }
+          const q = D.RX.q; if (q && !X.qs[q.id] && /Offer from/.test(q.title)) { X.qs[q.id] = 1; X.offers++; }   // T55: on the trading floor an AI offer is a ticket
+          for (const o of (G.offers || [])) if (o.to === 0 && o.kind !== 'trade' && !X.qs['f' + G.gid + ':' + o.id]) { X.qs['f' + G.gid + ':' + o.id] = 1; X.offers++; }
           const inMk = G.phase === 'market' && !G.marketResolved && !G.marketAuction && G.marketStage !== 'host';
           if (inMk && mk == null) mk = Date.now(); if (!inMk && mk != null) { X.mktMs += Date.now() - mk; mk = null; } }, 25);
       });
