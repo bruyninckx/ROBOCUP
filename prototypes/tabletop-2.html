@@ -449,6 +449,34 @@ html, body {
 #clogBox summary small { font: 600 10.5px var(--mono); color: var(--muted); margin-left: 6px; }
 #clogBox ul { margin: 6px 0 2px; padding-left: 18px; }
 #clogBox li { margin: 2px 0; }
+/* T66 (Kev, 22 Nov): first-time tips that point at things; display only, one at a time, gone once clicked away (robocus.tips) */
+#tipBox { position: fixed; z-index: 1500; width: 270px; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-left: 8px solid var(--hazard); border-radius: 5px; box-shadow: 0 8px 22px rgba(0,0,0,.32); padding: 8px 11px 8px 10px; font: 500 12.5px/1.4 var(--sans); cursor: pointer; }
+#tipBox[hidden], #tipRing[hidden] { display: none; }
+#tipBox .tp-k { font: 700 10px var(--mono); letter-spacing: 1.2px; color: #8A6A08; display: flex; justify-content: space-between; }
+#tipBox .tp-h { font: 400 16px var(--stencil); margin: 1px 0 3px; }
+#tipBox .tp-b b { font-weight: 700; }
+#tipBox .tp-f { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+#tipBox .tp-ok { font: 700 12px var(--sans); background: var(--ink); color: var(--hazard); border: 2px solid var(--ink); border-radius: 4px; padding: 3px 12px; cursor: pointer; }
+#tipBox .tp-no { font: 600 11px var(--sans); color: var(--muted); text-decoration: underline; cursor: pointer; background: none; border: 0; padding: 0; }
+#tipBox .tp-arr { position: absolute; width: 14px; height: 14px; background: var(--paper); border: 2px solid var(--ink); transform: rotate(45deg); }
+#tipBox.a-top .tp-arr { top: -9px; border-right: 0; border-bottom: 0; }
+#tipBox.a-bottom .tp-arr { bottom: -9px; border-left: 0; border-top: 0; }
+#tipBox.a-left .tp-arr { left: -15px; border-right: 0; border-top: 0; background: var(--hazard); border-color: var(--ink); }
+#tipBox.a-right .tp-arr { right: -9px; border-left: 0; border-bottom: 0; }
+#tipRing { position: fixed; z-index: 1499; pointer-events: none; border: 3px solid var(--hazard); border-radius: 7px; box-shadow: 0 0 0 3px rgba(43,33,24,.55), 0 0 18px 4px rgba(232,197,71,.75); animation: tipRing 1.6s ease-in-out infinite; }
+@keyframes tipRing { 50% { box-shadow: 0 0 0 3px rgba(43,33,24,.35), 0 0 6px 1px rgba(232,197,71,.4); } }
+@media (prefers-reduced-motion: reduce) { #tipRing { animation: none; } }
+#tipsBox { position: fixed; inset: 0; z-index: 2000; background: rgba(43,33,24,.45); display: flex; align-items: flex-start; justify-content: flex-end; padding: 58px 14px 14px; }
+#tipsBox[hidden] { display: none; }
+#tipsBox .cl-card { width: min(560px, 94vw); max-height: calc(100vh - 80px); display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+#tipsBox .cl-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 2px solid var(--ink); font: 400 18px var(--stencil); }
+#tipsBox button { font: 700 12.5px var(--sans); border: 2px solid var(--ink); border-radius: 4px; background: var(--panel); cursor: pointer; padding: 2px 8px; }
+#tipsBox .cl-body { overflow: auto; padding: 8px 14px 12px; font: 400 13px/1.45 var(--sans); }
+#tipsBox .ts-row { border-bottom: 1px solid var(--line); padding: 6px 0; }
+#tipsBox .ts-row b { font-weight: 700; }
+#tipsBox .ts-row small { font: 600 10.5px var(--mono); color: var(--muted); margin-left: 6px; }
+#tipsBox .ts-act { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0 8px; }
+#tipsBox .ts-st { font: 600 11.5px var(--sans); color: var(--muted); }
 /* 2.0.1: the hand is always open, under the pit; no tab, no pin */
 @media (min-width: 700px) { .hand-tray { transform: none !important; } .hand-bar { display: none !important; } }
 .prompt-bar.idle.locked { background: #DCEBDD; }
@@ -704,10 +732,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   </select>
   <button type="button" class="seat-select" id="pmapBtn" title="Power map: every robot by level and strength; this game's robots where they fight now (key M)">🗺 power map</button>
   <button type="button" class="seat-select" id="clogBtn" title="What changed in the game, newest first">📋 changes</button>
+  <button type="button" class="seat-select" id="tipsBtn" title="First-time tips: read them again, or bring them back">💡 tips</button>
   <button type="button" class="seat-select" id="sndBtn" title="Sound on or off">🔊</button>
 </div>
 
 <!-- 4 · sticky note: your move (placed over the pit's top-right corner) -->
+<div id="tipsBox" hidden><div class="cl-card"><div class="cl-head"><span>💡 TIPS</span><button type="button" id="tipsX" title="Close">✕</button></div><div class="cl-body" id="tipsBody"></div></div></div>
 <div id="clogBox" hidden><div class="cl-card"><div class="cl-head"><span>WHAT CHANGED</span><button type="button" id="clogX" title="Close">✕</button></div><div class="cl-body" id="clogBody"></div></div></div>
 <div class="prompt-bar" id="promptBar"></div>
 <!-- 2.0.1 · who we are waiting for before the game moves on (placed top right, over the log) -->
@@ -849,6 +879,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     oddsDamage: true,             // Kev, 16 Nov (K5): the formula odds count damage again, like the test fights (false = read every robot as new, the 15 Nov test)
     counterTrust: 1,              // Kev, 15 Nov: how far the bookie trusts the matchup table over the level gap (1 = fully; whole games say about 0.65 fits)
     toughTag: 0.20,               // Kev, 22 Nov (T60/T62: "20 is good me think"): the power map's "tough matchup" mark from this far off the level gap (up to counterTag); was 0.15
+    tips: true,                   // T66 (Kev, 22 Nov): first-time tips that point at things (display only; off for ?bot=1 and automated browsers; ?tips=1 forces them on)
     counterTag: 0.40,             // Kev, 15 Nov: Counter pick / Bad matchup tags only when a matchup is this far off the level gap (was 0.25)
     levelBoost: 0,                // level gap test (Kev, 9 Nov): every level's power grade x (1 + levelBoost) ^ level; see src2/lineup.js
     // robot-stat Intrigue cards. boltsMode: 'lid' (top plate left at boltsLid) | 'wheel' (one wheel at boltsWheel until a Drive repair);
@@ -1387,6 +1418,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   let dragCard = null;
   let swapAsk = false;   // a local "are you sure" is open (install twin / calibre change)
   let hitRegions = [];
+  let tipRegions = [];   // T66: where the first-time tips point on the canvas (world coordinates, like hitRegions; display only)
+  const tipAt = (id, x, y, w, h) => { tipRegions.push({ id, x, y, w, h }); };
+  let TIPS_READY = false;
   let weldSparks = [];
 
   /* ---------- Multiplayer pass B (Kev, 7 Nov) ----------
@@ -4011,7 +4045,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // every HTML button you press (prompt, modals, deal panel, Stash, hand-limit…)
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (b && b.id !== 'ptBtn' && b.id !== 'bugBtn') tlog('button', { text: (b.textContent || '').trim().slice(0, 60), id: b.id || undefined, box: b.closest('#ivModal') ? 'modal' : b.closest('#dealModal') ? 'deal' : b.closest('#promptBar') ? 'prompt' : b.closest('#stashCard') ? 'stash' : undefined });
+    if (b && b.id !== 'ptBtn' && b.id !== 'bugBtn' && !b.closest('#tipBox')) tlog('button', { text: (b.textContent || '').trim().slice(0, 60), id: b.id || undefined, box: b.closest('#ivModal') ? 'modal' : b.closest('#dealModal') ? 'deal' : b.closest('#promptBar') ? 'prompt' : b.closest('#stashCard') ? 'stash' : undefined });
   }, true);
 
   /* ============================================================================
@@ -9544,7 +9578,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 
     ctx.save();
     ctx.translate(sw / 2, sh / 2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
-    hitRegions = []; helpRegions = [];
+    hitRegions = []; helpRegions = []; tipRegions = [];
     const L = benchLayout();
 
     // the bench top: faint plank lines
@@ -9599,6 +9633,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     placeOverlays(L);
     placeHand(L);
     placeFloor(L);   // T55
+    if (TIPS_READY) tipsFrame(L);   // T66
     if (dragCard) drawTargetingArrow(ctx, dragCard.startX, dragCard.startY, dragCard.curX, dragCard.curY, dragCard.card.phase === 'fight' ? '#B07A10' : '#2F6DB5');
     ctx.restore();
   }
@@ -9607,7 +9642,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   let PIT_HEAD = null;   // { l: left title, r: right note, rc: its colour } set by the stage functions
   function pitHead(l, r, rc) { PIT_HEAD = { l, r: r || '', rc: rc || HAZ }; }
   function drawStage(ctx, L, now) {
-    const S = L.stage, h0 = hitRegions.length, p0 = helpRegions.length, mx = mouse.wx, my = mouse.wy;
+    const S = L.stage, h0 = hitRegions.length, p0 = helpRegions.length, t0 = tipRegions.length, mx = mouse.wx, my = mouse.wy;
     mouse.wx = (mx - S.x) / S.s; mouse.wy = (my - S.y) / S.s;
     ctx.save(); ctx.translate(S.x, S.y); ctx.scale(S.s, S.s);
     try {
@@ -9622,6 +9657,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const map = r => { r.x = S.x + r.x * S.s; r.y = S.y + r.y * S.s; r.w *= S.s; r.h *= S.s; };
       for (let i = h0; i < hitRegions.length; i++) map(hitRegions[i]);
       for (let i = p0; i < helpRegions.length; i++) map(helpRegions[i]);
+      for (let i = t0; i < tipRegions.length; i++) map(tipRegions[i]);
     }
   }
   const PHASE_TITLE = { setup: '0 · DRAFT', upkeep: '1 · UPKEEP', intrigue: '2 · INTRIGUE', market: '3 · MARKET', arena: '4 · HOST', bets: '5 · BETS', fight: '6 · FIGHT', after: '7 · FATE' };
@@ -10360,7 +10396,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     ctx.fillStyle = r.leg ? '#9A6A08' : DASH; fitText(ctx, '🌟 Legendary: ' + (r.leg ? partNm(r.leg) + RAR_MARK[rarOn(r)(r.leg)] + ' ' + qTxt(partLvOn(r, r.leg)) : 'empty slot') + (partsOf(r).length ? '  ·  ' + likeTxt(r) : ''), tx, by + 76, tw, '600', 10.5);
     help(tx, by + 52, tw, 28, 'Parts on ' + esc(r.name), partsOf(r).length ? partsOf(r).map(k => '<b' + (rarOn(r)(k) ? ' style="color:' + RAR[rarOn(r)(k)].col + '"' : '') + '>' + esc((rarOn(r)(k) ? RAR[rarOn(r)(k)].n + ' ' : '') + partQ(k)) + ' (' + qTxt(partLvOn(r, k)) + ' level)</b>: ' + (flavPart(k) ? flavLine('p_' + k) + ' ' : '') + esc(LU.PARTS[k].d)).join('<br>') + likeHelp(r) + (partsOf(r).some(rarCan) ? '<br><i>Click: the rarity ladder for its parts.</i>' : '') : 'No parts yet. Win part cards in the Market: 2 part slots' + (BAL.chips.slot ? ', 1 tuning chip slot' : '') + ' and 1 legendary slot per robot.');
     { const rk = partsOf(r).filter(rarCan).sort((p, q) => rarOn(r)(q) - rarOn(r)(p)); if (rk.length) hitRegions.push({ kind: 'rarity', robot: r, part: rk[0], rar: rarOn(r)(rk[0]), x: tx, y: by + 52, w: tw, h: 28 }); }   // the rarity ladder
-    { const vw = drawValueChip(ctx, r, bx + bw - 10, by + 81, 16, 10.5), fo = fieldOdds(ti, r), cw = Math.min(tw - (vw ? vw + 6 : 0), 170); drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
+    { const vw = drawValueChip(ctx, r, bx + bw - 10, by + 81, 16, 10.5), fo = fieldOdds(ti, r), cw = Math.min(tw - (vw ? vw + 6 : 0), 170); if (vw && ti === HS) tipAt('value', bx + bw - 10 - vw, by + 81, vw, 16);   // T66
+      drawOddsChip(ctx, fo.p, tx, by + 81, cw, 16, 10.5, false, r); const hb = helpBand(ti, r, fo.p); help(tx, by + 81, cw, 16, hb[0], hb[1] + '<br>Click: the matchups.'); hitRegions.push({ kind: 'odds', team: ti, robot: r, x: tx, y: by + 81, w: cw, h: 16 }); }
     const myUpkeep = G.phase === 'upkeep' && ti === HS && !iWait('upkeep');   // clients too: act() forwards repairZone to the host
     drawZoneButtons(ctx, r, bx + 10, by + 101, bw - 20, 22, myUpkeep, false);
     const actX = bx + 10, actY = by + 127, actW = bw - 20, actH = 18;
@@ -10834,6 +10871,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       const stockDuel = F.nSides === 2 && F.robots.length === 2 && F.robots.every(x2 => x2 && isStock(x2)) && !doubt;
       fitText(ctx, bd.name.toUpperCase() + (doubt ? ' ???' : '') + (stockDuel ? ' ' + rangeTxt(F.p[s]) : '') + ' · PAYS ' + payFor(me(), F, s) + '×' + (me().sponsor === 'lucky' ? ' (LUCKY)' : ''), x + w / 2, y + 70, w - 32, '700', 13.5, F_MONO);
       drawBar(ctx, x + 24, y + 79, w - 48, 8, F.p[s], T.col, LINE, 4);
+      if (s === 0) tipAt('band', x + 12, y + 50, w - 24, 42);   // T66
       help(x + 12, y + 50, w - 24, 42, bd.name + ' · pays ' + F.pay[s] + '×', (F.bk ? bookieHelp(F).trim() + ' Face-down cards are secret and not in it.' : F.simN ? 'The bookie watched ' + F.simN + ' test fights of exactly this matchup: the robots with their parts and damage, in this arena (face-down cards are secret and not in it).' : 'The bookie rates each side from its robots\' levels, parts and damage (face-down cards are secret).') + ' A winning bet returns your stake × ' + F.pay[s] + '. ' + BAND_HELP + ' The bar shows how sure it is.' + robots.map(doubtHelp).join(''));
       { const dm = robots.filter(x2 => x2.wear && R2.ZONES.some(z => zonesOf(x2)[z.key].damaged));
         ctx.fillStyle = dm.length ? '#8A4A10' : MUTED;
@@ -10866,7 +10904,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, INK, 1.5);
       ctx.textAlign = 'center'; ctx.fillStyle = INK;
       fitText(ctx, '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, L.ay + h / 2 + 23, L.aw - 40, '600', 10.5);
-      if (bookieTxt(F)) { ctx.fillStyle = F.bk.used ? MUTED : '#8A4A10'; fitText(ctx, '🎩 Bookie: ' + bookieTxt(F), L.ax, L.ay + h / 2 + 44, L.aw - 40, '600', 10.5); help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 33, L.aw - 24, 15, '🎩 What the odds rest on', bookieHelp(F).trim()); }   // T56
+      if (bookieTxt(F)) { ctx.fillStyle = F.bk.used ? MUTED : '#8A4A10'; fitText(ctx, '🎩 Bookie: ' + bookieTxt(F), L.ax, L.ay + h / 2 + 44, L.aw - 40, '600', 10.5); { ctx.font = '600 10.5px ' + F_SANS; const tw = Math.min(L.aw - 40, ctx.measureText('🎩 Bookie: ' + bookieTxt(F)).width) + 16; tipAt('bookie', L.ax - tw / 2, L.ay + h / 2 + 32, tw, 17); }   /* T66 */ help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 33, L.aw - 24, 15, '🎩 What the odds rest on', bookieHelp(F).trim()); }   // T56
       help(L.ax - L.aw / 2 + 12, L.ay + h / 2 + 8, L.aw - 24, 22, '🎲 Public bets', 'Bets on the robots are public. When someone changes a bet, everyone who already locked is un-locked to react.'); }
   }
 
@@ -10876,6 +10914,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const pub = (F.pubBets || []).map((b, i) => b ? G.teams[i].name.split(' ')[0] + ' ' + b.amt + ' Cr on ' + sideLabel(F, b.side) : null).filter(Boolean);
     ctx.textAlign = 'center'; ctx.fillStyle = INK;
     fitText(ctx, (bookieTxt(F) ? '🎩 Bookie: ' + bookieTxt(F) + '   ·   ' : '') + '🎲 Public bets: ' + (pub.length ? pub.join('  ·  ') : 'none yet'), L.ax, y + 12, L.aw - 24, '600', 10.5);   // T56: what the odds rest on
+    if (bookieTxt(F)) tipAt('bookie', L.ax - L.aw / 2 + 12, y, L.aw - 24, 16);   // T66
     help(L.ax - L.aw / 2 + 12, y, L.aw - 24, 14, '🎲 Public bets', 'Bets on the robots are public and update live. When someone changes a bet, everyone who already locked is un-locked to react.');
     const my = PS().cardBid || [0, 0], free = me().credits - betStake(HS), n = AU.cards.length, gap = 14, cw = Math.min(330, (L.aw - 24 - gap * (n - 1)) / n), anyFl = AU.cards.some(hasFlavArt), ch = anyFl ? 96 : 84, cy = y + 20, cx0 = L.ax - (n * cw + (n - 1) * gap) / 2;
     AU.cards.forEach((id, k) => {
@@ -11606,6 +11645,193 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   { const pb = document.getElementById('pmapBtn'); if (pb) pb.onclick = () => { if (PM.open) closePowerMap(); else openPowerMap(); }; }
   if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { exInfo, exBack, exhaustBot, startRound, resolveScheme, fateIntro, fateStep, fateStatus });   // T25 checks
   if (window.ROBOCUS_DEBUG) Object.assign(window.ROBOCUS_DEBUG, { rarBack, rarFront, pmFits, openPowerMap, closePowerMap, get PM() { return PM; } });
+
+  /* ---------- T66 (Kev, 22 Nov, for the friends' playtest): first-time tips that point at things ----------
+   * "I would like to have some tutorial box that people can click and then it can point out certain things like where to find the
+   * bookie stats, where to find the part rarity stats etc, once they clicked it once it doesnt appear again".
+   * One small box at a time, anchored to its thing (an arrow and a soft yellow ring on it), the first time that thing is on screen in
+   * the right phase for this player; at most one new tip per phase (round 1 is not a slideshow). "Got it" (or a click on the box, or
+   * Esc) closes it for good in this browser (localStorage 'robocus.tips'; storage blocked: once per page load). "No more tips" stops
+   * them all; the 💡 tips button in the top bar lists them and brings them back.
+   * Display only: nothing goes into G, the network or the game's rules; each screen has its own tips. Never while a question or a
+   * reaction window counts down for this player, a box or panel is open, a card is dragged or the fight is on; a tip that is up when
+   * one of those starts hides and comes back after. Off for the test bot (?bot=1), for automated browsers (tools, navigator.webdriver)
+   * and with BAL.tips false; ?tips=1 / ROBOCUS_DEBUG.tips.force(true) turns them on for a test, ?tips=0 off. */
+  const TIP_KEY = 'robocus.tips';
+  const TIP_Q = (location.search.match(/[?&]tips=([01])/) || [])[1];
+  const TIP = { seen: {}, off: false, mem: false, force: TIP_Q === '1' ? true : TIP_Q === '0' ? false : null, cur: null, curAt: 0, pk: null, pkAt: 0, perPhase: {}, cand: null, candN: 0, tNext: 0, shown: [], el: null, ring: null };
+  try { const o = JSON.parse(localStorage.getItem(TIP_KEY) || '{}') || {}; TIP.seen = o.seen && typeof o.seen === 'object' ? o.seen : {}; TIP.off = !!o.off; } catch (e) { TIP.mem = true; }
+  const tipSave = () => { try { localStorage.setItem(TIP_KEY, JSON.stringify({ seen: TIP.seen, off: TIP.off })); } catch (e) { TIP.mem = true; } };
+  const tipsAllowed = () => TIP.force != null ? TIP.force : BAL.tips !== false && !BOT && !navigator.webdriver;
+  const tipsOn = () => tipsAllowed() && !TIP.off;
+  // screen box of an element that is really on screen, or null
+  const tipEl = sel => { const el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (!el || el.hidden || !el.isConnected) return null;
+    const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4 || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
+    if (getComputedStyle(el).visibility === 'hidden' || +getComputedStyle(el).opacity === 0) return null;
+    return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  // a canvas box (world coordinates) on screen
+  const tipW = R => { if (!R) return null; const a = worldToScreen(R.x, R.y), b = worldToScreen(R.x + R.w, R.y + R.h);
+    const x = Math.max(0, a.x), y = Math.max(0, a.y), w = Math.min(innerWidth, b.x) - x, h = Math.min(innerHeight, b.y) - y;
+    return w >= 4 && h >= 4 ? { x, y, w, h } : null; };
+  const tipHit = f => tipW(hitRegions.find(f));
+  const tipReg = id => tipW(tipRegions.find(r => r.id === id));
+  const ANY = ['upkeep', 'intrigue', 'market', 'arena', 'bets', 'after'];
+  // the tips, most important first. phases: where it may show; own: true = it belongs to that phase (comes before the general ones
+  // there); at(): its anchor on screen now (null: not on screen); ok(): anything else it needs
+  const TIPS = [
+    { id: 'note', title: 'The yellow note', phases: ['setup'].concat(ANY), own: true, at: () => tipEl('#promptBar'),
+      text: 'This note says what the game is waiting for from you. Yellow (<b>YOUR MOVE</b>): your turn to click; grey: nothing for you to do. A question here counts down; when the time is up, the game picks the safe answer for you.' },
+    { id: 'garage', title: 'Upkeep: your garage', phases: ['upkeep'], own: true,
+      ok: () => garageOn() && !narrowScreen() && G.teams[HS].robots.length > 0 && seatBusyWith(HS) === 'upkeep',
+      at: () => { const P = benchLayout().pit; return tipW({ x: P.x + 10, y: P.y + 6, w: P.w - 20, h: 32 }); },
+      text: 'In Upkeep the pit is your garage: click a damaged zone to repair it, or a part and then a slot to move it. <b>Upkeep ends when you press Done</b> in the yellow note.' },
+    { id: 'hand', title: 'Your Intrigue cards', phases: ['intrigue'], own: true, ok: () => (G.teams[HS].hand || []).length > 0,
+      at: () => tipEl(document.querySelector('#cardsFan .hs-need')) || tipEl(document.querySelector('#cardsFan .hs-in')),
+      text: 'Your hand lies under the pit. On your Intrigue turn, drag a card onto a team (the card says where). <b>GATE n</b>: you need n fame to play it; short of fame, you can ask other teams to back you.' },
+    { id: 'rarity', title: 'Part rarity ◆◇◇◇', phases: ['market'], own: true, at: () => tipHit(r => r.kind === 'rarity' && !r.robot),
+      text: 'The diamonds show a part card\'s rarity: one ◆ for each step above a standard copy (Tuned, Race-spec, Works; 1 in 100 is a Masterwork). Hover them for a short tip, <b>click them for the rarity ladder</b>.' },
+    { id: 'lotodds', title: 'The odds overview', phases: ['market'], own: true, at: () => tipHit(r => r.kind === 'lot_odds'),
+      text: '<b>Click the 🎩 odds on a lot</b>: every robot against every rival robot, before → after, for each team that could win it. Only you see it; it changes nothing.' },
+    { id: 'floor', title: 'The trading floor', phases: ['market'], own: true, ok: () => floorVisible(), at: () => tipEl('#tradeFloor .tf-head') || tipEl('#tradeFloor'),
+      text: 'Trade offers show up here as tickets. Answer them in any order with <b>Yes, Counter or No</b> while you keep bidding; "New offer to" starts your own.' },
+    { id: 'bookie', title: 'The bookie\'s odds', phases: ['bets'], own: true, ok: () => !!G.fight, at: () => tipReg('bookie') || tipReg('band'),
+      text: 'Each side has a band (Favourite, Even, Underdog...) and what a bet pays. <b>"Odds from N test fights"</b>: the host\'s PC fought exactly this matchup N times to set them. Click an amount to bet; click it again to take it back.' },
+    { id: 'wait', title: 'Who we are waiting for', phases: ANY, at: () => document.querySelector('#waitRail .wr-row, #waitRail > *') ? tipEl('#waitRail') : null,
+      text: 'One row per team: <b>YOUR MOVE</b>, DECIDING, READY or NOTHING TO DO. The game moves on when nobody has to click any more.' },
+    { id: 'pmap', title: 'The power map', phases: ANY, at: () => tipEl('#pmapBtn'),
+      text: 'Every robot by level and strength (or press <b>M</b>). Click one of this game\'s robots there to see its odds against every other robot in the game.' },
+    { id: 'value', title: 'What a robot is worth', phases: ANY, at: () => tipReg('value'),
+      text: 'The gold ◉ chip is the robot\'s value in credits: a guide to what it is worth in a trade, an offer or a buyout (level, parts, Fan tokens, minus damage). Hover it for the sum.' },
+    { id: 'log', title: 'Playtest log and 🐞 report', phases: ANY, at: () => { const b = document.getElementById('bugBtn'); return b ? tipEl(b.parentNode) : null; },
+      text: 'The game keeps a log of everything for Kev (📝: save or download it). Something looks wrong? <b>Click 🐞 report</b> and type one line: it marks the moment on every screen.' },
+    { id: 'files', title: 'Which version you play', phases: ANY, at: () => tipEl('#robocusStamp'),
+      text: 'Bottom left: the game files this page runs on; every screen should show the same. A red bar at the top means old files: <b>press Ctrl+F5</b>. Hosting online? If your page reloads mid-game, Host a game again and click ↩ Resume.' },
+  ];
+  const tipById = id => TIPS.find(t => t.id === id);
+  // something on this screen the player must not be disturbed in: a question or reaction window counting down, a box or panel open...
+  function tipBusy() {
+    if (!G || !G.teams || G.over || HS < 0 || !isHuman(HS) || !G.teams[HS]) return 'no seat';
+    if (G.phase === 'fight') return 'fight';
+    const fv = document.getElementById('fightView'); if (fv && !fv.hidden && fv.offsetWidth) return 'fight view';
+    if (qOpen() || (RX.cur && !RX.cur.over)) return 'question';
+    if (popOpen()) return 'box';
+    if (stepClkMine() || seatClkMine()) return 'clock';
+    const pb = document.getElementById('promptBar');
+    if (pb && (pb.classList.contains('rxmode') || pb.querySelector('.st-clock, .rx-sec'))) return 'clock';
+    if ((G.offers || []).some(o => o && o.to === HS)) return 'offer';
+    if (dragCard || pickWaiting() || FL.comp) return 'busy';
+    if (PM.open || OVR.open) return 'panel';
+    for (const id of ['rarPanel', 'scoutPanel', 'awardsPanel', 'clogBox', 'tipsBox', 'netLobby', 'netPause', 'oddsOverview', 'pmapBox']) { const el = document.getElementById(id); if (el && !el.hidden && el.offsetWidth) return 'panel'; }
+    if (SLIDE.old) return 'slide';
+    return null;
+  }
+  function tipEls() {
+    if (!TIP.el) {
+      TIP.ring = document.createElement('div'); TIP.ring.id = 'tipRing'; TIP.ring.hidden = true; document.body.appendChild(TIP.ring);
+      TIP.el = document.createElement('div'); TIP.el.id = 'tipBox'; TIP.el.hidden = true; TIP.el.setAttribute('role', 'dialog'); document.body.appendChild(TIP.el);
+      TIP.el.addEventListener('click', e => { e.stopPropagation(); if (e.target.closest('.tp-no')) tipsStop(); else tipClose('got it'); });
+    }
+    return TIP.el;
+  }
+  // where the box goes: beside its anchor (below, above, right, left), on screen, never over the anchor, as little as possible over
+  // what can be clicked (the note, the waiting list, the trading floor, the hand, the pit's buttons)
+  function tipPlace(a, bw, bh) {
+    const W = innerWidth, H = innerHeight, m = 6, g = 14, cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+    const clX = x => Math.max(m, Math.min(W - m - bw, x)), clY = y => Math.max(m, Math.min(H - m - bh, y));
+    const C = [];
+    for (const x of [cx - bw / 2, a.x, a.x + a.w - bw]) { C.push(['top', clX(x), a.y + a.h + g]); C.push(['bottom', clX(x), a.y - g - bh]); }
+    for (const y of [cy - bh / 2, a.y - 8, a.y + a.h - bh + 8]) { C.push(['left', a.x + a.w + g, clY(y)]); C.push(['right', a.x - g - bw, clY(y)]); }
+    const avoid = [];
+    const addEl = (sel, k) => { for (const el of document.querySelectorAll(sel)) { const r = tipEl(el); if (r) avoid.push([r, k]); } };
+    addEl('#promptBar', 10); addEl('#waitRail .wr-go, #tradeFloor button', 10); addEl('#waitRail', 1); addEl('#tradeFloor', 2); addEl('#cardsFan', 1.5); addEl('#stashCard', 1); addEl('#logPanel', 0.5); addEl('#topBar', 2);
+    for (const r of hitRegions) { if (r.kind === 'arena' || r.kind === 'garage' || r.kind === 'bay') continue; const s = tipW(r); if (s && s.w * s.h < W * H * 0.2) avoid.push([s, 3]); }
+    const ov = (p, q) => Math.max(0, Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x)) * Math.max(0, Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y));
+    let best = null;
+    for (const [side, x, y] of C) {
+      if (x < m || y < m || x + bw > W - m || y + bh > H - m) continue;
+      const b = { x, y, w: bw, h: bh };
+      if (ov(b, { x: a.x - 3, y: a.y - 3, w: a.w + 6, h: a.h + 6 }) > 0) continue;
+      const sc = avoid.reduce((s, [r, k]) => s + k * ov(b, r), 0);
+      if (!best || sc < best.sc) best = { side, x, y, sc };
+    }
+    if (!best) {   // no room beside it: the screen corner farthest from it
+      const x = cx < W / 2 ? W - m - bw : m, y = cy < H / 2 ? H - m - bh : m;
+      best = { side: '', x, y, sc: 0 };
+    }
+    return best;
+  }
+  function tipDraw(t, a) {
+    const el = tipEls();
+    if (el.dataset.id !== t.id) {
+      const n = TIPS.filter(x => TIP.seen[x.id]).length + 1;
+      el.dataset.id = t.id;
+      el.innerHTML = '<div class="tp-k"><span>💡 TIP</span><span>' + n + ' / ' + TIPS.length + '</span></div><div class="tp-h">' + esc(t.title) + '</div><div class="tp-b">' + t.text + '</div>' +
+        '<div class="tp-f"><button type="button" class="tp-ok">Got it</button><button type="button" class="tp-no">No more tips</button></div><i class="tp-arr"></i>';
+      el.hidden = false; TIP.ring.hidden = false;
+    }
+    const bw = el.offsetWidth, bh = el.offsetHeight, P = tipPlace(a, bw, bh);
+    el.style.left = Math.round(P.x) + 'px'; el.style.top = Math.round(P.y) + 'px';
+    el.className = P.side ? 'a-' + P.side : '';
+    const ar = el.querySelector('.tp-arr');
+    if (ar) { ar.hidden = !P.side;
+      if (P.side === 'top' || P.side === 'bottom') { ar.style.left = Math.round(Math.max(10, Math.min(bw - 26, a.x + a.w / 2 - P.x - 7))) + 'px'; ar.style.top = ar.style.bottom = ''; if (P.side === 'top') ar.style.top = '-9px'; else ar.style.bottom = '-9px'; }
+      else if (P.side) { ar.style.top = Math.round(Math.max(10, Math.min(bh - 26, a.y + a.h / 2 - P.y - 7))) + 'px'; ar.style.left = P.side === 'left' ? '-15px' : ''; ar.style.right = P.side === 'right' ? '-9px' : ''; } }
+    Object.assign(TIP.ring.style, { left: Math.round(a.x - 5) + 'px', top: Math.round(a.y - 5) + 'px', width: Math.round(a.w + 10) + 'px', height: Math.round(a.h + 10) + 'px' });
+  }
+  function tipHide() { if (TIP.el) { TIP.el.hidden = true; TIP.el.dataset.id = ''; TIP.ring.hidden = true; } TIP.cur = null; }
+  function tipClose(how) {
+    const t = TIP.cur; if (!t) return;
+    TIP.seen[t.id] = Date.now(); tipSave(); tipHide();
+    tlog('tip', { id: t.id, act: 'closed', how });
+    renderTipsList();
+  }
+  function tipsStop() { const t = TIP.cur; TIP.off = true; if (t) TIP.seen[t.id] = Date.now(); tipSave(); tipHide(); tlog('tip', { id: t ? t.id : undefined, act: 'no more tips' }); renderTipsList(); }
+  function tipsReset() { TIP.seen = {}; TIP.off = false; TIP.perPhase = {}; tipSave(); tipHide(); tlog('tip', { act: 'show again' }); renderTipsList(); }
+  // every frame (from renderWorld): keep the open tip on its anchor; a few times a second: is there a new one to show?
+  function tipsFrame() {
+    if (!TIP.cur && !tipsOn()) return;
+    const now = performance.now(), pk = !G ? '' : G.phase === 'setup' ? 'setup' : G.round + ':' + G.phase;
+    if (pk !== TIP.pk) { TIP.pk = pk; TIP.pkAt = now; TIP.cand = null; TIP.candN = 0; }
+    if (TIP.cur) {
+      const t = TIP.cur, a = !tipsOn() || tipBusy() || !t.phases.includes(G.phase) || (t.ok && !t.ok()) ? null : t.at();
+      if (!a) { tipHide(); return; }   // not closed: it comes back when its thing is on screen again
+      tipDraw(t, a); return;
+    }
+    if (now < TIP.tNext) return;
+    TIP.tNext = now + 300;
+    if (now - TIP.pkAt < 1500 || tipBusy()) { TIP.candN = 0; return; }
+    const done = TIP.perPhase[pk];
+    const fit = t => !TIP.seen[t.id] && (!done || done === t.id) && t.phases.includes(G.phase) && (!t.ok || t.ok()) && t.at();
+    const t = TIPS.filter(x => x.own && x.phases.length < 3).find(fit) || TIPS.find(fit);
+    if (!t) { TIP.cand = null; TIP.candN = 0; return; }
+    if (TIP.cand !== t.id) { TIP.cand = t.id; TIP.candN = 1; return; }   // on screen for two checks in a row (not a passing frame)
+    TIP.cur = t; TIP.perPhase[pk] = t.id; TIP.curAt = now;
+    tipDraw(t, t.at());
+    if (TIP.shown[TIP.shown.length - 1] !== t.id) { TIP.shown.push(t.id); tlog('tip', { id: t.id, act: 'shown' }); }
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && TIP.cur && TIP.el && !TIP.el.hidden) tipClose('esc'); });
+  // the list behind 💡 tips in the top bar
+  function renderTipsList() {
+    const body = document.getElementById('tipsBody'); if (!body) return;
+    const n = TIPS.filter(t => TIP.seen[t.id]).length;
+    const st = !tipsAllowed() ? 'Tips are switched off on this page (a test run).' : TIP.off ? 'Tips are off ("No more tips"). Show the tips again to bring them back.' :
+      n >= TIPS.length ? 'You have seen every tip.' : 'Seen ' + n + ' of ' + TIPS.length + '. The others come one at a time, when their thing is on screen.';
+    body.innerHTML = '<div class="ts-act"><button type="button" id="tipsAgain">↺ Show the tips again</button>' + (tipsAllowed() && !TIP.off ? '<button type="button" id="tipsOff">No more tips</button>' : '') +
+      '<span class="ts-st">' + st + (TIP.mem ? ' (This browser does not keep them: they show once per visit.)' : '') + '</span></div>' +
+      TIPS.map(t => '<div class="ts-row" data-tip="' + t.id + '"><b>' + esc(t.title) + '</b><small>' + (TIP.seen[t.id] ? '✓ seen' : 'not yet') + '</small><br>' + t.text + '</div>').join('');
+    const a = document.getElementById('tipsAgain'); if (a) a.onclick = () => tipsReset();
+    const o = document.getElementById('tipsOff'); if (o) o.onclick = () => tipsStop();
+  }
+  { const box = document.getElementById('tipsBox'), btn = document.getElementById('tipsBtn');
+    if (box && btn) {
+      btn.onclick = () => { box.hidden = !box.hidden; if (!box.hidden) { tipHide(); renderTipsList(); } };
+      document.getElementById('tipsX').onclick = () => { box.hidden = true; };
+      box.onclick = e => { if (e.target === box) box.hidden = true; };
+    } }
+  if (window.ROBOCUS_DEBUG) window.ROBOCUS_DEBUG.tips = { TIPS, get TIP() { return TIP; }, on: tipsOn, busy: tipBusy, force: v => { TIP.force = v == null ? null : !!v; TIP.tNext = 0; }, reset: tipsReset, stop: tipsStop,
+    close: () => tipClose('test'), cur: () => TIP.cur ? TIP.cur.id : null, at: id => { const t = tipById(id); return t ? t.at() : null; }, list: renderTipsList };
+  TIPS_READY = true;
+
 
   /* ---------- Top Pill & Hand Controls ---------- */
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
