@@ -69,6 +69,7 @@ const CFG = {
   r9live:   { arena: 'killbox', g: GYRO, s: SCAV, wear: true, live: [{ t: 5, type: 'chiphack', on: 'g', by: 'Team3' }, { t: 9.3, type: 'field_eng', on: 's', by: 'Rust' }] },
   r9new:    { arena: 'killbox', g: GYRO, s: SCAV, wear: false },                        // round 9 with Scavenger undamaged
   r11:      { arena: 'open', g: GYRO, s: SCAV },
+  r11nowear: { arena: 'open', g: GYRO, s: SCAV, wearOff: true },                       // check: the engine's wear switched off (BAL.wear false)
   r11worn:  { arena: 'open', g: GYRO, s: SCAV, wear11: true },                           // + the wear Scavenger may have carried from round 9                                         // round 11 as the bookie saw it
   r11lens:  { arena: 'open', g: GYRO, s: SCAV, lens: true },                             // + the face-down Smudged Lens on Gyro
   r11live:  { arena: 'open', g: GYRO, s: SCAV, lens: true, live: [{ t: 1.1, type: 'emp', x: 1.5606672519754174, y: 0.5253731343283584, by: 'Steel' }, { t: 8, type: 'supply', x: 1.9361587983324025, y: 1.5084689187429468, crate: 'overcharge', by: 'Rust' }] },
@@ -89,7 +90,7 @@ function fight(c, seed) {
   if (c.lens) g.dmgK *= 0.75;   // BAL.cards.lens (fightSpec: tm.lens)
   // the side order as in Kev's fights: round 9 Scavenger first (a), round 11 Gyro first
   const gFirst = c.arena !== 'killbox';
-  const S = DL.create({ a: gFirst ? g : s, b: gFirst ? s : g, seed, countdown: c.live ? 2.99 : 0, arena: c.arena, wear: true });
+  const S = DL.create({ a: gFirst ? g : s, b: gFirst ? s : g, seed, countdown: c.live ? 2.99 : 0, arena: c.arena, wear: !c.wearOff });
   const gi = gFirst ? 0 : 1, si = 1 - gi, live = (c.live || []).slice();
   let gy = 0, q = { phased: 0, quantum: 0 }, g0 = 0;
   while (!S.over && g0++ < 48000) {
