@@ -159,6 +159,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
+- **Idea box (Kev, 22 Nov, parked: "lets hold off on this for now, put it in idea box"): what each part does in THIS
+  matchup.** Design canvas https://claude.ai/artifact/6bkK5bh9GBjXo2uGZwAUJz (A Bets screen "parts in this fight", B
+  power map panel, C Market lot); study `docs/robocus-parts-by-matchup.md` (T63: against Scavenger the Booster boosts a
+  weapon Gyro has already lost; the Jammer slows a cannon that is short of junk, not of reload time). Open with it: the
+  Jammer slows Scavenger's cannon a flat x1.6 where every other weapon gets its full strength (what-if with full
+  strength: Gyro 88% instead of 38%): leave, wire fully, or in between? Kev has not said.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
 - **T30. Watch: `click-game.js` got stuck once on the rarity ladder panel** (a joined seat's Intrigue turn, the panel
   open over the screen, nothing but its ✕ to click; passed on a re-run). Clicker flake or a real trap for a player?
@@ -173,16 +179,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T64. A version to playtest** (Kev, 22 Nov: "I'm trying to go to a version to playtest, first myself only (with 2
+  pcs) then with friends"). Feature freeze: no new features until the playtests. Worker on branch
+  `claude/playtest-ready`, started 22 Nov: run every test we have on main (all scenario scripts, the online test on
+  several seeds and with drop-outs, click games, the two-PC tool on one box), fix what is broken or out of date (T57
+  robot-value.js), list what could bite in a real game, and bring `docs/robocus-two-pc-test.md` and
+  `docs/playtest-kit.md` up to date.
 - **T62. Why did the bookie say 55% for Gyro in round 11 when the rebuilt fight gives 40%?** (found by T60, 22 Nov).
   On the bookie's own seeds the rebuild counts 51 Gyro wins in 126, Kev's PC counted 69; round 9 matches (58-65%).
   Find what the bookie's test fights build differently from the real fight (tiers, wear, face-down cards, countdown,
   sides), fix it if it is a bug, and make the `bookie` event log the exact specs so a playtest fight can be replayed.
   Worker on branch `claude/bookie-gap`, started 22 Nov.
-- **T63. What is a part worth in THIS matchup?** (Kev, 22 Nov: "why were they worthless exactly and it would be nice
-  indeed to somehow know this, or was it only worthless in this matchup. In case yes, can you do a design for me to check
-  the feel of a change like that before we do any big work"). Worker on branch `claude/parts-by-matchup`: measures why
-  the Booster and Jammer drones did nothing for Gyro against Scavenger and how much part values swing by opponent in
-  general (study only, no game change). The orchestrator draws the design (canvas) for Kev.
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
   `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
