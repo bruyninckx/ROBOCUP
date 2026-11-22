@@ -127,6 +127,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
+- **T55. Market: an open trading panel** (Kev, 22 Nov: "there is a lot of open auction action going on and this all
+  comes into the yellow box and you need to refuse or accept offers one by one, can we make some type of open auction
+  panel so you can lock in trades with other people while keeping an overview ... make some design to see if it could
+  fit"). The orchestrator drew two layouts at his 1905 x 932 window (canvas
+  https://claude.ai/artifact/FFvjNC7gMHavhvqD5yMwD7): A trading floor under the pit (836 x 208 free there), B trade desk
+  on the right in place of the waiting-for list; C a new-offer composer without a pop-up. Waits for Kev's pick and his
+  answers (counter-offers? several offers open at once? see the others' deals?). Then a worker; touches `src2/net.js`
+  asks, so the online test is part of done.
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
