@@ -15,4 +15,8 @@
 | Pincher | booster | 25 | +4 (usual +13) | 34% / 18% / 0% / 48% | 121 (150) |
 | Pincher | jammer | 25 | +20 (usual +17) | 2% / 60% / 10% / 29% | 113 (150) |
 | Pincher | quantum | 25 | +4 (usual +26) | 100% / 0% / 0% / 0% | 34 (60) |
-All cells: mean 60 pairs, median 40, 90% within 150 (a fixed test would use 150).
+| Slingshot | booster | 25 | -4 (usual +13) | 100% / 0% / 0% / 0% | 28 (40) |
+| Slingshot | jammer | 25 | +0 (usual +17) | 100% / 0% / 0% / 0% | 34 (50) |
+| Slingshot | quantum | 25 | +0 (usual +26) | 100% / 0% / 0% / 0% | 20 (30) |
+| Hydra | booster | 25 | +0 (usual +13) | 100% / 0% / 0% / 0% | 40 (40) |
+All cells: mean 53 pairs, median 40, 90% within 150 (a fixed test would use 150).

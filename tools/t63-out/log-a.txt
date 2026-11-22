@@ -1,0 +1,16 @@
+full 25
+full 50
+full 75
+full 100
+full 125
+full 150
+full 175
+full 200
+nobooster 25
+nobooster 50
+nobooster 75
+nobooster 100
+nobooster 125
+nobooster 150
+nobooster 175
+nobooster 200

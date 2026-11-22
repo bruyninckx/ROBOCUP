@@ -75,7 +75,27 @@ The same Gyro build (level 2, Race-spec Booster, Race-spec Jammer, Quantum shiel
 they come at their lineup level. Each cell: the win % of the full build minus the build without that part, on the same seeds,
 with the 95% range. `node tools/t63-opponents.js --report`.
 
-PART2_TABLE
+**PARTIAL: stopped when Kev parked the idea (22 Nov).** Only 25 fights a cell (Hydra 6, Pogo and Railgun none), not the 150
+planned, so the ranges are wide. The Scavenger row is Part 1 / T60 (200-400 fights).
+
+| Opponent (level) | fights a cell | Gyro full build | Booster gain | Jammer gain | Quantum gain |
+|---|---|---|---|---|---|
+| Scavenger (3) | 200-400 | 39% | +2 ± 7 | −2 ± 7 | +31 ± 7 |
+| Mauler (1) | 25 | 100% | 0 | 0 | 0 |
+| Thwacker (1) | 25 | 96% | 0 ± 11 | 0 | +20 ± 16 |
+| Whaler (2) | 25 | 100% | 0 | **+64 ± 19** | +4 ± 8 |
+| Pincher (2) | 25 | 40% | +4 ± 26 | +20 ± 23 | +4 ± 18 |
+| Slingshot (3) | 25 | 96% | −4 ± 8 | 0 ± 11 | 0 ± 11 |
+| Hydra (3) | 6 | 100% | 0 | 0 | 0 |
+| Pogo (4), Railgun (4) | not run | | | | |
+
+What it already shows:
+- This Gyro build wins nearly every fight against most of these robots, so a part has no room to show (a 0 there means "already
+  won", not "useless"). Only Pincher and Scavenger are close fights.
+- The Jammer swings most: worth about 0 against Scavenger, Slingshot and Hydra, and **+64 against Whaler** (without it Gyro wins
+  only about a third of those fights). So "worth nothing" really was only this matchup for the Jammer.
+- The Booster shows about 0 everywhere measured; the Quantum shield is what carries Gyro against Scavenger (+31) and Thwacker (+20).
+- Raw fights: `tools/t63-out/p2.jsonl`; `node tools/t63-opponents.js --n=150` resumes the run if it is ever wanted.
 
 ### How much does a part's value swing from opponent to opponent, in general?
 
@@ -156,7 +176,11 @@ fits while people bid. 4-robot fights and slower PCs do not fit at N = 150.
 2. **Value numbers only for duels, from paired fights with a prior and a sequential stop.** Run each variant on the bookie's seeds
    in blocks of 20. Start from the part's usual value (the parts table) counted as about **40 fights** (that is what a true spread
    of ~10 points against a noise of ~0.6 a fight is worth). Stop when the 95% range is clearly within ± 10 of the usual value ("as
-   usual": no flag) or clearly below it ("does little here") or above ("strong here"); at most 150 (how soon it stops: see the check below).
+   usual": no flag) or clearly below it ("does little here") or above ("strong here"); at most 150. Checked on the fights we have (`node tools/t63-seqstop.js`, two 5%-error sequential tests, usual value against
+   usual ± 15, resampling each cell 2,000 times): **median 40 pairs, mean about 55-60, 90% of runs within 150**. Clear cases are
+   quick (Jammer vs Whaler, "strong": 16 pairs; Jammer vs Scavenger, "does little": 76 pairs, right 91% of the time). Gaps under
+   15 points (Booster vs Scavenger: +2 against a usual +13) often get no call by 150 (44%): then it shows "as usual". Based on
+   partial data (25 fights a cell for the 8 others).
 3. **Show bands, not numbers:** "does little against Scavenger" / "as usual" / "strong against Scavenger", like the odds bands.
 4. **Cache per pair state and fill in the background**, like the odds overview: the fight's robots first (Bets), then in the Market
    only the lot and robot on screen, your changed duels first. Reuse the "without" fights already in the overview's cache.
