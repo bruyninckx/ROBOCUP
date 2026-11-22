@@ -285,4 +285,5 @@ shield, the worst case. Any close fight with part-card drones or modules could b
 - The bookie line may show a few fewer test fights ("watched N test fights"): the ones cut short no longer count, and nor do the
   faster ones behind them.
 - Odds are still worked out on the host only and reach other screens in the synced state. All-AI game-sim games never run the
-  bookie (autopilot), so their odds do not change (30 games, same seeds, before and after: see PROGRESS).
+  bookie (autopilot skips it), so their odds do not change: 30 games, seeds 1-30, on main b219f07 and on this branch: identical
+  games (30 of 30), favourite wins 74% of 344 fights both, Brier 0.174 both (coin 0.249).
