@@ -4,8 +4,9 @@
 //   2. Undo a line, Reset; 3. not enough credits: no Lock, Done disabled; 4. Lock in applies all (state before / after, log lines)
 //   5. Done without Lock: Done locks the bill first, then Upkeep is over; 6. a broken Stash part: refused on a robot, repaired with 1
 //   action, then it fits; 7. a scrapped robot (host scrap): its parts land in the Stash, the one from the broken zone broken;
-//   8. a Stash with 9 parts: the Stash card scrolls inside and the page does not scroll; 9. a player with no parts: no garage bill,
-//   Upkeep goes on by itself (0.6 s); a player with parts who touches nothing: goes on by itself after BAL.garage.idleMs; a late Lock is refused.
+//   8. a Stash with 9 parts: the Stash card scrolls inside and the page does not scroll; 9. a player with no parts: no garage bill;
+//   T56: Upkeep waits for the Done click ("Nothing to repair · Done → Intrigue"), with or without parts; with BAL.upkeepAuto the
+//   old way (0.6 s; idleMs untouched; touched: it waits); a late Lock is refused.
 //   node tools/mp-scenario/garage.js [screenshotFolder]
 const path = require('path'), fs = require('fs');
 (async () => {
@@ -116,26 +117,45 @@ const path = require('path'), fs = require('fs');
     const ll = await log(p, 3); want(late.c0 === late.c1 && ll.some(x => /too late/.test(x)), tag + ': late Lock not refused: ' + ll.join(' / '));
     await p.close();
   }
-  // 9. seamless: a player with no parts goes on by itself (0.6 s, no garage bill); with parts and no touch: after idleMs
+  // 9. T56 (Kev, 22 Nov): a person's Upkeep never ends by itself. No parts and nothing to repair: it waits, the note says
+  // "Nothing to repair · Done → Intrigue", and that click ends it. Parts to move, untouched: no count, it waits too.
+  // BAL.upkeepAuto: true brings back the old way (0.6 s with nothing to move; idleMs with parts untouched).
   { const p = await open(1600, 900);
     await setup(p, { n: 1, bare: true }); await p.waitForTimeout(200);
     const hs = await hits(p); want(!hs.includes('gx_lock') && !hs.includes('gx_reset') && !hs.includes('gx_rack'), 'no parts: the garage shows a bill / rack: ' + hs.join());
     await shot(p, '1600x900-7-no-parts.png');
-    await p.evaluate(() => { window.__noAuto = false; }); const t0 = Date.now();
-    let ok = false; for (let k = 0; k < 20 && !ok; k++) { await p.waitForTimeout(200); ok = (await state(p)).phase !== 'upkeep'; }
-    console.log('no parts: Upkeep over by itself after ' + (Date.now() - t0) + ' ms'); want(ok, 'no parts: Upkeep did not go on by itself');
-    await p.close(); }
-  { const p = await open(1600, 900, '&bal=' + encodeURIComponent(JSON.stringify({ garage: { idleMs: 3000 } })));
-    await setup(p, { n: 2, stash: [] }); await p.evaluate(() => { window.__noAuto = false; }); const t0 = Date.now();
-    let ph = 'upkeep', seen = null; for (let k = 0; k < 40 && ph === 'upkeep'; k++) { await p.waitForTimeout(200); ph = (await state(p)).phase; if (!seen) { const n = await note(p); if (/by itself in/.test(n.text)) seen = n.text.match(/by itself in \d+ s/)[0]; } }
-    const ms = Date.now() - t0; console.log('parts, untouched: ' + (seen || 'no count shown') + '; Upkeep over after ' + ms + ' ms');
-    want(ph !== 'upkeep' && ms >= 2000 && seen, 'parts, untouched: did not go on after idleMs');
-    // touched: no auto
+    await p.evaluate(() => { window.__noAuto = false; });
+    await p.waitForTimeout(2500); const n9 = await note(p), ph9 = (await state(p)).phase;
+    console.log('no parts: after 2.5 s still ' + ph9 + '; button: ' + n9.done);
+    want(ph9 === 'upkeep', 'no parts: Upkeep went on by itself'); want(/Nothing to repair · Done → Intrigue/.test(n9.done || ''), 'no parts: Done button says ' + n9.done);
+    const w9 = await p.evaluate(() => document.getElementById('waitRail').innerText.replace(/\s+/g, ' '));
+    want(/Upkeep/.test(w9), 'no parts: the waiting list does not say Upkeep: ' + w9.slice(0, 160));
+    await shot(p, '1600x900-7b-no-parts-waits.png');
+    await p.click('#pAct1'); await p.waitForTimeout(500); const ph9b = (await state(p)).phase;
+    console.log('no parts: after the Done click: ' + ph9b); want(ph9b !== 'upkeep', 'no parts: Done did not end Upkeep');
     await p.close(); }
   { const p = await open(1600, 900, '&bal=' + encodeURIComponent(JSON.stringify({ garage: { idleMs: 2000 } })));
-    const ids = await setup(p, { n: 2, stash: [] }); await tok(p, "h.tok === 'r:" + ids[0] + ":0'"); await p.evaluate(() => { window.__noAuto = false; });
-    await p.waitForTimeout(3500); const ph = (await state(p)).phase; console.log('parts, touched: still ' + ph + ' after 3.5 s');
-    want(ph === 'upkeep', 'parts, touched: went on by itself'); await p.close(); }
+    await setup(p, { n: 2, stash: [] }); await p.evaluate(() => { window.__noAuto = false; });
+    await p.waitForTimeout(3500); const n = await note(p), ph = (await state(p)).phase;
+    console.log('parts, untouched: still ' + ph + ' after 3.5 s (idleMs 2 s); count shown: ' + /by itself/.test(n.text));
+    want(ph === 'upkeep' && !/by itself/.test(n.text), 'parts, untouched: went on by itself or showed a count');
+    await p.close(); }
+  // the old way, behind the switch
+  { const p = await open(1600, 900, '&bal=' + encodeURIComponent(JSON.stringify({ upkeepAuto: true })));
+    await setup(p, { n: 1, bare: true }); await p.evaluate(() => { window.__noAuto = false; }); const t0 = Date.now();
+    let ok = false; for (let k = 0; k < 20 && !ok; k++) { await p.waitForTimeout(200); ok = (await state(p)).phase !== 'upkeep'; }
+    console.log('upkeepAuto, no parts: Upkeep over by itself after ' + (Date.now() - t0) + ' ms'); want(ok, 'upkeepAuto, no parts: Upkeep did not go on by itself');
+    await p.close(); }
+  { const p = await open(1600, 900, '&bal=' + encodeURIComponent(JSON.stringify({ upkeepAuto: true, garage: { idleMs: 3000 } })));
+    await setup(p, { n: 2, stash: [] }); await p.evaluate(() => { window.__noAuto = false; }); const t0 = Date.now();
+    let ph = 'upkeep', seen = null; for (let k = 0; k < 40 && ph === 'upkeep'; k++) { await p.waitForTimeout(200); ph = (await state(p)).phase; if (!seen) { const n = await note(p); if (/by itself in/.test(n.text)) seen = n.text.match(/by itself in \d+ s/)[0]; } }
+    const ms = Date.now() - t0; console.log('upkeepAuto, parts, untouched: ' + (seen || 'no count shown') + '; Upkeep over after ' + ms + ' ms');
+    want(ph !== 'upkeep' && ms >= 2000 && seen, 'upkeepAuto, parts, untouched: did not go on after idleMs');
+    await p.close(); }
+  { const p = await open(1600, 900, '&bal=' + encodeURIComponent(JSON.stringify({ upkeepAuto: true, garage: { idleMs: 2000 } })));
+    const ids = await setup(p, { n: 2, stash: [] }); await p.waitForTimeout(250); const tk = await tok(p, "h.tok === 'r:" + ids[0] + ":0'"); const tch = await p.evaluate(() => window.ROBOCUS_DEBUG.GD.touched); await p.evaluate(() => { window.__noAuto = false; });
+    await p.waitForTimeout(3500); const ph = (await state(p)).phase; console.log('upkeepAuto, parts, touched (clicked ' + tk + ', touched ' + tch + '): still ' + ph + ' after 3.5 s');
+    want(ph === 'upkeep', 'upkeepAuto, parts, touched: went on by itself'); await p.close(); }
   if (errs.length) bad.push(errs.length + ' page errors: ' + errs.slice(0, 3).join(' | '));
   console.log(bad.length ? 'FAIL: ' + bad.join('; ') : 'OK');
   await b.close(); process.exit(bad.length ? 1 : 0);

@@ -829,6 +829,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // idleMs: a player with parts to move but nothing to repair goes on by itself after this long unless they touch the garage.
     // on: false = no garage (Stash fits free, as before T38). docs/robocus-garage.md
     garage: { on: true, feeOff: 1, feeOn: 1, legOff: 2, legOn: 2, stashLimit: 0, partsBack: true, idleMs: 8000 },
+    // T56 (Kev, 22 Nov: "when the upkeep phase was going but I was not in the fight and had no repairs, it automatically skipped to
+    // next phase, we should have to click here I think, there are many options"): a person's Upkeep ends only with their Done click.
+    // true = the old way: nothing to do → on by itself after 0.6 s; parts to move but untouched → after garage.idleMs. AI teams: unchanged.
+    upkeepAuto: false,
     // Kev, 11 Nov (test options, both off): noRepeat = last round's host cannot bid for the host seat; streakTax = a host's bid counts this many Cr less per round it has hosted in a row
     hostRule: { noRepeat: false, streakTax: 0 },
     fame: { win: 1, host: 1, fanFav: 1, favTokens: 3, favTokensApex: 2, finalMult: 2, bounty: 1 },   // bounty: We Have Your Number (Kev, 9 Nov)
@@ -2363,12 +2367,15 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         const gBill = gLines.length ? '<div class="g-bill"><span>🧾 <b>Bill ' + gP.cost + ' Cr</b> (' + gLines.length + ' move' + (gLines.length > 1 ? 's' : '') + ')' + (gShort ? ' · <b class="g-short">you have ' + t.credits + ' Cr</b>' : ' · after: ' + (t.credits - gP.cost) + ' Cr') + '</span>' +
           '<button class="act secondary" id="gReset">↺ Reset</button><button class="act" id="gLock"' + (gBad ? ' disabled' : '') + '>🔒 Lock in</button></div>' : '';
         const gIdle = gOn && GD.left != null ? ' <span class="g-auto">Goes on by itself in ' + GD.left + ' s (click a part to stay).</span>' : '';
-        const doneLbl = gLines.length ? '🔒 Pay ' + gP.cost + ' Cr, Done →' : 'Done → Intrigue', doneOff = G.debtBusy || gBad || (gP && GD.sending);
+        const doneLbl = gLines.length ? '🔒 Pay ' + gP.cost + ' Cr, Done →' : !jobs.length && !pjobs.length && !BAL.upkeepAuto ? 'Nothing to repair · Done → Intrigue' : 'Done → Intrigue', doneOff = G.debtBusy || gBad || (gP && GD.sending);
         const lr = repDone && repDone.round === G.round && G.phase === 'upkeep' ? myBot(HS, repDone.rid) : null;
         const doneTxt = lr && ZONE[repDone.zk] && !zonesOf(lr)[repDone.zk].damaged ? ' <b class="rep-ok">✓ ' + esc(lr.name) + ' ' + ZONE[repDone.zk].icon + ' ' + ZONE[repDone.zk].label + ' repaired.</b>' : '';
         if (!jobs.length && !fits.length && !pjobs.length && !gLines.length && gP && garageWork(t)) {   // T38: nothing to repair, parts you could move
           pb.innerHTML = '<span>🔧 <b>Upkeep: your garage.</b> Nothing to repair. To move a part: click it, then a socket on another robot or the rack (off ' + GB().feeOff + ' Cr, on ' + GB().feeOn + ' Cr; legendary ' + GB().legOff + ' + ' + GB().legOn + '). Nothing is paid until you lock the bill in.' + doneTxt + gIdle + '</span>' +
             '<button class="act" id="pAct1"' + (doneOff ? ' disabled' : '') + '>' + doneLbl + '</button>';
+        } else if (!jobs.length && !fits.length && !pjobs.length && !gLines.length && !BAL.upkeepAuto) {   // T56: nothing to repair: it waits for your click
+          pb.innerHTML = '<span>🔧 <b>Upkeep: nothing to repair.</b> Your robots are fine. Take your time: look over your cards, your Stash and your garage. Upkeep ends when you press Done.' + doneTxt + '</span>' +
+            '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Nothing to repair · Done → Intrigue</button>';
         } else if (!jobs.length && !fits.length && !pjobs.length && !gLines.length) {
           pb.innerHTML = '<span>🔧 <b>Upkeep: repairs.</b> Click a lit zone (⚙ Drive, ⚔ Weapon, ⛨ Body) on one of your robots to repair it: <b>' + repairTxt(t) + '</b>' + (repairActs(t) ? '; after that ' + repairCr() + ' Cr each' : '') + (zoneActs({ broken: true }) > 1 ? '. A broken zone costs ' + zoneActs({ broken: true }) : '') + (RB().engineersOnly ? '. Only engineers repair' : '') + '. Crew who repair are exhausted this round.' + doneTxt + '</span>' +
             '<button class="act" id="pAct1"' + (G.debtBusy ? ' disabled' : '') + '>Done → Intrigue</button>';
@@ -8540,7 +8547,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * second (src2/net.js: its open questions and deal panels, else seatBusyWith) and every screen shows it over the pit:
    * the others when you are done yourself, or "everyone is waiting for you" when you are the only one left. */
   const WAIT_WORDS = { sponsor: 'picking a sponsor', spbids: 'sponsor bids', draft: 'picking a starter', 'intrigue turn': 'Intrigue turn', rebid: 'tie-break bid', 'trade-in': 'trading in a robot', stash: 'trimming the Stash', install: 'fitting a part',
-    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'repairs', mres: 'reading the results', mres2: 'reading the results', trade: 'a trade',
+    'robot pick': 'picking a robot', 'spare/scrap': 'spare or scrap', crate: 'opening a crate', invites: 'picking the fighters', upkeep: 'Upkeep', mres: 'reading the results', mres2: 'reading the results', trade: 'a trade',
     lots: 'Market bids', hostbid: 'host bid', bets: 'bets', next: 'next round' };
   /* 2.0.1, fewer clicks (Kev, 15 Nov, after the Friday playtest: "too much clicking"). The host's page moves three kinds of
    * step on by itself:
@@ -8566,7 +8573,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     let left = null;
     if (key) {
       const dt = Date.now() - AUTO.t0;
-      if (step[0] === 'upkeep') { if (dt >= 600) for (const s of hs) if (G.phase === 'upkeep' && !isDone(s) && upkeepIdle(s)) runAct(s, 'upkeepDone'); }
+      if (step[0] === 'upkeep') { if (dt >= 600 && BAL.upkeepAuto) for (const s of hs) if (G.phase === 'upkeep' && !isDone(s) && upkeepIdle(s)) runAct(s, 'upkeepDone'); }
       else if (AUTO_STEPS[step[0]]) {
         left = Math.ceil((AUTO_MS() - dt) / 1000);
         if (left <= 0) { left = null; AUTO.key = null; for (const s of hs) if (!isDone(s)) runAct(s, step[1]); }
@@ -9832,7 +9839,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   // the owner's screen: nothing to repair, parts it could move but did not touch the garage → Done after idleMs (no click)
   function garageIdleTick() {
-    if (!G || G.over || G.phase !== 'upkeep' || !garageOn() || window.__noAuto || BOT) { if (GD.left != null) { GD.left = null; } return; }
+    if (!G || G.over || G.phase !== 'upkeep' || !garageOn() || window.__noAuto || BOT || !BAL.upkeepAuto) { if (GD.left != null) { GD.left = null; } return; }   // T56: off unless BAL.upkeepAuto
     const t = gdSync(); if (!t || !gdMine()) { GD.left = null; return; }
     const on = upkeepIdle0(HS) && garageWork(t) && !GD.touched && !Object.keys(GD.place).length && !qOpen();
     let left = null;
