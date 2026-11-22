@@ -7,6 +7,8 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K60 (T62, 22 Nov).** When the bookie's time is up, fights still running are thrown away. Wait up to half a second
+  more for them (a few more test fights, half a second slower)?
 - **K59 (T58, 22 Nov). Combo hunt:** (a) "ultimate" = a full build (2 parts + a legendary): right? (b) the epic rule
   compares with the part's average, so a part that is strong for everyone (Quantum shield, +30 for all) can be epic
   nowhere: change the rule after the run? (c) new epics come out as "NEW ...": you name them.
@@ -188,11 +190,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   several seeds and with drop-outs, click games, the two-PC tool on one box), fix what is broken or out of date (T57
   robot-value.js), list what could bite in a real game, and bring `docs/robocus-two-pc-test.md` and
   `docs/playtest-kit.md` up to date.
-- **T62. Why did the bookie say 55% for Gyro in round 11 when the rebuilt fight gives 40%?** (found by T60, 22 Nov).
-  On the bookie's own seeds the rebuild counts 51 Gyro wins in 126, Kev's PC counted 69; round 9 matches (58-65%).
-  Find what the bookie's test fights build differently from the real fight (tiers, wear, face-down cards, countdown,
-  sides), fix it if it is a bug, and make the `bookie` event log the exact specs so a playtest fight can be replayed.
-  Worker on branch `claude/bookie-gap`, started 22 Nov.
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
   `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
@@ -205,6 +202,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T62. The bookie gap: the helpers fought without the part tuning** (22 Nov; found by T60 on Kev's round 11: bookie
+  55% for Gyro, real 40%). Cause: the bookie's background helpers loaded the engine without `src2/lineup.js`, so the part
+  tuning (`LU.usePK()`: Booster 0.85, Jammer 1.1, Blocker 2.9, Repair kit 12 ...) was missing and every part card's
+  drone or module fought at strength 1. On Kev's 126 seeds: old helpers 68 Gyro wins (logged: 69), the page 51, the new
+  helpers 51 (same winner and time on 126 of 126: re-run by the orchestrator). Elsewhere 0.6 points on average, 5 at
+  most. Also: only an unbroken run of seeds counts at the time cut; the `bookie` log event carries what a replay needs;
+  `tools/bookie-replay.js <log> [round]`, `tools/bookie-page-check.js`. Extra: power map "tough matchup" from 20 points
+  (`BAL.toughTag`; Kev: "20 is good"), so Scavenger is no longer marked for Gyro. Commit `c0894cd`; BUILD
+  `2026-11-22h`, stamp `28762982`. Orchestrator's checks on the merge: game-sim 2/2, pmap-gyro-scav.js,
+  bookie-page-check.js, mp-test (see commit), fingerprint 470f6923. Question: K60.
 - **T63. Study: what is a part worth in THIS matchup?** (22 Nov; parked by Kev the same day: idea box). Against
   Scavenger: the drones are never shot down; the Jammer jams 87% of the fight but Scavenger is short of junk, not of
   reload time; the Booster is docked on a spinning shell only 12% of the fight. Only this matchup for the Jammer (+64
