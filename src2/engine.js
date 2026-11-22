@@ -897,6 +897,7 @@
       }
     }
     if (part.kind === 'chassis') d *= 0.5;
+    if (ARC.pk.repairBatt && part.key === 'battery' && kitCard(R) && (ARC.pk.repairBattAny || modOn(R))) d *= Math.max(0, 1 - ARC.pk.repairBatt);   // T49 (a): off on main
     if (S.wx.crack || S.wx.grindout) d = wearPre(S, R, part, h, d);
     const before = part.hp;
     part.hp -= d;
@@ -1995,6 +1996,41 @@
   // ---------- weapons ----------
   // ---------- modules ----------
   function integ(R) { return Math.min(R.chassis.hp / R.chassis.maxHp, R.battery.hp / R.battery.maxHp); }
+  /* T49 (Kev, 21 Nov: the Repair kit card gets "something extra"; docs/robocus-repair-kit-extra.md). Study knobs, all off on main
+   * (unset or 0 = today's kit, the same fights bit for bit); only the part card, never Mauler's built-in module:
+   *   ARC.pk.repairBatt  (a) while the kit works, the battery takes this much less damage (1 = it can't be destroyed)   [engine hit()]
+ *   ARC.pk.repairBattAny   with (a): the battery stays shielded after the kit itself is wrecked (its casing shields it)
+   *   ARC.pk.repairFix   (b) the kit gets burned-out drive motors and a dead weapon motor going again, and clears jams:
+   *                          a dead motor regains repairFix x the kit's internal repair rate (HP/s) and runs again at 25% HP
+   *   ARC.pk.repairWear  (c) the kit straightens bends, kinks and warps and closes cracks and saw grooves: every mark shrinks
+   *                          by this share a second (full rate; under fire x repairFire)
+   *   ARC.pk.repairScore (d) on a time-out the judges add this x the chassis HP the kit repaired                       [judge()] */
+  const kitCard = R => R.mod === 'repair' && R.spec && (R.spec.fromParts || []).includes('repair');
+  function kitExtra(S, R, rk) {
+    const fix = ARC.pk.repairFix, wr = ARC.pk.repairWear;
+    if (fix) { const hk = pkR('repair', R) * rk * fix;
+      for (const q of R.internals) { if (q.key !== 'motor' && q.key !== 'wmotor') continue;
+        if (q.jam > 0) q.jam = Math.max(0, q.jam - fix * rk * DT); if (q.stuck > 0) q.stuck = Math.max(0, q.stuck - fix * rk * DT);
+        if (q.hp > 0) continue;
+        if (q.key === 'motor') { const s = R.slots.find(s2 => s2.motor === q); if (!s || !alivePart(s.wheel)) continue; }   // a wheel that is gone stays gone
+        q.fixHp = (q.fixHp || 0) + hk * DT;
+        if (q.fixHp >= q.maxHp * 0.25) { q.hp = q.fixHp; q.fixHp = 0; q.state = ''; q.heat = 0; const p = R.body.getPosition(); callout(S, 'FIXED!', p.x, p.y, false); say(S, `${R.name}: the repair kit gets the ${q.label.toLowerCase()} going again`, R.id, true); } } }
+    if (wr && S.step % 60 === 0) { const k = Math.max(0, 1 - wr * rk * 0.5);   // twice a second
+      for (const q of R.parts) { if (!q.attached || q.hp <= 0) continue; let shape = false, out = false;
+        if (q.bends && q.bends.length) { for (const b of q.bends) b.depth *= k; q.bends = q.bends.filter(b => b.depth >= 0.002); out = true;
+          if (q.bentUp && !q.bends.some(b => b.depth >= 0.03)) q.bentUp = false;
+          for (const sl of R.slots) if (sl.rubBy === q) { sl.rub = 0; sl.rubBy = null; } wheelRub(S, R, q, null, true); }
+        if (q.kinks && q.kinks.some(kk => Math.abs(kk.th) >= 0.002)) { for (const kk of q.kinks) { kk.th *= k; if (Math.abs(kk.th) < 0.002) kk.th = 0; } q.kinkSum = q.kinks.reduce((a, kk) => a + Math.abs(kk.th), 0); shape = 'kink'; }
+        if (q.warp) { q.warp *= k; if (q.warp < 0.002) q.warp = 0; shape = shape || 'warp'; }
+        if (q.grooves && q.grooves.length) { for (const g of q.grooves) g.depth *= k; q.grooves = q.grooves.filter(g => g.depth >= 0.0005); out = true; }
+        if (q.cracks && q.cracks.length) { for (const c of q.cracks) { const goal = c.len * k; let guard = 50;
+            while (c.len > goal && guard-- > 0) { const t = c.tips.filter(t2 => t2.pts.length > 1).sort((a, b) => b.pts.length - a.pts.length)[0]; if (!t) { c.len = 0; break; }
+              const a = t.pts.pop(), b = t.pts[t.pts.length - 1]; c.len = Math.max(0, c.len - Math.hypot(a[0] - b[0], a[1] - b[1])); t.done = false; } }
+          q.cracks = q.cracks.filter(c => c.len > 0.004); }
+        if (shape === 'kink' && q.vBase && q.kAx) { const A = q.kAx; wRefit(R, q, kinkShape(q.vBase, A.ax, q.kinks, (A.tlo + A.thi) / 2)); out = true; }
+        else if (shape === 'warp' && q.vBase && q.foldA != null) { wRefit(R, q, warpShape(q.vBase, Math.cos(q.foldA), Math.sin(q.foldA), q.warp)); out = true; }
+        if (out) wRebuild(q); } }
+  }
   function modules(S, R) {
     if (R.modCd > 0) R.modCd -= DT;
     if (!modOn(R)) return;
@@ -2009,7 +2045,9 @@
       const kit = R.spec && (R.spec.fromParts || []).includes('repair'), quiet = S.t - R.lastHurt > (kit && ARC.pk.repairWait != null ? ARC.pk.repairWait : 1.5);
       const rk = quiet ? 1 : kit ? (ARC.pk.repairFire || 0) : 0;
       R.healing = rk > 0 && f < 1;
-      if (R.healing) { const c = R.chassis, hk = pkR('repair', R) * rk; c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT); }
+      if (R.healing) { const c = R.chassis, hk = pkR('repair', R) * rk, c0 = c.hp; c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT);
+        if (kit && ARC.pk.repairScore) R.stats.healed = (R.stats.healed || 0) + (c.hp - c0); }   // T49 (d): what the kit card repairs, for the judges
+      if (kit && rk > 0 && (ARC.pk.repairFix || ARC.pk.repairWear)) kitExtra(S, R, rk);   // T49 (b), (c): off on main
     }
     else if (m === 'emp' && ready && dist < 1.5) {
       E.stun = Math.max(E.stun, 1.8 * pkQ('emp', R)); R.modCd = 10; for (const dd of E.drones) { if (!dd.alive) continue; const q = dd.body.getPosition(); if (Math.hypot(q.x - p.x, q.y - p.y) < 2) dd.off = Math.max(dd.off, 2.5); } S.fx.push({ type: 'emp', x: p.x, y: p.y, robot: R.id });
@@ -4471,7 +4509,7 @@
   }
   function judge(R, S) {
     if (S && S.multi) return R.stats.dealt + S.robots.reduce((a, Q) => a + Q.stats.lost.filter(l => l.by === R.name).length, 0) * 12 + (R.stats.kos || 0) * 40 + (R.stats.aggr || 0) * 3 + (R.alive ? 30 : 0);
-    return R.stats.dealt + R.enemy.stats.lost.length * 12 + (R.stats.aggr || 0) * 3;
+    return R.stats.dealt + R.enemy.stats.lost.length * 12 + (R.stats.aggr || 0) * 3 + (ARC.pk.repairScore && R.stats.healed ? R.stats.healed * ARC.pk.repairScore : 0);   // T49 (d): off on main
   }
   function finishTeam(S, team, how, sc) {
     S.over = true;

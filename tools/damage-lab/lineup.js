@@ -43,7 +43,10 @@
   // bodyguard 1.8, popper 2.4, emp 1.6, repair 4, shield 1.5, mines 1.4, blocker 1.5, waller 1.5, the rest 1.
   const PK = { medic: 0.68, gunner: 0.9, laser: 0.96, bodyguard: 1.3, popper: 1.04, emp: 1.03, repair: 12, shield: 1.2, mines: 0.95, blocker: 2.9, waller: 1.57,
     tow: 0.59, jam: 0.75, booster: 0.85, spotter: 0.89, jammer: 1.1, qshield: 0.85, fieldmedic: 1.3, chip_matador: 1.5,
-    repairFire: 0.3 };   // Kev, 16 Nov (T5): the Repair kit card also repairs under fire, at 0.3 of its full rate (engine modules; built-in modules: 0)
+    repairFire: 0.3,   // Kev, 16 Nov (T5): the Repair kit card also repairs under fire, at 0.3 of its full rate (engine modules; built-in modules: 0)
+    // T49 (Kev, 21 Nov: "give it something extra"): study knobs for the Repair kit card, all 0 = off = today's kit (engine kitExtra; docs/robocus-repair-kit-extra.md):
+    // repairBatt (a) battery takes that share less damage while the kit works (repairBattAny 1: also after the kit is wrecked); repairFix (b) restarts dead motors, clears jams; repairWear (c) mends bends and cracks; repairScore (d) judges count repaired HP
+    repairBatt: 0, repairBattAny: 0, repairFix: 0, repairWear: 0, repairScore: 0 };
   /* Rarity (Kev, 16 Nov: "a rarity like real loot ... boosts its power with linear steps and a real epic category for 1% chances").
    * A part card can be a better copy of the same part. RAR_Q[tier] multiplies what the part does: a drone's or module's strength
    * (engine pq), and for stat parts and legendaries the bonus over 1 (x1.29 becomes x(1 + 0.29 q)). Tiers 0-3 go up in equal
