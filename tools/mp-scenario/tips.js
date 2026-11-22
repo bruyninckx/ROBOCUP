@@ -122,15 +122,16 @@ const path = require('path'), fs = require('fs');
     say('6. bookie, rarity and trading floor on their anchors (the bot plays seat 0 until the phase, then waits)');
     for (const [id, ph, shot] of [['bookie', 'bets', 't66-tip-bookie.png'], ['rarity', 'market', 't66-tip-rarity.png'], ['floor', 'market', 't66-tip-floor.png']]) {
       const seen = {}; ALL.filter(x => x !== id).forEach(x => { seen[x] = 1; });
-      const ctx = await ctxNew(1280, 720, { seen }); const p = await open(ctx, '?seed=13&bot=1&tips=1&fast=0', id);
+      const ctx = await ctxNew(1280, 720, { seen }); const p = await open(ctx, '?seed=13&bot=1&tips=1' + (id === 'bookie' ? '&watch=1' : ''), id);   // watch: the bot game has a Bets step (fights in real time)
       let ok = false;
       for (let t = 0; t < 300000 && !ok; t += 250) {
-        const s = await p.evaluate(ph => { const D = window.ROBOCUS_DEBUG, G = D.G;
-          if (G.phase === ph && !window.__noBot) window.__noBot = true;   // our seat stops answering here: the step waits for us
+        const s = await p.evaluate(([ph, id]) => { const D = window.ROBOCUS_DEBUG, G = D.G;
+          // our seat stops answering once the tip's thing is on screen: the step waits for us (the host bid step of the Market has no floor)
+          if (G.phase === ph && !window.__noBot && D.tips.at(id)) window.__noBot = true;
           const v = document.getElementById('fightView'); if (v && !v.hidden) { const s = v.querySelector('.fv-skip:not([hidden])'); if (s) s.click(); const d = v.querySelector('.fv-done:not([hidden])'); if (d) d.click(); }
-          return { cur: D.tips.cur(), ph: G.phase, busy: D.tips.busy(), over: G.over }; }, ph);
+          return { cur: D.tips.cur(), ph: G.phase, busy: D.tips.busy(), over: G.over }; }, [ph, id]);
         if (s.cur === id) ok = true;
-        else if (s.ph !== ph && await p.evaluate(() => window.__noBot)) await p.evaluate(() => { window.__noBot = false; });
+        else if ((s.ph !== ph || !(await p.evaluate(id => !!window.ROBOCUS_DEBUG.tips.at(id), id))) && await p.evaluate(() => window.__noBot)) await p.evaluate(() => { window.__noBot = false; });
         else if (s.ph === ph && t % 5000 === 0) say('  ' + id + ': in ' + s.ph + ', busy: ' + s.busy);
         if (s.ph === ph && s.busy === 'question') await p.evaluate(() => { const bs = [...document.querySelectorAll('#promptBar [data-rk]:not(:disabled)')]; if (bs.length) bs[bs.length - 1].click(); });
         if (s.over) break;
