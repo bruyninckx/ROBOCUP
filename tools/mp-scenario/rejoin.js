@@ -59,6 +59,8 @@ const path = require('path'), fs = require('fs');
   const h1 = await hostSt(); say('1 while A is away: ' + JSON.stringify(h1.offers) + ' done ' + JSON.stringify(h1.done));
   want(await back(1), '1: A did not get back into the game');
   want(!(await paused()), '1: the pause box stays after A is back');
+  const tf0 = Date.now(); await until(seatOf[1], () => { const el = document.getElementById('tradeFloor'); return !!(el && !el.hidden && el.querySelector('.tf-t[data-oid]')); }, 20000);
+  say('1 A\'s trading floor showed ' + ((Date.now() - tf0) / 1000).toFixed(1) + ' s after the game was back on its screen');
   const h2 = await hostSt(), fA = await floorIds(seatOf[1]);
   say('1 A back: its floor ' + JSON.stringify(fA) + ', host ' + JSON.stringify(h2.offers));
   want(fA && JSON.stringify(fA) === JSON.stringify(h2.offers.map(x => +x.split(':')[0]).sort((a, b) => a - b)), '1: A\'s floor after the rejoin differs from the host: ' + JSON.stringify(fA) + ' vs ' + h2.offers);

@@ -1,6 +1,65 @@
-# ROBOCUS 2.0: the two-PC online test (15 Nov 2026)
+# ROBOCUS 2.0: the two-PC online test (15 Nov 2026; brought up to date 22 Nov 2026, T64)
 
 Tool: `tools/mp-scenario/remote.js` (`tools\remote-host.cmd`, `tools\remote-join.cmd`, `tools\remote-setup.cmd`). Latest commit b1c210b.
+
+## For Kev, 22 Nov: two ways to use two PCs
+
+The game on GitHub `main` is the one to test. Before you start, the orchestrator has pushed it and told you the **files stamp**
+(for example `files 28762982`). GitHub Pages needs a few minutes after a push.
+
+### (a) The automated run (the robots click, you watch)
+
+**Once on the second PC** (skip if you did it on 15 Nov and the folder still works):
+1. Install Node.js (LTS, nodejs.org).
+2. Get a fresh copy of the ROBOCUS folder: GitHub page, green "Code" button, "Download ZIP", unzip. (A ZIP from before today misses
+   nothing the run needs, but a fresh one is safest.)
+3. Double-click `tools\remote-setup.cmd` in that folder.
+
+**Each run:**
+1. Main PC: double-click `tools\remote-host.cmd`. It asks for a code: type a few letters, e.g. `KEV`, Enter.
+2. Second PC: double-click `tools\remote-join.cmd`, the same code. Start it within ten minutes of the first.
+3. Leave both running: 5 games of at most 15 minutes, 3 joined players on the second PC. A line every minute. About 30-75 minutes.
+4. Send back: `playtests\remote-runs\latest-remote-host.txt` (main PC; Claude can read it if it is in your folder) and
+   `playtests\remote-runs\latest-remote-join.txt` (second PC: copy it over, e.g. paste it in the chat).
+
+What it checks: getting in, direct link or relay, fights the same on both PCs, a dropped link in every second game, stuck steps,
+page errors, all four logs on the host.
+
+### (b) Playing yourself on two PCs (you click)
+
+**Main PC = the host.**
+1. Open a command window in your ROBOCUS folder (click the folder's address bar, type `cmd`, Enter) and type `play-latest online`.
+   It updates your folder and opens the GitHub Pages copy: exactly what friends get. (Plain double-clicked `play-latest` works too:
+   your PC's copy hosts and the invite link still points friends at GitHub Pages; if the two differ, a joining player is told to
+   refresh. For a test with friends, `online` is the safer pick.)
+2. Bottom left: check the files stamp matches the one in the orchestrator's report.
+3. Click **🌐 Online**, then **👑 Host a game**. Click **📋 Copy invite link**. Send it to yourself (Discord, mail).
+4. Keep this tab open the whole game. It **is** the game: closing or reloading it stops the game for everyone. Since 22 Nov the
+   browser asks "Leave site?" first, and if it happens anyway, Host a game again and click **↩ Resume the last game (round N)**
+   in the lobby (your friends join with the same names; the game goes on from the start of that round).
+
+**Second PC = a friend.**
+1. Open the invite link (Chrome or Edge). Type a name, **Join**, **I'm ready**.
+2. Bottom left: the same files stamp as the host. If you see a **red bar** at the top or "Your game is a different version":
+   press Ctrl+F5 and open the link again.
+3. On the host, press **▶ Start game** (empty seats are AI teams).
+
+**What to try** (each is new since the last two-PC run):
+- Every question has a timer now (the count in the note). Let one run out once: the game picks the default and says so with ⌛.
+- Market: make an offer on the **trading floor** (under the pit) from each PC, answer Yes / Counter / No, take one back.
+- Upkeep waits for **Done**. On the second PC do not click Done for a while: the host gets a ⏳ row with **🔔 Nudge** and **⏭ Skip**.
+  Try both.
+- Upkeep, the **garage**: move a part on the second PC, **Lock in**, check the host sees the move.
+- Close the second PC's tab in the middle of a round and open the link again with the **same name**: the host shows "⏸ Game paused,
+  waiting for ...", and you are back where you were.
+- Once, let the host pick "🤖 Let the AI play" for a player who left.
+- If you host and an invited team drops out: "👑 Who steps in?".
+
+**What to send back:**
+- The playtest log: on the **host**, the 📝 button in the log header, **⬇️ Download this game** (it holds the logs of every joined
+  screen too). Or pick the `ROBOCUS/playtests` folder once with **📁 Save to a folder** and the logs land there by themselves.
+- Something odd: press **🐞** (log header) on the screen where it happened and type one line. It marks that moment in every log.
+- Screenshots of anything confusing, with the bottom-left files stamp in the picture.
 
 ## Why
 
