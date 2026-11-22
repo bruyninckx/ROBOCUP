@@ -120,7 +120,7 @@ function estCost(c, nR, nCand) {   // rough fight count of stages 2-4 (for the d
 const args = process.argv.slice(2), opt = (k, d) => { const a = args.find(x => x === '--' + k || x.startsWith('--' + k + '=')); return a ? (a.includes('=') ? a.split('=').slice(1).join('=') : true) : d; };
 const OUT = path.resolve(ROOT, String(opt('out', 'combo-results')));
 const NW = Math.max(1, +opt('workers', Math.max(1, os.cpus().length - 1)));
-const HOURS = +opt('hours', 3), F1 = +opt('screen', 4), REPORT_ONLY = !!opt('report');
+const HOURS = Math.max(0.25, +String(opt('hours', 3)).replace(',', '.') || 3), F1 = +opt('screen', 4), REPORT_ONLY = !!opt('report');
 const SUBJ = opt('robots') ? String(opt('robots')).split(',').filter(n => ALL[n]) : NAMES.slice();
 fs.mkdirSync(OUT, { recursive: true });
 const FP = crypto.createHash('md5').update(fs.readFileSync(path.join(DL, 'engine.js'))).update(fs.readFileSync(path.join(DL, 'lineup.js'))).digest('hex').slice(0, 8);
@@ -204,6 +204,7 @@ const rank = { epic: 2, great: 1, '': 0, poor: -1 };
 async function plan() {
   const A = { meta: { robots: SUBJ, screen: SCREEN, fp: FP, rule: RULE }, old: oldTables() };
   const subj = SUBJ;
+  if (opt('depth') != null && opt('depth') !== true) { state.depth = +opt('depth'); saveState(); }
   // ===== stage 1: screen =====
   const single = {};   // n -> [parts that fit alone]
   for (const n of subj) single[n] = PARTS.filter(k => fitsBuild(n, k));
@@ -224,7 +225,6 @@ async function plan() {
   const forced = new Set(); for (const id of Object.keys(A.old.epic).concat(Object.entries(A.old.fit).flatMap(([n, o]) => Object.keys(o).map(k => n + '|' + k)))) if (s1[id]) forced.add(id);
   const scoreC = id => Math.max(Math.abs(s1[id].fit), Math.abs(s1[id].x));
   const pool1 = Object.keys(s1).filter(id => scoreC(id) >= 0.15 && !forced.has(id)).sort((a, b) => scoreC(b) - scoreC(a) || (a < b ? -1 : 1));
-  if (opt('depth') != null && opt('depth') !== true) { state.depth = +opt('depth'); saveState(); }
   if (state.depth == null) {
     const r = state.rate || 10, left = state.hours * 3600 * r - R.size; let d = 1;
     for (const x of [1, 2, 3, 4]) if (estCost(DEPTH[x], subj.length, pool1.length + forced.size) <= left) d = x;
