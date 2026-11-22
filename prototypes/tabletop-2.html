@@ -8910,7 +8910,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
   // T31 test hooks: the question clocks (tools/mp-scenario/questions-note.js, questions-remote.js)
-  Object.assign(window.ROBOCUS_DEBUG, { invite, declineInvite, aiStandIn, standInView, get standlog() { return STANDLOG; } });   // T59 (tools/mp-scenario/stand-in.js)
+  Object.assign(window.ROBOCUS_DEBUG, { invite, declineInvite, aiStandIn, standInView, PS: s => PS(s), get standlog() { return STANDLOG; } });   // T59 (tools/mp-scenario/stand-in.js)
   Object.assign(window.ROBOCUS_DEBUG, { askSeat, dealAsk, dealPanel, humanHandLimit, hostStepNow, clkNow, get QCLK() { return QCLK; }, get ASKING() { return ASKING.slice(); } });
   // T47 test hooks (tools/mp-scenario/vote-rules.js)
   Object.assign(window.ROBOCUS_DEBUG, { lotDeck, seatStepNow, bestFit, tradeDone, mktdOpen: () => MKTD.size, SEATC, resolveScheme });
@@ -10062,10 +10062,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   function drawStandIn(ctx, cx, cy, pw, px0) {
     const S = G.standIn, out = G.teams[S.out], me = G.host === HS, X = S.vs >= 0 ? G.teams[S.vs] : null;
     pitHead('4 · HOST · WHO STEPS IN?', me ? 'YOU PICK' : 'HOST ' + (isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name).toUpperCase() + ' PICKS');
-    paperBox(ctx, px0, cy - 150, pw, 64);
-    ctx.fillStyle = out.col; fitText(ctx, out.name.toUpperCase() + (S.why === 'decline' ? ' DECLINES' : ' HAS NO READY ROBOT'), cx, cy - 120, pw - 30, '400', 20, F_STEN);
-    ctx.fillStyle = MUTED; fitText(ctx, (me ? 'Pick who steps in' : 'The host picks who steps in') + (X ? ' against ' + X.name + (S.vr ? ' (' + S.vr + ')' : '') : '') + (me ? ': here or in the note' : '') + '. The odds: their strongest ready robot.', cx, cy - 98, pw - 30, '600', 12);
-    const n = S.cands.length, gap = 14, cw = Math.min(260, (pw - gap * (n - 1)) / n), x0 = cx - (n * cw + (n - 1) * gap) / 2, y = cy - 70, h = 112;
+    drawFmtBanner(ctx, cx, cy - 166, pw);   // T56: this round's format
+    paperBox(ctx, px0, cy - 98, pw, 60);
+    ctx.fillStyle = out.col; fitText(ctx, out.name.toUpperCase() + (S.why === 'decline' ? ' DECLINES' : ' HAS NO READY ROBOT'), cx, cy - 70, pw - 30, '400', 20, F_STEN);
+    ctx.fillStyle = MUTED; fitText(ctx, (me ? 'Pick who steps in' : 'The host picks who steps in') + (X ? ' against ' + X.name + (S.vr ? ' (' + S.vr + ')' : '') : '') + (me ? ': here or in the note' : '') + '. The odds: their strongest ready robot.', cx, cy - 50, pw - 30, '600', 12);
+    const n = S.cands.length, gap = 14, cw = Math.min(260, (pw - gap * (n - 1)) / n), x0 = cx - (n * cw + (n - 1) * gap) / 2, y = cy - 26, h = 112;
     S.cands.forEach((c, k) => { const T = G.teams[c.i], x = x0 + k * (cw + gap);
       paperBox(ctx, x, y, cw, h, T.col, 3, PAPER2);
       ctx.fillStyle = T.col; fitText(ctx, T.name.toUpperCase() + (c.i === G.host ? ' (HOST)' : ''), x + cw / 2, y + 28, cw - 16, '400', 18, F_STEN);
