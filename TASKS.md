@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K62 (T65, 22 Nov).** The rules page shows a GIF of Popcorn + Overdrive as "the right part on the right robot"; that
+  pair is no longer a fit. Swap it for a real epic (Thwack-a-mole)? Thwacker now has 2 epics, a giant-slayer build and
+  3 great fits: on the after-playtest list.
 - **K60 (T62, 22 Nov).** When the bookie's time is up, fights still running are thrown away. Wait up to half a second
   more for them (a few more test fights, half a second slower)?
 - **K59 (T58, 22 Nov). Combo hunt:** (a) "ultimate" = a full build (2 parts + a legendary): right? (b) the epic rule
@@ -193,10 +196,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T65. Put the combo hunt's tables in the game** (Kev, 22 Nov, K61: "1 yes 2 good 3 ok 4 yes"): new PART_FIT and
-  EPIC from his run; names Sea Wall, Second Wind, Heckler, Laser Tag, Bad Dog, Thwack-a-mole; giant-slayers: keep the
-  game's Gyro and Whaler builds with the new numbers, add Thwacker; the too-strong list waits until after the playtest.
-  Worker on branch `claude/combo-tables`, started 22 Nov.
 - **T64. A version to playtest** (Kev, 22 Nov: "I'm trying to go to a version to playtest, first myself only (with 2
   pcs) then with friends"). Feature freeze: no new features until the playtests. Worker on branch
   `claude/playtest-ready`, started 22 Nov: run every test we have on main (all scenario scripts, the online test on
@@ -215,6 +214,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## Done
 
+- **T65. The combo hunt's tables are in the game** (22 Nov; Kev: "1 yes 2 good 3 ok 4 yes"). PART_FIT as his run gives
+  it (13 great, 5 poor; 9 old fits gone); EPIC: Phantom Hook, Overclock, Whiplash with new numbers, and Sea Wall
+  (Whaler + Waller drone), Second Wind (Vertigo + Field hospital), Heckler (Wrecker + Pester chip), Laser Tag (Mauler +
+  Laser drone), Bad Dog (Mauler + Pester chip), Thwack-a-mole (Thwacker + Mine layer); Iron Bolas is a great fit now;
+  TRIPLE: the game's Gyro and Whaler builds kept with new numbers, Thwacker added. Commit `8cd12b5`; BUILD
+  `2026-11-22j`, stamp `28762982`. 40 AI games, same seeds: Brier 0.179 → 0.173 (same within noise), favourite wins
+  73% → 74%, epics completed 0.33 → 0.50 a game. Orchestrator's checks: tables equal apply.txt and Kev's names,
+  game-sim 2/2, fingerprint 470f6923. Stale and left: the rules page GIF (Popcorn + Overdrive is no fit) and old sim
+  quotes there (K62).
 - **T62. The bookie gap: the helpers fought without the part tuning** (22 Nov; found by T60 on Kev's round 11: bookie
   55% for Gyro, real 40%). Cause: the bookie's background helpers loaded the engine without `src2/lineup.js`, so the part
   tuning (`LU.usePK()`: Booster 0.85, Jammer 1.1, Blocker 2.9, Repair kit 12 ...) was missing and every part card's
