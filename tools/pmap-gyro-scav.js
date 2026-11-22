@@ -36,6 +36,12 @@ const TAG = arg('tag', 'after'), OUT = arg('out', '/home/claude/out'); fs.mkdirS
   console.log('side panel, Scavenger picked:\n' + side2.slice(0, 900));
   const marks = await p.evaluate(() => { const PM = window.ROBOCUS_DEBUG.PM; return PM.vsTags ? PM.vsTags : null; });
   if (marks) console.log('tags on the map:', JSON.stringify(marks));
+  // also: a robot not in this game (no pills), both switch positions, every token of this game clicked once (no errors)
+  await p.evaluate(() => { const PM = window.ROBOCUS_DEBUG.PM, it = PM.items.find(i => i.kind === 'line'), r = PM.cv.getBoundingClientRect(); if (it) PM.cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + it.px, clientY: r.top + it.py, bubbles: true })); });
+  console.log('lineup robot picked: pills', await p.evaluate(() => { const PM = window.ROBOCUS_DEBUG.PM; return PM.vs ? PM.vs.size : 0; }));
+  await p.click('#pmOnly'); await p.waitForTimeout(300);
+  const n = await p.evaluate(() => { const PM = window.ROBOCUS_DEBUG.PM, r = PM.cv.getBoundingClientRect(); let k = 0; for (const it of PM.items.filter(i => i.kind === 'team')) { PM.cv.dispatchEvent(new MouseEvent('click', { clientX: r.left + it.px, clientY: r.top + it.py, bubbles: true })); k += PM.vs ? 1 : 0; } return k; });
+  console.log('tokens of this game clicked, each with pills:', n); await p.click('#pmOnly'); await p.waitForTimeout(300);
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   const h1 = await hash();
   console.log('state hash', h0, h1, h0 === h1 ? 'unchanged' : 'CHANGED'); console.log('page errors', errs.length, errs.slice(0, 3).join(' / '));
