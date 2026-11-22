@@ -1,0 +1,18 @@
+| Opponent | Part | fights in the data | gain measured | call: does little / as usual / strong / no call | pairs needed (mean, 90% of runs within) |
+|---|---|---|---|---|---|
+| Scavenger | booster | 400 | +2 (usual +13) | 45% / 10% / 0% / 44% | 117 (150) |
+| Scavenger | jammer | 400 | -2 (usual +17) | 91% / 1% / 0% / 8% | 76 (150) |
+| Scavenger | quantum | 200 | +31 (usual +26) | 1% / 54% / 16% / 29% | 106 (150) |
+| Mauler | booster | 25 | +0 (usual +13) | 100% / 0% / 0% / 0% | 40 (40) |
+| Mauler | jammer | 25 | +0 (usual +17) | 100% / 0% / 0% / 0% | 30 (30) |
+| Mauler | quantum | 25 | +0 (usual +26) | 100% / 0% / 0% / 0% | 20 (20) |
+| Thwacker | booster | 25 | +0 (usual +13) | 97% / 2% / 0% / 1% | 47 (80) |
+| Thwacker | jammer | 25 | +0 (usual +17) | 100% / 0% / 0% / 0% | 30 (30) |
+| Thwacker | quantum | 25 | +20 (usual +26) | 38% / 49% / 0% / 13% | 83 (150) |
+| Whaler | booster | 25 | +0 (usual +13) | 100% / 0% / 0% / 0% | 40 (40) |
+| Whaler | jammer | 25 | +64 (usual +17) | 0% / 0% / 100% / 0% | 16 (20) |
+| Whaler | quantum | 25 | +4 (usual +26) | 100% / 0% / 0% / 0% | 22 (30) |
+| Pincher | booster | 25 | +4 (usual +13) | 34% / 18% / 0% / 48% | 121 (150) |
+| Pincher | jammer | 25 | +20 (usual +17) | 2% / 60% / 10% / 29% | 113 (150) |
+| Pincher | quantum | 25 | +4 (usual +26) | 100% / 0% / 0% / 0% | 34 (60) |
+All cells: mean 60 pairs, median 40, 90% within 150 (a fixed test would use 150).

@@ -12,6 +12,8 @@ const F = path.join(OUT, 'p2.jsonl');
 const arg = (k, d) => { const a = process.argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : d; };
 const GYRO = { name: 'Gyro', level: 2, parts: ['booster', 'jammer', 'quantum'], rar: { booster: 2, jammer: 2 } };
 const OPP = { Mauler: 1, Thwacker: 1, Whaler: 2, Pincher: 2, Slingshot: 3, Hydra: 3, Pogo: 4, Railgun: 4 };
+// Gyro wins nearly every fight against the level 1 robots (no room for a part to show): fewer fights there
+const CAP = { Mauler: 50, Thwacker: 50 };
 const VAR = { full: null, nobooster: 'booster', nojammer: 'jammer', noquantum: 'quantum' };
 const spec = (r, team) => Object.assign(LU.build(r.name, r.parts, r.rar), { name: r.name, level: r.level, teamName: team });
 function fight(opp, v, seed) {
@@ -27,7 +29,7 @@ const load = () => fs.existsSync(F) ? fs.readFileSync(F, 'utf8').split('\n').fil
 function run(N) {
   const [si, sn] = arg('shard', '0/1').split('/').map(Number), done = new Set(load().map(r => r.opp + r.v + r.seed));
   let j = 0;
-  for (let b = 1; b <= N; b += 25) for (const opp of Object.keys(OPP)) for (const v of Object.keys(VAR)) for (let s = b; s < b + 25 && s <= N; s++) {
+  for (let b = 1; b <= N; b += 25) for (const opp of Object.keys(OPP)) for (const v of Object.keys(VAR)) for (let s = b; s < b + 25 && s <= Math.min(N, CAP[opp] || N); s++) {
     if (j++ % sn !== si || done.has(opp + v + s)) continue;
     fs.appendFileSync(F, JSON.stringify(fight(opp, v, s)) + '\n');
   }

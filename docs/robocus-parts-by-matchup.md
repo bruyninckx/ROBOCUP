@@ -119,3 +119,47 @@ On the same seeds the two fights (with and without the part) end differently in 
 Pairing helps less than hoped: the fights are chaotic enough that a third to half of the pairs flip anyway (unpaired, the noise
 would be about 0.69 per fight: pairing saves only 10-30% of fights). Fewer fights are enough where the matchup is lopsided
 (fewer pairs flip), and parts cannot show any value where a robot already wins (or loses) nearly every fight.
+
+## Part 3: what it would cost to show in the game
+
+### Speeds (from Kev's logs, docs/robocus-sim-bookie.md)
+
+| | Duels a second | 4-robot fights a second | From |
+|---|---|---|---|
+| Kev's PC (Ryzen 7 9800X3D, 16 threads, 14 helpers) | about 50-90 | about 10-14 | 8 helpers: 200 duels in 2.2-3.7 s, 4-robot fights 1.0-1.3 a second a helper (21 Nov); 14 helpers: 200 duels inside 4 s, a 2v2 112 in 8 s (22 Nov) |
+| A 4-core laptop (2 helpers, each taken as half as fast as one of Kev's) | about 7-11 | about 1.0-1.3 | arithmetic, not measured |
+
+### What leave-one-out costs
+
+N = paired fights per variant (the bookie's own seeds; the full build is the bookie's run, already paid for).
+
+| What | Extra fights | Kev's PC | 4-core laptop |
+|---|---|---|---|
+| Duel, every part on both robots (up to 3 + 3 = 6 variants), N = 150 | 900 | 10-18 s | 1.5-2 min |
+| the same, N = 60 (enough for ± 15) | 360 | 4-7 s | 35-50 s |
+| 4-robot fight (up to 12 variants), N = 150 | 1,800 | 2-3 min | 23-30 min |
+| the same, N = 60 | 720 | 50-70 s | 9-12 min |
+| Market: one part on one of your robots against each of ~9 rival robots, with and without, N = 150 | 2,700 | 30-55 s | 4-6.5 min |
+| the same, "without" taken from the odds-overview cache, N = 150 | 1,350 | 15-27 s | 2-3 min |
+| every part lot (say 4) on each of your robots (say 3) against ~9 rivals, N = 100 | 10,800 | 2-3.5 min | 16-26 min |
+
+So on Kev's PC the duel version fits behind the Bets pit (a few seconds after the bookie), and a Market check for the lot on screen
+fits while people bid. 4-robot fights and slower PCs do not fit at N = 150.
+
+### The cheapest honest scheme (a suggestion for the design)
+
+1. **First a free line: what each part actually did.** The bookie already runs up to 200 test fights of the real matchup. If each
+   test fight counted a few things per part (drone alive, jamming, docked while the weapon works, shield phases) and how long each
+   robot's weapon lasts, the screen could say, with zero extra fights: "Jammer: jamming 87% of the fight. Booster: helps your working
+   shell 12% of the fight (Scavenger's junk takes the shell motor at about 9 s)." That alone explains Kev's case. It needs small
+   counters in the engine's fight stats (engine work, `tools/damage-lab`), no more fights.
+2. **Value numbers only for duels, from paired fights with a prior and a sequential stop.** Run each variant on the bookie's seeds
+   in blocks of 20. Start from the part's usual value (the parts table) counted as about **40 fights** (that is what a true spread
+   of ~10 points against a noise of ~0.6 a fight is worth). Stop when the 95% range is clearly within ± 10 of the usual value ("as
+   usual": no flag) or clearly below it ("does little here") or above ("strong here"); at most 150 (how soon it stops: see the check below).
+3. **Show bands, not numbers:** "does little against Scavenger" / "as usual" / "strong against Scavenger", like the odds bands.
+4. **Cache per pair state and fill in the background**, like the odds overview: the fight's robots first (Bets), then in the Market
+   only the lot and robot on screen, your changed duels first. Reuse the "without" fights already in the overview's cache.
+5. **Skip what cannot be measured:** a robot that wins (or loses) 90%+ anyway gets "already decided"; 4-robot fights use the
+   duels of the same robots (the parts' effects are per rival) instead of running 4-robot variants.
+6. Display only, like the odds overview: it never feeds the odds, bets, payouts or anything sent between players.
