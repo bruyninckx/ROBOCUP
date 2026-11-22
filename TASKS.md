@@ -7,6 +7,9 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
+- **K59 (T58, 22 Nov). Combo hunt:** (a) "ultimate" = a full build (2 parts + a legendary): right? (b) the epic rule
+  compares with the part's average, so a part that is strong for everyone (Quantum shield, +30 for all) can be epic
+  nowhere: change the rule after the run? (c) new epics come out as "NEW ...": you name them.
 - **K58 (T60, 22 Nov).** (a) Parts count as about a level against anyone ("fights like ★7"), but against Scavenger
   the Booster and Jammer were worth nothing: is the "tough matchup" marker enough, or should bands use part values per
   matchup (a big job)? (b) "tough" starts at 15 points worse than the level gap (a table cell is 20 fights): or 20?
@@ -148,11 +151,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   (2) and (4) are done (T52, 22 Nov); (3) and (5) need Kev (K46).
-- **T61. Engine bug: a knocked-off spinning shell grinds its own robot's chassis** (found by T60): a loose part resting
-  on a chassis while the other robot pushes counts as a new debris impact 120 times a second (229 HP in 2 s). Fix in
-  `tools/damage-lab/engine.js` (one impact per contact, or no debris damage from a resting contact), build.py, new
-  fingerprint, check the level steps and the matchup table for shell spinners. Starts when T58 is merged (same
-  folder). Kev to say: before or after his combo hunt run (orchestrator: before).
 - **T57. `tools/mp-scenario/robot-value.js` is out of date** (found by T56): it looks for the robot offer in the yellow
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
@@ -176,17 +174,23 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Find what the bookie's test fights build differently from the real fight (tiers, wear, face-down cards, countdown,
   sides), fix it if it is a bug, and make the `bookie` event log the exact specs so a playtest fight can be replayed.
   Worker on branch `claude/bookie-gap`, started 22 Nov.
-- **T58. Combo hunt: recheck epic and ultimate combos with wear on, as a big run for Kev's PC** (Kev, 22 Nov: "can we
-  do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage models etc,
-  make a gigantic program to run on my pc to find combos that work really well"). Worker on branch
-  `claude/combo-hunt`, started 22 Nov: builds the search (every part on every robot, then pairs and full builds for the
-  promising ones, confirmed on fresh seeds) and a double-click file for his PC; the tables in the game change only after
-  his run comes back.
+- **T61. Engine bug: a knocked-off spinning shell grinds its own robot's chassis** (found by T60, seed 1583827593).
+  Worker on branch `claude/loose-shell`, started 22 Nov. When merged: fast-forward `claude/combo-hunt` to main so Kev's
+  combo hunt runs on the fixed engine, then tell Kev to start it.
 
 ## Done
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
+  that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
+  `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
+  `tools/damage-lab/combo-hunt.js`: screen every part on every robot → confirm and verify on fresh seeds (15 Nov rules
+  kept) → pairs and full builds vs bare and kitted robots one and two levels up → tiers. `combo-report.js` writes
+  report.md and combo-results.json; `combo-apply.js` prints new PART_FIT / EPIC / TRIPLE text for review. Slice here: 6
+  robots, 7,678 fights, resume and determinism checked. Commit `d501e59`; no game change, stamp `28762982`, fingerprint
+  470f6923; game-sim 2/2 (orchestrator). Doc `docs/robocus-combo-hunt.md`. WAITS: T61 (engine fix) first, then Kev's
+  run; he sends back `%USERPROFILE%\robocus-combo\combo-results\combo-hunt-results.json.gz`. Questions: K59.
 - **T60. Scavenger against Kev's stacked Gyro** (22 Nov; "can you check with these specific matchup if it was odd
   chance, also, it really didnt show in the power map, also not if I clicked on it"). A: round 9 (Killbox) Gyro wins
   58% of 1,000 rebuilt fights (bookie 65%); a KO inside 15 s is 1 in 100; round 11 (open) Gyro wins 40% of 1,000
