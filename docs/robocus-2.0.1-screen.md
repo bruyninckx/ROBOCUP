@@ -142,9 +142,9 @@ popup where his pointer was, right after End turn, and his next click landed on 
 | 🤝 Ask for backing | box + pointer | ticks (which teams, Board Seat) |
 | 🤝 Ask … for backing (offer) | box (deal panel) + pointer | a deal panel |
 | 🤝 Backing request (Accept / Refuse) | note | two answers |
-| 🤝 Offer from … (AI: part, robot, Stash part) | note | two answers; says what you give and get |
-| 🤝 Trade with … (your own trade) | box (deal panel) | you opened it yourself |
-| 🤝 Trade offer from … (Accept / Refuse) | note | two answers |
+| 🤝 Offer from … (AI: part, robot, Stash part) | note; since T55 a ticket on the trading floor | two answers; says what you give and get |
+| 🤝 Trade with … (your own trade) | box (deal panel); since T55 the trading floor's composer | you opened it yourself |
+| 🤝 Trade offer from … (Accept / Refuse) | note; since T55 a ticket on the trading floor | two answers |
 | 💰 Paid Off (which team gets your 3 Cr) | note | up to 3 teams |
 | 🙅 Not My Robot (who is hit instead) | note | up to 3 teams |
 | 🏛️ Museum Donation | note up to 6 choices; box + pointer with more | one button per robot / ready crew member |
@@ -333,3 +333,12 @@ Kev, 21 Nov: "a nice visual about the upkeep with a garage and your robots in th
 - The Stash card (left) has no "/4" any more, scrolls inside when long (9 parts fit at 1600x900 and 1280x720), shows broken parts in red
   with 🔧 Fix; its Fit in Upkeep puts the part on the bill.
 - Tests: tools/mp-scenario/garage.js (solo, both sizes), tools/mp-scenario/garage-online.js (host and 3 joined). docs/robocus-garage.md.
+
+## The trading floor (T55, 22 Nov)
+
+Kev: "can we make some type of open auction panel so you can lock in trades with other people while keeping an overview"; layout A, "counter is ok, see deals as they happen". Full description: docs/robocus-trading-floor.md.
+
+- Market trade-and-bid step: a panel TRADING FLOOR under the pit (`#tradeFloor`, `renderFloor` / `placeFloor`), one ticket per open offer (`G.offers`): to you Yes / Counter / No, yours "waiting" + Take back, other teams' read only; finished deals a few seconds (`G.floorDone`). New offer to [team]: the composer inside the panel (everything the deal panel could put on the table). Counter: the composer pre-filled, sides swapped; sending replaces the original.
+- The note no longer gets trade offers as questions and has no 🤝 buttons; it says how many offers wait on the floor. The hand steps down to a strip while the floor shows (hover it).
+- Actions `offerSend`, `offerAnswer`, `offerBack` (host); clocks on the host (`floorTick`, the question clock); `BAL.tradeFloor` false = the old flow (this section's tables above).
+- Test: tools/mp-scenario/trading-floor.js (solo 1905x932 and 1440x900, online 4 people). market-step.js, market-step-online.js, questions-note.js and vote-rules.js test the old flow with `tradeFloor: false`.

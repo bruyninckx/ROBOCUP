@@ -3744,7 +3744,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22c Forklift and Trebuchet pictures show their forks, bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
+  const BUILD = 'tabletop 2.0.1 2026-11-22d trading floor: every Market offer is a ticket under the pit (Yes / Counter / No, Take back, new offers without a pop-up), deals of other teams as they happen';   // was: 2026-11-22c
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -11381,6 +11381,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, the trading floor', '22 Nov 2026', [
+      'Market: every open trade offer is now a ticket on the TRADING FLOOR, a panel under the pit, instead of a question in the yellow box. Answer them in any order with Yes, Counter or No while you keep bidding; the yellow box is back to your bids and Lock.',
+      'Counter opens the offer in the panel with both sides already filled in (swapped to your side); change it and send it. It replaces the offer you answered. AI teams answer at once: yes when they come out ahead.',
+      'New offer to [team] opens the same panel: credits, Stash parts, robots, crew and Security Bots on both sides, then Send offer. Your open offers say "waiting" and have Take back. One open offer per team you trade with, each way.',
+      'You see the open offers between other teams too (smaller tickets), and every finished deal (and a refused or timed-out one) stays on the floor for a few seconds. Sealed bids are never shown.',
+      'Same rules as before: nothing moves until the other side says yes, then all of it at once or nothing ("fell through"); a team keeps a robot; a deal unlocks both teams\' bids; an unanswered offer is a no after 45 s; the last lock calls every open offer off. The hand steps down to a strip while the floor is open: hover it to see your cards.' ]],
     ['2.0.1, forks in the picture', '22 Nov 2026', [
       'Forklift and Trebuchet now show their forks in their pictures (robot cards, garage bays, Market lots, tickets). The fight always drew them; the still picture skipped them.' ]],
     ['2.0.1, bookie and trade-ins', '22 Nov 2026', [
