@@ -121,8 +121,6 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   trade-in rule churns; (5) 9 of 15 fights had a 90%+ favourite and the favourite won 14 of 15: hosts pick
   mismatches, and teams send robots with a broken Body; (6) round 5: he had no ready robot and sat out (−1 fame).
   Not started: (2) and (4) are worker tasks; (3) and (5) need Kev (K46).
-- **T49. Repair kit: something extra** (after T41). Kev: "Give it something extra, for example protecting the
-  battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
 - **Idea box (Kev, 21 Nov):** "we have to explore different arenas in the future that add real decisions".
@@ -153,6 +151,8 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T49. Repair kit: something extra.** Worker on branch `claude/repair-kit-extra`, started 22 Nov: a study with options behind switches, nothing changes for players until Kev picks. Kev: "Give it something extra, for example protecting the
+  battery". Measure options with `parttest.js` (target about three quarters of a level, as other parts), then propose.
 - **T53. Three small fixes in one go** (T40, T36, T28). Worker on branch `claude/small-fixes`, started 22 Nov.
   (1) T40: Lineup Arena and Contact Lab pages throw a script error on opening (fourth robot card defaults to
   Juggernaut, not in the lineup; `tools/damage-lab/ui.js`). (2) T36: `play-latest.cmd` must survive an update that
