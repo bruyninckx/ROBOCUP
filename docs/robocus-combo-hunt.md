@@ -114,3 +114,60 @@ same folder with `--report` re-plays the plan from `fights.jsonl` and fails if a
   `--robots=A,B` (a slice), `--depth=0-8` (0 = the small test slice), `--screen=N` (stage 1 fights a pair, default 4), `--report`.
 - `tools/damage-lab/combo-report.js`: report.md and combo-results.json from analysis.json.
 - `tools/damage-lab/combo-apply.js`: the table text for review.
+
+## Speed and what the hours buy
+
+Measured here (the build box, 2 slow cores, shared with other jobs): **3.6 fights a second on 2 workers** while the box was otherwise
+quiet (about 0.55 s of one core a fight; fights last 95 s of game time on average), 0.2-0.7 a second when other jobs loaded it to
+7x its cores. Stage 1 for the whole lineup is 22,176 fights.
+
+Kev's PC (Ryzen 7 9800X3D, 16 logical processors, 15 workers): a 9800X3D core is about twice this box's, and 15 workers on 8 cores /
+16 threads give about 11 cores' worth, so **about 40 fights a second, 140,000 an hour**. The wear-tables estimate of 21 Nov assumed
+a slower box (1.2 s a fight here) and gives **66,000 an hour**; neither was timed on his PC (his runs came back without a clock). So:
+
+| Hours | Fights it may do | Depth it will pick | What that means |
+|---|---|---|---|
+| 3 (default) | 200,000-420,000 | 4-7 | every stage, 8-24 confirm fights a pair per opponent, 16-32 verify fights a combo per opponent, all four tiers |
+| 8 (overnight) | 530,000-1,100,000 | 8 | the deepest preset (about 400,000 fights); on the fast estimate it ends after 3-4 h, on the slow one after about 6 h |
+
+The program does not guess: it times stage 1 on the PC itself, then picks the depth, prints it ("Speed here: 41.3 fights a second.
+For 3 h the search goes to depth 6 of 8 ...") and keeps it for restarts. The time left on the progress line is its own rough
+estimate (the size of stages 3-4 depends on what stage 2 finds; on the slice its estimate was 30% too high).
+
+## Checks (build box)
+
+- The slice (below) ran end to end; it was stopped by a kill in stage 1 (492 fights on file) and started again: it said "going on
+  from an earlier run: 492 fights on file" and finished with 7,678 fights, no fight twice in the file.
+- Determinism: 30 fights picked across all stages of the slice were fought again in a fresh process: 30 of 30 identical (score,
+  length to 0.1 s, how it ended). Two separate runs of a smaller slice (Thwacker and Angler, `--screen=1`): see "Two runs" below.
+- No engine change: stock-fight fingerprint (`l4-regress.js | md5sum`) **470f6923**, nothing under `src2/` changed (files stamp
+  28762982, sync check 89a95280 untouched), game-sim check 2/2 finished, 0 page errors.
+
+## First look, small numbers (the build box's slice, 22 Nov)
+
+`node tools/damage-lab/combo-hunt.js --robots=Buzzkill,Thwacker,Vertigo,Angler,Gaucho,Pogo --depth=0 --workers=2`: 6 robots (one or
+two a level, with the game's four epics among them), all 27 parts, stage 1 at full size (4 fights a pair), stages 2-4 at the test
+depth 0 (2 confirm rounds, 4 verify fights a pair, 2 halving rounds, 2 build-verify fights a pair, Race-spec only). **7,678 fights,
+about 30 minutes.** The full report: `tools/damage-lab/combo-hunt/slice-report.md`. With 6 robots the "part's average" is the
+average of these 6 only, so every "over avg" number is rough; the ranges are wide (most are ±25 points). Read it as "what to look
+at in Kev's run", not as results.
+
+- **Part averages** (vs a level up): Prototype core +32, Quantum shield +30, Weapon overhaul and Reinforced hull +23, Bodyguard,
+  Jammer, Overdrive, Wall Bait +22 ... Power kit +7, EMP +6, Armour kit +4. Wear makes the raw-strength parts (core, hull, weapon,
+  Overdrive) count more, as T41 saw for Overdrive.
+- **The game's epics:** Phantom Hook (Angler + Quantum) gains +54 but the Quantum shield is strong for everyone now (+30), so by the
+  rule it is "only" a great fit; Whiplash (Thwacker + Tow) +30, great fit; Iron Bolas (Gaucho + Overdrive) passed epic on the verify
+  seeds (+47) but not on the sorting seeds: borderline; **Overclock (Vertigo + Power kit) +20: gone** (the Power kit is weak now).
+- **New candidates:** Angler + Field hospital (+42, epic on both seed sets), Angler + Energy shield (+50, great), Thwacker + Mine
+  layer (+35, epic: K43 saw it at epic level too). Poor: Vertigo + Overdrive holds (-15, 37 under the average), new Vertigo + Mine
+  layer, Pogo + Prototype core (+11, which is 22 under what the core gives others: a level 4 robot fights its own level, where the
+  core helps everyone's rival as much). Thwacker + Pester chip no longer stands out (+25, only 5 over the chip's average).
+- **Full builds:** Thwacker + Bodyguard drone + Pester chip + Quantum shield: 14% → 82% against bare level 3-4 robots (giant-slayer
+  level), 54% against kitted ones, 83% against kitted level 3s (12 fights). Angler + Overdrive + Waller drone + Field hospital 79%
+  vs bare level 3-4, but 18% vs kitted ones. Gaucho + Overdrive + Waller + Prototype core 94% vs bare level 4s (16 fights), 44% vs
+  kitted. So: full builds against bare robots two levels up are common; against kitted ones only Thwacker's held. That is the gap
+  the 15 Nov test left open, and why Kev's run fights kitted opponents too.
+- **Tiers:** a Race-spec copy adds +12 points on average on these combos; Thwacker + Race-spec Tow cable went to 100% (10 fights,
+  +50 over a standard copy): the first "looks broken" candidate. Two others at 100% on 10-12 fights (Angler + Race-spec Quantum,
+  Vertigo + Race-spec Field hospital) are within noise of 90%.
+- **Synergy:** nothing real at this size (4 pairs re-fought, 20 fights each, all ranges cross 0).
