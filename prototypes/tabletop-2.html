@@ -3794,7 +3794,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22d trading floor: every Market offer is a ticket under the pit (Yes / Counter / No, Take back, new offers without a pop-up), deals of other teams as they happen';   // was: 2026-11-22c
+  const BUILD = 'tabletop 2.0.1 2026-11-22e playtest remarks: the bookie says how many test fights its odds rest on, the round\'s format is a banner in the Host phase, Upkeep waits for your Done';   // was: 2026-11-22d trading floor
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -11455,6 +11455,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, playtest remarks', '22 Nov 2026', [
+      'The bookie is open about its odds: wherever a fight\'s odds are shown (the Bets pit, the yellow note, the fight\'s side card, a fighter\'s odds panel) a small line says what they rest on: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)", or "only 26 test fights: odds from the formula". Every screen shows the same.',
+      'The round\'s format can\'t be missed: in the Host phase (and the host bid, and Bets) a yellow banner in the pit and a headline in the note name it before the fighters are picked: 2v2 TAG TEAM (and who teams up), GRAND FINAL, FREE-FOR-ALL, MIRROR DUEL, 2 ROBOTS PER SIDE, + HOUSE ROBOT, and the arena when it is not open floor. A plain duel on open floor is one quiet line.',
+      'Upkeep waits for you: with nothing to repair it no longer moves on by itself (and no 8-second count with parts to move). Press "Nothing to repair · Done → Intrigue" when you are ready. The waiting list shows who is still in Upkeep. AI teams are unchanged.',
+    ]],
     ['2.0.1, the trading floor', '22 Nov 2026', [
       'Market: every open trade offer is now a ticket on the TRADING FLOOR, a panel under the pit, instead of a question in the yellow box. Answer them in any order with Yes, Counter or No while you keep bidding; the yellow box is back to your bids and Lock.',
       'Counter opens the offer in the panel with both sides already filled in (swapped to your side); change it and send it. It replaces the offer you answered. AI teams answer at once: yes when they come out ahead.',
