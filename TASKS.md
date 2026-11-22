@@ -7,8 +7,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
-- **K54 (T55, 22 Nov). Trading floor:** you did not say whether a team may have several offers open at once. Built as:
-  one open offer to each rival at a time (so up to three of yours, and up to three coming in). More?
+- **K54 (T55, 22 Nov). Trading floor:** (a) one open offer to each rival at a time (up to three out, three in): more?
+  (b) every ticket has 45 s (an offer in the note had 20 s): shorter? (c) AI teams answer your offer at once: let them
+  "think" 1-2 s so you see your ticket first? (d) other teams' open tickets show both sides in full: fine, or only
+  "Moss and Plum, offer open"? (e) finished deals stay 6 s: longer? (f) the trade banner is replaced by those finished
+  tickets: fine? (g) the hand of cards drops to a thin strip while the floor shows and comes up on hover: fine?
 - **K53 (T54, 22 Nov). Robot pictures:** Buzzkill's blade, Jukebox's record and Scythe's sweeper stick out slightly past
   the edge of their picture. Fit the frame to them too (small task)?
 - **K52 (T49, 22 Nov). Repair kit extra.** The kit is weak since wear came in (+0.4 of a level; other parts about
@@ -147,19 +150,26 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T55. Market: the trading floor** (Kev, 22 Nov: "there is a lot of open auction action going on and this all comes
-  into the yellow box and you need to refuse or accept offers one by one, can we make some type of open auction panel so
-  you can lock in trades with other people while keeping an overview"). Design canvas
-  https://claude.ai/artifact/FFvjNC7gMHavhvqD5yMwD7; Kev picked "A, counter is ok, see deals as they happen": a panel
-  under the pit with one ticket per open offer (Yes / Counter / No, timer), own offers with Take back, other teams'
-  open offers visible, new offers built in the panel without a pop-up. Worker on branch `claude/trading-floor`,
-  started 22 Nov. Orchestrator's choice where Kev did not answer: one open offer per pair of teams in each direction
-  (K54).
+- **T56. Three remarks from Kev's playtest of 22 Nov** (build 2026-11-22b, 12 rounds, Moss won 12-10-9-7, Kev last;
+  log in /home/claude/t-play/kev-log-22nov.json). Kev: (1) "be open about how many fights the bookie was able to
+  process"; (2) "should be more clear during host phase if special 2v2 or other event is happening"; (3) "when the
+  upkeep phase was going but I was not in the fight and had no repairs, it automatically skipped to next phase, we should
+  have to click here I think, there are many options". Worker on branch `claude/playtest-remarks`, started 22 Nov.
 
 ## Done
 
 (The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
 
+- **T55. Market: the trading floor** (22 Nov; Kev picked layout A, "counter is ok, see deals as they happen"). Every
+  Market offer is a ticket in a panel under the pit: Yes / Counter / No with a timer, own offers with Take back, other
+  teams' offers read-only, finished deals stay 6 s; new offers and counters are built in the panel (no pop-up); the
+  yellow note is back to bids and Lock. Offers live in `G.offers` on the host (actions `offerSend`, `offerAnswer`,
+  `offerBack`); rules unchanged. `BAL.tradeFloor` (false = old flow), `floorPair: 1`, `floorMs`, `floorShowMs: 6000`.
+  The old-flow scripts (market-step, questions-note, market-step-online, vote-rules) now run with the floor off.
+  All-AI games are identical with the floor on or off (60 + 60). Commit `edc97aa`; BUILD `2026-11-22d`, files stamp
+  `28762982` (no src2 change). Orchestrator's checks on the merge: game-sim 2/2, trading-floor.js, market-step.js,
+  questions-note.js OK, mp-test OK (3x desyncs 0, 11 fights), fingerprint 470f6923. Doc
+  `docs/robocus-trading-floor.md`. Questions: K54.
 - **T54. Forks show in robot pictures** (22 Nov; Kev: "lifts of forklift are not displayed"). `portrait()` in
   `src2/view.js` now draws the forks (one helper `drawForks`, shared with the fight view): Forklift and Trebuchet. Display
   only. Commit `9b4523e`; BUILD `2026-11-22c`, files stamp `28762982`; fingerprint 470f6923 and sync-check 89a95280
