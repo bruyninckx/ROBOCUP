@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="588e81b8">
+<meta charset="utf-8"><meta name="robocus-files" content="28762982">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -679,17 +679,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=588e81b8"></script>
-<script src="../src2/dmath.js?b=588e81b8"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=28762982"></script>
+<script src="../src2/dmath.js?b=28762982"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=588e81b8"></script>
-<script src="../src2/lineup.js?b=588e81b8"></script>
-<script src="../src2/matrix.js?b=588e81b8"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=588e81b8"></script>
-<script src="../src2/sound.js?b=588e81b8"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=588e81b8"></script>
+<script src="../src2/engine.js?b=28762982"></script>
+<script src="../src2/lineup.js?b=28762982"></script>
+<script src="../src2/matrix.js?b=28762982"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=28762982"></script>
+<script src="../src2/sound.js?b=28762982"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=28762982"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -3681,7 +3681,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22b bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
+  const BUILD = 'tabletop 2.0.1 2026-11-22c Forklift and Trebuchet pictures show their forks, bookie on all cores for big fights, AI keeps its Fan Favourites, look from the voting page: rarity glow ladder (Tuned edge, Race-spec glow, Works shine, Masterwork gold + sparks), plain impact flash and fading wall dents, flash on hard robot-on-robot hits, fits and epics move robots on the power map';   // was: 2026-11-21o
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -10956,6 +10956,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, forks in the picture', '22 Nov 2026', [
+      'Forklift and Trebuchet now show their forks in their pictures (robot cards, garage bays, Market lots, tickets). The fight always drew them; the still picture skipped them.' ]],
     ['2.0.1, bookie and trade-ins', '22 Nov 2026', [
       'The bookie uses more of the host\'s PC: up to 14 helpers (cores minus 2) instead of 8, and for a fight with 3 or 4 robots it watches test fights for up to 8 seconds instead of 4 (those fights take much longer to play out). On a PC like Kev\'s, 2v2s and free-for-alls should now get their odds from test fights instead of the estimate. A duel whose result is clear early (60 test fights, the other side won at most 1) starts sooner.',
       'AI teams trade in a robot only when the new one is really better: they count the robot they would scrap at its full worth, its Fan tokens, a Fan Favourite\'s fame, and a robot they bought only a round or two ago. They keep their Fan Favourites, don\'t swap a robot for one of the same level for the scrap money, and don\'t buy two robots in one Market when they have one empty bay.' ]],
@@ -11173,7 +11175,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=588e81b8"></script>
+<script src="../src2/net.js?b=28762982"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';

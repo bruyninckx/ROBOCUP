@@ -605,3 +605,10 @@ Checks: tools/mp-scenario/vote-rules.js (new; solo at 1600x900 and 1280x720, onl
 - Four extras in the engine (`kitExtra`, `hit`, `judge`), each behind a setting in `PK` (lineup.js), **all 0 = off**: (a) `repairBatt`/`repairBattAny` shield the battery: +0.04 over today at best; (b) `repairFix` restarts dead motors: +0.26 (1.5); (c) `repairWear` mends bends, kinks, warps, cracks, saw cuts: +0.33 at 0.5 → **+0.74 total, +0.77 / +0.77 / +0.71 by level group**; (d) `repairScore` judges count repaired HP: +0.34 at 2.
 - Recommended: (c) at 0.5. Kev picks. Tools: `tools/damage-lab/kitextra.js` (runner, restartable), `kitextra-report.py`, `kitextra-pc.js` + `tools/kit-extra.cmd` (bigger run on Kev's PC). Results `tools/damage-lab/kit-extra/*.jsonl` (31,008 fights).
 - With everything off: stock-fight fingerprint 470f6923 and sync-check 89a95280 unchanged; files stamp changes (text of engine.js / lineup.js). No BUILD / CHANGES change.
+
+## 22 Nov 2026: Forklift's picture shows its forks (T54)
+- Kev (screenshot of Forklift's card): "lifts of forklift are not displayed". Branch `claude/forks-in-picture`.
+- Cause: `drawRobot` (src2/view.js) skips the 'lifter' parts because the fight draws forks in their own pass first, under all robots; `portrait()` only called `drawRobot`, so every still picture lost them. The robots with forks (R.forks) are Forklift (lifter) and Trebuchet (its scoops); no other lineup robot has them.
+- Fix: the fork drawing is one helper, `drawForks(R, i)`, used by the fight frame and by `portrait()` (before the robot). The picture frame already counted the forks, so the robot was drawn off-centre before; now it is centred with its forks.
+- Checked the other passes the fight draws outside `drawRobot` (tow cables, Slingshot anchor, Bricklayer's block on the hook, energy walls, drones): none shows on a robot standing still in a fresh fight, so pictures don't miss them. Contact sheet of all 33 lineup pictures: every weapon shows. `tools/damage-lab/ui.js` (lab pages) has no portrait.
+- Display only: stock-fight fingerprint 470f6923 unchanged; files stamp changes (view.js). BUILD 2026-11-22c, a CHANGES line.
