@@ -1,0 +1,1610 @@
+{
+ "meta": {
+  "fights": 7678,
+  "robots": [
+   "Buzzkill",
+   "Thwacker",
+   "Vertigo",
+   "Angler",
+   "Gaucho",
+   "Pogo"
+  ],
+  "depth": 0,
+  "fp": "d60cb367",
+  "rev": "",
+  "rule": {
+   "great": 0.15,
+   "poor": -0.15,
+   "epicGain": 0.3,
+   "epicOver": 0.2
+  }
+ },
+ "partAvg": {
+  "core": 32,
+  "quantum": 30,
+  "weapon": 23,
+  "hull": 23,
+  "bodyguard": 22,
+  "jammer": 22,
+  "overdrive": 22,
+  "bait": 22,
+  "hospital": 20,
+  "pester": 20,
+  "medic": 19,
+  "shield": 17,
+  "laser": 16,
+  "spotter": 14,
+  "booster": 13,
+  "tow": 13,
+  "jam": 13,
+  "popper": 12,
+  "matador": 12,
+  "repair": 11,
+  "blocker": 10,
+  "waller": 8,
+  "mines": 8,
+  "gunner": 7,
+  "powerkit": 7,
+  "emp": 6,
+  "armourkit": 4
+ },
+ "fits": {
+  "Angler": {
+   "shield": [
+    1,
+    42
+   ],
+   "quantum": [
+    1,
+    50
+   ],
+   "hospital": [
+    1,
+    46
+   ]
+  },
+  "Thwacker": {
+   "mines": [
+    1,
+    38
+   ],
+   "tow": [
+    1,
+    33
+   ]
+  },
+  "Vertigo": {
+   "overdrive": [
+    -1,
+    -10
+   ],
+   "mines": [
+    -1,
+    -15
+   ]
+  },
+  "Pogo": {
+   "core": [
+    -1,
+    7
+   ]
+  }
+ },
+ "epic": {
+  "Angler|hospital": [
+   "NEW Angler + hospital",
+   23,
+   69,
+   48
+  ],
+  "Thwacker|mines": [
+   "NEW Thwacker + mines",
+   35,
+   73,
+   40
+  ]
+ },
+ "triple": {
+  "Thwacker": [
+   [
+    "bodyguard",
+    "pester",
+    "quantum"
+   ],
+   14,
+   82,
+   54,
+   28
+  ]
+ },
+ "builds": {
+  "Buzzkill": {
+   "b": "mines,overdrive,core",
+   "parts": [
+    "mines",
+    "overdrive",
+    "core"
+   ],
+   "up1": [
+    30,
+    60,
+    60,
+    10
+   ],
+   "up2": [
+    30,
+    100,
+    10,
+    10
+   ],
+   "l34": [
+    25,
+    50,
+    14,
+    28
+   ]
+  },
+  "Thwacker": {
+   "b": "bodyguard,pester,quantum",
+   "parts": [
+    "bodyguard",
+    "pester",
+    "quantum"
+   ],
+   "up1": [
+    40,
+    90,
+    40,
+    10
+   ],
+   "up2": [
+    25,
+    100,
+    83,
+    12
+   ],
+   "l34": [
+    14,
+    82,
+    54,
+    28
+   ]
+  },
+  "Vertigo": {
+   "b": "bodyguard,emp,core",
+   "parts": [
+    "bodyguard",
+    "emp",
+    "core"
+   ],
+   "up1": [
+    40,
+    80,
+    50,
+    10
+   ],
+   "up2": [
+    17,
+    75,
+    8,
+    12
+   ],
+   "l34": [
+    14,
+    50,
+    4,
+    28
+   ]
+  },
+  "Angler": {
+   "b": "overdrive,waller,hospital",
+   "parts": [
+    "overdrive",
+    "waller",
+    "hospital"
+   ],
+   "up1": [
+    17,
+    83,
+    17,
+    12
+   ],
+   "up2": [
+    13,
+    75,
+    19,
+    16
+   ],
+   "l34": [
+    14,
+    79,
+    18,
+    28
+   ]
+  },
+  "Gaucho": {
+   "b": "overdrive,waller,core",
+   "parts": [
+    "overdrive",
+    "waller",
+    "core"
+   ],
+   "up1": [
+    25,
+    94,
+    44,
+    16
+   ]
+  },
+  "Pogo": {
+   "b": "bodyguard,powerkit,hospital",
+   "parts": [
+    "bodyguard",
+    "powerkit",
+    "hospital"
+   ],
+   "up1": [
+    64,
+    93,
+    57,
+    14
+   ]
+  }
+ },
+ "synergy": [
+  {
+   "n": "Angler",
+   "b": "matador,overdrive",
+   "bare": 38,
+   "a": 13,
+   "c": 33,
+   "pair": 29,
+   "syn": 21,
+   "lo": -3,
+   "hi": 44,
+   "logit": 1.142,
+   "fights": 24,
+   "verdict": "noise"
+  },
+  {
+   "n": "Vertigo",
+   "b": "medic,overdrive",
+   "bare": 25,
+   "a": 65,
+   "c": 45,
+   "pair": 90,
+   "syn": 5,
+   "lo": -28,
+   "hi": 38,
+   "logit": 0.569,
+   "fights": 20,
+   "verdict": "noise"
+  },
+  {
+   "n": "Thwacker",
+   "b": "bait,mines",
+   "bare": 30,
+   "a": 45,
+   "c": 50,
+   "pair": 70,
+   "syn": 5,
+   "lo": -28,
+   "hi": 38,
+   "logit": 0.191,
+   "fights": 20,
+   "verdict": "noise"
+  },
+  {
+   "n": "Angler",
+   "b": "overdrive,waller",
+   "bare": 38,
+   "a": 33,
+   "c": 33,
+   "pair": 33,
+   "syn": 4,
+   "lo": -23,
+   "hi": 32,
+   "logit": 0.174,
+   "fights": 24,
+   "verdict": "noise"
+  }
+ ],
+ "tiers": [
+  {
+   "id": "Angler|hospital",
+   "std": [
+    50,
+    58,
+    12
+   ],
+   "t": {
+    "2": [
+     58,
+     0,
+     -24,
+     24
+    ]
+   }
+  },
+  {
+   "id": "Angler|quantum",
+   "std": [
+    50,
+    92,
+    12
+   ],
+   "t": {
+    "2": [
+     100,
+     8,
+     -8,
+     25
+    ]
+   }
+  },
+  {
+   "id": "Angler|shield",
+   "std": [
+    50,
+    67,
+    12
+   ],
+   "t": {
+    "2": [
+     92,
+     25,
+     -1,
+     51
+    ]
+   }
+  },
+  {
+   "id": "Buzzkill|core",
+   "std": [
+    20,
+    60,
+    10
+   ],
+   "t": {
+    "2": [
+     70,
+     10,
+     -25,
+     45
+    ]
+   }
+  },
+  {
+   "id": "Gaucho|overdrive",
+   "std": [
+    19,
+    56,
+    16
+   ],
+   "t": {
+    "2": [
+     69,
+     13,
+     -12,
+     37
+    ]
+   }
+  },
+  {
+   "id": "Pogo|quantum",
+   "std": [
+    79,
+    71,
+    14
+   ],
+   "t": {
+    "2": [
+     79,
+     7,
+     -7,
+     21
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|core",
+   "std": [
+    40,
+    50,
+    10
+   ],
+   "t": {
+    "2": [
+     70,
+     20,
+     -6,
+     46
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|mines",
+   "std": [
+    40,
+    60,
+    10
+   ],
+   "t": {
+    "2": [
+     50,
+     -10,
+     -30,
+     10
+    ]
+   }
+  },
+  {
+   "id": "Thwacker|tow",
+   "std": [
+    40,
+    50,
+    10
+   ],
+   "t": {
+    "2": [
+     100,
+     50,
+     17,
+     83
+    ]
+   }
+  },
+  {
+   "id": "Vertigo|hospital",
+   "std": [
+    30,
+    100,
+    10
+   ],
+   "t": {
+    "2": [
+     100,
+     0,
+     -15,
+     16
+    ]
+   }
+  }
+ ],
+ "single": {
+  "Buzzkill|medic": [
+   38,
+   69,
+   31,
+   13,
+   16
+  ],
+  "Buzzkill|gunner": [
+   38,
+   31,
+   -6,
+   -13,
+   16
+  ],
+  "Buzzkill|laser": [
+   38,
+   50,
+   13,
+   -3,
+   16
+  ],
+  "Buzzkill|booster": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Buzzkill|waller": [
+   38,
+   56,
+   19,
+   10,
+   16
+  ],
+  "Buzzkill|bodyguard": [
+   38,
+   56,
+   19,
+   -3,
+   16
+  ],
+  "Buzzkill|spotter": [
+   38,
+   63,
+   25,
+   12,
+   16
+  ],
+  "Buzzkill|jammer": [
+   38,
+   63,
+   25,
+   3,
+   16
+  ],
+  "Buzzkill|blocker": [
+   38,
+   25,
+   -12,
+   -23,
+   16
+  ],
+  "Buzzkill|shield": [
+   38,
+   50,
+   13,
+   -4,
+   16
+  ],
+  "Buzzkill|emp": [
+   38,
+   44,
+   6,
+   0,
+   16
+  ],
+  "Buzzkill|mines": [
+   38,
+   44,
+   6,
+   -2,
+   16
+  ],
+  "Buzzkill|popper": [
+   38,
+   50,
+   13,
+   1,
+   16
+  ],
+  "Buzzkill|tow": [
+   38,
+   44,
+   6,
+   -6,
+   16
+  ],
+  "Buzzkill|jam": [
+   38,
+   50,
+   13,
+   0,
+   16
+  ],
+  "Buzzkill|overdrive": [
+   38,
+   69,
+   31,
+   9,
+   16
+  ],
+  "Buzzkill|repair": [
+   38,
+   25,
+   -12,
+   -23,
+   16
+  ],
+  "Buzzkill|weapon": [
+   38,
+   56,
+   19,
+   -4,
+   16
+  ],
+  "Buzzkill|hull": [
+   38,
+   69,
+   31,
+   8,
+   16
+  ],
+  "Buzzkill|powerkit": [
+   38,
+   44,
+   6,
+   -1,
+   16
+  ],
+  "Buzzkill|armourkit": [
+   38,
+   50,
+   13,
+   8,
+   16
+  ],
+  "Buzzkill|core": [
+   38,
+   69,
+   31,
+   -1,
+   16
+  ],
+  "Buzzkill|hospital": [
+   38,
+   56,
+   19,
+   -1,
+   16
+  ],
+  "Buzzkill|quantum": [
+   38,
+   69,
+   31,
+   1,
+   16
+  ],
+  "Buzzkill|matador": [
+   38,
+   44,
+   6,
+   -5,
+   16
+  ],
+  "Buzzkill|bait": [
+   38,
+   69,
+   31,
+   9,
+   16
+  ],
+  "Buzzkill|pester": [
+   38,
+   56,
+   19,
+   -1,
+   16
+  ],
+  "Thwacker|medic": [
+   13,
+   31,
+   19,
+   0,
+   16
+  ],
+  "Thwacker|gunner": [
+   13,
+   38,
+   25,
+   18,
+   16
+  ],
+  "Thwacker|laser": [
+   13,
+   38,
+   25,
+   9,
+   16
+  ],
+  "Thwacker|booster": [
+   13,
+   38,
+   25,
+   13,
+   16
+  ],
+  "Thwacker|waller": [
+   13,
+   31,
+   19,
+   10,
+   16
+  ],
+  "Thwacker|bodyguard": [
+   13,
+   31,
+   19,
+   -3,
+   16
+  ],
+  "Thwacker|spotter": [
+   13,
+   25,
+   13,
+   -1,
+   16
+  ],
+  "Thwacker|jammer": [
+   13,
+   56,
+   44,
+   22,
+   16
+  ],
+  "Thwacker|blocker": [
+   13,
+   44,
+   31,
+   21,
+   16
+  ],
+  "Thwacker|shield": [
+   13,
+   31,
+   19,
+   2,
+   16
+  ],
+  "Thwacker|emp": [
+   13,
+   19,
+   6,
+   0,
+   16
+  ],
+  "Thwacker|mines": [
+   13,
+   63,
+   50,
+   42,
+   16
+  ],
+  "Thwacker|popper": [
+   13,
+   44,
+   31,
+   20,
+   16
+  ],
+  "Thwacker|tow": [
+   13,
+   56,
+   44,
+   31,
+   16
+  ],
+  "Thwacker|jam": [
+   13,
+   31,
+   19,
+   6,
+   16
+  ],
+  "Thwacker|overdrive": [
+   13,
+   56,
+   44,
+   22,
+   16
+  ],
+  "Thwacker|repair": [
+   13,
+   31,
+   19,
+   8,
+   16
+  ],
+  "Thwacker|weapon": [
+   13,
+   50,
+   38,
+   15,
+   16
+  ],
+  "Thwacker|hull": [
+   13,
+   38,
+   25,
+   2,
+   16
+  ],
+  "Thwacker|powerkit": [
+   13,
+   13,
+   0,
+   -7,
+   16
+  ],
+  "Thwacker|armourkit": [
+   13,
+   0,
+   -12,
+   -17,
+   16
+  ],
+  "Thwacker|core": [
+   13,
+   69,
+   56,
+   24,
+   16
+  ],
+  "Thwacker|hospital": [
+   13,
+   13,
+   0,
+   -20,
+   16
+  ],
+  "Thwacker|quantum": [
+   13,
+   31,
+   19,
+   -11,
+   16
+  ],
+  "Thwacker|matador": [
+   13,
+   38,
+   25,
+   14,
+   16
+  ],
+  "Thwacker|bait": [
+   13,
+   56,
+   44,
+   22,
+   16
+  ],
+  "Thwacker|pester": [
+   13,
+   69,
+   56,
+   37,
+   16
+  ],
+  "Vertigo|medic": [
+   50,
+   69,
+   19,
+   0,
+   16
+  ],
+  "Vertigo|gunner": [
+   50,
+   44,
+   -6,
+   -13,
+   16
+  ],
+  "Vertigo|laser": [
+   50,
+   56,
+   6,
+   -9,
+   16
+  ],
+  "Vertigo|booster": [
+   50,
+   75,
+   25,
+   13,
+   16
+  ],
+  "Vertigo|waller": [
+   50,
+   31,
+   -19,
+   -27,
+   16
+  ],
+  "Vertigo|bodyguard": [
+   50,
+   81,
+   31,
+   9,
+   16
+  ],
+  "Vertigo|spotter": [
+   50,
+   63,
+   13,
+   -1,
+   16
+  ],
+  "Vertigo|jammer": [
+   50,
+   69,
+   19,
+   -3,
+   16
+  ],
+  "Vertigo|blocker": [
+   50,
+   69,
+   19,
+   8,
+   16
+  ],
+  "Vertigo|shield": [
+   50,
+   56,
+   6,
+   -10,
+   16
+  ],
+  "Vertigo|emp": [
+   50,
+   81,
+   31,
+   25,
+   16
+  ],
+  "Vertigo|mines": [
+   50,
+   19,
+   -31,
+   -40,
+   16
+  ],
+  "Vertigo|popper": [
+   50,
+   56,
+   6,
+   -5,
+   16
+  ],
+  "Vertigo|tow": [
+   50,
+   63,
+   13,
+   0,
+   16
+  ],
+  "Vertigo|jam": [
+   50,
+   69,
+   19,
+   6,
+   16
+  ],
+  "Vertigo|overdrive": [
+   50,
+   50,
+   0,
+   -22,
+   16
+  ],
+  "Vertigo|repair": [
+   50,
+   44,
+   -6,
+   -17,
+   16
+  ],
+  "Vertigo|weapon": [
+   50,
+   81,
+   31,
+   8,
+   16
+  ],
+  "Vertigo|hull": [
+   50,
+   75,
+   25,
+   2,
+   16
+  ],
+  "Vertigo|powerkit": [
+   50,
+   63,
+   13,
+   5,
+   16
+  ],
+  "Vertigo|armourkit": [
+   50,
+   56,
+   6,
+   2,
+   16
+  ],
+  "Vertigo|core": [
+   50,
+   75,
+   25,
+   -7,
+   16
+  ],
+  "Vertigo|hospital": [
+   50,
+   88,
+   38,
+   18,
+   16
+  ],
+  "Vertigo|quantum": [
+   50,
+   69,
+   19,
+   -11,
+   16
+  ],
+  "Vertigo|matador": [
+   50,
+   69,
+   19,
+   7,
+   16
+  ],
+  "Vertigo|bait": [
+   50,
+   81,
+   31,
+   9,
+   16
+  ],
+  "Vertigo|pester": [
+   50,
+   63,
+   13,
+   -7,
+   16
+  ],
+  "Angler|medic": [
+   31,
+   75,
+   44,
+   25,
+   16
+  ],
+  "Angler|gunner": [
+   31,
+   50,
+   19,
+   12,
+   16
+  ],
+  "Angler|laser": [
+   31,
+   50,
+   19,
+   3,
+   16
+  ],
+  "Angler|booster": [
+   31,
+   25,
+   -6,
+   -19,
+   16
+  ],
+  "Angler|waller": [
+   31,
+   31,
+   0,
+   -8,
+   16
+  ],
+  "Angler|bodyguard": [
+   31,
+   75,
+   44,
+   22,
+   16
+  ],
+  "Angler|spotter": [
+   31,
+   44,
+   13,
+   -1,
+   16
+  ],
+  "Angler|jammer": [
+   31,
+   50,
+   19,
+   -3,
+   16
+  ],
+  "Angler|blocker": [
+   31,
+   31,
+   0,
+   -10,
+   16
+  ],
+  "Angler|shield": [
+   31,
+   75,
+   44,
+   27,
+   16
+  ],
+  "Angler|emp": [
+   31,
+   25,
+   -6,
+   -12,
+   16
+  ],
+  "Angler|mines": [
+   31,
+   50,
+   19,
+   10,
+   16
+  ],
+  "Angler|popper": [
+   31,
+   31,
+   0,
+   -11,
+   16
+  ],
+  "Angler|tow": [
+   31,
+   25,
+   -6,
+   -19,
+   16
+  ],
+  "Angler|jam": [
+   31,
+   56,
+   25,
+   13,
+   16
+  ],
+  "Angler|overdrive": [
+   31,
+   25,
+   -6,
+   -28,
+   16
+  ],
+  "Angler|repair": [
+   31,
+   44,
+   13,
+   2,
+   16
+  ],
+  "Angler|weapon": [
+   31,
+   50,
+   19,
+   -4,
+   16
+  ],
+  "Angler|hull": [
+   31,
+   50,
+   19,
+   -4,
+   16
+  ],
+  "Angler|powerkit": [
+   31,
+   31,
+   0,
+   -7,
+   16
+  ],
+  "Angler|armourkit": [
+   31,
+   44,
+   13,
+   8,
+   16
+  ],
+  "Angler|core": [
+   31,
+   69,
+   38,
+   5,
+   16
+  ],
+  "Angler|hospital": [
+   31,
+   75,
+   44,
+   24,
+   16
+  ],
+  "Angler|quantum": [
+   31,
+   81,
+   50,
+   20,
+   16
+  ],
+  "Angler|matador": [
+   31,
+   38,
+   6,
+   -5,
+   16
+  ],
+  "Angler|bait": [
+   31,
+   38,
+   6,
+   -16,
+   16
+  ],
+  "Angler|pester": [
+   31,
+   44,
+   13,
+   -7,
+   16
+  ],
+  "Gaucho|medic": [
+   13,
+   25,
+   13,
+   -6,
+   16
+  ],
+  "Gaucho|gunner": [
+   13,
+   44,
+   31,
+   24,
+   16
+  ],
+  "Gaucho|laser": [
+   13,
+   44,
+   31,
+   16,
+   16
+  ],
+  "Gaucho|booster": [
+   13,
+   25,
+   13,
+   0,
+   16
+  ],
+  "Gaucho|waller": [
+   13,
+   50,
+   38,
+   29,
+   16
+  ],
+  "Gaucho|bodyguard": [
+   13,
+   19,
+   6,
+   -16,
+   16
+  ],
+  "Gaucho|spotter": [
+   13,
+   38,
+   25,
+   12,
+   16
+  ],
+  "Gaucho|jammer": [
+   13,
+   31,
+   19,
+   -3,
+   16
+  ],
+  "Gaucho|blocker": [
+   13,
+   38,
+   25,
+   15,
+   16
+  ],
+  "Gaucho|shield": [
+   13,
+   19,
+   6,
+   -10,
+   16
+  ],
+  "Gaucho|emp": [
+   13,
+   13,
+   0,
+   -6,
+   16
+  ],
+  "Gaucho|mines": [
+   13,
+   38,
+   25,
+   17,
+   16
+  ],
+  "Gaucho|popper": [
+   13,
+   38,
+   25,
+   14,
+   16
+  ],
+  "Gaucho|tow": [
+   13,
+   38,
+   25,
+   13,
+   16
+  ],
+  "Gaucho|jam": [
+   13,
+   13,
+   0,
+   -12,
+   16
+  ],
+  "Gaucho|overdrive": [
+   13,
+   75,
+   63,
+   41,
+   16
+  ],
+  "Gaucho|repair": [
+   13,
+   44,
+   31,
+   21,
+   16
+  ],
+  "Gaucho|weapon": [
+   13,
+   44,
+   31,
+   8,
+   16
+  ],
+  "Gaucho|hull": [
+   13,
+   44,
+   31,
+   8,
+   16
+  ],
+  "Gaucho|powerkit": [
+   13,
+   25,
+   13,
+   5,
+   16
+  ],
+  "Gaucho|armourkit": [
+   13,
+   13,
+   0,
+   -4,
+   16
+  ],
+  "Gaucho|core": [
+   13,
+   56,
+   44,
+   12,
+   16
+  ],
+  "Gaucho|hospital": [
+   13,
+   38,
+   25,
+   5,
+   16
+  ],
+  "Gaucho|quantum": [
+   13,
+   56,
+   44,
+   14,
+   16
+  ],
+  "Gaucho|matador": [
+   13,
+   25,
+   13,
+   1,
+   16
+  ],
+  "Gaucho|bait": [
+   13,
+   25,
+   13,
+   -9,
+   16
+  ],
+  "Gaucho|pester": [
+   13,
+   31,
+   19,
+   -1,
+   16
+  ],
+  "Pogo|medic": [
+   75,
+   63,
+   -12,
+   -31,
+   16
+  ],
+  "Pogo|gunner": [
+   75,
+   56,
+   -19,
+   -26,
+   16
+  ],
+  "Pogo|laser": [
+   75,
+   75,
+   0,
+   -16,
+   16
+  ],
+  "Pogo|booster": [
+   75,
+   81,
+   6,
+   -6,
+   16
+  ],
+  "Pogo|waller": [
+   75,
+   69,
+   -6,
+   -15,
+   16
+  ],
+  "Pogo|bodyguard": [
+   75,
+   88,
+   13,
+   -9,
+   16
+  ],
+  "Pogo|spotter": [
+   75,
+   69,
+   -6,
+   -20,
+   16
+  ],
+  "Pogo|jammer": [
+   75,
+   81,
+   6,
+   -16,
+   16
+  ],
+  "Pogo|blocker": [
+   75,
+   75,
+   0,
+   -10,
+   16
+  ],
+  "Pogo|shield": [
+   75,
+   88,
+   13,
+   -4,
+   16
+  ],
+  "Pogo|emp": [
+   75,
+   75,
+   0,
+   -6,
+   16
+  ],
+  "Pogo|mines": [
+   75,
+   56,
+   -19,
+   -27,
+   16
+  ],
+  "Pogo|popper": [
+   75,
+   69,
+   -6,
+   -18,
+   16
+  ],
+  "Pogo|tow": [
+   75,
+   69,
+   -6,
+   -19,
+   16
+  ],
+  "Pogo|jam": [
+   75,
+   75,
+   0,
+   -12,
+   16
+  ],
+  "Pogo|overdrive": [
+   75,
+   75,
+   0,
+   -22,
+   16
+  ],
+  "Pogo|repair": [
+   75,
+   94,
+   19,
+   8,
+   16
+  ],
+  "Pogo|weapon": [
+   75,
+   75,
+   0,
+   -23,
+   16
+  ],
+  "Pogo|hull": [
+   75,
+   81,
+   6,
+   -17,
+   16
+  ],
+  "Pogo|powerkit": [
+   75,
+   88,
+   13,
+   5,
+   16
+  ],
+  "Pogo|armourkit": [
+   75,
+   81,
+   6,
+   2,
+   16
+  ],
+  "Pogo|core": [
+   75,
+   75,
+   0,
+   -32,
+   16
+  ],
+  "Pogo|hospital": [
+   75,
+   69,
+   -6,
+   -26,
+   16
+  ],
+  "Pogo|quantum": [
+   75,
+   94,
+   19,
+   -11,
+   16
+  ],
+  "Pogo|matador": [
+   75,
+   75,
+   0,
+   -11,
+   16
+  ],
+  "Pogo|bait": [
+   75,
+   81,
+   6,
+   -16,
+   16
+  ],
+  "Pogo|pester": [
+   75,
+   75,
+   0,
+   -20,
+   16
+  ]
+ }
+}

@@ -28,3 +28,8 @@ playtests/remote-runs/
 # T41: the wear-tables run (tools/wear-tables.cmd) writes here
 wear-results/
 wear-results-rev.txt
+
+# T58: the combo hunt (tools/combo-hunt.cmd) writes here
+combo-results/
+combo-results-old-*/
+combo-results-rev.txt
