@@ -97,8 +97,8 @@ Same seeds (1-200) for every row, Scavenger and Gyro as new, open floor.
 
 What it says:
 - Scavenger fires junk; with Overdrive (damage x1.52) and the Weapon overhaul (x1.29) a few hits take Gyro's **Shell motor**
-  (bare Gyro loses it first in 181 of its 186 losses, the fight over in a median 42 s). Without its parts Scavenger rarely gets
-  the motor (11 times in 200).
+  (bare Gyro against that Scavenger: the shell motor is the first part lost in 181 of its 186 losses, which come after a median
+  42 s). Bare against bare it is the first part lost in only 11 of Gyro's 163 losses.
 - The **Quantum shield** cancels the first real hit after it recharges (every 8 s) and phases Gyro out: Gyro phases 3-4 times a
   fight, which buys the time its shell needs. It is the whole difference.
 - The **Booster** and **Jammer** drones do nothing measurable against Scavenger. The Jammer slows the enemy weapon and blocks
