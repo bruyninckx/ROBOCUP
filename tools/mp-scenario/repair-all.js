@@ -81,7 +81,7 @@ if (!isMainThread) {   // a fight worker: one robot's chains
       t.robots = [r]; t.rep = { used: {}, free: 99 }; t.exMechs = 0; t.credits = 99; t.stash = [];
       D.updateHud(); const Z = D.zonesOf(r);
       return { id: r.id, Z: Object.fromEntries(Object.values(Z).map(q => [q.key, { damaged: q.damaged, broken: q.broken, marked: !!q.marked, f: q.f }])) }; }, [s, i]);
-    await p.waitForTimeout(120);   // the card is drawn on the next frame
+    await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30)))));   // the card is drawn on the next frame (T64: wait for two frames, not 120 ms: a busy PC draws slower)
     const seen = await p.evaluate(id => { const D = window.ROBOCUS_DEBUG;
       return { note: [...document.querySelectorAll('#promptBar [data-rep]')].map(x => x.dataset.rep), card: D.hitRegions.filter(h => h.kind === 'zone_fix' && String(h.robot.id) === id).map(h => h.zone) }; }, set.id);
     const tag = s.name + ((s.parts || []).length ? ' +' + s.parts.join('+') : '') + ' (fight ' + (s.chain + 1) + '.' + s.fight + ' vs ' + s.vs + ')';
