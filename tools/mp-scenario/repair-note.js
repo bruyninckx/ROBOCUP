@@ -3,7 +3,7 @@
 //   2. three repairs; 3. six to nine across three robots (two per row, the list scrolls, Done stays visible);
 //   4. a repair that costs credits (no actions left); 5. one that can't be paid: shown disabled, a click (and act()) is refused;
 //   6. nothing to repair: no buttons, the short text.
-// Each at 1600x900 and 1280x720. The joined-client side is in repair-note-online.js.
+// Each at 1600x900 and 1280x720. The joined-client side is in repair-note-online.js. Every robot after real fights: repair-all.js.
 //   node tools/mp-scenario/repair-note.js [screenshotFolder]
 const path = require('path'), fs = require('fs');
 (async () => {
@@ -25,11 +25,19 @@ const path = require('path'), fs = require('fs');
   const setup = (p, dmg, o = {}) => p.evaluate(([dmg, o]) => { const D = window.ROBOCUS_DEBUG, G = D.G, t = G.teams[0];
     const src = [t.robots[0], G.teams[1].robots[0], G.teams[2].robots[0]];
     t.robots = dmg.map((d, k) => { const r = JSON.parse(JSON.stringify(src[k])); if (k) { r.id = 'T22-' + k; r.uid = 'T22u' + k; } r.wear = {}; return r; });
+    // T53: damage a zone the way a fight does (engine wearOf): a part's health under wear.parts (broken: wear.lost), an internal's
+    // under wear.ints (broken: 0). Thumper's weapon is internals only (Axe arm, Arm actuator): wear.parts['Axe arm'] is never read.
     t.robots.forEach((r, k) => { const d = dmg[k], Z = D.zonesOf(r), w = { parts: {}, ints: {}, lost: [] };
+      const R = window.DamageLab.create({ a: D.spec2(r), b: D.spec2(r), seed: 1 }).robots[0], isPart = lab => R.parts.some(q => q.label === lab);
       for (const zk of ['drive', 'weapon', 'body']) { const v = d[zk]; if (v == null) continue;
         if (zk === 'body') { w.lid = v === 'broken' ? 0 : v; continue; }
-        const lab = Z[zk].labels[0]; if (v === 'broken') w.lost.push(lab); else w.parts[lab] = v; }
+        const lab = Z[zk].labels[0];
+        if (isPart(lab)) { if (v === 'broken') w.lost.push(lab); else w.parts[lab] = v; } else w.ints[lab] = v === 'broken' ? 0 : v; }
       r.wear = w; });
+    // the zones must read as asked (a test that damages the wrong thing would test nothing)
+    const off = []; t.robots.forEach((r, k) => { const Z = D.zonesOf(r); for (const zk of ['drive', 'weapon', 'body']) { const v = dmg[k][zk]; if (v == null) continue;
+      const q = Z[zk]; if (v === 'broken' ? !q.broken : (q.broken || !q.damaged || Math.abs(q.f - v) > 0.011)) off.push(r.name + ' ' + zk + ' asked ' + v + ', reads ' + (q.broken ? 'broken' : Math.round(q.f * 100) + '%')); } });
+    if (off.length) window.__setupOff = (window.__setupOff || []).concat(off);
     t.rep = { used: {}, free: o.free || 0 }; t.exMechs = 0; t.credits = o.cr != null ? o.cr : 14; t.stash = [];
     if (o.crew != null) { const k0 = t.crew[0]; t.crew = []; for (let k = 0; k < o.crew; k++) t.crew.push(Object.assign({}, k0, { uid: 'c' + k, kind: 'mechanic' })); }
     D.updateHud(); return t.robots.map(r => D.zonesOf(r)).map(Z => Object.values(Z).map(q => q.key + ':' + (q.broken ? 'B' : q.damaged ? 'D' : 'ok')).join(' ')); }, [dmg, o]);
@@ -128,6 +136,7 @@ const path = require('path'), fs = require('fs');
     n = await note(p); await noteShot(p, tag + '-6-nothing-note.png');
     console.log(tag + ' nothing: ' + JSON.stringify({ rep: n.rep, btns: n.bs.length, text: n.text }));
     if (n.rep || n.bs.length || !n.doneVis) bad.push(tag + ': nothing to repair: not the short note');
+    const off = await p.evaluate(() => window.__setupOff || []); if (off.length) bad.push(tag + ': the test set the wrong damage: ' + [...new Set(off)].join(' | '));
     await p.close();
   }
   await b.close();

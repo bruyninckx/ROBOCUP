@@ -13,7 +13,12 @@ const path = require('path'), fs = require('fs');
   if (c == null) { console.log('FAIL: every client seat was already done with Upkeep'); await b.close(); process.exit(1); }
   const cp = seatOf[c]; console.log('client seat ' + c);
   const dmg = (o) => host.evaluate(([c, o]) => { const D = window.ROBOCUS_DEBUG, G = D.G, t = G.teams[c], r = t.robots[0];
-    r.wear = {}; const Z = D.zonesOf(r), w = { parts: {}, ints: {}, lost: [Z.weapon.labels[0]] , lid: 0 }; w.parts[Z.drive.labels[0]] = 0.4; r.wear = w;
+    r.wear = {}; const Z = D.zonesOf(r), w = { parts: {}, ints: {}, lost: [], lid: 0 };
+    // T53: as a fight does it: a part under wear.parts / wear.lost, an internal (Thumper's Axe arm) under wear.ints
+    const R = window.DamageLab.create({ a: D.spec2(r), b: D.spec2(r), seed: 1 }).robots[0], isPart = lab => R.parts.some(q => q.label === lab);
+    const wl = Z.weapon.labels[0], dl = Z.drive.labels[0];
+    if (isPart(wl)) w.lost.push(wl); else w.ints[wl] = 0;
+    if (isPart(dl)) w.parts[dl] = 0.4; else w.ints[dl] = 0.4; r.wear = w;
     t.rep = { used: {}, free: 0 }; t.exMechs = 0; t.credits = o.cr; const k0 = t.crew[0] || { kind: 'mechanic', uid: 'x' };
     t.crew = []; for (let k = 0; k < o.crew; k++) t.crew.push(Object.assign({}, k0, { uid: 'T22c' + k, kind: 'mechanic' })); D.updateHud(); }, [c, o]);
   const state = zk => host.evaluate(([c, zk]) => { const D = window.ROBOCUS_DEBUG, t = D.G.teams[c], q = D.zonesOf(t.robots[0])[zk];
