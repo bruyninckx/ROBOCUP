@@ -45,7 +45,7 @@ function fight(L, LU, key) {
 }
 
 if (process.argv[2] === '--worker') {
-  try { os.setPriority(os.constants.priority.PRIORITY_LOW); } catch (e) { /* not allowed: fine */ }
+  if (!process.env.COMBO_NORMAL_PRIORITY) try { os.setPriority(os.constants.priority.PRIORITY_LOW); } catch (e) { /* not allowed: fine */ }   // low priority: the PC stays usable (COMBO_NORMAL_PRIORITY=1: not)
   const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
   process.on('message', m => { if (m === 'bye') process.exit(0); process.send({ id: m.id, res: m.keys.map(k => fight(L, LU, k)) }); });
   return;
