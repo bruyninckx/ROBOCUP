@@ -156,7 +156,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-(nothing running)
+- **T58. Combo hunt: recheck epic and ultimate combos with wear on, as a big run for Kev's PC** (Kev, 22 Nov: "can we
+  do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage models etc,
+  make a gigantic program to run on my pc to find combos that work really well"). Worker on branch
+  `claude/combo-hunt`, started 22 Nov: builds the search (every part on every robot, then pairs and full builds for the
+  promising ones, confirmed on fresh seeds) and a double-click file for his PC; the tables in the game change only after
+  his run comes back.
 
 ## Done
 
