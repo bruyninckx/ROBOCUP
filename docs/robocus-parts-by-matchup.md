@@ -32,8 +32,8 @@ from outside the engine. Seeds 1-200 for every row, the same seeds with and with
    at `jk` = 0.12 for this Race-spec Jammer, so about **8 times** slower). Scavenger's cannon has its own timer and gets a flat
    **x1.6**, whatever the Jammer's strength (`SCAV.reload * (c.jk < 1 ? 1.6 : 1)`, tools/damage-lab/engine.js). So Kev's Race-spec
    tier did nothing extra here. As a what-if (the same 200 seeds, a jammed Scavenger reloading like any other jammed weapon,
-   0.9 s → 7.5 s): **Gyro wins 86%** instead of 38.5%, its shell motor lasts until a median 53 s (lost in 40% of fights instead of
-   91%), and Scavenger fires 7.5 shots instead of 9.6.
+   0.9 s → 7.5 s): **Gyro wins 88.5%** instead of 38.5%, its shell motor is lost in 38% of fights instead of 91% (then at a
+   median 53 s), and Scavenger fires 7.5 shots instead of 9.6.
 
 So the answer is the second one ("they work, but what they boost is already lost") for the Booster. For the Jammer it is the
 second one plus a weakly wired effect: it slows Scavenger's reload by 1.6x, not by its full strength.
@@ -42,19 +42,19 @@ second one plus a weakly wired effect: it slows Scavenger's reload by 1.6x, not 
 
 | | Full build | without Jammer | without Booster | What-if: Jammer slows the cannon fully |
 |---|---|---|---|---|
-| Gyro wins | 38.5% | 44.5% | 35.5% | 86% (first 160 seeds) |
-| Paired gain of the part (± 95%) | | Jammer −6 ± 9 | Booster +3 ± 9 | +49 ± 9 against the real Jammer |
+| Gyro wins | 38.5% | 44.5% | 35.5% | 88.5% |
+| Paired gain of the part (± 95%) | | Jammer −6 ± 9 | Booster +3 ± 9 | +50 ± 8 against the real Jammer |
 | Drones shot down | 0 / 200 | 0 | 0 | 0 |
 | Scavenger jammed (share of fight) | 87% | 0% | 88% | 97% |
-| Scavenger shots a fight (a minute) | 9.6 (8.8) | 10.6 (9.8) | 9.8 (7.8) | 7.5 (4.3) |
+| Scavenger shots a fight (a minute) | 9.6 (8.8) | 10.6 (9.8) | 9.8 (7.8) | 7.5 (4.2) |
 | Time between shots, median | 2.2 s | 1.5 s | 2.4 s | 10 s |
 | Shots 2 / 3 / 4 at (median) | 3.0 / 7.0 / 21.6 s | 2.4 / 3.8 / 11.5 s | | |
 | Shots fired before the shell motor dies (median) | 3 | 4 | | |
-| Shell motor lost (median time) | 91% (8.5 s) | 92% (9.6 s) | 94% (12.3 s) | 40% (53 s) |
-| Gyro's weapon works until (median) | 12.8 s | 14.6 s | 17.1 s | 96 s |
-| Shell spinning (share of fight) | 25% | 25% | 26% | 60% |
+| Shell motor lost (median time) | 91% (8.5 s) | 92% (9.6 s) | 94% (12.3 s) | 38% (53 s) |
+| Gyro's weapon works until (median) | 12.8 s | 14.6 s | 17.1 s | 100 s |
+| Shell spinning (share of fight) | 25% | 25% | 26% | 61% |
 | Booster docked / docked while the shell spins | 57% / 12% | 58% / 13% | | 58% / 31% |
-| Gyro damage dealt a fight | 416 | 455 | 390 | 721 |
+| Gyro damage dealt a fight | 416 | 455 | 390 | 728 |
 
 - "Within 1.7 m" is the Jammer's own range: it flies to 1.15 m from the enemy, so it nearly always is. Jammed share is a little
   below that because the jam is set by the drone's position each step.
