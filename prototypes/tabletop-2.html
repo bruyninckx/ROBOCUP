@@ -485,6 +485,7 @@ html, body {
 .sc-x { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 16px; cursor: pointer; }
 .sc-sub { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
 .sc-field { font-weight: 700; margin: 6px 0; }
+.fmt-ev { display: inline-block; background: #1A1A12; color: #F2C200; font: 700 12.5px var(--mono); padding: 2px 7px; border-radius: 3px; margin: 0 0 3px; letter-spacing: .02em; }
 .sc-chip { display: inline-block; color: #fff; font: 700 11px var(--mono); padding: 1px 7px; border-radius: 2px; white-space: nowrap; }
 .sc-tags { margin: 6px 0 8px; font-size: 12.5px; }
 .sc-tags i { color: var(--muted); font-style: normal; font-size: 11px; }
@@ -1934,7 +1935,34 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const fitOf = r => partsOf(r).map(k => PART_FIT[r.name] && PART_FIT[r.name][k] ? { k, f: PART_FIT[r.name][k][0], d: PART_FIT[r.name][k][1] } : null).filter(Boolean);
   const fitAdj = r => (tripleOf(r) ? 0.6 : 0) + fitOf(r).reduce((a, x) => a + (epicOf(r.name, x.k) ? 0.7 : 0.3) * x.f, 0) + epicsOn(r).filter(x => !(PART_FIT[r.name] && PART_FIT[r.name][x.k])).length * 0.7;   // the bookie knows these: +-0.3 logit a fit
   const fitNote = (name, k) => { const ep = epicOf(name, k); if (ep) return ' · ⚡ EPIC: ' + ep[0]; const x = PART_FIT[name] && PART_FIT[name][k]; return x ? (x[0] > 0 ? ' · 🧩 great fit' : ' · 🧩 poor fit') : ''; };
-  const fmtNote = () => '';   // T56 part 2
+  /* T56 (Kev, 22 Nov: "should be more clear during host phase if special 2v2 or other event is happening"): this round's fight
+   * format in words, from the fight once it is set up, else from what is known before the fighters are picked (an Intrigue
+   * event, the host's Arena cards, the House Robot, the robot count, the arena the host has picked). Display only. */
+  function roundFmt() {
+    if (!G || !G.teams) return null;
+    const F = G.fight && G.fight.teams && (G.phase === 'arena' || G.phase === 'bets') ? G.fight : null;
+    if (!F && G.phase !== 'arena' && !(G.phase === 'market' && G.marketStage === 'host' && G.nextEvent)) return null;
+    const ev = F ? F.event : G.phase === 'arena' ? G.arenaEvent : G.nextEvent, ek = ev && ev.kind;
+    const fmt = F ? F.format : ek === 'ffa' ? 'ffa' : ek === 'tag' || ek === 'final' ? '2v2' : ek === 'mirror' ? 'mirror' : G.phase === 'arena' ? (G.pendingFormat || (G.hostCount === 2 ? 'double' : 'duel')) : 'duel';
+    const house = F ? !!F.house : G.phase === 'arena' && !!G.houseRobot, arena = F ? F.arena || 'open' : G.phase === 'arena' ? G.arenaPick || 'open' : 'open';
+    const tn = i => G.teams[i] ? G.teams[i].name : '?', ready = G.teams.filter(t => readyRobots(t).length).length;
+    let icon = '⚔️', head = 'DUEL', sub = 'the host invites 2 teams, one robot each';
+    if (ek === 'tag') { icon = '🤝'; head = '2v2 TAG TEAM'; const a = F ? sideTeams(F, 0) : ev.teams || []; sub = a.map(tn).join(' + ') + ' vs the other two · the card set the teams: no invites'; }
+    else if (ek === 'final') { icon = '🏆'; head = '2v2 GRAND FINAL · DOUBLE FAME'; const a = F ? sideTeams(F, 0) : G.teams.slice().sort((x, y) => y.fame - x.fame || tieRank(x) - tieRank(y)).slice(0, 2).map(t => t.i); sub = 'the two fame leaders (' + a.map(tn).join(' + ') + ') vs the other two · no invites'; }
+    else if (fmt === '2v2') { icon = '🤝'; head = '2v2'; sub = F ? sideName(F, 0) + ' vs ' + sideName(F, 1) : 'two teams a side'; }
+    else if (fmt === 'ffa') { icon = '💥'; head = 'FREE-FOR-ALL'; const n = F ? F.robots.length || F.teams.length : ready; sub = 'every team with a ready robot fights · ' + n + ' robots, last one standing · no invites'; }
+    else if (fmt === 'mirror') { icon = '🪞'; head = 'MIRROR DUEL'; sub = 'the host invites 2 teams · every robot fights as 2 copies'; }
+    else if (fmt === 'double') { icon = '🤖🤖'; head = 'DOUBLE DUEL · 2 ROBOTS PER SIDE'; sub = 'the host invites 2 teams · each sends up to 2 robots'; }
+    if (house) { head += ' + HOUSE ROBOT'; sub += ' · 🏠 the House Robot is in the arena'; }
+    const ar = arena !== 'open' && ARENA_INFO[arena] ? ARENA_INFO[arena] : null;
+    if (ar) { head += ' · ' + ar.name.toUpperCase(); sub += ' · ' + ar.icon + ' ' + ar.name + ': ' + ar.text; }
+    const plain = fmt === 'duel' && !ek && !house && !ar;
+    return { icon, head, sub, plain, next: !F && G.phase === 'market', quiet: 'Duel · open floor' };
+  }
+  const fmtAsk = () => { const f = roundFmt(); return f ? 'This round: <b>' + f.icon + ' ' + esc(f.plain ? f.quiet : f.head) + '</b>' + (f.plain ? '' : ' (' + esc(f.sub) + ')') + '.<br>' : ''; };   // T56: in the "make the host a deal?" question
+  // the yellow note's headline for it (a plain duel on open floor: nothing)
+  const fmtNote = () => { const f = roundFmt(); if (!f || f.plain) return '';
+    return '<span class="fmt-ev">' + f.icon + ' ' + (f.next ? 'NEXT FIGHT' : 'THIS ROUND') + ': ' + esc(f.head) + '</span> <small>' + esc(f.sub) + '</small><br>'; };
   // T56: how many test fights the fight's odds rest on, in plain words (F.bk is set by the host in afterChoose and synced in G.fight)
   const bookieTxt = F => { const b = F && F.bk; if (!b) return '';
     const nf = k => k + ' test fight' + (k === 1 ? '' : 's');
@@ -2439,12 +2467,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         }
       } else if (G.marketStage === 'host' && iWait('hostbid')) {
         const hc = PS().hostCount || 1;
-        pb.innerHTML = '<span>👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
+        pb.innerHTML = '<span>' + fmtNote() + '👑 <b>Host bid locked</b> (' + ((PS().bids || [])[HOST_K] || 0) + ' Cr, ' + hc + ' robot' + (hc === 2 ? 's' : '') + ' per side). ' + waitTxt('hostbid') + relockTxt('your host bid and robot count') + '</span>' +
           '<button class="act secondary" id="pCount">🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>';
         $('#pCount').onclick = () => act('hostCount');
       } else if (G.marketStage === 'host') {
         const hc = PS().hostCount || 1;
-        pb.innerHTML = '<span>👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame (not if it is the sole fame leader) and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
+        pb.innerHTML = '<span>' + fmtNote() + '👑 <b>Host Bid:</b> a separate sealed bid with what you have left (' + ((PS().bids || [])[HOST_K] || 0) + '/' + t.credits + ' Cr). The host gets +1 fame (not if it is the sole fame leader) and picks who fights. Ties: rebid.<br>🤖 <b>Robot count</b> (secret, only the winner\'s counts): ' + hc + ' per side' + (hc === 2 ? ' (costs ' + WAGER_COST + ' Cr if you win; an uneven 2 vs 1 fight costs you the host fame)' : '') + '.</span>' +
           '<button class="act secondary" id="pCount"' + helpAttr('🤖 Robot-count wager', 'Name 1 or 2 robots per side with your host bid. Only the winning host\'s count is used, and only for a normal duel (events keep their own format). 2 per side costs ' + WAGER_COST + ' Cr; each invited team sends up to 2 of its ready robots. If the fight ends up uneven (2 vs 1), you lose your +1 host fame that round.') + '>🤖 ' + (hc === 2 ? '2 per side' : '1 per side') + ' ↻</button>' +
           '<button class="act" id="pAct1">Lock Host Bid →</button>';
         $('#pCount').onclick = () => act('hostCount');
@@ -2505,6 +2533,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else if (G.host >= 0 && !G.fight) {
         pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking the fighters…</span>';
       }
+      { const fh = fmtNote(), sp = fh && pb.querySelector(':scope > span:not(.sent-list)'); if (sp) sp.insertAdjacentHTML('afterbegin', fh); }   // T56: this round's format, first thing in the note
     } else if (G.phase === 'bets') {
       const lim = betLimit(t), myBet = PS().bet || [], staked = myBet.reduce((a, b) => a + b, 0);
       const can = id => t.hand.includes(id) && t.fame >= (CARDS[id].need || 0);
@@ -7011,7 +7040,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       // person with a ready robot may now offer the host something to be invited or to be left out, each on its own screen,
       // all at the same time. As with the AI offers, it is paid only if the host does what was asked (ACT.invite).
       await Promise.all(humanSeats().filter(h => h !== H && readyRobots(G.teams[h]).length).map(async h => {
-        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
+        const pick = await askSeat(h, '👑 Host ' + esc(G.teams[H].name) + ' picks the fighters', fmtAsk() + 'Make the host a deal? You pay only if the host does what you ask.', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
         if (!pick) return;
         const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(G.teams[H]) + ' something for it. You pay only if the host does it.', from: G.teams[H], lock: 'Lock in offer' }, h);
         if (d && !bundleEmpty(d.give) && G.phase === 'arena' && G.host === H) G.inviteOffers.push({ team: h, want: pick, B: d.give });
@@ -7038,7 +7067,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     for (const h of humanSeats()) {   // each person may offer the AI host a deal (one at a time)
       const Me = G.teams[h];
       if (!readyRobots(Me).length) continue;
-      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
+      const pick = await askSeat(h, '👑 Host ' + esc(host.name) + ' picks the fighters', fmtAsk() + 'Make the host a deal?', [{ label: '✋ Invite me', value: () => 'in' }, { label: '🙈 Leave me out', value: () => 'out' }, { label: 'No deal', secondary: true, value: () => null }], 0, null, { late: 'no deal' });
       if (!pick || (pick === 'in' && forceIn >= 0)) continue;
       const ask = priceOf(Me, pick);
       const d = await dealPanel({ title: pick === 'in' ? '✋ Ask to be invited' : '🙈 Ask to be left out', intro: 'Offer ' + nm(host) + ' something for it.' + (T46 ? ' It takes ' + (ask >= 99 ? 'nothing: it can\'t leave you out' : ask + ' Cr or more') + '.' : ''), from: host, lock: 'Lock in offer' }, h);
@@ -9943,6 +9972,20 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       } else if (GD.sending) { ctx.fillStyle = '#2F7D4A'; ctx.textAlign = 'center'; fitText(ctx, '✓ SENT · WAITING FOR THE HOST', lx + lw / 2, fy + 48, lw, '700', 9.5, F_MONO); }
     }
   }
+  // T56: this round's format as a banner in the pit (hazard yellow for anything but a plain duel on open floor; that one is a quiet line)
+  function drawFmtBanner(ctx, cx, y, w) {
+    const f = roundFmt(); if (!f) return 0;
+    ctx.save(); ctx.textAlign = 'center';
+    if (f.plain) { ctx.fillStyle = '#CFC6B7'; fitText(ctx, 'THIS ROUND: ' + f.quiet.toUpperCase() + ' · ' + f.sub, cx, y + 14, w, '700', 11, F_MONO); ctx.restore(); help(cx - w / 2, y, w, 20, '⚔️ This round: a duel', 'A plain duel on open floor: the host invites 2 teams, each sends one robot.'); return 22; }
+    const h = 54, x = cx - w / 2;
+    ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; ctx.fillStyle = HAZ; rrect(ctx, x, y, w, h, 6); ctx.fill(); ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#1A1A12'; ctx.lineWidth = 3; rrect(ctx, x, y, w, h, 6); ctx.stroke();
+    ctx.fillStyle = '#1A1A12'; fitText(ctx, f.icon + ' ' + (f.next ? 'NEXT FIGHT' : 'THIS ROUND') + ': ' + f.head, cx, y + 26, w - 20, '400', 22, F_STEN);
+    fitText(ctx, f.sub, cx, y + 44, w - 20, '700', 11);
+    ctx.restore();
+    help(x, y, w, h, f.icon + ' This round: ' + esc(f.head), esc(f.sub) + '.');
+    return h + 8;
+  }
   function drawStandbyStage(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
     const pw = Math.min(L.aw - 48, 640), px0 = cx - pw / 2;   // the paper panels: centred, at most 640 wide
@@ -9950,7 +9993,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (G.phase === 'arena' && G.fight && G.fight.teams) {
       // the invited fight (any format: sides joined by VS, teams on a side by +)
       const F = G.fight, n = F.nSides || 2;
-      pitHead('4 · HOST · THE FIGHTERS', (F.arena && F.arena !== 'open' && ARENA_INFO[F.arena] ? 'ARENA: ' + ARENA_INFO[F.arena].name.toUpperCase() : 'OPEN FLOOR'));
+      const rf = roundFmt();
+      pitHead('4 · HOST · THE FIGHTERS', rf && !rf.plain ? rf.head : (F.arena && F.arena !== 'open' && ARENA_INFO[F.arena] ? 'ARENA: ' + ARENA_INFO[F.arena].name.toUpperCase() : 'OPEN FLOOR'));
+      drawFmtBanner(ctx, cx, cy - 136, pw);   // T56
       paperBox(ctx, px0, cy - 70, pw, 120);
       ctx.fillStyle = MUTED; fitText(ctx, 'NEXT FIGHT: ' + fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : ''), cx, cy - 42, pw - 30, '700', 11, F_MONO);
       const parts = [];
@@ -9962,8 +10007,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       parts.forEach(p => { ctx.fillStyle = p.c; ctx.fillText(p.t, px, cy - 8); px += ctx.measureText(p.t).width; });
       ctx.textAlign = 'center'; ctx.fillStyle = '#2F7D4A';
       fitText(ctx, pickWaiting('send') ? '✓ ' + pickWaiting('send').label : PS().choose ? '▶ Pick a robot: SEND TO THE PIT on its card (left) or in the note' : G.chooseMyBot ? 'Waiting for the invited teams…' : bookieOn ? '🎩 The bookie is watching test fights…' : 'Preparing the fighters…', cx, cy + 26, pw - 30, '700', 12.5);
-    } else if (G.phase === 'arena' && G.host === HS) {
-      pitHead('4 · HOST · YOU HOST', 'PICK 2 TEAMS');
+    } else if (G.phase === 'arena' && G.host === HS && !(G.arenaEvent && ['tag', 'final', 'ffa'].includes(G.arenaEvent.kind))) {   // T56: an event sets the teams: no "click 2 teams"
+      const rf = roundFmt();
+      pitHead('4 · HOST · YOU HOST', rf && !rf.plain ? rf.head : 'PICK 2 TEAMS');
+      drawFmtBanner(ctx, cx, cy - 118, pw);   // T56
       paperBox(ctx, px0, cy - 52, pw, 96);
       ctx.fillStyle = INK; fitText(ctx, 'CLICK 2 TEAMS TO INVITE THEM', cx, cy - 16, pw - 30, '400', 20, F_STEN);
       const picked = (G.pickTeams || []).map(i => G.teams[i].name).join('  vs  ');
@@ -9979,7 +10026,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       drawGarage(ctx, L, now);   // T38: the pit is your garage in Upkeep (the fame race sits small on top)
     } else {
       // Upkeep (and between steps): the fame race
-      if (G.phase === 'arena') pitHead('4 · HOST', G.host >= 0 ? (G.teams[G.host].name.toUpperCase() + ' HOSTS · PICKING THE FIGHTERS') : 'HOST: DECIDED IN THE MARKET', G.host >= 0 ? G.teams[G.host].col : HAZ);
+      if (G.phase === 'arena') pitHead('4 · HOST', G.host >= 0 ? (G.teams[G.host].name.toUpperCase() + ' HOSTS · ' + (roundFmt() && !roundFmt().plain ? roundFmt().head : 'PICKING THE FIGHTERS')) : 'HOST: DECIDED IN THE MARKET', G.host >= 0 ? G.teams[G.host].col : HAZ);
       else pitHead(G.phase === 'upkeep' ? '1 · UPKEEP · REPAIRS AND PAY' : PHASE_TITLE[G.phase] || 'STANDBY', 'FIRST TO ' + WIN_FAME + ' FAME WINS');
       paperBox(ctx, px0, y0 + 36, pw, 52 + G.teams.length * 34);
       ctx.fillStyle = MUTED; ctx.textAlign = 'left'; fitText(ctx, 'THE FAME RACE', px0 + 16, y0 + 60, 300, '700', 11, F_MONO);
@@ -9991,6 +10038,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         ctx.fillStyle = INK; ctx.textAlign = 'right'; fitText(ctx, tm.fame + '/' + WIN_FAME + ' · ' + tm.credits + ' Cr', px0 + pw - 16, ry + 13, 100, '600', 11, F_MONO);
       });
       help(px0, y0 + 36, pw, 52 + G.teams.length * 34, 'The fame race', 'Fame and credits of every team. ' + WIN_CHECKS);
+      if (G.phase === 'arena') drawFmtBanner(ctx, cx, y0 + 36 + 52 + G.teams.length * 34 + 12, pw);   // T56: this round's format (the other seats decide whether to ask for an invite)
     }
     // the Market's results stay on the floor while the host picks
     if (G.phase === 'arena' && G.marketResults && G.marketResults.length) {
@@ -10499,6 +10547,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       paperBox(ctx, L.ax - 230, y + h + 8, 460, 22, INK, 1.5);
       ctx.fillStyle = INK; ctx.textAlign = 'center'; fitText(ctx, 'Credits left: ' + hb, L.ax, y + h + 23, 440, '600', 10, F_MONO);
       help(L.ax - 230, y + h + 8, 460, 22, 'Credits left', 'What every team has left after the lots: that is all they can bid for hosting.');
+      { const rf = roundFmt(); if (rf && !rf.plain) drawFmtBanner(ctx, L.ax, y + h + 38, Math.min(L.aw - 40, 620)); }   // T56: an event already set for this round (Tag Team, Grand Final)
     } else pitHead('3 · MARKET · TRADE AND BID', 'SEALED BIDS · TRADE AND SELL WHILE YOU BID');
 
     if (G.marketStage !== 'host') FL.lotsY = stageToWorld(0, y + h).y;   // T55: the composer may grow up to here, never over the lots
@@ -10622,7 +10671,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const totalW = n * w + (n - 1) * gap, x0 = L.ax - totalW / 2;
     const AU = F.auction && !F.auction.done ? F.auction : null;   // with the card auction the robots move up
     const ay0 = L.ay; L = Object.assign({}, L, { ay: AU ? L.ay - L.ah / 2 + 30 + h / 2 : L.ay });
-    pitHead('5 · BETS · THE BOOKIE', fightTitle(F).toUpperCase() + (F.house ? ' + HOUSE ROBOT' : '') + (F.format === 'mirror' ? ' · EVERY ROBOT AS 2 COPIES' : F.event && F.event.kind === 'final' ? ' · GRAND FINAL: DOUBLE FAME' : ''));
+    { const rf = roundFmt(); pitHead('5 · BETS · THE BOOKIE', rf && !rf.plain ? rf.icon + ' ' + rf.head + (F.format === 'mirror' ? ' · EVERY ROBOT AS 2 COPIES' : '') : fightTitle(F).toUpperCase()); }   // T56: the round's format, as in the Host phase
     if (F.house) help(L.ax - 160, L.ay - h / 2 - 20, 320, 16, '🏠 House Robot', 'Big Mallet: a huge neutral robot with a giant hammer. It goes for whoever is closest, winds up (red ring and strobe) and slams where its target was. It rarely lands a hit, but a hit hurts and can take a lid off. Robots keep away from it. It does not count for the result: the fight ends when one team is left. Only if it outlasts every team does nobody get fame (bets refunded). The bookie\'s odds are closer to even with it in.');
     for (let s = 0; s < n; s++) {
       const ents = F.teams.map((ti, e) => ({ ti, e })).filter(x => F.sides[x.e] === s);
