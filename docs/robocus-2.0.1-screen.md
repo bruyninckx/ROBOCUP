@@ -383,3 +383,38 @@ Kev's game of 22 Nov (build 2026-11-22b, seat 0). Build 2026-11-22e.
    (`?bot=1`) already pressed Done after its repairs; `tools/mp-scenario/garage.js` now checks that Upkeep waits (with and without
    parts), that the Done click ends it, and the old way with `upkeepAuto: true`.
 
+## T59 (22 Nov 2026): the host picks who steps in
+
+Kev was the host in round 5 (a duel + House Robot), invited himself and Plum Ohms; Plum had no ready robot and the log said
+"Plum Ohms has no ready robot and declines (−1 fame); Rust Rivets steps in". Kev: "wonder how it was decided that rust rivets steps
+in here" (it was the first team in seat order with a ready robot). Offered "The host picks the replacement from the teams with a
+ready robot": "yes". Build 2026-11-22f.
+
+- When: an invited team drops out of a duel, Mirror duel or 2-per-side duel, because it has no ready robot (`invite`) or because it
+  declines (`declineInvite`), and **2 or more** teams with a ready robot could step in. One such team: it steps in, no question (as
+  before). None: no fight this round (as before). Events (2v2, free-for-all) are unchanged: a team without a ready robot sits out.
+- A person who hosts (local or a joined seat): `askSeat` "👑 Who steps in?" in the yellow note: who dropped out and why, against whom
+  (the team on the other side and its robot: the robot it sent, else its strongest ready robot), one button per candidate: the team,
+  its strongest ready robot and the bookie's band against that robot (`pairP` on the host's arena, the same bands as everywhere).
+  The host's own team is a candidate when it is not in the fight ("(you)"). Timer: `askBoxMs` (30 s), as for picking the fighters.
+  Time up: the team with the most fame (seat order on a tie, as the invite time-out), a ⌛ line to the host, and the log says
+  "the host did not answer in time: X steps in (the most fame)".
+- The pit (every screen, from `G.standIn`): "4 · HOST · WHO STEPS IN?", the round's format banner (T56), who dropped out, and one
+  card per candidate (robot, level, band, fame). On the host's screen a card click answers the note's question (the same button).
+- The waiting list shows the host with "Who steps in?" (the normal question machinery, so online it is host-judged like every other
+  question and comes back to a host who rejoins). While the host chooses after a decline the fight waits (`F.standIn`): a robot
+  sent meanwhile does not start it.
+- An AI host: `aiStandIn` uses its invitation valuation (T46): with the host in the fight, what fighting each candidate gives the
+  host minus what it gives that rival (`inviteGift`, `giftW`); with the host out, the least help to its rivals (`inviteHarm`'s
+  terms; a host that picks itself counts its own gift). No random numbers. Its scores go to `ROBOCUS_DEBUG.standlog` (and the
+  game-sim result, `v2.standIn`).
+- Log: "😴 Plum Ohms has no ready robot and declines (−1 fame); the host picks Moss Gears to step in." / "Plum Ohms declines the
+  invite (−1 Fame); the host picks Moss Gears to step in."
+- Unchanged: the fame rule (a team invited without a ready robot loses 1 fame); the robot of the team that steps in: for a team
+  without a ready robot the new team picks as invited teams do (an AI its best matchup, a person the send question); for a decline
+  it sends its strongest ready robot at once (a person is not asked). The invite buttons are not greyed out.
+- `BAL.hostPicksStandIn` (default true); false = the old way (no robot: the first team in seat order; a decline: the first AI team,
+  then anyone).
+- Tested: `tools/mp-scenario/stand-in.js` (solo: question and pit, pick the second, one candidate, time-out, a decline, an AI host,
+  the switch off; online: a joined seat as host, both paths).
+

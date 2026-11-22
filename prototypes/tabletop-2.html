@@ -861,6 +861,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     // takes its safe default. askMs: a question in the note (one click); askBoxMs: one that stays in the box (ticks to set, a list
     // to read) and the host picking the fighters; askDealMs: a deal panel (credits and parts to put on the table)
     askMs: 20000, askBoxMs: 30000, askDealMs: 45000,
+    // T59 (Kev, 22 Nov: "wonder how it was decided that rust rivets steps in here"): when an invited team drops out of a duel (no ready
+    // robot, or it declines) and 2+ teams with a ready robot could step in, the host picks which (a person: a question, askBoxMs,
+    // time up = the most fame, then seat order; an AI host: by its invitation valuation). false = the old way: the first in seat order
+    // (a decline: the first AI team, then anyone)
+    hostPicksStandIn: true,
     sendMs: 30000,                // T47 (Kev, 21 Nov voting page: "30 seconds, then my strongest ready robot goes"): an invited person picking its fighter
     // T47 (Kev, 21 Nov voting page: "Always ask me first which robot"): a part a person wins with 2+ robots that can take it: 'ask' =
     // the note asks which robot first (askMs; no answer = the best-odds robot, then Undo / Move as T12); true = T12's fit at once on
@@ -2538,7 +2543,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         $('#pAct1').onclick = () => act('invite');
         if ($('#pArena')) { $('#pArena').onchange = e => act('pickArena', e.target.value); $('#pArena').title = ARENA_INFO[G.arenaPick || 'open'].text; }
       } else if (G.host >= 0 && !G.fight) {
-        pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking the fighters…</span>';
+        pb.innerHTML = '<span>👑 <b>Host ' + esc(isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name) + '</b> is picking ' + (G.standIn ? 'who steps in for ' + esc(G.teams[G.standIn.out].name) : 'the fighters') + '…</span>';   // T59
       }
       { const fh = fmtNote(), sp = fh && pb.querySelector(':scope > span:not(.sent-list)'); if (sp) sp.insertAdjacentHTML('afterbegin', fh); }   // T56: this round's format, first thing in the note
     } else if (G.phase === 'bets') {
@@ -3794,7 +3799,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22e playtest remarks: the bookie says how many test fights its odds rest on, the round\'s format is a banner in the Host phase, Upkeep waits for your Done';   // was: 2026-11-22d trading floor
+  const BUILD = 'tabletop 2.0.1 2026-11-22f the host picks who steps in when an invited team drops out';   // was: 2026-11-22e playtest remarks (bookie test-fight count, format banner, Upkeep waits for Done)
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -7194,16 +7199,62 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
   }
 
-  function invite(list, sides, format) {
+  /* T59 (Kev, 22 Nov: "wonder how it was decided that rust rivets steps in here"; offered "The host picks the replacement from the
+   * teams with a ready robot": "yes"). An invited team drops out of a duel (no ready robot, or it declines): with 2+ teams that could
+   * step in, the host picks. A person who hosts gets a question (askSeat: the note, the pit shows the candidates; askBoxMs as for
+   * picking the fighters; time up: the most fame, then seat order); an AI host weighs them as it weighs its invitations (T46:
+   * inviteGift / giftW, no random numbers). One candidate: it steps in, no question. BAL.hostPicksStandIn false: the old way. */
+  const STANDLOG = [];   // the AI host's stand-in picks and why (tools/mp-scenario/stand-in.js; display only)
+  const standInDef = cands => cands.slice().sort((a, b) => b.fame - a.fame)[0];   // the most fame, then seat order (a stable sort)
+  function aiStandIn(H, X, cands) {   // X: the team already on the other side (or null)
+    const T46 = !!aiP(H).invite;
+    const sc = cands.map(C => ({ C, s: T46
+      ? (X === H ? inviteGift(H, H, C).g : C === H ? inviteGift(H, H, X).g : 0) - (X ? giftW(H, X) * inviteGift(H, X, C).g : 0) - giftW(H, C) * inviteGift(H, C, X).g
+      : X === H ? (bestVs(H, strongOf(C), H.i) || { p: 0 }).p : -C.i }));   // (T46 off: its weakest rival when it fights, else seat order)
+    const best = sc.slice().sort((a, b) => b.s - a.s)[0];
+    STANDLOG.push({ r: G.round, host: H.i, vs: X ? X.i : -1, way: T46 ? 'value' : 'odds', cands: sc.map(x => ({ i: x.C.i, s: Math.round(x.s * 100) / 100 })), pick: best.C.i, seat: cands[0].i });
+    return best.C;
+  }
+  // the candidates as the host sees them: each team's strongest ready robot and its band against the robot on the other side
+  function standInView(cands, X, xr, arena) {
+    return cands.map(C => { const r = strongOf(C)[0], p = r && xr ? pairP(r, xr, arena || 'open') : null;
+      return { i: C.i, r: r ? r.name : '', lv: r ? r.level : 0, band: p == null ? '' : bandOf(p).short, col: p == null ? '' : bandOf(p).col }; });
+  }
+  // who steps in for `out` (dropped from a duel): cands (2+), X the team on the other side, xr its robot (or its strongest)
+  async function hostPicksStandIn(cands, out, X, xr, arena, why) {
+    const H = G.teams[G.host];
+    if (!H) return { T: standInDef(cands), by: 'fame' };
+    if (!isHuman(H.i)) return { T: aiStandIn(H, X, cands), by: 'host' };
+    const v = standInView(cands, X, xr, arena), def = standInDef(cands);
+    G.standIn = { out: out.i, vs: X ? X.i : -1, vr: xr ? xr.name : '', why, cands: v }; updateHud();
+    const html = '<b>' + esc(out.name) + '</b> ' + (why === 'decline' ? 'declines the invite' : 'has no ready robot') + ' (−1 fame). Who steps in' + (X ? ' against <b>' + esc(X.name) + '</b>' + (xr ? ' (' + esc(xr.name) + ')' : '') : '') + '? The odds: their strongest ready robot.';
+    const btns = v.map(c => ({ label: esc(G.teams[c.i].name) + (c.i === H.i ? ' (you)' : '') + (c.r ? ' · ' + esc(c.r) + (c.band ? ' · ' + c.band : '') : ''), value: () => c.i }));
+    let late = false;
+    const pick = await askSeat(H.i, '👑 Who steps in?', html, btns, 0, def.i, { ms: ASK_BOX_MS(), late: () => { late = true; return 'the game picks ' + esc(def.name) + ' (the most fame, then seat order)'; } });
+    G.standIn = null; updateHud();
+    const T = G.teams[pick] && cands.includes(G.teams[pick]) ? G.teams[pick] : def;
+    return { T, by: late || pick == null ? 'time' : 'host' };
+  }
+  const standInTxt = (T, by) => by === 'time' ? 'the host did not answer in time: ' + nm(T) + ' steps in (the most fame).' : 'the host picks ' + nm(T) + ' to step in.';
+
+  async function invite(list, sides, format) {
     format = format || G.pendingFormat || 'duel';
     const teams = list.slice(), sd = (sides || list.map((_, i) => i)).slice();
     // a team with no ready robot declines (−1 fame); in a duel a team with a ready robot steps in, in an event it just sits out
+    // (T59: with 2+ teams that could step in, the host picks which)
     for (let e = teams.length - 1; e >= 0; e--) {
       const t = G.teams[teams[e]];
       if (readyRobots(t).length) continue;
       addFame(t, -1);
-      const repl = format === 'duel' || format === 'mirror' || format === 'double' ? G.teams.filter(x => !teams.includes(x.i) && readyRobots(x).length)[0] : null;
-      notify('😴 ' + nm(t) + ' has no ready robot and ' + (repl ? 'declines (−1 fame); ' + nm(repl) + ' steps in.' : 'sits out (−1 fame).'), t.col);
+      const cands = format === 'duel' || format === 'mirror' || format === 'double' ? G.teams.filter(x => !teams.includes(x.i) && readyRobots(x).length) : [];
+      let repl = cands[0] || null, by = null;
+      if (cands.length >= 2 && BAL.hostPicksStandIn !== false) {
+        const xi = teams.find((x, k) => k !== e && sd[k] !== sd[e]), X = xi == null ? null : G.teams[xi];
+        const q = await hostPicksStandIn(cands, t, X, X ? strongOf(X)[0] : null, G.arenaPick, 'none');
+        if (G.phase !== 'arena' || G.fight) return;   // the round moved on while the host was choosing
+        repl = q.T; by = q.by;
+      }
+      notify('😴 ' + nm(t) + ' has no ready robot and ' + (repl ? 'declines (−1 fame); ' + (by ? standInTxt(repl, by) : nm(repl) + ' steps in.') : 'sits out (−1 fame).'), t.col);
       if (repl) teams[e] = repl.i; else { teams.splice(e, 1); sd.splice(e, 1); }
     }
     // renumber sides 0..n-1; an event left with one side is no fight
@@ -7258,19 +7309,31 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const e = F.teams.indexOf(S); if (e < 0) return;
     F.robots[e] = bot; PS(S).choose = false;
     notify('🤖 ' + nm(G.teams[S]) + ' sends <b>' + esc(bot.name) + '</b>.', G.teams[S].col);
-    if (!humanSeats().some(h => PS(h).choose)) afterChoose();
+    if (!humanSeats().some(h => PS(h).choose) && !F.standIn) afterChoose();   // T59: not while the host picks who steps in
   };
   ACT.decline = S => { if (G.phase === 'arena' && G.fight && PS(S).choose) declineInvite(S); };
 
-  function declineInvite(S = HS) {
+  async function declineInvite(S = HS) {
     const F = G.fight;
     if (F.format !== 'duel' && F.format !== 'mirror' && F.format !== 'double') return;   // events can't be declined
     const t = G.teams[S], s = F.teams.indexOf(S);
     if (s < 0) return;
     t.fame = Math.max(0, t.fame - 1);
     const free = x => !F.teams.includes(x.i) && x.i !== S;
-    const repl = G.teams.filter(x => free(x) && !isHuman(x.i) && readyRobots(x).length)[0] || G.teams.filter(x => free(x) && readyRobots(x).length)[0];
     PS(S).choose = false;
+    let repl = G.teams.filter(x => free(x) && !isHuman(x.i) && readyRobots(x).length)[0] || G.teams.filter(x => free(x) && readyRobots(x).length)[0], by = null;
+    // T59: with 2+ teams that could step in, the host picks (any team with a ready robot, people too). Asked again if another
+    // decline took the one it picked while it was choosing
+    for (let n = 0; repl && BAL.hostPicksStandIn !== false && n < 3; n++) {
+      const cands = G.teams.filter(x => free(x) && readyRobots(x).length); if (cands.length < 2) { repl = cands[0] || null; by = null; break; }
+      const xs = F.teams.findIndex((x, k) => k !== s && F.sides[k] !== F.sides[s]), X = xs >= 0 ? G.teams[F.teams[xs]] : null;
+      F.standIn = (F.standIn || 0) + 1;   // while the host chooses, the fight waits (a robot sent meanwhile does not start it)
+      const q = await hostPicksStandIn(cands, t, X, xs >= 0 ? (F.robots[xs] || strongOf(X)[0]) : null, F.arena, 'decline');
+      F.standIn--;
+      if (G.fight !== F || G.phase !== 'arena') return;   // the round moved on
+      repl = q.T; by = q.by;
+      if (free(repl) && readyRobots(repl).length) break;
+    }
     if (!repl) {   // 14 Nov: nobody with a ready robot can step in (it used to pick a team without one: a fight with a missing robot, and the game hung)
       notify(nm(t) + ' declines the invite (−1 Fame) and no team with a ready robot can step in: no fight this round.', '#b45309');
       for (const h of humanSeats()) PS(h).choose = false;
@@ -7278,8 +7341,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     }
     F.teams[s] = repl.i;
     F.robots[s] = readyRobots(repl).slice().sort((a, b) => power(b) - power(a))[0];
-    notify(nm(t) + ' declines the invite (−1 Fame); <b>' + esc(repl.name) + '</b> steps in.', repl.col);
-    if (!humanSeats().some(h => PS(h).choose)) afterChoose();
+    notify(nm(t) + ' declines the invite (−1 Fame); ' + (by ? standInTxt(repl, by) : '<b>' + esc(repl.name) + '</b> steps in.'), repl.col);
+    if (!humanSeats().some(h => PS(h).choose) && !F.standIn) afterChoose();
   }
 
   // the engine fight for this round: specs (copies for Mirror, the House Robot), engine robot index -> entrant
@@ -8713,7 +8776,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     SEATS[s] = 'ai'; netNames[s] = null; if (G.names) G.names[s] = null; delete G.teams[s].player;
     notify('🤖 The AI now plays ' + nm(G.teams[s]) + '.', G.teams[s].col);
     if (G.phase === 'intrigue' && G.intrigueTurn === s && G.endHumanTurn) G.endHumanTurn();
-    if (G.phase === 'arena' && G.chooseMyBot && !humanSeats().some(h => PS(h).choose)) afterChoose();
+    if (G.phase === 'arena' && G.chooseMyBot && !humanSeats().some(h => PS(h).choose) && !(G.fight && G.fight.standIn)) afterChoose();
     if (tieMine(s) || (curTie() && curTie().waitingHuman && !curTie().waiting.some(isHuman))) tieSubmit();
     recheckGather();
     updateHud();
@@ -8847,6 +8910,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     FLAVOR, drawFlavArt, flavArtURL, cardNm, lotNm, cardQ,
     get BAL() { return BAL; }, BAL_DEFAULT: () => clone(BAL_DEFAULT), BAL_URL: () => BAL_URL, bal: setBal, repairCost, CREW_ACTS, waveLevel };
   // T31 test hooks: the question clocks (tools/mp-scenario/questions-note.js, questions-remote.js)
+  Object.assign(window.ROBOCUS_DEBUG, { invite, declineInvite, aiStandIn, standInView, PS: s => PS(s), get standlog() { return STANDLOG; } });   // T59 (tools/mp-scenario/stand-in.js)
   Object.assign(window.ROBOCUS_DEBUG, { askSeat, dealAsk, dealPanel, humanHandLimit, hostStepNow, clkNow, get QCLK() { return QCLK; }, get ASKING() { return ASKING.slice(); } });
   // T47 test hooks (tools/mp-scenario/vote-rules.js)
   Object.assign(window.ROBOCUS_DEBUG, { lotDeck, seatStepNow, bestFit, tradeDone, mktdOpen: () => MKTD.size, SEATC, resolveScheme });
@@ -9993,11 +10057,31 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     help(x, y, w, h, f.icon + ' This round: ' + esc(f.head), esc(f.sub) + '.');
     return h + 8;
   }
+  // T59: the host picks who steps in: the team that dropped out, and one card per candidate (its strongest ready robot and the band
+  // against the robot on the other side). The host's own screen: a card answers the question in the note (the same button)
+  function drawStandIn(ctx, cx, cy, pw, px0) {
+    const S = G.standIn, out = G.teams[S.out], me = G.host === HS, X = S.vs >= 0 ? G.teams[S.vs] : null;
+    pitHead('4 · HOST · WHO STEPS IN?', me ? 'YOU PICK' : 'HOST ' + (isHuman(G.host) ? seatName(G.host) : G.teams[G.host].name).toUpperCase() + ' PICKS');
+    drawFmtBanner(ctx, cx, cy - 166, pw);   // T56: this round's format
+    paperBox(ctx, px0, cy - 98, pw, 60);
+    ctx.fillStyle = out.col; fitText(ctx, out.name.toUpperCase() + (S.why === 'decline' ? ' DECLINES' : ' HAS NO READY ROBOT'), cx, cy - 70, pw - 30, '400', 20, F_STEN);
+    ctx.fillStyle = MUTED; fitText(ctx, (me ? 'Pick who steps in' : 'The host picks who steps in') + (X ? ' against ' + X.name + (S.vr ? ' (' + S.vr + ')' : '') : '') + (me ? ': here or in the note' : '') + '. The odds: their strongest ready robot.', cx, cy - 50, pw - 30, '600', 12);
+    const n = S.cands.length, gap = 14, cw = Math.min(260, (pw - gap * (n - 1)) / n), x0 = cx - (n * cw + (n - 1) * gap) / 2, y = cy - 26, h = 112;
+    S.cands.forEach((c, k) => { const T = G.teams[c.i], x = x0 + k * (cw + gap);
+      paperBox(ctx, x, y, cw, h, T.col, 3, PAPER2);
+      ctx.fillStyle = T.col; fitText(ctx, T.name.toUpperCase() + (c.i === G.host ? ' (HOST)' : ''), x + cw / 2, y + 28, cw - 16, '400', 18, F_STEN);
+      ctx.fillStyle = INK; fitText(ctx, c.r ? c.r + ' · L' + c.lv : 'no robot', x + cw / 2, y + 52, cw - 16, '700', 13);
+      if (c.band) { ctx.fillStyle = c.col; fitText(ctx, c.band.toUpperCase() + (S.vr ? ' VS ' + S.vr.toUpperCase() : ''), x + cw / 2, y + 74, cw - 16, '700', 11, F_MONO); }
+      ctx.fillStyle = MUTED; fitText(ctx, T.fame + ' fame' + (me ? ' · click to pick' : ''), x + cw / 2, y + 96, cw - 16, '600', 11);
+      if (me) hitRegions.push({ kind: 'standin', k, x, y, w: cw, h });
+      help(x, y, cw, h, '👑 ' + esc(T.name) + ' steps in?', 'Its strongest ready robot: <b>' + esc(c.r || '-') + '</b>' + (c.band ? ', the bookie\'s band against ' + esc(S.vr) + ': <b>' + esc(c.band) + '</b>' : '') + '. No answer in time: the team with the most fame steps in (then seat order).'); });
+  }
   function drawStandbyStage(ctx, L, now) {
     const cx = L.ax, cy = L.ay, x0 = cx - L.aw / 2, y0 = cy - L.ah / 2;
     const pw = Math.min(L.aw - 48, 640), px0 = cx - pw / 2;   // the paper panels: centred, at most 640 wide
     ctx.textAlign = 'center';
-    if (G.phase === 'arena' && G.fight && G.fight.teams) {
+    if (G.phase === 'arena' && G.standIn && G.teams[G.standIn.out]) drawStandIn(ctx, cx, cy, pw, px0);   // T59: the host picks who steps in
+    else if (G.phase === 'arena' && G.fight && G.fight.teams) {
       // the invited fight (any format: sides joined by VS, teams on a side by +)
       const F = G.fight, n = F.nSides || 2;
       const rf = roundFmt();
@@ -11044,6 +11128,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
         return;
       }
 
+      if (r.kind === 'standin') { const bt = document.querySelector('#promptBar.qmode [data-rk="' + r.k + '"]'); if (bt && !bt.disabled) bt.click(); return; }   // T59: the same as the note's button
       if (r.kind === 'market_continue') { act('continueMarket'); return; }
       if (r.kind === 'rebid_minus') { act('rebidAdj', -1); return; }
       if (r.kind === 'rebid_plus') { act('rebidAdj', 1); return; }
@@ -11455,6 +11540,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, the host picks who steps in', '22 Nov 2026', [
+      'When an invited team drops out of a duel (it has no ready robot, or it declines) and two teams could step in, the host now picks which. Before, the game took the first team in seat order.',
+      'If you host, the yellow note asks "Who steps in?" with one button per team: its strongest ready robot and the bookie\'s band against the robot it would fight. The pit shows the same teams; a click there works too. You have 30 seconds; then the team with the most fame steps in (seat order on a tie), and the log says so.',
+      'An AI host picks the team it would rather see in the fight, the way it picks its invitations. Only one team could step in: it steps in, nobody is asked. The log line says who chose: "... declines (−1 fame); the host picks Moss Gears to step in."',
+    ]],
     ['2.0.1, playtest remarks', '22 Nov 2026', [
       'The bookie is open about its odds: wherever a fight\'s odds are shown (the Bets pit, the yellow note, the fight\'s side card, a fighter\'s odds panel) a small line says what they rest on: "odds from 158 test fights", "odds from 60 test fights (stopped early: clear favourite)", or "only 26 test fights: odds from the formula". Every screen shows the same.',
       'The round\'s format can\'t be missed: in the Host phase (and the host bid, and Bets) a yellow banner in the pit and a headline in the note name it before the fighters are picked: 2v2 TAG TEAM (and who teams up), GRAND FINAL, FREE-FOR-ALL, MIRROR DUEL, 2 ROBOTS PER SIDE, + HOUSE ROBOT, and the arena when it is not open floor. A plain duel on open floor is one quiet line.',
