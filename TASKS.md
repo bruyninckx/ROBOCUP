@@ -73,6 +73,10 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ### Answered
 
+- **22 Nov (K58, T61):** the loose-shell "debris grinding" (a knocked-off shell destroys its own chassis in 2 s, about 1
+  fight in 200): "don't fix, kinda like it". T61 cancelled; the effect stays. "Tough matchup" marker: "20 is good" (from
+  15; with T62's branch). Parts per matchup: wants a design first (T63).
+
 - **Voting page "ROBOCUS open questions" (21 Nov, saved 17:35 UTC, https://claude.ai/artifact/XCgvAo3mtoDkWjSzU5uiZi):**
   39 questions, all of K10-K42 closed. Changes Kev chose: a wear mark is shown only, repair optional, AI ignores it
   (T41); Fire Sale back with 2 copies (T45); AI teams make the same deals with each other (T46); Crunch Week: "I tick
@@ -174,14 +178,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Find what the bookie's test fights build differently from the real fight (tiers, wear, face-down cards, countdown,
   sides), fix it if it is a bug, and make the `bookie` event log the exact specs so a playtest fight can be replayed.
   Worker on branch `claude/bookie-gap`, started 22 Nov.
-- **T61. Engine bug: a knocked-off spinning shell grinds its own robot's chassis** (found by T60, seed 1583827593).
-  Worker on branch `claude/loose-shell`, started 22 Nov. When merged: fast-forward `claude/combo-hunt` to main so Kev's
-  combo hunt runs on the fixed engine, then tell Kev to start it.
-
-## Done
-
-(The heading was lost on 21 Nov, so finished tasks sat under "In progress" and seven merges had no line here. Restored 22 Nov.)
-
+- **T63. What is a part worth in THIS matchup?** (Kev, 22 Nov: "why were they worthless exactly and it would be nice
+  indeed to somehow know this, or was it only worthless in this matchup. In case yes, can you do a design for me to check
+  the feel of a change like that before we do any big work"). Worker on branch `claude/parts-by-matchup`: measures why
+  the Booster and Jammer drones did nothing for Gyro against Scavenger and how much part values swing by opponent in
+  general (study only, no game change). The orchestrator draws the design (canvas) for Kev.
 - **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
   that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
   `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
