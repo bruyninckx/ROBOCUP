@@ -35,6 +35,9 @@ Branch `claude/garage`, page `prototypes/tabletop-2.html`, BUILD `2026-11-21o`.
 8. **Seamless:** a player with nothing to move (no part on 2+ robots, empty Stash) and nothing to repair sees no bill and goes on by
    itself after 0.6 s, as before. A player with parts to move but nothing to repair goes on by itself after 8 s (`idleMs`) unless they
    click in the garage; the note counts down. A player with repairs presses Done as before.
+   **Changed 22 Nov (T56, Kev: "we should have to click here I think, there are many options"):** a person's Upkeep never ends by
+   itself: no 0.6 s skip, no 8 s count. It ends with Done, which says "Nothing to repair · Done → Intrigue" when there is nothing to
+   repair. `BAL.upkeepAuto: true` brings back the old way above (`idleMs` then counts again). AI teams: unchanged.
 9. **Online:** the draft is local. Lock sends ONE action (`garageLock`, the bill and a fingerprint of the garage it was drafted on);
    the host checks every line again (phase, not done yet, same garage, slots, ownership, credits) and applies all of it or nothing; a
    refusal is a line in that player's log. The other screens see the change only then, with a log line per move ("🔧 Rust Rivets moves
@@ -45,7 +48,7 @@ Branch `claude/garage`, page `prototypes/tabletop-2.html`, BUILD `2026-11-21o`.
     strongest ready robot), half that on its other robots, plus a Stash part's Market value over its bank price when it is put to use.
     It keeps its Stash at 4 parts at most (selling the least useful to the bank, as the old limit did).
 
-Switches: `BAL.garage = { on: true, feeOff: 1, feeOn: 1, legOff: 2, legOn: 2, stashLimit: 0, partsBack: true, idleMs: 8000 }`.
+Switches: `BAL.garage = { on: true, feeOff: 1, feeOn: 1, legOff: 2, legOn: 2, stashLimit: 0, partsBack: true, idleMs: 8000 }` (`idleMs` only with `BAL.upkeepAuto: true`, T56).
 `on: false` = no garage (Stash fits free, the old Upkeep note; with `stashLimit: 4` and `partsBack: false` it plays as before T38).
 
 ## The look
@@ -139,8 +142,9 @@ What it says:
   and credits after in the note, Undo a line, Reset, not enough credits (no Lock, Done disabled), Lock applies all with log lines, a
   broken Stash part refused on a robot and by `fitStash`, repaired from the note with 1 action, then it fits; 9 Stash parts fit (the card
   scrolls, the page does not); a host scrap (real `resolveFate`) gives the parts back, the Body part broken; Done with a bill pays it
-  and ends Upkeep; a late Lock is refused; a player with no parts goes on by itself (~1.2 s) with no bill; with parts and untouched after
-  idleMs; touched: it waits.
+  and ends Upkeep; a late Lock is refused; a player with no parts sees no bill. T56: with no parts, and with parts untouched, Upkeep
+  waits (no count) until the Done click ("Nothing to repair · Done → Intrigue"), the waiting list says Upkeep; with `upkeepAuto: true`
+  the old way: no parts on by itself (~1 s), parts untouched after idleMs, touched: it waits.
 - `node tools/mp-scenario/garage-online.js [seed] [shots]`: host + 3 joined: a client drafts by clicking on its canvas (host and other
   client unchanged), locks (host applies, other client sees the move and the log line), the broken flag is synced, a bill over its credits
   and one on an old garage are refused, Done, a late Lock refused, reload/rejoin gets the garage back.

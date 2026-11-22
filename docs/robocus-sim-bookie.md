@@ -196,3 +196,21 @@ Checked: the odds a fight uses are worked out only on the host. `afterChoose` (w
 actions (a client's `act` goes to the host), the helpers are started only when the page is not a client, and the odds (`F.p`,
 bands, payouts) reach the other screens in the synced game state. The helpers use the bookie's own seeds, never the game's dice;
 more helpers or an early stop change only how many test fights the host counts, not any game random number. `node tools/mp-test.js` (3 clients, seed 5): OK, desyncs 0 on every client, 9 fights checked, 3.3 min.
+
+## 22 Nov (T56): the screen says what the odds rest on
+
+Kev's playtest of 22 Nov (build 2026-11-22b, 14 workers): the bookie ran 200, 60 (stopped early), 200, 60 (early), 158, 112 (the
+2v2, 8 s), 199, 200, 127, 182, 173, 185 test fights. Kev: "be open about how many fights the bookie was able to process".
+
+- The host writes `F.bk = { n, used, early, off, min, file }` into the fight in `afterChoose` (display only, synced with `G.fight`,
+  so every screen shows the same number; nothing reads it back into the game; not set in fast all-AI games).
+- `bookieTxt(F)`: "odds from 158 test fights" · "odds from 60 test fights (stopped early: clear favourite)" · "only 26 test fights:
+  odds from the formula" (+ "(game opened as a file)" when they ran on the page from a file) · "no test fights finished in time:
+  odds from the formula" · "no test fights (switched off): odds from the formula". `bookieHelp(F)` says it in a sentence for the hover.
+- Where: the Bets pit (a line under the side cards; with the fight-card auction up, before "Public bets"; brown for the formula),
+  the yellow note in Bets, each band's hover help, the fight screen's side card, and a fighter's odds panel in Bets / Fight
+  ("This fight: Fav pays 1.5× · odds from …"). Screenshots: t56-bookie-count.png (staged: `min` 5, `stopN` 6, so "6 test fights
+  (stopped early)"), t56-bookie-count-formula.png (a file page in the cloud box: "only 7 test fights (game opened as a file)").
+- The log line says "stopped early (clear favourite)" when it did; the fallback line says "these odds come from the formula"
+  (was "its estimate, as before").
+
