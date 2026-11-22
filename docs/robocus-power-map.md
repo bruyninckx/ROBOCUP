@@ -94,14 +94,15 @@ Kev (voting page, 21 Nov): a great fit or an epic combo "should move the robot t
 - The shift now adds what the bookie adds for them (`fitAdj` in `prototypes/tabletop-2.html`, used by `pairP`), in levels
   (logits / `Repair2.LEVEL` 0.62), open floor (`pmFits`):
   - great fit (`PART_FIT` +1): +0.3 logit = **+0.5 level**; poor fit (`PART_FIT` −1): **−0.5 level**;
-  - epic combo (`EPIC`: Whiplash, Phantom Hook, Overclock, Iron Bolas): +0.7 logit = **+1.1 levels** (instead of the
+  - epic combo (`EPIC`; since 22 Nov, T65: Whiplash, Phantom Hook, Overclock, Sea Wall, Second Wind, Heckler, Laser Tag, Bad Dog,
+    Thwack-a-mole; Iron Bolas is a great fit now): +0.7 logit = **+1.1 levels** (instead of the
     great fit it also is, not on top of it);
   - a complete giant-slayer build (`TRIPLE`): +0.6 logit = **+1.0 level**.
   These are the numbers the bookie's formula already used; their source is the fit tests in `docs/robocus-tuned-lineup-tags.md`
-  and the T41 re-test (`docs/robocus-wear-in-game.md`).
+  and the T41 re-test (`docs/robocus-wear-in-game.md`); since 22 Nov (T65) Kev's combo hunt (`docs/robocus-combo-hunt.md`).
 - The hover card and the side panel say why, e.g. "Fights like ★2.9 (parts +¾, Epic combo Whiplash +1.1 levels)" for a ★1
   Thwacker with a Tow cable (before: ★1.75 in the Level 2 band; now the Level 3 band). A ★0 Forklift with a Pester chip:
-  "parts +¾, Poor fit Pester chip −0.5" (★0.75 → ★0.27, back to the Starters band).
+  "parts +¾, Poor fit Pester chip −0.5" (★0.75 → ★0.27, back to the Starters band). (Example from before 22 Nov: Forklift + Pester chip is no longer a poor fit since T65; Blacksmith + Pester chip is.)
 - Wear marks: the bookie's `Repair2.markCost` (T41) was already inside the damage (`str2` → `wearCost` → `markCost`). The text
   now splits it out: "damage −¼, wear marks −0.2" (`pmMarkLv`). No change to where a marked robot stands.
 - Parts stay in quarters ("+¾", as on the cards); fits, epics and marks are shown in tenths.

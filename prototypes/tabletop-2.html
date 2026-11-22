@@ -1911,14 +1911,19 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * with and without the part, scratch fit.js). Most of a part's effect is the part itself or the robot; these are the combos that
    * stand out on both halves of the seeds: [+1 great fit / -1 poor fit, change in wins in points vs no part]. */
   // Kev, 15 Nov: re-measured on the tuned lineup (docs/robocus-tuned-lineup-tags.md, tools/damage-lab/tag-tuned/)
-  const PART_FIT = {"Angler":{"quantum":[1,56]},"Vertigo":{"powerkit":[1,30],"overdrive":[-1,-15]},"Gaucho":{"overdrive":[1,46]},"Rotisserie":{"pester":[-1,-17],"overdrive":[-1,-7]},"Yoyo":{"blocker":[-1,-14]},"Thwacker":{"mines":[1,44],"pester":[1,36],"tow":[1,48]},"Wrecker":{"pester":[1,40],"jammer":[1,28]},"Snapjaw":{"bait":[1,28]},"Popcorn":{"quantum":[1,40]},"Corkscrew":{"pester":[-1,-15]},"Slingshot":{"bait":[-1,-16]},"Hornet":{"booster":[-1,-25]},"Forklift":{"pester":[-1,-5]}};   // Kev, 21 Nov (T41): wear on, retuned robots: every part on every robot vs a level up (big run, 14,784 fights) and the candidates re-tested once or twice with and without the part (40-78 fights); docs/robocus-wear-in-game.md
+  const PART_FIT = {"Whaler":{"waller":[1,40]},"Angler":{"quantum":[1,48],"shield":[1,35],"hospital":[1,40]},"Wrecker":{"pester":[1,35]},"Mauler":{"laser":[1,34],"pester":[1,32]},"Vertigo":{"powerkit":[1,34],"hospital":[1,42]},"Thwacker":{"mines":[1,35],"tow":[1,34],"pester":[1,32],"hospital":[-1,-6],"armourkit":[-1,-12]},"Gaucho":{"overdrive":[1,33]},"Rotisserie":{"overdrive":[-1,-9]},"Blacksmith":{"pester":[-1,-15]},"Slingshot":{"bait":[-1,-7]}};   // Kev, 22 Nov (T58/T65): combo hunt on his PC (278,626 fights, wear on, open floor): every part on every robot vs a level up, kept only what held on two fresh seed sets; [+1 great / -1 poor fit, change in wins in points vs no part, all fights]; docs/robocus-combo-hunt.md
   /* Kev, 10 Nov: EPIC combos. The great fits that held up again on fresh seeds against every robot a level up, far above what the part
    * does for an average robot. [name, wins without, wins with] (% vs robots a level up, 30-42 fights; scratch confirm.js) */
-  const EPIC = {   // Kev, 21 Nov (T41): re-tested with wear on (30-48 fights each, fresh seeds): Haywire (Popcorn + Sensor scrambler) gone (17 -> 33%), the other four hold. Kev, 15 Nov: after the parts were levelled: re-tested twice on fresh seeds vs every robot a level up (60-96 fights). Thwacker + Mine layer is a great fit
-    'Thwacker|tow': ['Whiplash', 30, 78],
-    'Angler|quantum': ['Phantom Hook', 28, 83],
-    'Vertigo|powerkit': ['Overclock', 50, 80],
-    'Gaucho|overdrive': ['Iron Bolas', 12, 58],
+  const EPIC = {   // Kev, 22 Nov (T58/T65): combo hunt on his PC (278,626 fights): gain 30+ and 20+ over the part's average, held on two fresh seed sets vs every robot a level up (250-432 fights each); names by Kev. Iron Bolas (Gaucho + Overdrive) is a great fit now. Before: T41 (21 Nov), Haywire gone; 15 Nov re-test
+    'Angler|quantum': ['Phantom Hook', 24, 71],
+    'Whaler|waller': ['Sea Wall', 30, 69],
+    'Vertigo|hospital': ['Second Wind', 43, 85],
+    'Wrecker|pester': ['Heckler', 30, 64],
+    'Mauler|laser': ['Laser Tag', 16, 49],
+    'Mauler|pester': ['Bad Dog', 16, 47],
+    'Vertigo|powerkit': ['Overclock', 44, 78],
+    'Thwacker|mines': ['Thwack-a-mole', 35, 69],
+    'Thwacker|tow': ['Whiplash', 34, 68],
   };
   const ARENA_NOW = () => G && G.fight && (G.phase === 'bets' || G.phase === 'fight' || G.phase === 'arena') ? G.fight.arena : null;
   /* Kev, 10 Nov: GIANT-SLAYER builds. Every level 0-2 robot fully kitted (its 4 best-fitting parts paired, x the 3 legendaries) against
@@ -1926,8 +1931,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * and vs L3/L4 that carry Weapon overhaul + Reinforced hull + Prototype core]. Parts stack about evenly (+20 points each); these four
    * stay level with a one-level gap even when the big robots are kitted too. */
   // Kev, 15 Nov: re-measured on the tuned lineup: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights bare, 84 vs kitted ones)
-  const TRIPLE = {   // Kev, 15 Nov: after the parts were levelled: each level 0-2 robot with its 3 best parts vs every level 3-4 robot (56 fights; last number: vs kitted ones)
-    Gyro: [['quantum', 'spotter', 'waller'], 38, 89, 66], Whaler: [['quantum', 'tow', 'waller'], 23, 82, 50],
+  const TRIPLE = {   // Kev, 22 Nov (T58/T65): combo hunt on his PC: the build vs every level 3-4 robot, 448 fights each: [parts, as it comes, built (bare L3/L4), built vs kitted L3/L4]. Kev kept Gyro's and Whaler's builds and added Thwacker's
+    Gyro: [['quantum', 'spotter', 'waller'], 46, 86, 58], Whaler: [['quantum', 'tow', 'waller'], 19, 80, 41], Thwacker: [['booster', 'mines', 'core'], 17, 83, 37],
   };
   const tripleOf = r => { const t = r && TRIPLE[r.name]; return t && t[0].every(k => partsOf(r).includes(k)) ? t : null; };
   // the Market: this part would complete (or be the 2nd of) a giant-slayer build on a robot that has the rest
@@ -3803,7 +3808,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22h bookie: test fights in the helpers fight with the game\'s part tuning, no lean from the time cut';   // was: 2026-11-22g power map: click a robot, its odds against every other one
+  const BUILD = 'tabletop 2.0.1 2026-11-22j combo tables: great and poor fits, epics and giant-slayer builds from Kev\'s combo hunt (278,626 fights)';   // was: 2026-11-22h bookie: test fights in the helpers fight with the game's part tuning, no lean from the time cut
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -11589,6 +11594,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, combo tables from the combo hunt', '22 Nov 2026', [
+      'New epic combos from Kev\'s combo hunt (278,626 test fights): Sea Wall (Whaler + Waller drone), Second Wind (Vertigo + Field hospital), Heckler (Wrecker + Pester chip), Laser Tag (Mauler + Laser drone), Bad Dog (Mauler + Pester chip) and Thwack-a-mole (Thwacker + Mine layer). Whiplash, Phantom Hook and Overclock stay, with new numbers. Iron Bolas (Gaucho + Overdrive) is now a great fit, not an epic.',
+      'Great and poor fits re-measured: new great fits Angler + Energy shield and Angler + Field hospital; new poor fits Thwacker + Field hospital, Thwacker + Armour kit and Blacksmith + Pester chip. Gone: Popcorn + Quantum shield, Wrecker + Jammer drone, Snapjaw + Wall Bait chip (great), Hornet + Booster drone, Vertigo + Overdrive, Rotisserie + Pester chip, Yoyo + Blocker drone, Corkscrew + Pester chip, Forklift + Pester chip (poor).',
+      'Giant-slayer builds: Gyro (Spotter drone + Waller drone + Quantum shield) and Whaler (Tow cable + Waller drone + Quantum shield) stay with new numbers; new: Thwacker with Booster drone + Mine layer + Prototype core (beats bare level 3-4 robots 83% of the time). The bookie, the AI\'s bids and the power map read these tables, so their numbers move with them. Nothing was nerfed.' ]],
     ['2.0.1, bookie odds fixed', '22 Nov 2026', [
       'The bookie\'s test fights now fight exactly as the arena does. Its helpers (the background fights from play-latest or GitHub Pages) left out the game\'s part tuning, so drones and modules from part cards (Booster, Jammer, Quantum shield, Blocker, Repair kit...) fought at the wrong strength there. Example, Kev\'s Gyro vs Scavenger (22 Nov, round 11): the helpers gave Gyro 69 of 126, the real fight gives it 51 of the same 126 (odds 55% would now be about 42%).',
       'A test fight still running when the bookie\'s time is up no longer skews the count: only an unbroken run of fights from the first one counts (a few fewer fights, no lean toward the side that wins fast). The playtest log\'s bookie line now carries the robots, arena and every test fight\'s result, so tools/bookie-replay.js can re-run it.',

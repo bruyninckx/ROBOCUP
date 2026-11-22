@@ -3,8 +3,8 @@
 Kev (22 Nov): "can we do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage
 models etc, make a gigantic program to run on my pc to find combos that work really well".
 
-Branch `claude/combo-hunt`. **Nothing in the game changes yet.** The game's tables (PART_FIT, EPIC, TRIPLE) change only after
-Kev's run has come back and he has seen the list.
+Branch `claude/combo-hunt`. Kev's run came back on 22 Nov (278,626 fights) and its tables are in the game since build
+2026-11-22j (T65): see "Results of Kev's run, 22 Nov" at the end.
 
 ## Run it (Kev)
 
@@ -171,3 +171,46 @@ at in Kev's run", not as results.
   +50 over a standard copy): the first "looks broken" candidate. Two others at 100% on 10-12 fights (Angler + Race-spec Quantum,
   Vertigo + Race-spec Field hospital) are within noise of 90%.
 - **Synergy:** nothing real at this size (4 pairs re-fought, 20 fights each, all ranges cross 0).
+
+## Results of Kev's run, 22 Nov (in the game since build 2026-11-22j, T65)
+
+Kev's PC: 278,626 fights, all 33 robots, every part card, wear on, open floor, depth 7 of 8 (engine d60cb367). Full report:
+`tools/damage-lab/combo-hunt/kev-2026-11-22/report.md`; the table text: `apply.txt` next to it (`tools/damage-lab/combo-apply.js`).
+Kev's answers (K61): apply the fits and epics, the six names, keep the game's two giant-slayer builds and add Thwacker's, nothing
+nerfed before the playtest.
+
+**Epic combos** (`EPIC`; gain 30+ and 20+ over the part's average, held on both seed sets; win % vs robots a level up, all fights):
+
+| Epic | Robot + part | Without → with | Fights |
+|---|---|---|---|
+| Phantom Hook | Angler + Quantum shield | 24% → 71% | 432 |
+| Sea Wall (new) | Whaler + Waller drone | 30% → 69% | 336 |
+| Second Wind (new) | Vertigo + Field hospital | 43% → 85% | 250 |
+| Heckler (new) | Wrecker + Pester chip | 30% → 64% | 360 |
+| Laser Tag (new) | Mauler + Laser drone | 16% → 49% | 360 |
+| Bad Dog (new) | Mauler + Pester chip | 16% → 47% | 360 |
+| Overclock | Vertigo + Power kit | 44% → 78% | 360 |
+| Thwack-a-mole (new) | Thwacker + Mine layer | 35% → 69% | 310 |
+| Whiplash | Thwacker + Tow cable | 34% → 68% | 360 |
+
+Iron Bolas (Gaucho + Overdrive, 23% → 56%) is no longer an epic (15 over the Overdrive's average, not 20): a great fit.
+
+**Fits** (`PART_FIT`, 15+ points over / under what the part gives an average robot, on both seed sets): 13 great (the nine epics,
+Angler + Energy shield, Angler + Field hospital, Thwacker + Pester chip, Gaucho + Overdrive) and 5 poor (Thwacker + Field
+hospital, Thwacker + Armour kit, Rotisserie + Overdrive, Blacksmith + Pester chip, Slingshot + Wall Bait chip). Gone from the game:
+Popcorn + Quantum shield, Wrecker + Jammer drone, Snapjaw + Wall Bait chip (great); Hornet + Booster drone, Vertigo + Overdrive,
+Rotisserie + Pester chip, Yoyo + Blocker drone, Corkscrew + Pester chip, Forklift + Pester chip (poor).
+
+**Giant-slayer builds** (`TRIPLE`, vs every level 3-4 robot, 448 fights each: as it comes → built, and built vs kitted level 3-4s).
+Kev kept the game's two builds rather than the run's "best build" for Gyro and its drop of Whaler (the run's Gyro build, Energy shield
++ Weapon overhaul + Field hospital, does about as well bare but worse against kitted robots: 44% vs 58%):
+
+| Robot | Build | As it comes → built | vs kitted |
+|---|---|---|---|
+| Gyro | Spotter drone + Waller drone + Quantum shield | 46% → 86% | 58% |
+| Whaler | Tow cable + Waller drone + Quantum shield | 19% → 80% | 41% |
+| Thwacker (new) | Booster drone + Mine layer + Prototype core | 17% → 83% | 37% |
+
+**Parked until after the playtest (K61d): combos that look too strong.** Thwacker + a Race-spec or better Tow cable (93-98%); full
+builds of Thwacker (98% a level up), Vertigo 99%, Mauler 97%, Bricklayer 96%; Masterwork stand-outs (Scythe + Sensor scrambler,
+Mauler + Laser drone, Popcorn + Overdrive). Nothing was nerfed or rebalanced for them.
