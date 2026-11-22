@@ -164,6 +164,12 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   team in seat order with a ready robot steps in (`invite()` and the decline path in `prototypes/tabletop-2.html`).
   Worker on branch `claude/host-picks-stand-in`, started 22 Nov. Not answered by Kev: whether a team with no robot at
   all still loses a fame for "declining" (kept as it is; K56).
+- **T60. Scavenger against Kev's stacked Gyro: odd chance or not, and why the power map said nothing** (Kev, 22 Nov, his
+  second game of the day, log /home/claude/t-play/kev-log-22nov-b.json: "for some reason, scavenger really slapped my
+  stacked gyro although it was not an indication in the power map??"; "can you check with these specific matchup if it
+  was odd chance, also, it really didnt show in the power map, also not if I clicked on it"). Round 9, Killbox: Gyro
+  (Booster drone, Jammer, Quantum shield) 65% by 154 test fights, torn apart in 14.9 s; round 11, open: 55%, lost in
+  58 s. Matchup table, as new, open floor: Gyro 3 of 20. Worker on branch `claude/gyro-scavenger`, started 22 Nov.
 - **T58. Combo hunt: recheck epic and ultimate combos with wear on, as a big run for Kev's PC** (Kev, 22 Nov: "can we
   do a recheck on epic and ultimate combos, see if we find some new or different things with the new damage models etc,
   make a gigantic program to run on my pc to find combos that work really well"). Worker on branch
