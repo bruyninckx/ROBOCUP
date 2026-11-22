@@ -3802,7 +3802,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22g power map: click a robot of this game and every other one shows its odds against it, tough matchups marked';   // was: 2026-11-22f the host picks who steps in
+  const BUILD = 'tabletop 2.0.1 2026-11-22h bookie: test fights in the helpers fight with the game\'s part tuning, no lean from the time cut';   // was: 2026-11-22g power map: click a robot, its odds against every other one
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -11588,6 +11588,9 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, bookie odds fixed', '22 Nov 2026', [
+      'The bookie\'s test fights now fight exactly as the arena does. Its helpers (the background fights from play-latest or GitHub Pages) left out the game\'s part tuning, so drones and modules from part cards (Booster, Jammer, Quantum shield, Blocker, Repair kit...) fought at the wrong strength there. Example, Kev\'s Gyro vs Scavenger (22 Nov, round 11): the helpers gave Gyro 69 of 126, the real fight gives it 51 of the same 126 (odds 55% would now be about 42%).',
+      'A test fight still running when the bookie\'s time is up no longer skews the count: only an unbroken run of fights from the first one counts (a few fewer fights, no lean toward the side that wins fast). The playtest log\'s bookie line now carries the robots, arena and every test fight\'s result, so tools/bookie-replay.js can re-run it.' ]],
     ['2.0.1, power map matchups', '22 Nov 2026', [
       'Power map: click one of this game\'s robots and every other robot of this game shows, under its name, its bookie odds against the one you clicked (Heavy fav ... Heavy dog, parts and damage counted, as in the scout panel). Those robots are no longer dimmed when there is no arrow to them.',
       'A dashed amber ring and "tough" mark a tough matchup: as they come, that robot does 15-39 points better against the clicked one than the level gap gives (40+ stays the ⚠️ counter with its arrow). The side panel lists the robots of this game against the clicked one in a box at the top, toughest first, with the same marks. Display only: nothing in the game, the odds or the AI changes.' ]],

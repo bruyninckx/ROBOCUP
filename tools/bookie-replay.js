@@ -11,9 +11,10 @@ const ROOT = path.join(__dirname, '..');
 const DL = require(path.join(ROOT, 'src2/engine.js')), LU = require(path.join(ROOT, 'src2/lineup.js'));
 const argv = process.argv.slice(2), opt = k => { const a = argv.find(x => x.startsWith('--' + k + '=')); return a ? a.slice(k.length + 3) : null; };
 const pos = argv.filter(x => !x.startsWith('--'));
-if (!pos[0]) { console.log('usage: node tools/bookie-replay.js <log.json> [round] [--n=200] [--nopk]'); process.exit(1); }
+const MAIN = require.main === module;
+if (MAIN && !pos[0]) { console.log('usage: node tools/bookie-replay.js <log.json> [round] [--n=200] [--nopk]'); process.exit(1); }
 LU.usePK();   // as the page
-if (argv.includes('--nopk')) for (const k in DL.ARC.pk) delete DL.ARC.pk[k];
+if (MAIN && argv.includes('--nopk')) for (const k in DL.ARC.pk) delete DL.ARC.pk[k];
 const clone = o => JSON.parse(JSON.stringify(o));
 const HOUSE = 'House Robot';
 
@@ -62,6 +63,8 @@ function replay(ev) {
   console.log(`  (${((Date.now() - t0) / 1000).toFixed(1)} s here)`);
   return { same, n: logged.length, diff: diff.length };
 }
+module.exports = { buildBB, side };
+if (MAIN) {
 const L = JSON.parse(fs.readFileSync(pos[0], 'utf8')), round = pos[1] != null ? +pos[1] : null;
 const evs = (L.events || []).filter(e => e.k === 'bookie' && (round == null || e.r === round));
 if (!evs.length) { console.log('no bookie event' + (round != null ? ' in round ' + round : '') + ' in this log'); process.exit(1); }
@@ -73,3 +76,4 @@ for (const ev of evs) {
   const r = replay(ev); if (r.diff) bad++;
 }
 process.exitCode = bad ? 2 : 0;
+}
