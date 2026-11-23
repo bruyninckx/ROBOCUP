@@ -90,6 +90,12 @@ figcaption{font-size:14px;line-height:1.4;color:var(--mute);padding:8px 12px 10p
 code,.mono{font:500 .92em var(--mono);background:#E9E1CF;padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
 details{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:10px 14px;margin:14px 0}
 summary{cursor:pointer;font-weight:700}
+.play{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:20px 0 4px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:0 22px;background:var(--rust);color:#fff;border:3px solid var(--ink);border-radius:8px;font:800 26px/1 var(--display);letter-spacing:.03em;text-decoration:none;box-shadow:4px 4px 0 var(--ink)}
+.btn:hover{background:#A94416}.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--steel);outline-offset:3px}
+.btn svg{flex:none}
+.play small{font-size:14px;line-height:1.35;color:var(--mute);flex:1 1 12em}
 footer{margin-top:44px;padding-top:14px;border-top:4px solid var(--ink);font-size:14px;color:var(--mute)}
 @media(prefers-reduced-motion:no-preference){.bar{transition:none}}
 '''
@@ -118,6 +124,7 @@ H=f'''<!DOCTYPE html>
 <div class="kick">ROBOCUS 2.0 · playtest notes · updated 23 Nov 2026</div>
 <h1>Since <em>Friday the 13th</em></h1>
 <p class="lede">You played the first version on Friday 13 November and told Kev what annoyed you. This is what happened to the game in the ten days after, what broke on the way, and what you will find when we play again.</p>
+<div class="play"><a class="btn" href="https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-2.html"><svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M1 1l16 9-16 9z" fill="#fff"/></svg>PLAY ROBOCUS</a><small>Opens the game. Needs a laptop or desktop with Chrome or Edge; it does not fit a phone.</small></div>
 <div class="tiles">
 <div class="tile"><b>444</b><span>saved changes to the game, 16 to 22 Nov</span></div>
 <div class="tile"><b>66</b><span>jobs on the task board, from one-line fixes to whole new screens</span></div>
@@ -283,6 +290,8 @@ H=f'''<!DOCTYPE html>
 </div>
 
 <h2>Before we play</h2>
+<p>For game night, use the invite link Kev sends: it puts you straight in his room. The button opens the game on its own, where you can try a round against the AI teams first.</p>
+<div class="play"><a class="btn" href="https://bruyninckx.github.io/ROBOCUP/prototypes/tabletop-2.html"><svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M1 1l16 9-16 9z" fill="#fff"/></svg>PLAY ROBOCUS</a><small>Opens the game. Needs a laptop or desktop with Chrome or Edge; it does not fit a phone.</small></div>
 <ol class="steps">
 <li><b>Use a laptop or desktop</b> with Chrome or Edge. The game needs a screen at least 1280 wide; it does not work on a phone. This page does.</li>
 <li><b>Open the link Kev sends</b>, type a name, click Join, then "I'm ready".</li>
