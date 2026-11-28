@@ -1387,17 +1387,22 @@
     if (R.carry) { const p0 = R.carry.robot.body.getPosition(); ctx.strokeStyle = 'rgba(232,197,71,0.8)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.arc(p0.x, p0.y, R.carry.robot.hl + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); }
     if (R.claps) for (const q of R.claps) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = HAZ; ctx.fillRect(0.38, -0.05, 0.1, 0.1); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.strokeRect(0.38, -0.05, 0.1, 0.1); bolt(0, 0); });
   }
+  // T72: a lopsided spinner bar (Buzzkill's half bar) throws the robot about along its long arm: drawn a few cm off, the way the arm points
+  function lopShake(R) { const q = R.blade; if (!R.foLop || !q || !q.attached || !R.alive) return null; const w = Math.min(1, (R.bladeW || 0) / (R.bladeMax || 1)); if (w < 0.15) return null;
+    const a = q.body.getAngle(), k = 0.035 * w; return [Math.cos(a) * k, Math.sin(a) * k]; }
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
     // each arm's reach and where its tip points (a bent arm is shorter and trails): a bent bar sweeps two circles, not one
     const arm = sg => { let r = 0, an = sg > 0 ? 0 : Math.PI; for (const q of part.outline) if (q[0] * sg > 0) { const d = Math.hypot(q[0], q[1]); if (d > r) { r = d; an = Math.atan2(q[1], q[0]); } } return [r || 0.5, an]; };
-    const [rA, aA] = arm(1), [rB, aB] = arm(-1), bent = Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08;
+    const [rA, aA] = arm(1), [rB, aB] = arm(-1), lop = !!part.lop, bent = !lop && (Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08);
     if (w > 0.2) {
       const R0 = Math.max(rA, rB) + 0.01, off = bent ? (rA - rB) * 0.5 : 0; // the out-of-balance bar throws its swept disc off centre
       ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(Math.cos(a) * off, Math.sin(a) * off, R0, 0, 6.29); ctx.fill();
       ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2;
       for (const [rr, aa] of [[rA, aA], [rB, aB]]) { ctx.beginPath(); ctx.arc(0, 0, rr - 0.02, a + aa, a + aa + 0.9); ctx.stroke(); }
+      if (lop) { ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.min(rA, rB), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); // T72: the stub's small track
+        ctx.strokeStyle = `rgba(232,197,71,${0.5 + w * 0.4})`; ctx.lineWidth = PX * 3; for (const o of [0.25, 0.55]) { ctx.beginPath(); ctx.arc(0, 0, Math.max(rA, rB) + 0.03 + o * 0.04, a + aA - 0.5 - o, a + aA - o * 0.4); ctx.stroke(); } } // wobble marks behind the long end
       if (bent) { const rs = Math.min(rA, rB) - 0.02; ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, rs, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the bent arm's shorter track
     }
     ctx.rotate(a);
@@ -1786,7 +1791,7 @@
     // robot in the air is drawn last
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
     for (const R of S.robots) if (R.forks && !R.inPit) drawForks(R, R.id);
-    for (const R of order) drawRobot(R, R.id);
+    for (const R of order) { const jg = lopShake(R); if (jg) { ctx.save(); ctx.translate(jg[0], jg[1]); } drawRobot(R, R.id); if (jg) ctx.restore(); } // T72: Buzzkill's lopsided bar shakes the whole robot (drawing only; the sim's shake is real but small on screen)
     for (const d of S.debris) if (d.stuckIn && d.foShape) drawFoPiece(d);   // T69: a spear tip stuck in a robot shows on top of it
     drawTows();
     for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing
@@ -2119,7 +2124,7 @@
     const c = document.createElement('canvas'); c.width = c.height = size;
     const P = L.create({ a: spec, b: spec, seed: 1 }), R = P.robots[0];
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    let bR = R; if (spec.flyoffGone) { const s2 = Object.assign({}, spec); delete s2.flyoffGone; s2.flyoffKeep = true; bR = L.create({ a: s2, b: s2, seed: 1 }).robots[0]; } // T71c: a robot without its piece is framed like the robot as it comes (same scale, same centre)
+    let bR = R; if (spec.flyoffGone || (spec.wear && spec.wear.fo)) { const s2 = Object.assign({}, spec); delete s2.flyoffGone; if (s2.wear) { s2.wear = Object.assign({}, s2.wear); delete s2.wear.fo; } s2.flyoffKeep = true; bR = L.create({ a: s2, b: s2, seed: 1 }).robots[0]; } // T71c: a robot without its piece is framed like the robot as it comes (same scale, same centre)
     for (const q of bR.parts) if (q.attached || q.kind === 'chassis') for (const [x, y] of q.home) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const k = size / (Math.max(x1 - x0, y1 - y0) + 0.3), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, b = R.body, pos = b.getPosition(), ang = b.getAngle();
     const sS = S, sCtx = ctx, sPX = PX;
@@ -2128,6 +2133,7 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.translate(size / 2, size / 2); ctx.scale(k, k); ctx.rotate(-Math.PI / 2);
       ctx.translate(-cx, -cy); ctx.rotate(-ang); ctx.translate(-pos.x, -pos.y);
       if (R.forks) drawForks(R, 0); // forks are not drawn by drawRobot (they go under everything)
+      if (R.blade && R.joint) R.blade.body.setTransform(R.blade.body.getPosition(), ang + Math.PI / 2 - 0.3); // T72: a spinner bar across the nose (a lopsided half bar: the long arm to one side, the stub to the other)
       drawRobot(R, 0);
     } catch (e) { /* a picture must never break the game */ }
     finally { S = sS; ctx = sCtx; PX = sPX; }
@@ -2202,5 +2208,45 @@
         ctx.beginPath(); ctx.moveTo(hover[0] - 0.15, hover[1]); ctx.lineTo(hover[0] + 0.15, hover[1]); ctx.moveTo(hover[0], hover[1] - 0.15); ctx.lineTo(hover[0], hover[1] + 0.15); ctx.stroke(); }
     }
   }
-  window.RobocusView = { mount, play, skip, close, integrity, replace(S2) { S = S2; if (root && !root.hidden) { buildPanels(); updatePanels(); } },   /* a replayed fight has new robot objects: the panels must show those, not the old copy */ portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; }, get fx() { return { flashes: flashN.wall + flashN.robot, wall: flashN.wall, robot: flashN.robot, dents: dents.length }; } };
+  // T73: what each breakaway piece is and does, in the voting page's words (tools/flyoff-page/gen.py; was in prototypes/flyoff-lab.html).
+  // [what comes off, what it changes]: the lab page and the game's cards (a robot that lost its piece) show these.
+  const FO_WHAT = {
+    Buzzkill: ['one half of the spinning bar: first it bends, then one arm snaps off near the hub', 'One long arm is left and a short ragged stub on the other side. The bar is out of balance: the robot shakes and drifts while it spins, and only the long end hits (full reach, about half as many hits, each still a proper one). The snapped arm lies on the floor.'],
+    Popcorn: ['the yellow teeth plate', 'Flips are weaker, and the bare flipper bends a little more with every flip. The plate lies on the floor.'],
+    Bricklayer: ['the brick stack: it topples', 'The blocks on its back break into small bricks that lie around as obstacles for everyone. The crane has nothing left to drop.'],
+    Gyro: ['its grey shell', 'A bare gold flywheel on its blue base is left: lighter and spun faster, but smaller, without teeth and out of true (it wobbles), so it hits softer. The shell lies on the floor as a big bump.'],
+    Railgun: ['the clamp that holds its rails together: the rails peel apart', 'It still fires, but wide (up to about 17° off): it can miss, or hit something it was not aiming at. The clamp lies on the floor.'],
+    Scavenger: ['its hopper: it cracks open', 'All the junk in it pours out behind it in one pile, a rough patch for everyone (it can\'t suck its own lost junk up again). It starts collecting from zero.'],
+    Grandmaster: ['its yellow hat', 'Under it is its brain, a wheel of six tools. Without the hat it stops choosing: every time it may change tool it grabs one at random. The hat lies on the floor.'],
+    Whaler: ['its hull: it splits down the middle', 'The winch drum and the rope show. The harpoon still fires, but the winch reels in at half speed, and a spinning weapon or a saw can cut the bare rope. A strip of the hull lies on the floor.'],
+    Jukebox: ['its record crate: it tips over', 'The records still in it slide out onto the floor, the crate lies with them. Its loader arm is bent: it has to drive right up to a record on the floor before it can throw again.'],
+    Pogo: ['the casing round its spring: it bursts in two halves', 'The gold spring uncoils across the floor. Only a stub of spring is left: Pogo can only make short weak hops from close in. Anyone who drives into the spring on the floor gets bounced (its own robot too).'],
+    Blacksmith: ['its dark hood', 'Under it is a glowing forge. Whoever touches Blacksmith now gets burnt a little, but with the hood off the forge overheats: every 12 s or so it has to stop hammering for 3 s. The hood lies on the floor.'],
+    Lodestone: ['the copper coil of its magnet: it unwinds', 'A thin bare magnet core is left: it pulls half as hard. The loose wire on the floor tangles the tracks or wheels of whoever drives into it, its own too.'],
+    Hornet: ['the tip of its spear: it breaks off', 'A jagged broken shaft is left: it still pierces a little, and a lunge that lands bashes the robot (a dent and a shove). If the tip broke off in the other robot it stays stuck there and keeps hurting it a little; otherwise it lies on the floor.'],
+    Tarantula: ['its legs, one at a time (up to three, on the side that takes the hits)', 'Sparking stumps are left. One leg gone: it limps; two gone on one side: it turns in circles; three: that side drags on the floor. The legs stay on the floor.'],
+    Hydra: ['its two side heads, one by one', 'Sparking stumps are left. Fewer heads, fewer bites: its strike arm waits longer between strikes (1.4 times as long with one head gone, twice as long with both). A stump zaps whoever touches it.'],
+    // T71a (batch A of all robots)
+    Forklift: ['the counterweight on its tail: it drops off', 'Under it is the little engine that drives the lift (a spinning fan, an exhaust that puffs). Without the weight it can\'t hold a robot up: it flicks robots off its forks at once instead of carrying them, and nose-dives under a robot much heavier than itself. The 14 kg block lies on the floor as a heavy lump.'],
+    Mincer: ['one of its grinder discs: it flies off the spindle', 'The disc skids away still spinning and bites whatever it touches for a few seconds (Mincer too). A bare spindle with its drive gear and a torn belt is left. The other grinder gets all the motor, and Mincer comes in crabwise, good grinder first: no more pinching a robot between two saws.'],
+    Scythe: ['the curved blade at the end of its arm: it snaps off', 'A bare steel pole is left. It can\'t cut any more, so it stops wiping to and fro: it waits until a robot is in reach and swats it, hard: the torn end of the pole rakes it and knocks it away spinning. The blade lies on the floor.'],
+    Snapjaw: ['the cover over its hydraulic ram: it pops off and the hose under it splits', 'The jaws lose pressure: they can\'t hold a robot any more, so Snapjaw chomps (a short bite, let go, bite again) instead of grabbing and dragging. The split hose spits oil between the jaws when it bites: small puddles robots slide in. The cover lies on the floor.'],
+    Thumper: ['its axe head: it flies off the handle', 'The head bites into the floor and stays there, a spike to drive round. The broken handle is a jagged steel tube: Thumper stabs with it, quick and short, small hits that go through armour, instead of one big slow chop.'],
+    Wrecker: ['its spiked flail ball: the chain snaps', 'The ball rolls on across the floor (it hardly slows down: a moving obstacle for both). A short end of broken chain is left: when it whips into a robot it wraps round it (LASSOED!), drags it round and flings it away, tearing at it as it rips loose.'],
+    // T71b (batch B of all robots)
+    Corkscrew: ['the screw thread round its drill: it strips off', 'A smooth hex bar with a chisel point is left. It can\'t screw itself in and anchor any more: it pins robots against the wall and rubs them with the bare spinning bar, and the part it rubs gets hot (it glows, then burns). The thread lies on the floor as a coil of steel ribbon.'],
+    Mauler: ['the spiked shell round its flail ball: it cracks in two', 'Inside the ball was a coil of light whip chain: it uncoils, twice as long as the old chain. Mauler hangs back at whip range and lashes (CRACK!): quick stinging hits, hardly any knock. The two spiked half shells lie on the floor spikes up: a wheel or track that rolls onto one is punctured (its own too).'],
+    Thwacker: ['its whole tail: it drops off at the root, like a lizard\'s', 'The tail thrashes on the floor for a few seconds. Under the tail root was a short stiff stinger: Thwacker stops spinning, turns its back and reverses into robots, stabbing them with it.'],
+    Vertigo: ['one of the two forks that hold its disc: it snaps off', 'The disc tips over on its axle: from above you now see its face. The tipped disc throws robots sideways and spins them round (and twists Vertigo the other way), instead of throwing them high in the air. The fork lies on the floor.'],
+    Angler: ['the spool of its fishing reel: it flies off and rolls away', 'The bare reel is left: a gear turning freely and a broken ratchet pawl. Angler still gaffs, but it can\'t reel in: it turns and drives off, trawling the hooked robot behind it along the floor (scraping it) until the hook tears out.'],
+    Pincher: ['one of the two timing gears on its nose: it shatters', 'The gears made both arms close together. Now they are out of step: they can\'t squeeze a robot, so they slap one after the other (left, right, left: SLAP!), batting it between them instead of clamping and dragging it. Half of the gear lies on the floor.'],
+    // T71c (batch C of all robots: the last six)
+    Yoyo: ['the round cover on its winch: it pops off', 'With it goes the brake that held the cable on the drum: the bare drum shows, the cable hangs off it in slack loops. Yoyo can\'t reel its saw back in, so it lets go: it spins the saw up on its nose and throws it free (LET FLY!), a flying saw, then drives over to pick it up again. The cover rolls away on the floor.'],
+    Gaucho: ['its bola launcher turret: it is knocked off its ring', 'Under it: the gold turret ring and the open magazine of spare bolas. Without the turret it can\'t aim or throw far: it has to stop and turn its nose on the robot, then flicks a bola from the open magazine straight ahead, slower and only at short range. The nose saw still goes in once a robot is tied up. The turret lies on the floor.'],
+    Slingshot: ['its heavy red bungee: it snaps', 'The steel cable and the winch still work, but nothing stores the energy. So it doesn\'t spike itself down and wait: as soon as the grapnel bites into the wall it winches itself straight down the cable (ZIP!), spiked prow first, and keeps winching once it hits, holding the robot on its spikes for a moment. More often, softer. The bungee lies on the floor.'],
+    Orbiter: ['the lock pin in the middle of its rotor: it shears off', 'The bare hub shows its broken lock teeth and a sparking copper slip ring. The rotor can\'t lock any more: the blades never dock in its flanks again (no side armour, no tucking in when a big spinner comes) and the booms jam half way out. Orbiter is a full-time top now: always spinning, a bit slower, on short tethers. The cap lies on the floor.'],
+    Rotisserie: ['the twin fuel tanks on its back: they tear out of their cradle', 'No fuel reaches the nozzle: no more flames at the nose. The torn fuel line at its tail keeps dribbling burning fuel: it leaves a trail of small fires that burn whoever drives through (not itself: it is built for fire). It still grabs robots, and now it backs up, dragging them through its own fire. The tanks lie on the floor.'],
+    Trebuchet: ['its throwing arm: it snaps at the pivot', 'The outer half flies off with its counterweight. Left: the jagged stump on its pivot and the bare gas ram that drove it. Trebuchet still scoops robots up, but instead of hurling them over its back it runs with them like a wheelbarrow, straight into the nearest wall, and dumps them there (DUMPED!).'],
+  };
+  window.RobocusView = { FO_WHAT, mount, play, skip, close, integrity, replace(S2) { S = S2; if (root && !root.hidden) { buildPanels(); updatePanels(); } },   /* a replayed fight has new robot objects: the panels must show those, not the old copy */ portrait, drawDiagram, insideRows, V, setCards, toWorld, clientOf, get aiming() { return aim; }, get state() { return S; }, get fx() { return { flashes: flashN.wall + flashN.robot, wall: flashN.wall, robot: flashN.robot, dents: dents.length }; } };
 })();

@@ -45,7 +45,7 @@ const path = require('path'), fs = require('fs');
     want(Math.abs(R.x + 5 - A.x) < 3 && Math.abs(R.y + 5 - A.y) < 3 && Math.abs(R.w - 10 - A.w) < 3, tag + ': ring on the anchor');
   };
   const shotTip = async (p, name) => { await p.waitForTimeout(250); await p.screenshot({ path: path.join(out, name) }); say('  shot ' + path.join(out, name)); };
-  const ALL = ['note', 'garage', 'hand', 'rarity', 'lotodds', 'floor', 'bookie', 'wait', 'pmap', 'value', 'log', 'files'];
+  const ALL = ['note', 'garage', 'hand', 'rarity', 'lotodds', 'floor', 'bookie', 'piecelost', 'wait', 'pmap', 'value', 'log', 'files'];
 
   if (parts.includes('1') || parts.includes('2') || parts.includes('3') || parts.includes('4')) {
     say('1. a fresh browser: the first tip, Got it, a reload');
@@ -92,7 +92,7 @@ const path = require('path'), fs = require('fs');
     say('4. the tips list: Show the tips again; No more tips');
     await p.click('#tipsBtn'); await p.waitForTimeout(300);
     const lst = await p.evaluate(() => ({ open: !document.getElementById('tipsBox').hidden, rows: document.querySelectorAll('#tipsBody .ts-row').length, txt: document.getElementById('tipsBody').innerText.slice(0, 200) }));
-    want(lst.open && lst.rows === 12, 'the list: ' + lst.rows + ' tips (' + lst.txt.replace(/\s+/g, ' ').slice(0, 90) + ')');
+    want(lst.open && lst.rows === ALL.length, 'the list: ' + lst.rows + ' tips (' + lst.txt.replace(/\s+/g, ' ').slice(0, 90) + ')');
     await shotTip(p, 't66-tips-list.png');
     await p.click('#tipsAgain'); await p.waitForTimeout(200);
     want(Object.keys((await stored(p)).seen || {}).length === 0, 'Show the tips again clears them');

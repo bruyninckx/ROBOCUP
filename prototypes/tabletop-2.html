@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="bf1b6a26">
+<meta charset="utf-8"><meta name="robocus-files" content="5cdc4673">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -767,17 +767,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=bf1b6a26"></script>
-<script src="../src2/dmath.js?b=bf1b6a26"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=5cdc4673"></script>
+<script src="../src2/dmath.js?b=5cdc4673"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=bf1b6a26"></script>
-<script src="../src2/lineup.js?b=bf1b6a26"></script>
-<script src="../src2/matrix.js?b=bf1b6a26"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=bf1b6a26"></script>
-<script src="../src2/sound.js?b=bf1b6a26"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=bf1b6a26"></script>
+<script src="../src2/engine.js?b=5cdc4673"></script>
+<script src="../src2/lineup.js?b=5cdc4673"></script>
+<script src="../src2/matrix.js?b=5cdc4673"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=5cdc4673"></script>
+<script src="../src2/sound.js?b=5cdc4673"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=5cdc4673"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -908,6 +908,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     autoFit: 'ask',
     showValue: true,              // T44 (Kev, 21 Nov): a robot's value in credits on its card and in every question where a robot changes hands; display only
     wearMarks: true,              // T41 (Kev, 21 Nov: "keep bend until repair"): bends, cracks, saw cuts and warps stay on a robot until its zone is repaired (spec.wear.marks); false = they are gone after the fight
+    flyoff: true,                 // T73 next gen (Kev's rules 1-3 for parts that fly off, voted Yes): every fight plays with the engine's `flyoff` switch on (in F.bb, so every screen and the bookie's helpers agree); a robot keeps a lost piece (spec.wear.fo) until its zone is repaired. false = fights as before (pieces already lost stay lost until repaired)
     wear: true,                   // T41 (Kev, 21 Nov: "bend as much as possible", "include all"): cracks, fragments, bends and saw grooves in every fight (engine ARC.cx; each fight carries it in F.bb.wear, so every screen and the bookie's workers agree); false = all four off
     // T55 (Kev, 22 Nov: "some type of open auction panel so you can lock in trades with other people while keeping an overview"; layout
     // A, "counter is ok, see deals as they happen"): the trading floor under the pit. Every open Market offer is a ticket there, answered
@@ -1763,8 +1764,13 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   // T41 (Kev, 21 Nov: "keep bend until repair"): a zone also shows the wear marks it carries (Repair2.zones marks: "bent 23°", "warped"...)
   const zoneMarks = q => q && q.marks && q.marks.length ? q.marks.join(', ') : '';
   const zonePct = q => q.f < 0.995 || !zoneMarks(q) ? Math.round(q.f * 100) + '%' : '';
-  const zoneState = q => q.broken ? 'broken' : q.damaged ? [zonePct(q), zoneMarks(q)].filter(Boolean).join(', ') : zoneMarks(q) || 'ok';
-  const zoneShort = q => q.broken ? 'broken' : q.damaged ? zonePct(q) || (q.marks[0] || 'dmg').replace(/^a plate bent into a wheel$/, 'plate rub').replace(/^plates bent into \d+ wheels$/, 'plate rub') : 'ok';
+  // T73 (parts that fly off, next gen): a zone can be broken only because its piece flew off (Repair2.zones: q.piece); it then says which
+  const pieceOnly = q => !!(q && q.piece && q.lost.length === 1);
+  const brokenTxt = q => q.piece ? (pieceOnly(q) ? q.piece.tag : 'broken, ' + q.piece.tag) : 'broken';
+  const pieceZone = r => { if (!r || !r.wear || !r.wear.fo) return null; const Z = zonesOf(r); return R2.ZONES.map(z => Z[z.key]).find(q => q.piece) || null; };
+  const pieceWhat = pc => { const W = VW.FO_WHAT && VW.FO_WHAT[pc.name]; return W ? 'It lost ' + W[0] + ' in a fight. ' + W[1] : 'It lost its ' + pc.label.toLowerCase() + ' in a fight.'; };
+  const zoneState = q => q.broken ? brokenTxt(q) : q.damaged ? [zonePct(q), zoneMarks(q)].filter(Boolean).join(', ') : zoneMarks(q) || 'ok';
+  const zoneShort = q => q.broken ? brokenTxt(q) : q.damaged ? zonePct(q) || (q.marks[0] || 'dmg').replace(/^a plate bent into a wheel$/, 'plate rub').replace(/^plates bent into \d+ wheels$/, 'plate rub') : 'ok';
   const wrecked = r => { const Z = zonesOf(r); return Z.weapon.broken || Z.drive.broken; };
   const hurt = r => Math.max(0, baseStr(r) - str2(r));   // strength its damage costs
   // Kev, 11 Nov: a dead processor chip carries over inside "Body broken" and all but loses the next fight (the robot wanders on backup control): say so
@@ -2179,8 +2185,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   }
   function helpZone(r, zk) {
     const q = zonesOf(r)[zk], z = ZONE[zk];
-    return [z.icon + ' ' + z.label + ': ' + (q.broken ? 'broken' : q.damaged ? 'damaged (' + zoneState(q) + ')' : zoneMarks(q) ? zoneMarks(q) : 'fine'),
-      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight and still change how it fights, until this zone is repaired.' + (q.marked && !q.damaged ? ' It does not count as damage: repairing it is optional (' + actsWord(zoneActs(q)) + ' straightens it; the AI teams never spend a repair on marks alone).' : '') : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
+    return [z.icon + ' ' + z.label + ': ' + (q.broken ? brokenTxt(q) : q.damaged ? 'damaged (' + zoneState(q) + ')' : zoneMarks(q) ? zoneMarks(q) : 'fine'),
+      'The ' + z.label.toLowerCase() + ' zone: ' + esc(z.d) + '.' + (q.piece ? '<br><b>🔩 ' + esc(q.piece.tag[0].toUpperCase() + q.piece.tag.slice(1)) + '</b>: ' + esc(pieceWhat(q.piece)) + ' The card shows it without the piece until you repair this zone in Upkeep (the price of a broken zone).' : '') + (q.lost.length ? '<br><b>Lost or dead</b>: ' + esc(q.lost.join(', ')) + '.' : '') + (zoneMarks(q) ? '<br><b>Wear</b>: ' + esc(zoneMarks(q)) + '. Bends, cracks and saw cuts stay from fight to fight and still change how it fights, until this zone is repaired.' + (q.marked && !q.damaged ? ' It does not count as damage: repairing it is optional (' + actsWord(zoneActs(q)) + ' straightens it; the AI teams never spend a repair on marks alone).' : '') : '') + (q.damaged ? '<br>' + (zoneActs(q) === 1 ? 'One repair action' : actsWord(zoneActs(q))) + ' in Upkeep put' + (zoneActs(q) === 1 ? 's' : '') + ' the whole zone back to new.' : '') + '<br>' + ZONE_HELP()];
   }
   function helpName(t, r) {
     const bits = [];
@@ -3842,7 +3848,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22l first-time tips: a small box points at one thing at a time (the note, the bookie, rarity, the trading floor...), gone once clicked away';   // was: 2026-11-22k playtest-ready: the host page asks before it closes, and can resume the last online game after a reload
+  const BUILD = 'tabletop 2.0.1 nextgen 2026-11-28a parts that fly off: robots lose a piece in fights (Buzzkill\'s bar now lopsided); the card shows it until repaired in Upkeep';   // was: 2026-11-22l first-time tips: a small box points at one thing at a time (the note, the bookie, rarity, the trading floor...), gone once clicked away; was: 2026-11-22k playtest-ready: the host page asks before it closes, and can resume the last online game after a reload
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -6503,7 +6509,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else if (X.a && Y.a) add(mine ? 2 : 3, X.a, Y.a, C.per); }
     OVR.jobs = tier.flat(); OVR.tStart = performance.now(); OVR.tFull = OVR.jobs.every(j => j.c.done) ? 0.001 : 0;
   }
-  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open', wear: BAL.wear !== false });
+  const ovrBB = (c, i) => ({ a: Object.assign(spec2(c.A, null), { team: 0 }), b: Object.assign(spec2(c.B, null), { team: 1 }), seed: ovrSeed(c.sk, i), countdown: 0, arena: 'open', wear: BAL.wear !== false, flyoff: BAL.flyoff === true });
   function ovrCount(c, i, r) {
     c.fly.delete(i);
     if (!r || r.err || c.got.has(i)) return;
@@ -7497,7 +7503,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     const twoSides = !list.some(x => x.team === 9) && new Set(list.map(x => x.team)).size === 2;
     let arena = F.arena && DL.ARENAS[F.arena] ? F.arena : 'open';
     if (arena === 'cage' && list.length > 2) arena = 'open';   // no room in the Cage for 4 robots or the House Robot (decided before the fight: see afterChoose)
-    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena, wear: BAL.wear !== false } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena, wear: BAL.wear !== false };
+    const bb = list.length === 2 ? { a: list[0], b: list[1], seed, countdown: 2.99, arena, wear: BAL.wear !== false, flyoff: BAL.flyoff === true } : { mode: twoSides ? '2v2' : 'ffa', robots: list, seed, countdown: 2.99, arena, wear: BAL.wear !== false, flyoff: BAL.flyoff === true };
     return { S: DL.create(clone(bb)), botEnt, bb };
   }
   // online (2.0): a client builds the same fight from F.bb (the engine's create options, as the host built them)
@@ -7633,7 +7639,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       tlog('bookie', { n: sim ? sim.n : 0, ms: sim ? sim.ms : 0, how: sim ? sim.how : 'off', budget: sim ? sim.budget : 0, bots: sim ? sim.bots : null, early: !!(sim && sim.stop), cores: navigator.hardwareConcurrency || null, wins: sim ? sim.wins : null, formula: p0.map(x => +x.toFixed(3)), odds: F.p.map(x => +x.toFixed(3)), used: !!F.simN,
         // T62: what tools/bookie-replay.js needs to run the same test fights again: the robots as the helpers saw them (open information),
         // arena, format, the first seed, how many were sent / finished late, and per seed the winning side and the fight's seconds
-        fmt: F.format, arena: F.arena || 'open', house: !!F.house, lb: BAL.levelBoost || 0, wear: BAL.wear !== false, seed0: sim ? sim.seed0 : null, sent: sim ? sim.sent : 0, late: sim ? sim.late : 0,
+        fmt: F.format, arena: F.arena || 'open', house: !!F.house, lb: BAL.levelBoost || 0, wear: BAL.wear !== false, flyoff: BAL.flyoff === true, seed0: sim ? sim.seed0 : null, sent: sim ? sim.sent : 0, late: sim ? sim.late : 0,
         rb: F.robots.map((r, e) => r ? { t: F.teams[e], s: F.sides[e], nm: r.name, lv: r.level, p: partsOf(r), rar: r.rar || undefined, w: r.wear ? clone(r.wear) : undefined } : null), per: sim ? sim.per : '' }); }
     // ✦ Underrated (Artillery): its side is listed one band lower, so bets on it pay more
     F.bands = F.p.map((p, sd) => { const bd = bandOf(p); return F.robots.some((r, e) => F.sides[e] === sd && quirkOf(r) === 'Underrated') ? BANDS[Math.min(BANDS.length - 1, BANDS.indexOf(bd) + 1)] : bd; });
@@ -9526,6 +9532,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     else { try { img = VW.portrait(spec2(r, T), sz); } catch (e) { img = null; } if (PORT.size > 200) PORT.clear(); PORT.set(pk, img); }
     const s = Math.min(w, h);
     if (img) ctx.drawImage(img, x + (w - s) / 2, y + (h - s) / 2, s, s);
+    const pz = pieceZone(r);   // T73: a piece lost in a fight: a red tag naming it, on the picture, until it is repaired
+    if (pz) { const tg = pz.piece.tag.toUpperCase(), fs = w > 70 ? 10 : 8; ctx.font = '700 ' + fs + 'px ' + F_MONO; const tw = Math.min(w - 4, ctx.measureText(tg).width + 8), th = fs + 6, tx = x + (w - tw) / 2, ty = y + h - th - 2;
+      ctx.fillStyle = '#B23A2B'; rrect(ctx, tx, ty, tw, th, 3); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; fitText(ctx, tg, tx + tw / 2, ty + th - 4, tw - 4, '700', fs, F_MONO); ctx.textAlign = 'left';
+      help(tx, ty, tw, th, '🔩 ' + esc(r.name) + ': ' + esc(pz.piece.tag), esc(pieceWhat(pz.piece)) + '<br>The picture shows it without the piece until you repair its ' + esc(ZONE[pz.key].label) + ' zone in Upkeep (the price of a broken zone).');
+      hitRegions.push({ kind: 'piece_tag', robot: r, x: tx, y: ty, w: tw, h: th }); }
   }
   // the three repair zones of a robot: lit red (broken) or amber (damaged); clickable in your own Upkeep
   const ZCOL = q => q.broken ? '#d62828' : q.damaged ? '#d99000' : null;
@@ -9537,7 +9548,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       ctx.fillStyle = fill; rrect(ctx, bx, y, bw, h, 3); ctx.fill();
       ctx.strokeStyle = edge; ctx.lineWidth = clickable && st !== 'ok' && st !== 'mark' ? 2.5 : 1.5; rrect(ctx, bx, y, bw, h, 3); ctx.stroke();
       ctx.fillStyle = clickable && st === 'dmg' && repairCrFor(G.teams[HS], zoneActs(q)) ? '#B23A2B' : fg; ctx.textAlign = 'center';
-      const stTxt = q.broken ? (small ? 'BRK' : 'BROKEN') : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : st === 'mark' ? (small ? 'WEAR' : String(q.marks[0] || 'wear').replace(/^a plate bent into a wheel$|^plates bent into \d+ wheels$/, 'plate rub').toUpperCase()) : 'ok';
+      const stTxt = q.broken ? (small ? (pieceOnly(q) ? 'LOST' : 'BRK') : brokenTxt(q).toUpperCase()) : q.damaged ? (small ? zonePct(q) || 'WEAR' : zoneShort(q).toUpperCase()) : st === 'mark' ? (small ? 'WEAR' : String(q.marks[0] || 'wear').replace(/^a plate bent into a wheel$|^plates bent into \d+ wheels$/, 'plate rub').toUpperCase()) : 'ok';
       if (small) fitText(ctx, z.icon + stTxt, bx + bw / 2, y + h / 2 + 3.5, bw - 2, '700', 8.5, F_MONO);
       else fitText(ctx, z.icon + ' ' + z.label.toUpperCase() + ' · ' + stTxt + (clickable && st === 'mark' ? ' · fix?' : clickable && st !== 'ok' ? ' · FIX' + (repairCrFor(G.teams[HS], zoneActs(q)) ? ' ' + repairCrFor(G.teams[HS], zoneActs(q)) + ' CR' : '') : ''), bx + bw / 2, y + h / 2 + 4, bw - 6, '700', 10.5, F_MONO);
       const hz = helpZone(r, z.key), crN = clickable && st !== 'ok' && st !== 'mark' ? repairCrFor(G.teams[HS], zoneActs(q)) : 0;
@@ -11696,6 +11707,8 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       text: 'Trade offers show up here as tickets. Answer them in any order with <b>Yes, Counter or No</b> while you keep bidding; "New offer to" starts your own.' },
     { id: 'bookie', title: 'The bookie\'s odds', phases: ['bets'], own: true, ok: () => !!G.fight, at: () => tipReg('bookie') || tipReg('band'),
       text: 'Each side has a band (Favourite, Even, Underdog...) and what a bet pays. <b>"Odds from N test fights"</b>: the host\'s PC fought exactly this matchup N times to set them. Click an amount to bet; click it again to take it back.' },
+    { id: 'piecelost', title: 'A piece flew off', phases: ANY, at: () => tipHit(r => r.kind === 'piece_tag' && G.teams[HS] && G.teams[HS].robots.includes(r.robot)) || tipHit(r => r.kind === 'piece_tag'),
+      text: 'In a fight a robot can lose a piece (a shell, a blade, a hopper...). <b>The red tag on its card names it</b>: the robot fights without it until you repair that zone in Upkeep (the price of a broken zone). Hover the tag to see what it changes.' },
     { id: 'wait', title: 'Who we are waiting for', phases: ANY, at: () => document.querySelector('#waitRail .wr-row, #waitRail > *') ? tipEl('#waitRail') : null,
       text: 'One row per team: <b>YOUR MOVE</b>, DECIDING, READY or NOTHING TO DO. The game moves on when nobody has to click any more.' },
     { id: 'pmap', title: 'The power map', phases: ANY, at: () => tipEl('#pmapBtn'),
@@ -11837,6 +11850,12 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1 nextgen, parts that fly off', '28 Nov 2026', [
+      'Next-gen test build. In every fight a robot can lose a piece that fits its look: Gyro its shell, Buzzkill one arm of its bar, Scavenger its hopper, Tarantula up to three legs... The piece stays on the floor as a real object, and the robot fights differently without it.',
+      'The piece stays lost after the fight: the robot\'s card and picture show it without the piece, with a red tag (for example SHELL LOST); hover the tag or the zone to see what it changes. The zone it belongs to (the weapon; Tarantula\'s legs: the drive) shows broken.',
+      'Repair it in Upkeep like a broken zone, for the same price; the AI repairs it by the same rule. A Repair kit or Field hospital keeps the piece on longer in a fight (it mends it like a part), but cannot put back a piece that is off.',
+      'The bookie\'s test fights, the odds and the power map count with the piece gone. Buzzkill\'s bar now snaps on one side only: a long arm and a stub, lopsided: it shakes and drifts, and only the long end hits.',
+    ]],
     ['2.0.1, first-time tips', '22 Nov 2026', [
       'New players get small 💡 tips that point at one thing at a time, with a yellow ring on it: the yellow note, your garage in Upkeep, your cards and their GATE, part rarity, the 🎩 odds overview, the trading floor, the bookie\'s odds in Bets, the waiting list, the power map, a robot\'s value, the playtest log and 🐞 report, and the files stamp. At most one new tip per phase, never while a question counts down or during a fight.',
       'Click "Got it" (or the tip, or press Esc) and that tip never comes back in this browser. "No more tips" stops them all. The 💡 tips button in the top bar lists them all and can show them again. Only on your own screen: nothing changes in the game or online.' ]],
@@ -12090,7 +12109,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=bf1b6a26"></script>
+<script src="../src2/net.js?b=5cdc4673"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
