@@ -224,6 +224,18 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T70. Joined screen feels sluggish: measure where the wait is, then the two cheap fixes (28 Nov, worker running, for
+  the CURRENT game on `main`).** Kev's words: "when I played multiplayer on 2 pcs, the non-host pc had noticeably more
+  sluggish response, like a certain lag present when clicking buttons, what are our options in this regard to try and
+  make this more smooth?" How it works now (`src2/net.js`): a joined screen's click goes to the host as an action, the
+  host runs it, and a timer sends the whole game picture back every 100 ms; the joined screen then redraws. Goal:
+  numbers for each part of the wait (click -> sent, host runs it, wait for the 100 ms timer, size of the picture,
+  redraw on the joined screen), on the local transport and with added network delay; then (1) the host sends right
+  after an action instead of waiting for the timer, (2) the joined screen shows at once that the click was taken
+  (pressed look), and a small ping readout so Kev can see the link delay. Done when: before/after numbers, mp-test OK
+  with desyncs 0, sync-check unchanged, fingerprint unchanged, game-sim check. Bigger options (send only what changed,
+  let the joined screen predict simple clicks) are written up with their risk, not built.
+
 - **T69. Parts that fly off, step 3: the last six of the 15 (28 Nov, worker running, branch `nextgen` only).** Pogo
   (casing bursts, spring on the floor bounces whoever drives over it, no more jumps), Blacksmith (hood off, open forge
   burns on touch, overheats and pauses), Lodestone (coil unwinds, weaker pull, wire tangles tracks), Hornet (spear tip
