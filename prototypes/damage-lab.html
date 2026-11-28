@@ -5227,8 +5227,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // robots go all out". Each loses its own kind of piece in its own way, shows a new inside, and fights differently without it.
     // FORKLIFT: the counterweight on its tail drops off (14 kg of its 54 kg frame) and shows the little engine that drives the lift.
     // Without the weight it can't hold a robot up on its forks (it would tip onto its nose): it flicks them off the forks at once
-    // instead of carrying them, and a robot heavier than itself makes it nose-dive. The block lies on the floor: a heavy lump.
-    Forklift: { weapon: 'lifter', label: 'Counterweight', pool: 70, warn: 0.6, cwM: 14, flickK: 60, heavyK: 1.0,
+    // instead of carrying them, and a robot much heavier than itself (over 1.25x) makes it nose-dive. The block lies on the floor: a heavy lump.
+    Forklift: { weapon: 'lifter', label: 'Counterweight', pool: 70, warn: 0.6, cwM: 14, flickK: 60, heavyK: 1.25,
       feed: (R, q, h) => h.inner ? 0 : q.kind === 'armour' && /^Rear/.test(q.label) ? 1.2 : q.kind === 'chassis' ? (h.blp && h.blp[0] < -0.3 * R.hl ? 1.2 : h.top ? 0.7 : 0.2) : 0,
       bend(S, R) { const p = R.body.getWorldPoint(V(-R.hl, 0)); callout(S, 'WEIGHT SAGS!', p.x, p.y, false); say(S, `${R.name}: the counterweight hangs off one bolt`, R.id); R.foTilt = 1; },
       pop(S, R, h, floor) {
@@ -5243,7 +5243,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // MINCER: one grinder disc flies off its spindle and skids away across the floor, still spinning: for a few seconds it bites
     // whatever it touches (its own robot too), then it lies there. Left: the bare spindle, its drive gear and the torn belt. The other
     // grinder gets all the motor (1.2x spin), and Mincer comes in crabwise, the good grinder first; no more pinching between two saws.
-    Mincer: { weapon: 'twinsaw', label: 'Grinder disc', pool: 85, warn: 0.6, spinK: 1.2, bite: 9, crab: 1.1,
+    Mincer: { weapon: 'twinsaw', label: 'Grinder disc', pool: 110, warn: 0.6, spinK: 1.2, bite: 9, crab: 1.1,
       feed: (R, q, h) => h.inner ? 0 : q.key === 'twinsaw' ? 1 : q.kind === 'chassis' && h.blp && h.blp[0] > 0.4 * R.hl ? 0.3 : h.top ? 0.2 : 0,
       dealt: (R, d, cause) => cause === 'twinsaw' ? 0.12 : 0, // grinding wears the disc on its spindle
       watch: R => { const t = R.twins.filter(q => q.attached); return t.length === 2 ? t.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0] : null; },
@@ -5252,16 +5252,16 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         const live = R.twins.filter(q => q.attached); if (live.length < 2) return [];
         let q = live.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
         if (Math.abs(live[0].hp / live[0].maxHp - live[1].hp / live[1].maxHp) < 0.05 && h.blp) q = live.find(x => Math.sign(x.mount[1]) === Math.sign(h.blp[1])) || q;
-        const keep = live.find(x => x !== q), sd = Math.sign(q.mount[1]), w0 = q.body.getAngularVelocity();
+        const keep = live.find(x => x !== q), sd = Math.sign(q.mount[1]), w0 = q.dir * R.buzzMax * 0.9; // it flies off at full spin
         R.foSpindle = q.mount.slice(); R.foOne = Math.sign(keep.mount[1]); R.buzzMax *= this.spinK; q.foWob = 0;
-        const out = R.body.getWorldVector(V(0.6, sd));
-        detach(S, q, [out.x * 2, out.y * 2]); q.hp = Math.max(1, q.hp); q.label = 'Grinder disc';
+        const out = R.body.getWorldVector(V(1.2, 0.5 * sd));
+        detach(S, q, [out.x * 2, out.y * 2]); // it skids off forwards, into the fight q.hp = Math.max(1, q.hp); q.label = 'Grinder disc';
         if (!floor) { q.gone = true; S.debris.splice(S.debris.indexOf(q), 1); S.world.destroyBody(q.body); return []; }
-        q.body.setAngularVelocity(w0); q.body.setAngularDamping(0.35); q.body.setLinearDamping(1.6); q.foShape = 'disc'; q.noHit = R; q.noHitT = S.t + 0.4; q.cd = {};
+        q.body.setAngularVelocity(w0); q.body.setAngularDamping(0.2); q.body.setLinearDamping(1.6); q.foShape = 'disc'; q.noHit = R; q.noHitT = S.t + 0.4; q.cd = {};
         return [q];
       },
       tick(S, R) { // the loose disc bites while it still spins
-        for (const pc of R.fo.pieces) { if (pc.foShape !== 'disc') continue; const sb = pc.body, w = Math.abs(sb.getAngularVelocity()); if (w < 25) continue; const sf = Math.min(1, w / 100);
+        for (const pc of R.fo.pieces) { if (pc.foShape !== 'disc') continue; const sb = pc.body, w = Math.abs(sb.getAngularVelocity()); if (w < 15) continue; const sf = Math.min(1, w / 100);
           for (let ce = sb.getContactList(); ce; ce = ce.next) { const c = ce.contact; if (!c.isTouching()) continue;
             const fo = c.getFixtureA().getBody() === sb ? c.getFixtureB() : c.getFixtureA(), u = fo.getUserData() || {}; if (!u.part || !u.part.attached || !u.part.robot.alive) continue;
             const wm = c.getWorldManifold(null); if (!wm || !wm.points.length) continue; const cp = wm.points[0], T = u.part.robot, lp = u.part.body.getLocalPoint(cp);
@@ -5272,7 +5272,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // SCYTHE: the curved blade snaps off the end of its arm. A bare steel pole is left: it can't cut any more, so it stops wiping to
     // and fro and swats instead: it waits until a robot is in reach, then one hard swing that knocks it away spinning. The blade lies
     // on the floor.
-    Scythe: { weapon: 'sweeper', label: 'Scythe blade', pool: 95, warn: 0.6, swat: 70, spinImp: 22, cool: 1.3,
+    Scythe: { weapon: 'sweeper', label: 'Scythe blade', pool: 125, warn: 0.6, swat: 70, spinImp: 22, cool: 1.3,
       feed: (R, q, h) => h.inner ? 0 : q === R.sweep ? 1 : 0,
       dealt: (R, d, cause) => cause === 'sweeper' ? 0.2 : 0, // cutting hard steel chips the blade
       watch: R => R.sweep,
@@ -5290,8 +5290,9 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       } },
     // SNAPJAW: the cover over its hydraulic ram pops off and the hose under it splits. The jaws lose pressure: they can't hold a
     // robot any more, so Snapjaw chomps (a short bite, let go, bite again) instead of grabbing and dragging it to a wall. The split
-    // hose drips oil out between the jaws: a small puddle every 3 s, where the robot in front of it (or itself, backing off) slides. The cover lies on the floor.
-    Snapjaw: { weapon: 'crusher', label: 'Ram cover', pool: 80, warn: 0.6, hold: 0.45, cool: 0.35, crushK: 0.7, drip: 3, oilR: 0.25, oilT: 5,
+    // hose spits oil out between the jaws when they bite (a small puddle, at most one every 2 s): the robot in front of it slides in it
+    // (and Snapjaw too when it drives over it). The cover lies on the floor.
+    Snapjaw: { weapon: 'crusher', label: 'Ram cover', pool: 110, warn: 0.6, hold: 0.45, cool: 0.35, crushK: 0.7, drip: 2, oilR: 0.25, oilT: 5,
       feed: (R, q, h) => h.inner ? (q === R.wmotor ? 1 : 0) : h.top ? 1.2 : q === R.tool ? 0.5 : q.kind === 'chassis' ? (h.blp && h.blp[0] > 0 ? 0.5 : 0.2) : q.kind === 'armour' ? 0.2 : 0,
       bend(S, R) { const p = R.body.getWorldPoint(V(0.2 * R.hl, 0)); callout(S, 'HOSE BULGES!', p.x, p.y, false); say(S, `${R.name}: the cover over its hydraulic ram is coming loose`, R.id); R.foTilt = 1; },
       pop(S, R, h, floor) {
@@ -5304,13 +5305,13 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       },
       tick(S, R) {
         if (!R.foLeak || !R.alive || !R.fo.off) return;
-        if (S.t >= R.foDrip && R.airborne <= 0) { R.foDrip = S.t + this.drip; const p = R.body.getWorldPoint(V(R.hl + 0.1, 0)); S.oils.push({ x: p.x, y: p.y, r: this.oilR, life: this.oilT, owner: R, fo: true }); foEv(R, 'drips'); }
+        if (R.grab && S.t >= R.foDrip && R.airborne <= 0) { R.foDrip = S.t + this.drip; const p = R.body.getWorldPoint(V(R.hl + 0.1, 0)); S.oils.push({ x: p.x, y: p.y, r: this.oilR, life: this.oilT, owner: R, fo: true }); foEv(R, 'drips'); }
         for (const Q of S.robots) if (Q.alive && Q.airborne <= 0) { const qp = Q.body.getPosition(); if (S.oils.some(o => o.owner === R && o.fo && Math.hypot(qp.x - o.x, qp.y - o.y) < o.r + 0.1)) foEv(R, Q === R ? 'oilOwnS' : 'oilOtherS', DT); }
       } },
     // THUMPER: the axe head flies off the handle and bites into the floor (it barely moves: a spike to drive round). The broken handle
     // is a jagged steel tube: Thumper stabs with it, quick and short (about three stabs for one axe blow), small hits that go through
     // armour, instead of one big slow chop.
-    Thumper: { weapon: 'hammer', label: 'Axe head', pool: 120, warn: 0.6, dmg: 10, swingT: 0.12, coolT: 0.35, recT: 0.25, reach: 0.2,
+    Thumper: { weapon: 'hammer', label: 'Axe head', pool: 95, warn: 0.6, dmg: 10, swingT: 0.12, coolT: 0.35, recT: 0.25, reach: 0.2,
       feed: (R, q, h) => h.inner ? (q === R.arm ? 1 : 0) : h.top ? 0.5 : q.kind === 'chassis' ? 0.1 : 0,
       dealt: (R, d, cause) => cause === 'hammer' ? 0.3 : 0, // every blow on hard metal loosens the head on its handle
       bend(S, R) { R.foLoose = 1; const p = R.body.getWorldPoint(V(R.hl * 0.3, 0)); callout(S, 'HEAD LOOSE!', p.x, p.y, false); say(S, `${R.name}: the axe head wobbles on its handle`, R.id); },
