@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="7a4c783d"><meta name="viewport" content="width=device-width,initial-scale=1">
-<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69 + T71a, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="bf1b6a26"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69 + T71a + T71b + T71c, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
 <title>ROBOCUS · Parts that fly off (lab)</title>
@@ -32,7 +32,7 @@
 </head><body>
 <div class="wrap">
   <h1>Parts that fly off · lab</h1>
-  <p class="sub">Next generation test (not in the game). Twenty-one robots. A robot loses a piece of itself in the fight (Tarantula and Hydra: several, one at a time): it stays on the floor as a real object, and the robot fights differently without it.</p>
+  <p class="sub">Next generation test (not in the game). All thirty-three robots. A robot loses a piece of itself in the fight (Tarantula and Hydra: several, one at a time): it stays on the floor as a real object, and the robot fights differently without it.</p>
   <div class="row">
     <div class="card ctl">
       <label for="who">Robot with a breakaway piece</label><select id="who"></select>
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=7a4c783d"></script>
-<script src="../src2/dmath.js?b=7a4c783d"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=bf1b6a26"></script>
+<script src="../src2/dmath.js?b=bf1b6a26"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=7a4c783d"></script>
-<script src="../src2/lineup.js?b=7a4c783d"></script>
-<script src="../src2/sound.js?b=7a4c783d"></script>
-<script src="../src2/view.js?b=7a4c783d"></script>
+<script src="../src2/engine.js?b=bf1b6a26"></script>
+<script src="../src2/lineup.js?b=bf1b6a26"></script>
+<script src="../src2/sound.js?b=bf1b6a26"></script>
+<script src="../src2/view.js?b=bf1b6a26"></script>
 <script>
 (function () {
   'use strict';
@@ -76,19 +76,19 @@
     Grandmaster: ['its yellow hat', 'Under it is its brain, a wheel of six tools. Without the hat it stops choosing: every time it may change tool it grabs one at random. The hat lies on the floor.'],
     Whaler: ['its hull: it splits down the middle', 'The winch drum and the rope show. The harpoon still fires, but the winch reels in at half speed, and a spinning weapon or a saw can cut the bare rope. A strip of the hull lies on the floor.'],
     Jukebox: ['its record crate: it tips over', 'The records still in it slide out onto the floor, the crate lies with them. Its loader arm is bent: it has to drive right up to a record on the floor before it can throw again.'],
-    Pogo: ['the casing round its spring: it bursts in two halves', 'The gold spring uncoils across the floor. Pogo can\'t jump any more: it drives in and shoves. Anyone who drives into the spring on the floor gets bounced (its own robot too).'],
+    Pogo: ['the casing round its spring: it bursts in two halves', 'The gold spring uncoils across the floor. Only a stub of spring is left: Pogo can only make short weak hops from close in. Anyone who drives into the spring on the floor gets bounced (its own robot too).'],
     Blacksmith: ['its dark hood', 'Under it is a glowing forge. Whoever touches Blacksmith now gets burnt a little, but with the hood off the forge overheats: every 12 s or so it has to stop hammering for 3 s. The hood lies on the floor.'],
     Lodestone: ['the copper coil of its magnet: it unwinds', 'A thin bare magnet core is left: it pulls half as hard. The loose wire on the floor tangles the tracks or wheels of whoever drives into it, its own too.'],
-    Hornet: ['the tip of its spear: it breaks off', 'A blunt stump is left: it can only shove. If the tip broke off in the other robot it stays stuck there and keeps hurting it a little; otherwise it lies on the floor.'],
+    Hornet: ['the tip of its spear: it breaks off', 'A jagged broken shaft is left: it still pierces a little, and a lunge that lands bashes the robot (a dent and a shove). If the tip broke off in the other robot it stays stuck there and keeps hurting it a little; otherwise it lies on the floor.'],
     Tarantula: ['its legs, one at a time (up to three, on the side that takes the hits)', 'Sparking stumps are left. One leg gone: it limps; two gone on one side: it turns in circles; three: that side drags on the floor. The legs stay on the floor.'],
     Hydra: ['its two side heads, one by one', 'Sparking stumps are left. Fewer heads, fewer bites: its strike arm waits longer between strikes (1.4 times as long with one head gone, twice as long with both). A stump zaps whoever touches it.'],
     // T71a (batch A of all robots)
     Forklift: ['the counterweight on its tail: it drops off', 'Under it is the little engine that drives the lift (a spinning fan, an exhaust that puffs). Without the weight it can\'t hold a robot up: it flicks robots off its forks at once instead of carrying them, and nose-dives under a robot much heavier than itself. The 14 kg block lies on the floor as a heavy lump.'],
     Mincer: ['one of its grinder discs: it flies off the spindle', 'The disc skids away still spinning and bites whatever it touches for a few seconds (Mincer too). A bare spindle with its drive gear and a torn belt is left. The other grinder gets all the motor, and Mincer comes in crabwise, good grinder first: no more pinching a robot between two saws.'],
-    Scythe: ['the curved blade at the end of its arm: it snaps off', 'A bare steel pole is left. It can\'t cut any more, so it stops wiping to and fro: it waits until a robot is in reach and swats it once, hard, knocking it away spinning. The blade lies on the floor.'],
+    Scythe: ['the curved blade at the end of its arm: it snaps off', 'A bare steel pole is left. It can\'t cut any more, so it stops wiping to and fro: it waits until a robot is in reach and swats it, hard: the torn end of the pole rakes it and knocks it away spinning. The blade lies on the floor.'],
     Snapjaw: ['the cover over its hydraulic ram: it pops off and the hose under it splits', 'The jaws lose pressure: they can\'t hold a robot any more, so Snapjaw chomps (a short bite, let go, bite again) instead of grabbing and dragging. The split hose spits oil between the jaws when it bites: small puddles robots slide in. The cover lies on the floor.'],
     Thumper: ['its axe head: it flies off the handle', 'The head bites into the floor and stays there, a spike to drive round. The broken handle is a jagged steel tube: Thumper stabs with it, quick and short, small hits that go through armour, instead of one big slow chop.'],
-    Wrecker: ['its spiked flail ball: the chain snaps', 'The ball rolls on across the floor (it hardly slows down: a moving obstacle for both). A short end of broken chain is left: when it whips into a robot it wraps round it (LASSOED!), drags it round and flings it away.'],
+    Wrecker: ['its spiked flail ball: the chain snaps', 'The ball rolls on across the floor (it hardly slows down: a moving obstacle for both). A short end of broken chain is left: when it whips into a robot it wraps round it (LASSOED!), drags it round and flings it away, tearing at it as it rips loose.'],
     // T71b (batch B of all robots)
     Corkscrew: ['the screw thread round its drill: it strips off', 'A smooth hex bar with a chisel point is left. It can\'t screw itself in and anchor any more: it pins robots against the wall and rubs them with the bare spinning bar, and the part it rubs gets hot (it glows, then burns). The thread lies on the floor as a coil of steel ribbon.'],
     Mauler: ['the spiked shell round its flail ball: it cracks in two', 'Inside the ball was a coil of light whip chain: it uncoils, twice as long as the old chain. Mauler hangs back at whip range and lashes (CRACK!): quick stinging hits, hardly any knock. The two spiked half shells lie on the floor spikes up: a wheel or track that rolls onto one is punctured (its own too).'],
@@ -96,6 +96,13 @@
     Vertigo: ['one of the two forks that hold its disc: it snaps off', 'The disc tips over on its axle: from above you now see its face. The tipped disc throws robots sideways and spins them round (and twists Vertigo the other way), instead of throwing them high in the air. The fork lies on the floor.'],
     Angler: ['the spool of its fishing reel: it flies off and rolls away', 'The bare reel is left: a gear turning freely and a broken ratchet pawl. Angler still gaffs, but it can\'t reel in: it turns and drives off, trawling the hooked robot behind it along the floor (scraping it) until the hook tears out.'],
     Pincher: ['one of the two timing gears on its nose: it shatters', 'The gears made both arms close together. Now they are out of step: they can\'t squeeze a robot, so they slap one after the other (left, right, left: SLAP!), batting it between them instead of clamping and dragging it. Half of the gear lies on the floor.'],
+    // T71c (batch C of all robots: the last six)
+    Yoyo: ['the round cover on its winch: it pops off', 'With it goes the brake that held the cable on the drum: the bare drum shows, the cable hangs off it in slack loops. Yoyo can\'t reel its saw back in, so it lets go: it spins the saw up on its nose and throws it free (LET FLY!), a flying saw, then drives over to pick it up again. The cover rolls away on the floor.'],
+    Gaucho: ['its bola launcher turret: it is knocked off its ring', 'Under it: the gold turret ring and the open magazine of spare bolas. Without the turret it can\'t aim or throw far: it has to stop and turn its nose on the robot, then flicks a bola from the open magazine straight ahead, slower and only at short range. The nose saw still goes in once a robot is tied up. The turret lies on the floor.'],
+    Slingshot: ['its heavy red bungee: it snaps', 'The steel cable and the winch still work, but nothing stores the energy. So it doesn\'t spike itself down and wait: as soon as the grapnel bites into the wall it winches itself straight down the cable (ZIP!), spiked prow first, and keeps winching once it hits, holding the robot on its spikes for a moment. More often, softer. The bungee lies on the floor.'],
+    Orbiter: ['the lock pin in the middle of its rotor: it shears off', 'The bare hub shows its broken lock teeth and a sparking copper slip ring. The rotor can\'t lock any more: the blades never dock in its flanks again (no side armour, no tucking in when a big spinner comes) and the booms jam half way out. Orbiter is a full-time top now: always spinning, a bit slower, on short tethers. The cap lies on the floor.'],
+    Rotisserie: ['the twin fuel tanks on its back: they tear out of their cradle', 'No fuel reaches the nozzle: no more flames at the nose. The torn fuel line at its tail keeps dribbling burning fuel: it leaves a trail of small fires that burn whoever drives through (not itself: it is built for fire). It still grabs robots, and now it backs up, dragging them through its own fire. The tanks lie on the floor.'],
+    Trebuchet: ['its throwing arm: it snaps at the pivot', 'The outer half flies off with its counterweight. Left: the jagged stump on its pivot and the bare gas ram that drove it. Trebuchet still scoops robots up, but instead of hurling them over its back it runs with them like a wheelbarrow, straight into the nearest wall, and dumps them there (DUMPED!).'],
   };
   const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
   for (const n of who) $('who').add(new Option(n, n));

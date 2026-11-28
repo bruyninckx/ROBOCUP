@@ -2,8 +2,9 @@
 // in the game's fight view (src2/view.js), from prototypes/flyoff-lab.html. Also the two portraits (as it comes / without the piece).
 //   node tools/flyoff-shots.js [outDir=/home/claude/out] [step=t68]   -> <step>-<robot>-before.png, -after.png, -arena.png, -portraits.png
 //   step t67: Buzzkill, Popcorn, Bricklayer; t68: Gyro, Railgun, Scavenger, Grandmaster, Whaler, Jukebox; t69: Pogo, Blacksmith, Lodestone,
-//   Hornet, Tarantula, Hydra; t71a: Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker; t71b: Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher.
-//   'sheet': one picture of all the portraits (21 after T71a, 27 after T71b), with and without the piece (<step>-portraits-all.png)
+//   Hornet, Tarantula, Hydra; t71a: Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker; t71b: Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher;
+//   t71c: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet.
+//   'sheet': one picture of all the portraits (21 after T71a, 27 after T71b, all 33 after T71c), with and without the piece (<step>-portraits-all.png)
 const { chromium } = require('playwright'), path = require('path');
 const PLK = require('./planck-local.js'), PL = PLK.find('');
 const OUT = process.argv[2] || '/home/claude/out', STEP = process.argv[3] || 't68';
@@ -11,15 +12,16 @@ const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Brickla
   : STEP === 't68' ? { Gyro: 'Mauler', Railgun: 'Ramrod', Scavenger: 'Buzzkill', Grandmaster: 'Hydra', Whaler: 'Thwacker', Jukebox: 'Hydra' }
   : STEP === 't71a' ? { Forklift: 'Haymaker', Mincer: 'Ramrod', Scythe: 'Ramrod', Snapjaw: 'Brawler', Thumper: 'Ramrod', Wrecker: 'Haymaker' }
   : STEP === 't71b' ? { Corkscrew: 'Ramrod', Mauler: 'Brawler', Thwacker: 'Ramrod', Vertigo: 'Brawler', Angler: 'Ramrod', Pincher: 'Brawler' }
+  : STEP === 't71c' ? { Yoyo: 'Ramrod', Gaucho: 'Brawler', Slingshot: 'Ramrod', Orbiter: 'Brawler', Rotisserie: 'Ramrod', Trebuchet: 'Brawler' }
   : { Pogo: 'Mauler', Blacksmith: 'Ramrod', Lodestone: 'Thwacker', Hornet: 'Brawler', Tarantula: 'Mauler', Hydra: 'Ramrod' };
 (async () => {
-  const b = await chromium.launch(), p = await b.newPage({ viewport: STEP === 't71a' || STEP === 't71b' ? { width: 2200, height: 1700 } : { width: 1300, height: 1000 }, deviceScaleFactor: 2 }) /* (T71a: a bigger arena on screen, closer pictures) */, errs = [];
+  const b = await chromium.launch(), p = await b.newPage({ viewport: STEP === 't71a' || STEP === 't71b' || STEP === 't71c' ? { width: 2200, height: 1700 } : { width: 1300, height: 1000 }, deviceScaleFactor: 2 }) /* (T71a: a bigger arena on screen, closer pictures) */, errs = [];
   p.on('pageerror', e => errs.push(e.message));
   await PLK.route(p, PL);
   await p.goto('file://' + path.resolve(__dirname, '../prototypes/flyoff-lab.html')); await p.waitForTimeout(300);
   if (process.argv[4] === 'sheet') { // T69: all robots with a breakaway piece, as they come and without it (Tarantula, Hydra: all pieces gone)
     const n = await p.evaluate(() => {
-      const L = window.DamageLab, LU = window.Lineup, VW = window.RobocusView, who = Object.keys(L.FLYOFF).filter(k => L.PRESETS[k]), sz = 150, cols = 5, W = cols * (2 * sz + 30) + 10, rows = Math.ceil(who.length / cols);
+      const L = window.DamageLab, LU = window.Lineup, VW = window.RobocusView, who = Object.keys(L.FLYOFF).filter(k => L.PRESETS[k]), sz = 150, cols = who.length > 30 ? 6 : 5, W = cols * (2 * sz + 30) + 10, rows = Math.ceil(who.length / cols);
       const c = document.createElement('canvas'); c.width = W; c.height = rows * (sz + 34) + 40; c.id = 'sheet'; const x = c.getContext('2d');
       x.fillStyle = '#EFE8DA'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#2B2118'; x.font = '700 18px system-ui'; x.fillText('Parts that fly off: ' + who.length + ' robots, as they come (left) and without the piece (right)', 12, 26);
       who.forEach((nm, k) => { const cx = 10 + (k % cols) * (2 * sz + 30), cy = 40 + Math.floor(k / cols) * (sz + 34);
@@ -32,11 +34,11 @@ const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Brickla
   }
   for (const [who, opp] of Object.entries(PICK)) { if (process.argv[4] && !process.argv[4].split(',').includes(who)) continue;
     // a seed where the piece comes off between 8 and 70 s and both robots are still going 3 s later
-    const f = await p.evaluate(([who, opp]) => {
+    const f = await p.evaluate(([who, opp, s0]) => {
       const L = window.DamageLab, LU = window.Lineup;
       const spill = { Scavenger: 3, Jukebox: 1 }[who] || 0; // T68: show the junk / records that pour out
       const many = { Tarantula: 2, Hydra: 2 }[who] || 1, stuck = who === 'Hornet'; // T69: two legs / both heads gone; the tip stuck in the other robot
-      for (let seed = 1; seed < 400; seed++) {
+      for (let seed = s0; seed < 400; seed++) { // (T71c: SEED_<Robot>=n starts the search at seed n)
         const S = L.run({ a: LU.build(who), b: LU.build(opp), seed, arena: 'open', flyoff: true }), F = S.robots[0].fo, last = F.offs && F.offs.length ? F.offs[F.offs.length - 1] : F.offT;
         if (F.off && F.offT > (spill ? 3 : 8) && last < 70 && S.t > last + 4 && (F.spilled || 0) >= spill && (F.n || 1) >= many && (!stuck || F.pieces.some(q => q.stuckIn))) { // T69: and the right way up in both pictures
           const S2 = L.create({ a: LU.build(who), b: LU.build(opp), seed, arena: 'open', flyoff: true, countdown: 0 }); let ok = true;
@@ -44,7 +46,7 @@ const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Brickla
           if (ok) return { seed, offT: last, first: F.offT }; }
       }
       return null;
-    }, [who, opp]);
+    }, [who, opp, +(process.env['SEED_' + who] || 1)]);
     if (!f) { console.log(who + ': no seed found'); continue; }
     for (const [tag, at] of [['before', (f.first || f.offT) - 1.5], ['after', f.offT + 2.5]]) {
       const box = await p.evaluate(([who, opp, seed, at]) => {
