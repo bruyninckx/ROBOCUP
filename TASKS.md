@@ -5,11 +5,6 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
-- **K70. Parts that fly off, all 33 (next gen, 28 Nov):** his votes (Keep / Change / Drop per robot) and three
-  direction questions (how much should losing a piece hurt; how often; keep the new parts on Angler, Pincher, Hydra)
-  on https://claude.ai/artifact/JnieB2Eb3n2dAX34XtRZ8L. The per-robot questions of K66-K68 and the workers' questions
-  22-42 in `docs/robocus-flyoff.md` (nextgen) are covered by that page's feedback boxes.
-
 - **K69. After the lag fix (28 Nov):** in the next two-PC game, what does the link number next to the online badge
   show on the joined screen (under 100 = near the limit of this design; over 150-200 = a nearer relay is the next
   step)? Is the spinner on a pressed button OK? Any short freeze on a joined screen after the host clicks "Skip to
@@ -121,6 +116,11 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   rounds (Thwacker + Mine layer, Thwacker + Pester chip, Wrecker + Pester chip): make them epics, with names?
 
 ### Answered
+
+- **K70 (28 Nov 20:15, page https://claude.ai/artifact/JnieB2Eb3n2dAX34XtRZ8L):** Keep on 31 robots; Buzzkill =
+  Change: "do not just make the size smaller, make it asymmetrical one half of blade perhaps"; Forklift: no vote.
+  How much it hurts: fine as it is. How often: fine as it is. New parts on Angler, Pincher, Hydra: keep them. This
+  also settles the per-robot questions of K66-K68 as "keep the worker's safe choice" unless he says otherwise.
 
 - **22 Nov (K63c):** the backing request reaching a new player early: "I think this is fine"; instead he wants
   click-away first-time tips that point at things (T66).
@@ -242,6 +242,18 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   then removes the `.wt` folders.
 
 ## In progress
+
+- **T72. Buzzkill's half bar, asymmetrical (28 Nov, worker running, `nextgen` only).** Kev: "do not just make the size
+  smaller, make it asymmetrical one half of blade perhaps". Goal: when the bar snaps, ONE half of the blade is gone and
+  the other half stays full length, so the bar is lopsided: it looks it, spins out of balance (the robot shakes and
+  drifts), and hits with the one long end. Done when: picture before/after, numbers as before (256 on/off, 128
+  starting without), switch-off checks unchanged.
+- **T73. Parts that fly off in the next-gen GAME: the card and the garage (rule 3) (28 Nov, after T72, `nextgen`
+  only).** Kev voted Yes on "It shows on the card afterwards: the robot card shows the robot without its piece until
+  you pay for the repair in the garage". Goal: on `nextgen` the game page fights with the switch on; a robot that lost
+  its piece keeps that between fights, its card and portrait show it without the piece with a clear tag, the bookie
+  and power map count with it, and the garage / upkeep offers the repair. Online play stays in step (mp-test). `main`
+  is not touched.
 
 ## Done
 
