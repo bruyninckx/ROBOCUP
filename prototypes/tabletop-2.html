@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="robocus-files" content="41c0103e">
+<meta charset="utf-8"><meta name="robocus-files" content="8a074599">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ROBOCUS 2.0</title>
 <!-- ROBOCUS 2.0 tabletop (fork of tabletop-prototype.html, 8 Nov 2026): the 1.0 board, phases and cards, with the 2.0
@@ -75,6 +75,11 @@ html, body {
 .tb-who span.busy { background: var(--c); animation: whoPulse 1.2s ease-in-out infinite; }
 .tb-who span.now { background: var(--c); box-shadow: 0 0 0 2px var(--hazard); }
 @keyframes whoPulse { 50% { opacity: .45; } }
+/* T70: a joined screen's click is on its way to the host: the button looks pressed, a board click gets a small spinning ring */
+button.net-wait { box-shadow: inset 0 3px 6px rgba(0,0,0,.4) !important; filter: brightness(.88); cursor: progress !important; transform: translateY(1px); }
+.net-ring { position: fixed; width: 24px; height: 24px; margin: -12px 0 0 -12px; border: 3px solid rgba(17,17,17,.6); border-top-color: transparent; border-radius: 50%; pointer-events: none; z-index: 9600; animation: netSpin .7s linear infinite; }
+@keyframes netSpin { to { transform: rotate(360deg); } }
+body.net-busy, body.net-busy canvas { cursor: progress !important; }
 #netBadge { font: 600 12px var(--sans) !important; margin-left: 0 !important; padding: 5px 11px !important; border: 2px solid var(--ink) !important; border-radius: 5px !important; background: var(--panel) !important; color: var(--ink) !important; white-space: nowrap; cursor: pointer; }
 .win-watch { font: 700 12px var(--mono); padding: 3px 9px; border-radius: 3px; background: #FBE3DE; color: var(--red); border: 2px solid var(--red); white-space: nowrap; cursor: help; }
 .win-watch.one { background: var(--red); color: #fff; animation: winPulse 1.4s ease-in-out infinite; }
@@ -767,17 +772,17 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
 <canvas id="worldCv"></canvas>
 
 <div id="fightView"></div>
-<script src="../src2/version.js?b=41c0103e"></script>
-<script src="../src2/dmath.js?b=41c0103e"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
+<script src="../src2/version.js?b=8a074599"></script>
+<script src="../src2/dmath.js?b=8a074599"></script><!-- deterministic maths: before planck (it keeps its own Math.sin/cos/atan2) -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>/* jsDelivr failed: try unpkg (same file) */ window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>/* both CDNs failed (offline, a test sandbox): a local copy in vendor/ if there is one (not in git; see docs/robocus-2.0-sim.md) */ window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=41c0103e"></script>
-<script src="../src2/lineup.js?b=41c0103e"></script>
-<script src="../src2/matrix.js?b=41c0103e"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
-<script src="../src2/repair.js?b=41c0103e"></script>
-<script src="../src2/sound.js?b=41c0103e"></script><!-- quiet arena and fame sound -->
-<script src="../src2/view.js?b=41c0103e"></script>
+<script src="../src2/engine.js?b=8a074599"></script>
+<script src="../src2/lineup.js?b=8a074599"></script>
+<script src="../src2/matrix.js?b=8a074599"></script><!-- the Lineup Arena matchup table: the bookie's odds for robots as they come -->
+<script src="../src2/repair.js?b=8a074599"></script>
+<script src="../src2/sound.js?b=8a074599"></script><!-- quiet arena and fame sound -->
+<script src="../src2/view.js?b=8a074599"></script>
 <script>
 /* ============================================================================
  * 1. FIGHTS (ROBOCUS 2.0): no 1.0 Sim here. Fights run on the 2.0 physics engine (src2/engine.js, window.DamageLab,
@@ -1441,8 +1446,46 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   const ACT = {};
   let actSeat = null;   // the seat whose action the host is running right now (for personal log lines)
   function act(name, ...args) {
-    if (isClient()) { if (window.ROBOCUS_NET) window.ROBOCUS_NET.sendAct(name, args); return; }
+    if (isClient()) { if (window.ROBOCUS_NET) { const n = window.ROBOCUS_NET.sendAct(name, args); if (n) netPress(n); } return; }
     return runAct(HS, name, args);
+  }
+  /* T70 (Kev, 28 Nov: "the non-host pc had noticeably more sluggish response"): a joined screen shows at once that a click was
+   * taken. The clicked button looks pressed (a click on the board: a small spinning ring where you clicked) until the host's
+   * answer comes back (net.js: the ack with the action's number). Nothing is guessed: the result only shows with the host's
+   * picture of the game. A second click on a pressed → button (Done, Lock, End turn...) waits for that answer: in Kev's 23 Nov
+   * game such double clicks were sent twice. Display only, this screen only; after 4 s the look goes away by itself. */
+  const NETP = { list: [], down: null };
+  document.addEventListener('pointerdown', e => { NETP.down = { el: e.target, x: e.clientX, y: e.clientY, t: performance.now() }; }, true);
+  document.addEventListener('pointerup', e => { const d = NETP.down; if (d) { d.x = e.clientX; d.y = e.clientY; d.t = performance.now(); } }, true);   // a card dropped on the board: the ring goes where it was let go
+  document.addEventListener('click', e => {
+    if (!isClient()) return;
+    const b = e.target && e.target.closest ? e.target.closest('button.net-wait') : null;
+    if (b && /→/.test(b.textContent || '')) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  function netPress(n) {
+    const d = NETP.down, now = performance.now();
+    if (!d || now - d.t > 1500) return;   // not from a click (a key, a timer, the test bot): nothing to show
+    const b = d.el && d.el.closest ? d.el.closest('button') : null;
+    let e = NETP.list.find(x => (b && x.btn === b) || (!b && x.ring && x.x === d.x && x.y === d.y));
+    if (!e) {
+      e = { n, t: now, x: d.x, y: d.y };
+      if (b) { e.btn = b; e.id = b.id || null; e.text = (b.textContent || '').trim(); b.classList.add('net-wait'); }
+      else { const r = document.createElement('div'); r.className = 'net-ring'; r.style.left = d.x + 'px'; r.style.top = d.y + 'px'; document.body.appendChild(r); e.ring = r; }
+      NETP.list.push(e);
+    }
+    e.n = n; e.t = now;
+    document.body.classList.add('net-busy');
+    if (!NETP.iv) NETP.iv = setInterval(() => netAck(0), 500);
+  }
+  function netAck(n) {   // n: the host has run this screen's actions up to n (0: only drop what is older than 4 s)
+    const now = performance.now();
+    NETP.list = NETP.list.filter(e => {
+      if (e.n > n && now - e.t < 4000) return true;
+      if (e.btn) e.btn.classList.remove('net-wait'); if (e.ring) e.ring.remove(); return false; });
+    if (!NETP.list.length) { document.body.classList.remove('net-busy'); clearInterval(NETP.iv); NETP.iv = null; }
+  }
+  function netPressRedraw() {   // the note was drawn again before the answer came: the new button looks pressed too
+    for (const e of NETP.list) if (e.btn && !e.btn.isConnected && e.id) { const b = document.getElementById(e.id); if (b && (b.textContent || '').trim() === e.text) { e.btn = b; b.classList.add('net-wait'); } }
   }
   function runAct(S, name, args) {
     const f = ACT[name];
@@ -2252,6 +2295,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     SNDF.fame = now; SNDF.round = G.round || 0; SNDF.over = !!G.over;
   }
   function updateHud() {
+    if (NETROLE === 'host') { try { if (window.ROBOCUS_NET && window.ROBOCUS_NET.changed) window.ROBOCUS_NET.changed(); } catch (e) {} }   // T70: the joined screens get it now
     try { tradeBanShow(); } catch (e) { console.warn('trade banner', e); }
     try { renderFloor(); } catch (e) { console.warn('trading floor', e); }   // T55
     // 15 Nov (overnight click test, a 1366 x 768 screen): a hand kept open lay over the third robot bay, so a player whose only
@@ -2276,6 +2320,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     try { renderWaiting(); } catch (e) { console.warn('waiting', e); }   // the list on the right and the colour of the note
     fitPrompt();
     renderHand();
+    if (NETP.list.length) netPressRedraw();
   }
   /* ---------- Close to winning (Kev, 7 Nov: "it is not very clear when this happens") ----------
    * A red pill in the top bar for every team 2 or 1 fame from winning, and one log line when a team gets there.
@@ -2324,10 +2369,11 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     if (pickWaiting()) return;   // one choice at a time: a second click while the first is on its way does nothing
     pickWait = { k, v: String(v), label, t: performance.now(), round: G.round, phase: G.phase };
     renderPromptBar(); try { renderWaiting(); } catch (e) { promptState(); } fitPrompt();
-    afterPaint().then(() => {
+    const go = () => {
       if (!isClient()) pickWait = null; else setTimeout(() => { if (pickWait && performance.now() - pickWait.t >= 4000) { pickWait = null; if (G) updateHud(); } }, 4100);
       run();
-    });
+    };
+    if (isClient()) go(); else afterPaint().then(go);   // T70: a joined screen only sends (no bookie here): at once, the ✓ is painted anyway
   }
   const dmgHint = r => { const Z = zonesOf(r), bad = R2.ZONES.filter(z => Z[z.key].damaged); return bad.length ? (wrecked(r) ? 'broken ' : 'damaged ') + bad.map(z => z.icon).join('') : 'no damage'; };
   // T12: a part you won went on by itself: what happened, Move to <robot> (several robots with room) and Undo with the host's count
@@ -3842,7 +3888,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
    * Saved in this browser all the time (last 10 games), and into a folder on disk once you pick one
    * (📝 in the log header; pick ROBOCUS/playtests). Read them with: node tools/playtest-report.js playtests
    * ============================================================================ */
-  const BUILD = 'tabletop 2.0.1 2026-11-22l first-time tips: a small box points at one thing at a time (the note, the bookie, rarity, the trading floor...), gone once clicked away';   // was: 2026-11-22k playtest-ready: the host page asks before it closes, and can resume the last online game after a reload
+  const BUILD = 'tabletop 2.0.1 2026-11-28a joined screens answer faster: the host sends right after a click, a pressed look until the answer, the link delay in the badge';   // was: 2026-11-22l first-time tips: a small box points at one thing at a time (the note, the bookie, rarity, the trading floor...), gone once clicked away; before: 2026-11-22k playtest-ready: the host page asks before it closes, and can resume the last online game after a reload
   const PT = { game: null, dir: null, dirState: 'none', timer: null, lastKey: null, errs: 0, errSeen: {} };
   const ptDiv = document.createElement('div');
   const ptPlain = h => { ptDiv.innerHTML = String(h == null ? '' : h).replace(/<br\s*\/?>/g, ' / '); return ptDiv.textContent; };   // the browser strips the tags (help text in attributes too)
@@ -5859,7 +5905,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
     flClocks();
   }
   function flWire(el) {
-    const send = (id, name, ...args) => { FL.sent.set(id, performance.now()); FL.key = null; renderFloor(); afterPaint().then(() => act(name, ...args)); };   // ✓ at once, the action after that frame (T15)
+    const send = (id, name, ...args) => { FL.sent.set(id, performance.now()); FL.key = null; renderFloor(); if (isClient()) act(name, ...args); else afterPaint().then(() => act(name, ...args)); };   // ✓ at once, the action after that frame (T15; T70: a joined screen sends at once)
     el.querySelectorAll('[data-fy]').forEach(b => { b.onclick = () => send(+b.dataset.fy, 'offerAnswer', +b.dataset.fy, true); });
     el.querySelectorAll('[data-fn]').forEach(b => { b.onclick = () => send(+b.dataset.fn, 'offerAnswer', +b.dataset.fn, false); });
     el.querySelectorAll('[data-fb]').forEach(b => { b.onclick = () => send(+b.dataset.fb, 'offerBack', +b.dataset.fb); });
@@ -8977,6 +9023,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
       else if (qOpen()) set(RX.q); else { const iv = document.getElementById('ivModal'); set(iv && !iv.hidden && iv._clk); }
       updateHud();
     },
+    netAck,
     closeModals() { for (const id of ['ivModal', 'dealModal']) { const el = document.getElementById(id); if (el && !el.hidden && el._finish) el._finish(); } if (RX.cur && !RX.cur.over) RX.cur.cancel(); if (qOpen()) RX.q.cancel(); },
     notify, get desyncs() { return desyncs; }, get resims() { return resims; }
   };
@@ -11837,6 +11884,10 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   /* The changelog (Kev, 15 Nov: "a changelog with all the changes next to the sound button"). Newest first; add a block at the top
    * with every build that changes what players see. */
   const CHANGES = [
+    ['2.0.1, quicker joined screens', '28 Nov 2026', [
+      'Online, on a joined screen (not the host): the host now answers a click at once. Before, it waited for its next tick, up to a tenth of a second, every time.',
+      'A button you click on a joined screen looks pressed, and a click on the board gets a small spinning ring, until the host\'s answer is back (usually a blink). A second click on a pressed Done / Lock / End turn button is not sent twice.',
+      'The 🌐 badge on a joined screen shows 📶 and the link delay in ms (the time to the host and back). The host\'s badge shows the slowest player\'s, and its 🌐 menu each player\'s. Under 100 ms is good; over 200 ms you feel it.' ]],
     ['2.0.1, first-time tips', '22 Nov 2026', [
       'New players get small 💡 tips that point at one thing at a time, with a yellow ring on it: the yellow note, your garage in Upkeep, your cards and their GATE, part rarity, the 🎩 odds overview, the trading floor, the bookie\'s odds in Bets, the waiting list, the power map, a robot\'s value, the playtest log and 🐞 report, and the files stamp. At most one new tip per phase, never while a question counts down or during a fight.',
       'Click "Got it" (or the tip, or press Esc) and that tip never comes back in this browser. "No more tips" stops them all. The 💡 tips button in the top bar lists them all and can show them again. Only on your own screen: nothing changes in the game or online.' ]],
@@ -12090,7 +12141,7 @@ body:has(#rarPanel:not([hidden])) #helpTip { display: none !important; }   /* no
   requestAnimationFrame(loop);
 })();
 </script>
-<script src="../src2/net.js?b=41c0103e"></script>
+<script src="../src2/net.js?b=8a074599"></script>
 <script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
 (function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
   const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
