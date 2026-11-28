@@ -470,6 +470,7 @@
       }
       if (R.chassis.cracks && R.chassis.cracks.length) drawCracks(R.chassis.cracks, true); // cracks in the shell show through the top plate
       if (R.chassis.grooves && R.chassis.grooves.length) drawGrooves(R.chassis.grooves, R.chassis.attached); // T41: so do saw cuts in the shell
+      if (R.fo) drawFoRobot(R, i);   // T68 (switch off: R.fo is never set)
       drawTop(R, i); drawLamps(R);
       if (R.module && R.mod !== 'tow') { const [ic, col] = MOD_ICON[R.mod] || ['?', '#999'], [mx, my] = R.module.lp, on = R.module.hp > 0 && !(R.modOff > 0); ctx.fillStyle = on ? col : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(mx, my, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.save(); ctx.translate(mx, my); ctx.rotate(-a); ctx.fillStyle = on ? '#fff' : '#777'; ctx.font = `700 ${0.08}px IBM Plex Mono, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ic, 0, 0.004); ctx.restore(); }
     }
@@ -779,6 +780,7 @@
       ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = PX * 1.2; ctx.beginPath(); ctx.arc(tp.x, tp.y, 0.22, 0, 6.29); ctx.stroke();
       // the stack on its back (bottom first), then the record on the loader or the platter
       for (const q of R.records.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.012; ctx.save(); ctx.translate(-k, -k); drawRecord(q, 0); ctx.restore(); }
+      if (R.fo && R.foCrate !== 'gone') { const sp = b.getWorldPoint(planck.Vec2(st.stackAt[0], st.stackAt[1])); ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(b.getAngle() + (R.foTilt ? 0.18 : 0)); drawCrate(0.25, true); ctx.restore(); }   // T68: the record crate (its rim; the records sit in it)
       for (const q of R.records) if ((q.state === 'table' || q.state === 'load') && q.attached) drawRecord(q, q.state === 'table' ? st.rpm : 0, q.state === 'load');
       // the tone-arm loader: pivot on the side, arm to wherever it is carrying the record
       if (R.loader.hp > 0) {
@@ -814,6 +816,8 @@
       ctx.fillStyle = 'rgba(30,26,22,0.85)'; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill();
       (R.hopper || []).forEach((d, n) => { const an = n * 2.1 + t * (R.fx.suck ? 3 : 0.5), rr3 = hr * (0.25 + 0.45 * ((n * 0.37) % 1)); ctx.save(); ctx.translate(hx + Math.cos(an) * rr3, Math.sin(an) * rr3); ctx.rotate(an * 1.7); ctx.fillStyle = d.kind === 'wheel' ? '#2A2622' : d.key === 'record' ? (d.col || '#E8C547') : d.kind === 'armour' ? '#8A8C84' : '#77796F'; ctx.strokeStyle = INK; ctx.lineWidth = PX; ctx.fillRect(-0.045, -0.03, 0.09, 0.06); ctx.strokeRect(-0.045, -0.03, 0.09, 0.06); ctx.restore(); });
       ctx.fillStyle = 'rgba(190,230,255,0.22)'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(hx, 0, hr, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(hx - hr * 0.35, -hr * 0.4, hr * 0.35, hr * 0.15, -0.5, 0, 6.29); ctx.fill();
+      if (R.foCrack) { ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.moveTo(hx - hr * 0.1, -hr); ctx.lineTo(hx + hr * 0.08, -hr * 0.45); ctx.lineTo(hx - hr * 0.12, -hr * 0.1); ctx.lineTo(hx + hr * 0.1, hr * 0.3); ctx.lineTo(hx - hr * 0.05, hr); ctx.moveTo(hx + hr * 0.08, -hr * 0.45); ctx.lineTo(hx + hr * 0.6, -hr * 0.6); ctx.stroke(); } // T68: the hopper glass cracks
+      if (R.foCrack > 1) { ctx.fillStyle = '#17120D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.moveTo(hx, 0); ctx.arc(hx, 0, hr, Math.PI - 0.55, Math.PI + 0.55); ctx.closePath(); ctx.fill(); ctx.stroke(); } // ... and breaks open at the back: the junk poured out there
       // the air cannon: a fat barrel from the hopper over the throat to the nose, kicks back when it fires
       const cok = R.cannon.hp > 0, kick = Math.max(0, 0.25 - (S.t - (st.last || -9))) * 0.4;
       ctx.fillStyle = cok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(hx + hr * 0.5 - kick, -0.07, R.hl + 0.32 - hx - hr * 0.5, 0.14, 0.03); ctx.fill(); ctx.stroke();
@@ -869,8 +873,9 @@
       for (const y of [-1, 0, 1]) { ctx.fillStyle = R.caps.hp > 0 ? '#2B2620' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(-R.hl * 0.85, y * 0.13 - 0.05, R.hl * 0.45, 0.1, 0.04); ctx.fill(); ctx.stroke(); ctx.fillStyle = `rgba(71,168,255,${0.25 + 0.75 * k})`; ctx.fillRect(-R.hl * 0.82, y * 0.13 - 0.03, R.hl * 0.39 * k, 0.06); } // capacitors
       const x0 = -R.hl * 0.35 - kick, x1 = R.hl + 0.32 - kick;
       ctx.fillStyle = '#3A3A36'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(x0, -0.1, x1 - x0, 0.2, 0.02); ctx.fill(); ctx.stroke();
-      for (const y of [-0.065, 0.065]) { ctx.fillStyle = ok ? '#B87333' : '#55524C'; ctx.fillRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); ctx.strokeRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); } // the copper rails
-      for (let x = x0 + 0.08; x < x1 - 0.05; x += 0.12) { ctx.fillStyle = '#5B5E57'; ctx.fillRect(x, -0.1, 0.035, 0.2); } // clamps
+      for (const y of [-0.065, 0.065]) { ctx.save(); if (R.foPeel) { ctx.translate(x0 + 0.02, y); ctx.rotate(Math.sign(y) * 0.16); ctx.translate(-x0 - 0.02, -y); } ctx.fillStyle = ok ? '#B87333' : '#55524C'; ctx.fillRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); ctx.strokeRect(x0 + 0.02, y - 0.02, x1 - x0 - 0.02, 0.04); ctx.restore(); } // the copper rails (T68: peeled apart once the clamp has burst)
+      if (R.foPeel) { ctx.fillStyle = '#5B5E57'; for (const x of [x0 + 0.08, x0 + 0.2]) { ctx.fillRect(x, -0.1, 0.035, 0.05); ctx.fillRect(x, 0.05, 0.035, 0.05); } } // torn clamp stubs
+      else for (let x = x0 + 0.08; x < x1 - 0.05; x += 0.12) { ctx.fillStyle = '#5B5E57'; ctx.fillRect(x, -0.1, 0.035, 0.2); } // clamps
       if (k > 0.95 && ok) { ctx.strokeStyle = 'rgba(190,230,255,0.9)'; ctx.lineWidth = PX * 1.6; for (let a = 0; a < 3; a++) { const x = x0 + 0.1 + ((t * 7 + a * 0.37) % 1) * (x1 - x0 - 0.15); ctx.beginPath(); ctx.moveTo(x, -0.045); ctx.lineTo(x + (Math.random() - 0.5) * 0.04, 0); ctx.lineTo(x, 0.045); ctx.stroke(); } } // arcs between the rails
       if (R.mag && R.mag.length && ok) { ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.fillRect(x0 + 0.05, -0.03, 0.25, 0.06); ctx.strokeRect(x0 + 0.05, -0.03, 0.25, 0.06); } // the next slug in the breech
       if (S.t - (st.last || -9) < 0.1) { ctx.fillStyle = 'rgba(200,235,255,0.9)'; ctx.beginPath(); ctx.arc(x1 + 0.08, 0, 0.18, 0, 6.29); ctx.fill(); }
@@ -930,9 +935,39 @@
       const cols = ['#D9B43A', '#47A8FF', '#FF5A3C'], an = [0, 2.094, -2.094], st = R.l4;
       for (let k = 0; k < 3; k++) { const lit = st.sel === k ? 1 : st.want === k ? (Math.sin(t * 20) > 0 ? 1 : 0.2) : 0.15; ctx.globalAlpha = 0.3 + 0.7 * lit; ctx.fillStyle = cols[k]; ctx.beginPath(); ctx.arc(Math.cos(an[k]) * 0.1, Math.sin(an[k]) * 0.1, 0.028, 0, 6.29); ctx.fill(); if (lit > 0.5) { ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(Math.cos(an[k]) * 0.1, Math.sin(an[k]) * 0.1, 0.07, 0, 6.29); ctx.fill(); } ctx.globalAlpha = 1; }
       ctx.restore();
+      if (R.fo && !R.fo.off) { ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(b.getAngle()); if (R.foTilt) ctx.translate(0.05, 0.035); drawHat(0.21); ctx.restore(); }   // T68: the yellow hat over its brain
+      else if (R.foRandom) drawBrain(c0, t);   // T68: hat off: the brain, a wheel of six tools that picks at random
       if (R.swing > 0 || R.recover > 0) { const s = R.swing > 0 ? 1 - R.swing / 0.2 : R.recover / 0.45, hx = R.hl * 0.6 + 0.35 * s, k2 = 1 + 0.5 * Math.sin(Math.PI * s); ctx.save(); const p = b.getPosition(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); ctx.strokeStyle = INK; ctx.lineWidth = 0.06 * k2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(hx, 0); ctx.stroke(); ctx.translate(hx, 0); ctx.scale(k2, k2); ctx.fillStyle = '#B9BBB4'; ctx.lineWidth = PX * 2; path([[-0.04, -0.13], [0.05, -0.1], [0.05, 0.1], [-0.04, 0.13]]); ctx.fill(); ctx.stroke(); ctx.restore(); }
       if (st.think > 0) { const p = b.getPosition(); ctx.fillStyle = 'rgba(183,154,216,0.9)'; ctx.font = '700 0.16px IBM Plex Mono, monospace'; ctx.textAlign = 'center'; ctx.fillText('♞', p.x, p.y - R.hl - 0.12); }
     }
+  }
+  function drawCrate(h, onRobot) { // T68: Jukebox's wooden record crate from above: on the robot only the rim shows round the records; tipped over on the floor, its open box
+    ctx.strokeStyle = INK; ctx.lineWidth = PX * 2;
+    if (onRobot) { ctx.fillStyle = '#7A5A3A'; ctx.beginPath(); ctx.rect(-h, -h, 2 * h, 2 * h); ctx.rect(h - 0.045, -h + 0.045, -2 * h + 0.09, 2 * h - 0.09); ctx.fill('evenodd'); ctx.strokeRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h + 0.045, -h + 0.045, 2 * h - 0.09, 2 * h - 0.09);
+      ctx.strokeStyle = 'rgba(43,33,24,0.5)'; ctx.lineWidth = PX; for (const k of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.moveTo(-h, k * h); ctx.lineTo(-h + 0.045, k * h); ctx.moveTo(h - 0.045, k * h); ctx.lineTo(h, k * h); ctx.stroke(); } return; }
+    ctx.fillStyle = '#7A5A3A'; ctx.fillRect(-h, -h * 0.94, 2 * h, 1.88 * h); ctx.strokeRect(-h, -h * 0.94, 2 * h, 1.88 * h); ctx.fillStyle = '#3D2C1C'; ctx.fillRect(-h + 0.035, -h * 0.94 + 0.035, 2 * h - 0.07, 1.88 * h - 0.07); ctx.strokeRect(-h + 0.035, -h * 0.94 + 0.035, 2 * h - 0.07, 1.88 * h - 0.07);
+    ctx.strokeStyle = 'rgba(239,232,218,0.25)'; ctx.lineWidth = PX * 1.2; for (const k of [-0.3, 0.3]) { ctx.beginPath(); ctx.moveTo(-h + 0.05, k * h); ctx.lineTo(h - 0.05, k * h); ctx.stroke(); }
+  }
+  function drawHat(r) { // T68: Grandmaster's hat seen from above: a gold brim, a crown with a dark band
+    ctx.fillStyle = 'rgba(20,14,8,0.25)'; ctx.beginPath(); ctx.arc(0.03, 0.03, r, 0, 6.29); ctx.fill();
+    ctx.fillStyle = '#E3B83A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#2B2118'; ctx.lineWidth = r * 0.12; ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, 6.29); ctx.stroke();
+    ctx.fillStyle = '#F0CB55'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(0, 0, r * 0.58, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.25, r * 0.25, r * 0.09, -0.6, 0, 6.29); ctx.fill();
+  }
+  function drawBrain(c0, t) { // T68: the tool wheel under Grandmaster's hat: six tools round a red "?", turning
+    const r = 0.2; ctx.save(); ctx.translate(c0.x, c0.y); ctx.fillStyle = '#24211E'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.rotate(t * 1.2); ctx.strokeStyle = '#5A544D'; ctx.lineWidth = PX * 1.2; ctx.setLineDash([PX * 3, PX * 3]); ctx.beginPath(); ctx.arc(0, 0, r * 0.68, 0, 6.29); ctx.stroke(); ctx.setLineDash([]);
+    for (let k = 0; k < 6; k++) { ctx.save(); ctx.rotate(k / 6 * 6.283); ctx.translate(0, -r * 0.68); ctx.lineWidth = PX * 1.2; ctx.strokeStyle = '#EFE8DA';
+      if (k === 0) { ctx.fillStyle = '#A9ADA8'; ctx.beginPath(); for (let j = 0; j < 12; j++) { const a = j / 12 * 6.283, rr = j % 2 ? 0.028 : 0.04; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }          // gear
+      else if (k === 1) { ctx.fillStyle = '#6F746F'; ctx.fillRect(-0.03, -0.03, 0.06, 0.035); ctx.fillStyle = '#B9824A'; ctx.fillRect(-0.007, 0.005, 0.014, 0.035); }  // hammer
+      else if (k === 2) { ctx.fillStyle = '#A9ADA8'; ctx.beginPath(); ctx.moveTo(0, -0.045); ctx.lineTo(-0.02, 0.03); ctx.lineTo(0.02, 0.03); ctx.closePath(); ctx.fill(); } // spike
+      else if (k === 3) { ctx.strokeStyle = '#E3B83A'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(0, 0, 0.025, Math.PI, 0); ctx.lineTo(0.025, 0.025); ctx.moveTo(-0.025, 0); ctx.lineTo(-0.025, 0.025); ctx.stroke(); }   // magnet
+      else if (k === 4) { ctx.fillStyle = '#C4521E'; ctx.beginPath(); ctx.moveTo(-0.022, 0.03); ctx.lineTo(0.022, 0.03); ctx.lineTo(0.01, -0.01); ctx.lineTo(0, -0.045); ctx.lineTo(-0.01, -0.01); ctx.closePath(); ctx.fill(); } // flame
+      else { ctx.strokeStyle = '#A9ADA8'; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(0, 0.04); ctx.lineTo(0, -0.015); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -0.028, 0.017, 0, 6.29); ctx.stroke(); } // wrench
+      ctx.restore(); }
+    ctx.rotate(-t * 1.2); ctx.fillStyle = '#D8402F'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = `800 ${r * 0.42}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('?', 0, r * 0.02); ctx.textBaseline = 'alphabetic'; ctx.restore();
   }
   function onBody(part, f) { const b = part.body, p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); f(); ctx.restore(); }
   function drawShell(part, R, i) {
@@ -948,8 +983,35 @@
     });
     if (w > 0.25) { const p = part.body.getPosition(); ctx.strokeStyle = `rgba(255,255,255,${w * 0.55})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { const a0 = part.body.getAngle() + k * 2.1; ctx.beginPath(); ctx.arc(p.x, p.y, rad + 0.04, a0, a0 + 0.9 * w); ctx.stroke(); } }
   }
+  function drawFlywheel(part, R) { // T68: Gyro's bare gold flywheel (its shell is gone): spokes, a dark hub, out of true (it wobbles)
+    const rad = Math.max(...part.verts.map(v => Math.hypot(v[0], v[1]))), w = R ? Math.min(1, R.bladeW / R.bladeMax) : 0, p = part.body.getPosition();
+    if (w > 0.25) { ctx.strokeStyle = `rgba(232,197,71,${0.3 + 0.4 * w})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 5, PX * 4]); ctx.beginPath(); ctx.arc(p.x + Math.cos(part.body.getAngle()) * 0.03, p.y + Math.sin(part.body.getAngle()) * 0.03, rad + 0.04, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the wobble track, off centre
+    onBody(part, () => {
+      ctx.fillStyle = '#E3B83A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.arc(0, 0, rad, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(120,80,10,0.55)'; ctx.lineWidth = PX * 1.2; ctx.beginPath(); ctx.arc(0, 0, rad * 0.86, 0, 6.29); ctx.stroke();
+      ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; for (let k = 0; k < 6; k++) { const t = k / 6 * 6.283 + 0.3; ctx.beginPath(); ctx.moveTo(Math.cos(t) * rad * 0.28, Math.sin(t) * rad * 0.28); ctx.lineTo(Math.cos(t) * rad * 0.97, Math.sin(t) * rad * 0.97); ctx.stroke(); }
+      ctx.fillStyle = '#2A2622'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.3, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#D8402F'; ctx.beginPath(); ctx.arc(0, 0, rad * 0.08, 0, 6.29); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.ellipse(-rad * 0.35, -rad * 0.45, rad * 0.3, rad * 0.1, -0.6, 0, 6.29); ctx.fill();
+    });
+    if (w > 0.4) { ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2.5; for (let k = 0; k < 3; k++) { const a0 = part.body.getAngle() + k * 2.1; ctx.beginPath(); ctx.arc(p.x, p.y, rad * 0.75, a0, a0 + 0.8 * w); ctx.stroke(); } }
+  }
+  // T68: what a breakaway piece leaves on the robot (robot frame, under the turret): Whaler's split hull with the winch drum
+  function drawFoRobot(R, i) {
+    if (R.spec.weapon === 'harpoon' && R.foCrack) {
+      const hl = R.hl, n = 9, jag = k => (((k * 37) % 7) / 7 - 0.5) * 0.035, w0 = R.foCrack > 1 ? 0.11 : 0.008;
+      ctx.fillStyle = '#17120D'; ctx.beginPath();
+      for (let k = 0; k <= n; k++) { const x = -hl * 0.92 + k / n * hl * 1.84; ctx.lineTo(x, -w0 + jag(k)); }
+      for (let k = n; k >= 0; k--) { const x = -hl * 0.92 + k / n * hl * 1.84; ctx.lineTo(x, w0 + jag(k + 3)); }
+      ctx.closePath(); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.stroke();
+      if (R.foCrack > 1) { // the winch drum and the rope, in the gap
+        const dx = -0.4 * hl; ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.fillRect(dx - 0.08, -0.1, 0.16, 0.2); ctx.strokeRect(dx - 0.08, -0.1, 0.16, 0.2); ctx.fillStyle = '#8C8F86'; ctx.fillRect(dx - 0.1, -0.11, 0.025, 0.22); ctx.fillRect(dx + 0.075, -0.11, 0.025, 0.22); // the winch drum between its two cheeks
+        ctx.strokeStyle = '#C9915A'; ctx.lineWidth = PX * 2; for (let k = 0; k < 6; k++) { const x = dx - 0.065 + k * 0.026; ctx.beginPath(); ctx.moveTo(x, -0.095); ctx.lineTo(x + 0.01, 0.095); ctx.stroke(); } // rope coiled on it
+        ctx.strokeStyle = INK; ctx.lineWidth = PX * 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(dx + 0.1, 0); ctx.quadraticCurveTo(dx + 0.2, 0.03, 0, 0); ctx.stroke(); ctx.strokeStyle = '#B9824A'; ctx.lineWidth = PX * 3; ctx.stroke(); ctx.lineCap = 'butt';
+      }
+    }
+  }
   function drawMech(R, i) {
-    if (R.shell && R.shell.attached) drawShell(R.shell, R, i);
+    if (R.shell && R.shell.attached) { if (R.shell.bare) drawFlywheel(R.shell, R); else drawShell(R.shell, R, i); }   // (T68: without its shell, Gyro is a bare flywheel)
     if (R.sweep && R.sweep.attached) {
       const pv = R.body.getWorldPoint(planck.Vec2(R.hl + 0.04, 0)), w = Math.abs(R.sweep.body.getAngularVelocity() - R.body.getAngularVelocity());
       if (w > 6) { const a = R.sweep.body.getAngle(); ctx.fillStyle = 'rgba(220,222,215,0.25)'; ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.arc(pv.x, pv.y, 0.64, a - Math.sign(R.armSide) * 0.6, a, R.armSide < 0); ctx.closePath(); ctx.fill(); }
@@ -1004,6 +1066,14 @@
       ctx.fillStyle = 'rgba(255,230,200,0.18)'; ctx.fillRect(x0 + 0.01, y0 + 0.006, (x1 - x0) - 0.02, 0.012);
     } else if (d.foShape === 'teeth') { // Popcorn's yellow teeth plate: gold, a row of black teeth along its front edge
       drawPart(d, '#E3B83A', d.robot, () => { ctx.fillStyle = INK; const n = 5, w = (y1 - y0) * 0.8 / n; for (let k = 0; k < n; k++) { const y = y0 + (y1 - y0) * 0.1 + w * (k + 0.5); ctx.beginPath(); ctx.moveTo(x1 - 0.13, y - w * 0.4); ctx.lineTo(x1 - 0.03, y); ctx.lineTo(x1 - 0.13, y + w * 0.4); ctx.closePath(); ctx.fill(); } });
+    } else if (d.foShape === 'clamp') { // T68: Railgun's burst rail clamp: a dark steel strap, bent, two bolt holes
+      drawPart(d, '#5B5E57', d.robot, () => { ctx.fillStyle = '#EFE8DA'; for (const x of [x0 + 0.04, x1 - 0.05]) { ctx.beginPath(); ctx.arc(x, 0, 0.012, 0, 6.29); ctx.fill(); } ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x0 + 0.02, y0 + 0.008, x1 - x0 - 0.04, 0.01); });
+    } else if (d.foShape === 'glass') { // T68: a shard of Scavenger's hopper dome
+      path(vs); ctx.fillStyle = 'rgba(170,215,240,0.6)'; ctx.fill(); ctx.lineWidth = PX * 1.8; ctx.strokeStyle = INK; ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(x0 + 0.03, y0 + 0.02); ctx.lineTo(x1 - 0.05, y0 + 0.035); ctx.stroke();
+    } else if (d.foShape === 'hat') { drawHat(Math.max(x1 - x0, y1 - y0) / 2); // T68: Grandmaster's hat
+    } else if (d.foShape === 'crate') { drawCrate((x1 - x0) / 2, false); // T68: Jukebox's tipped record crate
+    } else if (d.foShape === 'seam') { // T68: a strip of Whaler's hull, in the robot's colour, rivets along it
+      const k = S && d.robot ? S.robots.indexOf(d.robot) : 0; drawPart(d, TC(Math.max(0, k)).col, d.robot, () => { for (let x = x0 + 0.06; x < x1 - 0.03; x += 0.1) bolt(x, 0); });
     } else { // Buzzkill's snapped half bar: bright steel, a sharpening stripe, ragged where it broke
       drawPart(d, '#C9CBC4', d.robot, () => { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x0 + 0.04, -0.012, (x1 - x0) - 0.08, 0.014); });
     }
@@ -1023,7 +1093,7 @@
     if (d.key === 'orbdisc' || d.key === 'gmsaw') { drawBuzz(d, { buzzW: d.body.getAngularVelocity(), buzzMax: 95, buzzR: 0.13 }); return; }
     if (d.key === 'glove') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); gloveShape(1); ctx.restore(); return; }
     if (d.key === 'ball') { drawBall(d); return; }
-    if (d.key === 'shell') { drawShell(d, null, 0); return; }
+    if (d.key === 'shell') { if (d.bare) drawFlywheel(d, null); else drawShell(d, null, 0); return; }
     if (d.key === 'twinsaw') { drawBuzz(d, { buzzW: 0, buzzMax: 100, buzzR: 0.12 }); return; }
     ctx.save(); ctx.translate(p.x + 0.03, p.y + 0.03); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(d.verts); ctx.fill(); ctx.restore();
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
