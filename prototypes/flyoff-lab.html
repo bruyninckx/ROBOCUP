@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="33c577ae"><meta name="viewport" content="width=device-width,initial-scale=1">
-<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="80fb4ab3"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69 + T71a, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
 <title>ROBOCUS · Parts that fly off (lab)</title>
@@ -32,7 +32,7 @@
 </head><body>
 <div class="wrap">
   <h1>Parts that fly off · lab</h1>
-  <p class="sub">Next generation test (not in the game). Fifteen robots. A robot loses a piece of itself in the fight (Tarantula and Hydra: several, one at a time): it stays on the floor as a real object, and the robot fights differently without it.</p>
+  <p class="sub">Next generation test (not in the game). Twenty-one robots. A robot loses a piece of itself in the fight (Tarantula and Hydra: several, one at a time): it stays on the floor as a real object, and the robot fights differently without it.</p>
   <div class="row">
     <div class="card ctl">
       <label for="who">Robot with a breakaway piece</label><select id="who"></select>
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=33c577ae"></script>
-<script src="../src2/dmath.js?b=33c577ae"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=80fb4ab3"></script>
+<script src="../src2/dmath.js?b=80fb4ab3"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=33c577ae"></script>
-<script src="../src2/lineup.js?b=33c577ae"></script>
-<script src="../src2/sound.js?b=33c577ae"></script>
-<script src="../src2/view.js?b=33c577ae"></script>
+<script src="../src2/engine.js?b=80fb4ab3"></script>
+<script src="../src2/lineup.js?b=80fb4ab3"></script>
+<script src="../src2/sound.js?b=80fb4ab3"></script>
+<script src="../src2/view.js?b=80fb4ab3"></script>
 <script>
 (function () {
   'use strict';
@@ -82,6 +82,13 @@
     Hornet: ['the tip of its spear: it breaks off', 'A blunt stump is left: it can only shove. If the tip broke off in the other robot it stays stuck there and keeps hurting it a little; otherwise it lies on the floor.'],
     Tarantula: ['its legs, one at a time (up to three, on the side that takes the hits)', 'Sparking stumps are left. One leg gone: it limps; two gone on one side: it turns in circles; three: that side drags on the floor. The legs stay on the floor.'],
     Hydra: ['its two side heads, one by one', 'Sparking stumps are left. Fewer heads, fewer bites: its strike arm waits longer between strikes (1.4 times as long with one head gone, twice as long with both). A stump zaps whoever touches it.'],
+    // T71a (batch A of all robots)
+    Forklift: ['the counterweight on its tail: it drops off', 'Under it is the little engine that drives the lift (a spinning fan, an exhaust that puffs). Without the weight it can\'t hold a robot up: it flicks robots off its forks at once instead of carrying them, and nose-dives under a robot much heavier than itself. The 14 kg block lies on the floor as a heavy lump.'],
+    Mincer: ['one of its grinder discs: it flies off the spindle', 'The disc skids away still spinning and bites whatever it touches for a few seconds (Mincer too). A bare spindle with its drive gear and a torn belt is left. The other grinder gets all the motor, and Mincer comes in crabwise, good grinder first: no more pinching a robot between two saws.'],
+    Scythe: ['the curved blade at the end of its arm: it snaps off', 'A bare steel pole is left. It can\'t cut any more, so it stops wiping to and fro: it waits until a robot is in reach and swats it once, hard, knocking it away spinning. The blade lies on the floor.'],
+    Snapjaw: ['the cover over its hydraulic ram: it pops off and the hose under it splits', 'The jaws lose pressure: they can\'t hold a robot any more, so Snapjaw chomps (a short bite, let go, bite again) instead of grabbing and dragging. The split hose spits oil between the jaws when it bites: small puddles robots slide in. The cover lies on the floor.'],
+    Thumper: ['its axe head: it flies off the handle', 'The head bites into the floor and stays there, a spike to drive round. The broken handle is a jagged steel tube: Thumper stabs with it, quick and short, small hits that go through armour, instead of one big slow chop.'],
+    Wrecker: ['its spiked flail ball: the chain snaps', 'The ball rolls on across the floor (it hardly slows down: a moving obstacle for both). A short end of broken chain is left: when it whips into a robot it wraps round it (LASSOED!), drags it round and flings it away.'],
   };
   const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
   for (const n of who) $('who').add(new Option(n, n));
