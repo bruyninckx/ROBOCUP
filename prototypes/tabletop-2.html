@@ -76,7 +76,8 @@ html, body {
 .tb-who span.now { background: var(--c); box-shadow: 0 0 0 2px var(--hazard); }
 @keyframes whoPulse { 50% { opacity: .45; } }
 /* T70: a joined screen's click is on its way to the host: the button looks pressed, a board click gets a small spinning ring */
-button.net-wait { box-shadow: inset 0 3px 6px rgba(0,0,0,.4) !important; filter: brightness(.88); cursor: progress !important; transform: translateY(1px); }
+button.net-wait { box-shadow: inset 0 3px 6px rgba(0,0,0,.4) !important; opacity: .8; cursor: progress !important; transform: translateY(1px); }
+button.net-wait::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 7px; vertical-align: -1px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: netSpin .7s linear infinite; }
 .net-ring { position: fixed; width: 24px; height: 24px; margin: -12px 0 0 -12px; border: 3px solid rgba(17,17,17,.6); border-top-color: transparent; border-radius: 50%; pointer-events: none; z-index: 9600; animation: netSpin .7s linear infinite; }
 @keyframes netSpin { to { transform: rotate(360deg); } }
 body.net-busy, body.net-busy canvas { cursor: progress !important; }
