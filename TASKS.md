@@ -233,8 +233,14 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T70. Joined screen feels sluggish: measure where the wait is, then the two cheap fixes (28 Nov, worker running, for
-  the CURRENT game on `main`).** Kev's words: "when I played multiplayer on 2 pcs, the non-host pc had noticeably more
+- **T70. Joined screen feels sluggish (28 Nov; BUILT AND CHECKED, NOT MERGED: branch `claude/joined-lag` at `0010d02`
+  waits for Kev's "go", because a push to `main` makes screens in a running online game refuse to rejoin; files stamp
+  after the merge 8a074599, BUILD 2026-11-28a).** My checks on a test merge: fingerprint 470f6923, game-sim 2/2,
+  mp-test OK desyncs 0 x3, scenarios trading-floor, rejoin, host-reload, stand-in, tips OK. Result: click to result on
+  a joined screen 148 -> 82 ms (no link delay), 351 -> 282 ms (80 ms link), host window hidden/minimised 965 -> 70 ms.
+  Questions for Kev: what does the new link number show; was the host window minimised or covered on 23 Nov; is the
+  spinner look OK; any freeze on a joined screen after "Skip to result". Original entry: for
+  the CURRENT game on `main`.** Kev's words: "when I played multiplayer on 2 pcs, the non-host pc had noticeably more
   sluggish response, like a certain lag present when clicking buttons, what are our options in this regard to try and
   make this more smooth?" How it works now (`src2/net.js`): a joined screen's click goes to the host as an action, the
   host runs it, and a timer sends the whole game picture back every 100 ms; the joined screen then redraws. Goal:
