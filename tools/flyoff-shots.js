@@ -2,12 +2,13 @@
 // in the game's fight view (src2/view.js), from prototypes/flyoff-lab.html. Also the two portraits (as it comes / without the piece).
 //   node tools/flyoff-shots.js [outDir=/home/claude/out] [step=t68]   -> <step>-<robot>-before.png, -after.png, -arena.png, -portraits.png
 //   step t67: Buzzkill, Popcorn, Bricklayer; t68: Gyro, Railgun, Scavenger, Grandmaster, Whaler, Jukebox; t69: Pogo, Blacksmith, Lodestone,
-//   Hornet, Tarantula, Hydra. 'sheet': one picture of all 15 portraits, with and without the piece (<step>-portraits-all.png)
+//   Hornet, Tarantula, Hydra; t71a: Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker. 'sheet': one picture of all the portraits (21 after T71a), with and without the piece (<step>-portraits-all.png)
 const { chromium } = require('playwright'), path = require('path');
 const PLK = require('./planck-local.js'), PL = PLK.find('');
 const OUT = process.argv[2] || '/home/claude/out', STEP = process.argv[3] || 't68';
 const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Bricklayer: 'Gyro' }
   : STEP === 't68' ? { Gyro: 'Mauler', Railgun: 'Ramrod', Scavenger: 'Buzzkill', Grandmaster: 'Hydra', Whaler: 'Thwacker', Jukebox: 'Hydra' }
+  : STEP === 't71a' ? { Forklift: 'Haymaker', Mincer: 'Ramrod', Scythe: 'Thwacker', Snapjaw: 'Brawler', Thumper: 'Ramrod', Wrecker: 'Haymaker' }
   : { Pogo: 'Mauler', Blacksmith: 'Ramrod', Lodestone: 'Thwacker', Hornet: 'Brawler', Tarantula: 'Mauler', Hydra: 'Ramrod' };
 (async () => {
   const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1300, height: 1000 }, deviceScaleFactor: 2 }), errs = [];
