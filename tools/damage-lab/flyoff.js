@@ -1,6 +1,7 @@
 // T67 parts that fly off: seeded fights of one robot against the whole tuned field, breakaway switch on and off (paired seeds).
 // node flyoff.js Buzzkill [seedsPerOpponent=4] [shard=0/1] [on] > out.jsonl   (one JSON line a fight; 'on': only the switch-on fights, for tuning)
 // node flyoff.js report out.jsonl ...                                        (the numbers for docs/robocus-flyoff.md)
+// T69: node flyoff.js field out.jsonl ...  (every robot's win rate vs the field, switch on vs off, from the breakaway robots' runs)
 // T68: node flyoff.js gone Gyro [seedsPerOpponent=4] [shard=0/1] > g.jsonl    (switch off; the robot without its piece from the start,
 //      spec.flyoffGone, against the same robot keeping it, spec.flyoffKeep: same seeds; the behaviour change)
 //      node flyoff.js gonereport g.jsonl ...
@@ -8,6 +9,7 @@ const L = require('./engine.js'), LU = require('./lineup.js'); LU.usePK();
 const args = process.argv.slice(2);
 if (args[0] === 'report') { report(args.slice(1)); return; }
 if (args[0] === 'gonereport') { goneReport(args.slice(1)); return; }
+if (args[0] === 'field') { fieldReport(args.slice(1)); return; }
 const gone = args[0] === 'gone'; if (gone) args.shift();
 const name = args[0], per = +(args[1] || 4), [si, sn] = (args[2] || '0/1').split('/').map(Number), onOnly = args[3] === 'on';
 const field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4)).filter(n => n !== name);
@@ -43,6 +45,7 @@ for (const opp of field) for (let k = 0; k < per; k++) {
     const o = { name, opp, seed, on, win: S.result ? (S.result.winner === R.id ? 1 : 0) : 0.5, t: +S.t.toFixed(2), how: S.result ? S.result.how : '-' };
     if (F) {
       o.off = F.off; o.offT = F.offT; o.own = F.touch.own; o.other = F.touch.other; o.dealt = F.dealt; o.pieces = F.pieces.length;
+      o.n = F.n; o.offs = F.offs; o.ev = F.ev; o.stuck = F.pieces.filter(p => p.stuckIn).length; // T69: pieces lost (several per robot), when, the touch / step effects
       o.pieceMoved = F.pieces.reduce((a, p) => a + (p.body.isActive() ? 1 : 0), 0);
       if (R.foBend != null) o.bend = +R.foBend.toFixed(3);
     }
@@ -74,6 +77,9 @@ function report(files) {
     for (const c of main) { const a = agg.pre[c] || { n: 0, d: 0 }, b = agg.post[c] || { n: 0, d: 0 };
       console.log(`- ${c} hits (fights where it came off): before ${(a.n / time.pre).toFixed(2)}/s, ${(a.d / Math.max(1, a.n)).toFixed(1)} a hit, ${(a.d / time.pre).toFixed(1)} damage/s; after ${(b.n / Math.max(1e-9, time.post)).toFixed(2)}/s, ${(b.d / Math.max(1, b.n)).toFixed(1)} a hit, ${(b.d / Math.max(1e-9, time.post)).toFixed(1)} damage/s`); }
     if (on.some(r => r.bend != null)) { const bs = pop.map(r => r.bend || 0); console.log(`- bare flipper bend at the end: mean ${(bs.reduce((a, x) => a + x, 0) / bs.length).toFixed(2)} (max 0.5); flips a fight on ${(on.reduce((a, r) => a + r.flips, 0) / N).toFixed(1)}, off ${(off.reduce((a, r) => a + r.flips, 0) / off.length).toFixed(1)}`); }
+    if (on.some(r => (r.offs || []).length > 1 || r.n > 1)) { const hist = {}; for (const r of on) hist[r.n || 0] = (hist[r.n || 0] || 0) + 1; console.log(`- pieces lost a fight (of ${N}): ` + Object.entries(hist).map(([k, v]) => `${k}: ${v}`).join(', ') + `; ${(on.reduce((a, r) => a + (r.n || 0), 0) / N).toFixed(2)} a fight, ${(pop.reduce((a, r) => a + (r.n || 0), 0) / Math.max(1, pop.length)).toFixed(2)} in fights where any came off`); }
+    const ev = {}; for (const r of on) for (const [k, v] of Object.entries(r.ev || {})) ev[k] = (ev[k] || 0) + v;
+    if (Object.keys(ev).length) console.log(`- effects (all ${N} fights on): ` + Object.entries(ev).map(([k, v]) => `${k} ${+v.toFixed(1)} (${(v / Math.max(1, pop.length)).toFixed(2)} a fight where it came off)`).join(', ') + (on.some(r => r.stuck) ? `; stuck in the other robot in ${on.filter(r => r.stuck).length} of ${pop.length}` : ''));
     const pw = new Map(); for (const r of on) { const o = pw.get(r.opp) || { n: 0, p: 0 }; o.n++; o.p += r.off ? 1 : 0; pw.set(r.opp, o); }
   }
 }
@@ -95,4 +101,25 @@ function goneReport(files) {
     for (const k of ['fired', 'hits', 'thrown', 'ate', 'wide', 'picks', 'cuts', 'spilled', 'fetch']) if (rs.some(r => r[k] != null)) console.log(`- ${k}: keeping it ${(sum(K, r => r[k]) / tK * 60).toFixed(2)} a minute, without it ${(sum(G, r => r[k]) / tG * 60).toFixed(2)} a minute`);
     console.log(`- fight length: keeping it ${(tK / K.length).toFixed(1)} s, without it ${(tG / G.length).toFixed(1)} s`);
   }
+}
+
+// T69: the whole field. Fights between two robots without a breakaway piece are the same with the switch on (nothing runs), so a
+// robot's change against the field is its paired change in fights against the breakaway robots (from their runs), over all its
+// opponents. A breakaway robot's own run gives its own number.
+function fieldReport(files) {
+  const fs = require('fs'), rows = files.flatMap(f => fs.readFileSync(f, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)));
+  const own = new Set(rows.map(r => r.name)), all = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4)), key = r => r.name + '|' + r.opp + '|' + r.seed;
+  const offM = new Map(rows.filter(r => !r.on).map(r => [key(r), r])), out = [];
+  for (const X of all) {
+    let d = [], wOff = 0, n = 0;
+    for (const r of rows) { if (!r.on) continue; const o = offM.get(key(r)); if (!o) continue;
+      if (own.has(X) ? r.name === X : r.opp === X) { const s = r.name === X ? 1 : -1; d.push(s * (r.win - o.win)); wOff += r.name === X ? o.win : 1 - o.win; n++; } }
+    if (!n) continue;
+    const opp = own.has(X) ? 32 : new Set(rows.filter(r => r.opp === X).map(r => r.name)).size, share = own.has(X) ? 1 : opp / 32; // share of its opponents with a piece
+    const md = d.reduce((a, x) => a + x, 0) / n, sd = Math.sqrt(d.reduce((a, x) => a + (x - md) ** 2, 0) / Math.max(1, n - 1)), se = sd / Math.sqrt(n);
+    out.push({ X, own: own.has(X), n, field: md * share * 100, ci: 1.96 * se * share * 100, vsPiece: md * 100, opp });
+  }
+  out.sort((a, b) => Math.abs(b.field) - Math.abs(a.field));
+  console.log('robot | has a piece | fights measured | change vs the whole field (points, 95%) | change in its fights against breakaway robots');
+  for (const o of out) console.log(`${o.X} | ${o.own ? 'yes' : 'no'} | ${o.n} | ${o.field >= 0 ? '+' : ''}${o.field.toFixed(1)} ± ${o.ci.toFixed(1)} | ${o.own ? '-' : (o.vsPiece >= 0 ? '+' : '') + o.vsPiece.toFixed(1) + ' (' + o.opp + ' opponents)'}`);
 }
