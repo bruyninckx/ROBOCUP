@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="80fb4ab3"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="bcc457e9"><meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69 + T71a, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=80fb4ab3"></script>
-<script src="../src2/dmath.js?b=80fb4ab3"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=bcc457e9"></script>
+<script src="../src2/dmath.js?b=bcc457e9"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=80fb4ab3"></script>
-<script src="../src2/lineup.js?b=80fb4ab3"></script>
-<script src="../src2/sound.js?b=80fb4ab3"></script>
-<script src="../src2/view.js?b=80fb4ab3"></script>
+<script src="../src2/engine.js?b=bcc457e9"></script>
+<script src="../src2/lineup.js?b=bcc457e9"></script>
+<script src="../src2/sound.js?b=bcc457e9"></script>
+<script src="../src2/view.js?b=bcc457e9"></script>
 <script>
 (function () {
   'use strict';
@@ -89,6 +89,13 @@
     Snapjaw: ['the cover over its hydraulic ram: it pops off and the hose under it splits', 'The jaws lose pressure: they can\'t hold a robot any more, so Snapjaw chomps (a short bite, let go, bite again) instead of grabbing and dragging. The split hose spits oil between the jaws when it bites: small puddles robots slide in. The cover lies on the floor.'],
     Thumper: ['its axe head: it flies off the handle', 'The head bites into the floor and stays there, a spike to drive round. The broken handle is a jagged steel tube: Thumper stabs with it, quick and short, small hits that go through armour, instead of one big slow chop.'],
     Wrecker: ['its spiked flail ball: the chain snaps', 'The ball rolls on across the floor (it hardly slows down: a moving obstacle for both). A short end of broken chain is left: when it whips into a robot it wraps round it (LASSOED!), drags it round and flings it away.'],
+    // T71b (batch B of all robots)
+    Corkscrew: ['the screw thread round its drill: it strips off', 'A smooth hex bar with a chisel point is left. It can\'t screw itself in and anchor any more: it pins robots against the wall and rubs them with the bare spinning bar, and the part it rubs gets hot (it glows, then burns). The thread lies on the floor as a coil of steel ribbon.'],
+    Mauler: ['the spiked shell round its flail ball: it cracks in two', 'Inside the ball was a coil of light whip chain: it uncoils, twice as long as the old chain. Mauler hangs back at whip range and lashes (CRACK!): quick stinging hits, hardly any knock. The two spiked half shells lie on the floor spikes up: a wheel or track that rolls onto one is punctured (its own too).'],
+    Thwacker: ['its whole tail: it drops off at the root, like a lizard\'s', 'The tail thrashes on the floor for a few seconds. Under the tail root was a short stiff stinger: Thwacker stops spinning, turns its back and reverses into robots, stabbing them with it.'],
+    Vertigo: ['one of the two forks that hold its disc: it snaps off', 'The disc tips over on its axle: from above you now see its face. The tipped disc throws robots sideways and spins them round (and twists Vertigo the other way), instead of throwing them high in the air. The fork lies on the floor.'],
+    Angler: ['the spool of its fishing reel: it flies off and rolls away', 'The bare reel is left: a gear turning freely and a broken ratchet pawl. Angler still gaffs, but it can\'t reel in: it turns and drives off, trawling the hooked robot behind it along the floor (scraping it) until the hook tears out.'],
+    Pincher: ['one of the two timing gears on its nose: it shatters', 'The gears made both arms close together. Now they are out of step: they can\'t squeeze a robot, so they slap one after the other (left, right, left: SLAP!), batting it between them instead of clamping and dragging it. Half of the gear lies on the floor.'],
   };
   const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
   for (const n of who) $('who').add(new Option(n, n));
