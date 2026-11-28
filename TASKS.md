@@ -223,6 +223,9 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   fights (numbers with fight counts), the piece lies on the floor and is hit by robots, the behaviour change is
   measurable; win rate of each of the three vs the field with switch on and off. Then steps 2-4: the other 12 in
   batches of four, then the card/garage side, then a balance re-measure on Kev's PC.
+  Kev, 28 Nov: "keep in mind this is a test phase for next gen, not for current gen". So: none of this goes into `main`
+  now. Task branches are merged into the branch `nextgen` (pushed to GitHub), which is merged into `main` only when Kev
+  says the next generation starts. That is why T67 and its follow-ups stay off `main`.
 
 (nothing running: feature freeze until the playtests)
 
