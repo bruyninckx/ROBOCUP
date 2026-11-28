@@ -1,4 +1,4 @@
-# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A of all robots)
+# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A, T71b batch B of all robots)
 
 Kev, 28 Nov 2026: "a new damage model that has more unique parts flying off from the robots depending on how the robot
 looks, the shell can come off from gyro which is nice, we need more like this, some tops that come off easily and expose a
@@ -9,16 +9,17 @@ of the fight; (2) every lost piece changes how the robot fights, never only look
 until repaired. Step 1 did rules 1 and 2 for three robots (Buzzkill, Popcorn, Bricklayer); step 2 (28 Nov, T68) adds six more: Gyro, Railgun,
 Scavenger, Grandmaster, Whaler, Jukebox; step 3 (28 Nov, T69) adds the last six of the first 15: Pogo, Blacksmith, Lodestone,
 Hornet, Tarantula, Hydra. Batch A of all robots (28 Nov, T71a; Kev: "implement these changes to all robots go all out") adds Forklift,
-Mincer, Scythe, Snapjaw, Thumper, Wrecker: twenty-one robots now. Rule 3 is a later step.
+Mincer, Scythe, Snapjaw, Thumper, Wrecker; batch B (28 Nov, T71b) adds Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher:
+twenty-seven robots now. Rule 3 is a later step.
 
 **Not in the game.** One switch, off by default. With it off, every fight is exactly as before (checked: stock-fight
 fingerprint 470f6923 and sync check 89a95280 unchanged, the game page plays 2 of 2 test games with 0 errors; step 3: the six robots'
 own fights are bit-identical to `nextgen` before the change, 64 fights each; batch A: the same checks, the six robots' own fights
-bit-identical).
+bit-identical; batch B: the same checks, the six robots' own fights bit-identical).
 
 ## Try it
 
-`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the twenty-one robots and an
+`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the twenty-seven robots and an
 opponent, tick or untick "Parts fly off", then "Watch the fight" (same seed = same fight) or "Run 40 seeds" for quick
 numbers. The two pictures show the robot as it comes and without its piece.
 
@@ -360,6 +361,119 @@ Checks, switch off: stock-fight fingerprint 470f6923 unchanged; sync check 89a95
 opponents, 2 seeds, a hash of every fight's end state) bit-identical to the `nextgen` engine before the change; game-sim check 2 of 2 games
 finished, 0 page errors. The game page only got the new files stamp; the switch stays off there.
 
+## Batch B of all robots (T71b, 28 Nov)
+
+Kev: "for the next gen work, implement these changes to all robots go all out". Batch B: Corkscrew, Mauler, Thwacker, Vertigo, Angler,
+Pincher. Each loses its own kind of piece in its own way (none the same as another or as the 21 before), shows a new inside, and fights
+differently without it. Twenty-seven robots now.
+
+| Robot | Comes off | You see | In the fight |
+|---|---|---|---|
+| Corkscrew | the screw thread round its drill strips off and lies on the floor as a coil of steel ribbon | a smooth hex bar with a chisel point, hot at the end | it can't screw in and anchor any more: it pins the robot against the wall and rubs it with the bare spinning bar; the part it rubs gets hot (glows, then burns) |
+| Mauler | the spiked shell round its flail ball cracks in two | the hollow core of the ball at the arm tip, and a long light whip chain (twice the old chain) with a steel tip | it hangs back at whip range and lashes (CRACK!): quick stinging hits, hardly any knock, instead of closing in to smash. The two spiked half shells lie spikes up: a wheel or track that rolls onto one is punctured (its own too) |
+| Thwacker | its whole tail drops off at the root, like a lizard's, and thrashes on the floor for 5 s | the torn tail socket, and a short red stinger with an amber point that sat in the tail root | it stops spinning: it turns its back and reverses into robots, stinger first |
+| Vertigo | one of the two forks that hold its disc's axle snaps off | the disc tipped over: from above you see its face (teeth, holes going round) | it throws robots sideways and spins them round (and twists itself the other way) instead of throwing them high: no more air time |
+| Angler | the spool of its fishing reel (new on its back, line running to the hook arm) flies off and rolls away | the bare reel: a gold gear turning freely, a broken ratchet pawl, a loose line end | it still gaffs (now any side it can reach, not only the back), but it can't reel in: it drives off, trawling the hooked robot behind it along the floor, scraping it, until the hook tears out (TRAWLED!) |
+| Pincher | one of the two timing gears on its nose (new) shatters; half of it lies on the floor | the bare axle with a few broken teeth, sparking; the other gear turns on its own | the arms are out of step: no squeeze, no hold, no dragging to the wall; they slap one after the other (SLAP!), batting the robot from side to side |
+
+Every robot keeps a back-up way to fight that still wins (see "starting without it" below; the weakest, Mauler, keeps 14 of its 41 wins).
+Angler's reel and Pincher's gears are new on the robot, like Hydra's side heads: with the switch off they are not there and nothing changes.
+
+Pictures (fight view, just before and 2.5 s after): `/home/claude/out/t71b-<robot>-before.png`, `-after.png`, `-arena.png`, `-portraits.png`;
+all 27 robots with and without their piece on one sheet: `/home/claude/out/t71b-portraits-all.png` (`node tools/flyoff-shots.js /home/claude/out t71b`,
+`... t71b sheet`).
+
+### Batch B numbers (28 Nov, open floor, wear on)
+
+Same method as before: each robot against all 32 others, 8 seeds each, sides swapped every other seed, **256 fights with the switch on and
+the same 256 with it off** (`node tools/damage-lab/flyoff.js <robot> 8`, `flyoff.js report <files>`). "±" is a 95% range.
+
+| | Corkscrew | Mauler | Thwacker | Vertigo | Angler | Pincher |
+|---|---|---|---|---|---|---|
+| piece comes off | 153 of 256 = 60% (±6) | 144 = 56% (±6) | 121 = 47% (±6) | 118 = 46% (±6) | 103 = 40% (±6) | 109 = 43% (±6) |
+| when (median) | 15 s | 53 s | 49 s | 36 s | 23 s | 54 s |
+| fights where robots touched the loose piece | 153 of 153 | 144 of 144 | 121 of 121 | 118 of 118 | 103 of 103 | 109 of 109 |
+| contacts with the loose piece, a fight | 22.8 (12.9 by the other robot) | 24.7 (12.0) | 46.4 (10.0) | 11.2 (5.2) | 9.7 (1.1) | 31.9 (10.0) |
+| the effect, in the fights where it came off | rubs 3.5 s a fight | 4.4 whip cracks; 2.2 punctures (0.6 the other robot, 1.6 itself) | the tail thrashes 4.7 s | 2.0 sideswipes | 1.4 trawls (2.8 s of dragging) | 12 slaps |
+| win rate vs the field, switch off | 36.7% | 34.0% | 46.9% | 38.7% | 59.8% | 47.3% |
+| win rate vs the field, switch on | 33.6% | 36.3% | 48.0% | 43.0% | 62.9% | 49.6% |
+| difference (same fights) | -3.1 ± 3.9 | +2.3 ± 5.1 | +1.2 ± 4.3 | +4.3 ± 4.2 | +3.1 ± 3.9 | +2.3 ± 4.2 |
+
+What happened in those fights after the piece came off: Corkscrew's drill 7.0 -> 1.4 damage a second (no anchoring, no coring); Mauler's flail
+4.8 damage a second -> whip 1.5 hits a second, 2.9 damage a second; Thwacker's tail 8.3 a hit, 3.3 damage a second -> stinger 3.7 a hit,
+1.6 damage a second; Vertigo's landings (robots thrown into the air) 2.5 -> 0.3 damage a second, disc hits 5.6 -> 1.6; Angler's drum 4.9 -> 2.5
+damage a second (it spends time trawling); Pincher's squeeze (57 tiny hits a second, 4.8 damage a second) -> 1.5 slaps a second, 2.8 damage a second.
+
+How the robot fights without its piece: the same robot starting without it (`spec.flyoffGone`) against the same robot keeping it
+(`spec.flyoffKeep`), switch off, the whole field, 4 seeds each: **128 fights each way, same seeds** (`flyoff.js gone <robot> 4`,
+`flyoff.js gonereport <files>`).
+
+| | wins keeping it | wins without it | the change |
+|---|---|---|---|
+| Corkscrew | 51 of 128 | 21 of 128 | drill 5.0 -> 2.6 damage a second (rubbing and heat instead of anchoring and coring) |
+| Mauler | 41 | 14 | flail 3.9 damage a second -> whip 0.73 hits a second, 2.4 each (1.75 a second); spiked bumpers 0.7 -> 0.9 |
+| Thwacker | 60 | 54 | tail 0.38 hits a second, 8.6 each -> stinger 0.40, 4.4 each; slams into walls 0.06 -> 0.9 damage a second (it shoves robots backwards) |
+| Vertigo | 51 | 23 | landings 2.2 -> 0.1 damage a second (no air time); disc hits 4.5 -> 4.4 damage a second |
+| Angler | 73 | 70 | drum 5.5 -> 4.4 damage a second; fights last 67 s instead of 59 (trawling takes time) |
+| Pincher | 65 | 63 | squeeze 4.1 damage a second -> slaps 2.5 a second, 1.8 each (4.4 a second); fights end sooner (82 s instead of 87) |
+
+So in a fight losing the piece moves these six between -3.1 (Corkscrew) and +4.3 (Vertigo) points against the field, all within or at the
+edge of their ranges. Starting without it (rule 3, if not repaired) is hard on Mauler, Corkscrew and Vertigo (each keeps about a third to a half
+of its wins), mild on Thwacker, nothing for Angler and Pincher. Mauler and Thwacker with the switch off: unchanged (checked, below).
+
+The whole field against these six (`flyoff.js field` on the six runs): every other robot moves between -3.9 ± 2.2 (Pogo) and +2.7 ± 1.9
+(Grandmaster) points.
+
+### The 21 earlier robots, re-run after batch B
+
+Hornet in full (its batch-A short re-run showed +10.9 ± 7.7): **256 fights on and the same 256 off**: tip off in 128 of 256 = 50% (±6), stuck
+in the other robot in 106 of 128, win rate 16.4% off, 16.8% on, **+0.4 ± 4.3**. The +10.9 does not hold: it was chance in 64 fights (step 3
+had 0.0 ± 4.2).
+
+The other 20: each against all 32 others, **2 seeds each: 64 fights with the switch on and the same 64 off** (the first two of the eight seeds;
+±12 on the rate, ±4 to ±13 points on the difference).
+
+| | piece comes off | difference with the switch on | (batch A re-run, 64 fights) |
+|---|---|---|---|
+| Buzzkill | 58% | +4.7 ± 11.1 | 56%, +3.1 |
+| Popcorn | 64% | +3.1 ± 8.7 | 64%, +1.6 |
+| Bricklayer | 44% | -6.3 ± 12.3 | 45%, -9.4 |
+| Gyro | 61% | -3.1 ± 9.7 | 61%, -6.3 |
+| Railgun | 39% | 0.0 ± 9.8 | 39%, 0.0 |
+| Scavenger | 48% | -4.7 ± 9.2 | 45%, -3.1 |
+| Grandmaster | 42% | +7.8 ± 9.1 | 39%, +9.4 |
+| Whaler | 45% | 0.0 ± 4.4 | 45%, 0.0 |
+| Jukebox | 42% | -9.4 ± 8.4 | 42%, -7.8 |
+| Pogo | 47% | -7.8 ± 10.1 | 45%, -7.8 |
+| Blacksmith | 47% | 0.0 ± 6.2 | 47%, 0.0 |
+| Lodestone | 58% | +1.6 ± 8.2 | 58%, 0.0 |
+| Tarantula | 56% | +9.4 ± 12.1 | 58%, +7.8 |
+| Hydra | 63% | +9.4 ± 12.9 | 63%, +6.3 |
+| Forklift | 39% | 0.0 ± 4.4 | (256 fights: 45%, +3.1) |
+| Mincer | 64% | -7.8 ± 9.1 | (66%, -1.2) |
+| Scythe | 63% | -1.6 ± 8.2 | (55%, -5.5) |
+| Snapjaw | 59% | +4.7 ± 8.1 | (66%, +0.8) |
+| Thumper | 56% | 0.0 ± 6.2 | (57%, -0.4) |
+| Wrecker | 52% | -1.6 ± 5.3 | (52%, -3.1) |
+
+All twenty still lose their piece in a third to two thirds of fights; their code did not change. Every difference is within its range of the
+earlier number. Jukebox (-9.4 ± 8.4) is the only one whose range does not reach 0: its 256-fight number in step 2 was -2.3 ± 3.9, so this is
+most likely chance in 64 fights (worth a full run if Kev keeps it).
+
+### How batch B uses the mechanism
+
+No new abilities: six `FLYOFF` entries plus small hooks where the robots fight, each only set once the piece is off, so fights with the switch
+off stay bit-identical: `R.foSmooth` (Corkscrew's drill: no anchor, heat, pin in `think`), `R.foWhip` (Mauler's whip range in `think`; the whip
+tip is a new part `whip` on a 0.85 m rope, `foPart`), `R.foSting` (Thwacker: the stinger is a new part on the hull, key `tail`; reverse drive in
+`think`), `R.foThrow` (Vertigo's sideways throw in `vertKick`), `R.foTrawl` (Angler: gaff any side, no pull, scrape, drive off), `R.foSlap`
+(Pincher's clapper: arms in turn). `touch`: Mauler's half shells puncture tyres and tracks. `tick`: Mauler's whip crack, Thwacker's thrashing
+tail. `dealt`: all six wear their piece with their own hits too. New causes: whip chain, spiked half shell. Drawing in `src2/view.js`
+(`drawSmoothBar`, `drawWhip`, `drawStinger`, `drawDiscForks`, `drawReel`, `drawTimingGears`, the cracking ball shell, six floor pieces).
+
+Checks, switch off: stock-fight fingerprint 470f6923 unchanged; sync check 89a95280 unchanged; the six robots' own fights (64 each, all 32
+opponents, 2 seeds, a hash of every fight's end state) bit-identical to the `nextgen` engine before the change (bf4ad24); game-sim check 2 of 2
+games finished, 0 page errors. The game page only got the new files stamp (7a4c783d); the switch stays off there.
+
 ## How step 3 extends the mechanism (the four new abilities)
 
 - **Several pieces per robot**: `count` in the entry (default 1). `R.fo.n` pieces lost, `R.fo.offs` when, `R.fo.done` when all are gone.
@@ -447,6 +561,16 @@ Batch A (T71a):
     let the chain end hit harder?
 28. **Bolder pictures** for Tarantula, Lodestone and Blacksmith without their pieces: clear enough now (`t71a-portraits-all.png`)?
 
+Batch B (T71b):
+
+29. **Corkscrew** can't anchor without its thread and rubs robots hot instead (21 of 51 wins when it starts without it). Hotter, or fine?
+30. **Mauler's whip** keeps it at range but hits soft (14 of 41 wins without the shell). Longer whip, harder crack, or fine?
+31. **Thwacker's lizard tail**: should the dropped tail thrash longer than 5 s, or bite whoever it hits?
+32. **Vertigo's tipped disc** throws sideways; it comes out a little better in a fight (+4.3 ± 4.2), but starting without the fork it keeps 23 of 51 wins. Fine?
+33. **Angler's reel and Pincher's timing gears are new looks** (not on the robots before, only with the switch on). Keep them, or pick a piece they already show?
+34. **Angler's trawl** drags a robot for up to 2.6 s and scrapes it (about 9 damage). Longer, harder, or into the wall on purpose?
+35. **Pincher's slaps** do about as well as its squeeze (63 of 65 wins). Weaker slaps, or is that fine for a test?
+
 Safest choices made where Kev has not decided: pieces barely hurt (like all junk); rates between a third and two thirds;
 Bricklayer's laid blocks stay on the floor but can't be picked up again; the game page is untouched (switch off). Step 2: the rates
 are 32% to 62% of fights; Scavenger can't eat its own spilled junk again; Jukebox's records can be fetched (the stated exception);
@@ -456,4 +580,7 @@ every touch effect mild (bounce 0.3 s, tangle 1.2 s, burn 5 a second, zap 2 dama
 back; Pogo, Hornet and Tarantula lose what the voting page said (jump, point, legs) even where that costs them a lot. Batch A: rates 45% to
 66%; every effect on the other robot mild (flick 60, swat 70 with a spin, 0.8 s lasso then a fling of 40, oil puddles 0.25 m for 5 s, the
 loose disc 9 damage a second while it spins, stabs 10); the six pieces and what is left are my choice (no voting-page sketches for these);
-every robot keeps a back-up way to fight.
+every robot keeps a back-up way to fight. Batch B: rates 40% to 60%; every effect on the other robot mild (punctures 3, whip crack 14 at most
+every 0.3 s, sideways throw as strong as the old upward one but no air time, trawl scrape 5 a second for up to 2.6 s, slaps 4 and a shove of 55,
+the dropped tail only knocks like loose junk); the six pieces and the new reel and gears are my choice; back-ups tuned so each keeps at least
+about a third of its wins (stinger and slaps were stronger than the piece at first and were cut down).
