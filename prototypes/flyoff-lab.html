@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="00214113"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ROBOCUS next gen test: Parts that fly off (T67, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
+     mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
+     switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
+<title>ROBOCUS · Parts that fly off (lab)</title>
+<style>
+  :root { --ink: #2B2118; --paper: #EFE8DA; --card: #FBF8F1; --gold: #E3B83A; --rust: #C4521E; }
+  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--paper); color: var(--ink); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 18px; }
+  h1 { font: 800 28px/1.1 system-ui, sans-serif; margin: 0 0 4px; letter-spacing: .5px; }
+  .sub { margin: 0 0 14px; opacity: .8; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+  .card { background: var(--card); border: 2px solid var(--ink); border-radius: 8px; padding: 12px 14px; box-shadow: 3px 4px 0 rgba(43,33,24,.15); }
+  .ctl { flex: 1 1 360px; }
+  .ctl label { display: block; margin: 6px 0 2px; font-weight: 600; font-size: 13px; }
+  select, input[type=number] { font: inherit; padding: 4px 6px; border: 1.5px solid var(--ink); border-radius: 4px; background: #fff; min-width: 180px; }
+  .sw { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: 700; }
+  .sw input { width: 20px; height: 20px; }
+  button { font: 700 14px system-ui, sans-serif; padding: 7px 12px; border: 2px solid var(--ink); border-radius: 6px; background: var(--gold); cursor: pointer; margin: 6px 6px 0 0; }
+  button.alt { background: #fff; }
+  .pics { display: flex; gap: 10px; }
+  .pics figure { margin: 0; text-align: center; font-size: 12px; }
+  .pics canvas { display: block; background: #E4DCCB; border: 1.5px solid var(--ink); border-radius: 6px; }
+  .what { font-size: 14px; }
+  .what b { color: var(--rust); }
+  table { border-collapse: collapse; font: 13px ui-monospace, monospace; margin-top: 8px; }
+  td, th { border-bottom: 1px solid #d7cdb8; padding: 3px 8px; text-align: left; }
+  .note { font-size: 12px; opacity: .75; margin-top: 8px; }
+  #out { white-space: pre-wrap; font: 13px ui-monospace, monospace; }
+</style>
+</head><body>
+<div class="wrap">
+  <h1>Parts that fly off · lab</h1>
+  <p class="sub">Next generation test (not in the game). A robot loses one piece of itself in the fight: it stays on the floor as a real object, and the robot fights differently without it.</p>
+  <div class="row">
+    <div class="card ctl">
+      <label for="who">Robot with a breakaway piece</label><select id="who"></select>
+      <label for="opp">Opponent</label><select id="opp"></select>
+      <label for="arena">Arena</label><select id="arena"></select>
+      <label for="seed">Seed (same seed = same fight)</label><input id="seed" type="number" value="1" min="1">
+      <div class="sw"><input id="on" type="checkbox" checked><label for="on" style="margin:0">Parts fly off (the switch)</label></div>
+      <button id="watch">▶ Watch the fight</button><button id="next" class="alt">Next seed ▶</button><button id="batch" class="alt">Run 40 seeds (no drawing)</button>
+      <div class="note">Fights are seeded: the same robot, opponent, arena, seed and switch always give the same fight. Wear (bends, cracks) is on, as in the game.</div>
+    </div>
+    <div class="card" style="flex:1 1 420px">
+      <div class="pics"><figure><canvas id="picA" width="150" height="150"></canvas>as it comes</figure><figure><canvas id="picB" width="150" height="150"></canvas>without its piece</figure></div>
+      <div class="what" id="what"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
+</div>
+<div id="fightView"></div>
+<script src="../src2/version.js?b=00214113"></script>
+<script src="../src2/dmath.js?b=00214113"></script><!-- deterministic maths: before planck -->
+<script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
+<script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
+<script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
+<script src="../src2/engine.js?b=00214113"></script>
+<script src="../src2/lineup.js?b=00214113"></script>
+<script src="../src2/sound.js?b=00214113"></script>
+<script src="../src2/view.js?b=00214113"></script>
+<script>
+(function () {
+  'use strict';
+  const L = window.DamageLab, LU = window.Lineup, VW = window.RobocusView; LU.usePK();
+  const $ = id => document.getElementById(id);
+  // what each piece is and does (the voting page's words, tools/flyoff-page/gen.py)
+  const WHAT = {
+    Buzzkill: ['the spinning bar: first it bends, then it snaps', 'A short half bar spins faster and reaches less far: quick small hits instead of one big one. The snapped half lies on the floor.'],
+    Popcorn: ['the yellow teeth plate', 'Flips are weaker, and the bare flipper bends a little more with every flip. The plate lies on the floor.'],
+    Bricklayer: ['the brick stack: it topples', 'The blocks on its back break into small bricks that lie around as obstacles for everyone. The crane has nothing left to drop.'],
+  };
+  const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
+  for (const n of who) $('who').add(new Option(n, n));
+  const fillOpp = () => { const cur = $('opp').value; $('opp').innerHTML = ''; for (const n of field) if (n !== $('who').value) $('opp').add(new Option(n + ' (level ' + (LU.ROBOTS[n] || LU.ROBOTS4[n])[0] + ')', n)); $('opp').value = cur && cur !== $('who').value ? cur : 'Mauler'; };
+  for (const a of Object.keys(L.ARENAS)) $('arena').add(new Option(L.ARENAS[a].label || a, a));
+  $('arena').value = 'open';
+  VW.mount($('fightView'));
+  function pics() {
+    const n = $('who').value, a = VW.portrait(LU.build(n), 150), b = VW.portrait(Object.assign(LU.build(n), { flyoffGone: true }), 150);
+    for (const [id, c] of [['picA', a], ['picB', b]]) { const x = $(id).getContext('2d'); x.clearRect(0, 0, 150, 150); x.drawImage(c, 0, 0); }
+    $('what').innerHTML = '<p><b>' + n + '</b> loses ' + WHAT[n][0] + '.</p><p>' + WHAT[n][1] + '</p>';
+  }
+  const opts = seed => { const n = $('who').value, o = $('opp').value; return { a: LU.build(n), b: LU.build(o), seed, arena: $('arena').value, flyoff: $('on').checked, countdown: 2.99 }; };
+  function watch() {
+    const seed = Math.max(1, +$('seed').value || 1), S = L.create(opts(seed)), R = S.robots[0];
+    VW.play(S, { title: R.name + ' vs ' + S.robots[1].name + ' · seed ' + seed + ' · parts fly off ' + ($('on').checked ? 'ON' : 'off'),
+      onEnd: S2 => { const F = S2.robots[0].fo; $('out').textContent = 'Seed ' + seed + ': ' + (S2.result ? S2.result.text : 'no result') + (F ? '\n' + (F.off ? F.label + ' came off at ' + F.offT.toFixed(1) + ' s; the loose piece was bumped ' + (F.touch.own + F.touch.other) + ' times (' + F.touch.other + ' by the other robot)' : F.label + ' stayed on') : ''); } });
+  }
+  function batch() {
+    const n = 40, s0 = Math.max(1, +$('seed').value || 1), rows = []; let i = 0;
+    $('out').textContent = 'Running…';
+    const one = () => {
+      for (const on of [true, false]) { const o = opts(s0 + i); o.flyoff = on; o.countdown = 0; const S = L.run(o), R = S.robots[0], F = R.fo;
+        rows.push({ seed: s0 + i, on, win: S.result && S.result.winner === R.id ? 1 : 0, off: F && F.off, t: F && F.offT, bumps: F ? F.touch.own + F.touch.other : 0, other: F ? F.touch.other : 0 }); }
+      i++; $('out').textContent = 'Running… ' + i + ' of ' + n;
+      if (i < n) setTimeout(one, 0); else show();
+    };
+    const show = () => {
+      const on = rows.filter(r => r.on), off = rows.filter(r => !r.on), pop = on.filter(r => r.off), ts = pop.map(r => r.t).sort((a, b) => a - b);
+      let h = `${$('who').value} vs ${$('opp').value}, ${n} seeds from ${s0}, ${$('arena').value}\n` +
+        `Piece came off in ${pop.length} of ${n} fights` + (ts.length ? ` (median ${ts[ts.length >> 1].toFixed(1)} s)` : '') + `; the loose piece was bumped ${(pop.reduce((a, r) => a + r.bumps, 0) / Math.max(1, pop.length)).toFixed(1)} times a fight (${pop.reduce((a, r) => a + r.other, 0)} by the other robot in all)\n` +
+        `Wins with the switch on ${on.reduce((a, r) => a + r.win, 0)} of ${n}, off ${off.reduce((a, r) => a + r.win, 0)} of ${n} (same seeds)\n\nseed  on: came off at  win | off: win\n`;
+      for (const r of on) { const f = off.find(x => x.seed === r.seed); h += `${String(r.seed).padEnd(5)} ${(r.off ? r.t.toFixed(1) + ' s' : 'stayed on').padEnd(16)} ${r.win ? 'win ' : 'loss'} | ${f.win ? 'win' : 'loss'}\n`; }
+      $('out').textContent = h;
+    };
+    one();
+  }
+  $('who').onchange = () => { fillOpp(); pics(); };
+  $('watch').onclick = watch; $('batch').onclick = batch;
+  $('next').onclick = () => { $('seed').value = (+$('seed').value || 1) + 1; watch(); };
+  fillOpp(); pics();
+})();
+</script>
+<script>/* tools/stamp.py: show which game files are loaded; a red bar when they don't match this page (old files in the browser's cache) */
+(function () { const want = (document.querySelector('meta[name="robocus-files"]') || {}).content, F = window.ROBOCUS_FILES, ok = F && F.hash === want;
+  const s = document.createElement('div'); s.id = 'robocusStamp'; s.title = 'The game files this page runs on (tools/stamp.py)';
+  s.style.cssText = 'position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1.2 ui-monospace,monospace;opacity:.55;pointer-events:none;color:#444;background:rgba(255,255,255,.6);padding:1px 4px;border-radius:3px';
+  s.textContent = F ? 'files ' + F.hash + ' · ' + F.date + ' · ' + F.robots + ' robots' : 'files: unknown'; document.body.appendChild(s);
+  if (!ok) { const b = document.createElement('div'); b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100000;background:#B23A2B;color:#fff;font:600 14px system-ui,sans-serif;padding:8px 12px;text-align:center';
+    b.textContent = 'Old game files are loaded (' + (F ? F.hash : 'none') + ', this page wants ' + want + '). Press Ctrl+F5, or close the tab and open the game again.'; document.body.appendChild(b); }
+})();</script>
+</body></html>
