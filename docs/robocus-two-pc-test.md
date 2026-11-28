@@ -44,6 +44,14 @@ page errors, all four logs on the host.
    press Ctrl+F5 and open the link again.
 3. On the host, press **▶ Start game** (empty seats are AI teams).
 
+**Since 28 Nov (T70, `docs/robocus-joined-lag.md`):** the joined PC should feel quicker. Look at:
+- the **📶 number** in the 🌐 badge on the second PC (the link delay to the host and back; the host's 🌐 menu shows each
+  player's). Note it down: under 100 ms is good, over 200 ms you feel it.
+- a clicked button on the second PC shows a **small spinner** (a board click: a spinning ring) until the host has answered.
+  If you ever see one stay for seconds, note when.
+- keep the **host's game window in front** (not minimised or covered by another window): a hidden host tab used to make every
+  joined click wait up to a second; that is fixed for clicks, but the host's clocks and AI still slow down there.
+
 **What to try** (each is new since the last two-PC run):
 - Every question has a timer now (the count in the note). Let one run out once: the game picks the default and says so with ⌛.
 - Market: make an offer on the **trading floor** (under the pit) from each PC, answer Yes / Counter / No, take one back.
