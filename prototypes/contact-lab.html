@@ -373,7 +373,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   const TUNE = { buzzsaw: 1, sawrocket: 1, rocket: 1, harpoon: 1, dmg: 0.68, spinner: 1.15, drum: 0.62, flipper: 1.6, hammer: 0.75, crusher: 1.5, medium: 0.8, flame: 0.72, glove: 0.85, spear: 0.9, flail: 1.25 };
   const NOKNOB = { squeeze: 1, strain: 1, wrench: 1, dronegun: 1, dronelaser: 1, popper: 1, mine: 1, boom: 1, ram: 1, wall: 1, spikes: 1, floorsaw: 1, debris: 1, impact: 1, spikeplate: 1, ceiling: 1, piston: 1 };
   // arcade knobs: knock = extra knockback from weapon hits, fly = how far torn-off parts fly
-  const ARC = { knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, crack: true, frag: true, bend: true, grindout: true, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
+  const ARC = { flyoff: false, knock: 1, fly: 2, events: true, crates: true, omni: 0.75, omniFace: 1, ff: 0.35, cx: { slide: false, under: false, crush: false, gut: false, crack: true, frag: true, bend: true, grindout: true, count: false }, pk: {}, chipNim: { f: 1.25, v: 1.2, turn: 1.5, maxLv: 1 } };   // chipNim (Kev, 9 Nov): tuning chips make a level 0/1 frame nimble // pk: 2.0 part potency knobs, e.g. pk.medic = 0.5 (default 1) // ff = friendly fire in 2v2
   const DT = 1 / 120, G = 9.8, HALF = 4; // arena is 8 x 8 m, centred on 0,0
   const TAU = Math.PI * 2;
   // Contact experiments (Kev, 11 Nov): what a bump does depends on where and how it lands. Four switches in ARC.cx, all off by default:
@@ -726,6 +726,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     S.drones = []; S.ewalls = [];
     for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; const dw = (R.spec.wear && R.spec.wear.drones) || [];
       R.spec.helpers.forEach((k, i) => { if (dw[i] != null && dw[i] <= 0) return; makeDrone(S, R, k, i); const d = R.drones[R.drones.length - 1]; d.idx = i; if (dw[i] != null) d.hp = dw[i] * d.maxHp; }); } // 2.0: a drone shot down last fight stays home
+    S.fo = opts.flyoff != null ? !!opts.flyoff : !!ARC.flyoff; // T67: parts that fly off (next-gen test), off by default
+    for (const R of S.robots) if (S.fo || R.spec.flyoffGone) foInit(S, R);
     return S;
   }
 
@@ -1260,10 +1262,11 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     if (S.wx.crack || S.wx.grindout) d = wearPre(S, R, part, h, d);
     const before = part.hp;
     part.hp -= d;
+    if (R.fo) foFeed(S, R, part, d, h); // T67 (switch off: R.fo is never set)
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
     R.stats.taken += d; if (h.cause === 'floorsaw' || h.cause === 'spikes' || h.cause === 'icewall') R.stats.hz = (R.stats.hz || 0) + d;   // arena hazard damage (stats only)
     if (src) {
-      src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
+      src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; if (src.fo) foTally(src, d, k); src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
       if (d > src.stats.biggest) { src.stats.biggest = d; src.stats.biggestBy = k; }
       src.hype = Math.min(100, (src.hype || 0) + d * 0.3 + (d > 15 ? 5 : 0));
       if (src.hype >= 100 && !(src.rage > 0) && src.alive) { src.hype = 0; src.rage = 6; say(S, `${src.name} goes into RAGE MODE`, src.id, true); const sp = src.body.getPosition(); callout(S, 'RAGE MODE!', sp.x, sp.y, true); }
@@ -1402,7 +1405,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const part = { key: 'chunk', label, kind: 'debris', verts, outline: subdivide(verts), dents: [], fx: null, body, robot: R, attached: false, hp: 0, maxHp: 1, heat: 0, sharp: 0.4, tough: 1, wheelRoll: false };
     part.fx = body.createFixture({ shape: pl.Polygon(verts.map(p => V(p[0], p[1]))), density: mass / area(verts), friction: 0.5, restitution: 0.2, userData: { part } });
     S.debris.push(part);
-    const chunks = S.debris.filter(d => d.kind === 'debris' && !d.gone);
+    const chunks = S.debris.filter(d => d.kind === 'debris' && !d.gone && !d.fo); // (T67: breakaway pieces stay for the whole fight)
     if (chunks.length > 24) { const old = chunks[0]; old.gone = true; S.world.destroyBody(old.body); }
     return part;
   }
@@ -1888,6 +1891,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       say(S, `${R.name}: ${nm} bent ${Math.round(Math.abs(kk.th) * 57)}°` + (part.key === 'blade' ? ', it wobbles' : part.key === 'spear' ? ', the tip points off to the side' : '') + (kk.why ? ' (at the crack)' : ''), atk ? atk.id : R.id, true); }
     const weakHere = (part.cracks || []).some(c => Math.abs(c.o[ax] - kk.s) < 0.05) || (part.grooves || []).some(g => Math.abs((ax === 0 ? g.x : g.y) - kk.s) < 0.05 && g.depth > 0.006);
     if ((Math.abs(kk.th) >= KINK.snap && weakHere) || Math.abs(kk.th) >= KINK.max) { // bent too far, or bent hard where it was already weak: it snaps there
+      if (R.fo && !R.fo.off && foDef(R).watch && foDef(R).watch(R) === part) { foPop(S, R, { src: atk, cause: h.cause }, true); return; } // T67: it snaps the way its breakaway piece says
       const pc = wSplit(S, R, part, ax === 0 ? kk.s : 0, ax === 0 ? 0 : kk.s, ax === 0 ? 1 : 0, ax === 0 ? 0 : 1, 'near', (part.key === 'blade' ? 'Spinner bar' : part.label) + ' tip');
       if (pc) { part.kinkSum = 0; cxCount(S, R, 'snap'); const q = pc.body.getPosition(); callout(S, 'SNAPPED!', q.x, q.y, true); say(S, `${R.name}: ${nm} snaps where it was bent`, atk ? atk.id : R.id, true); }
     }
@@ -1951,6 +1955,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       for (const [u, o, fu, fo] of [[ua, ub, b.fa, b.fb], [ub, ua, b.fb, b.fa]]) {
         if (u.disc) discHit(S, u, o, fu, fo);
         if (u.shot) shotHit(S, u.shot, o);
+        if (u.part && u.part.fo) foTouch(S, u, o); // T67: a loose breakaway piece bumped
         if (u.part && u.part.attached && u.part.key === 'glove' && u.part.robot.punching > 0 && o.part && o.part.attached && o.part.robot !== u.part.robot) punchHit(S, u.part.robot, o.part);
         if (u.drone && u.drone.alive && !u.drone.H.physical && o.part && o.part.attached && o.part.kind === 'weapon' && o.part.robot !== u.drone.owner) {
           const db = u.drone.body, dp = db.getPosition(), va = db.getLinearVelocity(), vb = o.part.body.getLinearVelocityFromWorldPoint(dp), rs = Math.hypot(vb.x - va.x, vb.y - va.y);
@@ -2699,10 +2704,11 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       const pts = [front(0.31, 0), front(0.31, R.hw * 0.6), front(0.31, -R.hw * 0.6)];
       const target = pts.map(q => topPartAt(S, q.x, q.y, R)).find(Boolean);
       if (target) {
-        const T = target.robot, m = clamp(R.body.getMass() / T.body.getMass(), 0.6, 1.5);
-        T.body.applyLinearImpulse(V(fwd.x * 68 * m, fwd.y * 68 * m), T.body.getWorldCenter(), true);
+        const T = target.robot, m = clamp(R.body.getMass() / T.body.getMass(), 0.6, 1.5), fk = R.fo && R.fo.off && foDef(R).flipK ? foDef(R).flipK(R) : 1; // T67: a bare flipper flips weaker
+        T.body.applyLinearImpulse(V(fwd.x * 68 * m * fk, fwd.y * 68 * m * fk), T.body.getWorldCenter(), true);
         T.body.applyAngularImpulse((S.rng() - 0.5) * 40, true);
-        launch(S, T, 0.55 + 0.4 * m * S.rng(), R);
+        launch(S, T, (0.55 + 0.4 * m * S.rng()) * fk, R);
+        if (R.fo && R.fo.off && foDef(R).flipped) foDef(R).flipped(S, R);
         const lp = target.body.getLocalPoint(pts[0]);
         hit(S, target, 6, { src: R, cause: 'flipper', lp: [lp.x, lp.y], x: pts[0].x, y: pts[0].y });
         R.gas--; R.cool = 2.2; R.flipAnim = 0.35;
@@ -4426,7 +4432,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         else { st.mode = 'idle'; st.armAt = null; }
         return;
       }
-      if (!on || R.cool > 0) return;
+      if (!on || R.cool > 0 || (R.fo && R.fo.off)) return; // (T67: the stack has toppled, nothing left to drop)
       // swing a block out over where the enemy will be when it gets there
       if (stack.length && E.alive && E.airborne <= 0) {
         const ep = E.body.getPosition(), ev = E.body.getLinearVelocity(), pos = c.pos;
@@ -4468,6 +4474,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     think(S, R, c) {
       const st = R.l4, p = R.body.getPosition(), E = c.E; if (!E.alive) return null;
       const live = R.bricks.filter(q => !q.gone), stack = live.filter(q => q.state === 'stack' && q.attached);
+      if (R.fo && R.fo.off) return null; // T67: the stack toppled: shove with the dozer blade
       // empty: go and stand next to a block lying on the floor (not right next to the enemy)
       if (!stack.length && !st.carry) {
         const fl = live.filter(q => q.state === 'floor').map(q => { const qp = q.body.getPosition(); return { qp, d: Math.hypot(qp.x - p.x, qp.y - p.y), de: Math.hypot(qp.x - c.ep.x, qp.y - c.ep.y) }; }).filter(o => o.de > 0.9).sort((a, b2) => a.d - b2.d)[0];
@@ -4887,13 +4894,131 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     say(S, S.result.text, W.id, true);
   }
 
+  // ================= PARTS THAT FLY OFF (T67, Kev 28 Nov 2026; next-gen test, not for the current game) =================
+  // Kev: "more unique parts flying off from the robots depending on how the robot looks ... some tops that come off easily and
+  // expose a unique robot design". His three rules (votes 28 Nov): what comes off stays on the floor as a real object; every lost
+  // piece changes how the robot fights; (later step) it shows on the robot card until repaired.
+  // ONE SWITCH: ARC.flyoff (default false), or the fight option flyoff: true / false. Read once at create() into S.fo, so a fight
+  // is the same on every screen that builds it from the same options. Off: nothing here runs and fights are bit-identical.
+  // ONE ENTRY PER ROBOT in FLYOFF (by preset name, and only while the robot still has that weapon). The piece has its own damage
+  // pool: every hit on a part the entry feeds from (feed(R, part, h) = how much of the hit counts) drains it. At warn (the share of
+  // the pool gone) the piece shows it is going (bend); at 0, or when the part it sits on would break (watch), it comes off:
+  // pop(S, R, h, floor) makes the floor objects (real bodies, kept for the rest of the fight) and changes how the robot fights.
+  // spec.flyoffGone: the robot starts without its piece (for the robot card and garage later): changed behaviour, nothing on the floor.
+  const FLYOFF = {
+    // the spinning bar first bends, then snaps at the hub: a short half bar is left, it spins faster and reaches less far (quick small
+    // hits instead of one big one: a quarter of the bar's spin energy at full speed); the snapped half lies on the floor
+    Buzzkill: { weapon: 'spinner', label: 'Half spinner bar', pool: 62, warn: 0.5, half: 0.5, spinK: 1.5,
+      feed: (R, q) => q === R.blade ? 1 : 0, watch: R => R.blade,
+      bend(S, R) { const q = R.blade; if (!q || !q.attached || (q.kinkSum || 0) >= 0.1) return; foKink(R, q, 0.2); q.state = 'bent';
+        const p = q.body.getPosition(); callout(S, 'BENT!', p.x, p.y, false); say(S, `${R.name}: spinner bar bent at the hub, it wobbles`, R.id, true); },
+      pop(S, R, h, floor) {
+        const q = R.blade; if (!q || !q.attached) return [];
+        const vs = q.vBase || q.verts, L0 = Math.max(...vs.map(v => Math.abs(v[0]))), H = Math.max(...vs.map(v => Math.abs(v[1]))), L = L0 * this.half, m0 = q.mass;
+        // what is left: a short bar round the hub, torn ragged at one end (drawn ragged; the physics shape is its hull)
+        const left = [[-L, -H * 0.6], [-L + 0.04, -H], [L - 0.03, -H], [L + 0.02, -H * 0.35], [L - 0.02, 0], [L + 0.03, H * 0.45], [L - 0.01, H], [-L + 0.04, H], [-L, H * 0.6]];
+        let pc = null;
+        if (floor) { // the snapped half: the outer part of one arm, ragged where it broke
+          const pv = [[-L0 / 2, -H * 0.2], [-L0 / 2 + 0.03, -H], [L0 / 2 - 0.06, -H], [L0 / 2, -H * 0.6], [L0 / 2, H * 0.6], [L0 / 2 - 0.06, H], [-L0 / 2 + 0.01, H], [-L0 / 2 - 0.03, H * 0.35]];
+          const wp = q.body.getWorldPoint(V(L + L0 / 2, 0)), lp = R.body.getLocalPoint(wp), tv = q.body.getLinearVelocityFromWorldPoint(wp), rv = R.body.getLinearVelocityFromWorldPoint(wp);
+          pc = spawnLoose(S, R, 'Half spinner bar', pv, [lp.x, lp.y], m0 * (1 - this.half), [(tv.x - rv.x) * 0.25, (tv.y - rv.y) * 0.25]);
+          if (pc) { pc.body.setTransform(wp, q.body.getAngle()); pc.noHit = R; pc.noHitT = S.t + 0.5; pc.fillAs = '#C9CBC4'; pc.foShape = 'bar'; }
+        }
+        q.mass = m0 * this.half; q.vBase = null; q.kinks = []; q.kinkSum = 0; q.state = ''; q.warp = 0;
+        wRefit(R, q, left); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q); q.label = 'Half spinner bar'; q.half = true;
+        const px = R.hl + 0.1; q.home = left.map(v => [px + v[1], v[0] * 0.8]);
+        q.hp = Math.max(q.hp, q.maxHp * 0.45); R.bladeMax = R.bladeMax * this.spinK;
+        return pc ? [pc] : [];
+      } },
+    // the yellow teeth plate pops off the flipper: flips are weaker, and the bare flipper bends a little more with every flip
+    Popcorn: { weapon: 'flipper', label: 'Teeth plate', pool: 60, flipBase: 0.62, bendPer: 0.07, bendMax: 0.5,
+      feed: (R, q, h, d) => q === R.tool ? Math.max(0, 1 - 3 / d) : q.kind === 'chassis' && h.top ? 0.5 * Math.max(0, 1 - 3 / d) : 0, // knocks on the flipper (the part of each above 3), and blows from above
+      pop(S, R, h, floor) {
+        const q = R.tool; if (!q || !q.attached) return [];
+        const hl = R.hl, hw = R.hw, plate = q.verts.map(v => v.slice()), c = centroid(plate);
+        let pc = null;
+        if (floor) { pc = spawnLoose(S, R, 'Teeth plate', plate.map(v => [v[0] - c[0], v[1] - c[1]]), c, 4, [R.body.getWorldVector(V(1, 0)).x * 2.5 + (S.rng() - 0.5) * 2, R.body.getWorldVector(V(1, 0)).y * 2.5 + (S.rng() - 0.5) * 2]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.fillAs = '#E3B83A'; pc.foShape = 'teeth'; } }
+        // the bare flipper under it: a thinner steel plate
+        const bare = [[hl, -hw * 0.82], [hl + 0.17, -hw * 0.72], [hl + 0.17, hw * 0.72], [hl, hw * 0.82]];
+        q.mass = 6; q.vBase = null; q.bends = null; wRefit(R, q, bare); q.dents = []; q.cracks = []; wRebuild(q); q.label = 'Bare flipper'; q.bare = true; q.home = bare.map(v => v.slice()); q.bareBase = bare;
+        R.foBend = 0;
+        return pc ? [pc] : [];
+      },
+      flipped(S, R) { // every flip bends the bare flipper a little more: its tip twists off line, the next flip is weaker still
+        const q = R.tool; if (!q || !q.attached || !q.bare) return; R.foBend = Math.min(this.bendMax, (R.foBend || 0) + this.bendPer);
+        const b = R.foBend, hl = R.hl, hw = R.hw, d = 0.17 * (1 - 0.5 * b), sk = 0.12 * b;
+        const vs = [[hl, -hw * 0.82], [hl + d, -hw * 0.72 + sk], [hl + d + 0.02 * b, hw * 0.72 + sk], [hl, hw * 0.82]];
+        wRefit(R, q, vs); wRebuild(q);
+        if (b >= 0.2 && b - this.bendPer < 0.2) { const p = R.body.getWorldPoint(V(hl + d, 0)); callout(S, 'BENT!', p.x, p.y, false); say(S, `${R.name}: the bare flipper bends with every flip`, R.id, true); }
+      },
+      flipK(R) { return R.tool && R.tool.bare ? this.flipBase * (1 - 0.8 * (R.foBend || 0)) : 1; } },
+    // the brick stack topples off its back: the blocks break into small bricks that lie around as obstacles for everyone; the crane
+    // has nothing left to drop (the blocks it already laid stay where they are, but it can't pick anything up any more)
+    Bricklayer: { weapon: 'bricks', label: 'Brick stack', pool: 75, warn: 0.6, per: 3,
+      feed: (R, q, h) => !R.bricks.some(b => b.state === 'stack' && b.attached && !b.gone) ? 0 : q.kind === 'internal' ? 0 : q.key === 'brick' ? 1.5 : h.top ? 1.2 : 1,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'WOBBLE!', p.x, p.y, false); say(S, `${R.name}: the brick stack is leaning`, R.id); R.foLean = 1; },
+      pop(S, R, h, floor) {
+        const st = R.l4, out = [], fall = R.bricks.filter(b => !b.gone && ((b.state === 'stack' && b.attached) || b === st.carry));
+        for (const b of fall) {
+          const bp = b.body.getPosition(), lp = R.body.getLocalPoint(bp);
+          if (b.joint) { S.world.destroyJoint(b.joint); b.joint = null; }
+          b.attached = false; b.gone = true; b.state = 'broken'; b.body.setActive(false);
+          if (!floor) continue;
+          for (let k = 0; k < this.per; k++) { // small bricks
+            const a = S.rng() * TAU, sp = 1.5 + S.rng() * 2.5, bx = 0.085, by = 0.045;
+            const pc = spawnLoose(S, R, 'Brick', [[-bx, -by], [bx, -by], [bx, by], [-bx, by]], [lp.x + Math.cos(a) * 0.08, lp.y + Math.sin(a) * 0.08], 7, [Math.cos(a) * sp, Math.sin(a) * sp]);
+            if (pc) { pc.body.setLinearDamping(4); pc.body.setAngularDamping(5); pc.noHit = R; pc.noHitT = S.t + 0.4; pc.fillAs = '#C4521E'; pc.foShape = 'brick'; out.push(pc); }
+          }
+        }
+        if (st.carry) { st.carry = null; } st.mode = 'idle'; st.armAt = null; st.empty = true; R.foLean = 0;
+        return out;
+      } },
+  };
+  function foKink(R, q, th) { // bend a bar on its own body by th radians, 30% of the way out along one arm (drawing + physics shape)
+    if (!q.vBase) { q.vBase = q.verts.map(v => v.slice()); q.kAx = wAxis(q); q.kinks = []; }
+    const A = q.kAx, ax = A.ax, at = 0.3 * A.hi; q.kinks.push({ s: at, r: 0, side: 1, th, why: '' });
+    wRefit(R, q, kinkShape(q.vBase, ax, q.kinks, (A.tlo + A.thi) / 2)); wRebuild(q); q.kinkSum = q.kinks.reduce((a, k) => a + Math.abs(k.th), 0);
+  }
+  function foInit(S, R) {
+    const def = FLYOFF[R.spec.preset]; if (!def || def.weapon !== R.spec.weapon) return;
+    const pool = def.pool * (R.spec.hpK || 1);
+    R.fo = { key: R.spec.preset, label: def.label, pool, max: pool, warned: false, off: false, offT: null, pieces: [], touch: { own: 0, other: 0 }, dealt: { pre: {}, post: {} } };
+    if (R.spec.flyoffGone) { R.fo.warned = true; foPop(S, R, {}, false); R.fo.offT = 0; }
+  }
+  function foDef(R) { return FLYOFF[R.fo.key]; }
+  function foFeed(S, R, part, d, h) { // after a hit on one of R's parts (applyHit)
+    const F = R.fo; if (F.off || !R.alive) return;
+    const def = foDef(R), w = def.feed(R, part, h, d) || 0;
+    if (w > 0) { F.pool -= d * w; F.fed = (F.fed || 0) + d * w; }
+    if (!F.warned && def.warn && F.pool <= F.max * (1 - def.warn)) { F.warned = true; if (def.bend) def.bend(S, R, h); }
+    if (F.pool <= 0 || (def.watch && def.watch(R) === part && part.hp <= 0)) foPop(S, R, h, true);
+  }
+  function foPop(S, R, h, floor) {
+    const F = R.fo, def = foDef(R); if (F.off) return;
+    F.off = true; F.offT = S.t; F.pool = 0;
+    const pcs = def.pop(S, R, h || {}, floor) || [];
+    for (const pc of pcs) { pc.fo = F; pc.foOf = R; F.pieces.push(pc); }
+    if (!floor) return;
+    const atk = h && h.src && h.src !== R ? h.src : null, p = pcs.length ? pcs[0].body.getPosition() : R.body.getPosition();
+    S.fx.push({ type: 'detach', x: p.x, y: p.y }); S.fx.push({ type: 'shatter', x: p.x, y: p.y }); callout(S, def.label.toUpperCase() + ' OFF!', p.x, p.y, true);
+    R.stats.lost.push({ t: S.t, label: def.label, cause: (h && h.cause) || 'impact', by: atk ? atk.name : '' });
+    if (atk) atk.hype = Math.min(100, (atk.hype || 0) + 10);
+    say(S, `${R.name}: ${def.label.toLowerCase()} comes off${atk ? ` (${atk.name}'s ${causeLabel(h.cause)})` : ''}`, atk ? atk.id : R.id, true);
+  }
+  function foTally(src, d, cause) { const F = src.fo, ph = F.off ? F.dealt.post : F.dealt.pre, k = cause || 'impact', o = ph[k] || (ph[k] = { n: 0, d: 0 }); o.n++; o.d += d; }
+  function foTouch(S, u, o) { // a loose piece touched an attached robot part (begin-contact)
+    const F = u.part.fo; if (!F || u.part.attached || !o.part || !o.part.attached) return;
+    if (o.part.robot === u.part.foOf) F.touch.own++; else F.touch.other++;
+  }
+
   function run(opts, maxT = 200) { const S = create(Object.assign({ countdown: 0 }, opts)); while (!S.over && S.t < maxT) { step(S); S.fx.length = 0; } return S; }
 
   const MARKET_TABLE = {"names":["Juggernaut","Hornet","Whirlwind","Brawler","Mauler","Sawblast","Whaler"],"wins":[[null,70,62,18,17,55,88],[30,null,40,75,53,42,62],[38,60,null,72,60,42,28],[82,25,28,null,62,52,42],[83,47,40,38,null,33,43],[45,58,58,48,67,null,37],[12,38,72,58,57,63,null]],"fights":60}; // open floor only (8 Nov: pit removed)
   // win points a helper drone adds to each market robot (robot + 1 drone vs the other market robots, 120 fights each)
   const DRONE_VALUE = {"fights":120,"drones":{"medic":{"avg":28,"per":{"Juggernaut":39,"Hornet":23,"Whirlwind":25,"Brawler":20,"Mauler":28,"Sawblast":41,"Whaler":17}},"gunner":{"avg":14,"per":{"Juggernaut":13,"Hornet":10,"Whirlwind":13,"Brawler":10,"Mauler":28,"Sawblast":18,"Whaler":7}},"laser":{"avg":15,"per":{"Juggernaut":16,"Hornet":13,"Whirlwind":9,"Brawler":17,"Mauler":22,"Sawblast":18,"Whaler":12}},"booster":{"avg":15,"per":{"Juggernaut":3,"Hornet":6,"Whirlwind":22,"Brawler":31,"Mauler":12,"Sawblast":25,"Whaler":8}},"blocker":{"avg":7,"per":{"Juggernaut":10,"Hornet":2,"Whirlwind":2,"Brawler":8,"Mauler":7,"Sawblast":16,"Whaler":7}},"bodyguard":{"avg":11,"per":{"Juggernaut":18,"Hornet":4,"Whirlwind":5,"Brawler":5,"Mauler":14,"Sawblast":25,"Whaler":4}},"waller":{"avg":18,"per":{"Juggernaut":13,"Hornet":7,"Whirlwind":22,"Brawler":13,"Mauler":28,"Sawblast":24,"Whaler":19}},"spotter":{"avg":15,"per":{"Juggernaut":10,"Hornet":15,"Whirlwind":20,"Brawler":8,"Mauler":18,"Sawblast":24,"Whaler":10}},"jammer":{"avg":16,"per":{"Juggernaut":26,"Hornet":8,"Whirlwind":14,"Brawler":17,"Mauler":17,"Sawblast":13,"Whaler":14}}}}; // open floor (8 Nov)
   const L4 = Object.keys(PRESETS).filter(k => PRESETS[k].l4);
-  const API = { exoticFloor, WEAR, KINK, KSTIFF, WRP, PIERCE, splitPoly, CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
+  const API = { FLYOFF, exoticFloor, WEAR, KINK, KSTIFF, WRP, PIERCE, splitPoly, CXK, HOUSE, L4, readEnemy, LIVE, LIVE_K, command, wearOf, applyWear, QSHIELD, sideProfile, DESIGNS, retarget, finishTeam, SHAPES, DRONE_VALUE, HELPERS, PROCS, MODULES, MARKET_TABLE, TUNE, ARC, BUMPERS, frontTool, DT, HALF, PIT, CHASSIS, DRIVES, MOTORS, BATTERIES, WEAPONS, ARENAS, PRESETS, create, step, run, normSpec, weightOf, power, canDrive, weaponOk, centroid, causeLabel, mkRng, judge };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.DamageLab = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 
