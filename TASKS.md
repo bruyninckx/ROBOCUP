@@ -5,6 +5,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K70. Parts that fly off, all 33 (next gen, 28 Nov):** his votes (Keep / Change / Drop per robot) and three
+  direction questions (how much should losing a piece hurt; how often; keep the new parts on Angler, Pincher, Hydra)
+  on https://claude.ai/artifact/JnieB2Eb3n2dAX34XtRZ8L. The per-robot questions of K66-K68 and the workers' questions
+  22-42 in `docs/robocus-flyoff.md` (nextgen) are covered by that page's feedback boxes.
+
 - **K69. After the lag fix (28 Nov):** in the next two-PC game, what does the link number next to the online badge
   show on the joined screen (under 100 = near the limit of this design; over 150-200 = a nearer relay is the next
   step)? Is the spinner on a pressed button OK? Any short freeze on a joined screen after the host clicks "Skip to
@@ -238,31 +243,19 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T71. Parts that fly off for ALL robots (28 Nov, workers running one after the other, branch `nextgen` only).**
-  Kev's words: "for the next gen work, implement these changes to all robots go all out". The 18 robots that have no
-  breakaway piece yet, in three batches of six (same engine file, so in sequence):
-  T71a Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker (+ bolder drawings for Tarantula, Lodestone, Blacksmith,
-  whose looks changed least); T71b Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher; T71c Yoyo, Gaucho,
-  Slingshot, Orbiter, Rotisserie, Trebuchet. "All out" = every robot gets its OWN piece that fits how it looks, the
-  inside it exposes is a new drawing, and losing it visibly changes how it fights (not a small number change). Same
-  checks as T67-T69 (switch off: fingerprint 470f6923; switch on: numbers per robot, 256 fights on/off).
-  T71a DONE (nextgen `bf4ad24`, files stamp there 80fb4ab3; my checks: fingerprint, game-sim 2/2, no Math.random):
-  Forklift counterweight (flicks instead of tips), Mincer one grinder disc (crabwise), Scythe blade (pole swats),
-  Snapjaw ram cover (chomps, oil puddles), Thumper axe head (quick stabs), Wrecker flail ball (chain lassos). Comes off
-  45-66%. Too weak when starting without the piece: Scythe 3 wins of 128, Wrecker 2 of 128 (to fix after Kev's look).
-  Questions from it: Forklift gets a bit better without its counterweight (+3): fine? Mincer's loose disc mostly bites
-  Mincer itself; Snapjaw's oil: more or none?
-  T71b DONE (nextgen `184815f`, files stamp there 7a4c783d; my checks: fingerprint, game-sim 2/2, no Math.random):
-  Corkscrew screw thread (rubs robots hot against the wall), Mauler spiked shell (long whip, spike halves puncture
-  tyres), Thwacker tail (drops like a lizard's, thrashes 5 s; reverses in with a stinger), Vertigo one disc fork (disc
-  tips over, throws sideways), Angler reel spool (new part; drags robots along), Pincher timing gear (new part; arms
-  slap out of step). Comes off 40-60%. Hornet's +10.9 from the short re-run did not hold (+0.4 over 256). Questions:
-  Angler's reel and Pincher's gears only exist with the switch on: keep, or use a piece they already show?
-  T71c running: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet; stronger back-ups for Scythe, Wrecker, Pogo,
-  Hornet; one table and one sheet for all 33. After it: a
-  page with all 33 for Kev's votes, then card and garage (rule 3), then the balance re-measure on Kev's PC.
-
 ## Done
+
+- **T71. Parts that fly off for ALL 33 robots** (28 Nov, Kev: "implement these changes to all robots go all out";
+  NEXT GEN ONLY: branch `nextgen` at `e35d15b`, files stamp there bf1b6a26; not on `main`). Three batches (T71a
+  Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker + bolder Tarantula/Lodestone/Blacksmith; T71b Corkscrew, Mauler,
+  Thwacker, Vertigo, Angler, Pincher; T71c Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet + stronger back-ups
+  for Scythe, Wrecker, Pogo, Hornet). Checked by me after each merge: fingerprint 470f6923 with the switch off,
+  game-sim 2/2 finished 0 errors, no Math.random added. Every piece comes off in 35-65% of fights; 30 of 33 robots win
+  about as often with the switch on as off; outside their range: Bricklayer -14, Pogo -6, Buzzkill +9 (128-256 fights
+  each way; table `docs/robocus-flyoff-all33.csv` on nextgen, list of all 33 at the top of `docs/robocus-flyoff.md`).
+  Lab page with all 33: `play-nextgen.cmd`. Voting page for Kev with the real with/without pictures and numbers:
+  https://claude.ai/artifact/JnieB2Eb3n2dAX34XtRZ8L (source `tools/flyoff-page/all33/`). NEXT, after his votes: tuning
+  round from his answers, then card and garage (rule 3), then the balance re-measure on his PC.
 
 - **T70. Joined screen feels sluggish** (28 Nov, Kev: "go for the lag fixes"; merged, files stamp 8a074599, BUILD
   2026-11-28a). The host answers a joined screen's click at once instead of on the 100 ms timer (also when its window
