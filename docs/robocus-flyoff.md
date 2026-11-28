@@ -1,4 +1,4 @@
-# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3)
+# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A of all robots)
 
 Kev, 28 Nov 2026: "a new damage model that has more unique parts flying off from the robots depending on how the robot
 looks, the shell can come off from gyro which is nice, we need more like this, some tops that come off easily and expose a
@@ -8,15 +8,17 @@ He voted "Build it" on 15 robots and Yes on three rules: (1) what comes off stay
 of the fight; (2) every lost piece changes how the robot fights, never only looks; (3) it shows on the robot card afterwards
 until repaired. Step 1 did rules 1 and 2 for three robots (Buzzkill, Popcorn, Bricklayer); step 2 (28 Nov, T68) adds six more: Gyro, Railgun,
 Scavenger, Grandmaster, Whaler, Jukebox; step 3 (28 Nov, T69) adds the last six of the first 15: Pogo, Blacksmith, Lodestone,
-Hornet, Tarantula, Hydra. Fifteen robots now. Rule 3 is a later step.
+Hornet, Tarantula, Hydra. Batch A of all robots (28 Nov, T71a; Kev: "implement these changes to all robots go all out") adds Forklift,
+Mincer, Scythe, Snapjaw, Thumper, Wrecker: twenty-one robots now. Rule 3 is a later step.
 
 **Not in the game.** One switch, off by default. With it off, every fight is exactly as before (checked: stock-fight
 fingerprint 470f6923 and sync check 89a95280 unchanged, the game page plays 2 of 2 test games with 0 errors; step 3: the six robots'
-own fights are bit-identical to `nextgen` before the change, 64 fights each).
+own fights are bit-identical to `nextgen` before the change, 64 fights each; batch A: the same checks, the six robots' own fights
+bit-identical).
 
 ## Try it
 
-`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the fifteen robots and an
+`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the twenty-one robots and an
 opponent, tick or untick "Parts fly off", then "Watch the fight" (same seed = same fight) or "Run 40 seeds" for quick
 numbers. The two pictures show the robot as it comes and without its piece.
 
@@ -245,6 +247,119 @@ The three that move most: **Bricklayer -16.0 ± 5.9**, **Pogo -12.9 ± 5.0**, **
 against the 15). Next: Gaucho +4.3 ± 3.6, Orbiter +4.3 ± 2.4, Grandmaster +3.5, Scavenger -3.5, Rotisserie +3.5. Every robot without a
 piece moves between -0.4 and +4.7: the switch makes the field a bit easier for them, never harder.
 
+## Batch A of all robots (T71a, 28 Nov)
+
+Kev, after seeing the first 15: "for the next gen work, implement these changes to all robots go all out". Batch A: Forklift, Mincer,
+Scythe, Snapjaw, Thumper, Wrecker. Each loses its own kind of piece in its own way, shows a new inside, and fights differently without it.
+Twenty-one robots now.
+
+| Robot | Comes off | You see | In the fight |
+|---|---|---|---|
+| Forklift | the 14 kg counterweight on its tail drops off (54 kg frame -> 40) | the little engine that drives the lift: a spinning radiator fan, cylinder heads, an exhaust that puffs | it can't hold a robot up any more: it flicks robots off its forks at once (FLICK!) instead of carrying and tipping them, and it nose-dives under a robot over 1.25x its weight. Lighter, so a bit quicker. The block is a heavy lump on the floor |
+| Mincer | one grinder disc flies off its spindle and skids away forwards, still spinning | the bare spindle: a gold drive gear, a nut, the torn drive belt flapping, sparks | the other grinder gets all the motor (1.2x spin); Mincer comes in crabwise, the good grinder first; no more pinching a robot between two saws. The loose disc bites whatever it touches while it still spins (its own robot too) |
+| Scythe | the curved blade snaps off the end of its arm | a bare steel pole, torn at the end | it stops wiping to and fro: it waits until a robot is in reach and swats it once, hard (SWAT!), knocking it away spinning; the pole can't cut |
+| Snapjaw | the cover over its hydraulic ram pops off and the hose under it splits | the red hydraulic ram, its chrome rod to the jaws, a split hose spitting oil | no pressure: the jaws can't hold, so it chomps (bite 0.45 s, let go, bite again) instead of grabbing and dragging a robot to a wall; each bite spits a small oil puddle (at most one every 2 s) that robots slide in |
+| Thumper | the axe head flies off the handle and bites into the floor (it barely moves: a spike to drive round) | the jagged end of the broken handle, sparking | it stabs with the broken handle: short, quick (about three stabs for one axe blow), small hits (10) that go through armour, instead of one slow 34-damage chop |
+| Wrecker | the chain snaps: the spiked ball flies off and rolls on (it hardly slows down) | a short end of broken chain, the last link torn open | the chain end still whips round; when it hits a robot it wraps round it (LASSOED!), drags it round for 0.8 s and flings it away (FLUNG!), at most once every 2.2 s. Its spiked bumpers do the rest |
+
+Nothing leaves a robot without a way to fight: Forklift flicks, Mincer keeps one grinder, Scythe swats, Snapjaw chomps, Thumper stabs,
+Wrecker lassos. Some of these back-ups are weak (Scythe and Wrecker, see the numbers).
+
+Also in this batch, drawing only (no rule change): bolder pictures without the piece for the three that changed least on the portrait
+sheet. Tarantula: each lost leg is a thick torn stump that sticks out over the side plate, glowing orange at the break, with big sparks, two
+hanging wires and a scorch mark. Lodestone: the coil bay is empty and dark, the bobbin flanges show, the core is a thin rod, and the unwound
+wire hangs out over the side of the hull. Blacksmith: a bigger, brighter open forge with flames licking out of the coals and the torn hood
+hinges at its back edge.
+
+Pictures (fight view, just before and 2.5 s after): `/home/claude/out/t71a-<robot>-before.png`, `-after.png`, `-arena.png`, `-portraits.png`;
+all 21 robots with and without their piece on one sheet: `/home/claude/out/t71a-portraits-all.png` (`node tools/flyoff-shots.js /home/claude/out t71a`,
+`... t71a sheet`).
+
+### Batch A numbers (28 Nov, open floor, wear on)
+
+Same method as steps 1-3: each robot against all 32 others, 8 seeds each, sides swapped every other seed, **256 fights with the switch on and
+the same 256 with it off** (`node tools/damage-lab/flyoff.js <robot> 8`, `flyoff.js report <files>`). "±" is a 95% range.
+
+| | Forklift | Mincer | Scythe | Snapjaw | Thumper | Wrecker |
+|---|---|---|---|---|---|---|
+| piece comes off | 116 of 256 = 45% (±6) | 169 = 66% (±6) | 142 = 55% (±6) | 168 = 66% (±6) | 147 = 57% (±6) | 133 = 52% (±6) |
+| when (median) | 38 s | 30 s | 34 s | 22 s | 38 s | 61 s |
+| fights where robots touched the loose piece | 116 of 116 | 169 of 169 | 142 of 142 | 168 of 168 | 147 of 147 | 111 of 133 |
+| contacts with the loose piece, a fight | 8.7 (3.9 by the other robot) | 22.9 (9.1) | 11.5 (4.3) | 8.4 (3.3) | 30.2 (12.9) | 5.3 (1.1) |
+| the effect, in the fights where it came off | 0.96 flicks and 1.03 nose-dives a fight | the loose disc bit for 0.15 s a fight (0.02 s of it the other robot) | 11.7 swats a fight | 3.3 chomps, 1.4 oil puddles a fight; robots in its oil 0.8 s (the other) and 0.8 s (itself) | 9.5 stabs a fight | 5.5 lassos (and flings) a fight |
+| win rate vs the field, switch off | 21.5% | 21.1% | 25.8% | 20.7% | 25.4% | 27.3% |
+| win rate vs the field, switch on | 24.6% | 19.9% | 20.3% | 21.5% | 25.0% | 24.2% |
+| difference (same fights) | +3.1 ± 3.0 | -1.2 ± 4.0 | -5.5 ± 4.8 | +0.8 ± 3.6 | -0.4 ± 3.2 | -3.1 ± 4.0 |
+
+What happened in those fights after the piece came off: Forklift's tip-overs (landing hits) 0.34 -> 0.02 a second, its flicks take over;
+Mincer's grinder hits 4.2 -> 1.3 a second; Scythe's blade hits 2.1 a second (6.9 damage a second) -> swats 0.34 a second (0.6 damage a
+second: it knocks robots away, it hardly hurts them); Snapjaw's crush 4.9 -> 0.9 damage a second; Thumper's axe 0.79 blows a second
+(3.6 damage a second) -> stabs; Wrecker's flail 4.0 damage a second -> lasso and spikes.
+
+How the robot fights without its piece: the same robot starting without it (`spec.flyoffGone`) against the same robot keeping it
+(`spec.flyoffKeep`), switch off, the whole field, 4 seeds each: **128 fights each way, same seeds** (`flyoff.js gone <robot> 4`,
+`flyoff.js gonereport <files>`).
+
+| | wins keeping it | wins without it | the change |
+|---|---|---|---|
+| Forklift | 31 of 128 | 28 of 128 | tip-overs 0.34 -> 0.02 a second; flicks 0.57 a second (3.1 damage each); fights end sooner (66 -> 54 s) |
+| Mincer | 27 | 8 | grinder 3.5 -> 2.0 damage a second (one grinder, crabwise) |
+| Scythe | 36 | 3 | blade 5.1 damage a second -> swats 0.6 damage a second: it shoves robots away but can't finish them |
+| Snapjaw | 24 | 17 | crush 4.0 -> 2.4 damage a second (short bites, no dragging) |
+| Thumper | 31 | 19 | axe 2.8 damage a second -> stabs 0.6 a second, 1.4 damage a second |
+| Wrecker | 30 | 2 | flail 3.4 damage a second -> none; spiked bumpers 0.7 -> 1.1; the lasso throws but hardly hurts |
+
+So in a fight losing the piece costs these six between -5.5 (Scythe) and +3.1 (Forklift: lighter, and its flick works better than it carried)
+points against the field. Starting without it (rule 3, if not repaired) is very hard on Scythe and Wrecker (they keep a back-up that shoves
+and throws but hardly hurts), hard on Mincer and Thumper, mild on Snapjaw, nothing for Forklift.
+
+The whole field against these six (`flyoff.js field` on the six runs): every other robot moves between -2.3 (Bricklayer) and +2.3
+(Buzzkill) points; within their ranges.
+
+### The 15 earlier robots, re-run after batch A
+
+Shorter run: each against all 32 others, **2 seeds each: 64 fights with the switch on and the same 64 off** per robot (960 + 960 fights;
+the first two of the eight seeds, so a ±12 range on the rate, ±4 to ±13 points on the difference).
+
+| | piece comes off | difference with the switch on | (step 3, 256 fights) |
+|---|---|---|---|
+| Buzzkill | 56% | +3.1 ± 10.7 | 45%, +3.1 |
+| Popcorn | 64% | +1.6 ± 8.2 | 64%, -1.6 |
+| Bricklayer | 45% | -9.4 ± 12.1 | 47%, -16.0 |
+| Gyro | 61% | -6.3 ± 10.6 | 61%, -2.7 |
+| Railgun | 39% | 0.0 ± 8.7 | 32%, 0.0 |
+| Scavenger | 45% | -3.1 ± 8.7 | 45%, -3.5 |
+| Grandmaster | 39% | +9.4 ± 9.5 | 42%, +3.5 |
+| Whaler | 45% | 0.0 ± 4.4 | 39%, +3.1 |
+| Jukebox | 42% | -7.8 ± 7.9 | 33%, +0.4 |
+| Pogo | 45% | -7.8 ± 10.1 | 49%, -12.9 |
+| Blacksmith | 47% | 0.0 ± 6.2 | 43%, +1.2 |
+| Lodestone | 58% | 0.0 ± 7.6 | 48%, -0.4 |
+| Hornet | 52% | +10.9 ± 7.7 | 50%, 0.0 |
+| Tarantula | 58% | +7.8 ± 12.6 | 62%, -2.0 |
+| Hydra | 63% | +6.3 ± 12.3 | 61%, -1.6 |
+
+All fifteen still lose their piece in a third to two thirds of fights. Their code did not change (only Tarantula's, Lodestone's and
+Blacksmith's pictures); the numbers move because six more opponents now lose pieces, and because 64 fights give wide ranges. Hornet
+(+10.9 ± 7.7) is the only one whose range does not reach its step-3 number: its tip still breaks off in about half the fights; part of the
+move may be that six more of its opponents now lose weapon pieces, part chance in 64 fights (I did not measure which). Worth a full
+256-fight look if Kev keeps batch A.
+
+### How batch A uses the mechanism
+
+No new abilities were needed (as "What a 16th robot needs" said): six `FLYOFF` entries plus small hooks where the robots fight, each only
+set once the piece is off, so fights with the switch off stay bit-identical: `R.foFlick` (Forklift's lifter), `R.foOne` (Mincer's crabwise
+approach in `think`), `R.foBat` (Scythe's sweeper), `R.foLeak` (Snapjaw's crusher hold and crush), `R.foJab` (Thumper's hammer),
+`R.foChain` and the chain end part `chainend` (Wrecker). Pieces: `spawnLoose` (counterweight, blade, cover, axe head), `detach` (Mincer's
+disc, Wrecker's ball: real parts that fly off), `foPart` (Wrecker's chain end on a new rope). `tick`: Mincer's loose disc bites,
+Snapjaw's oil, Wrecker's lasso. `dealt`: Mincer, Scythe, Thumper and Wrecker wear their piece with their own hits too. New causes:
+fork flick, loose grinder disc, pole swat, broken axe handle, broken chain. Drawing in `src2/view.js` (`drawWeightBlock`, `drawEngine`,
+`drawRamCover`, `drawLeakyRam`, `drawSpindle`, `drawChainEnd`, the bare pole, the broken handle, four floor pieces).
+
+Checks, switch off: stock-fight fingerprint 470f6923 unchanged; sync check 89a95280 unchanged; the six robots' own fights (64 each, all 32
+opponents, 2 seeds, a hash of every fight's end state) bit-identical to the `nextgen` engine before the change; game-sim check 2 of 2 games
+finished, 0 page errors. The game page only got the new files stamp; the switch stays off there.
+
 ## How step 3 extends the mechanism (the four new abilities)
 
 - **Several pieces per robot**: `count` in the entry (default 1). `R.fo.n` pieces lost, `R.fo.offs` when, `R.fo.done` when all are gone.
@@ -321,10 +436,24 @@ Step 3:
 21. **The field gets easier** for robots without a piece (up to +4.7 for Angler). Fine for a test, or keep pieces off robots that are
     already weak?
 
+Batch A (T71a):
+
+22. **Forklift** gets a little *better* without its counterweight (+3 points; it flicks instead of carrying). Keep, or make the flick weaker?
+23. **Mincer's loose disc** bites rarely (0.15 s a fight, mostly Mincer itself). Should it bite harder or spin longer on the floor?
+24. **Scythe without its blade** only swats (3 wins of 128 when it starts without it). Let the bare pole jab too, or is that the price?
+25. **Snapjaw's oil**: small puddles when it bites (1.4 a fight). More oil, or none?
+26. **Thumper's stabs** (10 damage, through armour, about three for one axe blow): right feel?
+27. **Wrecker without its ball** has almost no weapon (2 wins of 128 when it starts without it; the lasso throws but hardly hurts). Keep, or
+    let the chain end hit harder?
+28. **Bolder pictures** for Tarantula, Lodestone and Blacksmith without their pieces: clear enough now (`t71a-portraits-all.png`)?
+
 Safest choices made where Kev has not decided: pieces barely hurt (like all junk); rates between a third and two thirds;
 Bricklayer's laid blocks stay on the floor but can't be picked up again; the game page is untouched (switch off). Step 2: the rates
 are 32% to 62% of fights; Scavenger can't eat its own spilled junk again; Jukebox's records can be fetched (the stated exception);
 Grandmaster's blind pick happens at the same moments it would have re-chosen (every 6 s); Railgun's spread is up to 0.3 rad;
 Whaler's winch half speed; the look follows the voting-page sketches (`tools/flyoff-page/gen.py` on main). Step 3: rates 43% to 62%;
 every touch effect mild (bounce 0.3 s, tangle 1.2 s, burn 5 a second, zap 2 damage and 0.15 s, stuck tip 1.2 a second); pieces can't be put
-back; Pogo, Hornet and Tarantula lose what the voting page said (jump, point, legs) even where that costs them a lot.
+back; Pogo, Hornet and Tarantula lose what the voting page said (jump, point, legs) even where that costs them a lot. Batch A: rates 45% to
+66%; every effect on the other robot mild (flick 60, swat 70 with a spin, 0.8 s lasso then a fling of 40, oil puddles 0.25 m for 5 s, the
+loose disc 9 damage a second while it spins, stabs 10); the six pieces and what is left are my choice (no voting-page sketches for these);
+every robot keeps a back-up way to fight.
