@@ -28,11 +28,12 @@
     const R = probe(spec), w = spec.wear || {}, Z = {};
     for (const z of ZONES) Z[z.key] = { key: z.key, f: 1, broken: false, labels: [], lost: [], mods: [] };
     const f = q => Math.max(0, q.hp) / q.maxHp;
-    for (const q of R.parts) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (!q.attached) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
+    for (const q of R.parts) { if (q.foOff) continue; const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (!q.attached) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
     for (const q of R.internals) { const z = Z[zoneOfPart(q)]; z.labels.push(q.label); if (q.key === 'module') z.mods.push(q.label); if (q.hp <= 0) { z.broken = true; z.f = 0; z.lost.push(q.label); } else z.f = Math.min(z.f, f(q)); }
     const B = Z.body; B.labels.push('Top plate'); if (!R.lid.attached) { B.broken = true; B.f = 0; B.lost.push('Top plate'); } else B.f = Math.min(B.f, f(R.lid));
     (w.drones || []).forEach((d, i) => { if (d <= 0) { B.broken = true; B.f = 0; B.lost.push('drone ' + (i + 1)); } else B.f = Math.min(B.f, d); });
     if (w.marks) marksIn(R, Z);
+    const pc = pieceOf(R); if (pc) { const z = Z[pc.zone]; z.piece = pc; z.broken = true; z.lost.push(pc.tag); }   // T73: a piece that flew off in a fight and is not repaired yet
     for (const z of Object.values(Z)) z.damaged = z.broken || z.f < BAD;   // Kev, 21 Nov (T41): a mark alone does not count as damage (shown, optional to repair)
     return Z;
   }
@@ -70,10 +71,24 @@
       z.marked = !!(m.snap || m.bend >= MARK.bendDeg || m.warp >= MARK.warp || m.rub || m.open || m.crack >= MARK.crack);
     }
   }
+  /* T73 (Kev's rule 3, voted Yes: "the robot card shows the robot without its piece until you pay for the repair in the garage"). The engine
+   * keeps the pieces a robot lost in spec.wear.fo (how many: Tarantula up to 3 legs, Hydra 2 heads, the rest 1) and starts its next fight
+   * without them. Here the piece belongs to a repair zone (its weapon; Tarantula's legs: its drive) and makes that zone broken, so the
+   * garage offers the repair like any broken part (same price: a broken zone), and repairing the zone puts the piece back on.
+   * pieceOf(R): { n, count, zone, label, tag ('shell lost', '2 legs lost'), name } or null. */
+  const PIECE_ZONE = { Tarantula: 'drive' };
+  function pieceOf(R) {
+    const F = R && R.fo; if (!F || !(F.n > 0) || F.keep) return null;
+    const nm = R.spec.preset, one = F.label.toLowerCase(), n = F.n;
+    const tag = F.count > 1 ? (n > 1 ? n + ' ' + one + 's lost' : one + ' lost') : one + ' lost';
+    return { n, count: F.count, zone: PIECE_ZONE[nm] || 'weapon', label: F.label, tag, name: nm };
+  }
+  const pieceOfSpec = spec => spec && spec.wear && spec.wear.fo ? pieceOf(probe(spec)) : null;
   // a crew action: the whole zone back to new (dents on its parts go too)
   function repairZone(spec, key) {
     const w = spec.wear; if (!w) return;
     const Z = zones(spec), labels = new Set(Z[key].labels);
+    if (Z[key].piece) delete w.fo;   // T73: the lost piece goes back on
     for (const m of ['parts', 'ints', 'dents', 'marks']) if (w[m]) for (const k of Object.keys(w[m])) if (labels.has(k)) delete w[m][k];   // marks: T41, a repair straightens what it mends
     if (w.marks && !Object.keys(w.marks).length) delete w.marks;
     if (w.lost) w.lost = w.lost.filter(k => !labels.has(k));
@@ -123,8 +138,10 @@
   const bodyCostOf = name => BODY_COST[name] || BODY_DEF;
   function wearCost(spec, name) {
     const Z = zones(spec); let c = 0;
-    const d = Z.drive; c += d.broken ? DRIVE_LOST[Math.min(3, Math.max(1, d.lost.length))] : ZONE_COST.drive * Math.max(0, 1 - d.f) * 0.5;
-    const w = Z.weapon; c += w.broken ? ZONE_COST.weapon : ZONE_COST.weapon * Math.max(0, 1 - w.f) * 0.8;
+    const only = z => z.piece && z.lost.length === 1;   // T73: broken only because its piece is off: the piece's own cost (PIECE_COST), plus its health
+    const d = Z.drive; c += d.broken && !only(d) ? DRIVE_LOST[Math.min(3, Math.max(1, d.lost.length - (d.piece ? 1 : 0)))] : ZONE_COST.drive * Math.max(0, 1 - d.f) * 0.5;
+    const w = Z.weapon; c += w.broken && !only(w) ? ZONE_COST.weapon : ZONE_COST.weapon * Math.max(0, 1 - w.f) * 0.8;
+    for (const z of [d, w, Z.body]) if (z.piece) c += pieceCost(z.piece);
     const b = Z.body, bc = bodyCostOf(name);
     if (b.broken) { const chip = b.lost.some(l => /chip/i.test(l)), dr = b.lost.filter(l => /^drone /.test(l)).length, mod = b.lost.filter(l => b.mods.includes(l)).length, arm = b.lost.length - (chip ? 1 : 0) - dr - mod;
       c += ARM_K * bc[0] * Math.min(4, arm) / 4 + (chip ? bc[1] + CHIP_ADD : 0) + dr * DRONE_COST + mod * MODULE_COST; }
@@ -142,8 +159,18 @@
       c += MARK_COST.bend * Math.min(34, m.bend) + MARK_COST.warp * m.warp + MARK_COST.snap * m.snap + MARK_COST.rub * Math.min(2, m.rub) + MARK_COST.crack * Math.min(1, m.crack) + MARK_COST.open * m.open; }
     return c;
   }
+  /* T73: what a lost piece costs (logits), from the wins starting without it against the same fights keeping it (docs/robocus-flyoff.md,
+   * `flyoff.js gone <robot> 4`: 128 fights each way against the whole field; Popcorn from step 1). logit(keep) - logit(gone), never below 0
+   * (Grandmaster wins more without its hat), at most a lost weapon (3.0). Several pieces (Tarantula, Hydra): in proportion. */
+  const PIECE_WINS = { Buzzkill: [30, 29], Popcorn: [28, 7], Bricklayer: [0, 0], Gyro: [69, 8], Railgun: [93, 91], Scavenger: [83, 24], Grandmaster: [77, 89], Whaler: [72, 59],
+    Jukebox: [101, 27], Pogo: [97, 30], Blacksmith: [56, 51], Lodestone: [95, 88], Hornet: [19, 6], Tarantula: [92, 39], Hydra: [67, 46], Forklift: [31, 28], Mincer: [27, 8],
+    Scythe: [36, 15], Snapjaw: [24, 17], Thumper: [31, 19], Wrecker: [30, 10], Corkscrew: [51, 21], Mauler: [41, 14], Thwacker: [60, 54], Vertigo: [51, 23], Angler: [73, 70],
+    Pincher: [65, 63], Yoyo: [61, 18], Gaucho: [73, 49], Slingshot: [74, 54], Orbiter: [101, 48], Rotisserie: [90, 24], Trebuchet: [96, 53] };
+  const lgt = (k, n = 128) => { const p = Math.min(n - 0.5, Math.max(0.5, k)) / n; return Math.log(p / (1 - p)); };
+  const PIECE_COST = {}; for (const [k, [a, b]] of Object.entries(PIECE_WINS)) PIECE_COST[k] = a || b ? Math.round(Math.min(3, Math.max(0, lgt(a) - lgt(b))) * 100) / 100 : 0;
+  const pieceCost = pc => (PIECE_COST[pc.name] || 0) * Math.min(1, pc.n / (pc.count || 1));
   const chipDead = spec => !!(spec && spec.wear && zones(spec).body.lost.some(l => /chip/i.test(l)));
   const winP = (sa, sb) => 1 / (1 + Math.exp(-(sa - sb)));
-  const API = { ZONES, zones, repairZone, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST, BODY_COST, wearCost, chipDead, bodyCostOf, markCost, MARK_COST, MARK };
+  const API = { ZONES, zones, repairZone, pieceOf, pieceOfSpec, PIECE_COST, PIECE_WINS, PIECE_ZONE, bodyHeal, zoneOfPart, strength, winP, LEVEL, PART, LEG, L4_OFF, ZONE_COST, BODY_COST, wearCost, chipDead, bodyCostOf, markCost, MARK_COST, MARK };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.Repair2 = API;
 })(typeof window !== 'undefined' ? window : globalThis);

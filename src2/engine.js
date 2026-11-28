@@ -368,7 +368,7 @@
     for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; const dw = (R.spec.wear && R.spec.wear.drones) || [];
       R.spec.helpers.forEach((k, i) => { if (dw[i] != null && dw[i] <= 0) return; makeDrone(S, R, k, i); const d = R.drones[R.drones.length - 1]; d.idx = i; if (dw[i] != null) d.hp = dw[i] * d.maxHp; }); } // 2.0: a drone shot down last fight stays home
     S.fo = opts.flyoff != null ? !!opts.flyoff : !!ARC.flyoff; // T67: parts that fly off (next-gen test), off by default
-    for (const R of S.robots) if (S.fo || R.spec.flyoffGone || R.spec.flyoffKeep) foInit(S, R);
+    for (const R of S.robots) if (S.fo || R.spec.flyoffGone || R.spec.flyoffKeep || (R.spec.wear && R.spec.wear.fo)) foInit(S, R); // T73: wear.fo (a piece lost in an earlier fight) too
     return S;
   }
 
@@ -449,7 +449,7 @@
       const hurt = (k === 'medic' || k === 'fieldmedic') && near < 1.3 && (f01(R) < 1 || R.internals.some(q => q.hp < q.maxHp && (q.hp > 0 || q.key === 'motor' || q.key === 'wmotor')) || R.parts.some(q => q.attached && q.hp < q.maxHp));
       if (!hurt) d.revive = 0;
       if (hurt) {
-        const c = R.chassis, hk = k === 'fieldmedic' ? pkR('fieldmedic', R) : pkR('medic', R); c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 2 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 3 * hk * DT);
+        const c = R.chassis, hk = k === 'fieldmedic' ? pkR('fieldmedic', R) : pkR('medic', R); c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 2 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 3 * hk * DT); if (R.fo && !R.fo.done && !R.fo.keep) R.fo.pool = Math.min(R.fo.max, R.fo.pool + 3 * hk * DT); // T73: the piece too
         // a burnt-out motor gets restarted after 5 s of patching
         const dead = R.internals.find(q => q.hp <= 0 && (q.key === 'motor' || q.key === 'wmotor'));
         if (dead) { d.revive = (d.revive || 0) + DT; if (d.revive > 9) { d.revive = 0; dead.hp = dead.maxHp * 0.35; dead.state = ''; dead.heat = 0; callout(S, 'PATCHED UP!', rp.x, rp.y, false); say(S, `${R.name}: medic drone restarts the ${dead.label.toLowerCase()}`, R.id, true); } } if (R.battery.fire) R.battery.fire = Math.max(0, R.battery.fire - DT);
@@ -700,6 +700,7 @@
   function wearOf(R) {
     const w = { parts: {}, lost: [], ints: {}, lid: R.lid.attached ? r3(Math.max(0, R.lid.hp) / R.lid.maxHp) : 0, dents: {}, drones: R.spec.helpers.map((k, i) => { const d = (R.drones || []).find(q => q.idx === i); return d && d.alive ? r3(Math.max(0, d.hp) / d.maxHp) : 0; }) };
     for (const q of R.parts) {
+      if (q.foOff || q.foShaped) continue; // T73: a piece that flew off (and what it left): foInit makes it again from w.fo
       if (!q.attached) { w.lost.push(q.label); continue; }
       if (q.hp < q.maxHp) w.parts[q.label] = r3(Math.max(0, q.hp) / q.maxHp);
       if (q.dents.length && q.body === R.body) w.dents[q.label] = q.dents.map(d => [r3(d.x), r3(d.y), Math.round(d.a)]);
@@ -707,6 +708,7 @@
     if (R.lid.attached && R.lid.dents.length) w.dents['Top plate'] = R.lid.dents.map(d => [r3(d.x), r3(d.y), Math.round(d.a)]);
     for (const q of R.internals) if (q.hp < q.maxHp) w.ints[q.label] = r3(Math.max(0, q.hp) / q.maxHp);
     const mk = marksOf(R); if (mk) w.marks = mk;
+    if (R.fo && R.fo.n > 0 && !R.fo.keep) w.fo = R.fo.n; // T73 (Kev's rule 3): the pieces it lost stay lost until repaired in the garage
     return w;
   }
   /* T41 (Kev, 21 Nov: "keep bend until repair"): the wear marks a fight leaves stay on the robot until the zone is repaired.
@@ -722,7 +724,7 @@
     const out = {}; let n = 0;
     const put = (lb, m) => { if (Object.keys(m).length) { out[lb] = Object.assign(out[lb] || {}, m); n++; } };
     for (const q of R.parts) {
-      if (!q.attached || q.kind === 'wheel') continue;
+      if (!q.attached || q.kind === 'wheel' || q.foShaped) continue; // (T73: a part the piece's pop reshaped: foInit makes it again)
       const m = {};
       if (q.v0 && !sameVs(q.verts, q.v0)) m.v = q.verts.map(pt4);
       if (q.vBase && !sameVs(q.vBase, q.v0)) m.vb = q.vBase.map(pt4);
@@ -2064,7 +2066,7 @@
       const kit = R.spec && (R.spec.fromParts || []).includes('repair'), quiet = S.t - R.lastHurt > (kit && ARC.pk.repairWait != null ? ARC.pk.repairWait : 1.5);
       const rk = quiet ? 1 : kit ? (ARC.pk.repairFire || 0) : 0;
       R.healing = rk > 0 && f < 1;
-      if (R.healing) { const c = R.chassis, hk = pkR('repair', R) * rk, c0 = c.hp; c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT);
+      if (R.healing) { const c = R.chassis, hk = pkR('repair', R) * rk, c0 = c.hp; c.hp = Math.min(c.maxHp, c.hp + 4 * hk * DT); for (const q of R.internals) if (q.hp > 0) q.hp = Math.min(q.maxHp, q.hp + 1 * hk * DT); for (const q of R.parts) if (q.attached && q.hp > 0 && q !== c) q.hp = Math.min(q.maxHp, q.hp + 1.5 * hk * DT); if (R.fo && !R.fo.done && !R.fo.keep) R.fo.pool = Math.min(R.fo.max, R.fo.pool + 1.5 * hk * DT); // T73: and the piece that may fly off, like a part (one that is off stays off)
         if (kit && ARC.pk.repairScore) R.stats.healed = (R.stats.healed || 0) + (c.hp - c0); }   // T49 (d): what the kit card repairs, for the judges
       if (kit && rk > 0 && (ARC.pk.repairFix || ARC.pk.repairWear)) kitExtra(S, R, rk);   // T49 (b), (c): off on main
     }
@@ -5398,7 +5400,8 @@
     R.fo = { key: R.spec.preset, label: def.label, pool, max: pool, warned: false, off: false, offT: null, pieces: [], touch: { own: 0, other: 0 }, dealt: { pre: {}, post: {} },
       n: 0, count: def.count || 1, offs: [], done: false, ev: {} }; // T69: several pieces per robot (n lost of count; offs = when), ev = how often its touch / step effects fired
     S.foAny = true; // T69: run the per-step hooks (foStep); never set with the switch off unless a spec asks for it
-    if (R.spec.flyoffGone) { const g = R.spec.flyoffGone === true ? R.fo.count : Math.min(R.fo.count, +R.spec.flyoffGone || 1); R.fo.warned = true; for (let k = 0; k < g; k++) foPop(S, R, {}, false); R.fo.offT = 0; }
+    const wfo = R.spec.wear && R.spec.wear.fo ? Math.min(R.fo.count, R.spec.wear.fo | 0) : 0; // T73: pieces lost in earlier fights and not repaired (the game keeps them in spec.wear.fo)
+    if (R.spec.flyoffGone || wfo) { const g = !R.spec.flyoffGone ? wfo : R.spec.flyoffGone === true ? R.fo.count : Math.min(R.fo.count, +R.spec.flyoffGone || 1); R.fo.warned = true; for (let k = 0; k < g; k++) foPop(S, R, {}, false); R.fo.offT = 0; }
     else if (R.spec.flyoffKeep) R.fo.keep = true; // T68, for measuring: the piece never comes off, but the robot's hits are counted (R.fo.dealt.pre)
   }
   function foDef(R) { return FLYOFF[R.fo.key]; }
@@ -5414,7 +5417,10 @@
     const idx = F.n; F.n++; F.done = F.n >= F.count; F.offs.push(+S.t.toFixed(2));
     if (!F.off) { F.off = true; F.offT = S.t; }
     F.pool = F.done ? 0 : F.max * (def.nextK || 1); // the next piece has its own pool
+    const was = R.parts.map(q => [q, q.attached, q.verts, q.label]); // T73: what the pop changes (so wear can leave it to foInit next fight)
     const pcs = def.pop(S, R, h || {}, floor, idx) || [];
+    for (const [q, at, vs, lb] of was) { if (at && !q.attached) q.foOff = true; else if (q.verts !== vs || q.label !== lb) q.foShaped = true; }
+    for (const q of R.parts) if (!was.some(x => x[0] === q)) q.foShaped = true; // parts the pop made (Gyro's flywheel...)
     for (const pc of pcs) { pc.fo = F; pc.foOf = R; F.pieces.push(pc); }
     if (!floor) return;
     const atk = h && h.src && h.src !== R ? h.src : null, p = pcs.length ? pcs[0].body.getPosition() : R.body.getPosition();
