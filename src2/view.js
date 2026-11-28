@@ -2133,6 +2133,7 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.translate(size / 2, size / 2); ctx.scale(k, k); ctx.rotate(-Math.PI / 2);
       ctx.translate(-cx, -cy); ctx.rotate(-ang); ctx.translate(-pos.x, -pos.y);
       if (R.forks) drawForks(R, 0); // forks are not drawn by drawRobot (they go under everything)
+      if (R.blade && R.joint) R.blade.body.setTransform(R.blade.body.getPosition(), ang + Math.PI / 2 - 0.3); // T72: a spinner bar across the nose (a lopsided half bar: the long arm to one side, the stub to the other)
       drawRobot(R, 0);
     } catch (e) { /* a picture must never break the game */ }
     finally { S = sS; ctx = sCtx; PX = sPX; }
