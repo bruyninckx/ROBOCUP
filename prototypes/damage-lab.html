@@ -1975,6 +1975,15 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const T = target.robot, e = R.vE, b = R.body, fwd = b.getWorldVector(V(1, 0)), mRatio = clamp(b.getMass() / T.body.getMass(), 0.5, 1.6);
     const dk = target.key === 'wedge' || target.key === 'flipper' || target.key === 'lifter' ? 0.6 : 1; // low plates get under the disc
     const imp = 55 * e * mRatio * dk;
+    if (R.foThrow) { // T71b: the disc has tipped over: it throws the robot sideways and spins it, and twists Vertigo the other way; no lift
+      const Fv = FLYOFF.Vertigo, sd = R.foThrow, lat = b.getWorldVector(V(0, sd)), kx = lat.x * Fv.side + fwd.x * Fv.fwd, ky = lat.y * Fv.side + fwd.y * Fv.fwd;
+      knock(T, kx * imp, ky * imp); T.body.applyAngularImpulse(sd * Fv.spin * e * clamp(T.body.getMass() / 100, 0.5, 1.5), true); launch(S, T, 0.08 * dk, R); T.flipChance = Math.min(T.flipChance || 0, 0.05);
+      b.applyLinearImpulse(V(-kx * imp * 0.45, -ky * imp * 0.45), b.getWorldCenter(), true); b.applyAngularImpulse(-sd * 6 * e, true);
+      const p = target.body.getWorldCenter(), lp = target.body.getLocalPoint(p);
+      hit(S, target, 36 * e * dk, { src: R, cause: 'vdisc', lp: [lp.x, lp.y], blp: target.body === T.body ? [lp.x, lp.y] : null, x: p.x, y: p.y, dir: [kx, ky], pen: 1.3 });
+      R.vE -= 0.85; R.cool = 0.3; S.fx.push({ type: 'spark', x: p.x, y: p.y, power: 55 }); foEv(R, 'swipe'); if (e > 0.6) callout(S, 'SIDESWIPE!', p.x, p.y, true);
+      return;
+    }
     knock(T, fwd.x * imp, fwd.y * imp); T.body.applyAngularImpulse((S.rng() - 0.5) * 40 * e, true);
     launch(S, T, (0.3 + 0.5 * e * mRatio) * dk, R); T.flipChance = Math.max(T.flipChance || 0, 0.35 + 0.4 * e);
     b.applyLinearImpulse(V(-fwd.x * imp * 0.6, -fwd.y * imp * 0.6), b.getWorldCenter(), true); launch(S, R, 0.1 + 0.15 * e, null);
@@ -2189,6 +2198,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if ((w === 'crusher' && R.grab) || (w === 'clapper' && R.clampT > 0) || (w === 'lifter' && R.carry)) { tx = p.x + hx / hl * 2; ty = p.y + hy / hl * 2; }
     }
     if (L4W[w] && L4W[w].think) { const o4 = L4W[w].think(S, R, { E, ep, ev, dist, dx, dy, ok }); if (o4) { tx = o4.tx; ty = o4.ty; if (o4.speed != null) speed = o4.speed; } }
+    if (R.foWhip && ok && E.alive) { const rr = 0.4 + FLYOFF.Mauler.whipL + E.hl * 0.5; if (dist < rr + 1.2) { [tx, ty] = orbitPt(rr); speed = 1; if (dist < rr - 0.2) R.kiting = 0.2; } } // T71b: Mauler's whip: hang back at whip range and lash
     if (R.foOne && ok && E.alive && dist < 2.6) { const lat = b.getWorldVector(V(0, 1)), k = R.hw * FLYOFF.Mincer.crab * R.foOne; tx -= lat.x * k; ty -= lat.y * k; } // T71a: one grinder left: come in crabwise, the good grinder first
     // kiter chip on a melee robot: hit and run
     if (R.kiteCd > 0) R.kiteCd -= DT;
@@ -2315,6 +2325,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     } else R.stuckT = Math.max(0, R.stuckT - DT * 0.5);
     // thwack tail: spin on the spot when the enemy is in reach of the tail
     if (!pil && w === 'tail' && weaponOk(R) && E.alive && dist < R.hl + R.tailLen + E.hl + 0.8 && !(R.unstick > 0)) { const rel2 = wrap(Math.atan2(dy, dx) - a), fc = 0.45 * Math.cos(rel2) * (dist > R.hl + R.tailLen * 0.7 + E.hl ? 1 : -0.4); L = clamp(R.orbit * 0.85 + fc, -1, 1); Rr = clamp(-R.orbit * 0.85 + fc, -1, 1); R.thwack = 0.2; } // spin, and creep towards the enemy (back off when it is inside the tail)
+    if (!pil && R.foSting && weaponOk(R) && E.alive && !(R.unstick > 0)) { const eb = wrap(Math.atan2(dy, dx) - a - Math.PI), tn = clamp(eb * 2.2, -1, 1), fw = -clamp(1 - Math.abs(eb) / 1.1, -0.2, 1); L = clamp(fw + tn, -1, 1); Rr = clamp(fw - tn, -1, 1); } // T71b: no tail: back into the robot, stinger first
     if (L4W[w] && L4W[w].drive && !(R.unstick > 0) && !pil) { const o4 = L4W[w].drive(S, R, { E, dist, dx, dy, ok: weaponOk(R) }); if (o4) { L = o4[0]; Rr = o4[1]; } }
     if (R.fleeT > 0) { R.fleeT -= DT; L = Rr = R.flee; R.ctl.S = 0; } // the House Robot's mallet is coming down here: full throttle straight out
     else if (R.awayT > 0) { R.awayT -= DT; let e = wrap(Math.atan2(R.away[1], R.away[0]) - a), dir = 1; if (Math.abs(e) > Math.PI / 2) { e = wrap(e + Math.PI); dir = -1; } const tn = clamp(e * 2.2, -1, 1), fw = clamp(1.2 - Math.abs(e) / 1.2, 0, 1) * dir; L = clamp(fw + tn, -1, 1); Rr = clamp(fw - tn, -1, 1); R.ctl.S = 0; } // right next to the House Robot: get out
@@ -2619,6 +2630,25 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     }
     if (w === 'clapper') {
       const on = ok && mf0 > 0, P = Math.min(1, pw);
+      if (R.foSlap) { // T71b: a timing gear is gone: the arms slap one after the other (no squeeze, no hold), batting the robot between them
+        const sl = R.foSlap, Fp = FLYOFF.Pincher;
+        for (const q of R.claps) { if (!q.joint) continue; const inw = -q.side, act = sl.t > 0 && q.side === sl.side;
+          if (act) { q.joint.setMotorSpeed(inw * 16); q.joint.setMaxMotorTorque(on ? 130 * jk * P : 2); } else { q.joint.setMotorSpeed(-inw * 6); q.joint.setMaxMotorTorque(25); } }
+        if (sl.t > 0) { sl.t -= DT; const q = R.claps.find(x => x.side === sl.side);
+          if (on && !sl.hit && q && q.attached) for (let ce = q.body.getContactList(); ce; ce = ce.next) { const c = ce.contact; if (!c.isTouching()) continue;
+            const fo = c.getFixtureA().getBody() === q.body ? c.getFixtureB() : c.getFixtureA(), u = fo.getUserData() || {}; if (!u.part || !u.part.attached || u.part.robot === R || !u.part.robot.alive) continue;
+            const wm = c.getWorldManifold(null); if (!wm || !wm.points.length) continue; const cp = wm.points[0], T = u.part.robot, lp = u.part.body.getLocalPoint(cp), lat = b.getWorldVector(V(0, -q.side)), m = clamp(b.getMass() / T.body.getMass(), 0.7, 1.4);
+            hit(S, u.part, Fp.slap * P, { src: R, cause: 'clapper', lp: [lp.x, lp.y], blp: u.part.body === T.body ? [lp.x, lp.y] : null, x: cp.x, y: cp.y, dir: [lat.x, lat.y], pen: 1.2 });
+            knock(T, lat.x * Fp.bat * m * ARC.knock, lat.y * Fp.bat * m * ARC.knock); T.body.applyAngularImpulse(-q.side * 12 * m, true);
+            sl.hit = true; S.fx.push({ type: 'punch', x: cp.x, y: cp.y, power: 18 }); callout(S, 'SLAP!', cp.x, cp.y, false); foEv(R, 'slap'); break; }
+          if (sl.t <= 0) { sl.cd = Fp.slapCd; sl.side = -sl.side; }
+          return; }
+        if (sl.cd > 0) { sl.cd -= DT; return; }
+        if (!on || !E.alive) return;
+        const pts = [front(0.18, 0), front(0.32, 0), front(0.3, R.hw * 0.5), front(0.3, -R.hw * 0.5), front(0.2, sl.side * R.hw * 0.8)];
+        if (pts.some(q => topPartAt(S, q.x, q.y, R))) { sl.t = Fp.slapT; sl.hit = false; }
+        return;
+      }
       for (const q of R.claps) {
         if (!q.joint) continue; const inw = -q.side;
         if (R.clampT > 0) { const slam = R.clampT > 1.6; q.joint.setMotorSpeed(inw * (slam ? 14 : 5)); q.joint.setMaxMotorTorque(on ? (slam ? 140 : 70) * jk * P : 2); }
@@ -3352,6 +3382,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       hit(S, bit, 11 * DT * P, { src: R, cause: 'auger', lp: [lp.x, lp.y], blp: bit.body === T.body ? [lp.x, lp.y] : null, x: cp0.x, y: cp0.y, ignoreThr: true, pen: 0.9 });
       if (S.step % 3 === 0) S.fx.push({ type: 'spark', x: cp0.x, y: cp0.y, power: 12 });
       st.bite += DT;
+      if (R.foSmooth) { bit.heat += FLYOFF.Corkscrew.heatK * DT; T.lastHeater = R; foEv(R, 'rubS', DT); return; } // T71b: the smooth bar can't screw in: it rubs, and the part gets hot
       const grip = bit.body === T.body && bit.kind !== 'wheel' && bit.bumper !== 'rubber' && bit.bumper !== 'fibre' && T.airborne <= 0 && !(T.quantumT > 0);
       if (st.bite > 0.8 && grip && !R.grab) {
         const joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 6, dampingRatio: 0.7 }, R.auger.body, T.body, cp0));
@@ -3360,7 +3391,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         callout(S, 'DRILLED!', cp0.x, cp0.y, true); say(S, `${R.name}'s drill bites into ${T.name}'s ${bit.label.toLowerCase()} and anchors`, R.id, true);
       }
     },
-    think(S, R, c) { return R.grab ? l4Drag(S, R, c.ep) : null; },
+    think(S, R, c) { return R.grab || (R.foSmooth && R.l4.bite > 0) ? l4Drag(S, R, c.ep) : null; }, // (T71b: the smooth bar pins the robot on the wall)
   };
 
   // ---------------- HYDRA: a three-segment strike arm on a turret ring. Folded flat on top, it unfolds over the enemy's weapon onto its lid ----------------
@@ -3499,8 +3530,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       const base = V(st.base[0], st.base[1]);
       let pose = ANG.stow, gain = 9, tq = [40, 20];
       if (st.cd > 0) st.cd -= DT;
-      const rearW = E.alive ? E.body.getWorldPoint(V(-E.hl * 0.85, 0)) : null, rl = rearW ? b.getLocalPoint(rearW) : null, rx = rl ? rl.x - base.x : 0, ry = rl ? rl.y - base.y : 0, rd = Math.hypot(rx, ry);
-      if (st.mode === 'stow' && on && armOk && st.cd <= 0 && E.alive && R.drumE > 0.4 && rd < ANG.L1 + ANG.L2 - 0.02 && rd > 0.2) { st.mode = 'reach'; st.t = 0.28; st.busy = true; }
+      let rearW = E.alive ? E.body.getWorldPoint(V(-E.hl * 0.85, 0)) : null;
+      if (R.foTrawl && E.alive) { const bw = b.getWorldPoint(base), ec = E.body.getPosition(), ux = bw.x - ec.x, uy = bw.y - ec.y, ul = Math.hypot(ux, uy) || 1; rearW = V(ec.x + ux / ul * E.hl * 0.8, ec.y + uy / ul * E.hl * 0.8); } // T71b: no reel: it gaffs the nearest side, not only the back
+      const rl = rearW ? b.getLocalPoint(rearW) : null, rx = rl ? rl.x - base.x : 0, ry = rl ? rl.y - base.y : 0, rd = Math.hypot(rx, ry);
+      if (st.mode === 'stow' && on && armOk && st.cd <= 0 && E.alive && (R.drumE > 0.4 || R.foTrawl) && rd < ANG.L1 + ANG.L2 - 0.02 && rd > 0.2) { st.mode = 'reach'; st.t = 0.28; st.busy = true; }
       if (st.mode === 'reach') {
         st.t -= DT; const [q1, q2] = ik2(rx, ry, ANG.L1, ANG.L2, 1); pose = [q1, q2]; gain = 26; tq = [220 * P, 110 * P];
         const tip = A[1].body.getWorldPoint(V(0.15, -0.05));
@@ -3509,13 +3542,15 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
           if (cand.length && armOk) {
             const pt = cand[0], T = pt.robot, joint = S.world.createJoint(pl.WeldJoint({ frequencyHz: 5, dampingRatio: 0.7 }, A[1].body, T.body, tip));
             R.grab = { robot: T, joint, t: 2 }; st.mode = 'hold'; st.t = 2.0; st.kickT = 0; st.hlp = T.body.getLocalPoint(tip);
+            if (R.foTrawl) { st.t = FLYOFF.Angler.holdT; foEv(R, 'trawl'); callout(S, 'TRAWLED!', tip.x, tip.y, true); } // T71b: no reel: it drags the robot off behind it
             callout(S, 'GAFFED!', tip.x, tip.y, true); say(S, `${R.name} hooks ${T.name}'s ${pt.label.toLowerCase()} and reels it in`, R.id, true);
           } else { st.mode = 'back'; st.t = 0.45; st.cd = 1.2; }
         }
       } else if (st.mode === 'hold') {
         const g = R.grab, T = g.robot; st.t -= DT; gain = 3; tq = [6, 4];
         const hpw = T.body.getWorldPoint(V(st.hlp.x, st.hlp.y)), dp = l4front(R, 0.22, 0), dx = dp.x - hpw.x, dy = dp.y - hpw.y, dd = Math.hypot(dx, dy) || 1, F = 950 * P;
-        if (on && dd > 0.15) { T.body.applyForce(V(dx / dd * F, dy / dd * F), hpw, true); b.applyForce(V(-dx / dd * F * 0.5, -dy / dd * F * 0.5), b.getWorldCenter(), true); }
+        if (R.foTrawl) { if (on) { hit(S, T.chassis, FLYOFF.Angler.scrape * DT * P, { src: R, cause: 'angler', lp: [st.hlp.x, st.hlp.y], blp: [st.hlp.x, st.hlp.y], x: hpw.x, y: hpw.y, ignoreThr: true, pen: 0.6 }); foEv(R, 'trawlS', DT); if (S.step % 5 === 0) S.fx.push({ type: 'spark', x: hpw.x, y: hpw.y, power: 8 }); } } // T71b: dragged along the floor, scraping
+        else if (on && dd > 0.15) { T.body.applyForce(V(dx / dd * F, dy / dd * F), hpw, true); b.applyForce(V(-dx / dd * F * 0.5, -dy / dd * F * 0.5), b.getWorldCenter(), true); }
         T.lifted = Math.max(T.lifted, 0.06);
         if (kicked) st.kickT = 0.12; if (st.kickT > 0) { st.kickT -= DT; if (st.kickT <= 0) st.t = 0; }
         const fl = weldForce(g.joint);
@@ -3527,6 +3562,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       for (let i = 0; i < 2; i++) if (A[i].attached && A[i].joint) jointTo(A[i].joint, pose[i], gain, on ? tq[i] : 2, 40);
     },
     think(S, R, c) {
+      if (R.grab && R.foTrawl) { const p = R.body.getPosition(), d = Math.hypot(p.x - c.ep.x, p.y - c.ep.y) || 1; return { tx: p.x + (p.x - c.ep.x) / d * 2.5, ty: p.y + (p.y - c.ep.y) / d * 2.5, speed: 1 }; } // T71b: drive off, trawling it
       if (R.grab) return { tx: c.ep.x, ty: c.ep.y, speed: 0.45 };
       // come in on the enemy's back quarter, hook side (left) first
       if (!c.E.alive || !c.ok || c.dist > 2.2) return null;
@@ -4822,6 +4858,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
 
   // a judge-friendly name for each cause
   Object.assign(CAUSES, { pogo: 'pogo stomp', rail: 'rail slug', yoyo: 'yo-yo saw', junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', forge: 'open forge', zap: 'stump zap', tip: 'stuck spear tip', stump: 'spear stump', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
+  Object.assign(CAUSES, { whip: 'whip chain', caltrop: 'spiked half shell' }); // T71b
   Object.assign(CAUSES, { flick: 'fork flick', loosesaw: 'loose grinder disc', swat: 'pole swat', jab: 'broken axe handle', chainend: 'broken chain' }); // T71a: parts that fly off, batch A (next-gen test)
   Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
   Object.assign(SHARP, { prow: 1, record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
@@ -5361,6 +5398,141 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
           const wm = c.getWorldManifold(null); if (!wm || !wm.points.length) continue; const cp = wm.points[0], T = u.part.robot;
           const j = S.world.createJoint(pl.RopeJoint({ maxLength: 0.06, collideConnected: false }, ce.body, T.body, ce.body.getPosition(), cp));
           R.foWrap = { T, j, t: this.wrapT }; callout(S, 'LASSOED!', cp.x, cp.y, true); say(S, `${R.name}'s broken chain wraps round ${T.name}`, R.id); foEv(R, 'lasso'); return; }
+      } },
+    // ---- batch B of all robots (T71b, 28 Nov): Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher. Each its own kind of piece, lost its
+    // own way, a new inside, and a different way to fight without it (and a back-up that still wins). Hooks: R.foSmooth, R.foWhip, R.foSting,
+    // R.foTilt, R.foTrawl, R.foSlap; never set with the switch off.
+    // CORKSCREW: the screw thread (the spiral flighting round the auger) strips off and lies on the floor as a coil of steel ribbon. A smooth
+    // hex bar with a chisel point is left: it can't screw itself in and anchor any more. It pins robots against the wall instead and rubs
+    // them with the bare spinning bar: the part it rubs gets hot (it glows, then burns).
+    Corkscrew: { weapon: 'corkscrew', label: 'Screw thread', pool: 125, warn: 0.6, heatK: 32,
+      feed: (R, q, h) => h.inner ? 0 : q === R.auger ? 1 : q.kind === 'chassis' && h.blp && h.blp[0] > 0.5 * R.hl ? 0.3 : 0,
+      dealt: (R, d, cause) => cause === 'auger' ? 0.1 : 0, // drilling wears the thread
+      watch: R => R.auger,
+      bend(S, R) { R.foFray = 1; const p = R.auger.body.getPosition(); callout(S, 'THREAD TEARS!', p.x, p.y, false); say(S, `${R.name}: the screw thread on its drill is tearing loose`, R.id); },
+      pop(S, R, h, floor) {
+        const q = R.auger; if (!q || !q.attached) return [];
+        if (R.grab) { S.world.destroyJoint(R.grab.joint); R.grab = null; } const st = R.l4; st.mode = 'clear'; st.t = 0.6; st.busy = false; st.bite = 0; st.depth = 0;
+        let pc = null;
+        if (floor) { const wp = q.body.getWorldPoint(V(0.12, 0)), lp = R.body.getLocalPoint(wp), sd = S.rng() < 0.5 ? -1 : 1, s2 = R.body.getWorldVector(V(0.3, sd));
+          pc = spawnLoose(S, R, 'Screw thread', [[-0.26, -0.05], [0.26, -0.05], [0.28, 0], [0.26, 0.05], [-0.26, 0.05], [-0.28, 0]], [lp.x, lp.y], 2.4, [s2.x * 4, s2.y * 4]);
+          if (pc) { pc.body.setTransform(wp, q.body.getAngle() + sd * 0.5); pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'thread'; pc.body.setLinearDamping(2.5); } }
+        const bar = [[-0.1, -0.055], [0.26, -0.05], [0.34, 0], [0.26, 0.05], [-0.1, 0.055]];
+        q.vBase = null; q.kinks = []; q.kinkSum = 0; q.state = ''; q.bends = null; wRefit(R, q, bar); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q);
+        q.label = 'Smooth drill bar'; q.sharp = 0.6; q.home = bar.map(v => [v[0] + R.hl + 0.04, v[1]]); R.foSmooth = true; R.foFray = 0;
+        return pc ? [pc] : [];
+      } },
+    // MAULER: the spiked shell round its flail ball cracks in two. Inside the ball was a coil of light whip chain with a small steel tip: it
+    // uncoils, twice as long as the old chain. Mauler hangs back at whip range and lashes (CRACK!): quick stinging hits, hardly any knock,
+    // instead of closing in to smash. The two spiked half shells lie on the floor spikes up: a wheel or track that rolls over one is punctured.
+    Mauler: { weapon: 'flail', label: 'Spiked shell', pool: 100, warn: 0.6, whipL: 0.85, crack: 14, crackCd: 0.3, crackV: 6, prick: 3, prickCd: 1.5,
+      feed: (R, q, h) => h.inner ? 0 : q === R.ball && q.key === 'ball' ? 1 : 0,
+      dealt: (R, d, cause) => cause === 'flail' ? 0.15 : 0, // every smash cracks the shell a bit more
+      watch: R => R.ball && R.ball.key === 'ball' ? R.ball : null,
+      bend(S, R) { R.foShellCrack = 1; const p = R.ball.body.getPosition(); callout(S, 'SHELL CRACKS!', p.x, p.y, false); say(S, `${R.name}: the spiked shell on its flail ball is cracking`, R.id); },
+      pop(S, R, h, floor) {
+        const q = R.ball; if (!q || !q.attached || q.key !== 'ball' || !R.flailArm) return [];
+        const out = [], arm = R.flailArm, bp = q.body.getPosition(), v = q.body.getLinearVelocity(), br = 0.11 * (R.ballK || 1);
+        detach(S, q, [0, 0]); q.gone = true; S.debris.splice(S.debris.indexOf(q), 1); S.world.destroyBody(q.body); // the ball's shell is gone; its core unspools
+        if (floor) for (const sg of [-1, 1]) { const vs = []; for (let k = 0; k <= 6; k++) { const a = sg * (k / 6) * Math.PI; vs.push([Math.cos(a) * br, Math.sin(a) * br]); }
+          const lp = R.body.getLocalPoint(bp), pc = spawnLoose(S, R, 'Spiked half shell', sg < 0 ? vs.reverse() : vs, [lp.x, lp.y + sg * 0.03], 1.6, [v.x * 0.3 + sg * 1.5, v.y * 0.3 + sg * 1.5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'halfshell'; pc.body.setLinearDamping(3); pc.body.setAngularDamping(3); pc.cd = {}; out.push(pc); } }
+        const tip = arm.getWorldPoint(V(0.4, 0)), d = arm.getWorldVector(V(1, 0)), L = this.whipL, cp = V(tip.x + d.x * L, tip.y + d.y * L);
+        const cb = S.world.createBody({ type: 'dynamic', position: cp, bullet: true, linearDamping: 0.3, angularDamping: 0.3 });
+        cb.setLinearVelocity(arm.getLinearVelocityFromWorldPoint(cp));
+        const tv = [[-0.05, -0.025], [0.04, -0.03], [0.07, 0], [0.04, 0.03], [-0.05, 0.025]];
+        const wt = foPart(S, R, 'whip', 'Whip tip', 'weapon', tv, { mass: 2, hp: 120, sharp: 1.5, tough: 0.3, rest: 0.2, body: cb, z: 2 });
+        wt.sep = true; wt.home = tv.map(p => [p[0] + R.hl + 0.5, p[1]]);
+        R.rope = S.world.createJoint(pl.DistanceJoint({ frequencyHz: 0, dampingRatio: 0 }, arm, cb, tip, cp)); wt.joint = R.rope; wt.jname = 'rope';
+        R.ball = wt; R.foWhip = true; R.foShellCrack = 0; R.foCrackT = 0;
+        return out;
+      },
+      touch(S, R, pc, q) { // a spiked half shell punctures the tyre or track that rolls onto it
+        if (pc.foShape !== 'halfshell' || q.kind !== 'wheel') return; const Q = q.robot; if (!Q.alive || S.t < (pc.cd[Q.id] || 0)) return;
+        pc.cd[Q.id] = S.t + this.prickCd; const wp = pc.body.getPosition(), lp = q.body.getLocalPoint(wp);
+        hit(S, q, this.prick, { src: Q === R ? null : R, cause: 'caltrop', lp: [lp.x, lp.y], blp: q.body === Q.body ? [lp.x, lp.y] : null, x: wp.x, y: wp.y, ignoreThr: true, pen: 0.5 });
+        S.fx.push({ type: 'spark', x: wp.x, y: wp.y, power: 8 }); callout(S, 'PUNCTURE!', wp.x, wp.y, false); foEv(R, 'prick'); foEv(R, Q === R ? 'prickOwn' : 'prickOther');
+      },
+      tick(S, R) { // the whip tip cracks: a fast tip that touches a robot stings it (a fixed small hit), at most every 0.3 s
+        if (!R.foWhip || !R.alive) return; const wt = R.ball; if (!wt || !wt.attached || S.t < R.foCrackT || !weaponOk(R)) return;
+        const v = wt.body.getLinearVelocity(), sp = Math.hypot(v.x, v.y); if (sp < this.crackV) return;
+        for (let ce = wt.body.getContactList(); ce; ce = ce.next) { const c = ce.contact; if (!c.isTouching()) continue;
+          const fo = c.getFixtureA().getBody() === wt.body ? c.getFixtureB() : c.getFixtureA(), u = fo.getUserData() || {}; if (!u.part || !u.part.attached || u.part.robot === R || !u.part.robot.alive) continue;
+          const wm = c.getWorldManifold(null); if (!wm || !wm.points.length) continue; const cp = wm.points[0], T = u.part.robot, lp = u.part.body.getLocalPoint(cp);
+          hit(S, u.part, this.crack * Math.min(1.3, sp / 10), { src: R, cause: 'whip', lp: [lp.x, lp.y], blp: u.part.body === T.body ? [lp.x, lp.y] : null, x: cp.x, y: cp.y, pen: 1.1 });
+          R.foCrackT = S.t + this.crackCd; S.fx.push({ type: 'spark', x: cp.x, y: cp.y, power: 14 }); if (S.rng() < 0.3) callout(S, 'CRACK!', cp.x, cp.y, false); foEv(R, 'crack'); return; }
+      } },
+    // THWACKER: its whole tail drops off at the root, like a lizard's, and thrashes on the floor for a few seconds (it knocks into whatever
+    // is near). Under the tail root was a short stiff stinger. Thwacker stops spinning: it turns its back and reverses into robots, stabbing
+    // them with the stinger.
+    Thwacker: { weapon: 'tail', label: 'Tail', pool: 35, warn: 0.6, thrashT: 5, wrig: 0.9,
+      feed: (R, q, h) => h.inner ? 0 : R.tails && R.tails.includes(q) && q.key === 'tail' && !R.foSting ? (q.label === 'Tail root' ? 1.3 : 1) : q.kind === 'chassis' && h.blp && h.blp[0] < -0.5 * R.hl ? 0.5 : 0,
+      dealt: (R, d, cause) => cause === 'tail' ? 0.1 : 0, // every thwack wrenches the root
+      watch: R => R.tails && !R.foSting ? R.tails[0] : null,
+      bend(S, R) { R.foRoot = 1; const p = R.body.getWorldPoint(V(-R.hl, 0)); callout(S, 'TAIL CRACKS!', p.x, p.y, false); say(S, `${R.name}: its tail is cracking at the root`, R.id); },
+      pop(S, R, h, floor) {
+        const segs = (R.tails || []).filter(q => q.attached); const out = [], hl = R.hl;
+        if (segs.length && segs[0].joint) { S.world.destroyJoint(segs[0].joint); segs[0].joint = null; }
+        for (const q of segs) { q.attached = false;
+          if (!floor) { q.gone = true; S.world.destroyBody(q.body); continue; }
+          for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFilterData({ groupIndex: 0, categoryBits: 1, maskBits: 0xffff });
+          q.body.setLinearDamping(1.2); q.body.setAngularDamping(1.0); q.noHit = R; q.noHitT = S.t + 0.8; q.foShape = 'tailseg'; S.debris.push(q); out.push(q); }
+        const sv = [[-hl + 0.01, -0.06], [-hl - 0.2, -0.022], [-hl - 0.27, 0], [-hl - 0.2, 0.022], [-hl + 0.01, 0.06]];
+        const sg = foPart(S, R, 'tail', 'Stinger', 'weapon', sv, { mass: 2, hp: 110, sharp: 0.45, tough: 0.3, rest: 0.2, friction: 0.3, body: R.body, z: 2 });
+        sg.stinger = true; R.tails = [sg]; R.foSting = true; R.foRoot = 0; R.foThrash = floor ? S.t + this.thrashT : 0;
+        if (floor) { const p = R.body.getWorldPoint(V(-hl - 0.3, 0)); callout(S, 'TAIL DROPPED!', p.x, p.y, true); }
+        return out;
+      },
+      tick(S, R) { // the dropped tail thrashes for a few seconds
+        if (!R.foThrash || S.t > R.foThrash) return;
+        const k0 = (R.foThrash - S.t) / this.thrashT; let n = 0;
+        for (const q of R.fo.pieces) if (q.foShape === 'tailseg' && !q.gone) { q.body.applyAngularImpulse(Math.sin(S.t * 13 + n * 2.1) * this.wrig * k0 * q.body.getMass() * 0.05, true); n++; }
+        foEv(R, 'thrashS', DT);
+      } },
+    // VERTIGO: one of the two forks that hold its disc's axle snaps off. The disc tips over on its axle: from above you now see its face.
+    // The tilted disc throws robots sideways, spinning them (and Vertigo the other way), instead of high into the air.
+    Vertigo: { weapon: 'vdisc', label: 'Disc fork', pool: 170, warn: 0.6, side: 1.0, fwd: 0.35, spin: 55,
+      feed: (R, q, h) => h.inner ? (q === R.wmotor ? 0.6 : 0) : q === R.tool ? 1 : q.kind === 'chassis' && h.blp && h.blp[0] > 0.5 * R.hl ? 0.5 : h.top ? 0.4 : 0,
+      dealt: (R, d, cause) => cause === 'vdisc' ? 0.12 : 0, // every big kick wrenches the axle in its forks
+      bend(S, R) { R.foCrack = 1; const p = R.body.getWorldPoint(V(R.hl + 0.05, 0)); callout(S, 'FORK BENDS!', p.x, p.y, false); say(S, `${R.name}: a fork holding its disc is bending`, R.id); },
+      pop(S, R, h, floor) {
+        const sd = h.blp && Math.abs(h.blp[1]) > 0.01 ? Math.sign(h.blp[1]) : S.rng() < 0.5 ? -1 : 1; let pc = null;
+        if (floor) { const o = R.body.getWorldVector(V(0.6, sd)); pc = spawnLoose(S, R, 'Disc fork', [[-0.09, -0.025], [0.07, -0.025], [0.1, 0], [0.07, 0.03], [-0.09, 0.03]], [R.hl + 0.04, sd * 0.07], 1.2, [o.x * 3, o.y * 3]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.5; pc.foShape = 'fork'; } }
+        const q = R.tool; if (q && q.attached) { const hl = R.hl, vs = []; for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; vs.push([hl + 0.16 + Math.cos(a) * 0.17, Math.sin(a) * 0.095]); }
+          q.vBase = null; q.kinks = []; q.kinkSum = 0; q.bends = null; wRefit(R, q, vs); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q); q.home = vs.map(v => v.slice()); q.label = 'Tilted disc'; }
+        R.foThrow = -sd; R.foCrack = 2; // it tips away from the broken fork, and throws robots that way
+        return pc ? [pc] : [];
+      } },
+    // ANGLER: the spool of its fishing reel (on its back, next to the hook arm) flies off and rolls away. Left: the bare reel, its gears and
+    // a broken ratchet pawl. It still gaffs, but it can't reel in: it turns and drives off, trawling the hooked robot behind it along the
+    // floor (scraping it) until the hook tears out.
+    Angler: { weapon: 'angler', label: 'Reel spool', pool: 55, warn: 0.6, scrape: 5, holdT: 2.6,
+      feed: (R, q, h) => h.inner ? (q === R.winch ? 1 : 0) : h.top ? 0.8 : q.kind === 'chassis' ? (h.blp && h.blp[0] < 0 && h.blp[1] < 0 ? 0.8 : 0.25) : (R.arms && R.arms.includes(q)) ? 0.4 : 0,
+      dealt: (R, d, cause) => cause === 'angler' ? 0.2 : 0, // reeling a robot in strains the reel
+      bend(S, R) { R.foCrack = 1; const p = R.body.getWorldPoint(V(-0.3 * R.hl, -0.35 * R.hw)); callout(S, 'REEL SLIPS!', p.x, p.y, false); say(S, `${R.name}: its reel is slipping`, R.id); },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { const vs = []; for (let k = 0; k < 10; k++) vs.push([Math.cos(k / 10 * TAU) * 0.12, Math.sin(k / 10 * TAU) * 0.12]); const o = R.body.getWorldVector(V(-0.6, -1));
+          pc = spawnLoose(S, R, 'Reel spool', vs, [-0.3 * R.hl, -0.35 * R.hw], 2.2, [o.x * 3.5, o.y * 3.5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'spool'; pc.body.setLinearDamping(0.6); pc.body.setAngularDamping(0.4); pc.body.setAngularVelocity(18); } }
+        R.foTrawl = true; R.foCrack = 2;
+        return pc ? [pc] : [];
+      } },
+    // PINCHER: the two timing gears on its nose make both arms close together; one shatters. The arms are out of step: they can't squeeze
+    // a robot together any more, so they slap one after the other (left, right, left: SLAP!), batting it between them, instead of clamping
+    // and dragging it. Half of the broken gear lies on the floor.
+    Pincher: { weapon: 'clapper', label: 'Timing gear', pool: 150, warn: 0.6, slap: 4, slapT: 0.22, slapCd: 0.45, bat: 55,
+      feed: (R, q, h) => h.inner ? (q === R.wmotor ? 0.8 : 0) : R.claps && R.claps.includes(q) ? 0.6 : q.kind === 'chassis' ? (h.blp && h.blp[0] > 0.4 * R.hl ? 0.8 : h.top ? 0.6 : 0.1) : 0,
+      dealt: (R, d, cause) => cause === 'clapper' ? 0.25 : 0, // squeezing strains the gears
+      bend(S, R) { R.foCrack = 1; const p = R.body.getWorldPoint(V(R.hl - 0.1, 0)); callout(S, 'GEARS GRIND!', p.x, p.y, false); say(S, `${R.name}: the timing gears on its nose are slipping`, R.id); },
+      pop(S, R, h, floor) {
+        let pc = null; const sd = S.rng() < 0.5 ? -1 : 1;
+        if (floor) { const vs = []; for (let k = 0; k <= 6; k++) { const a = -Math.PI / 2 + k / 6 * Math.PI; vs.push([Math.cos(a) * 0.1, Math.sin(a) * 0.1]); } const o = R.body.getWorldVector(V(1, sd * 0.6));
+          pc = spawnLoose(S, R, 'Half gear', vs, [R.hl - 0.1, sd * 0.09], 1.4, [o.x * 3, o.y * 3]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.5; pc.foShape = 'gear'; } }
+        R.clampT = 0; R.clapCd = 0.4; R.foSlap = { side: -1, t: 0, cd: 0.4, hit: false }; R.foGearSide = sd; R.foCrack = 2;
+        return pc ? [pc] : [];
       } },
   };
   function foPart(S, R, key, label, kind, verts, o) { // T68: swap a new part in (its own body, on a joint the caller makes), as create() builds them
