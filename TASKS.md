@@ -5,6 +5,15 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K68. Parts that fly off, the last six (next gen, 28 Nov).** (a) Pogo without its spring has no weapon at all (-13
+  points; 4 wins of 128 if it starts like that): keep, or give it a weak stomp? (b) The spring on the floor bounces
+  Pogo itself more than the other robot: only bounce others? (c) Blacksmith's open forge comes out even: hotter burn or
+  longer overheat pause? (d) Lodestone's weaker pull costs almost nothing: more? (e) Hornet's stuck tip stays in for
+  the whole fight (about 47 damage): fall out after a while? (f) Tarantula loses at most 3 legs, all on one side: may
+  all come off? (g) Hydra got two new side heads that only set how often it strikes: should they bite? (h) Looks: on
+  the portrait sheet Tarantula, Lodestone and Blacksmith change least; draw them bolder? Overall: is it right that
+  most pieces cost the robot only 0-4 points, with Bricklayer and Pogo the exceptions?
+
 - **K67. Parts that fly off, the next six (next gen, 28 Nov).** (a) Gyro without its shell is very weak (8 wins of 128
   when it starts a fight like that): make the bare flywheel stronger, or is that the price? (b) Grandmaster wins MORE
   without its hat (89 vs 77 of 128): a random tool beats its own choices. Keep as a funny surprise, make blind picks
@@ -236,15 +245,17 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   with desyncs 0, sync-check unchanged, fingerprint unchanged, game-sim check. Bigger options (send only what changed,
   let the joined screen predict simple clicks) are written up with their risk, not built.
 
-- **T69. Parts that fly off, step 3: the last six of the 15 (28 Nov, worker running, branch `nextgen` only).** Pogo
-  (casing bursts, spring on the floor bounces whoever drives over it, no more jumps), Blacksmith (hood off, open forge
-  burns on touch, overheats and pauses), Lodestone (coil unwinds, weaker pull, wire tangles tracks), Hornet (spear tip
-  stays stuck in the other robot and keeps hurting, Hornet only shoves), Tarantula (legs one at a time: limps, circles,
-  drags), Hydra (heads cut off one by one, stump zaps on touch). Needs four additions to the mechanism: several pieces
-  per robot, an effect on touching a piece, a per-step hook, a piece that sticks to the other robot. Same checks as
-  T67/T68. After it: step 4 = card and garage; step 5 = balance re-measure on Kev's PC.
-
 ## Done
+
+- **T69. Parts that fly off, step 3: Pogo, Blacksmith, Lodestone, Hornet, Tarantula, Hydra** (28 Nov; NEXT GEN ONLY:
+  on branch `nextgen` at `5777e2f`, files stamp there 33c577ae; not on `main`). All 15 robots Kev voted for now work
+  in the lab page (`play-nextgen.cmd`). Checked by me on nextgen: fingerprint 470f6923 with the switch off, game-sim
+  2/2 finished 0 errors, no Math.random added, portrait sheet. Piece comes off (256 fights each): Pogo 49%, Blacksmith
+  43%, Lodestone 48%, Hornet 50%, Tarantula 62% (1.75 legs), Hydra 61% (1.21 heads). Win rate vs the field off -> on:
+  Pogo 76.2 -> 63.3, Blacksmith 43.0 -> 44.1, Lodestone 75.4 -> 75.0, Hornet 16.4 -> 16.4, Tarantula 71.1 -> 69.1,
+  Hydra 60.5 -> 59.0. Biggest movers in the whole field: Bricklayer -16, Pogo -13, Angler +4.7. NEXT (not started,
+  waits for Kev's look at the lab and his answers K66-K68): step 4 = card and garage (rule 3), step 5 = balance
+  re-measure on Kev's PC, then the other 18 robots.
 
 - **T68. Parts that fly off, step 2: Gyro, Railgun, Scavenger, Grandmaster, Whaler, Jukebox** (28 Nov; NEXT GEN ONLY:
   on branch `nextgen` at `2a74710`, files stamp there 928db213; not on `main`). Checked by me on nextgen: fingerprint
