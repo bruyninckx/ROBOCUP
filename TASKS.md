@@ -188,6 +188,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
+- **K65. Next version: parts that fly off (Kev, 28 Nov; waiting for his votes).** Kev's words: "a new damage model that
+  has more unique parts flying of from the robots depending on how the robot looks, the shell can come of from gyro which
+  is nice, we need more like this, some tops that come off easily and expose a unique robot design"; then "yes lets go
+  but start with 15, draw me a nice overview with voting and feedback boxes". The overview with a drawing, three lines,
+  a vote and a feedback box per robot (Gyro, Pogo, Blacksmith, Whaler, Lodestone, Buzzkill, Hornet, Railgun, Bricklayer,
+  Jukebox, Scavenger, Tarantula, Hydra, Grandmaster, Popcorn) plus three rules for all robots:
+  https://claude.ai/artifact/1Her63jC1sbjZpomvqUSxR (source: `tools/flyoff-page/`, run `gen.py`). Nothing is built in
+  the game: it stays out until after the friends' playtest (feature freeze). Next step when Kev has voted: read his
+  votes from the page, then one task for the engine part (pieces as floor objects, inside the simulation so online play
+  stays in step) and one for the drawings, and a balance re-measure on his PC.
 - **Idea box (Kev, 22 Nov, parked: "lets hold off on this for now, put it in idea box"): what each part does in THIS
   matchup.** Design canvas https://claude.ai/artifact/6bkK5bh9GBjXo2uGZwAUJz (A Bets screen "parts in this fight", B
   power map panel, C Market lot); study `docs/robocus-parts-by-matchup.md` (T63: against Scavenger the Booster boosts a
