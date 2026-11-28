@@ -245,7 +245,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   whose looks changed least); T71b Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher; T71c Yoyo, Gaucho,
   Slingshot, Orbiter, Rotisserie, Trebuchet. "All out" = every robot gets its OWN piece that fits how it looks, the
   inside it exposes is a new drawing, and losing it visibly changes how it fights (not a small number change). Same
-  checks as T67-T69 (switch off: fingerprint 470f6923; switch on: numbers per robot, 256 fights on/off). After it: a
+  checks as T67-T69 (switch off: fingerprint 470f6923; switch on: numbers per robot, 256 fights on/off).
+  T71a DONE (nextgen `bf4ad24`, files stamp there 80fb4ab3; my checks: fingerprint, game-sim 2/2, no Math.random):
+  Forklift counterweight (flicks instead of tips), Mincer one grinder disc (crabwise), Scythe blade (pole swats),
+  Snapjaw ram cover (chomps, oil puddles), Thumper axe head (quick stabs), Wrecker flail ball (chain lassos). Comes off
+  45-66%. Too weak when starting without the piece: Scythe 3 wins of 128, Wrecker 2 of 128 (to fix after Kev's look).
+  Questions from it: Forklift gets a bit better without its counterweight (+3): fine? Mincer's loose disc mostly bites
+  Mincer itself; Snapjaw's oil: more or none? T71b running. After it: a
   page with all 33 for Kev's votes, then card and garage (rule 3), then the balance re-measure on Kev's PC.
 
 ## Done
