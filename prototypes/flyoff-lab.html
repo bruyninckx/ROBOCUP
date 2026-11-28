@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="00214113"><meta name="viewport" content="width=device-width,initial-scale=1">
-<!-- ROBOCUS next gen test: Parts that fly off (T67, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="928db213"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
 <title>ROBOCUS · Parts that fly off (lab)</title>
@@ -32,7 +32,7 @@
 </head><body>
 <div class="wrap">
   <h1>Parts that fly off · lab</h1>
-  <p class="sub">Next generation test (not in the game). A robot loses one piece of itself in the fight: it stays on the floor as a real object, and the robot fights differently without it.</p>
+  <p class="sub">Next generation test (not in the game). Nine robots so far. A robot loses one piece of itself in the fight: it stays on the floor as a real object, and the robot fights differently without it.</p>
   <div class="row">
     <div class="card ctl">
       <label for="who">Robot with a breakaway piece</label><select id="who"></select>
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=00214113"></script>
-<script src="../src2/dmath.js?b=00214113"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=928db213"></script>
+<script src="../src2/dmath.js?b=928db213"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=00214113"></script>
-<script src="../src2/lineup.js?b=00214113"></script>
-<script src="../src2/sound.js?b=00214113"></script>
-<script src="../src2/view.js?b=00214113"></script>
+<script src="../src2/engine.js?b=928db213"></script>
+<script src="../src2/lineup.js?b=928db213"></script>
+<script src="../src2/sound.js?b=928db213"></script>
+<script src="../src2/view.js?b=928db213"></script>
 <script>
 (function () {
   'use strict';
@@ -70,6 +70,12 @@
     Buzzkill: ['the spinning bar: first it bends, then it snaps', 'A short half bar spins faster and reaches less far: quick small hits instead of one big one. The snapped half lies on the floor.'],
     Popcorn: ['the yellow teeth plate', 'Flips are weaker, and the bare flipper bends a little more with every flip. The plate lies on the floor.'],
     Bricklayer: ['the brick stack: it topples', 'The blocks on its back break into small bricks that lie around as obstacles for everyone. The crane has nothing left to drop.'],
+    Gyro: ['its grey shell', 'A bare gold flywheel on its blue base is left: lighter and spun faster, but smaller, without teeth and out of true (it wobbles), so it hits softer. The shell lies on the floor as a big bump.'],
+    Railgun: ['the clamp that holds its rails together: the rails peel apart', 'It still fires, but wide (up to about 17° off): it can miss, or hit something it was not aiming at. The clamp lies on the floor.'],
+    Scavenger: ['its hopper: it cracks open', 'All the junk in it pours out behind it in one pile, a rough patch for everyone (it can\'t suck its own lost junk up again). It starts collecting from zero.'],
+    Grandmaster: ['its yellow hat', 'Under it is its brain, a wheel of six tools. Without the hat it stops choosing: every time it may change tool it grabs one at random. The hat lies on the floor.'],
+    Whaler: ['its hull: it splits down the middle', 'The winch drum and the rope show. The harpoon still fires, but the winch reels in at half speed, and a spinning weapon or a saw can cut the bare rope. A strip of the hull lies on the floor.'],
+    Jukebox: ['its record crate: it tips over', 'The records still in it slide out onto the floor, the crate lies with them. Its loader arm is bent: it has to drive right up to a record on the floor before it can throw again.'],
   };
   const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
   for (const n of who) $('who').add(new Option(n, n));
@@ -78,7 +84,7 @@
   $('arena').value = 'open';
   VW.mount($('fightView'));
   function pics() {
-    const n = $('who').value, a = VW.portrait(LU.build(n), 150), b = VW.portrait(Object.assign(LU.build(n), { flyoffGone: true }), 150);
+    const n = $('who').value, a = VW.portrait(Object.assign(LU.build(n), { flyoffKeep: true }), 150), b = VW.portrait(Object.assign(LU.build(n), { flyoffGone: true }), 150);
     for (const [id, c] of [['picA', a], ['picB', b]]) { const x = $(id).getContext('2d'); x.clearRect(0, 0, 150, 150); x.drawImage(c, 0, 0); }
     $('what').innerHTML = '<p><b>' + n + '</b> loses ' + WHAT[n][0] + '.</p><p>' + WHAT[n][1] + '</p>';
   }

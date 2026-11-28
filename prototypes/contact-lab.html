@@ -727,7 +727,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     for (const R of S.robots) { R.drones = []; R.strain += R.spec.helpers.length; const dw = (R.spec.wear && R.spec.wear.drones) || [];
       R.spec.helpers.forEach((k, i) => { if (dw[i] != null && dw[i] <= 0) return; makeDrone(S, R, k, i); const d = R.drones[R.drones.length - 1]; d.idx = i; if (dw[i] != null) d.hp = dw[i] * d.maxHp; }); } // 2.0: a drone shot down last fight stays home
     S.fo = opts.flyoff != null ? !!opts.flyoff : !!ARC.flyoff; // T67: parts that fly off (next-gen test), off by default
-    for (const R of S.robots) if (S.fo || R.spec.flyoffGone) foInit(S, R);
+    for (const R of S.robots) if (S.fo || R.spec.flyoffGone || R.spec.flyoffKeep) foInit(S, R);
     return S;
   }
 
@@ -1891,7 +1891,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       say(S, `${R.name}: ${nm} bent ${Math.round(Math.abs(kk.th) * 57)}°` + (part.key === 'blade' ? ', it wobbles' : part.key === 'spear' ? ', the tip points off to the side' : '') + (kk.why ? ' (at the crack)' : ''), atk ? atk.id : R.id, true); }
     const weakHere = (part.cracks || []).some(c => Math.abs(c.o[ax] - kk.s) < 0.05) || (part.grooves || []).some(g => Math.abs((ax === 0 ? g.x : g.y) - kk.s) < 0.05 && g.depth > 0.006);
     if ((Math.abs(kk.th) >= KINK.snap && weakHere) || Math.abs(kk.th) >= KINK.max) { // bent too far, or bent hard where it was already weak: it snaps there
-      if (R.fo && !R.fo.off && foDef(R).watch && foDef(R).watch(R) === part) { foPop(S, R, { src: atk, cause: h.cause }, true); return; } // T67: it snaps the way its breakaway piece says
+      if (R.fo && !R.fo.off && !R.fo.keep && foDef(R).watch && foDef(R).watch(R) === part) { foPop(S, R, { src: atk, cause: h.cause }, true); return; } // T67: it snaps the way its breakaway piece says
       const pc = wSplit(S, R, part, ax === 0 ? kk.s : 0, ax === 0 ? 0 : kk.s, ax === 0 ? 1 : 0, ax === 0 ? 0 : 1, 'near', (part.key === 'blade' ? 'Spinner bar' : part.label) + ' tip');
       if (pc) { part.kinkSum = 0; cxCount(S, R, 'snap'); const q = pc.body.getPosition(); callout(S, 'SNAPPED!', q.x, q.y, true); say(S, `${R.name}: ${nm} snaps where it was bent`, atk ? atk.id : R.id, true); }
     }
@@ -2912,7 +2912,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   function tethers(S) {
     for (const R of S.robots) {
       const T = R.tether; if (!T) continue;
-      T.t += DT; T.len = Math.max(0.9, T.len - (T.t < 1.2 ? 2.6 : 0.4) * DT); T.joint.setMaxLength(T.len);
+      T.t += DT; T.len = Math.max(0.9, T.len - (T.t < 1.2 ? 2.6 : 0.4) * (R.foReel || 1) * DT); T.joint.setMaxLength(T.len);
+      if (R.foCut && foRopeCut(S, R, T)) continue; // T68: the hull split, the rope runs bare: a spinning weapon or a saw cuts it
       const V0 = T.robot; V0.lifted = Math.max(V0.lifted, 0.12); V0.thrownBy = R;
       const vv = V0.body.getLinearVelocity(); if (Math.hypot(vv.x, vv.y) > 2.2) V0.airborne = Math.max(V0.airborne, 0.04);
       let fl = 0; if (T.t > 0.05) { try { const f = T.joint.getReactionForce(1 / DT); fl = Math.hypot(f.x, f.y) || 0; } catch (e) { fl = 0; } }
@@ -3852,7 +3853,8 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
           const ew = E.spec.weapon; let want = (FLIPME[ew] && R.gas > 0) ? 0 : I.chip || I.drones || I.crippled ? 1 : I.lid ? 2 : 1;
           if (!alive[want]) want = [0, 1, 2].filter(k2 => alive[k2]).sort((a2, b2) => (a2 === 1 ? -1 : 0) - (b2 === 1 ? -1 : 0))[0];
           const lidEvt = st.lidSeen && !I.lid; st.lidSeen = I.lid;
-          if (want != null && want !== st.want && (S.t - st.last > 6 || lidEvt)) { st.want = want; st.last = S.t; const p = b.getPosition(); callout(S, ['FLIPPER!', 'SAW!', 'AXE!'][want], p.x, p.y, false); say(S, `${R.name} reads ${E.name} and spins up its ${GMT[want]}`, R.id); }
+          if (R.foRandom) { if (S.t - st.last > 6) { const al = [0, 1, 2].filter(k2 => alive[k2]); st.last = S.t; if (al.length) { want = al[Math.floor(S.rng() * al.length)]; R.fo.picks = (R.fo.picks || 0) + 1; if (want !== st.want) { st.want = want; const p = b.getPosition(); callout(S, ['FLIPPER?!', 'SAW?!', 'AXE?!'][want], p.x, p.y, false); say(S, `${R.name} has no hat to think with: it grabs its ${GMT[want]} at random`, R.id); } } } } // T68: the hat is off, the brain picks blind
+          else if (want != null && want !== st.want && (S.t - st.last > 6 || lidEvt)) { st.want = want; st.last = S.t; const p = b.getPosition(); callout(S, ['FLIPPER!', 'SAW!', 'AXE!'][want], p.x, p.y, false); say(S, `${R.name} reads ${E.name} and spins up its ${GMT[want]}`, R.id); }
         }
       }
       if (st.think > 0) st.think -= DT;
@@ -4145,7 +4147,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         else if (k2 >= 1) { // on the platter
           const tp = b.getWorldPoint(V(st.tableAt[0], st.tableAt[1])); q.body.setTransform(tp, q.body.getAngle());
           q.joint = S.world.createJoint(pl.RevoluteJoint({ enableMotor: true, motorSpeed: 0, maxMotorTorque: 10 }, b, q.body, tp)); q.state = 'table'; jukeFilter(q, true); for (let f = q.body.getFixtureList(); f; f = f.getNext()) f.setFriction(0.25); st.table = q; st.load = null; st.busy = false;
-          if (L0.floor) { callout(S, 'ENCORE!', tp.x, tp.y, false); say(S, `${R.name} picks a record back up`, R.id); }
+          if (L0.floor) { callout(S, 'ENCORE!', tp.x, tp.y, false); say(S, `${R.name} picks a record back up`, R.id); if (R.fo) R.fo.fetch = (R.fo.fetch || 0) + 1; }
         }
         return;
       }
@@ -4154,7 +4156,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       if (!st.table) {
         const top2 = stack[stack.length - 1];
         // pick one up off the floor (any record of its own that has spun down and lies within reach), else take the top of the stack
-        const pk = recs.find(q => q.state === 'floor' && !q.mag && Math.hypot(q.body.getPosition().x - b.getPosition().x, q.body.getPosition().y - b.getPosition().y) < R.hl + 0.7); // the loader reaches out 0.7 m
+        const pk = recs.find(q => q.state === 'floor' && !q.mag && Math.hypot(q.body.getPosition().x - b.getPosition().x, q.body.getPosition().y - b.getPosition().y) < R.hl + (R.foReach != null ? R.foReach : 0.7)); // the loader reaches out 0.7 m (T68: 0.25 m once its crate has tipped)
         if (pk) { const lp = b.getLocalPoint(pk.body.getPosition()); S.debris.splice(S.debris.indexOf(pk), 1); pk.attached = true; pk.state = 'load'; jukeFilter(pk, false); st.load = { q: pk, t: 0, from: [lp.x, lp.y], floor: true }; }
         else if (top2) { if (top2.joint) { S.world.destroyJoint(top2.joint); top2.joint = null; } top2.state = 'load'; top2.top = false; jukeFilter(top2, false); st.load = { q: top2, t: 0, from: st.stackAt.slice() }; }
         return;
@@ -4294,7 +4296,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // bolt flies fast and a heavy plate flies slow; the shot's damage is the energy it loses in the hit. Fired junk lands on the
   // floor again and gets sucked back up: the messier the fight, the deadlier it gets.
   const SCAV = { starter: 3, reach: 1.6, cone: 0.75, suck: 55, mouth: 0.36, cap: 6, maxM: 9, shotE: 520, vmax: 22, reload: 0.9 };
-  function scavEdible(d) { return !d.gone && !d.attached && !d.mag && !d.inHopper && !d.shotBy && d.kind !== 'chassis' && d.key !== 'brick' && !(d.key === 'record' && d.state !== 'floor') && d.body && d.body.isActive() && d.body.getMass() <= SCAV.maxM; }
+  function scavEdible(d) { return !d.gone && !d.foLost && !d.attached && !d.mag && !d.inHopper && !d.shotBy && d.kind !== 'chassis' && d.key !== 'brick' && !(d.key === 'record' && d.state !== 'floor') && d.body && d.body.isActive() && d.body.getMass() <= SCAV.maxM; }
   L4W.scav = {
     build(S, R, k) {
       const { hl, hw } = k;
@@ -4713,9 +4715,10 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
       const err = Math.abs(wrap(Math.atan2(ep.y + ev.y * ld - pos.y, ep.x + ev.x * ld - pos.x) - b.getAngle()));
       if (d0 > RAIL.range || d0 < R.hl + E.hl + 0.1 || err > Math.atan2(E.hw * 0.7, d0)) return; // fire only when the line is on its body
       const q = R.mag.pop(), mz = l4front(R, 0.25, 0), v = b.getLinearVelocity();
-      q.inMag = false; q.body.setActive(true); q.body.setTransform(mz, b.getAngle()); q.body.setLinearVelocity(V(v.x + fwd.x * sp, v.y + fwd.y * sp)); q.body.setAngularVelocity(0); q.body.setBullet(true); q.body.setLinearDamping(0.1); freeBody(q);
+      let fx = fwd.x, fy = fwd.y; if (R.foSpread) { const da = (S.rng() * 2 - 1) * R.foSpread, ca = Math.cos(da), sa = Math.sin(da); fx = fwd.x * ca - fwd.y * sa; fy = fwd.x * sa + fwd.y * ca; R.fo.wide = (R.fo.wide || 0) + 1; } // T68: peeled rails fire wide
+      q.inMag = false; q.body.setActive(true); q.body.setTransform(mz, b.getAngle()); q.body.setLinearVelocity(V(v.x + fx * sp, v.y + fy * sp)); q.body.setAngularVelocity(0); q.body.setBullet(true); q.body.setLinearDamping(0.1); freeBody(q);
       S.debris.push(q); q.shotBy = R; st.fly.push({ d: q, t: 0, v2: sp * sp }); st.E = 0; st.last = S.t; st.fired++;
-      b.applyLinearImpulse(V(-fwd.x * RAIL.slug * sp, -fwd.y * RAIL.slug * sp), b.getWorldCenter(), true); // recoil
+      b.applyLinearImpulse(V(-fx * RAIL.slug * sp, -fy * RAIL.slug * sp), b.getWorldCenter(), true); // recoil
       S.fx.push({ type: 'launch', x: mz.x, y: mz.y }); S.fx.push({ type: 'boom', x: mz.x, y: mz.y, power: 8 }); callout(S, 'KZZAKK!', mz.x, mz.y, false);
     },
     think(S, R, c) {
@@ -4905,6 +4908,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
   // the pool gone) the piece shows it is going (bend); at 0, or when the part it sits on would break (watch), it comes off:
   // pop(S, R, h, floor) makes the floor objects (real bodies, kept for the rest of the fight) and changes how the robot fights.
   // spec.flyoffGone: the robot starts without its piece (for the robot card and garage later): changed behaviour, nothing on the floor.
+  // spec.flyoffKeep (T68, for measuring): the piece never comes off, but the robot's hits are counted like a robot with the switch on.
   const FLYOFF = {
     // the spinning bar first bends, then snaps at the hub: a short half bar is left, it spins faster and reaches less far (quick small
     // hits instead of one big one: a quarter of the bar's spin energy at full speed); the snapped half lies on the floor
@@ -4974,7 +4978,122 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         if (st.carry) { st.carry = null; } st.mode = 'idle'; st.armAt = null; st.empty = true; R.foLean = 0;
         return out;
       } },
+    // ---- step 2 (T68): six more ----
+    // GYRO: the grey shell comes off (with the switch on, this is how the shell comes loose: the pool, or the shell's own HP running
+    // out). Left: a bare gold flywheel on the blue base, lighter (5 kg for 11) and spun faster, but smaller, without teeth and out of
+    // true (it wobbles): quicker, softer hits. The shell lies on the floor as a big bump.
+    Gyro: { weapon: 'shell', label: 'Shell', pool: 130, warn: 0.6, flyR: 0.8, flyM: 5, spinK: 1.35, sharp: 1.15, wob: 0.3,
+      feed: (R, q, h) => q === R.shell && !h.inner ? 1 : 0, watch: R => R.shell,
+      bend(S, R) { const q = R.shell; if (!q || !q.attached) return; q.state = 'loose'; const p = q.body.getPosition(); callout(S, 'SHELL LOOSE!', p.x, p.y, false); say(S, `${R.name}: the shell rattles on its bearing`, R.id); },
+      pop(S, R, h, floor) {
+        const q = R.shell, b = R.body; if (!q || !q.attached) return [];
+        const out = [];
+        if (floor) { const a = S.rng() * TAU; detach(S, q, [Math.cos(a) * 1.5, Math.sin(a) * 1.5]); q.hp = Math.max(1, q.hp); q.label = 'Shell'; q.state = ''; q.noHit = R; q.noHitT = S.t + 0.6; out.push(q); }
+        else { if (R.sjoint) { S.world.destroyJoint(R.sjoint); R.sjoint = null; } q.joint = null; q.attached = false; q.hp = 0; q.gone = true; S.world.destroyBody(q.body); }
+        const fr = R.shellR * this.flyR, vs = []; for (let k = 0; k < 12; k++) vs.push([Math.cos(k / 12 * TAU) * fr, Math.sin(k / 12 * TAU) * fr]);
+        const fb = S.world.createBody({ type: 'dynamic', position: b.getPosition(), angle: b.getAngle(), bullet: true, angularDamping: 0.05, linearDamping: 0.1 });
+        fb.setLinearVelocity(b.getLinearVelocity()); fb.setAngularVelocity(b.getAngularVelocity());
+        const fw = foPart(S, R, 'shell', 'Bare flywheel', 'weapon', vs, { mass: this.flyM, hp: 130, sharp: this.sharp, tough: 0.2, rest: 0.3, friction: 0.35, body: fb, z: 2 });
+        fw.sep = true; fw.bare = true; fw.warp = this.wob; fw.foldA = 0.6; fw.vBase = vs.map(v => v.slice());
+        R.sjoint = S.world.createJoint(pl.RevoluteJoint({ enableMotor: true, motorSpeed: 0, maxMotorTorque: 30 }, b, fb, b.getPosition())); fw.joint = R.sjoint; fw.jname = 'sjoint';
+        R.shell = fw; R.bladeMax = R.bladeMax * this.spinK; R.bladeW = 0;
+        return out;
+      } },
+    // RAILGUN: the clamp that holds the two rails together bursts and they peel apart. It still fires, but wide (up to 0.3 rad off
+    // the line, at random): it can miss, or hit something it was not aiming at. The clamp lies on the floor.
+    Railgun: { weapon: 'rail', label: 'Rail clamp', pool: 45, warn: 0.55, spread: 0.3,
+      feed: (R, q, h) => h.inner ? (q === R.coil ? 0.8 : 0) : q.kind === 'chassis' ? (h.top ? 1.2 : 0.5) : q === R.tool ? 0.6 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'RAILS BUCKLING!', p.x, p.y, false); say(S, `${R.name}: the rails start to spread`, R.id); },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { pc = spawnLoose(S, R, 'Rail clamp', [[-0.17, -0.035], [0.17, -0.035], [0.19, 0], [0.17, 0.035], [-0.17, 0.035]], [0.25 * R.hl, 0], 1.6, [(S.rng() - 0.5) * 5, (S.rng() - 0.5) * 5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.5; pc.foShape = 'clamp'; } }
+        R.foSpread = this.spread; R.foPeel = 1;
+        return pc ? [pc] : [];
+      } },
+    // SCAVENGER: the hopper cracks open: all the junk in it pours out behind it in one pile (a rough patch for everyone; its own lost
+    // cargo can't be sucked up again), and it starts collecting from zero. A shard of the hopper glass lies with it.
+    Scavenger: { weapon: 'scav', label: 'Hopper', pool: 45, warn: 0.6,
+      feed: (R, q, h) => h.inner ? 0 : q.kind === 'chassis' ? (h.top ? 1.3 : h.blp && h.blp[0] < -0.2 * R.hl ? 1 : 0.5) : q.kind === 'armour' ? 0.4 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'CRACK!', p.x, p.y, false); say(S, `${R.name}: the hopper glass cracks`, R.id); R.foCrack = 1; },
+      pop(S, R, h, floor) {
+        const b = R.body, out = [], n0 = R.hopper.length;
+        if (floor) {
+          R.hopper.forEach((d, n) => { const a = S.rng() * TAU, r = 0.04 + 0.16 * S.rng(), lx = -R.hl - 0.2 + Math.cos(a) * r, ly = (n - (n0 - 1) / 2) * 0.07 + Math.sin(a) * r;
+            const wp = b.getWorldPoint(V(lx, ly)), q = inArena(S, wp.x, wp.y, 0.1), v = b.getLinearVelocityFromWorldPoint(wp);
+            d.inHopper = false; d.foLost = true; d.body.setActive(true); d.body.setTransform(V(q[0], q[1]), S.rng() * TAU); freeBody(d);
+            d.body.setLinearVelocity(V(v.x + Math.cos(a) * 1.2, v.y + Math.sin(a) * 1.2)); d.body.setAngularVelocity((S.rng() - 0.5) * 6); d.body.setLinearDamping(3.5); d.body.setAngularDamping(3);
+            if (d.key === 'record') d.state = 'floor'; S.debris.push(d); out.push(d); });
+          const gl = spawnLoose(S, R, 'Hopper glass', [[-0.1, -0.05], [0.09, -0.07], [0.12, 0.0], [0.04, 0.06], [-0.08, 0.05]], [-0.45 * R.hl, 0.1], 0.8, [(S.rng() - 0.5) * 4, (S.rng() - 0.5) * 4]);
+          if (gl) { gl.noHit = R; gl.noHitT = S.t + 0.5; gl.foShape = 'glass'; out.unshift(gl); }
+          if (n0) { const p = b.getWorldPoint(V(-R.hl - 0.2, 0)); callout(S, 'JUNK EVERYWHERE!', p.x, p.y, true); }
+        }
+        R.fo.spilled = floor ? n0 : 0; R.hopper = []; R.foCrack = 2;
+        return out;
+      } },
+    // GRANDMASTER: the yellow hat comes off and shows its "brain", a wheel of six tools. Without the hat it stops choosing: every
+    // time it may change tool (every 6 s) it grabs one at random. The hat lies on the floor.
+    Grandmaster: { weapon: 'carousel', label: 'Hat', pool: 60, warn: 0.5,
+      feed: (R, q, h) => h.inner ? 0 : h.top ? 1.5 : q.kind === 'chassis' ? 0.4 : (q === R.gmWedge || q === R.gmAxe) ? 0.2 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'HAT WOBBLES!', p.x, p.y, false); say(S, `${R.name}: its hat is knocked askew`, R.id); R.foTilt = 1; },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { const vs = []; for (let k = 0; k < 10; k++) vs.push([Math.cos(k / 10 * TAU) * 0.21, Math.sin(k / 10 * TAU) * 0.21]);
+          const a = S.rng() * TAU; pc = spawnLoose(S, R, 'Hat', vs, [0, 0], 2.5, [Math.cos(a) * 3, Math.sin(a) * 3]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'hat'; } }
+        R.foRandom = true; R.foTilt = 0; R.l4.last = -9;
+        return pc ? [pc] : [];
+      } },
+    // WHALER: the hull splits down the middle and shows the winch drum and the rope. The harpoon still fires, but the winch reels in
+    // at half speed, and the bare rope can be cut (a spinning weapon or a saw across it). A strip of the hull seam lies on the floor.
+    Whaler: { weapon: 'harpoon', label: 'Hull', pool: 95, warn: 0.55, reel: 0.5,
+      feed: (R, q, h) => h.inner ? 0 : q.kind === 'chassis' ? (h.top ? 1.3 : 1) : q.kind === 'armour' ? 0.3 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'HULL CRACKS!', p.x, p.y, false); say(S, `${R.name}: a crack runs along its hull`, R.id); R.foCrack = 1; },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { pc = spawnLoose(S, R, 'Hull seam', [[-0.3, -0.03], [-0.12, -0.05], [0.05, -0.025], [0.3, -0.045], [0.31, 0.02], [0.1, 0.045], [-0.08, 0.02], [-0.3, 0.04]], [0, 0], 2.2, [(S.rng() - 0.5) * 5, (S.rng() - 0.5) * 5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'seam'; } }
+        R.foReel = this.reel; R.foCut = true; R.foCrack = 2;
+        return pc ? [pc] : [];
+      } },
+    // JUKEBOX: the record crate on its back tips over: the records still in it slide out onto the floor, the crate lies with them.
+    // The loader's arm sat on the crate: it is bent now and reaches 0.25 m instead of 0.7, so Jukebox has to drive right up to a
+    // record on the floor before it can throw again.
+    Jukebox: { weapon: 'jukebox', label: 'Record crate', pool: 50, warn: 0.6, reach: 0.25,
+      feed: (R, q, h) => h.inner ? 0 : q.key === 'record' && q.state === 'stack' ? 1.2 : q.kind === 'chassis' ? (h.top ? 1.2 : 0.5) : q.kind === 'armour' ? 0.4 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'CRATE TILTS!', p.x, p.y, false); say(S, `${R.name}: the record crate is tilting`, R.id); R.foTilt = 1; },
+      pop(S, R, h, floor) {
+        const st = R.l4, b = R.body, stack = R.records.filter(q => q.state === 'stack' && q.attached && !q.gone), n = stack.length, out = [];
+        stack.forEach((q, k) => { // they slide out behind it, fanned out
+          if (q.joint) { S.world.destroyJoint(q.joint); q.joint = null; }
+          const an = Math.PI + (k - (n - 1) / 2) * 0.62, r = R.hl + 0.38, wp = b.getWorldPoint(V(Math.cos(an) * r, Math.sin(an) * r)), at = inArena(S, wp.x, wp.y, 0.22);
+          q.attached = false; q.state = 'floor'; q.top = false; jukeFilter(q, 'free'); q.body.setBullet(true); q.body.setTransform(V(at[0], at[1]), q.body.getAngle());
+          const v = b.getLinearVelocity(), dv = b.getWorldVector(V(Math.cos(an), Math.sin(an))); q.body.setLinearVelocity(V(v.x + dv.x * 1.2, v.y + dv.y * 1.2)); q.body.setAngularVelocity(0);
+          if (!S.debris.includes(q)) S.debris.push(q); });
+        let pc = null;
+        if (floor) { pc = spawnLoose(S, R, 'Record crate', [[-0.16, -0.15], [0.16, -0.15], [0.16, 0.15], [-0.16, 0.15]], [st.stackAt[0] - 0.05, 0], 3.5, [b.getWorldVector(V(-1, 0)).x * 2.5, b.getWorldVector(V(-1, 0)).y * 2.5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'crate'; pc.body.setLinearDamping(3); pc.body.setAngularDamping(3); } }
+        R.fo.spilled = n; R.foTilt = 0; R.foCrate = 'gone'; R.foReach = this.reach;
+        return pc ? [pc] : [];
+      } },
   };
+  function foPart(S, R, key, label, kind, verts, o) { // T68: swap a new part in (its own body, on a joint the caller makes), as create() builds them
+    const fx = o.body.createFixture({ shape: pl.Polygon(verts.map(q => V(q[0], q[1]))), density: o.mass / Math.abs(area(verts)), friction: o.friction == null ? 0.45 : o.friction, restitution: o.rest == null ? 0.15 : o.rest, filterGroupIndex: R.group });
+    const hp = o.hp * (R.hpK0 || 1), part = { key, label, kind, verts, home: verts.map(q => q.slice()), outline: subdivide(verts), dents: [], scratches: [], fx, body: o.body, robot: R, attached: true, hp, maxHp: hp, heat: 0, thr: 0, sharp: o.sharp == null ? 0.35 : o.sharp, tough: o.tough || 1, mass: o.mass, state: '', jam: 0, z: o.z || 0, v0: verts, m0: o.mass };
+    fx.setUserData({ part }); R.parts.push(part); return part;
+  }
+  function foRopeCut(S, R, T) { // T68: Whaler's bare rope: a spinning weapon (or a saw edge) across the middle of it cuts it
+    const a = R.body.getPosition(), e = T.body.getWorldPoint(V(T.lp[0], T.lp[1])), dx = e.x - a.x, dy = e.y - a.y, L2 = dx * dx + dy * dy; if (L2 < 0.25) return false;
+    for (const Q of S.robots) { if (Q === R || !Q.alive) continue;
+      for (const q of Q.parts) { if (!q.attached || q.kind !== 'weapon' || !(spinningPart(q) || q.sharp >= 2)) continue;
+        const c0 = centroid(q.verts), c = q.body.getWorldPoint(V(c0[0], c0[1])), rr = Math.max(...q.verts.map(v => Math.hypot(v[0] - c0[0], v[1] - c0[1])));
+        const t = clamp(((c.x - a.x) * dx + (c.y - a.y) * dy) / L2, 0, 1); if (t < 0.12 || t > 0.88) continue;
+        if (Math.hypot(a.x + dx * t - c.x, a.y + dy * t - c.y) > rr * 0.9 + 0.02) continue;
+        S.world.destroyJoint(T.joint); R.tether = null; R.cool = 3.5; R.fo.cuts = (R.fo.cuts || 0) + 1;
+        const px = a.x + dx * t, py = a.y + dy * t; callout(S, 'ROPE CUT!', px, py, true); S.fx.push({ type: 'spark', x: px, y: py, power: 20 }); say(S, `${Q.name} cuts ${R.name}'s harpoon rope`, Q.id, true);
+        return true; } }
+    return false;
+  }
   function foKink(R, q, th) { // bend a bar on its own body by th radians, 30% of the way out along one arm (drawing + physics shape)
     if (!q.vBase) { q.vBase = q.verts.map(v => v.slice()); q.kAx = wAxis(q); q.kinks = []; }
     const A = q.kAx, ax = A.ax, at = 0.3 * A.hi; q.kinks.push({ s: at, r: 0, side: 1, th, why: '' });
@@ -4985,10 +5104,11 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     const pool = def.pool * (R.spec.hpK || 1);
     R.fo = { key: R.spec.preset, label: def.label, pool, max: pool, warned: false, off: false, offT: null, pieces: [], touch: { own: 0, other: 0 }, dealt: { pre: {}, post: {} } };
     if (R.spec.flyoffGone) { R.fo.warned = true; foPop(S, R, {}, false); R.fo.offT = 0; }
+    else if (R.spec.flyoffKeep) R.fo.keep = true; // T68, for measuring: the piece never comes off, but the robot's hits are counted (R.fo.dealt.pre)
   }
   function foDef(R) { return FLYOFF[R.fo.key]; }
   function foFeed(S, R, part, d, h) { // after a hit on one of R's parts (applyHit)
-    const F = R.fo; if (F.off || !R.alive) return;
+    const F = R.fo; if (F.off || F.keep || !R.alive) return;
     const def = foDef(R), w = def.feed(R, part, h, d) || 0;
     if (w > 0) { F.pool -= d * w; F.fed = (F.fed || 0) + d * w; }
     if (!F.warned && def.warn && F.pool <= F.max * (1 - def.warn)) { F.warned = true; if (def.bend) def.bend(S, R, h); }
