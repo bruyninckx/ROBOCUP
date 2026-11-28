@@ -359,7 +359,7 @@
     if (part.key === 'spear') return '#C9CBC4';
     if (part.key === 'glove') return '#6F7369';
     if (part.key === 'blade') return '#B9BBB4';
-    if (part.key === 'flipper') return '#D9B43A';
+    if (part.key === 'flipper') return part.bare ? '#A9ADA8' : '#D9B43A';   // (T67: a bare flipper, its teeth plate gone, is plain steel)
     if (part.key === 'wedge') return '#7D8078';
     if (part.key === 'drum') return '#8C8F86';
     if (part.key === 'jaws') return '#6F7369';
@@ -402,6 +402,7 @@
         }
       } else if (part.key === 'wedge') { ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = PX * 1.5; for (let k = -0.6; k < 0.6; k += 0.07) { ctx.beginPath(); ctx.moveTo(R.hl, k); ctx.lineTo(R.hl + 0.3, k + 0.05); ctx.stroke(); } ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(R.hl + 0.26, -0.7, 0.02, 1.4); }
       else if (part.key === 'drum') { const ph = ((R.drumSpin || 0) % 0.06); ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (let x = R.hl - 0.06 + ph; x < R.hl + 0.25; x += 0.06) ctx.fillRect(x, -0.6, 0.015, 1.2); ctx.fillStyle = '#E4E1DA'; for (const y of [-0.22, 0, 0.22]) ctx.fillRect(R.hl + 0.17, y - 0.03, 0.04, 0.06); }
+      else if (part.key === 'flipper' && part.bare) { ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = PX * 1.5; for (const y of [-0.22, 0, 0.22]) { ctx.beginPath(); ctx.arc(R.hl + 0.05, y, 0.012, 0, 6.29); ctx.stroke(); } } // T67: bare flipper, the empty bolt holes of the teeth plate
       else if (part.key === 'flipper') { ctx.fillStyle = INK; for (let y = -0.3; y < 0.3; y += 0.12) { ctx.beginPath(); ctx.moveTo(R.hl + 0.04, y); ctx.lineTo(R.hl + 0.12, y + 0.05); ctx.lineTo(R.hl + 0.04, y + 0.1); ctx.fill(); } ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(R.hl + 0.01, -0.5); ctx.lineTo(R.hl + 0.01, 0.5); ctx.stroke(); }
       else if (part.key === 'blade') { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-0.55, -0.045, 1.1, 0.02); }
     };
@@ -823,7 +824,7 @@
     }
     if (w === 'bricks' && R.bricks) { // BRICKLAYER: iron blocks on its back, a big slewing crane (cab, counterweight, lattice boom, hook)
       const st = R.l4;
-      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.016; ctx.save(); ctx.translate(-k, -k); drawBrick(q, false); ctx.restore(); }
+      for (const q of R.bricks.filter(x => x.state === 'stack' && x.attached && !x.gone).sort((x, y) => x.idx - y.idx)) { const k = q.idx * 0.016, ln = R.foLean ? q.idx * 0.045 : 0; ctx.save(); ctx.translate(-k - ln, -k + ln * 0.6); drawBrick(q, false); ctx.restore(); }   // (T67: a leaning stack, about to topple, slides over)
       const ok = R.crane.hp > 0, base = b.getWorldPoint(planck.Vec2(R.crane.lp[0], R.crane.lp[1])), rest = [-0.1 * R.hl, 0.55 * R.hw], at = st.armAt || rest, hk = b.getWorldPoint(planck.Vec2(at[0], at[1]));
       const ang = Math.atan2(hk.y - base.y, hk.x - base.x), bl = Math.max(0.3, Math.hypot(hk.x - base.x, hk.y - base.y));
       ctx.save(); ctx.translate(base.x, base.y); ctx.rotate(ang);
@@ -992,11 +993,28 @@
     ctx.beginPath(); ctx.arc(0, 0, 0.05, 0, 6.29); ctx.fillStyle = '#5B5E57'; ctx.fill(); ctx.lineWidth = PX * 2; ctx.strokeStyle = INK; ctx.stroke();
     ctx.restore();
   }
+  // T67 (parts that fly off, next-gen test): the breakaway pieces on the floor, each in its robot's look
+  function drawFoPiece(d) {
+    const p = d.body.getPosition(), a = d.body.getAngle(), vs = d.verts, xs = vs.map(v => v[0]), ys = vs.map(v => v[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    ctx.save(); ctx.translate(p.x + 0.035, p.y + 0.035); ctx.rotate(a); ctx.fillStyle = 'rgba(20,14,8,0.25)'; path(vs); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a);
+    if (d.foShape === 'brick') { // a small rust-red brick with two holes
+      path(vs); ctx.fillStyle = '#C4521E'; ctx.fill(); ctx.lineWidth = PX * 2; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.fillStyle = '#8E3A14'; for (const x of [-0.22, 0.22]) { ctx.beginPath(); ctx.arc(x * (x1 - x0), 0, Math.min(0.018, (y1 - y0) * 0.22), 0, 6.29); ctx.fill(); }
+      ctx.fillStyle = 'rgba(255,230,200,0.18)'; ctx.fillRect(x0 + 0.01, y0 + 0.006, (x1 - x0) - 0.02, 0.012);
+    } else if (d.foShape === 'teeth') { // Popcorn's yellow teeth plate: gold, a row of black teeth along its front edge
+      drawPart(d, '#E3B83A', d.robot, () => { ctx.fillStyle = INK; const n = 5, w = (y1 - y0) * 0.8 / n; for (let k = 0; k < n; k++) { const y = y0 + (y1 - y0) * 0.1 + w * (k + 0.5); ctx.beginPath(); ctx.moveTo(x1 - 0.13, y - w * 0.4); ctx.lineTo(x1 - 0.03, y); ctx.lineTo(x1 - 0.13, y + w * 0.4); ctx.closePath(); ctx.fill(); } });
+    } else { // Buzzkill's snapped half bar: bright steel, a sharpening stripe, ragged where it broke
+      drawPart(d, '#C9CBC4', d.robot, () => { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x0 + 0.04, -0.012, (x1 - x0) - 0.08, 0.014); });
+    }
+    ctx.restore();
+  }
   function drawDebris(d) {
     if (d.gone && !d.fellT) return;
     if (d.fellT) return;
     const b = d.body, p = b.getPosition(), a = b.getAngle(), v = b.getLinearVelocity(), sp = Math.hypot(v.x, v.y);
     if (sp > 2) { ctx.strokeStyle = `rgba(255,240,210,${Math.min(0.5, sp / 12)})`; ctx.lineWidth = 0.05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x - v.x * 0.07, p.y - v.y * 0.07); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.lineCap = 'butt'; }
+    if (d.foShape) { drawFoPiece(d); return; }   // T67: a breakaway piece on the floor
     if (d.key === 'blade') { drawBlade(d, null); return; }
     if (d.key === 'buzz') { drawBuzz(d, null); return; }
     if (d.key === 'record') { drawRecord(d); return; }

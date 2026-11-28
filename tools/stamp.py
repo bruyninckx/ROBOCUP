@@ -11,7 +11,7 @@
 import hashlib, pathlib, re, datetime, json
 root = pathlib.Path(__file__).resolve().parent.parent
 src2 = root / 'src2'
-PAGES = ['prototypes/tabletop-2.html', 'prototypes/draft-arena.html', 'prototypes/sync-check.html']
+PAGES = ['prototypes/tabletop-2.html', 'prototypes/draft-arena.html', 'prototypes/sync-check.html', 'prototypes/flyoff-lab.html']
 files = sorted(p for p in src2.glob('*.js') if p.name != 'version.js')
 h = hashlib.sha1()
 for p in files: h.update(p.name.encode()); h.update(p.read_bytes())
