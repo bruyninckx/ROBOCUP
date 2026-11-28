@@ -1,4 +1,4 @@
-# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A, T71b batch B, T71c batch C of all robots)
+# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A, T71b batch B, T71c batch C of all robots, T72 Buzzkill lopsided)
 
 Kev, 28 Nov 2026: "a new damage model that has more unique parts flying off from the robots depending on how the robot
 looks, the shell can come off from gyro which is nice, we need more like this, some tops that come off easily and expose a
@@ -24,7 +24,7 @@ Every robot of the tuned lineup now has its own breakaway piece (switch on only;
 
 | Robot | Comes off | You see | In the fight |
 |---|---|---|---|
-| Buzzkill | half of its spinning bar snaps | a short ragged half bar | spins faster, reaches less far: quick small hits |
+| Buzzkill | one arm of its spinning bar snaps off near the hub (T72) | one long arm and a short ragged stub: lopsided | shakes and drifts while it spins; only the long end hits: full reach, fewer hits, each still a proper one |
 | Popcorn | the yellow teeth plate | a thin bare steel flipper | weaker flips, and the flipper bends a bit more with every flip |
 | Bricklayer | the brick stack topples | an empty crane | nothing to drop; small bricks lie around; it shoves with its dozer blade |
 | Gyro | the grey shell | a bare gold flywheel | lighter and faster but out of true: soft hits |
@@ -658,6 +658,49 @@ of zero. Three are not: **Bricklayer -14.1 ± 8.6** (its stack is its weapon, Ke
 pieces too; 128 fights, so a wide range). Slingshot (+4.7 ± 4.2) touches the edge. A robot's own run includes all 32 opponents losing their pieces too,
 so these numbers are "the switch on for everyone" against "off for everyone", from that robot's side.
 
+## T72: Buzzkill's half bar made lopsided (28 Nov)
+
+Kev, on the voting page, about Buzzkill's half bar: "do not just make the size smaller, make it asymmetrical one half of blade perhaps".
+Branch `claude/flyoff-buzzkill` (for `nextgen`).
+
+**What you see now.** The bar still bends first. Then **one arm snaps off a little way out from the hub**; the other arm keeps its full
+length. What is left is one long arm and a short ragged stub (12 % of an arm) on the other side. It lies on the floor as before
+(the snapped arm, ragged at the break). Spinning, the bar is out of balance: the robot shakes along the long arm and slowly walks sideways,
+and a dashed ring shows the stub's small track inside the long arm's big one. Both portraits now draw the bar across the robot's nose
+(all spinner robots), so the lopsided bar is plain to see. Pictures: `/home/claude/out/t72-buzzkill-before.png`, `-after.png`, `-arena.png`,
+`-portraits.png` (`node tools/flyoff-shots.js /home/claude/out t72`).
+
+**How it works** (engine `FLYOFF.Buzzkill`): the new shape runs from the stub (12 % of an arm) to the full tip, 56 % of the bar's mass, so
+its centre of mass sits 0.23 m out along the long arm. The hub joint swings that real off-centre mass round (planck does this), and the
+entry adds the rocking of a robot shaken on its wheels (`shake`, a force along the long arm, and `walk`, a slow sideways creep the way the
+bar spins: both follow the bar's own angle and speed, no dice). The shaking costs the bar speed (it spins up to about half the full bar's
+speed when standing) and works the weapon motor hot (`heat`: after about 10 s of spinning it starts to overheat and take damage). The
+long end strikes with the whole swing behind it (`hitK` 1.8 on its edge: the arm has half the bar's inertia but is the same steel), so
+each strike is still a proper hit. Only the long end reaches: the stub is inside the hub's reach.
+
+### T72 numbers (open floor, wear on; same seeds as before)
+
+| | the old half bar (T67) | **lopsided (T72)** |
+|---|---|---|
+| switch on: piece comes off | 121 of 256 (47%) | 121 of 256 (47%), median 30.5 s (unchanged: the snap is the same) |
+| switch on: win rate vs the field, off -> on (256 + 256 fights) | 29.7% -> 37.5% (+7.8 ± 5.3) | 29.7% -> 36.3% (**+6.6 ± 5.4**) |
+| switch on, after the snap: spinner hits a second | 0.34 (before the snap 0.69) | **0.24** (before 0.69) |
+| switch on, after the snap: damage a hit | 6.2 (before 7.3) | **6.3** (before 7.3) |
+| starting without it, 128 fights each way: wins | 30 keeping it -> **40** without (more than keeping it) | 30 keeping it -> **29** without (keeps 97%) |
+| starting without it: spinner hits a second, damage a hit | 0.67, 7.0 -> 0.83, 5.8 | 0.67, 7.0 -> 0.63, 4.7 |
+
+Which end hits (16 fights each, distinct strikes with an impulse over 12, `node` probe): the full bar struck with both arms (29 and 51 strikes,
+impulse 31 and 29); the lopsided bar with its long arm 51 times (impulse 30) and its stub 4 times. Standing still and spinning
+(`node tools/damage-lab/lopsided.js 6`): the full bar 64 rad/s, no shake, 1 cm of drift in 6 s; the lopsided bar 33 rad/s, the body shakes
+at 31 cm/s, and it drifts 14 cm in 6 s (16 cm at most). On screen the robot is also drawn up to 3.5 cm off along the long arm while it
+spins (drawing only), so the shake shows.
+
+Engine hits ("spinner hits" above) count every contact that does damage, so a strike that grinds on counts several times; that is why
+starting without the piece shows nearly as many hits a second (0.63 vs 0.67) while the switch-on fights show a third (0.24 vs 0.69).
+
+Switch off: stock-fight fingerprint 470f6923 and sync check 89a95280 unchanged; Buzzkill's own fights with the switch off (256) and with
+the full bar kept (128) bit-identical to `nextgen` before the change; game-sim check 2/2, 0 page errors.
+
 ## How step 3 extends the mechanism (the four new abilities)
 
 - **Several pieces per robot**: `count` in the entry (default 1). `R.fo.n` pieces lost, `R.fo.offs` when, `R.fo.done` when all are gone.
@@ -694,8 +737,8 @@ Everything the voting page asked for now exists. A new robot is one `FLYOFF` ent
    less?
 2. **Bricklayer gets much weaker** when its stack topples: 76% -> 57% against the field. Keep it that hard (it becomes a
    pusher), or let the crane still pick up the blocks it already laid on the floor (only the stack on its back breaks)?
-3. **Buzzkill's half bar**: 36% more hits, 21% softer each. Starting a fight with the half bar costs it about 10 points
-   against the field. Fine?
+3. **Buzzkill's half bar** (T72: now lopsided, Kev's words): one long arm and a stub; it shakes, drifts and runs its motor hot; a third as many
+   hits after the snap, each about as hard. Starting without it keeps 29 of its 30 wins. Shake harder (more drift), or fine?
 4. **Popcorn's bare flipper**: 38% weaker flips, and each flip bends it more (about 6% off the next flip, down to a third). In real fights it
    rarely bends far, because the gas runs out. Stronger bending?
 5. **Looks**: the iron blocks break into small rust-red bricks (like the sketch). Or keep them grey iron?

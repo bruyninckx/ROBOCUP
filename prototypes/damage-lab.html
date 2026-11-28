@@ -5007,7 +5007,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
     // walking of a robot shaken on its wheels: shake, in N per kg m of imbalance a (rad/s)^2, pushed along the long arm; and walk, a
     // slow sideways creep the way the bar spins). Only the long end reaches: about half as many hits per turn, each at full reach.
     // The snapped arm lies on the floor.
-    Buzzkill: { weapon: 'spinner', label: 'Half spinner bar', pool: 62, warn: 0.5, stub: 0.22, spinK: 1.3, torqueK: 8, shake: 0.2, walk: 0.02,
+    Buzzkill: { weapon: 'spinner', label: 'Half spinner bar', pool: 62, warn: 0.5, stub: 0.12, spinK: 1.0, torqueK: 2.5, hitK: 1.8, shake: 0.2, walk: 0.02, heat: 8,
       feed: (R, q) => q === R.blade ? 1 : 0, watch: R => R.blade,
       bend(S, R) { const q = R.blade; if (!q || !q.attached || (q.kinkSum || 0) >= 0.1) return; foKink(R, q, 0.2); q.state = 'bent';
         const p = q.body.getPosition(); callout(S, 'BENT!', p.x, p.y, false); say(S, `${R.name}: spinner bar bent at the hub, it wobbles`, R.id, true); },
@@ -5029,6 +5029,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         wRefit(R, q, left); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q); q.label = 'Half spinner bar'; q.half = true; q.lop = (L0 - Ls) / 2; // q.lop: how far out the centre of mass sits (m)
         const px = R.hl + 0.1; q.home = left.map(v => [px + v[1], v[0] * 0.8]);
         q.hp = Math.max(q.hp, q.maxHp * 0.45); R.bladeMax = R.bladeMax * this.spinK; R.foLop = true;
+        q.sharp *= this.hitK; // the long end strikes with the whole swing behind it (half the bar's inertia, but the same steel edge): each strike a proper hit
         return pc ? [pc] : [];
       },
       // T72: the lopsided bar shakes and walks the robot while it spins (no randomness: it follows the bar's own angle and spin)
@@ -5039,6 +5040,7 @@ details > summary { cursor: pointer; font: 600 11px var(--f-mono); letter-spacin
         b.applyForce(V(Math.cos(ba) * F, Math.sin(ba) * F), hub, true);
         const side = b.getWorldVector(V(0, Math.sign(w))), Fw = this.walk * q.mass * q.lop * aw * aw;
         b.applyForce(V(side.x * Fw, side.y * Fw), hub, true);
+        if (R.wmotor && R.wmotor.hp > 0) R.wmotor.heat += this.heat * Math.min(1, aw / R.bladeMax) * DT; // the shaking works the motor and its bearing hot
       } },
     // the yellow teeth plate pops off the flipper: flips are weaker, and the bare flipper bends a little more with every flip
     Popcorn: { weapon: 'flipper', label: 'Teeth plate', pool: 60, flipBase: 0.62, bendPer: 0.07, bendMax: 0.5,
