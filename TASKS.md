@@ -238,6 +238,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
+- **T71. Parts that fly off for ALL robots (28 Nov, workers running one after the other, branch `nextgen` only).**
+  Kev's words: "for the next gen work, implement these changes to all robots go all out". The 18 robots that have no
+  breakaway piece yet, in three batches of six (same engine file, so in sequence):
+  T71a Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker (+ bolder drawings for Tarantula, Lodestone, Blacksmith,
+  whose looks changed least); T71b Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher; T71c Yoyo, Gaucho,
+  Slingshot, Orbiter, Rotisserie, Trebuchet. "All out" = every robot gets its OWN piece that fits how it looks, the
+  inside it exposes is a new drawing, and losing it visibly changes how it fights (not a small number change). Same
+  checks as T67-T69 (switch off: fingerprint 470f6923; switch on: numbers per robot, 256 fights on/off). After it: a
+  page with all 33 for Kev's votes, then card and garage (rule 3), then the balance re-measure on Kev's PC.
+
 ## Done
 
 - **T70. Joined screen feels sluggish** (28 Nov, Kev: "go for the lag fixes"; merged, files stamp 8a074599, BUILD
