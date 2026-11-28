@@ -62,6 +62,15 @@ function installHooks() {
       } });
     }
   };
+  // T73 (parts that fly off in the game): pieces lost in fights, repaired in Upkeep, robots that start a fight with a piece missing
+  X.fo = { lost: 0, repaired: 0, starts: 0, missing: 0, fights: 0 };
+  if (DL && DL.wearOf && DL.create) {
+    const ow = DL.wearOf, oc = DL.create;
+    DL.wearOf = function (R) { const w = ow.apply(this, arguments); try { if (R && R.fo) X.fo.lost += Math.max(0, (R.fo.n || 0) - ((R.spec.wear && R.spec.wear.fo) || 0)); } catch (e) { X.hookErrs.push('fo: ' + e.message); } return w; };
+    DL.create = function (o) { try { if (o && o.countdown === 2.99) { X.fo.fights++; for (const sp of o.robots || [o.a, o.b]) if (sp && sp.team !== 9) { X.fo.starts++; if (sp.wear && sp.wear.fo) X.fo.missing++; } } } catch (e) { X.hookErrs.push('fo: ' + e.message); } return oc.apply(this, arguments); };
+  }
+  { const seen = new Map(); setInterval(() => { try { const g = G(); if (!g || !g.teams) return; // a robot's lost pieces going back on (repaired): watched on the robots themselves (zoneGain repairs copies)
+    for (const t of g.teams) for (const r of t.robots || []) { const n = (r.wear && r.wear.fo) || 0, was = seen.get(r.id) || 0; if (n < was) X.fo.repaired += was - n; seen.set(r.id, n); } } catch (e) {} }, 50); }
   if (R2 && R2.repairZone) {
     const orig = R2.repairZone;
     R2.repairZone = function (spec, key) {
@@ -215,6 +224,7 @@ function installHooks() {
             standIn: D.standlog ? D.standlog.slice() : null, stepIns: ev.filter(e => e.k === 'msg' && /steps? in/.test(e.text || '')).map(e => e.text),   // T59: the AI host's stand-in picks; every stand-in log line
             favSafe: X.favSafe, hosts: ev.filter(e => e.k === 'host_bid').map(e => [e.r, e.host, e.price]), favAt: G.teams.map(t => t.robots.map(r => r.wins || 0)),
             garage: X.garage, partsBack: X.partsBack, leaves: X.leaves, stashEnd: G.teams.map(t => (t.stash || []).length),
+            fo: X.fo,   // T73
             reps: X.reps, ups: X.ups, snaps: X.snaps, scraps: X.scraps, tradeIns: X.tradeIns, rv: X.rv, buyouts: X.buyouts, fires: X.fires, hookErrs: X.hookErrs.slice(0, 10),
             fightsX: fstarts.map((e, i) => ({ r: e.r, host: e.host, fameAt: e.hostFame, format: e.format, arena: e.arena || 'open', mode: e.mode, house: !!e.house, p: e.p, x2: e.x2, bets: (e.bets || []).map(b => ({ team: b.team, side: b.side, amt: b.amt })),
               win: fe[i] ? fe[i].winSide : null, how: fe[i] ? fe[i].how : null, time: fe[i] ? fe[i].time : null })),
