@@ -5,6 +5,13 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K71. Next-gen game with lost pieces (28 Nov):** (a) Buzzkill's lopsided bar loses almost nothing (29 of 30 wins):
+  shake and drift harder, or fine? (b) all spinner pictures now show the bar across the nose: keep? (c) repairing a
+  lost piece costs 2 repair actions like a broken zone, also for pieces that barely matter (Railgun's clamp): cheaper?
+  (d) only 4% of fights start with a piece missing because the AI and the free actions repair almost everything:
+  should repairs be dearer so robots more often fight on without their piece? (e) Repair kit / Field hospital slow a
+  piece's wear but can't put back one that is off: right?
+
 - **K69. After the lag fix (28 Nov):** in the next two-PC game, what does the link number next to the online badge
   show on the joined screen (under 100 = near the limit of this design; over 150-200 = a nearer relay is the next
   step)? Is the spinner on a pressed button OK? Any short freeze on a joined screen after the host clicks "Skip to
@@ -250,19 +257,20 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T72. Buzzkill's half bar, asymmetrical (28 Nov, worker running, `nextgen` only).** Kev: "do not just make the size
-  smaller, make it asymmetrical one half of blade perhaps". Goal: when the bar snaps, ONE half of the blade is gone and
-  the other half stays full length, so the bar is lopsided: it looks it, spins out of balance (the robot shakes and
-  drifts), and hits with the one long end. Done when: picture before/after, numbers as before (256 on/off, 128
-  starting without), switch-off checks unchanged.
-- **T73. Parts that fly off in the next-gen GAME: the card and the garage (rule 3) (28 Nov, after T72, `nextgen`
-  only).** Kev voted Yes on "It shows on the card afterwards: the robot card shows the robot without its piece until
-  you pay for the repair in the garage". Goal: on `nextgen` the game page fights with the switch on; a robot that lost
-  its piece keeps that between fights, its card and portrait show it without the piece with a clear tag, the bookie
-  and power map count with it, and the garage / upkeep offers the repair. Online play stays in step (mp-test). `main`
-  is not touched.
-
 ## Done
+
+- **T72 + T73. Buzzkill's lopsided bar; lost pieces in the next-gen GAME (card and garage)** (28 Nov; NEXT GEN ONLY:
+  branch `nextgen` at `eef6db5`, files stamp there 5cdc4673, BUILD "tabletop 2.0.1 nextgen 2026-11-28a"; not on
+  `main`). T72: one arm snaps, the other keeps full length; the robot shakes and drifts (14 cm in 6 s standing still);
+  hits only with the long end (0.24 hits/s at 6.3 damage; before the snap 0.69 at 7.3); starting without the piece 29
+  wins of 128 vs 30 with it; to keep hits real the motor is 2.5x and the long end hits 1.8x; all spinner portraits now
+  draw the bar across the nose. T73: the game page fights with the switch on (`BAL.flyoff`); a lost piece stays in the
+  robot's damage (`r.wear.fo`), the card / garage / power map show the robot without it with a red tag ("SHELL LOST"),
+  Upkeep offers the repair as a broken zone (2 actions); bookie and power map count with it; 13th first-time tip.
+  8 AI games: 13.4 pieces lost and 9.4 repaired a game, 4% of fight starts with a piece missing, game length
+  unchanged (12.3 vs 12.4 rounds). My checks on nextgen: fingerprint 470f6923 (engine default off), game-sim 2/2,
+  mp-test OK desyncs 0 x3. Kev opens the next-gen game with `play-nextgen.cmd` (lab: `play-nextgen-lab.cmd`). Docs on
+  nextgen: `docs/robocus-flyoff-game.md`, `docs/robocus-flyoff.md`.
 
 - **T71. Parts that fly off for ALL 33 robots** (28 Nov, Kev: "implement these changes to all robots go all out";
   NEXT GEN ONLY: branch `nextgen` at `e35d15b`, files stamp there bf1b6a26; not on `main`). Three batches (T71a
