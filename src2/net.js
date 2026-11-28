@@ -155,6 +155,7 @@
     if (!b) { b = document.createElement('span'); b.id = 'netBadge'; const bar = $('#seatSel') ? $('#seatSel').parentNode : document.body; bar.appendChild(b); }
     b.innerHTML = text; b.onclick = onclick || null; try { b.title = 'Game version ' + version(); } catch (e) {}
   }
+  const pingTxt = ms => Math.round(ms) + ' ms';
   const TEAMS = () => (GAME() ? GAME().TEAMS : [{ name: 'Steel', col: '#3F78A8' }, { name: 'Rust', col: '#C8642B' }, { name: 'Moss', col: '#5E8A3A' }, { name: 'Plum', col: '#86528F' }]);
   /* Invite links (Kev, 20 Nov, T32): play-latest serves the game from this PC (http://127.0.0.1:8765/...), and before that it
    * opened it as a file; a link to either is no use to friends. From such an address the invite link points at the public
@@ -211,6 +212,8 @@
       p.seen = Date.now();
       if (!p.connected) { p.connected = true; if (H.started) { resync(p); updatePause(); } }
       if (d.t === 'hb') return;
+      // T70: the joined screen measures its link: answer at once (p.rtt: what it measured last, for the host's menu and badge)
+      if (d.t === 'ping') { if (d.rtt >= 0) p.rtt = d.rtt; send(p, { t: 'pong', at: d.at }); return; }
       if (d.t === 'bye') { p.connected = false; p.gone = true; if (H.started) updatePause(); pushLobby(); return; }
       if (!H.started) {
         if (d.t === 'seat' && d.seat >= 0 && d.seat < 4 && !seatTaken(d.seat)) { p.seat = d.seat; p.ready = false; }
@@ -220,7 +223,14 @@
       }
       if (d.t === 'pt') { if (GAME().ptScreen) GAME().ptScreen(p.seat, d.d); return; }   // a batch of this screen's playtest log
       if (d.t === 'diag') { if (GAME().netDiag) GAME().netDiag(p.seat, String(d.k || ''), d.d); return; }
-      if (d.t === 'act') { if (GAME().SEATS && GAME().SEATS[p.seat] === 'remote') GAME().runAct(p.seat, d.name, d.args || []); return; }
+      if (d.t === 'act') {
+        if (GAME().SEATS && GAME().SEATS[p.seat] === 'remote') GAME().runAct(p.seat, d.name, d.args || []);
+        // T70 (Kev, 28 Nov: the joined PC felt sluggish): answer at once instead of at the next 100 ms tick. p.ack = the last
+        // action of this screen that the host has run; the screen keeps its "sending" look on the clicked control until then.
+        if (d.n > 0) p.ack = d.n;
+        if (!flush(p) && p.ack !== p.ackSent) { send(p, { t: 'ack', n: p.ack }); p.ackSent = p.ack; }
+        return;
+      }
       // T31: the joined screen shows a question or deal panel now (a queued one waits behind another): the host starts its clock
       if (d.t === 'shown') { const q = H.pending[d.q]; if (q && q.seat === p.seat && q.hk && q.hk.shown) q.hk.shown(); return; }
       if (d.t === 'ans' || d.t === 'dealans') {
@@ -243,6 +253,7 @@
       cancelSmall(seat) { for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat !== seat || x.kind !== 'ask' || !x.payload.small) continue; delete H.pending[q]; send(pBySeat(seat), { t: 'cancel', q: +q }); x.resolve({ k: -1 }); } },
       fx(o) { const c = Object.assign({}, o); delete c.t0; H.players.forEach(p => send(p, { t: 'fx', o: c })); },
       sendAct() {},
+      changed() { soon(); },   // T70: the game changed (the page's updateHud): send it soon, not at the next 100 ms tick
       rematch() { GAME().rematch(); H.players.forEach(resync); }
     };
     function resync(p) {   // a player (re)joins a running game: whole log, fresh snapshot, its open questions again
@@ -251,13 +262,17 @@
       flush(p);
       for (const q of Object.keys(H.pending)) { const x = H.pending[q]; if (x.seat === p.seat) send(p, x.kind === 'ask' ? { t: 'ask', q: +q, ...x.payload } : { t: 'deal', q: +q, opts: x.payload }); }
     }
-    function flush(p) {
-      const G = GAME(); if (!G.G || !p.connected) return;
+    function flush(p) {   // true when a new snapshot went out (an unchanged one is never sent again)
+      const G = GAME(); if (!G.G || !p.connected) return false;
       const L = G.logFrom(p.logN || 0);
       if (L.ops.length) { send(p, { t: 'log', base: L.base, ops: L.ops, end: L.end }); p.logN = L.end; }
       const g = G.snapFor(p.seat), meta = G.snapMeta(p.seat), key = g + JSON.stringify(meta.paused) + (meta.names || []).join('|') + JSON.stringify(meta.waiting || 0);
-      if (key !== p.lastSnap) { p.lastSnap = key; send(p, { t: 'snap', g, meta }); }
+      if (key !== p.lastSnap) { p.lastSnap = key; send(p, { t: 'snap', g, meta, ack: p.ack || 0 }); p.ackSent = p.ack; return true; }
+      return false;
     }
+    // T70: a change goes out within a few ms (changes that come together go out together); the 100 ms tick below stays as the
+    // safety net, and a hidden host tab (the browser runs its timers once a second) still answers clicks at once
+    function soon() { if (H.soonT || !H.started) return; H.soonT = setTimeout(() => { H.soonT = null; if (H.started) H.players.forEach(flush); }, 15); }
     function updatePause() {
       const away = H.players.filter(p => !p.connected && GAME().SEATS && GAME().SEATS[p.seat] === 'remote').map(p => ({ seat: p.seat, name: p.name }));
       GAME().setPaused(away);
@@ -303,15 +318,16 @@
       hostBadge();
     }
     function hostBadge() {
-      const n = H.players.filter(p => p.connected).length;
-      badge('🌐 ' + room + ' · host · ' + (n + 1) + ' players', hostMenu);
+      const on = H.players.filter(p => p.connected), n = on.length, worst = Math.max(-1, ...on.map(p => p.rtt >= 0 ? p.rtt : -1));
+      badge('🌐 ' + room + ' · host · ' + (n + 1) + ' players' + (worst >= 0 ? ' · 📶 ' + pingTxt(worst) : ''), hostMenu);
     }
     setInterval(() => { if (H.started) hostBadge(); }, 2000);
     function hostMenu() {
       const el = lobbyEl();
       el.innerHTML = '<div class="nl-box"><h3>🌐 Room <span class="nl-code">' + room + '</span> (you host)</h3>' +
         '<div class="nl-row"><input type="text" readonly value="' + esc(linkFor(room, mode === 'local')) + '" style="width:100%"></div>' +
-        H.players.map(p => '<div>' + (p.connected ? '🟢' : '🔴') + ' <b style="color:' + TEAMS()[p.seat].col + '">' + esc(p.name) + '</b></div>').join('') +
+        H.players.map(p => '<div>' + (p.connected ? '🟢' : '🔴') + ' <b style="color:' + TEAMS()[p.seat].col + '">' + esc(p.name) + '</b>' + (p.connected && p.rtt >= 0 ? ' <span class="nl-note">📶 ' + pingTxt(p.rtt) + ' to and from you</span>' : '') + '</div>').join('') +
+        '<div class="nl-note">📶 = the time a click on that screen takes to reach you and come back (the link only). Under 100 ms is good; over 200 ms you feel it.</div>' +
         '<div class="nl-row"><button id="nlSave">💾 Save game</button><button class="sec" id="nlClose">Close</button></div>' +
         '<div class="nl-note">The save is taken at the start of each round. Load it from the lobby of a new room (same names = same seats).</div>' + verLine() + '</div>';
       $('#nlSave').onclick = () => GAME().saveFile();
@@ -357,8 +373,9 @@
     window.ROBOCUS_CLIENT = C;
     const send = d => T.send('host', d);
     const hello = () => send({ t: 'hello', cid: myCid, name: C.name, ver: version() });
+    C.actN = 0; C.rtt = -1;
     window.ROBOCUS_NET = {
-      sendAct(name, args) { send({ t: 'act', name, args }); },
+      sendAct(name, args) { const n = ++C.actN; send({ t: 'act', name, args, n }); return n; },   // T70: n comes back as the host's ack
       sendDiag(k, d) { try { send({ t: 'diag', k, d }); } catch (e) {} },   // this screen's trouble, for the host's log
       ask() { return Promise.resolve({ k: -1 }); }, deal() { return Promise.resolve(null); }, cancelSeat() {}, cancelSmall() {}, cancelQ() { return false; }, mark() {}, fx() {}, rematch() {}
     };
@@ -372,7 +389,9 @@
         case 'welcome': C.seat = d.seat; C.joined = true; GAME().becomeClient(d.seat); if (d.started) { C.started = true; closeLobby(); } else { C.started = false; C.botReady = false; drawClientLobby(); } clientBadge(); return;   // T64: a host that came back opens a new lobby: show it (and its Ready button) again
         case 'lobby': C.lobby = d.st; C.seat = d.you; if (!C.started) drawClientLobby(); return;
         case 'start': C.started = true; closeLobby(); clientBadge(); return;
-        case 'snap': if (!C.started) { C.started = true; closeLobby(); } GAME().applySnap(Object.assign({ g: d.g }, d.meta)); drawClientPause(d.meta.paused); return;
+        case 'snap': if (!C.started) { C.started = true; closeLobby(); } if (d.ack && GAME().netAck) GAME().netAck(d.ack); GAME().applySnap(Object.assign({ g: d.g }, d.meta)); drawClientPause(d.meta.paused); return;
+        case 'ack': if (GAME().netAck) GAME().netAck(d.n); return;   // T70: the host ran it and nothing this screen sees changed
+        case 'pong': if (d.at > 0) { const ms = performance.now() - d.at; C.rtt = C.rtt < 0 ? ms : 0.6 * C.rtt + 0.4 * ms; clientBadge(); } return;
         case 'log': GAME().applyLog(d); return;
         case 'fx': GAME().showFx(d.o); return;
         case 'mark': if (GAME().ptMark) GAME().ptMark(d.o); sendLog(); return;
@@ -398,6 +417,7 @@
       }
     }
     let lost = false;
+    setInterval(() => { if (C.joined && !lost) send({ t: 'ping', at: performance.now(), rtt: C.rtt >= 0 ? Math.round(C.rtt) : -1 }); }, 2000);   // T70: the link's delay, for the badge
     setInterval(() => {
       if (C.joined) send({ t: 'hb' });
       if (C.joined && C.started && ++C.ptTick % 4 === 0) sendLog();   // this screen's playtest log goes to the host, a few seconds behind
@@ -429,7 +449,9 @@
       if (!el) { el = document.createElement('div'); el.id = 'netPause'; document.body.appendChild(el); }
       el.innerHTML = '<div class="np-box"><b>⏸ Game paused</b><br>Waiting for ' + paused.map(a => '<b>' + esc(a.name) + '</b>').join(', ') + ' to reconnect.</div>';
     }
-    function clientBadge() { badge('🌐 ' + room + (C.seat != null ? ' · ' + esc(C.name) : ''), null); }
+    function clientBadge() {
+      badge('🌐 ' + room + (C.seat != null ? ' · ' + esc(C.name) : '') + (C.rtt >= 0 && !lost ? ' · <span title="The time a click takes to reach the host and come back (the link only). Under 100 ms is good; over 200 ms you feel it.">📶 ' + pingTxt(C.rtt) + '</span>' : ''), null);
+    }
     function drawJoin(err) {
       const el = lobbyEl();
       el.innerHTML = '<div class="nl-box"><h3>🌐 Join room <span class="nl-code">' + esc(room) + '</span></h3>' + (err ? '<div style="color:#b45309;font-weight:700">' + esc(err) + '</div>' : '') +
