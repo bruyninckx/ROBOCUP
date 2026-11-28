@@ -223,6 +223,13 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   note; since T55 offers are tickets on the trading floor. Fix the test (or run it with `tradeFloor: false`).
 - **T50. Power map: new look, ideas first.** Kev: "draw me up some ideas to see if we can improve, can be fancy, try
   to be creative for some attempts". The orchestrator draws 3-4 concepts on a design canvas; Kev picks; then a worker.
+- **Idea box (Kev, 28 Nov, "not convinced yet"): a solo roguelike of ROBOCUS, as a mobile game, in a separate
+  instance.** His words: "do you think in a seperate instance we could make a roguelike/lite out of it? How would it
+  look"; "I'm thinking mobile game design, can you draw some concepts up, not convinced yet". Seven phone screens
+  (run map, before the fight with bookie and bet, the fight watched vs with two thumb buttons, part pick, garage with
+  a lost piece, run over with unlocks): https://claude.ai/artifact/WNmiYTE5h9F5koggAjNeF6 (source `/home/claude/rl/`
+  in the orchestrator's workspace). Open question: watch the fight (no new fight code) or two buttons (new rules).
+  Nothing built. If he likes it: a rough playable sketch of five stops with real fights, on its own page and branch.
 - **Idea box (Kev, 22 Nov, parked: "lets hold off on this for now, put it in idea box"): what each part does in THIS
   matchup.** Design canvas https://claude.ai/artifact/6bkK5bh9GBjXo2uGZwAUJz (A Bets screen "parts in this fight", B
   power map panel, C Market lot); study `docs/robocus-parts-by-matchup.md` (T63: against Scavenger the Booster boosts a
