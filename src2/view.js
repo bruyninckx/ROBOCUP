@@ -730,12 +730,12 @@
       for (const sd of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-R.hl * 0.6, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.2, sd * (R.hw + 0.02)); ctx.lineTo(-R.hl * 0.45, sd * (R.hw + 0.2)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       ctx.strokeStyle = 'rgba(120,100,80,0.45)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 3, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.hypot(R.hl, R.hw) + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     }
-    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : (st.mode === 'charge' || st.mode === 'fling') && st.A ? st.A : null;
+    let flying = st.mode === 'shot' && st.shot, end = flying ? st.shot.at : (st.mode === 'charge' || st.mode === 'fling' || st.mode === 'zip') && st.A ? st.A : null; // (T71c: zip)
     if (!end && rk < 1) { const e = rk * rk; end = [st.ret.from[0] + (wp.x - st.ret.from[0]) * e, st.ret.from[1] + (wp.y - st.ret.from[1]) * e]; flying = true; // after it lets go the grapnel flies home on a slack cable
       ctx.strokeStyle = 'rgba(43,33,24,0.8)'; ctx.lineWidth = 0.025; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); const mx = (wp.x + end[0]) / 2 + 0.25 * (1 - rk), my = (wp.y + end[1]) / 2 + 0.25 * (1 - rk); ctx.quadraticCurveTo(mx, my, end[0], end[1]); ctx.stroke(); }
     if (!end) return;
     if (!flying || st.mode === 'shot') { // the cable: steel to the grapnel, and the bungee section near the robot, thinner and redder the more it is stretched
-      const ten = st.mode === 'charge' || st.mode === 'fling' ? Math.min(1, st.E / 3400) : 0, L1 = Math.hypot(end[0] - wp.x, end[1] - wp.y) || 1, ux = (end[0] - wp.x) / L1, uy = (end[1] - wp.y) / L1, bl = Math.min(L1, 0.9 + 0.9 * ten);
+      const ten = st.mode === 'charge' || st.mode === 'fling' ? Math.min(1, st.E / 3400) : 0, L1 = Math.hypot(end[0] - wp.x, end[1] - wp.y) || 1, ux = (end[0] - wp.x) / L1, uy = (end[1] - wp.y) / L1, bl = R.foZip ? 0 : Math.min(L1, 0.9 + 0.9 * ten); // (T71c: no bungee: steel cable all the way)
       ctx.strokeStyle = INK; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(wp.x + ux * bl, wp.y + uy * bl); ctx.lineTo(end[0], end[1]); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.015; ctx.setLineDash([0.05, 0.03]); ctx.stroke(); ctx.setLineDash([]);
       ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.09 - 0.045 * ten; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(wp.x + ux * bl, wp.y + uy * bl); ctx.stroke();
       ctx.strokeStyle = ten > 0.8 && Math.sin(t * 30) > 0 ? '#FF5A3C' : `rgb(${200 + 55 * ten},${110 - 60 * ten},40)`; ctx.lineWidth = 0.06 - 0.035 * ten; ctx.stroke(); ctx.lineCap = 'butt';
@@ -776,11 +776,13 @@
         if (R.fo && R.foFray) { const t = performance.now() / 1000; ctx.lineCap = 'round'; for (const [w, c] of [[PX * 5, INK], [PX * 3, '#D9DBD4']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(-0.06, 0.09); ctx.quadraticCurveTo(-0.02, 0.2 + Math.sin(t * 20) * 0.02, -0.14, 0.24); ctx.quadraticCurveTo(-0.22, 0.22, -0.18, 0.15); ctx.stroke(); } ctx.lineCap = 'butt'; } }); // (T71b: a strand of thread peels loose before it strips)
       if (R.grab && R.l4.mode === 'anchor') { const p = R.auger.body.getWorldPoint(planck.Vec2(0.3, 0)); if (Math.random() < 0.7) spawn({ t: 'spark', x: p.x, y: p.y, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3, life: 0.3, max: 0.3, col: '#C9A227' }); }
     }
-    if (w === 'trebuchet') {
+    if (w === 'trebuchet' && R.foBarrow) { const p = b.getPosition(); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); ctx.translate(-0.1 * R.hl, 0); drawArmStump(R, t); ctx.restore(); } // T71c: the arm has snapped: its stump and the gas ram
+    else if (w === 'trebuchet') {
       const k = R.armAnim > 0 ? 1 - R.armAnim / 0.55 : 0, sw = Math.sin(Math.PI * Math.min(1, k * 1.6)), ang = Math.PI * Math.min(1, k * 1.8), sc = 1 + 0.6 * sw, ch = R.fx.charge || 0;
       ctx.save(); const p = b.getPosition(); ctx.translate(p.x, p.y); ctx.rotate(b.getAngle()); ctx.translate(-0.1 * R.hl, 0);
       ctx.rotate(ang); ctx.scale(sc, sc); ctx.strokeStyle = INK; ctx.lineWidth = 0.07; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(R.hl + 0.12, 0); ctx.stroke(); ctx.strokeStyle = R.tarm.hp > 0 ? '#C9A227' : '#55524C'; ctx.lineWidth = 0.045; ctx.stroke(); ctx.lineCap = 'butt';
       ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.fillRect(-0.24, -0.11, 0.14, 0.22); ctx.strokeRect(-0.24, -0.11, 0.14, 0.22); // counterweight
+      if (R.foCrack === 1) { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 2.4 / sc; ctx.beginPath(); ctx.moveTo(0.06, -0.035); ctx.lineTo(0.09, 0.0); ctx.lineTo(0.07, 0.035); ctx.stroke(); } // (T71c: a crack at the pivot)
       if (ch > 0) { ctx.strokeStyle = Math.sin(t * 40) > 0 ? '#FFB020' : '#FF3B2B'; ctx.lineWidth = PX * 3; ctx.beginPath(); ctx.arc(0, 0, 0.12 + ch * 0.08, 0, 6.29); ctx.stroke(); }
       ctx.restore(); bolt(b.getWorldPoint(planck.Vec2(-0.1 * R.hl, 0)).x, b.getWorldPoint(planck.Vec2(-0.1 * R.hl, 0)).y);
     }
@@ -810,7 +812,11 @@
       const c0 = b.getPosition(), spin = R.fx.spin || 0;
       if (R.l4.mode !== 'docked') { ctx.strokeStyle = `rgba(255,90,60,${0.15 + 0.25 * Math.min(1, spin)})`; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(c0.x, c0.y, R.r0 + (R.l4.ext || 0), 0, 6.29); ctx.stroke(); }
       for (const q of R.discs) if (q.attached) { const p = q.body.getPosition(); if (R.l4.mode !== 'docked') { ctx.strokeStyle = INK; ctx.lineWidth = 0.045; ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = 0.022; ctx.stroke(); } drawBuzz(q, { buzzW: q.spin, buzzMax: 95, buzzR: 0.13 / 0.15 * 0.14 }); }
-      const a = R.rotor.getAngle(); ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(a); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -0.09, 0.04, 0.18); ctx.restore();
+      const a = R.rotor.getAngle(); ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(a);
+      if (R.foSpin) drawBareHub(R, t); else { if (R.foCrack === 1) { ctx.translate(0.012, -0.01); ctx.rotate(0.3); } // T71c: the lock cap (it slips before it shears off), and without it the bare hub
+      ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -0.09, 0.04, 0.18);
+      if (R.foCrack === 1) { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.04, -0.09); ctx.lineTo(0.06, -0.03); ctx.lineTo(0.03, 0.02); ctx.stroke(); } }
+      ctx.restore();
     }
     if (w === 'jukebox' && R.records) {
       const st = R.l4, tp = b.getWorldPoint(planck.Vec2(st.tableAt[0], st.tableAt[1]));
@@ -832,9 +838,10 @@
       const lp = b.getWorldPoint(planck.Vec2(R.launcher.lp[0], R.launcher.lp[1])), a = R.bolaA || b.getAngle(), ok = R.launcher.hp > 0;
       if (R.gSaw && R.gSaw.attached) { const bp = R.gSaw.body.getPosition(), cp = b.getWorldPoint(planck.Vec2(R.hl - 0.02, 0)); ctx.strokeStyle = INK; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(cp.x, cp.y); ctx.lineTo(bp.x, bp.y); ctx.stroke(); drawBuzz(R.gSaw, { buzzW: R.gSaw.spin, buzzMax: 110, buzzR: 0.15 }); }
       // the launcher: a turret with a bola loaded (two balls and a cord) while it is ready
-      ctx.save(); ctx.translate(lp.x, lp.y); ctx.rotate(a); ctx.fillStyle = ok ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.06, 0.3, 0.12, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
+      if (R.foFlick) { ctx.save(); ctx.translate(lp.x, lp.y); ctx.rotate(b.getAngle()); drawBolaBay(R, t); ctx.restore(); } else { // T71c: the turret is gone: its ring and the open magazine
+      ctx.save(); ctx.translate(lp.x, lp.y); ctx.rotate(a); if (R.foTilt) { ctx.translate(0.02, 0.025); ctx.rotate(0.22 * Math.sin(t * 17)); } ctx.fillStyle = ok ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.06, 0.3, 0.12, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
       if (ok && R.cool <= 0 && !(R.bolas && R.bolas.length)) { const sp = t * 6; ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.2 + Math.cos(sp) * 0.09, Math.sin(sp) * 0.09); ctx.lineTo(0.2 - Math.cos(sp) * 0.09, -Math.sin(sp) * 0.09); ctx.stroke(); for (const sg of [1, -1]) { ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0.2 + sg * Math.cos(sp) * 0.09, sg * Math.sin(sp) * 0.09, 0.035, 0, 6.29); ctx.fill(); ctx.stroke(); } }
-      ctx.restore();
+      ctx.restore(); }
       // bolas in flight or wrapped: the cord and the two balls
       for (const B of R.bolas || []) { const p0 = B.balls[0].getPosition(), p1 = B.balls[1].getPosition();
         if (B.joint) { ctx.strokeStyle = '#3B2F22'; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke(); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = 0.014; ctx.setLineDash([0.03, 0.02]); ctx.stroke(); ctx.setLineDash([]); }
@@ -889,8 +896,11 @@
       ctx.fillStyle = ok ? '#4A4A46' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(gx, -0.065, R.hl * 1.05, 0.13, 0.03); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(gx + 0.04, -0.05, R.hl * 0.9, 0.02);
       if (loaded) { ctx.save(); ctx.translate(gx + R.hl * 1.05 + 0.08, 0); ctx.fillStyle = '#5B5E57'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.lineTo(-0.02, -0.12); ctx.lineTo(-0.06, -0.1); ctx.lineTo(-0.02, -0.03); ctx.lineTo(-0.1, -0.03); ctx.lineTo(-0.1, 0.03); ctx.lineTo(-0.02, 0.03); ctx.lineTo(-0.06, 0.1); ctx.lineTo(-0.02, 0.12); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); } // the grapnel loaded in the muzzle
       // the bungee drum: red rubber coils, they spin while it winches
-      const wx = R.winch.lp[0]; ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -R.hw * 0.62, 0.22, R.hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
+      const wx = R.winch.lp[0];
+      if (R.foZip) drawBareDrum(R, wx, st.mode === 'zip' ? t * 6 : 0); else { // T71c: the bungee has snapped: a bare drum with steel cable, torn rubber ends
+      ctx.fillStyle = ok ? '#5B5E57' : '#3a3530'; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -R.hw * 0.62, 0.22, R.hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
       const spin = st.mode === 'charge' ? t * 12 : 0; ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; for (let k = 0; k < 6; k++) { const y = -R.hw * 0.55 + ((k * 0.19 * R.hw + spin * 0.02) % (R.hw * 1.1)); ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.03); ctx.stroke(); }
+      if (R.foFray) { ctx.strokeStyle = INK; ctx.lineWidth = PX * 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(wx - 0.05, R.hw * 0.6); ctx.quadraticCurveTo(wx - 0.15, R.hw * 0.8 + Math.sin(t * 15) * 0.03, wx - 0.22, R.hw * 0.7); ctx.stroke(); ctx.strokeStyle = '#D24B3A'; ctx.lineWidth = PX * 3; ctx.stroke(); ctx.lineCap = 'butt'; } } // (a frayed strand flaps before it snaps)
       ctx.restore();
     }
     if (w === 'pogo' && R.leg && !R.foNoJump) { // POGO: a big coil spring on the back, squeezed flatter as it charges; the landing marker while it crouches or flies
@@ -944,8 +954,9 @@
         if (st.mode === 'out' || st.mode === 'reel') { ctx.strokeStyle = INK; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(nz.x, nz.y); ctx.lineTo(qp.x, qp.y); ctx.stroke(); ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = 0.012; ctx.setLineDash([0.04, 0.03]); ctx.stroke(); ctx.setLineDash([]); }
         if (st.mode !== 'loose') drawBuzz(q, { buzzW: q.spin || 0, buzzMax: 130, buzzR: 0.19 }); }
       const sp = b.getWorldPoint(planck.Vec2(R.spool.lp[0], R.spool.lp[1])); ctx.save(); ctx.translate(sp.x, sp.y); ctx.rotate(b.getAngle());
+      if (R.fo && R.foFree) { drawYoyoDrum(R, t); ctx.restore(); } else if (R.fo) { drawYoyoLid(0.15, R.foCrack === 1); ctx.restore(); } else { // T71c: its winch cover (and without it: the bare drum, the cable in slack loops)
       ctx.fillStyle = R.spool.hp > 0 ? '#5B5E57' : '#3a3530'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, 0.15, 0, 6.29); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.stroke(); ctx.save(); ctx.rotate(st.mode === 'reel' ? t * 20 : 0); ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0); ctx.stroke(); ctx.restore(); ctx.restore();
+      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.stroke(); ctx.save(); ctx.rotate(st.mode === 'reel' ? t * 20 : 0); ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.12, 0); ctx.stroke(); ctx.restore(); ctx.restore(); }
     }
     // a robot with a bola round its wheels: cord coils on the tied side
     if (R.slots.some(s => s.tangled > 0)) for (const s of R.slots) if (s.tangled > 0 && s.wheel && s.wheel.attached) { const wp = b.getWorldPoint(planck.Vec2(s.lp[0], s.lp[1])); ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2.5; for (let k2 = 0; k2 < 3; k2++) { ctx.beginPath(); ctx.ellipse(wp.x, wp.y, 0.1 + k2 * 0.015, 0.06, b.getAngle() + k2 * 0.6, 0, 6.29); ctx.stroke(); } }
@@ -965,7 +976,7 @@
     }
     if (w === 'roaster' && R.pincers) {
       for (const q of R.pincers) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = '#D9DBD4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.2; for (const x of [0.16, 0.28, 0.4]) { ctx.beginPath(); ctx.moveTo(x - 0.025, 0); ctx.lineTo(x, -q.side * 0.07); ctx.lineTo(x + 0.025, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); } bolt(0.03, 0); bolt(0.22, 0); }); // serrated teeth on the inside of each claw
-      { const tk = b.getWorldPoint(planck.Vec2(-0.55 * R.hl, 0)); ctx.save(); ctx.translate(tk.x, tk.y); ctx.rotate(b.getAngle()); ctx.fillStyle = '#B8423A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.11, 0.11]) { rr(-0.14, y - 0.075, 0.28, 0.15, 0.07); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.1, y - 0.06, 0.2, 0.025); ctx.fillStyle = '#B8423A'; } ctx.fillStyle = HAZ; ctx.fillRect(-0.03, -0.2, 0.06, 0.4); ctx.restore(); } // twin fuel tanks on its back
+      { const tk = b.getWorldPoint(planck.Vec2(-0.55 * R.hl, 0)); ctx.save(); ctx.translate(tk.x, tk.y); ctx.rotate(b.getAngle()); if (R.foTrail) drawTankCradle(R, t); else drawTanks(R.foTilt); ctx.restore(); } // twin fuel tanks on its back (T71c: torn out: the empty cradle and the burning fuel line)
       const nz = b.getWorldPoint(planck.Vec2(R.nozzle.lp[0], R.nozzle.lp[1])), a = b.getAngle(), on = R.nozzle.hp > 0;
       ctx.save(); ctx.translate(nz.x, nz.y); ctx.rotate(a); ctx.fillStyle = on ? '#8C8F86' : '#55524C'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.05, 0.3, 0.1, 0.01); ctx.fill(); ctx.stroke(); rr(0.26, -0.075, 0.08, 0.15, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.1, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C0392B'; ctx.beginPath(); ctx.arc(-0.05, 0.11, 0.045, 0, 6.29); ctx.fill(); ctx.stroke();
       if (on && R.alive) { ctx.fillStyle = '#5AB0FF'; ctx.beginPath(); ctx.arc(0.3, 0, 0.012, 0, 6.29); ctx.fill(); } ctx.restore();
@@ -1221,12 +1232,103 @@
     const hl = R.hl, t = performance.now() / 1000, cl = R.claps || [], ang = cl[0] && cl[0].joint ? cl[0].joint.getJointAngle() : 0, gone = R.foSlap ? R.foGearSide : 0;
     ctx.fillStyle = '#2B2620'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; rr(hl - 0.22, -0.2, 0.2, 0.4, 0.03); ctx.fill(); ctx.stroke(); // the gear plate
     for (const sg of [-1, 1]) { const cy = sg * 0.095, cx = hl - 0.12;
-      if (sg === gone) { ctx.fillStyle = '#8C8F86'; ctx.beginPath(); ctx.arc(cx, cy, 0.022, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C9A227'; for (let k = 0; k < 3; k++) { const a = k * 2.3 + 0.5; path([[cx + Math.cos(a) * 0.035, cy + Math.sin(a) * 0.035], [cx + Math.cos(a + 0.25) * 0.075, cy + Math.sin(a + 0.25) * 0.075], [cx + Math.cos(a + 0.5) * 0.05, cy + Math.sin(a + 0.5) * 0.05]]); ctx.fill(); ctx.stroke(); } stumpSparks(cx, cy); continue; } // the shattered gear: the bare axle, a few broken teeth
+      if (sg === gone) { ctx.fillStyle = '#17120D'; ctx.beginPath(); for (let k = 0; k < 14; k++) { const a = k / 14 * 6.283, r = 0.088 + ((k * 37) % 5) * 0.006; ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#F08A2B'; ctx.lineWidth = PX * 2.4; ctx.stroke(); ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; /* (T71c: bolder: a scorched hole where the gear was, hot at the edge) */ ctx.fillStyle = '#8C8F86'; ctx.beginPath(); ctx.arc(cx, cy, 0.022, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#C9A227'; for (let k = 0; k < 3; k++) { const a = k * 2.3 + 0.5; path([[cx + Math.cos(a) * 0.035, cy + Math.sin(a) * 0.035], [cx + Math.cos(a + 0.25) * 0.075, cy + Math.sin(a + 0.25) * 0.075], [cx + Math.cos(a + 0.5) * 0.05, cy + Math.sin(a + 0.5) * 0.05]]); ctx.fill(); ctx.stroke(); } stumpSparks(cx, cy); continue; } // the shattered gear: the bare axle, a few broken teeth
       ctx.save(); ctx.translate(cx, cy); ctx.rotate((gone ? t * 2 * sg : ang * 3 * sg) + (sg > 0 ? 0.157 : 0)); ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath();
       for (let k = 0; k < 20; k++) { const a = k / 20 * 6.283, r = k % 2 ? 0.093 : 0.075; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#8E6B12'; ctx.fillRect(-0.06, -0.008, 0.12, 0.016); ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0, 0, 0.022, 0, 6.29); ctx.fill(); ctx.stroke();
       if (R.foCrack === 1 && sg < 0) { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.moveTo(0.02, 0.02); ctx.lineTo(0.05, 0.035); ctx.lineTo(0.07, 0.07); ctx.stroke(); }
       ctx.restore(); }
+  }
+  // ---- T71c (batch C): what the last six show without their piece (robot frame unless said) ----
+  function drawYoyoDrum(R, t) { // Yoyo, its winch cover gone (spool frame): the bare drum, the cable off it in slack loops, the snapped brake band
+    ctx.fillStyle = '#17120D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, 0.155, 0, 6.29); ctx.fill(); ctx.stroke(); // the open bay
+    ctx.fillStyle = '#8C8F86'; ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke(); // drum flange
+    ctx.fillStyle = '#C9A26A'; ctx.beginPath(); ctx.arc(0, 0, 0.085, 0, 6.29); ctx.fill(); ctx.stroke(); // the last of the cable on the drum
+    ctx.strokeStyle = '#8E6B3A'; ctx.lineWidth = PX * 1.1; for (const r of [0.07, 0.055, 0.04]) { ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.stroke(); }
+    ctx.save(); ctx.rotate(t * 1.3); ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283; ctx.lineTo(Math.cos(a) * 0.03, Math.sin(a) * 0.03); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); // hex axle, turning freely
+    ctx.lineCap = 'round'; for (const [w, c] of [[PX * 4.4, INK], [PX * 2.6, '#E0C58E']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(0.06, 0.06); // slack loops of cable spilling off the drum, out over the hull
+      ctx.bezierCurveTo(0.2, 0.18, 0.3, 0.02, 0.2, -0.05); ctx.bezierCurveTo(0.12, -0.12, 0.26, -0.24, 0.34, -0.14); ctx.bezierCurveTo(0.42, -0.04, 0.3, 0.1, 0.42, 0.16); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-0.06, 0.07); ctx.bezierCurveTo(-0.16, 0.2, -0.28, 0.12, -0.22, 0.02); ctx.bezierCurveTo(-0.17, -0.06, -0.3, -0.12, -0.25, -0.2); ctx.stroke(); }
+    ctx.strokeStyle = INK; ctx.lineWidth = PX * 4.5; ctx.beginPath(); ctx.arc(0, 0, 0.138, 0.5, 4.4); ctx.stroke(); ctx.strokeStyle = '#B23A2B'; ctx.lineWidth = PX * 2.6; ctx.stroke(); // the snapped brake band, red
+    const ex = Math.cos(4.4) * 0.138, ey = Math.sin(4.4) * 0.138; ctx.lineCap = 'butt'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + 0.03, ey - 0.05); ctx.lineTo(ex + 0.05, ey - 0.03); ctx.stroke(); // its torn end, sprung out
+    for (const a of [0.3, 2.2, 4.0]) bolt(Math.cos(a) * 0.15, Math.sin(a) * 0.15);
+  }
+  function drawYoyoLid(r, tilt) { // the round cover over the winch (spool frame); tilt: it rattles loose, one edge lifting
+    ctx.save(); if (tilt) { ctx.translate(0.015, -0.012); ctx.rotate(0.25); }
+    ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.3, r * 0.45, 0, 6.29); ctx.fill();
+    ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, 6.29); ctx.stroke();
+    for (let k = 0; k < 4; k++) { const a = k / 4 * 6.283 + 0.4; bolt(Math.cos(a) * r * 0.82, Math.sin(a) * r * 0.82); }
+    if (tilt) { ctx.strokeStyle = '#17120D'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(r * 0.2, -r); ctx.lineTo(r * 0.35, -r * 0.5); ctx.lineTo(r * 0.2, -r * 0.2); ctx.stroke(); }
+    ctx.restore();
+  }
+  function drawBolaBay(R, t) { // Gaucho, its turret knocked off (launcher frame): the toothed turret ring, the open magazine of spare bolas, the torn feed spring
+    ctx.fillStyle = '#17120D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; ctx.beginPath(); ctx.arc(0, 0, 0.15, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#C9A227'; ctx.lineWidth = PX * 1.4; ctx.beginPath(); for (let k = 0; k < 28; k++) { const a = k / 28 * 6.283, r = k % 2 ? 0.15 : 0.13; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath();
+    ctx.arc(0, 0, 0.11, 0, 6.29, true); ctx.fill('evenodd'); ctx.stroke(); // the gold turret ring gear
+    for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.5, cx = Math.cos(a) * 0.055, cy = Math.sin(a) * 0.055, pa = a + 1.57; // three spare bolas lying in the magazine: two balls and a cord each
+      const p0 = [cx + Math.cos(pa) * 0.04, cy + Math.sin(pa) * 0.04], p1 = [cx - Math.cos(pa) * 0.04, cy - Math.sin(pa) * 0.04];
+      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.quadraticCurveTo(cx * 0.4, cy * 0.4, p1[0], p1[1]); ctx.stroke();
+      for (const q of [p0, p1]) { ctx.fillStyle = '#6F7169'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.arc(q[0], q[1], 0.022, 0, 6.29); ctx.fill(); ctx.stroke(); } }
+    ctx.strokeStyle = INK; ctx.lineWidth = PX * 3.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-0.13, 0.02); for (let k = 1; k <= 6; k++) ctx.lineTo(-0.13 - k * 0.025, 0.02 + (k % 2 ? 0.035 : -0.01)); ctx.stroke(); // the torn feed spring sticks out
+    ctx.strokeStyle = '#B9BBB4'; ctx.lineWidth = PX * 1.8; ctx.stroke(); ctx.lineCap = 'butt';
+    if (Math.sin(t * 9) > 0.4) stumpSparks(0.13, -0.06);
+  }
+  function drawBareDrum(R, wx, t) { // Slingshot, its bungee snapped (robot frame): the drum wound with plain steel cable, torn red rubber ends flapping, the winch gear
+    const hw = R.hw; ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.4; rr(wx - 0.11, -hw * 0.62, 0.22, hw * 1.24, 0.04); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#D9DBD4'; ctx.lineWidth = PX * 1.6; for (let y = -hw * 0.55; y < hw * 0.55; y += 0.028) { ctx.beginPath(); ctx.moveTo(wx - 0.09, y); ctx.lineTo(wx + 0.09, y + 0.012); ctx.stroke(); } // steel cable wound on it
+    ctx.save(); ctx.translate(wx + 0.13, -hw * 0.45); ctx.rotate(t * 2); ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.beginPath(); for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, r = k % 2 ? 0.055 : 0.042; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0, 0, 0.015, 0, 6.29); ctx.fill(); ctx.restore(); // the winch gear
+    ctx.lineCap = 'round'; for (const sg of [-1, 1]) { const y0 = sg * hw * 0.62, f = Math.sin(t * 11 + sg) * 0.05; // torn bungee ends hanging off the drum
+      for (const [w, c] of [[PX * 7, INK], [PX * 5, '#D24B3A']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(wx - 0.02, y0); ctx.quadraticCurveTo(wx - 0.12 + f, y0 + sg * 0.1, wx - 0.2 + f * 1.5, y0 + sg * 0.06); ctx.stroke(); }
+      ctx.fillStyle = '#7A231B'; for (const dy of [-0.015, 0, 0.015]) { ctx.beginPath(); ctx.arc(wx - 0.2 + f * 1.5, y0 + sg * 0.06 + dy, 0.006, 0, 6.29); ctx.fill(); } } // frayed strands
+    ctx.lineCap = 'butt';
+  }
+  function drawBareHub(R, t) { // Orbiter, its rotor lock gone (rotor frame): broken lock teeth round a copper slip ring, brushes, sparks
+    ctx.save(); ctx.scale(1.55, 1.55); try { drawBareHub0(R, t); } finally { ctx.restore(); }
+  }
+  function drawBareHub0(R, t) {
+    ctx.fillStyle = '#17120D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#6F7169'; ctx.lineWidth = PX * 1.4; for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283, br = k % 3 === 1; ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(0.085, -0.02); ctx.lineTo(br ? 0.1 : 0.125, -0.02); ctx.lineTo(br ? 0.105 : 0.125, br ? 0.0 : 0.02); ctx.lineTo(0.085, 0.02); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); } // the lock teeth, some sheared
+    ctx.strokeStyle = '#B87333'; ctx.lineWidth = PX * 4; ctx.beginPath(); ctx.arc(0, 0, 0.06, 0, 6.29); ctx.stroke(); ctx.strokeStyle = '#E0903F'; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(0, 0, 0.045, 0, 6.29); ctx.stroke(); // copper slip rings
+    ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.arc(0, 0, 0.022, 0, 6.29); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = HAZ; ctx.fillRect(-0.012, -0.11, 0.024, 0.03); ctx.strokeRect(-0.012, -0.11, 0.024, 0.03); // a torn stub of the cap's hazard stripe
+    if (Math.sin(t * 23) > 0) { ctx.strokeStyle = '#BFE6FF'; ctx.lineWidth = PX * 1.8; ctx.beginPath(); for (let k = 0; k < 4; k++) { const a = t * 5 + k * 1.6; ctx.moveTo(Math.cos(a) * 0.06, Math.sin(a) * 0.06); ctx.lineTo(Math.cos(a + 0.2) * 0.1, Math.sin(a + 0.2) * 0.1); } ctx.stroke(); } // arcs off the slip ring
+  }
+  function drawTanks(tilt) { // Rotisserie's twin fuel tanks (tank frame)
+    ctx.save(); if (tilt) { ctx.translate(-0.03, 0.02); ctx.rotate(-0.14); }
+    ctx.fillStyle = '#B8423A'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.11, 0.11]) { rr(-0.14, y - 0.075, 0.28, 0.15, 0.07); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-0.1, y - 0.06, 0.2, 0.025); ctx.fillStyle = '#B8423A'; }
+    if (tilt) { ctx.fillStyle = HAZ; ctx.fillRect(-0.03, -0.2, 0.06, 0.16); ctx.strokeRect(-0.03, -0.2, 0.06, 0.16); ctx.save(); ctx.translate(0.0, 0.1); ctx.rotate(0.6); ctx.fillRect(-0.03, 0, 0.06, 0.14); ctx.strokeRect(-0.03, 0, 0.06, 0.14); ctx.restore(); } // the strap has snapped: one end hangs off
+    else { ctx.fillStyle = HAZ; ctx.fillRect(-0.03, -0.2, 0.06, 0.4); }
+    ctx.restore();
+  }
+  function drawTankCradle(R, t) { // Rotisserie without its tanks (tank frame): the empty cradle, torn straps, the fuel pump, the torn fuel line to the tail with its flame
+    ctx.fillStyle = '#17120D'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; for (const y of [-0.11, 0.11]) { rr(-0.15, y - 0.08, 0.3, 0.16, 0.08); ctx.fill(); ctx.stroke(); } // two dark troughs where the tanks sat
+    ctx.strokeStyle = '#6F7169'; ctx.lineWidth = PX * 2.4; for (const y of [-0.11, 0.11]) for (const x of [-0.08, 0.08]) { ctx.beginPath(); ctx.arc(x, y, 0.07, 0.4, 2.7); ctx.stroke(); } // cradle hoops
+    ctx.fillStyle = HAZ; for (const [x, y, a] of [[0, -0.21, 0.3], [0, 0.21, -0.5]]) { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillRect(-0.03, -0.035, 0.06, 0.07); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.strokeRect(-0.03, -0.035, 0.06, 0.07); ctx.restore(); } // torn strap ends
+    ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.8; ctx.fillRect(0.1, -0.05, 0.09, 0.1); ctx.strokeRect(0.1, -0.05, 0.09, 0.1); bolt(0.145, 0); // the fuel pump
+    const tx = -(0.45 * R.hl) - 0.12; ctx.lineCap = 'round'; for (const [w, c] of [[PX * 6, INK], [PX * 4, '#3A3A36']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(0.1, 0); ctx.bezierCurveTo(0.02, 0.06, -0.12, -0.05, tx, Math.sin(t * 7) * 0.02); ctx.stroke(); } ctx.lineCap = 'butt'; // the torn fuel line, out past the tail
+    const fl = 0.05 + 0.02 * Math.sin(t * 31); ctx.fillStyle = 'rgba(255,170,40,0.9)'; ctx.beginPath(); ctx.ellipse(tx - 0.03, 0, fl, fl * 0.6, 0, 0, 6.29); ctx.fill(); ctx.fillStyle = 'rgba(255,240,150,0.95)'; ctx.beginPath(); ctx.ellipse(tx - 0.02, 0, fl * 0.45, fl * 0.3, 0, 0, 6.29); ctx.fill(); // its little flame
+  }
+  function drawArmStump(R, t) { // Trebuchet, its throwing arm snapped (robot frame, at the pivot): the jagged stump, the pivot boss, the bare gas ram that drove it
+    ctx.save(); ctx.scale(1.35, 1.35); try { drawArmStump0(R, t); } finally { ctx.restore(); }
+  }
+  function drawArmStump0(R, t) {
+    const ax = -0.45 * R.hl, ay = 0.2 * R.hw, px = 0, ang = -0.5, sx = Math.cos(ang) * 0.17, sy = Math.sin(ang) * 0.17;
+    ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.save(); ctx.translate(ax, ay); ctx.rotate(Math.atan2(sy * 0.4 - ay, px + sx * 0.4 - ax)); const L0 = Math.hypot(sy * 0.4 - ay, px + sx * 0.4 - ax);
+    rr(-0.04, -0.035, L0 * 0.6, 0.07, 0.02); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#D9DBD4'; ctx.fillRect(L0 * 0.56 - 0.04, -0.014, L0 * 0.44, 0.028); ctx.strokeRect(L0 * 0.56 - 0.04, -0.014, L0 * 0.44, 0.028); ctx.restore(); // the gas ram: cylinder and chrome rod
+    ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.075; ctx.beginPath(); ctx.moveTo(-0.08 * Math.cos(ang), -0.08 * Math.sin(ang)); ctx.lineTo(sx, sy); ctx.stroke(); ctx.strokeStyle = '#C9A227'; ctx.lineWidth = 0.048; ctx.stroke(); ctx.lineCap = 'butt'; // the stump of the arm
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang); ctx.fillStyle = '#F08A2B'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; path([[-0.01, -0.03], [0.02, -0.02], [0.012, -0.005], [0.035, 0.004], [0.015, 0.012], [0.025, 0.03], [-0.01, 0.03]]); ctx.fill(); ctx.stroke(); ctx.restore(); // the jagged break, still hot
+    ctx.fillStyle = '#4A4540'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, 0.065, 0, 6.29); ctx.fill(); ctx.stroke(); bolt(0, 0); // the pivot boss
+    if (Math.sin(t * 13) > 0.3) stumpSparks(sx + 0.02, sy);
+    if (Math.sin(t * 3) > 0.6) { ctx.fillStyle = 'rgba(230,240,255,0.5)'; ctx.beginPath(); ctx.arc(ax - 0.06, ay, 0.04 + 0.02 * Math.sin(t * 9), 0, 6.29); ctx.fill(); } // the ram hisses
+  }
+  function drawFuelFires(R) { // Rotisserie's trail of burning fuel on the floor (world frame)
+    const t = performance.now() / 1000;
+    for (const f of R.foFires || []) { const k = Math.min(1, f.life / 1.0);
+      ctx.fillStyle = `rgba(40,22,10,${0.55 * k})`; ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r, f.r * 0.8, f.x * 5, 0, 6.29); ctx.fill(); // the scorched puddle
+      for (let n = 0; n < 3; n++) { const a = t * 3 + n * 2.1 + f.x * 7, r = f.r * 0.45, fl = f.r * (0.45 + 0.2 * Math.sin(t * 19 + n * 3)) * k;
+        ctx.fillStyle = `rgba(255,${120 + 60 * n},40,${0.75 * k})`; ctx.beginPath(); ctx.ellipse(f.x + Math.cos(a) * r * 0.5, f.y + Math.sin(a) * r * 0.5, fl, fl * 0.7, a, 0, 6.29); ctx.fill(); }
+      ctx.fillStyle = `rgba(255,240,160,${0.8 * k})`; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.22 * k, 0, 6.29); ctx.fill(); }
   }
   function drawFoRobot(R, i) {
     if (R.spec.weapon === 'smith' && R.fo) { if (!R.fo.off) drawHood(R, R.foTilt); else if (R.foForge) drawForge(R, R.foHeat || 0, R.foPause > 0); }   // T69
@@ -1378,6 +1480,24 @@
       ctx.fillStyle = '#C9A227'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.6; ctx.beginPath(); const r = (y1 - y0) / 2;
       for (let k = 0; k <= 12; k++) { const a = -Math.PI / 2 + k / 12 * Math.PI, rr2 = k % 2 ? r : r * 0.8; ctx.lineTo(Math.cos(a) * rr2, Math.sin(a) * rr2); } ctx.lineTo(0.012, r * 0.5); ctx.lineTo(-0.01, r * 0.15); ctx.lineTo(0.01, -r * 0.2); ctx.lineTo(-0.008, -r * 0.6); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#8E6B12'; ctx.fillRect(0.0, -0.008, r * 0.6, 0.016); ctx.fillStyle = '#5B5E57'; ctx.beginPath(); ctx.arc(0, 0, 0.022, -Math.PI / 2, Math.PI / 2); ctx.fill(); ctx.stroke();
+    } else if (d.foShape === 'lid') { drawYoyoLid((x1 - x0) / 2, false); // T71c: Yoyo's winch cover, rolling about
+    } else if (d.foShape === 'turret') { // T71c: Gaucho's bola turret on its side: the barrel, the round turret, a bola still loaded
+      ctx.fillStyle = '#8C8F86'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2; rr(0.02, -0.06, 0.28, 0.12, 0.02); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 0.12, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.arc(0, 0, 0.07, 0, 6.29); ctx.fill(); ctx.strokeStyle = '#C9A227'; ctx.lineWidth = PX * 1.6; ctx.beginPath(); ctx.arc(0, 0, 0.1, 0.6, 2.2); ctx.stroke(); // the torn bearing underneath
+      ctx.strokeStyle = '#C9A26A'; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.moveTo(0.18, -0.07); ctx.lineTo(0.24, 0.07); ctx.stroke(); for (const [x, y] of [[0.18, -0.07], [0.24, 0.07]]) { ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.arc(x, y, 0.03, 0, 6.29); ctx.fill(); ctx.stroke(); }
+    } else if (d.foShape === 'bungee') { // T71c: Slingshot's snapped bungee: a long red rubber cord, frayed at both ends
+      ctx.lineCap = 'round'; for (const [w, c] of [[0.075, INK], [0.05, '#D24B3A']]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0 + 0.03, 0); ctx.bezierCurveTo(x0 * 0.4, -0.05, x1 * 0.3, 0.05, x1 - 0.03, 0); ctx.stroke(); } ctx.lineCap = 'butt';
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = PX * 1.4; ctx.beginPath(); ctx.moveTo(x0 + 0.06, -0.012); ctx.bezierCurveTo(x0 * 0.4, -0.06, x1 * 0.3, 0.035, x1 - 0.06, -0.012); ctx.stroke();
+      ctx.fillStyle = '#7A231B'; for (const ex of [x0 + 0.01, x1 - 0.01]) for (const dy of [-0.02, 0, 0.02]) { ctx.beginPath(); ctx.arc(ex + (ex < 0 ? -0.01 : 0.01), dy, 0.008, 0, 6.29); ctx.fill(); }
+    } else if (d.foShape === 'hubcap') { // T71c: Orbiter's rotor lock cap: a round steel cap with the hazard stripe, the sheared pin under it
+      const r = (x1 - x0) / 2; ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.29); ctx.fill(); ctx.stroke(); ctx.fillStyle = HAZ; ctx.fillRect(-0.02, -r * 0.9, 0.04, r * 1.8); ctx.strokeRect(-0.02, -r * 0.9, 0.04, r * 1.8);
+      ctx.fillStyle = '#B9BBB4'; ctx.beginPath(); ctx.arc(r * 0.45, r * 0.35, 0.018, 0, 6.29); ctx.fill(); ctx.stroke();
+    } else if (d.foShape === 'tanks') { drawTanks(true); // T71c: Rotisserie's twin fuel tanks, strap snapped
+      ctx.fillStyle = 'rgba(30,20,10,0.5)'; ctx.beginPath(); ctx.ellipse(-0.16, 0.0, 0.05, 0.03, 0, 0, 6.29); ctx.fill(); // a drip of fuel
+    } else if (d.foShape === 'tarm') { // T71c: Trebuchet's snapped throwing arm: the gold bar, ragged at the break, the counterweight still on its end
+      ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 0.07; ctx.beginPath(); ctx.moveTo(-0.12, 0); ctx.lineTo(0.3, 0); ctx.stroke(); ctx.strokeStyle = '#C9A227'; ctx.lineWidth = 0.045; ctx.stroke(); ctx.lineCap = 'butt';
+      ctx.fillStyle = '#5B5E57'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2; ctx.fillRect(-0.24, -0.11, 0.14, 0.22); ctx.strokeRect(-0.24, -0.11, 0.14, 0.22);
+      ctx.fillStyle = '#17120D'; path([[0.3, -0.025], [0.33, -0.012], [0.315, 0.0], [0.34, 0.012], [0.3, 0.025]]); ctx.fill();
     } else { // Buzzkill's snapped half bar: bright steel, a sharpening stripe, ragged where it broke
       drawPart(d, '#C9CBC4', d.robot, () => { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x0 + 0.04, -0.012, (x1 - x0) - 0.08, 0.014); });
     }
@@ -1446,6 +1566,7 @@
   }
   function drawCratesAndWarnings() {
     const t = performance.now() / 1000;
+    for (const R of S.robots) if (R.foFires && R.foFires.length) drawFuelFires(R);   // T71c: Rotisserie's burning fuel trail
     for (const o of S.oils) { const k = Math.min(1, o.life / 1.5); ctx.fillStyle = `rgba(18,14,10,${0.75 * k})`; ctx.beginPath(); ctx.ellipse(o.x, o.y, o.r, o.r * 0.82, o.x * 3, 0, 6.29); ctx.fill(); ctx.fillStyle = `rgba(120,110,160,${0.25 * k})`; ctx.beginPath(); ctx.ellipse(o.x - o.r * 0.25, o.y - o.r * 0.2, o.r * 0.35, o.r * 0.15, 0.5, 0, 6.29); ctx.fill(); }
     if (S.spikes) for (const k of S.spikes) { // Floor Spikes: warning ring, then a plate of steel spikes
       if (k.t < k.warn) { ctx.save(); ctx.strokeStyle = `rgba(220,38,38,${0.5 + 0.4 * Math.sin(k.t * 25)})`; ctx.lineWidth = 0.05; ctx.setLineDash([0.12, 0.08]); ctx.beginPath(); ctx.arc(k.x, k.y, k.r, 0, 6.29); ctx.stroke(); ctx.restore(); continue; }
@@ -1998,7 +2119,8 @@
     const c = document.createElement('canvas'); c.width = c.height = size;
     const P = L.create({ a: spec, b: spec, seed: 1 }), R = P.robots[0];
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    for (const q of R.parts) if (q.attached || q.kind === 'chassis') for (const [x, y] of q.home) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    let bR = R; if (spec.flyoffGone) { const s2 = Object.assign({}, spec); delete s2.flyoffGone; s2.flyoffKeep = true; bR = L.create({ a: s2, b: s2, seed: 1 }).robots[0]; } // T71c: a robot without its piece is framed like the robot as it comes (same scale, same centre)
+    for (const q of bR.parts) if (q.attached || q.kind === 'chassis') for (const [x, y] of q.home) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const k = size / (Math.max(x1 - x0, y1 - y0) + 0.3), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, b = R.body, pos = b.getPosition(), ang = b.getAngle();
     const sS = S, sCtx = ctx, sPX = PX;
     try {
