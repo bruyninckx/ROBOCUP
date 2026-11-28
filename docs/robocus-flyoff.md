@@ -1,4 +1,4 @@
-# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A, T71b batch B of all robots)
+# ROBOCUS next gen: parts that fly off (T67 step 1, T68 step 2, T69 step 3, T71a batch A, T71b batch B, T71c batch C of all robots)
 
 Kev, 28 Nov 2026: "a new damage model that has more unique parts flying off from the robots depending on how the robot
 looks, the shell can come off from gyro which is nice, we need more like this, some tops that come off easily and expose a
@@ -9,17 +9,58 @@ of the fight; (2) every lost piece changes how the robot fights, never only look
 until repaired. Step 1 did rules 1 and 2 for three robots (Buzzkill, Popcorn, Bricklayer); step 2 (28 Nov, T68) adds six more: Gyro, Railgun,
 Scavenger, Grandmaster, Whaler, Jukebox; step 3 (28 Nov, T69) adds the last six of the first 15: Pogo, Blacksmith, Lodestone,
 Hornet, Tarantula, Hydra. Batch A of all robots (28 Nov, T71a; Kev: "implement these changes to all robots go all out") adds Forklift,
-Mincer, Scythe, Snapjaw, Thumper, Wrecker; batch B (28 Nov, T71b) adds Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher:
-twenty-seven robots now. Rule 3 is a later step.
+Mincer, Scythe, Snapjaw, Thumper, Wrecker; batch B (28 Nov, T71b) adds Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher;
+batch C (28 Nov, T71c) adds the last six, Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet, and makes four weak back-ups stronger:
+**all thirty-three robots now**. Rule 3 is a later step.
 
 **Not in the game.** One switch, off by default. With it off, every fight is exactly as before (checked: stock-fight
 fingerprint 470f6923 and sync check 89a95280 unchanged, the game page plays 2 of 2 test games with 0 errors; step 3: the six robots'
 own fights are bit-identical to `nextgen` before the change, 64 fights each; batch A: the same checks, the six robots' own fights
-bit-identical; batch B: the same checks, the six robots' own fights bit-identical).
+bit-identical; batch B: the same checks, the six robots' own fights bit-identical; batch C: the same checks, the ten robots it touched bit-identical).
+
+## All 33 robots at a glance (T71c)
+
+Every robot of the tuned lineup now has its own breakaway piece (switch on only; the game is unchanged).
+
+| Robot | Comes off | You see | In the fight |
+|---|---|---|---|
+| Buzzkill | half of its spinning bar snaps | a short ragged half bar | spins faster, reaches less far: quick small hits |
+| Popcorn | the yellow teeth plate | a thin bare steel flipper | weaker flips, and the flipper bends a bit more with every flip |
+| Bricklayer | the brick stack topples | an empty crane | nothing to drop; small bricks lie around; it shoves with its dozer blade |
+| Gyro | the grey shell | a bare gold flywheel | lighter and faster but out of true: soft hits |
+| Railgun | the rail clamp | two rails peeled apart | still fires, but wide (up to 17°) |
+| Scavenger | the hopper cracks open, its junk pours out | a cracked, empty hopper | starts collecting from zero; can't eat its own spilled junk |
+| Grandmaster | the yellow hat | its brain: a wheel of six tools | picks a tool at random instead of choosing |
+| Whaler | a strip of hull: the hull splits | the winch drum and rope in the gap | reels in at half speed; spinners and saws can cut the rope |
+| Jukebox | the record crate tips over | no crate, a bent loader arm | must drive right up to a record before it can throw again |
+| Pogo | the spring casing bursts; the spring uncoils on the floor | an empty socket, a stub of spring | only short weak hops from close in; the spring bounces whoever drives into it |
+| Blacksmith | the dark hood | a glowing open forge | burns whoever touches it, but overheats and pauses hammering |
+| Lodestone | the copper coil unwinds | an empty coil bay, a thin bare core | pulls half as hard; the loose wire tangles wheels |
+| Hornet | the spear tip breaks off (it can stay stuck in the other robot) | a jagged broken shaft | pierces a little; a lunge that lands bashes; a stuck tip stings |
+| Tarantula | up to three legs, one side | thick glowing stumps | limps, then turns in circles, then drags |
+| Hydra | its two side heads | sparking stumps | strikes less often; stumps zap whoever touches them |
+| Forklift | the counterweight drops off | the little engine that drives the lift | flicks robots off its forks instead of carrying them |
+| Mincer | one grinder disc flies off, still spinning | a bare spindle, gear and torn belt | one grinder, faster, comes in crabwise; the loose disc bites |
+| Scythe | the curved blade snaps off | a bare torn pole | waits, then swats hard: the torn end rakes and spins the robot away |
+| Snapjaw | the cover over its ram pops, the hose splits | the red ram and a split hose | chomps instead of holding; spits small oil puddles |
+| Thumper | the axe head flies into the floor | the jagged broken handle | quick short stabs that go through armour |
+| Wrecker | the chain snaps, the ball rolls on | a short broken chain end | lassos robots, drags them round and flings them (it tears at them) |
+| Corkscrew | the screw thread strips | a smooth hex bar | can't anchor: pins robots on the wall and rubs them hot |
+| Mauler | the spiked ball shell cracks in two | a long whip chain | hangs back and lashes; the half shells puncture tyres |
+| Thwacker | the whole tail drops off like a lizard's | a short stinger at the tail root | stops spinning, reverses into robots stinger first |
+| Vertigo | one disc fork snaps | the tipped disc's face | throws robots sideways and spins them, no air time |
+| Angler | the reel spool flies off | a bare reel gear, broken pawl | gaffs any side and trawls robots off behind it |
+| Pincher | one timing gear shatters | a scorched hole, the bare axle | the arms slap in turn instead of squeezing |
+| Yoyo | the winch cover pops off | the bare drum, the cable in slack loops, a snapped brake band | can't reel in: throws the saw free and drives over to pick it up |
+| Gaucho | the bola launcher turret | the turret ring gear and a magazine of spare bolas | stops and turns its nose on the robot to flick bolas, short and slow |
+| Slingshot | the red bungee snaps | a bare drum of steel cable, torn rubber ends | no wind-up: winches itself straight down the cable into the robot |
+| Orbiter | the rotor lock cap shears off | a bare hub: broken lock teeth, a sparking slip ring | can't dock its blades: always spinning, slower, on short tethers |
+| Rotisserie | the twin fuel tanks tear out | an empty cradle, a fuel pump, a burning fuel line | no flame at the nose; leaves a burning trail and drags robots through it |
+| Trebuchet | the throwing arm snaps at the pivot | the jagged arm stump and the gas ram | runs scooped robots into the nearest wall like a wheelbarrow and dumps them |
 
 ## Try it
 
-`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the twenty-seven robots and an
+`prototypes/flyoff-lab.html` (double-click; needs internet for planck.js). Pick one of the thirty-three robots and an
 opponent, tick or untick "Parts fly off", then "Watch the fight" (same seed = same fight) or "Run 40 seeds" for quick
 numbers. The two pictures show the robot as it comes and without its piece.
 
@@ -474,6 +515,149 @@ Checks, switch off: stock-fight fingerprint 470f6923 unchanged; sync check 89a95
 opponents, 2 seeds, a hash of every fight's end state) bit-identical to the `nextgen` engine before the change (bf4ad24); game-sim check 2 of 2
 games finished, 0 page errors. The game page only got the new files stamp (7a4c783d); the switch stays off there.
 
+## Batch C of all robots: the last six, and stronger back-ups (T71c, 28 Nov)
+
+Kev: "for the next gen work, implement these changes to all robots go all out". Batch C: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie,
+Trebuchet. **All 33 robots now have a piece** (the table at the top). Each of the six loses something it already shows today (no new
+parts), in its own way, shows a new inside, and fights differently without it.
+
+| Robot | Comes off | You see | In the fight |
+|---|---|---|---|
+| Yoyo | the round cover on top of its winch pops off, and with it the cable brake; the cover rolls away | the bare drum, the cable off it in slack loops, a snapped red brake band, the axle turning freely | it can't reel the saw back in: it spins the saw up on its nose and throws it free (LET FLY!), a flying saw, then drives over and picks it up (it can't catch it again for 0.7 s) |
+| Gaucho | the bola launcher turret is knocked off its ring (it lies on the floor with its loaded bola) | the gold turret ring gear, the open magazine with three spare bolas, the torn feed spring | no turret to aim or lead: it stops and turns its nose on the robot, then flicks a bola straight ahead, slower (0.75x) and only up to 3.2 m (was 4.6); the nose saw still goes in once a robot is tied |
+| Slingshot | the heavy red bungee snaps off its drum (a long rubber cord on the floor) | a bare drum wound with steel cable, a gold winch gear, torn red rubber ends flapping | nothing stores energy, so no spiking down and winding up: as soon as the grapnel bites the wall it winches itself straight down the cable (ZIP!) and holds the robot on its prow spikes for a moment (0.6 s); then 3.5 s before the next shot. More often, softer |
+| Orbiter | the lock pin cap in the middle of its rotor shears off (it rolls away) | a bare hub: broken lock teeth round a sparking copper slip ring | the rotor can't lock: the blades never dock in its flanks again (no side armour, no tucking in against big spinners), the booms jam half out (0.3 m, was 0.6): a full-time top, slower (0.45x) and weaker; when it jams on a robot it backs off |
+| Rotisserie | the twin red fuel tanks tear out of their cradle (they lie on the floor) | the empty cradle, torn straps, the fuel pump, a torn fuel line out past its tail with a little flame | no flame at the nose any more. The fuel line dribbles burning fuel: a trail of small fires behind it (6 s each, 18 damage a second while a robot's middle is over one; not Rotisserie itself: it is built for fire). It still grabs robots, then backs up, dragging them through its trail |
+| Trebuchet | the throwing arm snaps at the pivot (the outer half with its counterweight flies off) | the jagged arm stump on the pivot boss and the bare gas ram that drove it | no more AIRMAIL: it scoops a robot up and runs with it like a wheelbarrow (up to 3 s) to the nearest wall, then dumps it (DUMPED!: a shove and 8 + 5 a m/s of damage, 1.6x into the wall). Every throw now strains the arm (12 off its pool) |
+
+Avoided repeats: nothing here is lost the same way as in the 27 before (Forklift already drops a counterweight, so Trebuchet loses its arm;
+Mincer already loses a spinning disc, so Yoyo keeps its saw and loses the cover and brake). The six effects on the other robot are mild:
+fires 18 a second only while it sits on one, the dump 8-20, the zip hold no extra damage, bolas as before.
+
+### The four back-ups that were too weak (Goal 2)
+
+| Robot | What changed (only once the piece is off) | wins starting without it (128 fights, same seeds) |
+|---|---|---|
+| Scythe | the torn end of the bare pole rakes: a swat does 15 (was 5) and comes every 1.0 s (was 1.3) | 3 -> **15** of 128 (36 keeping the blade) |
+| Wrecker | the broken chain end tears at the robot as it flings it: 10 damage a fling (was none) | 2 -> **10** (30 keeping the ball) |
+| Pogo | a stub of spring is left: short weak hops (0.45 s up, up to 1.6 m, 0.4x the stomp) from close in | 4 -> **30** (97 keeping the casing) |
+| Hornet | the stump is a jagged broken shaft: it still pierces a little (sharpness 2.0, the spear 3.2), and a lunge that lands bashes (20 and a shove) | 1 -> **6** (19 keeping the tip) |
+
+Bricklayer is unchanged (Kev's open question 2).
+
+Pictures (fight view, 1.5 s before and 2.5 s after): `/home/claude/out/t71c-<robot>-before.png`, `-after.png`, `-arena.png`, `-portraits.png`;
+all 33 robots with and without their piece on one sheet: `/home/claude/out/t71c-portraits-all.png` (`node tools/flyoff-shots.js /home/claude/out t71c`,
+`... t71c sheet`; `SEED_<Robot>=n` starts the seed search at n). On the sheet both pictures of a robot now use the same scale and centre (the
+robot as it comes sets them): Scythe's and Hornet's "without" pictures were drawn bigger before. Pincher's lost gear is bolder (a scorched hole,
+hot at the edge).
+
+### Batch C numbers (28 Nov, open floor, wear on)
+
+Same method as before: each robot against all 32 others, 8 seeds each, sides swapped every other seed, **256 fights with the switch on and the
+same 256 off** (`node tools/damage-lab/flyoff.js <robot> 8`, `flyoff.js report <files>`). "±" is a 95% range.
+
+| | Yoyo | Gaucho | Slingshot | Orbiter | Rotisserie | Trebuchet |
+|---|---|---|---|---|---|---|
+| piece comes off | 151 of 256 = 59% (±6) | 102 = 40% (±6) | 134 = 52% (±6) | 109 = 43% (±6) | 90 = 35% (±6) | 143 = 56% (±6) |
+| when (median) | 30 s | 41 s | 40 s | 46 s | 24 s | 43 s |
+| fights where robots touched the loose piece | 151 of 151 | 102 of 102 | 134 of 134 | 109 of 109 | 90 of 90 | 143 of 143 |
+| contacts with the loose piece, a fight | 12.1 (4.0 by the other robot) | 13.2 (4.2) | 11.3 (2.9) | 8.4 (2.1) | 10.3 (2.6) | 33.9 (14.8) |
+| the effect, in the fights where it came off | 3.2 free throws, 3.0 pick-ups | bolas 0.35 -> 0.09 hits a second | 1.4 zips, held 0.5 s | always spinning (39 s a fight), 24 jams (backs off) | 53 fires dropped; robots in them 5.3 s | 2.3 dumps, 1.3 of them into the wall |
+| win rate vs the field, switch off | 45.3% | 53.9% | 59.8% | 78.5% | 71.5% | 77.0% |
+| win rate vs the field, switch on | 43.4% | 57.0% | 64.5% | 75.8% | 70.3% | 74.2% |
+| difference (same fights) | -2.0 ± 5.3 | +3.1 ± 5.5 | +4.7 ± 4.2 | -2.7 ± 3.8 | -1.2 ± 4.7 | -2.7 ± 3.7 |
+
+What happened in those fights after the piece came off: Yoyo's saw 1.8 -> 0.43 hits a second (8.2 -> 1.9 damage a second; each free throw hits
+about as hard); Gaucho's saw 4.2 -> 3.3 damage a second, bolas 1.7 -> 0.4; Slingshot's prow 16.7 -> 10.7 a hit, 11.7 -> 6.6 damage a second;
+Orbiter's blades 8.2 -> 3.6 damage a second; Rotisserie's flame and heat 6.2 -> 0.4 damage a second (the fire trail is what is left); Trebuchet's
+landings (thrown robots) 7.5 -> 1.3 damage a second.
+
+The four fixed robots, same 256 + 256 fights: Scythe blade off 56%, +1.2 ± 5.0 (batch A: -5.5); Wrecker 52%, +0.4 ± 4.3 (-3.1); Pogo 50%, **-6.3 ± 4.8**
+(-12.9: the hop softens the loss); Hornet 50%, +3.1 ± 4.3 (+0.4). After the piece: Scythe's swats 2.2 damage a second (10.9 a fight); Wrecker 5.6 lassos
+and flings a fight; Pogo 7 hops a fight, 1.7 damage a second; Hornet 1.2 bashes a fight, the stuck tip as before.
+
+How the robot fights without its piece: the same robot starting without it (`spec.flyoffGone`) against the same robot keeping it
+(`spec.flyoffKeep`), switch off, the whole field, 4 seeds each: **128 fights each way, same seeds** (`flyoff.js gone <robot> 4`, `flyoff.js gonereport <files>`).
+
+| | wins keeping it | wins without it | the change |
+|---|---|---|---|
+| Yoyo | 61 of 128 | 18 of 128 | saw hits 1.58 -> 0.44 a second (each 4.2 -> 5.8: a free throw hits hard); fetching takes time |
+| Gaucho | 73 | 49 | bola hits 0.34 -> 0.15 a second; saw about the same (4.2 -> 3.9 damage a second) |
+| Slingshot | 74 | 54 | prow 7.8 -> 4.0 damage a second (half as many hits, same size); fights last 95 s instead of 74 |
+| Orbiter | 101 | 48 | blades 9.6 -> 3.4 damage a second (slower, shorter, no docking) |
+| Rotisserie | 90 | 24 | flame and heat 7.3 damage a second -> fire trail 0.3 (plus a little more pincer) |
+| Trebuchet | 96 | 53 | thrown robots' landings gone; dumps and wall slams 1.1 damage a second |
+| Scythe | 36 | 15 (was 3) | swats 0.39 a second, 6.6 each (2.6 damage a second; the blade did 5.1) |
+| Wrecker | 30 | 10 (was 2) | lasso and fling 1.1 damage a second, spiked bumpers 1.1 (the flail did 3.4) |
+| Pogo | 97 | 30 (was 4) | hops 0.46 a second, 2.1 each (1.0 damage a second; the stomp did 15.4); fights last 71 s instead of 27 |
+| Hornet | 19 | 6 (was 1) | jagged stump 2.6 damage a second, bashes 0.9 (the spear did 4.4) |
+
+Every one keeps a back-up that still wins, between 24 and 73% of its wins with the piece and never more. Rotisserie (24 of 90, 27%) is the lowest
+of the six: its fire trail is a weak weapon on its own. Slingshot (73%) and Gaucho (67%) lose least.
+
+### How batch C uses the mechanism
+
+No new abilities: six `FLYOFF` entries plus small hooks, each only set once the piece is off (so fights with the switch off stay bit-identical):
+`R.foFree` (Yoyo: free throw, `st.flyT`, the wider pick-up), `R.foFlick` (Gaucho: fixed aim, short range, stop-and-face in `think`), `R.foZip`
+(Slingshot: the new mode `zip` in `step` and `drive`), `R.foSpin` (Orbiter: never docks, short booms, slower rotor), `R.foTrail` and `R.foFires`
+(Rotisserie: no nose flame, the fire trail in `tick`, a new `drive` that backs up while it holds), `R.foBarrow` (Trebuchet: longer carry, run to the
+wall in `think`, the dump). New helper `foWear(S, R, amount)`: a fixed wear on the piece (every Trebuchet throw). Back-ups: Scythe `dmg`, Wrecker
+`flingDmg`, Pogo `hop` (the jump code reads `R.foHop || POGO`), Hornet `bash`, `stumpSharp`. New causes: burning fuel, wheelbarrow dump, chain lasso,
+spear stump. Drawing in `src2/view.js` (`drawYoyoDrum`, `drawYoyoLid`, `drawBolaBay`, `drawBareDrum`, `drawBareHub`, `drawTanks`, `drawTankCradle`,
+`drawArmStump`, `drawFuelFires`, six floor pieces; "about to go" looks: a rattling cover, a tilting turret, a frayed bungee strand, a slipping cap, a
+snapped strap, a crack at the arm pivot).
+
+Checks, switch off: stock-fight fingerprint 470f6923 unchanged; sync check 89a95280 unchanged; the ten robots' own fights (the six new and the four
+fixed, 64 each, all 32 opponents, 2 seeds, a hash of every fight's end state) bit-identical to the `nextgen` engine before the change (184815f);
+game-sim check 2 of 2 games finished, 0 page errors. The game page only got the new files stamp; the switch stays off there.
+
+### The whole field, switch on vs off (all 33)
+
+Every robot's own fights against all 32 others, switch on vs the same fights off: **the ten above 256 on / 256 off, the other 23 128 on / 128 off**
+(4 seeds each, the first four of the eight; `flyoff.js <robot> 4`). Sorted by the change. Also in `docs/robocus-flyoff-all33.csv`.
+
+| Robot | fights on / off | piece comes off | win rate off | win rate on | change (95%) |
+|---|---|---|---|---|---|
+| Bricklayer | 128 / 128 | 46% (±9) | 75.8% | 61.7% | -14.1 ± 8.6 |
+| Pogo | 256 / 256 | 50% (±6) | 76.2% | 69.9% | -6.3 ± 4.8 |
+| Jukebox | 128 / 128 | 41% (±9) | 78.9% | 74.2% | -4.7 ± 6.8 |
+| Corkscrew | 128 / 128 | 63% (±8) | 39.8% | 36.7% | -3.1 ± 6.1 |
+| Gyro | 128 / 128 | 61% (±8) | 53.9% | 50.8% | -3.1 ± 7.5 |
+| Orbiter | 256 / 256 | 43% (±6) | 78.5% | 75.8% | -2.7 ± 3.8 |
+| Trebuchet | 256 / 256 | 56% (±6) | 77.0% | 74.2% | -2.7 ± 3.7 |
+| Scavenger | 128 / 128 | 45% (±9) | 64.8% | 62.5% | -2.3 ± 5.9 |
+| Yoyo | 256 / 256 | 59% (±6) | 45.3% | 43.4% | -2.0 ± 5.3 |
+| Rotisserie | 256 / 256 | 35% (±6) | 71.5% | 70.3% | -1.2 ± 4.7 |
+| Railgun | 128 / 128 | 39% (±8) | 72.7% | 71.9% | -0.8 ± 6.3 |
+| Thwacker | 128 / 128 | 48% (±9) | 46.9% | 46.1% | -0.8 ± 5.5 |
+| Whaler | 128 / 128 | 42% (±9) | 56.3% | 55.5% | -0.8 ± 3.4 |
+| Mincer | 128 / 128 | 64% (±8) | 21.1% | 21.1% | +0.0 ± 6.1 |
+| Tarantula | 128 / 128 | 58% (±9) | 71.9% | 71.9% | +0.0 ± 8.4 |
+| Wrecker | 256 / 256 | 52% (±6) | 27.3% | 27.7% | +0.4 ± 4.3 |
+| Blacksmith | 128 / 128 | 43% (±9) | 43.8% | 44.5% | +0.8 ± 4.1 |
+| Lodestone | 128 / 128 | 52% (±9) | 74.2% | 75.0% | +0.8 ± 5.1 |
+| Pincher | 128 / 128 | 47% (±9) | 50.8% | 51.6% | +0.8 ± 6.0 |
+| Scythe | 256 / 256 | 56% (±6) | 25.8% | 27.0% | +1.2 ± 5.0 |
+| Forklift | 128 / 128 | 41% (±9) | 24.2% | 25.8% | +1.6 ± 4.3 |
+| Thumper | 128 / 128 | 58% (±9) | 24.2% | 25.8% | +1.6 ± 5.3 |
+| Popcorn | 128 / 128 | 63% (±8) | 16.4% | 18.8% | +2.3 ± 5.5 |
+| Angler | 128 / 128 | 40% (±8) | 57.0% | 60.2% | +3.1 ± 5.3 |
+| Gaucho | 256 / 256 | 40% (±6) | 53.9% | 57.0% | +3.1 ± 5.5 |
+| Hornet | 256 / 256 | 50% (±6) | 16.4% | 19.5% | +3.1 ± 4.3 |
+| Vertigo | 128 / 128 | 50% (±9) | 39.8% | 43.8% | +3.9 ± 5.9 |
+| Slingshot | 256 / 256 | 52% (±6) | 59.8% | 64.5% | +4.7 ± 4.2 |
+| Mauler | 128 / 128 | 54% (±9) | 32.0% | 37.5% | +5.5 ± 7.0 |
+| Snapjaw | 128 / 128 | 65% (±8) | 18.8% | 24.2% | +5.5 ± 6.6 |
+| Grandmaster | 128 / 128 | 45% (±9) | 60.2% | 67.2% | +7.0 ± 7.3 |
+| Hydra | 128 / 128 | 64% (±8) | 52.3% | 59.4% | +7.0 ± 9.3 |
+| Buzzkill | 128 / 128 | 48% (±9) | 23.4% | 32.8% | +9.4 ± 7.4 |
+
+Every robot now loses its piece in a third to two thirds of its fights (35% Rotisserie to 65% Snapjaw). In 30 of 33 the change is within its range
+of zero. Three are not: **Bricklayer -14.1 ± 8.6** (its stack is its weapon, Kev's question 2), **Pogo -6.3 ± 4.8** (was -12.9 before its hop) and
+**Buzzkill +9.4 ± 7.4** (it lost 1 to 3 points' worth of its own bar in steps 1-3; it gains now mostly because nearly all its opponents lose weapon
+pieces too; 128 fights, so a wide range). Slingshot (+4.7 ± 4.2) touches the edge. A robot's own run includes all 32 opponents losing their pieces too,
+so these numbers are "the switch on for everyone" against "off for everyone", from that robot's side.
+
 ## How step 3 extends the mechanism (the four new abilities)
 
 - **Several pieces per robot**: `count` in the entry (default 1). `R.fo.n` pieces lost, `R.fo.offs` when, `R.fo.done` when all are gone.
@@ -571,6 +755,16 @@ Batch B (T71b):
 34. **Angler's trawl** drags a robot for up to 2.6 s and scrapes it (about 9 damage). Longer, harder, or into the wall on purpose?
 35. **Pincher's slaps** do about as well as its squeeze (63 of 65 wins). Weaker slaps, or is that fine for a test?
 
+Batch C (T71c):
+
+36. **Yoyo** throws its saw free and fetches it when the winch cover is gone (it keeps 18 of 61 wins when it starts without it). Fine, or should it still reel in, slowly?
+37. **Gaucho** without its turret flicks bolas straight off its nose at short range. Charging in with the saw alone was *better* than with the turret (bolas keep it at range), so I did not make it a rammer. Is that how you see Gaucho, or should its bolas be stronger?
+38. **Slingshot** without its bungee zips down its cable more often but softer; it keeps 54 of 74 wins and comes out +4.7 ± 4.2 in a fight. Make the zip weaker, or fine for a test?
+39. **Orbiter** without its rotor lock never docks its blades. A full-time spinner was much *stronger* at first (114 wins of 128 against 101), so the rotor now runs at 0.45x on short tethers (48 of 101). Right feel, or should losing the lock cost something else (say, side armour only)?
+40. **Rotisserie**'s burning fuel trail: 18 damage a second while a robot sits on a fire; Rotisserie itself is fireproof. Should its own fire burn it too (it did at first: it burnt itself five times longer than its victims)?
+41. **Trebuchet**'s wheelbarrow: it runs a scooped robot into the nearest wall and dumps it. Harder dump, or should it still throw a little (a short toss)?
+42. **Back-ups (Scythe, Wrecker, Pogo, Hornet)** now keep about a third of their wins when they start without the piece (15/36, 10/30, 30/97, 6/19). Enough, or should rule 3 (shown on the card until repaired) be the real cost?
+
 Safest choices made where Kev has not decided: pieces barely hurt (like all junk); rates between a third and two thirds;
 Bricklayer's laid blocks stay on the floor but can't be picked up again; the game page is untouched (switch off). Step 2: the rates
 are 32% to 62% of fights; Scavenger can't eat its own spilled junk again; Jukebox's records can be fetched (the stated exception);
@@ -583,4 +777,8 @@ loose disc 9 damage a second while it spins, stabs 10); the six pieces and what 
 every robot keeps a back-up way to fight. Batch B: rates 40% to 60%; every effect on the other robot mild (punctures 3, whip crack 14 at most
 every 0.3 s, sideways throw as strong as the old upward one but no air time, trawl scrape 5 a second for up to 2.6 s, slaps 4 and a shove of 55,
 the dropped tail only knocks like loose junk); the six pieces and the new reel and gears are my choice; back-ups tuned so each keeps at least
-about a third of its wins (stinger and slaps were stronger than the piece at first and were cut down).
+about a third of its wins (stinger and slaps were stronger than the piece at first and were cut down). Batch C: rates 35% to 59%; every effect on the other robot mild (fires 18 a
+second only while it sits on one, the dump 8 to about 20, the zip hold adds no damage, flicked bolas as before); the six pieces are things the robots
+already show (no new parts); where the obvious back-up turned out *stronger* than the piece (Gaucho charging with its saw, Orbiter as a full-time
+spinner) I changed or slowed it so it keeps fewer wins than with the piece; Rotisserie is fireproof to its own trail; the four fixed back-ups keep 31 to
+42% of their wins.
