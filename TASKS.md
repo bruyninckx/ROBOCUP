@@ -251,7 +251,15 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
   Snapjaw ram cover (chomps, oil puddles), Thumper axe head (quick stabs), Wrecker flail ball (chain lassos). Comes off
   45-66%. Too weak when starting without the piece: Scythe 3 wins of 128, Wrecker 2 of 128 (to fix after Kev's look).
   Questions from it: Forklift gets a bit better without its counterweight (+3): fine? Mincer's loose disc mostly bites
-  Mincer itself; Snapjaw's oil: more or none? T71b running. After it: a
+  Mincer itself; Snapjaw's oil: more or none?
+  T71b DONE (nextgen `184815f`, files stamp there 7a4c783d; my checks: fingerprint, game-sim 2/2, no Math.random):
+  Corkscrew screw thread (rubs robots hot against the wall), Mauler spiked shell (long whip, spike halves puncture
+  tyres), Thwacker tail (drops like a lizard's, thrashes 5 s; reverses in with a stinger), Vertigo one disc fork (disc
+  tips over, throws sideways), Angler reel spool (new part; drags robots along), Pincher timing gear (new part; arms
+  slap out of step). Comes off 40-60%. Hornet's +10.9 from the short re-run did not hold (+0.4 over 256). Questions:
+  Angler's reel and Pincher's gears only exist with the switch on: keep, or use a piece they already show?
+  T71c running: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet; stronger back-ups for Scythe, Wrecker, Pogo,
+  Hornet; one table and one sheet for all 33. After it: a
   page with all 33 for Kev's votes, then card and garage (rule 3), then the balance re-measure on Kev's PC.
 
 ## Done
