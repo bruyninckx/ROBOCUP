@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="928db213"><meta name="viewport" content="width=device-width,initial-scale=1">
-<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="33c577ae"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
 <title>ROBOCUS · Parts that fly off (lab)</title>
@@ -32,7 +32,7 @@
 </head><body>
 <div class="wrap">
   <h1>Parts that fly off · lab</h1>
-  <p class="sub">Next generation test (not in the game). Nine robots so far. A robot loses one piece of itself in the fight: it stays on the floor as a real object, and the robot fights differently without it.</p>
+  <p class="sub">Next generation test (not in the game). Fifteen robots. A robot loses a piece of itself in the fight (Tarantula and Hydra: several, one at a time): it stays on the floor as a real object, and the robot fights differently without it.</p>
   <div class="row">
     <div class="card ctl">
       <label for="who">Robot with a breakaway piece</label><select id="who"></select>
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=928db213"></script>
-<script src="../src2/dmath.js?b=928db213"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=33c577ae"></script>
+<script src="../src2/dmath.js?b=33c577ae"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=928db213"></script>
-<script src="../src2/lineup.js?b=928db213"></script>
-<script src="../src2/sound.js?b=928db213"></script>
-<script src="../src2/view.js?b=928db213"></script>
+<script src="../src2/engine.js?b=33c577ae"></script>
+<script src="../src2/lineup.js?b=33c577ae"></script>
+<script src="../src2/sound.js?b=33c577ae"></script>
+<script src="../src2/view.js?b=33c577ae"></script>
 <script>
 (function () {
   'use strict';
@@ -76,6 +76,12 @@
     Grandmaster: ['its yellow hat', 'Under it is its brain, a wheel of six tools. Without the hat it stops choosing: every time it may change tool it grabs one at random. The hat lies on the floor.'],
     Whaler: ['its hull: it splits down the middle', 'The winch drum and the rope show. The harpoon still fires, but the winch reels in at half speed, and a spinning weapon or a saw can cut the bare rope. A strip of the hull lies on the floor.'],
     Jukebox: ['its record crate: it tips over', 'The records still in it slide out onto the floor, the crate lies with them. Its loader arm is bent: it has to drive right up to a record on the floor before it can throw again.'],
+    Pogo: ['the casing round its spring: it bursts in two halves', 'The gold spring uncoils across the floor. Pogo can\'t jump any more: it drives in and shoves. Anyone who drives into the spring on the floor gets bounced (its own robot too).'],
+    Blacksmith: ['its dark hood', 'Under it is a glowing forge. Whoever touches Blacksmith now gets burnt a little, but with the hood off the forge overheats: every 12 s or so it has to stop hammering for 3 s. The hood lies on the floor.'],
+    Lodestone: ['the copper coil of its magnet: it unwinds', 'A thin bare magnet core is left: it pulls half as hard. The loose wire on the floor tangles the tracks or wheels of whoever drives into it, its own too.'],
+    Hornet: ['the tip of its spear: it breaks off', 'A blunt stump is left: it can only shove. If the tip broke off in the other robot it stays stuck there and keeps hurting it a little; otherwise it lies on the floor.'],
+    Tarantula: ['its legs, one at a time (up to three, on the side that takes the hits)', 'Sparking stumps are left. One leg gone: it limps; two gone on one side: it turns in circles; three: that side drags on the floor. The legs stay on the floor.'],
+    Hydra: ['its two side heads, one by one', 'Sparking stumps are left. Fewer heads, fewer bites: its strike arm waits longer between strikes (1.4 times as long with one head gone, twice as long with both). A stump zaps whoever touches it.'],
   };
   const who = Object.keys(L.FLYOFF).filter(n => L.PRESETS[n]), field = Object.keys(LU.ROBOTS).concat(Object.keys(LU.ROBOTS4));
   for (const n of who) $('who').add(new Option(n, n));
@@ -92,7 +98,7 @@
   function watch() {
     const seed = Math.max(1, +$('seed').value || 1), S = L.create(opts(seed)), R = S.robots[0];
     VW.play(S, { title: R.name + ' vs ' + S.robots[1].name + ' · seed ' + seed + ' · parts fly off ' + ($('on').checked ? 'ON' : 'off'),
-      onEnd: S2 => { const F = S2.robots[0].fo; $('out').textContent = 'Seed ' + seed + ': ' + (S2.result ? S2.result.text : 'no result') + (F ? '\n' + (F.off ? F.label + ' came off at ' + F.offT.toFixed(1) + ' s; the loose piece was bumped ' + (F.touch.own + F.touch.other) + ' times (' + F.touch.other + ' by the other robot)' : F.label + ' stayed on') : ''); } });
+      onEnd: S2 => { const F = S2.robots[0].fo; $('out').textContent = 'Seed ' + seed + ': ' + (S2.result ? S2.result.text : 'no result') + (F ? '\n' + (F.off ? (F.count > 1 ? F.n + ' of ' + F.count + ' pieces came off (at ' + F.offs.map(x => x.toFixed(1)).join(', ') + ' s);' : F.label + ' came off at ' + F.offT.toFixed(1) + ' s;') + ' the loose piece was bumped ' + (F.touch.own + F.touch.other) + ' times (' + F.touch.other + ' by the other robot)' : F.label + ' stayed on') : ''); } });
   }
   function batch() {
     const n = 40, s0 = Math.max(1, +$('seed').value || 1), rows = []; let i = 0;
