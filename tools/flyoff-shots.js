@@ -8,10 +8,10 @@ const PLK = require('./planck-local.js'), PL = PLK.find('');
 const OUT = process.argv[2] || '/home/claude/out', STEP = process.argv[3] || 't68';
 const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Bricklayer: 'Gyro' }
   : STEP === 't68' ? { Gyro: 'Mauler', Railgun: 'Ramrod', Scavenger: 'Buzzkill', Grandmaster: 'Hydra', Whaler: 'Thwacker', Jukebox: 'Hydra' }
-  : STEP === 't71a' ? { Forklift: 'Haymaker', Mincer: 'Ramrod', Scythe: 'Thwacker', Snapjaw: 'Brawler', Thumper: 'Ramrod', Wrecker: 'Haymaker' }
+  : STEP === 't71a' ? { Forklift: 'Haymaker', Mincer: 'Ramrod', Scythe: 'Ramrod', Snapjaw: 'Brawler', Thumper: 'Ramrod', Wrecker: 'Haymaker' }
   : { Pogo: 'Mauler', Blacksmith: 'Ramrod', Lodestone: 'Thwacker', Hornet: 'Brawler', Tarantula: 'Mauler', Hydra: 'Ramrod' };
 (async () => {
-  const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1300, height: 1000 }, deviceScaleFactor: 2 }), errs = [];
+  const b = await chromium.launch(), p = await b.newPage({ viewport: STEP === 't71a' ? { width: 2200, height: 1700 } : { width: 1300, height: 1000 }, deviceScaleFactor: 2 }) /* (T71a: a bigger arena on screen, closer pictures) */, errs = [];
   p.on('pageerror', e => errs.push(e.message));
   await PLK.route(p, PL);
   await p.goto('file://' + path.resolve(__dirname, '../prototypes/flyoff-lab.html')); await p.waitForTimeout(300);

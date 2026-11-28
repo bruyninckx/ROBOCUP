@@ -588,7 +588,7 @@
       ctx.strokeStyle = '#8C8F86'; ctx.lineWidth = 0.045 * k; ctx.stroke(); ctx.lineCap = 'butt';
       if (Math.abs(ab) > 0.03) { ctx.strokeStyle = 'rgba(14,9,5,0.8)'; ctx.lineWidth = PX * 2.4; ctx.beginPath(); ctx.moveTo(kx, -0.035 * k); ctx.lineTo(kx, 0.035 * k); ctx.stroke(); }
       ctx.save(); ctx.translate(ex, ey); ctx.rotate(ab); ctx.scale(k, k);
-      if (J) { ctx.fillStyle = '#8C8F86'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.03, -0.035], [0.03, -0.03], [0.06, -0.01], [0.035, 0.0], [0.07, 0.02], [0.03, 0.035], [-0.03, 0.035]]); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.012, 0.022, 0, 0, 6.29); ctx.fill(); stumpSparks(0.06, 0); }   // the torn end of the tube
+      if (J) { ctx.scale(1.7, 1.7); ctx.fillStyle = '#8C8F86'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.03, -0.035], [0.03, -0.03], [0.06, -0.01], [0.035, 0.0], [0.07, 0.02], [0.03, 0.035], [-0.03, 0.035]]); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#17120D'; ctx.beginPath(); ctx.ellipse(0.02, 0, 0.012, 0.022, 0, 0, 6.29); ctx.fill(); stumpSparks(0.06, 0); }   // the torn end of the tube
       else { if (R.foLoose) { ctx.translate(0.015, 0.03); ctx.rotate(0.22 + Math.sin(performance.now() / 40) * 0.05); }   // (T71a: the head wobbles loose before it flies off)
       ctx.fillStyle = '#B9BBB4'; ctx.strokeStyle = INK; ctx.lineWidth = PX * 2.2 / k; path([[-0.05, -0.16], [0.06, -0.12], [0.06, 0.12], [-0.05, 0.16], [-0.02, 0]]); ctx.fill(); ctx.stroke(); }
       ctx.restore(); bolt(-0.25, 0);
