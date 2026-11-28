@@ -5,6 +5,11 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K69. After the lag fix (28 Nov):** in the next two-PC game, what does the link number next to the online badge
+  show on the joined screen (under 100 = near the limit of this design; over 150-200 = a nearer relay is the next
+  step)? Is the spinner on a pressed button OK? Any short freeze on a joined screen after the host clicks "Skip to
+  result"?
+
 - **K68. Parts that fly off, the last six (next gen, 28 Nov).** (a) Pogo without its spring has no weapon at all (-13
   points; 4 wins of 128 if it starts like that): keep, or give it a weak stomp? (b) The spring on the floor bounces
   Pogo itself more than the other robot: only bounce others? (c) Blacksmith's open forge comes out even: hotter burn or
@@ -233,25 +238,16 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T70. Joined screen feels sluggish (28 Nov; BUILT AND CHECKED, NOT MERGED: branch `claude/joined-lag` at `0010d02`
-  waits for Kev's "go", because a push to `main` makes screens in a running online game refuse to rejoin; files stamp
-  after the merge 8a074599, BUILD 2026-11-28a).** My checks on a test merge: fingerprint 470f6923, game-sim 2/2,
-  mp-test OK desyncs 0 x3, scenarios trading-floor, rejoin, host-reload, stand-in, tips OK. Result: click to result on
-  a joined screen 148 -> 82 ms (no link delay), 351 -> 282 ms (80 ms link), host window hidden/minimised 965 -> 70 ms.
-  Questions for Kev: what does the new link number show; was the host window minimised or covered on 23 Nov; is the
-  spinner look OK; any freeze on a joined screen after "Skip to result". Original entry: for
-  the CURRENT game on `main`.** Kev's words: "when I played multiplayer on 2 pcs, the non-host pc had noticeably more
-  sluggish response, like a certain lag present when clicking buttons, what are our options in this regard to try and
-  make this more smooth?" How it works now (`src2/net.js`): a joined screen's click goes to the host as an action, the
-  host runs it, and a timer sends the whole game picture back every 100 ms; the joined screen then redraws. Goal:
-  numbers for each part of the wait (click -> sent, host runs it, wait for the 100 ms timer, size of the picture,
-  redraw on the joined screen), on the local transport and with added network delay; then (1) the host sends right
-  after an action instead of waiting for the timer, (2) the joined screen shows at once that the click was taken
-  (pressed look), and a small ping readout so Kev can see the link delay. Done when: before/after numbers, mp-test OK
-  with desyncs 0, sync-check unchanged, fingerprint unchanged, game-sim check. Bigger options (send only what changed,
-  let the joined screen predict simple clicks) are written up with their risk, not built.
-
 ## Done
+
+- **T70. Joined screen feels sluggish** (28 Nov, Kev: "go for the lag fixes"; merged, files stamp 8a074599, BUILD
+  2026-11-28a). The host answers a joined screen's click at once instead of on the 100 ms timer (also when its window
+  is hidden or minimised: 965 -> 70 ms per click in the test), a pressed look with a spinner until the host answered,
+  a link-delay number next to the online badge. Click to result on a joined screen: 148 -> 82 ms with no link delay,
+  351 -> 282 ms with 80 ms each way. Checks: fingerprint 470f6923, game-sim 2/2, mp-test OK desyncs 0 x3, scenarios
+  trading-floor, rejoin, host-reload, stand-in, tips OK. Doc `docs/robocus-joined-lag.md` (bigger options: nearer
+  relay, send only what changed, predict clicks, slice the fight check after "Skip to result"). Tool
+  `tools/mp-scenario/lag.js`. Kev was not sure whether the host window was hidden on 23 Nov.
 
 - **T69. Parts that fly off, step 3: Pogo, Blacksmith, Lodestone, Hornet, Tarantula, Hydra** (28 Nov; NEXT GEN ONLY:
   on branch `nextgen` at `5777e2f`, files stamp there 33c577ae; not on `main`). All 15 robots Kev voted for now work
