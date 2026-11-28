@@ -5,6 +5,14 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K67. Parts that fly off, the next six (next gen, 28 Nov).** (a) Gyro without its shell is very weak (8 wins of 128
+  when it starts a fight like that): make the bare flywheel stronger, or is that the price? (b) Grandmaster wins MORE
+  without its hat (89 vs 77 of 128): a random tool beats its own choices. Keep as a funny surprise, make blind picks
+  worse, or look at how it chooses? (c) Railgun firing wide (up to 17 degrees off) costs it almost nothing: wider?
+  (d) Jukebox: the worker made the tipped crate also bend the loader arm, so it must drive right up to a record;
+  right idea? (e) Whaler's rope is cut only by spinners and saws (13 of 103 fights): anything sharp? (f) May
+  Scavenger suck its spilled junk back up? (Now not.)
+
 - **K66. Parts that fly off, first three robots (next gen, 28 Nov).** (a) How often should a piece come off? Now
   Buzzkill 45% of fights, Popcorn 65%, Bricklayer 47%. (b) Bricklayer drops from 76% to 57% wins once its bricks are
   gone (the crane can't pick them up again): keep it that hard, or let the crane pick bricks up from the floor?
@@ -216,14 +224,24 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T68. Parts that fly off, step 2: six more robots (28 Nov, worker running, branch `nextgen` only).** Gyro (bare
-  flywheel after the shell), Railgun (rails peel, fires wide), Scavenger (hopper cracks, junk pours out), Grandmaster
-  (hat off, random tool), Whaler (hull splits, slower reel, rope can be cut), Jukebox (crate tips, must fetch records).
-  Same checks as T67. After it: step 3 = Pogo, Blacksmith, Lodestone, Hornet, Tarantula, Hydra (need: several pieces
-  per robot, an effect on touching a piece, a per-second hook, a piece that sticks to the other robot); step 4 = card
-  and garage; step 5 = balance re-measure on Kev's PC.
+- **T69. Parts that fly off, step 3: the last six of the 15 (28 Nov, worker running, branch `nextgen` only).** Pogo
+  (casing bursts, spring on the floor bounces whoever drives over it, no more jumps), Blacksmith (hood off, open forge
+  burns on touch, overheats and pauses), Lodestone (coil unwinds, weaker pull, wire tangles tracks), Hornet (spear tip
+  stays stuck in the other robot and keeps hurting, Hornet only shoves), Tarantula (legs one at a time: limps, circles,
+  drags), Hydra (heads cut off one by one, stump zaps on touch). Needs four additions to the mechanism: several pieces
+  per robot, an effect on touching a piece, a per-step hook, a piece that sticks to the other robot. Same checks as
+  T67/T68. After it: step 4 = card and garage; step 5 = balance re-measure on Kev's PC.
 
 ## Done
+
+- **T68. Parts that fly off, step 2: Gyro, Railgun, Scavenger, Grandmaster, Whaler, Jukebox** (28 Nov; NEXT GEN ONLY:
+  on branch `nextgen` at `2a74710`, files stamp there 928db213; not on `main`). Checked by me on nextgen: fingerprint
+  470f6923 with the switch off, game-sim 2/2 finished 0 errors, no Math.random added, pictures. Piece comes off
+  (256 fights each): Gyro 62%, Railgun 32%, Scavenger 46%, Grandmaster 45%, Whaler 40%, Jukebox 34%. Win rate vs the
+  field off -> on: Gyro 53.5 -> 49.6, Railgun 73.8 -> 72.7, Scavenger 67.2 -> 62.9, Grandmaster 61.7 -> 63.7, Whaler
+  52.0 -> 52.7, Jukebox 80.1 -> 77.7. Starting a fight without the piece (wins of 128, with -> without): Gyro 69 -> 8,
+  Scavenger 83 -> 24, Jukebox 101 -> 27, Whaler 72 -> 59, Railgun 93 -> 91, Grandmaster 77 -> 89. (Note: the first
+  push of nextgen after T67 had not arrived; fixed here, checked with ls-remote.)
 
 - **T67. Parts that fly off, step 1: the mechanism and three robots** (28 Nov; NEXT GEN ONLY: merged into branch
   `nextgen` at `67e2647`, files stamp there 00214113; NOT on `main`, by Kev's word "this is a test phase for next gen,
