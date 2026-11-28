@@ -1387,17 +1387,22 @@
     if (R.carry) { const p0 = R.carry.robot.body.getPosition(); ctx.strokeStyle = 'rgba(232,197,71,0.8)'; ctx.lineWidth = PX * 3; ctx.setLineDash([PX * 6, PX * 4]); ctx.beginPath(); ctx.arc(p0.x, p0.y, R.carry.robot.hl + 0.12, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); }
     if (R.claps) for (const q of R.claps) if (q.attached) onBody(q, () => { drawPart(q, '#8C8F86', R, decorate(q, R, 0)); ctx.fillStyle = HAZ; ctx.fillRect(0.38, -0.05, 0.1, 0.1); ctx.strokeStyle = INK; ctx.lineWidth = PX * 1.4; ctx.strokeRect(0.38, -0.05, 0.1, 0.1); bolt(0, 0); });
   }
+  // T72: a lopsided spinner bar (Buzzkill's half bar) throws the robot about along its long arm: drawn a few cm off, the way the arm points
+  function lopShake(R) { const q = R.blade; if (!R.foLop || !q || !q.attached || !R.alive) return null; const w = Math.min(1, (R.bladeW || 0) / (R.bladeMax || 1)); if (w < 0.15) return null;
+    const a = q.body.getAngle(), k = 0.035 * w; return [Math.cos(a) * k, Math.sin(a) * k]; }
   function drawBlade(part, R) {
     const b = part.body, p = b.getPosition(), a = b.getAngle(), w = R ? R.bladeW / R.bladeMax : 0;
     ctx.save(); ctx.translate(p.x, p.y);
     // each arm's reach and where its tip points (a bent arm is shorter and trails): a bent bar sweeps two circles, not one
     const arm = sg => { let r = 0, an = sg > 0 ? 0 : Math.PI; for (const q of part.outline) if (q[0] * sg > 0) { const d = Math.hypot(q[0], q[1]); if (d > r) { r = d; an = Math.atan2(q[1], q[0]); } } return [r || 0.5, an]; };
-    const [rA, aA] = arm(1), [rB, aB] = arm(-1), bent = Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08;
+    const [rA, aA] = arm(1), [rB, aB] = arm(-1), lop = !!part.lop, bent = !lop && (Math.abs(rA - rB) > 0.006 || (part.kinkSum || 0) > 0.08);
     if (w > 0.2) {
       const R0 = Math.max(rA, rB) + 0.01, off = bent ? (rA - rB) * 0.5 : 0; // the out-of-balance bar throws its swept disc off centre
       ctx.fillStyle = `rgba(200,202,196,${0.12 + w * 0.18})`; ctx.beginPath(); ctx.arc(Math.cos(a) * off, Math.sin(a) * off, R0, 0, 6.29); ctx.fill();
       ctx.strokeStyle = `rgba(255,255,255,${w * 0.5})`; ctx.lineWidth = PX * 2;
       for (const [rr, aa] of [[rA, aA], [rB, aB]]) { ctx.beginPath(); ctx.arc(0, 0, rr - 0.02, a + aa, a + aa + 0.9); ctx.stroke(); }
+      if (lop) { ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, Math.min(rA, rB), 0, 6.29); ctx.stroke(); ctx.setLineDash([]); // T72: the stub's small track
+        ctx.strokeStyle = `rgba(232,197,71,${0.5 + w * 0.4})`; ctx.lineWidth = PX * 3; for (const o of [0.25, 0.55]) { ctx.beginPath(); ctx.arc(0, 0, Math.max(rA, rB) + 0.03 + o * 0.04, a + aA - 0.5 - o, a + aA - o * 0.4); ctx.stroke(); } } // wobble marks behind the long end
       if (bent) { const rs = Math.min(rA, rB) - 0.02; ctx.strokeStyle = `rgba(232,197,71,${0.35 + w * 0.4})`; ctx.lineWidth = PX * 2.2; ctx.setLineDash([PX * 6, PX * 5]); ctx.beginPath(); ctx.arc(0, 0, rs, 0, 6.29); ctx.stroke(); ctx.setLineDash([]); } // the bent arm's shorter track
     }
     ctx.rotate(a);
@@ -1786,7 +1791,7 @@
     // robot in the air is drawn last
     const order = S.robots.slice().sort((a, b) => (a.airborne > 0) - (b.airborne > 0) || (b.inPit ? 1 : 0) - (a.inPit ? 1 : 0));
     for (const R of S.robots) if (R.forks && !R.inPit) drawForks(R, R.id);
-    for (const R of order) drawRobot(R, R.id);
+    for (const R of order) { const jg = lopShake(R); if (jg) { ctx.save(); ctx.translate(jg[0], jg[1]); } drawRobot(R, R.id); if (jg) ctx.restore(); } // T72: Buzzkill's lopsided bar shakes the whole robot (drawing only; the sim's shake is real but small on screen)
     for (const d of S.debris) if (d.stuckIn && d.foShape) drawFoPiece(d);   // T69: a spear tip stuck in a robot shows on top of it
     drawTows();
     for (const R of order) if (R.winch && R.spec.weapon === 'anchor' && !R.inPit) drawAnchor(R); // the anchor sits in the wall, over the wall drawing

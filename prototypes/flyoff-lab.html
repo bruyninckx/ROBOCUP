@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="bf1b6a26"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="robocus-files" content="1039c91b"><meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- ROBOCUS next gen test: Parts that fly off (T67 + T68 + T69 + T71a + T71b + T71c, 28 Nov 2026). Pick a robot with a breakaway piece and an opponent, switch the
      mechanism on, watch seeded fights. Loads the shared fight engine and fight view from src2/ (the game's own files, with the
      switch off there); the switch here is the fight option flyoff (engine FLYOFF, docs/robocus-flyoff.md). Needs internet for planck.js. -->
@@ -51,15 +51,15 @@
   <div class="card" style="margin-top:14px"><b>Results</b><div id="out">Press “Run 40 seeds” for numbers, or watch a fight.</div></div>
 </div>
 <div id="fightView"></div>
-<script src="../src2/version.js?b=bf1b6a26"></script>
-<script src="../src2/dmath.js?b=bf1b6a26"></script><!-- deterministic maths: before planck -->
+<script src="../src2/version.js?b=1039c91b"></script>
+<script src="../src2/dmath.js?b=1039c91b"></script><!-- deterministic maths: before planck -->
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.3/dist/planck.min.js"></script>
 <script>window.planck || document.write('<script src="https://unpkg.com/planck@1.4.3/dist/planck.min.js"><\/script>');</script>
 <script>window.planck || document.write('<script src="../vendor/planck-1.4.3.min.js"><\/script>');</script>
-<script src="../src2/engine.js?b=bf1b6a26"></script>
-<script src="../src2/lineup.js?b=bf1b6a26"></script>
-<script src="../src2/sound.js?b=bf1b6a26"></script>
-<script src="../src2/view.js?b=bf1b6a26"></script>
+<script src="../src2/engine.js?b=1039c91b"></script>
+<script src="../src2/lineup.js?b=1039c91b"></script>
+<script src="../src2/sound.js?b=1039c91b"></script>
+<script src="../src2/view.js?b=1039c91b"></script>
 <script>
 (function () {
   'use strict';
@@ -67,7 +67,7 @@
   const $ = id => document.getElementById(id);
   // what each piece is and does (the voting page's words, tools/flyoff-page/gen.py)
   const WHAT = {
-    Buzzkill: ['the spinning bar: first it bends, then it snaps', 'A short half bar spins faster and reaches less far: quick small hits instead of one big one. The snapped half lies on the floor.'],
+    Buzzkill: ['one half of the spinning bar: first it bends, then one arm snaps off near the hub', 'One long arm is left and a short ragged stub on the other side. The bar is out of balance: the robot shakes and drifts while it spins, and only the long end hits (full reach, about half as many hits, each still a proper one). The snapped arm lies on the floor.'],
     Popcorn: ['the yellow teeth plate', 'Flips are weaker, and the bare flipper bends a little more with every flip. The plate lies on the floor.'],
     Bricklayer: ['the brick stack: it topples', 'The blocks on its back break into small bricks that lie around as obstacles for everyone. The crane has nothing left to drop.'],
     Gyro: ['its grey shell', 'A bare gold flywheel on its blue base is left: lighter and spun faster, but smaller, without teeth and out of true (it wobbles), so it hits softer. The shell lies on the floor as a big bump.'],

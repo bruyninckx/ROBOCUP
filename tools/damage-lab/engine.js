@@ -2383,7 +2383,7 @@
       if (R.joint) {
         const mf = R.wmotor.hp > 0 ? (R.wmotor.hp / R.wmotor.maxHp < 0.4 ? 0.6 : 1) : 0;
         const target = ok ? R.bladeMax * mf * Math.min(1, pw) * (R.blade.state === 'bent' ? 0.8 : 1) : 0;
-        R.joint.setMotorSpeed(target); R.joint.setMaxMotorTorque(ok ? 16 * jk * Math.min(1, pw) : 0.6);
+        R.joint.setMotorSpeed(target); R.joint.setMaxMotorTorque(ok ? 16 * jk * Math.min(1, pw) * (R.foLop ? FLYOFF.Buzzkill.torqueK : 1) : 0.6); // T72: the lopsided bar's motor works harder against the shaking
         R.bladeW = Math.abs(R.blade.body.getAngularVelocity() - b.getAngularVelocity());
         if (R.wmotor.hp > 0 && ok) R.wmotor.heat += 1.2 * DT;
         if (R.blade.state === 'bent' && R.bladeW > 10) { // imbalance shakes the robot
@@ -4660,29 +4660,45 @@
   // spec.flyoffGone: the robot starts without its piece (for the robot card and garage later): changed behaviour, nothing on the floor.
   // spec.flyoffKeep (T68, for measuring): the piece never comes off, but the robot's hits are counted like a robot with the switch on.
   const FLYOFF = {
-    // the spinning bar first bends, then snaps at the hub: a short half bar is left, it spins faster and reaches less far (quick small
-    // hits instead of one big one: a quarter of the bar's spin energy at full speed); the snapped half lies on the floor
-    Buzzkill: { weapon: 'spinner', label: 'Half spinner bar', pool: 62, warn: 0.5, half: 0.5, spinK: 1.5,
+    // the spinning bar first bends, then snaps at the hub. T72 (Kev: "do not just make the size smaller, make it asymmetrical one half of
+    // blade perhaps"): ONE arm snaps off a little way out from the hub; the other arm keeps its full length. What is left is lopsided:
+    // a long arm and a short ragged stub (stub = share of the arm left on the broken side). Its centre of mass sits out along the long
+    // arm, so the hub joint has to swing it round: the bar shakes the robot (real physics through the joint, plus the rocking and
+    // walking of a robot shaken on its wheels: shake, in N per kg m of imbalance a (rad/s)^2, pushed along the long arm; and walk, a
+    // slow sideways creep the way the bar spins). Only the long end reaches: about half as many hits per turn, each at full reach.
+    // The snapped arm lies on the floor.
+    Buzzkill: { weapon: 'spinner', label: 'Half spinner bar', pool: 62, warn: 0.5, stub: 0.22, spinK: 1.3, torqueK: 8, shake: 0.2, walk: 0.02,
       feed: (R, q) => q === R.blade ? 1 : 0, watch: R => R.blade,
       bend(S, R) { const q = R.blade; if (!q || !q.attached || (q.kinkSum || 0) >= 0.1) return; foKink(R, q, 0.2); q.state = 'bent';
         const p = q.body.getPosition(); callout(S, 'BENT!', p.x, p.y, false); say(S, `${R.name}: spinner bar bent at the hub, it wobbles`, R.id, true); },
       pop(S, R, h, floor) {
         const q = R.blade; if (!q || !q.attached) return [];
-        const vs = q.vBase || q.verts, L0 = Math.max(...vs.map(v => Math.abs(v[0]))), H = Math.max(...vs.map(v => Math.abs(v[1]))), L = L0 * this.half, m0 = q.mass;
-        // what is left: a short bar round the hub, torn ragged at one end (drawn ragged; the physics shape is its hull)
-        const left = [[-L, -H * 0.6], [-L + 0.04, -H], [L - 0.03, -H], [L + 0.02, -H * 0.35], [L - 0.02, 0], [L + 0.03, H * 0.45], [L - 0.01, H], [-L + 0.04, H], [-L, H * 0.6]];
+        const vs = q.vBase || q.verts, L0 = Math.max(...vs.map(v => Math.abs(v[0]))), H = Math.max(...vs.map(v => Math.abs(v[1]))), Ls = L0 * this.stub, m0 = q.mass;
+        const keep = (L0 + Ls) / (2 * L0); // share of the bar (length, so mass) that stays on the hub
+        // what is left: the full arm on +x, a short stub on -x torn ragged where it broke (drawn ragged; the physics shape is its hull)
+        const left = [[-Ls, -H * 0.45], [-Ls + 0.03, -H], [L0 - 0.06, -H], [L0, -H * 0.6], [L0, H * 0.6], [L0 - 0.06, H], [-Ls + 0.015, H], [-Ls - 0.025, H * 0.4], [-Ls + 0.012, 0.02], [-Ls - 0.02, -H * 0.2]];
         let pc = null;
-        if (floor) { // the snapped half: the outer part of one arm, ragged where it broke
-          const pv = [[-L0 / 2, -H * 0.2], [-L0 / 2 + 0.03, -H], [L0 / 2 - 0.06, -H], [L0 / 2, -H * 0.6], [L0 / 2, H * 0.6], [L0 / 2 - 0.06, H], [-L0 / 2 + 0.01, H], [-L0 / 2 - 0.03, H * 0.35]];
-          const wp = q.body.getWorldPoint(V(L + L0 / 2, 0)), lp = R.body.getLocalPoint(wp), tv = q.body.getLinearVelocityFromWorldPoint(wp), rv = R.body.getLinearVelocityFromWorldPoint(wp);
-          pc = spawnLoose(S, R, 'Half spinner bar', pv, [lp.x, lp.y], m0 * (1 - this.half), [(tv.x - rv.x) * 0.25, (tv.y - rv.y) * 0.25]);
+        if (floor) { // the snapped arm: from the outer tip of the -x arm to the break, ragged at the break (its +x end)
+          const Lp = L0 - Ls, cxp = -(L0 + Ls) / 2;
+          const pv = [[-Lp / 2, -H * 0.6], [-Lp / 2 + 0.06, -H], [Lp / 2 - 0.02, -H], [Lp / 2 + 0.02, -H * 0.3], [Lp / 2 - 0.02, H * 0.1], [Lp / 2 + 0.03, H * 0.5], [Lp / 2, H], [-Lp / 2 + 0.06, H], [-Lp / 2, H * 0.6]];
+          const wp = q.body.getWorldPoint(V(cxp, 0)), lp = R.body.getLocalPoint(wp), tv = q.body.getLinearVelocityFromWorldPoint(wp), rv = R.body.getLinearVelocityFromWorldPoint(wp);
+          pc = spawnLoose(S, R, 'Half spinner bar', pv, [lp.x, lp.y], m0 * (1 - keep), [(tv.x - rv.x) * 0.25, (tv.y - rv.y) * 0.25]);
           if (pc) { pc.body.setTransform(wp, q.body.getAngle()); pc.noHit = R; pc.noHitT = S.t + 0.5; pc.fillAs = '#C9CBC4'; pc.foShape = 'bar'; }
         }
-        q.mass = m0 * this.half; q.vBase = null; q.kinks = []; q.kinkSum = 0; q.state = ''; q.warp = 0;
-        wRefit(R, q, left); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q); q.label = 'Half spinner bar'; q.half = true;
+        q.mass = m0 * keep; q.vBase = null; q.kinks = []; q.kinkSum = 0; q.state = ''; q.warp = 0;
+        wRefit(R, q, left); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q); q.label = 'Half spinner bar'; q.half = true; q.lop = (L0 - Ls) / 2; // q.lop: how far out the centre of mass sits (m)
         const px = R.hl + 0.1; q.home = left.map(v => [px + v[1], v[0] * 0.8]);
-        q.hp = Math.max(q.hp, q.maxHp * 0.45); R.bladeMax = R.bladeMax * this.spinK;
+        q.hp = Math.max(q.hp, q.maxHp * 0.45); R.bladeMax = R.bladeMax * this.spinK; R.foLop = true;
         return pc ? [pc] : [];
+      },
+      // T72: the lopsided bar shakes and walks the robot while it spins (no randomness: it follows the bar's own angle and spin)
+      tick(S, R) {
+        const q = R.blade; if (!R.foLop || !R.alive || !q || !q.attached || !R.joint) return;
+        const b = R.body, w = q.body.getAngularVelocity() - b.getAngularVelocity(), aw = Math.abs(w); if (aw < 10) return;
+        const ba = q.body.getAngle(), F = Math.min(1500, this.shake * q.mass * q.lop * aw * aw), hub = R.joint.getAnchorA();
+        b.applyForce(V(Math.cos(ba) * F, Math.sin(ba) * F), hub, true);
+        const side = b.getWorldVector(V(0, Math.sign(w))), Fw = this.walk * q.mass * q.lop * aw * aw;
+        b.applyForce(V(side.x * Fw, side.y * Fw), hub, true);
       } },
     // the yellow teeth plate pops off the flipper: flips are weaker, and the bare flipper bends a little more with every flip
     Popcorn: { weapon: 'flipper', label: 'Teeth plate', pool: 60, flipBase: 0.62, bendPer: 0.07, bendMax: 0.5,

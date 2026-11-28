@@ -3,19 +3,20 @@
 //   node tools/flyoff-shots.js [outDir=/home/claude/out] [step=t68]   -> <step>-<robot>-before.png, -after.png, -arena.png, -portraits.png
 //   step t67: Buzzkill, Popcorn, Bricklayer; t68: Gyro, Railgun, Scavenger, Grandmaster, Whaler, Jukebox; t69: Pogo, Blacksmith, Lodestone,
 //   Hornet, Tarantula, Hydra; t71a: Forklift, Mincer, Scythe, Snapjaw, Thumper, Wrecker; t71b: Corkscrew, Mauler, Thwacker, Vertigo, Angler, Pincher;
-//   t71c: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet.
+//   t71c: Yoyo, Gaucho, Slingshot, Orbiter, Rotisserie, Trebuchet; t72: Buzzkill (the lopsided half bar).
 //   'sheet': one picture of all the portraits (21 after T71a, 27 after T71b, all 33 after T71c), with and without the piece (<step>-portraits-all.png)
 const { chromium } = require('playwright'), path = require('path');
 const PLK = require('./planck-local.js'), PL = PLK.find('');
 const OUT = process.argv[2] || '/home/claude/out', STEP = process.argv[3] || 't68';
 const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Bricklayer: 'Gyro' }
+  : STEP === 't72' ? { Buzzkill: 'Mauler' } // T72: Buzzkill's lopsided half bar
   : STEP === 't68' ? { Gyro: 'Mauler', Railgun: 'Ramrod', Scavenger: 'Buzzkill', Grandmaster: 'Hydra', Whaler: 'Thwacker', Jukebox: 'Hydra' }
   : STEP === 't71a' ? { Forklift: 'Haymaker', Mincer: 'Ramrod', Scythe: 'Ramrod', Snapjaw: 'Brawler', Thumper: 'Ramrod', Wrecker: 'Haymaker' }
   : STEP === 't71b' ? { Corkscrew: 'Ramrod', Mauler: 'Brawler', Thwacker: 'Ramrod', Vertigo: 'Brawler', Angler: 'Ramrod', Pincher: 'Brawler' }
   : STEP === 't71c' ? { Yoyo: 'Ramrod', Gaucho: 'Brawler', Slingshot: 'Ramrod', Orbiter: 'Brawler', Rotisserie: 'Ramrod', Trebuchet: 'Brawler' }
   : { Pogo: 'Mauler', Blacksmith: 'Ramrod', Lodestone: 'Thwacker', Hornet: 'Brawler', Tarantula: 'Mauler', Hydra: 'Ramrod' };
 (async () => {
-  const b = await chromium.launch(), p = await b.newPage({ viewport: STEP === 't71a' || STEP === 't71b' || STEP === 't71c' ? { width: 2200, height: 1700 } : { width: 1300, height: 1000 }, deviceScaleFactor: 2 }) /* (T71a: a bigger arena on screen, closer pictures) */, errs = [];
+  const b = await chromium.launch(), p = await b.newPage({ viewport: STEP === 't71a' || STEP === 't71b' || STEP === 't71c' || STEP === 't72' ? { width: 2200, height: 1700 } : { width: 1300, height: 1000 }, deviceScaleFactor: 2 }) /* (T71a: a bigger arena on screen, closer pictures) */, errs = [];
   p.on('pageerror', e => errs.push(e.message));
   await PLK.route(p, PL);
   await p.goto('file://' + path.resolve(__dirname, '../prototypes/flyoff-lab.html')); await p.waitForTimeout(300);
