@@ -5,6 +5,14 @@ each list. A task is done when it is on `main` (commit and files stamp in the Do
 
 ## Waiting for Kev
 
+- **K66. Parts that fly off, first three robots (next gen, 28 Nov).** (a) How often should a piece come off? Now
+  Buzzkill 45% of fights, Popcorn 65%, Bricklayer 47%. (b) Bricklayer drops from 76% to 57% wins once its bricks are
+  gone (the crane can't pick them up again): keep it that hard, or let the crane pick bricks up from the floor?
+  (c) Should loose pieces hurt (a flying half bar cuts)? Now they are plain junk. (d) Bricks: rust-red like the sketch,
+  or grey iron like the blocks? (e) Popcorn's bare flipper rarely bends far because its gas runs out first: bend
+  faster? (f) Later, for the garage: starting a fight without the piece costs Buzzkill about 10 points and Popcorn
+  about 16: cheap repair? Safe choices made so far: a third to two thirds, can't pick up, no hurt, rust-red.
+
 Questions only Kev can answer. The orchestrator collects them here and asks in one message.
 
 - **K64 (T66, 22 Nov). Tips:** (a) the 12 texts and their order: change any; (b) one new tip a phase (all 12 take
@@ -208,38 +216,23 @@ Questions only Kev can answer. The orchestrator collects them here and asks in o
 
 ## In progress
 
-- **T67. Parts that fly off, step 1: the mechanism and three robots (28 Nov, worker running).** Kev's words: "a new
-  damage model that has more unique parts flying of from the robots depending on how the robot looks, the shell can come
-  of from gyro which is nice, we need more like this, some tops that come off easily and expose a unique robot design";
-  "yes lets go but start with 15". His votes (28 Nov 10:05, page https://claude.ai/artifact/1Her63jC1sbjZpomvqUSxR,
-  source `tools/flyoff-page/`): Build it on all 15 (Gyro, Pogo, Blacksmith, Whaler, Lodestone, Buzzkill, Hornet, Railgun,
-  Bricklayer, Jukebox, Scavenger, Tarantula, Hydra, Grandmaster, Popcorn), Yes on all three rules (the piece stays on the
-  floor as a real object; every lost piece changes how the robot fights; it shows on the card until repaired), no
-  comments. Goal of step 1: one general "breakaway piece" mechanism inside the engine (so online play stays in step),
-  behind a switch that is OFF in the game (feature freeze until the friends' playtest: stock-fight fingerprint 470f6923
-  must not change with the switch off), with Buzzkill (bar snaps to a half bar), Bricklayer (brick stack topples into
-  floor obstacles) and Popcorn (teeth plate off, bare flipper) working and drawn, and a lab page to watch them. Done
-  when: fingerprint unchanged with the switch off; with it on, each of the three loses its piece in a share of seeded
-  fights (numbers with fight counts), the piece lies on the floor and is hit by robots, the behaviour change is
-  measurable; win rate of each of the three vs the field with switch on and off. Then steps 2-4: the other 12 in
-  batches of four, then the card/garage side, then a balance re-measure on Kev's PC.
-  Kev, 28 Nov: "keep in mind this is a test phase for next gen, not for current gen". So: none of this goes into `main`
-  now. Task branches are merged into the branch `nextgen` (pushed to GitHub), which is merged into `main` only when Kev
-  says the next generation starts. That is why T67 and its follow-ups stay off `main`.
-
-(nothing running: feature freeze until the playtests)
-
-- **T58. Combo hunt: the search program for Kev's PC** (22 Nov; "make a gigantic program to run on my pc to find combos
-  that work really well"). `tools/combo-hunt.cmd` (double-click; own clone in %USERPROFILE%\robocus-combo of branch
-  `claude/combo-hunt`, 15 of 16 processors at low priority, asks hours [3], resumes) runs
-  `tools/damage-lab/combo-hunt.js`: screen every part on every robot → confirm and verify on fresh seeds (15 Nov rules
-  kept) → pairs and full builds vs bare and kitted robots one and two levels up → tiers. `combo-report.js` writes
-  report.md and combo-results.json; `combo-apply.js` prints new PART_FIT / EPIC / TRIPLE text for review. Slice here: 6
-  robots, 7,678 fights, resume and determinism checked. Commit `d501e59`; no game change, stamp `28762982`, fingerprint
-  470f6923; game-sim 2/2 (orchestrator). Doc `docs/robocus-combo-hunt.md`. WAITS: T61 (engine fix) first, then Kev's
-  run; he sends back `%USERPROFILE%\robocus-combo\combo-results\combo-hunt-results.json.gz`. Questions: K59.
+- **T68. Parts that fly off, step 2: six more robots (28 Nov, worker running, branch `nextgen` only).** Gyro (bare
+  flywheel after the shell), Railgun (rails peel, fires wide), Scavenger (hopper cracks, junk pours out), Grandmaster
+  (hat off, random tool), Whaler (hull splits, slower reel, rope can be cut), Jukebox (crate tips, must fetch records).
+  Same checks as T67. After it: step 3 = Pogo, Blacksmith, Lodestone, Hornet, Tarantula, Hydra (need: several pieces
+  per robot, an effect on touching a piece, a per-second hook, a piece that sticks to the other robot); step 4 = card
+  and garage; step 5 = balance re-measure on Kev's PC.
 
 ## Done
+
+- **T67. Parts that fly off, step 1: the mechanism and three robots** (28 Nov; NEXT GEN ONLY: merged into branch
+  `nextgen` at `67e2647`, files stamp there 00214113; NOT on `main`, by Kev's word "this is a test phase for next gen,
+  not for current gen"). Kev's votes: Build it on all 15, Yes on the three rules. One switch (`ARC.flyoff`, off by
+  default), one table `FLYOFF`, Buzzkill / Popcorn / Bricklayer, lab page `prototypes/flyoff-lab.html` (Kev opens it
+  with `play-nextgen.cmd`, which keeps its own folder), doc `docs/robocus-flyoff.md` (on nextgen). Checked by me on
+  nextgen: fingerprint 470f6923 with the switch off, game-sim 2/2 finished 0 errors, no Math.random added, pictures.
+  Numbers (256 fights on, 256 off per robot): piece comes off Buzzkill 45%, Popcorn 65%, Bricklayer 47%; win rate vs
+  the field off -> on: Buzzkill 29.7 -> 30.1, Popcorn 21.1 -> 19.1, Bricklayer 75.8 -> 56.6.
 
 - **T66. First-time tips that point at things** (22 Nov; Kev: "some tutorial box that people can click and then it can
   point out certain things ... once they clicked it once it doesnt appear again"). A 💡 tip box with an arrow and a ring
