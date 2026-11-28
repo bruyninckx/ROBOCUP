@@ -906,7 +906,7 @@
     const src = h.src && h.src !== R && !(S.multi && h.src.team === R.team) ? h.src : null;
     R.stats.taken += d; if (h.cause === 'floorsaw' || h.cause === 'spikes' || h.cause === 'icewall') R.stats.hz = (R.stats.hz || 0) + d;   // arena hazard damage (stats only)
     if (src) {
-      src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; if (src.fo) foTally(src, d, k); src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
+      src.stats.dealt += d; src.lastHit = S.t; const k = h.cause || 'impact'; if (src.fo) { foTally(src, d, k); if (foDef(src).dealt) foFedBy(S, src, d, k, part); } src.stats.dealtBy[k] = (src.stats.dealtBy[k] || 0) + d;
       if (d > src.stats.biggest) { src.stats.biggest = d; src.stats.biggestBy = k; }
       src.hype = Math.min(100, (src.hype || 0) + d * 0.3 + (d > 15 ? 5 : 0));
       if (src.hype >= 100 && !(src.rage > 0) && src.alive) { src.hype = 0; src.rage = 6; say(S, `${src.name} goes into RAGE MODE`, src.id, true); const sp = src.body.getPosition(); callout(S, 'RAGE MODE!', sp.x, sp.y, true); }
@@ -1700,6 +1700,7 @@
     const nim = R.spec.chip && (R.spec.lv || 0) <= ARC.chipNim.maxLv ? ARC.chipNim : null;
     const Fw = (nim ? nim.f : 1) * R.C.force * mot.f * (R.wedgeBoost || 1) * (n === 4 ? 1.25 : 1) * (trk ? 1.45 : 1) * (legs ? 1.35 : 1) / n * (R.nitro > 0 ? 1.6 : 1) * (R.rage > 0 ? 1.2 : 1) * (R.boostK || 1) * (R.underT > 0 ? CXK.underPush : 1);
     let vmax = R.C.vmax * Math.sqrt(R.massStart / m) ** 0.5 * (R.nitro > 0 ? 1.5 : 1) * (trk ? 0.84 : dk === 'boost' ? 1.08 : omni ? 0.95 : legs ? 0.8 : 1) * (R.boostK > 1 ? 1.15 : 1) * (nim ? nim.v : 1);
+    if (R.foLegs) vmax *= FLYOFF.Tarantula.slow[Math.min(3, R.foLegs)]; // T69: legs lost: limps, circles, drags
     // oil: robots in a puddle lose most of their grip and start to spin
     let oiled = false;
     if (S.oils.length && R.airborne <= 0) { const pp = b.getPosition(); for (const o of S.oils) if (Math.hypot(pp.x - o.x, pp.y - o.y) < o.r + 0.1) { oiled = true; break; } }
@@ -1744,6 +1745,7 @@
         if (bent) F *= 1 + 0.6 * Math.sin(s.spin * 1.0);
         if (s.tangled > 0) { s.tangled -= DT; F *= trk ? 0.45 : 0.1; } // a bola wrapped round it (tracks shrug a cord off better)
         if (legs) F *= 0.75 + 0.5 * Math.max(0, Math.sin(s.spin * 0.7 + (s.tri ? Math.PI : 0))); // tripod gait
+        if (R.foLegs) F *= 0.55 + 0.45 * Math.abs(Math.sin(s.spin * 0.35)); // T69: a leg gone: the gait limps
         const tmax = mu * load * 1.15 * fwdK;
         s.slip = Math.abs(F) > tmax ? 1 : 0;
         F = clamp(F, -tmax, tmax);
@@ -3030,7 +3032,7 @@
             T.lifted = Math.max(T.lifted, 0.25); if (tp.body === T.body) T.stun = Math.max(T.stun, 0.3); // a blow on the lid dazes the electronics for a moment
             S.fx.push({ type: 'spark', x: hp.x, y: hp.y, power: 50 }); S.fx.push({ type: 'punch', x: hp.x, y: hp.y, power: 26 });
           } else S.fx.push({ type: 'thud', x: hp.x, y: hp.y, power: 0.4 });
-          st.mode = 'recover'; st.t = 0.36; R.cool = 0.95;
+          st.mode = 'recover'; st.t = 0.36; R.cool = 0.95 * (R.foBite || 1); // (T69: fewer heads, fewer bites)
         }
       } else if (st.mode === 'recover') { st.t -= DT; gain = 12; tq = [160, 110, 50]; if (st.t <= 0) { st.mode = 'fold'; st.busy = false; } }
       for (let i = 0; i < 3; i++) if (A[i].attached && A[i].joint) jointTo(A[i].joint, pose[i], gain, on ? tq[i] : 3, 40);
@@ -3191,14 +3193,14 @@
         for (const T of S.robots) {
           if (T === R || !T.alive || T.team === R.team || !MAGNETIC[T.bumper]) continue;
           const tp = T.body.getWorldCenter(), d = inCone(tp.x, tp.y, 1.7); if (!d) continue;
-          const F = 1100 * Math.sqrt(1 - d / 1.7) * P, ux = (C.x - tp.x) / d, uy = (C.y - tp.y) / d;
+          const F = 1100 * Math.sqrt(1 - d / 1.7) * P * (R.foPull || 1), ux = (C.x - tp.x) / d, uy = (C.y - tp.y) / d;
           T.body.applyForce(V(ux * F, uy * F), tp, true); b.applyForce(V(-ux * F * 0.55, -uy * F * 0.55), b.getWorldCenter(), true); T.magGrip = 0.1;
         }
         // loose steel gets sucked in and orbits the coil
         for (const d of S.debris) {
-          if (d.gone || d.attached || d.mag || st.cloud.length >= 8 || d.bumper === 'rubber' || d.bumper === 'fibre' || d.kind === 'chassis') continue;
+          if (d.gone || d.attached || d.mag || d.noMag || st.cloud.length >= 8 || d.bumper === 'rubber' || d.bumper === 'fibre' || d.kind === 'chassis') continue;
           const dp = d.body.getPosition(), dd = inCone(dp.x, dp.y, 1.7); if (!dd || d.body.getMass() > 6) continue;
-          if (dd < 0.5) { d.mag = R; st.cloud.push(d); } else d.body.applyForce(V((C.x - dp.x) / dd * 40, (C.y - dp.y) / dd * 40), dp, true);
+          if (dd < 0.5) { d.mag = R; st.cloud.push(d); } else d.body.applyForce(V((C.x - dp.x) / dd * 40 * (R.foPull || 1), (C.y - dp.y) / dd * 40 * (R.foPull || 1)), dp, true); // (T69: foPull, the bare core pulls weaker; noMag: copper wire)
         }
         for (const pr of S.projs) { if (pr.rocket || pr.harpoon || pr.owner === R || !pr.body) continue; const pp = pr.body.getPosition(), dd = inCone(pp.x, pp.y, 1.6); if (dd) pr.body.applyForce(V((C.x - pp.x) / dd * 7, (C.y - pp.y) / dd * 7), pp, true); }
         if (st.t <= 0) {
@@ -3670,7 +3672,7 @@
     },
     ok: R => R.hammerArm.hp > 0 && alivePart(R.tool),
     step(S, R, c) {
-      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0, P = Math.min(1, c.pw);
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && c.mf0 > 0 && !(R.foPause > 0), P = Math.min(1, c.pw); // (T69: the bare forge overheated: it pauses)
       R.fx.grip = R.grab ? 1 : 0; R.fx.forge = Math.min(1, st.beats / 6);
       if (R.swing > 0) { R.swing -= DT; if (R.swing <= 0) { // the hammer lands
           const T0 = R.grab ? R.grab.robot : null, ah = T0 ? { q: T0.body.getWorldPoint(V(-0.05 * T0.hl, 0)) } : bodyAhead(S, R, [0.24, 0.34, 0.44]), q = ah ? ah.q : l4front(R, 0.24, 0), tp = ah ? topPartAt(S, q.x, q.y, R) : null; // on the anvil: straight on its lid
@@ -4258,7 +4260,7 @@
     ok: R => R.leg.hp > 0,
     need(R, d) { const m = R.body.getMass(), vz = G * POGO.T / 2, vh = d / POGO.T; return 0.5 * m * (vz * vz + vh * vh); },
     step(S, R, c) {
-      const st = R.l4, b = R.body, E = c.E, on = c.ok && R.leg.hp > 0 && power(R) > 0 && !R.flipped, P = Math.min(1, c.pw), pos = b.getPosition();
+      const st = R.l4, b = R.body, E = c.E, on = c.ok && R.leg.hp > 0 && power(R) > 0 && !R.flipped && !R.foNoJump, P = Math.min(1, c.pw), pos = b.getPosition();
       R.fx.spring = st.E / POGO.Emax;
       if (st.mode === 'air') {
         st.t += DT; const k2 = Math.min(1, st.t / POGO.T);
@@ -4306,6 +4308,7 @@
     think(S, R, c) {
       const st = R.l4, E = c.E; if (!E.alive) return null;
       if (st.mode === 'air') return null;
+      if (R.foNoJump) return { tx: c.ep.x, ty: c.ep.y, speed: 1 }; // T69: no spring any more: drive in and shove with the skid plate
       if (st.mode === 'crouch' && c.dist < POGO.range) return { tx: c.ep.x, ty: c.ep.y, speed: 0 }; // squeezing the spring: sit still
       if (c.dist < 1.3) { const p = R.body.getPosition(); return { tx: p.x - c.dx / c.dist * 2, ty: p.y - c.dy / c.dist * 2, speed: 1 }; } // too close to jump on it: back off
       return { tx: c.ep.x, ty: c.ep.y, speed: c.dist > 2.4 ? 1 : 0.4 };
@@ -4450,7 +4453,7 @@
   };
 
   // a judge-friendly name for each cause
-  Object.assign(CAUSES, { pogo: 'pogo stomp', rail: 'rail slug', yoyo: 'yo-yo saw', junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
+  Object.assign(CAUSES, { pogo: 'pogo stomp', rail: 'rail slug', yoyo: 'yo-yo saw', junk: 'fired junk', brick: 'iron block', prow: 'spiked prow', plough: 'dozer blade', bola: 'bola', record: 'flying record', beak: 'beak', smith: 'forge hammer',  gmflip: 'carousel flipper', hydra: 'strike arm', auger: 'drill', treb: 'scoop', angler: 'gaff hook', magnet: 'electromagnet', shrapnel: 'magnet shrapnel', orbdisc: 'orbiting blade', fangs: 'fangs', fang: 'fangs', forge: 'open forge', zap: 'stump zap', tip: 'stuck spear tip', stump: 'spear stump', gmaxe: 'carousel axe', gmsaw: 'carousel saw' });
   Object.assign(CALL, { junk: 'FWOOMP!', brick: 'BRICKED!', record: 'SCRATCH!', beak: 'PIERCED!', smith: 'CLANG!',  hydra: 'HYDRA!', auger: 'DRILLED!', orbdisc: 'BUZZED!', fangs: 'VENOM!', gmaxe: 'CHOP!', gmsaw: 'SLICED!', shrapnel: 'SHRAPNEL!', magnet: 'ZAP!' });
   Object.assign(SHARP, { prow: 1, record: 1, beak: 1,  auger: 1, orbdisc: 1, fangs: 1, fang: 1, gmsaw: 1, shrapnel: 1 });
 
@@ -4485,6 +4488,7 @@
     S.world.step(DT, 8, 3);
     if (S.pylons) pylonCalls(S);
     processContacts(S); processBegins(S); snags(S);
+    if (S.foAny) foStep(S); // T69: breakaway robots' per-step hooks (never with the switch off)
     if (ARC.cx.slide || ARC.cx.under || ARC.cx.crush) cxStep(S);
     if (S.wx.bend) warpStep(S);
     projectiles(S);
@@ -4716,6 +4720,140 @@
         R.fo.spilled = n; R.foTilt = 0; R.foCrate = 'gone'; R.foReach = this.reach;
         return pc ? [pc] : [];
       } },
+    // ---- step 3 (T69): the last six of the first 15. New in step 3: several pieces per robot (count, pieceLabel, pop's idx),
+    // touch(S, R, piece, part): a robot part touched a loose piece of R's; tick(S, R): every step (foStep; exposed parts that act on
+    // whoever touches them use foContacts); foStick: a piece that sticks in the other robot.
+    // POGO: the round casing over the spring bursts in two halves; the gold spring uncoils across the floor. Pogo can't jump any
+    // more (it drives in and shoves with its skid plate). Anyone who drives into the spring on the floor gets bounced (mildly).
+    Pogo: { weapon: 'pogo', label: 'Casing', pool: 70, warn: 0.6, bounce: 38, bounceAir: 0.3, bounceCd: 1.2,
+      feed: (R, q, h) => h.inner ? (q === R.leg ? 0.8 : 0) : h.top ? 1.3 : q.kind === 'chassis' ? 0.6 : q.kind === 'armour' ? 0.3 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'CASING CRACKS!', p.x, p.y, false); say(S, `${R.name}: the spring casing cracks`, R.id); R.foCrack = 1; },
+      pop(S, R, h, floor) {
+        const out = [], b = R.body, r = Math.min(R.hw, R.hl) * 0.8;
+        if (floor) {
+          for (const sg of [-1, 1]) { const vs = []; for (let k = 0; k <= 6; k++) { const a = sg * (k / 6) * Math.PI; vs.push([Math.cos(a) * r * 0.5 + 0.0, Math.sin(a) * r * 0.5 * 1.0]); }
+            const hv = vs.map(v => [v[0], v[1] * 0.9]), a = S.rng() * TAU, pc = spawnLoose(S, R, 'Casing half', sg < 0 ? hv.reverse() : hv, [0, sg * r * 0.2], 2.2, [Math.cos(a) * 3 + sg * 0, Math.sin(a) * 3]);
+            if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'casing'; pc.body.setLinearDamping(2.5); out.push(pc); } }
+          const a = S.rng() * TAU, L2 = 0.5, sp = spawnLoose(S, R, 'Spring', [[-L2, -0.035], [L2, -0.035], [L2, 0.035], [-L2, 0.035]], [0, 0], 1.6, [Math.cos(a) * 2.2, Math.sin(a) * 2.2]);
+          if (sp) { sp.noHit = R; sp.noHitT = S.t + 1.0; sp.foShape = 'spring'; sp.body.setLinearDamping(3.5); sp.body.setAngularDamping(4); sp.cd = {}; out.push(sp); }
+        }
+        R.foNoJump = true; R.foCrack = 0; const st = R.l4; if (st.mode !== 'air') { st.mode = 'idle'; st.E = 0; }
+        return out;
+      },
+      touch(S, R, pc, q) { // the loose spring bounces whoever drives into it (its own robot too)
+        if (pc.foShape !== 'spring') return; const Q = q.robot; if (!Q.alive || Q.airborne > 0 || S.t < (pc.cd[Q.id] || 0)) return;
+        pc.cd[Q.id] = S.t + this.bounceCd;
+        const sp = pc.body.getPosition(), qp = Q.body.getWorldCenter(); let ux = qp.x - sp.x, uy = qp.y - sp.y; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+        const imp = this.bounce * Math.min(1.4, Q.body.getMass() / 100); knock(Q, ux * imp, uy * imp); Q.airborne = this.bounceAir; Q.airMax = this.bounceAir; Q.flipChance = 0; Q.lifted = Math.max(Q.lifted, 0.2);
+        pc.body.applyLinearImpulse(V(-ux * 3, -uy * 3), sp, true);
+        S.fx.push({ type: 'boing', x: sp.x, y: sp.y }); callout(S, 'BOING!', qp.x, qp.y, false); foEv(R, 'bounce'); foEv(R, Q === R ? 'bounceOwn' : 'bounceOther');
+      } },
+    // BLACKSMITH: the dark hood comes off and shows the glowing forge. Whoever touches Blacksmith now gets burnt (a little, all the
+    // time it touches), but with the hood off the forge overheats: every ~12 s of work it has to stop hammering for 3 s.
+    Blacksmith: { weapon: 'smith', label: 'Hood', pool: 150, warn: 0.6, burn: 5, heatT: 12, pauseT: 3,
+      feed: (R, q, h) => h.inner ? 0 : h.top ? 1.3 : q.kind === 'chassis' ? 0.5 : q.kind === 'armour' ? 0.3 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'HOOD DENTED!', p.x, p.y, false); say(S, `${R.name}: the hood over its forge is coming loose`, R.id); R.foTilt = 1; },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { const a = S.rng() * TAU; pc = spawnLoose(S, R, 'Hood', [[-0.2, -0.17], [0.17, -0.15], [0.2, 0.15], [-0.2, 0.17]], [-0.56 * R.hl, 0], 4, [Math.cos(a) * 3, Math.sin(a) * 3]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'hood'; pc.body.setLinearDamping(2.5); } }
+        R.foForge = 1; R.foHeat = 0; R.foPause = 0; R.foTilt = 0;
+        return pc ? [pc] : [];
+      },
+      tick(S, R) {
+        if (!R.foForge || !R.alive) return;
+        if (R.foPause > 0) { R.foPause -= DT; if (R.foPause <= 0) { R.foHeat = 0; const p = R.body.getPosition(); callout(S, 'COOLED', p.x, p.y, false); } }
+        else { R.foHeat += DT / this.heatT; if (R.foHeat >= 1) { R.foPause = this.pauseT; letGo(S, R, 0); R.swing = 0; foEv(R, 'overheat'); const p = R.body.getPosition(); callout(S, 'OVERHEAT!', p.x, p.y, true); say(S, `${R.name}: the bare forge overheats, it has to stop hammering`, R.id, true); } }
+        const seen = new Set();
+        for (const [q, wp] of foContacts(S, R)) { const T = q.robot; if (seen.has(T)) continue; seen.add(T); // the open forge burns whatever leans on it
+          const lp = q.body.getLocalPoint(wp); hit(S, q, this.burn * DT, { src: R, cause: 'forge', lp: [lp.x, lp.y], blp: q.body === T.body ? [lp.x, lp.y] : null, x: wp.x, y: wp.y, ignoreThr: true, pen: 0.5 }); q.heat = (q.heat || 0) + 6 * DT;
+          foEv(R, 'burnS', DT); if (S.step % 6 === 0) S.fx.push({ type: 'spark', x: wp.x, y: wp.y, power: 8 }); }
+      } },
+    // LODESTONE: the copper coil unwinds: a thin bare magnet core is left, it pulls half as hard. The loose wire on the floor tangles
+    // the tracks or wheels of whoever drives into it (its own too) for a moment.
+    Lodestone: { weapon: 'lodestone', label: 'Coil', pool: 55, warn: 0.6, pull: 0.5, tie: 1.2, cd: 2.5,
+      feed: (R, q, h) => h.inner ? (q === R.coil ? 1 : 0) : h.top ? 1 : q.kind === 'chassis' ? (h.blp && h.blp[0] > 0 ? 0.7 : 0.3) : q === R.tool ? 0.3 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'COIL SPARKS!', p.x, p.y, false); say(S, `${R.name}: its magnet coil starts to unwind`, R.id); R.foCrack = 1; },
+      pop(S, R, h, floor) {
+        let pc = null;
+        if (floor) { const a = S.rng() * TAU; pc = spawnLoose(S, R, 'Copper wire', [[-0.45, -0.03], [0.45, -0.03], [0.45, 0.03], [-0.45, 0.03]], [0.55 * R.hl, 0], 1.2, [Math.cos(a) * 2.5, Math.sin(a) * 2.5]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 1.0; pc.foShape = 'wire'; pc.noMag = true; pc.body.setLinearDamping(3.5); pc.body.setAngularDamping(4); pc.cd = {}; } }
+        R.foPull = this.pull; R.foCrack = 2;
+        return pc ? [pc] : [];
+      },
+      touch(S, R, pc, q) { // the wire wraps round the wheels on that side
+        const Q = q.robot; if (!Q.alive || S.t < (pc.cd[Q.id] || 0) || !Q.slots.length) return;
+        const lp = Q.body.getLocalPoint(pc.body.getPosition()), sd = Math.sign(lp.y) || 1; let n = 0;
+        for (const s of Q.slots) if (Math.sign(s.lp[1]) === sd && alivePart(s.wheel)) { s.tangled = Math.max(s.tangled || 0, this.tie); n++; }
+        if (!n) return; pc.cd[Q.id] = S.t + this.cd;
+        const qp = Q.body.getPosition(); callout(S, 'TANGLED!', qp.x, qp.y, false); foEv(R, 'tangle'); foEv(R, Q === R ? 'tangleOwn' : 'tangleOther');
+      } },
+    // HORNET: the spear tip breaks off: a blunt stump is left, it can only shove. If the tip broke in the other robot it stays stuck
+    // there and keeps hurting it a little (1.2 damage a second on its hull); else it lies on the floor.
+    Hornet: { weapon: 'spear', label: 'Spear tip', pool: 140, warn: 0.6, sting: 0.6, every: 0.5,
+      feed: (R, q) => q === R.tool ? 1 : 0, dealt: (R, d, cause) => cause === 'spear' ? 0.3 : 0, // the tip wears from what it hits, too
+      bend(S, R) { const q = R.tool; if (!q || !q.attached) return; const p = R.body.getWorldPoint(V(R.hl + 0.4, 0)); callout(S, 'TIP CHIPPED!', p.x, p.y, false); say(S, `${R.name}: the spear tip is chipped`, R.id); R.foChip = 1; },
+      pop(S, R, h, floor) {
+        const q = R.tool; if (!q || !q.attached) return [];
+        const vs = q.vBase || q.v0 || q.verts, tipX = Math.max(...vs.map(v => v[0])), hl = R.hl, sw = Math.max(...vs.filter(v => Math.abs(v[0] - hl) < 0.01).map(v => Math.abs(v[1]))) || 0.06;
+        let pc = null;
+        if (floor) {
+          const L0 = 0.2, tv = [[-L0 / 2, -0.035], [L0 / 2, 0], [-L0 / 2, 0.035]], wp = R.body.getWorldPoint(V(tipX - L0 / 2, 0)), lp = R.body.getLocalPoint(wp);
+          pc = spawnLoose(S, R, 'Spear tip', tv, [lp.x, lp.y], 0.8, [0, 0]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'tip'; pc.body.setTransform(wp, R.body.getAngle());
+            const tw = R.body.getWorldPoint(V(tipX - 0.03, 0)), E = h.into || ((h.src && h.src !== R) ? h.src : R.enemy);
+            const inE = E && E.alive && partsAt(S, tw.x, tw.y, 0.09, R).some(p2 => p2.robot === E && p2.body === E.body);
+            if (inE) { foStick(S, pc, E, tw); foEv(R, 'stuck'); callout(S, 'STUCK IN!', tw.x, tw.y, true); say(S, `${R.name}'s spear tip breaks off and stays stuck in ${E.name}`, R.id, true); }
+            else { const a = S.rng() * TAU; pc.body.setLinearVelocity(V(Math.cos(a) * 2.5, Math.sin(a) * 2.5)); } } }
+        const stump = [[hl, -sw], [hl + 0.09, -sw * 0.85], [hl + 0.12, -sw * 0.3], [hl + 0.12, sw * 0.3], [hl + 0.09, sw * 0.85], [hl, sw]];
+        q.mass = q.mass * 0.6; q.vBase = null; q.kinks = []; q.kinkSum = 0; q.state = ''; q.bends = null; wRefit(R, q, stump); q.dents = []; q.cracks = []; q.grooves = []; wRebuild(q);
+        q.key = 'stump'; q.label = 'Spear stump'; q.sharp = 0.3; q.home = stump.map(v => v.slice()); R.foChip = 0;
+        return pc ? [pc] : [];
+      },
+      tick(S, R) { // the stuck tip keeps hurting the robot it is in
+        for (const pc of R.fo.pieces) { const T = pc.stuckIn; if (!T || !T.alive) continue;
+          if (S.t - (pc.lastSting || pc.stuckT) < this.every) continue; pc.lastSting = S.t;
+          const wp = pc.body.getPosition(), lp = T.body.getLocalPoint(wp); hit(S, T.chassis, this.sting, { src: R, cause: 'tip', lp: [lp.x, lp.y], blp: [lp.x, lp.y], x: wp.x, y: wp.y, ignoreThr: true, pen: 0.3 }); foEv(R, 'stings'); }
+      } },
+    // TARANTULA: its legs come off one at a time (up to three, all on the side that takes the hits), leaving sparking stumps. One
+    // gone: it limps; two gone on one side: it turns in circles; three: that side drags on the floor. The legs stay on the floor.
+    Tarantula: { weapon: 'fangs', label: 'Leg', count: 3, pool: 60, nextK: 1.4, warn: 0.6, slow: [1, 0.9, 0.8, 0.6],
+      pieceLabel: k => ['First leg', 'Second leg', 'Third leg'][k] || 'Leg',
+      feed: (R, q, h) => h.inner ? 0 : q.kind === 'wheel' ? 1 : q.kind === 'chassis' ? (h.blp && Math.abs(h.blp[1]) > 0.5 * R.hw ? 0.6 : 0.2) : q.kind === 'armour' ? 0.4 : 0,
+      bend(S, R) { const p = R.body.getPosition(); callout(S, 'LEG BUCKLES!', p.x, p.y, false); say(S, `${R.name}: a leg joint is buckling`, R.id); },
+      pop(S, R, h, floor, idx) {
+        if (R.foSide == null) R.foSide = h.blp && Math.abs(h.blp[1]) > 0.01 ? Math.sign(h.blp[1]) : h.part && h.part.slot ? h.part.slot.side : S.rng() < 0.5 ? -1 : 1;
+        const ord = s => (s.side === R.foSide ? 0 : 10) + (s.lp[0] > 0 ? 0 : s.lp[0] < 0 ? 1 : 2); // front, rear, middle; that side first
+        const s = R.slots.filter(s2 => s2.wheel && s2.wheel.attached).sort((a, b) => ord(a) - ord(b))[0];
+        R.foLegs = (R.foLegs || 0) + 1; R.foStumps = R.foStumps || []; if (!s) return [];
+        R.foStumps.push([s.lp[0], s.side]); const q = s.wheel;
+        if (!floor) { R.body.destroyFixture(q.fx); q.attached = false; s.wheel = null; q.gone = true; return []; } // spec.flyoffGone: the leg is simply not there
+        const out = R.body.getWorldVector(V(0, s.side)); detach(S, q, [out.x * 2, out.y * 2]); q.foShape = 'leg'; q.legSide = s.side; q.noHit = R; q.noHitT = S.t + 0.5;
+        return [q];
+      } },
+    // HYDRA: three heads; the two side heads can be cut off, one by one, leaving sparking stumps. Fewer heads, fewer bites: the strike
+    // arm waits longer between strikes (x1.4 with one side head gone, x2 with both). A stump zaps whoever touches it.
+    Hydra: { weapon: 'hydra', label: 'Head', count: 2, pool: 150, nextK: 1.2, warn: 0.6, wait: [1, 1.4, 2], zap: 2, zapStun: 0.15, zapCd: 2,
+      pieceLabel: k => k ? 'Second head' : 'Side head',
+      feed: (R, q, h) => h.inner ? 0 : q.key === 'hydra' ? 0.5 : (q.kind === 'chassis' || q.kind === 'armour') ? (h.top ? 0.6 : h.blp && h.blp[0] > 0.2 * R.hl ? 0.8 : 0.2) : 0,
+      bend(S, R) { const p = R.body.getWorldPoint(V(R.hl * 0.6, 0)); callout(S, 'NECK CRACKS!', p.x, p.y, false); say(S, `${R.name}: a side neck is cracking`, R.id); },
+      pop(S, R, h, floor, idx) {
+        R.foHeadOff = R.foHeadOff || [false, false];
+        let k = h.blp && Math.abs(h.blp[1]) > 0.01 ? (h.blp[1] < 0 ? 0 : 1) : idx; if (R.foHeadOff[k]) k = 1 - k; R.foHeadOff[k] = true; // the side that was hit
+        const sg = k ? 1 : -1, mp = [R.hl * 0.62, sg * R.hw * 0.62]; R.foBite = this.wait[R.foHeadOff.filter(Boolean).length]; R.foZapT = R.foZapT || [0, 0];
+        let pc = null;
+        if (floor) { const out = R.body.getWorldVector(V(0.5, sg)); pc = spawnLoose(S, R, 'Hydra head', [[-0.1, -0.08], [0.06, -0.1], [0.13, -0.03], [0.13, 0.03], [0.06, 0.1], [-0.1, 0.08]], [mp[0] + 0.12, mp[1] + sg * 0.08], 2.5, [out.x * 3, out.y * 3]);
+          if (pc) { pc.noHit = R; pc.noHitT = S.t + 0.6; pc.foShape = 'head'; pc.body.setLinearDamping(2.5); } }
+        return pc ? [pc] : [];
+      },
+      tick(S, R) { // a sparking stump zaps whoever touches it
+        if (!R.foHeadOff || !R.alive) return;
+        for (const [q, wp] of foContacts(S, R)) for (let k = 0; k < 2; k++) { if (!R.foHeadOff[k] || S.t < R.foZapT[k]) continue;
+          const sp = R.body.getWorldPoint(V(R.hl * 0.62, (k ? 1 : -1) * R.hw * 0.62)); if (Math.hypot(wp.x - sp.x, wp.y - sp.y) > 0.25) continue;
+          R.foZapT[k] = S.t + this.zapCd; const T = q.robot, lp = q.body.getLocalPoint(wp);
+          hit(S, q, this.zap, { src: R, cause: 'zap', lp: [lp.x, lp.y], blp: q.body === T.body ? [lp.x, lp.y] : null, x: wp.x, y: wp.y, ignoreThr: true, pen: 0.4 }); T.stun = Math.max(T.stun, this.zapStun);
+          S.fx.push({ type: 'spark', x: wp.x, y: wp.y, power: 30 }); callout(S, 'ZAP!', wp.x, wp.y, false); foEv(R, 'zap'); }
+      } },
   };
   function foPart(S, R, key, label, kind, verts, o) { // T68: swap a new part in (its own body, on a joint the caller makes), as create() builds them
     const fx = o.body.createFixture({ shape: pl.Polygon(verts.map(q => V(q[0], q[1]))), density: o.mass / Math.abs(area(verts)), friction: o.friction == null ? 0.45 : o.friction, restitution: o.rest == null ? 0.15 : o.rest, filterGroupIndex: R.group });
@@ -4742,34 +4880,69 @@
   function foInit(S, R) {
     const def = FLYOFF[R.spec.preset]; if (!def || def.weapon !== R.spec.weapon) return;
     const pool = def.pool * (R.spec.hpK || 1);
-    R.fo = { key: R.spec.preset, label: def.label, pool, max: pool, warned: false, off: false, offT: null, pieces: [], touch: { own: 0, other: 0 }, dealt: { pre: {}, post: {} } };
-    if (R.spec.flyoffGone) { R.fo.warned = true; foPop(S, R, {}, false); R.fo.offT = 0; }
+    R.fo = { key: R.spec.preset, label: def.label, pool, max: pool, warned: false, off: false, offT: null, pieces: [], touch: { own: 0, other: 0 }, dealt: { pre: {}, post: {} },
+      n: 0, count: def.count || 1, offs: [], done: false, ev: {} }; // T69: several pieces per robot (n lost of count; offs = when), ev = how often its touch / step effects fired
+    S.foAny = true; // T69: run the per-step hooks (foStep); never set with the switch off unless a spec asks for it
+    if (R.spec.flyoffGone) { const g = R.spec.flyoffGone === true ? R.fo.count : Math.min(R.fo.count, +R.spec.flyoffGone || 1); R.fo.warned = true; for (let k = 0; k < g; k++) foPop(S, R, {}, false); R.fo.offT = 0; }
     else if (R.spec.flyoffKeep) R.fo.keep = true; // T68, for measuring: the piece never comes off, but the robot's hits are counted (R.fo.dealt.pre)
   }
   function foDef(R) { return FLYOFF[R.fo.key]; }
   function foFeed(S, R, part, d, h) { // after a hit on one of R's parts (applyHit)
-    const F = R.fo; if (F.off || F.keep || !R.alive) return;
+    const F = R.fo; if (F.done || F.keep || !R.alive) return;
     const def = foDef(R), w = def.feed(R, part, h, d) || 0;
     if (w > 0) { F.pool -= d * w; F.fed = (F.fed || 0) + d * w; }
     if (!F.warned && def.warn && F.pool <= F.max * (1 - def.warn)) { F.warned = true; if (def.bend) def.bend(S, R, h); }
     if (F.pool <= 0 || (def.watch && def.watch(R) === part && part.hp <= 0)) foPop(S, R, h, true);
   }
-  function foPop(S, R, h, floor) {
-    const F = R.fo, def = foDef(R); if (F.off) return;
-    F.off = true; F.offT = S.t; F.pool = 0;
-    const pcs = def.pop(S, R, h || {}, floor) || [];
+  function foPop(S, R, h, floor) { // one piece comes off (T69: the next of several, if the robot has more)
+    const F = R.fo, def = foDef(R); if (F.done) return;
+    const idx = F.n; F.n++; F.done = F.n >= F.count; F.offs.push(+S.t.toFixed(2));
+    if (!F.off) { F.off = true; F.offT = S.t; }
+    F.pool = F.done ? 0 : F.max * (def.nextK || 1); // the next piece has its own pool
+    const pcs = def.pop(S, R, h || {}, floor, idx) || [];
     for (const pc of pcs) { pc.fo = F; pc.foOf = R; F.pieces.push(pc); }
     if (!floor) return;
     const atk = h && h.src && h.src !== R ? h.src : null, p = pcs.length ? pcs[0].body.getPosition() : R.body.getPosition();
-    S.fx.push({ type: 'detach', x: p.x, y: p.y }); S.fx.push({ type: 'shatter', x: p.x, y: p.y }); callout(S, def.label.toUpperCase() + ' OFF!', p.x, p.y, true);
-    R.stats.lost.push({ t: S.t, label: def.label, cause: (h && h.cause) || 'impact', by: atk ? atk.name : '' });
+    const lab = def.pieceLabel ? def.pieceLabel(idx) : def.label;
+    S.fx.push({ type: 'detach', x: p.x, y: p.y }); S.fx.push({ type: 'shatter', x: p.x, y: p.y }); callout(S, lab.toUpperCase() + ' OFF!', p.x, p.y, true);
+    R.stats.lost.push({ t: S.t, label: lab, cause: (h && h.cause) || 'impact', by: atk ? atk.name : '' });
     if (atk) atk.hype = Math.min(100, (atk.hype || 0) + 10);
-    say(S, `${R.name}: ${def.label.toLowerCase()} comes off${atk ? ` (${atk.name}'s ${causeLabel(h.cause)})` : ''}`, atk ? atk.id : R.id, true);
+    say(S, `${R.name}: ${lab.toLowerCase()} comes off${atk ? ` (${atk.name}'s ${causeLabel(h.cause)})` : ''}`, atk ? atk.id : R.id, true);
+  }
+  function foFedBy(S, R, d, cause, part) { // T69: the piece wears from the hits the robot deals (Hornet's tip), def.dealt(R, d, cause) = share
+    const F = R.fo; if (F.done || F.keep || !R.alive) return; const def = foDef(R), w = def.dealt(R, d, cause) || 0; if (!(w > 0)) return;
+    F.pool -= d * w; F.fed = (F.fed || 0) + d * w;
+    if (!F.warned && def.warn && F.pool <= F.max * (1 - def.warn)) { F.warned = true; if (def.bend) def.bend(S, R, {}); }
+    if (F.pool <= 0) foPop(S, R, { into: part.robot, cause }, true);
   }
   function foTally(src, d, cause) { const F = src.fo, ph = F.off ? F.dealt.post : F.dealt.pre, k = cause || 'impact', o = ph[k] || (ph[k] = { n: 0, d: 0 }); o.n++; o.d += d; }
   function foTouch(S, u, o) { // a loose piece touched an attached robot part (begin-contact)
     const F = u.part.fo; if (!F || u.part.attached || !o.part || !o.part.attached) return;
+    if (u.part.stuckIn) return; // T69: a piece stuck in a robot is not lying on the floor
     if (o.part.robot === u.part.foOf) F.touch.own++; else F.touch.other++;
+    const def = FLYOFF[F.key]; if (def.touch) def.touch(S, u.part.foOf, u.part, o.part); // T69: what touching it does (spring bounces, wire tangles)
+  }
+  // T69: the per-step hooks (only fights with a breakaway robot get here: S.foAny). def.tick(S, R): after the physics step, before the
+  // hits are applied. Ticks run for every robot with an entry, alive or not (a stuck tip keeps working).
+  function foStep(S) { for (const R of S.robots) if (R.fo) { const def = foDef(R); if (def.tick) def.tick(S, R); } }
+  function foEv(R, k, n) { R.fo.ev[k] = +((R.fo.ev[k] || 0) + (n == null ? 1 : n)).toFixed(3); }
+  // T69: the other robots' parts touching R's body (its own hull and the parts fixed on it) this step: [part, world point]
+  function foContacts(S, R) {
+    const out = [], b = R.body;
+    for (let ce = b.getContactList(); ce; ce = ce.next) {
+      const cc = ce.contact; if (!cc.isTouching()) continue;
+      const mine = cc.getFixtureA().getBody() === b ? cc.getFixtureA() : cc.getFixtureB(), fo = mine === cc.getFixtureA() ? cc.getFixtureB() : cc.getFixtureA(), u = fo.getUserData() || {};
+      if (!u.part || !u.part.attached || u.part.robot === R || !u.part.robot.alive) continue;
+      const wm = cc.getWorldManifold(null); if (!wm || !wm.points.length) continue;
+      out.push([u.part, wm.points[0], (mine.getUserData() || {}).part]);
+    }
+    return out;
+  }
+  // T69: a piece that sticks in another robot: welded at the point it went in, no longer collides (it is in the hull), drawn on top
+  function foStick(S, pc, T, wp) {
+    for (let f = pc.body.getFixtureList(); f; f = f.getNext()) f.setSensor(true);
+    pc.body.setTransform(wp, pc.body.getAngle()); pc.body.setLinearVelocity(T.body.getLinearVelocityFromWorldPoint(wp)); pc.body.setAngularVelocity(T.body.getAngularVelocity());
+    pc.stickJ = S.world.createJoint(pl.WeldJoint({ frequencyHz: 0 }, T.body, pc.body, wp)); pc.stuckIn = T; pc.stuckT = S.t;
   }
 
   function run(opts, maxT = 200) { const S = create(Object.assign({ countdown: 0 }, opts)); while (!S.over && S.t < maxT) { step(S); S.fx.length = 0; } return S; }

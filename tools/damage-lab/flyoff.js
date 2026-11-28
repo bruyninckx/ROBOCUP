@@ -43,6 +43,7 @@ for (const opp of field) for (let k = 0; k < per; k++) {
     const o = { name, opp, seed, on, win: S.result ? (S.result.winner === R.id ? 1 : 0) : 0.5, t: +S.t.toFixed(2), how: S.result ? S.result.how : '-' };
     if (F) {
       o.off = F.off; o.offT = F.offT; o.own = F.touch.own; o.other = F.touch.other; o.dealt = F.dealt; o.pieces = F.pieces.length;
+      o.n = F.n; o.offs = F.offs; o.ev = F.ev; o.stuck = F.pieces.filter(p => p.stuckIn).length; // T69: pieces lost (several per robot), when, the touch / step effects
       o.pieceMoved = F.pieces.reduce((a, p) => a + (p.body.isActive() ? 1 : 0), 0);
       if (R.foBend != null) o.bend = +R.foBend.toFixed(3);
     }
