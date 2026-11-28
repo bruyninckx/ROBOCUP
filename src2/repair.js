@@ -162,7 +162,7 @@
   /* T73: what a lost piece costs (logits), from the wins starting without it against the same fights keeping it (docs/robocus-flyoff.md,
    * `flyoff.js gone <robot> 4`: 128 fights each way against the whole field; Popcorn from step 1). logit(keep) - logit(gone), never below 0
    * (Grandmaster wins more without its hat), at most a lost weapon (3.0). Several pieces (Tarantula, Hydra): in proportion. */
-  const PIECE_WINS = { Buzzkill: [30, 29], Popcorn: [28, 7], Bricklayer: [0, 0], Gyro: [69, 8], Railgun: [93, 91], Scavenger: [83, 24], Grandmaster: [77, 89], Whaler: [72, 59],
+  const PIECE_WINS = { Buzzkill: [30, 29], Popcorn: [28, 7], Bricklayer: [97, 33], Gyro: [69, 8], Railgun: [93, 91], Scavenger: [83, 24], Grandmaster: [77, 89], Whaler: [72, 59],
     Jukebox: [101, 27], Pogo: [97, 30], Blacksmith: [56, 51], Lodestone: [95, 88], Hornet: [19, 6], Tarantula: [92, 39], Hydra: [67, 46], Forklift: [31, 28], Mincer: [27, 8],
     Scythe: [36, 15], Snapjaw: [24, 17], Thumper: [31, 19], Wrecker: [30, 10], Corkscrew: [51, 21], Mauler: [41, 14], Thwacker: [60, 54], Vertigo: [51, 23], Angler: [73, 70],
     Pincher: [65, 63], Yoyo: [61, 18], Gaucho: [73, 49], Slingshot: [74, 54], Orbiter: [101, 48], Rotisserie: [90, 24], Trebuchet: [96, 53] };
