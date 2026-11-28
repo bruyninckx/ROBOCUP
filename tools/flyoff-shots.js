@@ -34,11 +34,11 @@ const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Brickla
   }
   for (const [who, opp] of Object.entries(PICK)) { if (process.argv[4] && !process.argv[4].split(',').includes(who)) continue;
     // a seed where the piece comes off between 8 and 70 s and both robots are still going 3 s later
-    const f = await p.evaluate(([who, opp]) => {
+    const f = await p.evaluate(([who, opp, s0]) => {
       const L = window.DamageLab, LU = window.Lineup;
       const spill = { Scavenger: 3, Jukebox: 1 }[who] || 0; // T68: show the junk / records that pour out
       const many = { Tarantula: 2, Hydra: 2 }[who] || 1, stuck = who === 'Hornet'; // T69: two legs / both heads gone; the tip stuck in the other robot
-      for (let seed = 1; seed < 400; seed++) {
+      for (let seed = s0; seed < 400; seed++) { // (T71c: SEED_<Robot>=n starts the search at seed n)
         const S = L.run({ a: LU.build(who), b: LU.build(opp), seed, arena: 'open', flyoff: true }), F = S.robots[0].fo, last = F.offs && F.offs.length ? F.offs[F.offs.length - 1] : F.offT;
         if (F.off && F.offT > (spill ? 3 : 8) && last < 70 && S.t > last + 4 && (F.spilled || 0) >= spill && (F.n || 1) >= many && (!stuck || F.pieces.some(q => q.stuckIn))) { // T69: and the right way up in both pictures
           const S2 = L.create({ a: LU.build(who), b: LU.build(opp), seed, arena: 'open', flyoff: true, countdown: 0 }); let ok = true;
@@ -46,7 +46,7 @@ const PICK = STEP === 't67' ? { Buzzkill: 'Mauler', Popcorn: 'Thwacker', Brickla
           if (ok) return { seed, offT: last, first: F.offT }; }
       }
       return null;
-    }, [who, opp]);
+    }, [who, opp, +(process.env['SEED_' + who] || 1)]);
     if (!f) { console.log(who + ': no seed found'); continue; }
     for (const [tag, at] of [['before', (f.first || f.offT) - 1.5], ['after', f.offT + 2.5]]) {
       const box = await p.evaluate(([who, opp, seed, at]) => {
